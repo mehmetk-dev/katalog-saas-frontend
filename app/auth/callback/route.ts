@@ -11,20 +11,16 @@ export async function GET(request: Request) {
 
     if (!error) {
       const forwardedHost = request.headers.get("x-forwarded-host")
+      const isLocal = request.url.includes("localhost")
 
-      if (forwardedHost) {
+      if (forwardedHost && !isLocal) {
         return NextResponse.redirect(`https://${forwardedHost}/dashboard`)
       }
 
-      // Fallback to origin
+      // Fallback to origin or http for localhost
       const { origin } = new URL(request.url)
       return NextResponse.redirect(`${origin}/dashboard`)
     }
-  }
-
-  const forwardedHost = request.headers.get("x-forwarded-host")
-  if (forwardedHost) {
-    return NextResponse.redirect(`https://${forwardedHost}/auth?error=could_not_authenticate`)
   }
 
   const { origin } = new URL(request.url)

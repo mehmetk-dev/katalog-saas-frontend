@@ -4,9 +4,9 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { createClient } from "@/lib/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
-type UserPlan = "free" | "pro"
+type UserPlan = "free" | "plus" | "pro"
 
-interface User {
+export interface User {
   id: string
   name: string
   email: string
@@ -35,43 +35,87 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+interface UserProviderProps {
+  children: ReactNode
+  initialUser?: User | null
+  initialSupabaseUser?: SupabaseUser | null
+}
+
+export function UserProvider({ children, initialUser = null, initialSupabaseUser = null }: UserProviderProps) {
+  const [user, setUser] = useState<User | null>(initialUser)
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(initialSupabaseUser)
+  const [isLoading, setIsLoading] = useState(!initialUser)
   const supabase = createClient()
 
-  const fetchUserProfile = async (authUser: SupabaseUser) => {
-    // Get user profile
-    const { data: profile } = await supabase.from("users").select("*").eq("id", authUser.id).single()
+  const fetchUserProfile = async (authUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
+    const MAX_RETRIES = 3
+    const RETRY_DELAY = 1000 // 1 saniye
 
-    // Get products count
-    const { count: productsCount } = await supabase
-      .from("products")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", authUser.id)
+    try {
+      // Get user profile
+      const { data: profile, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
+        .single()
 
-    // Get catalogs count
-    const { count: catalogsCount } = await supabase
-      .from("catalogs")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", authUser.id)
+      // PGRST116 = "Row not found" - bu normal, yeni kullanıcı olabilir
+      // Diğer hatalar için retry yap
+      if (error) {
+        console.warn(`Profile fetch error (code: ${error.code}, attempt ${retryCount + 1}/${MAX_RETRIES}):`, error.message)
 
-    const plan = profile?.plan || "free"
+        // Row not found değilse retry
+        if (error.code !== 'PGRST116') {
+          if (retryCount < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+            return fetchUserProfile(authUser, retryCount + 1)
+          }
+          console.error("All retry attempts failed for profile fetch:", error.code, error.message)
+          return false
+        }
+        // PGRST116 ise profil yok ama devam et (yeni kullanıcı)
+      }
 
-    setUser({
-      id: authUser.id,
-      email: authUser.email!,
-      name: profile?.full_name || authUser.user_metadata?.full_name || "Kullanıcı",
-      company: profile?.company || "",
-      avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
-      plan: plan as UserPlan,
-      productsCount: productsCount || 0,
-      catalogsCount: catalogsCount || 0,
-      maxProducts: plan === "pro" ? 999999 : 50,
-      maxExports: plan === "pro" ? 999999 : 1,
-      exportsUsed: 0,
-    })
+      // Get products count
+      const { count: productsCount } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", authUser.id)
+
+      // Get catalogs count
+      const { count: catalogsCount } = await supabase
+        .from("catalogs")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", authUser.id)
+
+      // Profile varsa plan'ı al, yoksa yeni kullanıcı olabilir
+      const plan = profile?.plan ? profile.plan.toLowerCase() : "free"
+
+      setUser({
+        id: authUser.id,
+        email: authUser.email!,
+        name: profile?.full_name || authUser.user_metadata?.full_name || "Kullanıcı",
+        company: profile?.company || "",
+        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
+        plan: plan as UserPlan,
+        productsCount: productsCount || 0,
+        catalogsCount: catalogsCount || 0,
+        maxProducts: plan === "pro" ? 999999 : plan === "plus" ? 1000 : 50,
+        maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 1,
+        exportsUsed: profile?.exports_used || 0,
+      })
+      return true
+    } catch (error) {
+      console.error(`Critical error in fetchUserProfile (attempt ${retryCount + 1}):`, error)
+
+      if (retryCount < MAX_RETRIES - 1) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+        return fetchUserProfile(authUser, retryCount + 1)
+      }
+
+      // Tüm denemeler başarısız - mevcut user varsa koru, yoksa null bırak
+      return false
+    }
   }
 
   const refreshUser = async () => {
@@ -86,16 +130,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Get initial session
     const initAuth = async () => {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+      try {
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser()
 
-      if (authUser) {
-        setSupabaseUser(authUser)
-        await fetchUserProfile(authUser)
+        if (authUser) {
+          setSupabaseUser(authUser)
+          const success = await fetchUserProfile(authUser)
+
+          if (!success) {
+            // Profil alınamadı ama auth var - temel bilgilerle user oluştur
+            // Plan bilgisi olmadan! (undefined/unknown state)
+            console.warn("Could not fetch user profile, showing limited info")
+          }
+        }
+      } catch (error) {
+        console.error("Auth init error:", error)
+      } finally {
+        setIsLoading(false)
       }
-
-      setIsLoading(false)
     }
 
     initAuth()
@@ -104,14 +158,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setSupabaseUser(session.user)
-        await fetchUserProfile(session.user)
-      } else {
-        setSupabaseUser(null)
-        setUser(null)
+      try {
+        if (session?.user) {
+          setSupabaseUser(session.user)
+          // fetchUserProfile zaten retry mekanizmalı
+          await fetchUserProfile(session.user)
+        } else {
+          setSupabaseUser(null)
+          setUser(null)
+        }
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     })
 
     return () => {
@@ -120,16 +178,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = async () => {
+    // Önce yönlendir, böylece UI state değişiminden kaynaklı çökmez
+    window.location.href = "/auth"
+
     try {
-      // Global scope ile tüm cihazlardan çıkış yap
-      await supabase.auth.signOut({ scope: "global" })
+      setUser(null)
+      setSupabaseUser(null)
+      await supabase.auth.signOut()
     } catch (error) {
       console.error("Çıkış hatası:", error)
     }
-    setUser(null)
-    setSupabaseUser(null)
-    // Hard redirect ile sayfayı yenile
-    window.location.href = "/auth"
   }
 
   const canExport = () => {

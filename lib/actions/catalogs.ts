@@ -1,7 +1,7 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { apiFetch } from "@/lib/api"
 
 export interface Catalog {
   id: string
@@ -16,6 +16,15 @@ export interface Catalog {
   is_published: boolean
   share_slug: string | null
   product_ids: string[]
+  // Yeni kişiselleştirme alanları
+  columns_per_row: number  // 2, 3, 4
+  background_color: string
+  background_image: string | null
+  background_image_fit?: 'cover' | 'contain' | 'fill'
+  background_gradient: string | null
+  logo_url: string | null
+  logo_position: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | null
+  logo_size: 'small' | 'medium' | 'large'
   created_at: string
   updated_at: string
 }
@@ -27,57 +36,61 @@ export interface CatalogTemplate {
   layout: string
   thumbnail_url: string | null
   is_premium: boolean
+  items_per_page: number
+  component_name: string
   created_at: string
 }
 
 export async function getCatalogs() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return []
-
-  const { data, error } = await supabase
-    .from("catalogs")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false })
-
-  if (error) {
+  try {
+    return await apiFetch<Catalog[]>("/catalogs")
+  } catch (error) {
     console.error("Error fetching catalogs:", error)
     return []
   }
-
-  return data as Catalog[]
 }
 
 export async function getCatalog(id: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const { data, error } = await supabase.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single()
-
-  if (error) return null
-
-  return data as Catalog
+  try {
+    return await apiFetch<Catalog>(`/catalogs/${id}`)
+  } catch (error) {
+    console.error("Error fetching catalog:", error)
+    return null
+  }
 }
 
-export async function getTemplates() {
-  const supabase = await createClient()
+export async function getTemplatesFromAPI() {
+  try {
+    return await apiFetch<CatalogTemplate[]>("/catalogs/templates")
+  } catch (error) {
+    console.error("Error fetching templates from API:", error)
+    return []
+  }
+}
 
-  const { data, error } = await supabase.from("catalog_templates").select("*").order("is_premium", { ascending: true })
+// Database'den template çek
+export async function getTemplates(): Promise<CatalogTemplate[]> {
+  try {
+    // Import dynamically to avoid circular imports
+    const { getTemplates: getDatabaseTemplates } = await import("@/lib/actions/templates")
+    const templates = await getDatabaseTemplates()
 
-  if (error) {
+    // Map database format to CatalogTemplate format
+    return templates.map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      layout: t.layout,
+      thumbnail_url: t.preview_image,
+      is_premium: t.is_pro,
+      items_per_page: t.items_per_page,
+      component_name: t.component_name,
+      created_at: t.created_at
+    }))
+  } catch (error) {
     console.error("Error fetching templates:", error)
     return []
   }
-
-  return data as CatalogTemplate[]
 }
 
 export async function createCatalog(data: {
@@ -86,106 +99,78 @@ export async function createCatalog(data: {
   template_id?: string
   layout?: string
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Not authenticated")
-
-  // Generate a unique share slug
-  const shareSlug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`
-
-  const catalog = {
-    user_id: user.id,
-    name: data.name,
-    description: data.description || null,
-    template_id: data.template_id || null,
-    layout: data.layout || "grid",
-    share_slug: shareSlug,
-    product_ids: [],
+  try {
+    const newCatalog = await apiFetch<Catalog>("/catalogs", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    revalidatePath("/dashboard")
+    return newCatalog
+  } catch (error) {
+    throw error
   }
-
-  const { data: newCatalog, error } = await supabase.from("catalogs").insert(catalog).select().single()
-
-  if (error) throw error
-
-  revalidatePath("/dashboard")
-  return newCatalog
 }
 
 export async function updateCatalog(id: string, updates: Partial<Catalog>) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Not authenticated")
-
-  const { error } = await supabase
-    .from("catalogs")
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
+  try {
+    await apiFetch(`/catalogs/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
     })
-    .eq("id", id)
-    .eq("user_id", user.id)
-
-  if (error) throw error
-
-  revalidatePath("/dashboard")
-  revalidatePath(`/dashboard/builder/${id}`)
-  return { success: true }
+    revalidatePath("/dashboard")
+    revalidatePath(`/dashboard/builder/${id}`)
+    return { success: true }
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function deleteCatalog(id: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Not authenticated")
-
-  const { error } = await supabase.from("catalogs").delete().eq("id", id).eq("user_id", user.id)
-
-  if (error) throw error
-
-  revalidatePath("/dashboard")
-  return { success: true }
+  try {
+    await apiFetch(`/catalogs/${id}`, {
+      method: "DELETE",
+    })
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function publishCatalog(id: string, isPublished: boolean) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Not authenticated")
-
-  const { error } = await supabase
-    .from("catalogs")
-    .update({ is_published: isPublished, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", user.id)
-
-  if (error) throw error
-
-  revalidatePath("/dashboard")
-  return { success: true }
+  try {
+    await apiFetch(`/catalogs/${id}/publish`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_published: isPublished }),
+    })
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error) {
+    throw error
+  }
 }
 
-// Get public catalog by share slug (no auth required)
 export async function getPublicCatalog(slug: string) {
-  const supabase = await createClient()
+  try {
+    return await apiFetch<Catalog>(`/catalogs/public/${slug}`)
+  } catch (error) {
+    return null
+  }
+}
 
-  const { data, error } = await supabase
-    .from("catalogs")
-    .select("*")
-    .eq("share_slug", slug)
-    .eq("is_published", true)
-    .single()
+export interface DashboardStats {
+  totalCatalogs: number
+  publishedCatalogs: number
+  totalViews: number
+  totalProducts: number
+  topCatalogs: { id: string; name: string; views: number }[]
+}
 
-  if (error) return null
-
-  return data as Catalog
+export async function getDashboardStats() {
+  try {
+    return await apiFetch<DashboardStats>("/catalogs/stats")
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error)
+    return null
+  }
 }

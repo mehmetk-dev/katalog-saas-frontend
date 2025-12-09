@@ -1,0 +1,19 @@
+# Next.js build dosyaları (BUNU MUTLAKA EKLE)
+.next/
+out/
+build/
+
+# Node modülleri (Bu zaten olmazsa olmaz)
+node_modules/
+
+# Environment dosyaları (Şifrelerin githuba gitmesin!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Loglar
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

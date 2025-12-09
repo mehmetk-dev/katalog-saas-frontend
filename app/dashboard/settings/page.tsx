@@ -1,16 +1,19 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useTransition } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/user-context"
+import { useTranslation } from "@/lib/i18n-provider"
 import { updateProfile, deleteAccount } from "@/lib/actions/auth"
 import { toast } from "sonner"
 import Link from "next/link"
+import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,22 +25,77 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Skeleton } from "@/components/ui/skeleton"
+import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function SettingsPage() {
   const { user, isLoading, refreshUser } = useUser()
+  const { language, setLanguage, t } = useTranslation()
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const supabase = createClient()
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast.error("Lütfen bir resim dosyası seçin")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Dosya boyutu 2MB'dan küçük olmalı")
+      return
+    }
+
+    setIsUploadingAvatar(true)
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Update user profile
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      await refreshUser()
+      toast.success("Profil fotoğrafı güncellendi")
+    } catch (error) {
+      console.error("Avatar upload error:", error)
+      toast.error("Fotoğraf yüklenemedi")
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
 
   const handleSaveProfile = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-
     startTransition(async () => {
       try {
         await updateProfile(formData)
         await refreshUser()
-        toast.success("Profil güncellendi")
+        toast.success("Profil başarıyla güncellendi")
       } catch {
         toast.error("Profil güncellenemedi")
       }
@@ -48,6 +106,8 @@ export default function SettingsPage() {
     setIsDeleting(true)
     try {
       await deleteAccount()
+      toast.success("Hesabınız silindi")
+      window.location.href = "/auth"
     } catch {
       toast.error("Hesap silinemedi")
       setIsDeleting(false)
@@ -56,116 +116,294 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl space-y-6">
-        <div>
-          <Skeleton className="h-8 w-32 mb-2" />
-          <Skeleton className="h-4 w-64" />
+      <div className="max-w-4xl space-y-6 animate-pulse">
+        <div className="h-8 w-48 bg-gray-200 rounded"></div>
+        <div className="grid gap-6">
+          <div className="h-64 bg-gray-100 rounded-xl"></div>
         </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-32" />
-          </CardContent>
-        </Card>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-5xl mx-auto space-y-8 pb-10">
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
+
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ayarlar</h1>
-        <p className="text-muted-foreground">Hesap ayarlarınızı ve tercihlerinizi yönetin</p>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">{t("settings.title")}</h1>
+        <p className="text-muted-foreground mt-2 text-lg">Hesabınızı ve tercihlerinizi yönetin.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Profil</CardTitle>
-          <CardDescription>Kişisel bilgilerinizi güncelleyin</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Ad Soyad</Label>
-                <Input id="fullName" name="fullName" defaultValue={user?.name} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company">Şirket</Label>
-                <Input id="company" name="company" defaultValue={user?.company} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-posta</Label>
-              <Input id="email" type="email" defaultValue={user?.email} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">E-posta değiştirilemez</p>
-            </div>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[400px] bg-muted/50 p-1">
+          <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <User className="w-4 h-4" />
+            {t("settings.profile")}
+          </TabsTrigger>
+          <TabsTrigger value="subscription" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <CreditCard className="w-4 h-4" />
+            Abonelik
+          </TabsTrigger>
+          <TabsTrigger value="preferences" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <Globe className="w-4 h-4" />
+            Tercihler
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Abonelik</CardTitle>
-          <CardDescription>Plan ve faturanızı yönetin</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <p className="font-medium">Mevcut Plan: {user?.plan === "pro" ? "Pro" : "Ücretsiz"}</p>
-              <p className="text-sm text-muted-foreground">
-                {user?.plan === "pro" ? "Sınırsız dışa aktarma ve ürün" : "1 dışa aktarma, maksimum 50 ürün"}
-              </p>
-            </div>
-            {user?.plan === "free" && (
-              <Button asChild>
-                <Link href="/pricing">Pro'ya Yükselt</Link>
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* PROFILE TAB */}
+        <TabsContent value="profile" className="space-y-6 animate-in fade-in-50 slide-in-from-left-2 duration-300">
+          <Card className="border-0 shadow-md ring-1 ring-gray-200">
+            <CardHeader className="pb-4 border-b bg-gray-50/50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Kişisel Bilgiler</CardTitle>
+                  <CardDescription>İsminiz ve şirket bilgileriniz.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                {/* Avatar Upload */}
+                <div className="flex items-center gap-6 pb-6 border-b">
+                  <div className="relative group">
+                    <Avatar className="w-20 h-20 border-4 border-white shadow-lg">
+                      <AvatarImage src={user?.avatar_url} alt={user?.name} />
+                      <AvatarFallback className="text-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
+                        {user?.name?.charAt(0).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <label
+                      htmlFor="avatar-upload"
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-white" />
+                      )}
+                    </label>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={isUploadingAvatar}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Profil Fotoğrafı</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Fotoğrafınızı değiştirmek için tıklayın. JPG, PNG (max 2MB)
+                    </p>
+                  </div>
+                </div>
 
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-destructive">Tehlikeli Bölge</CardTitle>
-          <CardDescription>Geri alınamaz işlemler</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Hesabı Sil</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz (ürünler, kataloglar, ayarlar) kalıcı olarak
-                  silinecektir.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>İptal</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="flex items-center gap-2 text-gray-700">
+                      <User className="w-3.5 h-3.5" /> {t("auth.name")}
+                    </Label>
+                    <Input id="fullName" name="fullName" defaultValue={user?.name} className="bg-gray-50/50 border-gray-200 focus:bg-white transition-colors" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company" className="flex items-center gap-2 text-gray-700">
+                      <Building2 className="w-3.5 h-3.5" /> {t("auth.company")}
+                    </Label>
+                    <Input id="company" name="company" defaultValue={user?.company} className="bg-gray-50/50 border-gray-200 focus:bg-white transition-colors" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
+                    <Mail className="w-3.5 h-3.5" /> {t("auth.email")}
+                  </Label>
+                  <Input id="email" type="email" defaultValue={user?.email} disabled className="bg-muted text-muted-foreground" />
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button type="submit" disabled={isPending} className="min-w-[120px]">
+                    {isPending ? (
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Kaydediliyor
+                      </div>
+                    ) : (
+                      t("common.save")
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/20 shadow-sm ring-1 ring-destructive/10">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <Trash2 className="w-5 h-5" />
+                <CardTitle className="text-lg">Tehlikeli Bölge</CardTitle>
+              </div>
+              <CardDescription>{t("settings.deleteWarning")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="bg-destructive/90 hover:bg-destructive">
+                    {t("settings.deleteAccount")}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive">Hesabınızı silmek istediğinize emin misiniz?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-gray-600">
+                      Bu işlem geri alınamaz. Tüm kataloglarınız, ürünleriniz ve verileriniz kalıcı olarak silinecektir.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? "Siliniyor..." : "Evet, Hesabı Sil"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* SUBSCRIPTION TAB */}
+        <TabsContent value="subscription" className="space-y-6 animate-in fade-in-50 slide-in-from-left-2 duration-300">
+          <Card className="border-0 shadow-md ring-1 ring-gray-200 overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <CreditCard className="w-64 h-64 -rotate-12 transform translate-x-16 -translate-y-16" />
+            </div>
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                Mevcut Planınız:
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${user?.plan === "pro" ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg" :
+                  user?.plan === "plus" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg" :
+                    "bg-gray-200 text-gray-700"}`}>
+                  {user?.plan === "pro" ? "PRO" : user?.plan === "plus" ? "PLUS" : "ÜCRETSİZ"}
+                </span>
+              </CardTitle>
+              <CardDescription>
+                {user?.plan === "pro"
+                  ? "Tüm özelliklere sınırsız erişiminiz var. Tadını çıkarın!"
+                  : user?.plan === "plus"
+                    ? "Harika özelliklere sahipsiniz. Sınırsız deneyim için Pro'yu inceleyin."
+                    : "Şu anda sınırlı özelliklere sahip ücretsiz planı kullanıyorsunuz."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-8 pb-8">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    Plan Özellikleri
+                  </h3>
+                  <ul className="space-y-3 pl-2">
+                    <li className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className={`w-2 h-2 rounded-full ${user?.plan === "pro" ? "bg-green-500" : user?.plan === "plus" ? "bg-green-500" : "bg-yellow-500"}`} />
+                      {user?.plan === "pro" ? "Sınırsız Katalog" : user?.plan === "plus" ? "10 Adet Katalog" : "1 Adet Katalog"}
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"}`} />
+                      {user?.plan !== "free" ? "Sınırsız Ürün" : "50 Ürün Limiti"}
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-gray-300"}`} />
+                      {user?.plan !== "free" ? "Kategori Yönetimi" : "Kategori Yönetimi Yok"}
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"}`} />
+                      {user?.plan !== "free" ? "Premium Şablonlar & Filigransız" : "Temel Şablonlar (Filigranlı)"}
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className={`w-2 h-2 rounded-full ${user?.plan === "pro" ? "bg-green-500" : user?.plan === "plus" ? "bg-green-500" : "bg-gray-300"}`} />
+                      {user?.plan === "pro" ? "Gelişmiş Analitik" : user?.plan === "plus" ? "Temel İhracat" : "Analitik Yok"}
+                    </li>
+                  </ul>
+                </div>
+
+                {(user?.plan === "free" || user?.plan === "plus") && (
+                  <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 text-center space-y-4">
+                    <h3 className="font-bold text-indigo-900 text-lg">
+                      {user?.plan === "plus" ? "Pro'ya Geçin" : "Yükseltin"}
+                    </h3>
+                    <p className="text-sm text-indigo-700/80">
+                      {user?.plan === "plus" ? "Sınırsız özgürlük için Pro planına geçin." : "İşinizi büyütmek için daha fazla özelliğe erişin."}
+                    </p>
+                    <Button size="lg" onClick={() => setShowUpgrade(true)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/20 text-white font-semibold">
+                      {user?.plan === "plus" ? "Pro'ya Yükselt" : "Planları İncele"}
+                    </Button>
+                  </div>
+                )}
+                {user?.plan === "pro" && (
+                  <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-xl border border-green-100 text-center space-y-4">
+                    <h3 className="font-bold text-green-900 text-lg">Harika Seçim!</h3>
+                    <p className="text-sm text-green-700/80">Pro üyelik ile tüm özelliklerin keyfini çıkarıyorsunuz.</p>
+                    <Button variant="outline" className="w-full border-green-200 text-green-700 hover:bg-green-100">
+                      Fatura Geçmişi
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PREFERENCES TAB */}
+        <TabsContent value="preferences" className="space-y-6 animate-in fade-in-50 slide-in-from-left-2 duration-300">
+          <Card className="border-0 shadow-md ring-1 ring-gray-200">
+            <CardHeader className="pb-4 border-b bg-gray-50/50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">{t("settings.language")}</CardTitle>
+                  <CardDescription>{t("settings.selectLanguage")}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  variant={language === 'tr' ? 'default' : 'outline'}
+                  onClick={() => setLanguage('tr')}
+                  className={`flex-1 h-auto py-4 justify-start px-4 gap-3 ${language === 'tr' ? 'ring-2 ring-primary ring-offset-2' : 'hover:bg-gray-50'}`}
                 >
-                  {isDeleting ? "Siliniyor..." : "Evet, hesabımı sil"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+                  <span className="text-2xl">🇹🇷</span>
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold">Türkçe</span>
+                    <span className="text-xs opacity-70">Varsayılan dil</span>
+                  </div>
+                  {language === 'tr' && <CheckCircle2 className="w-5 h-5 ml-auto text-white" />}
+                </Button>
+
+                <Button
+                  variant={language === 'en' ? 'default' : 'outline'}
+                  onClick={() => setLanguage('en')}
+                  className={`flex-1 h-auto py-4 justify-start px-4 gap-3 ${language === 'en' ? 'ring-2 ring-primary ring-offset-2' : 'hover:bg-gray-50'}`}
+                >
+                  <span className="text-2xl">🇺🇸</span>
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold">English</span>
+                    <span className="text-xs opacity-70">International</span>
+                  </div>
+                  {language === 'en' && <CheckCircle2 className="w-5 h-5 ml-auto text-white" />}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

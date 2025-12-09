@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import { redirect } from "next/navigation"
 import { getCatalog } from "@/lib/actions/catalogs"
 import { getProducts } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
@@ -12,7 +13,41 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
   const params = await searchParams
   const catalogId = params.id
 
-  const [catalog, products] = await Promise.all([catalogId ? getCatalog(catalogId) : null, getProducts()])
+  const [catalog, products] = await Promise.all([
+    catalogId ? getCatalog(catalogId) : null,
+    getProducts()
+  ])
+
+  // Eğer ID verilmiş ama katalog bulunamıyorsa, yeni katalog sayfasına yönlendir
+  if (catalogId && !catalog) {
+    redirect("/dashboard/builder")
+  }
+
+  // Check limits if creating new catalog
+  if (!catalogId) {
+    const { createServerSupabaseClient } = await import("@/lib/supabase/server")
+    const supabase = await createServerSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: profile } = await supabase.from("users").select("plan").eq("id", user.id).single()
+      const plan = (profile?.plan || "free") as "free" | "plus" | "pro"
+
+      if (plan === "free") {
+        const { count } = await supabase.from("catalogs").select("*", { count: "exact", head: true }).eq("user_id", user.id)
+        if ((count || 0) >= 1) {
+          redirect("/dashboard/catalogs?limit_reached=true")
+        }
+      }
+      // Add similar checks for plus plan if needed
+      if (plan === "plus") {
+        const { count } = await supabase.from("catalogs").select("*", { count: "exact", head: true }).eq("user_id", user.id)
+        if ((count || 0) >= 10) {
+          redirect("/dashboard/catalogs?limit_reached=true")
+        }
+      }
+    }
+  }
 
   return (
     <Suspense fallback={<BuilderSkeleton />}>

@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Bell, Plus, ChevronDown, LogOut, Settings, User } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, Plus, ChevronDown, LogOut, Settings, User, Menu, PanelLeftClose, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { NotificationsPopover } from "@/components/dashboard/notifications-popover"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,77 +14,128 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { useUser } from "@/lib/user-context"
+import { useTranslation } from "@/lib/i18n-provider"
+import { useSidebar } from "@/lib/sidebar-context"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 export function DashboardHeader() {
   const { user, logout } = useUser()
+  const { t } = useTranslation()
+  const { toggle, isMobile, isCollapsed } = useSidebar()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleLogout = async () => {
     await logout()
   }
 
-  return (
-    <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6">
-      <div>{/* Breadcrumb or page title could go here */}</div>
-
-      <div className="flex items-center gap-4">
-        {/* Create New Catalog Button */}
-        <Button asChild className="gap-2">
-          <Link href="/dashboard/builder">
-            <Plus className="w-4 h-4" />
-            Yeni Katalog Oluştur
+  // Prevents hydration mismatch for Radix UI components by rendering them only on client
+  const UserMenu = mounted ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="gap-2 pl-2 pr-3">
+          <Avatar className="h-8 w-8">
+            {user?.avatar_url && <AvatarImage src={user.avatar_url || "/placeholder.svg"} alt={user.name} />}
+            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              {user?.name?.charAt(0) ?? "K"}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm font-medium hidden sm:inline-block">{user?.name ?? "Kullanıcı"}</span>
+          <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>
+          <div className="flex flex-col">
+            <span>{user?.name}</span>
+            <span className="text-xs font-normal text-muted-foreground">{user?.email}</span>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings">
+            <User className="w-4 h-4 mr-2" />
+            {t("settings.profile")}
           </Link>
-        </Button>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings">
+            <Settings className="w-4 h-4 mr-2" />
+            {t("common.settings")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={handleLogout} className="text-destructive cursor-pointer">
+          <LogOut className="w-4 h-4 mr-2" />
+          {t("common.logout")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  ) : (
+    <div className="flex items-center gap-2 pl-2 pr-3">
+      <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+      <div className="h-4 w-20 bg-muted animate-pulse hidden sm:block" />
+    </div>
+  )
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">3</Badge>
-        </Button>
+  return (
+    <TooltipProvider>
+      <header className="h-14 sm:h-16 border-b border-border bg-background flex items-center justify-between px-3 sm:px-6 relative z-50">
+        <div className="flex items-center gap-2">
+          {/* Menu Toggle Button - Hem mobil hem masaüstü */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggle}
+                aria-label="Toggle menu"
+              >
+                {isMobile ? (
+                  <Menu className="w-5 h-5" />
+                ) : isCollapsed ? (
+                  <PanelLeft className="w-5 h-5" />
+                ) : (
+                  <PanelLeftClose className="w-5 h-5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {isMobile
+                ? "Menüyü Aç"
+                : isCollapsed
+                  ? "Menüyü Genişlet"
+                  : "Menüyü Daralt"
+              }
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
-        {/* User Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 pl-2 pr-3">
-              <Avatar className="h-8 w-8">
-                {user?.avatar_url && <AvatarImage src={user.avatar_url || "/placeholder.svg"} alt={user.name} />}
-                <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                  {user?.name?.charAt(0) ?? "K"}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden sm:inline-block">{user?.name ?? "Kullanıcı"}</span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col">
-                <span>{user?.name}</span>
-                <span className="text-xs font-normal text-muted-foreground">{user?.email}</span>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings">
-                <User className="w-4 h-4 mr-2" />
-                Profil
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings">
-                <Settings className="w-4 h-4 mr-2" />
-                Ayarlar
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
-              <LogOut className="w-4 h-4 mr-2" />
-              Çıkış Yap
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Create New Catalog Button */}
+          <Button asChild className="gap-2" size="sm">
+            <Link href="/dashboard/builder">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("dashboard.createCatalog")}</span>
+              <span className="sm:hidden">Yeni</span>
+            </Link>
+          </Button>
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* Notifications */}
+          {mounted ? <NotificationsPopover /> : <Button variant="ghost" size="icon" disabled><Bell className="w-5 h-5 opacity-50" /></Button>}
+
+          {/* User Dropdown */}
+          {UserMenu}
+        </div>
+      </header>
+    </TooltipProvider>
   )
 }

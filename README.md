@@ -1,30 +1,78 @@
-# SaaS dashboard skeleton
+# Katalog Pro - Dijital Ürün Kataloğu Oluşturucu 🚀
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+Katalog Pro, işletmelerin ürünlerini kolayca yönetebileceği, profesyonel PDF ve Dijital Kataloglar oluşturabileceği modern bir SaaS platformudur.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/mehmets-projects-f8d4c84f/v0-saa-s-dashboard-skeleton)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/lHs5co51YAT)
+![Dashboard Preview](https://via.placeholder.com/800x400?text=Katalog+Pro+Dashboard)
 
-## Overview
+## ✨ Özellikler
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+- **Ürün Yönetimi**: Sınırsız ürün ekleme, görsel yükleme ve stok takibi.
+- **Katalog Oluşturucu (Builder)**: 
+  - Drag & Drop (Sürükle Bırak) ile ürün sıralama.
+  - Farklı şablon seçenekleri (Minimal, Modern, Liste vb.).
+  - A4 boyutunda PDF çıktı veya Dijital Link paylaşımı.
+- **Akıllı Araçlar**:
+  - **QR Kod**: Her katalog için otomatik QR kod oluşturma.
+  - **AI Magic Writer**: Yapay zeka destekli ürün açıklaması oluşturucu.
+- **Plan Yönetimi**: Free, Plus ve Pro paketleri ile özellik kısıtlamaları (Katalog limiti vb.).
+- **Kategori Sistemi**: Ürünleri kategorilere ayırma ve filtreleme.
+- **PWA Desteği**: Mobil cihazlara uygulama gibi kurulabilir.
+- **Dark Mode**: Göz yormayan karanlık mod desteği.
 
-## Deployment
+## 🛠 Kullanılan Teknolojiler
 
-Your project is live at:
+- **Frontend**: Next.js 14 (App Directory), React, Tailwind CSS
+- **UI Kütüphanesi**: Shadcn UI, Lucide Icons
+- **Backend & Database**: Supabase (PostgreSQL, Auth, Storage)
+- **Performans**: Redis Caching, Next.js Image Optimization
+- **Testing**: Playwright (E2E)
 
-**[https://vercel.com/mehmets-projects-f8d4c84f/v0-saa-s-dashboard-skeleton](https://vercel.com/mehmets-projects-f8d4c84f/v0-saa-s-dashboard-skeleton)**
+## 🚀 Kurulum
 
-## Build your app
+Projeyi yerel ortamınızda çalıştırmak için adımları izleyin:
 
-Continue building your app on:
+1. **Repoyu klonlayın:**
+   ```bash
+   git clone https://github.com/username/katalog-app.git
+   cd katalog-app
+   ```
 
-**[https://v0.app/chat/lHs5co51YAT](https://v0.app/chat/lHs5co51YAT)**
+2. **Bağımlılıkları yükleyin:**
+   ```bash
+   npm install
+   # veya
+   pnpm install
+   ```
 
-## How It Works
+3. **Çevre değişkenlerini ayarlayın:**
+   `.env.example` dosyasının adını `.env.local` olarak değiştirin ve Supabase bilgilerinizi girin.
+   ```bash
+   cp .env.example .env.local
+   ```
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+4. **Projeyi başlatın:**
+   ```bash
+   npm run dev
+   ```
+   Tarayıcınızda `http://localhost:3000` adresine gidin.
+
+## 📦 Deployment (Canlıya Alma)
+
+Bu proje Vercel üzerine deploy edilmek için optimize edilmiştir.
+
+1. GitHub reponuzu Vercel'e bağlayın.
+2. Environment Variables kısmına `.env.local` içeriğinizi ekleyin.
+3. Deploy butonuna basın!
+
+## 🧪 Testler
+
+Uygulama testlerini çalıştırmak için:
+
+```bash
+# E2E testleri (Playwright)
+npx playwright test
+```
+
+## 📄 Lisans
+
+MIT License.

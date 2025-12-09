@@ -1,72 +1,69 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { apiFetch } from "@/lib/api"
+import { signOut } from "@/lib/actions/auth"
 
 export async function updateUserProfile(data: {
   full_name?: string
   company?: string
 }) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { success: false, error: "Giriş yapmalısınız" }
-  }
-
-  const { error } = await supabase
-    .from("users")
-    .update({
-      full_name: data.full_name,
-      company: data.company,
-      updated_at: new Date().toISOString(),
+  try {
+    await apiFetch("/users/me", {
+      method: "PUT",
+      body: JSON.stringify(data),
     })
-    .eq("id", user.id)
-
-  if (error) {
+    revalidatePath("/dashboard/settings")
+    return { success: true }
+  } catch (error: any) {
     return { success: false, error: error.message }
   }
-
-  revalidatePath("/dashboard/settings")
-  return { success: true }
 }
 
 export async function getUserProfile() {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  try {
+    return await apiFetch("/users/me")
+  } catch (error) {
     return null
   }
-
-  const { data } = await supabase.from("users").select("*").eq("id", user.id).single()
-
-  return data
 }
 
 export async function deleteUserAccount() {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { success: false, error: "Giriş yapmalısınız" }
+  try {
+    await apiFetch("/users/me", {
+      method: "DELETE",
+    })
+    await signOut()
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
-
-  // Delete user data from our tables (cascades will handle related data)
-  const { error: deleteError } = await supabase.from("users").delete().eq("id", user.id)
-
-  if (deleteError) {
-    return { success: false, error: deleteError.message }
-  }
-
-  // Sign out the user
-  await supabase.auth.signOut()
-
-  return { success: true }
 }
+
+export async function incrementUserExports() {
+  try {
+    await apiFetch("/users/me/export", {
+      method: "POST",
+    })
+    return { success: true }
+  } catch (error: any) {
+    if (error.message.includes("Export limit reached")) {
+      return { error: "limit_reached" }
+    }
+    return { error: error.message }
+  }
+}
+
+export async function upgradeUserToPro() {
+  try {
+    await apiFetch("/users/me/upgrade", {
+      method: "POST",
+    })
+    // Revalidate user profile paths
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+

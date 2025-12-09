@@ -1,14 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Check, Sparkles, X, MessageCircle } from "lucide-react"
+import { Check, Sparkles, X, Crown, Zap, Star, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/lib/user-context"
 
 interface UpgradeModalProps {
   open: boolean
@@ -17,111 +16,175 @@ interface UpgradeModalProps {
 
 const plans = [
   {
-    name: "Free",
+    id: "free",
+    name: "Ücretsiz",
+    icon: Star,
     price: { monthly: 0, yearly: 0 },
-    description: "Başlangıç için",
-    features: [
-      { label: "1 Katalog Dışa Aktarma", included: true },
-      { label: "50 Ürün", included: true },
-      { label: "Filigranlı Dışa Aktarma", included: true },
-      { label: "Temel Şablonlar", included: true },
-      { label: "Özel Markalama", included: false },
-      { label: "Öncelikli Destek", included: false },
-    ],
-    current: true,
+    color: "from-slate-400 to-slate-500",
+    features: ["1 Katalog", "50 Ürün", "1 PDF", "Filigran"],
   },
   {
+    id: "plus",
+    name: "Plus",
+    icon: Zap,
+    price: { monthly: 500, yearly: 5000 },
+    color: "from-blue-500 to-cyan-500",
+    features: ["10 Katalog", "1.000 Ürün", "50 PDF", "Filigransız"],
+  },
+  {
+    id: "pro",
     name: "Pro",
-    price: { monthly: 29, yearly: 290 },
-    description: "Büyüyen işletmeler için",
+    icon: Crown,
+    price: { monthly: 1000, yearly: 10000 },
     popular: true,
-    features: [
-      { label: "Sınırsız Dışa Aktarma", included: true },
-      { label: "Sınırsız Ürün", included: true },
-      { label: "Filigransız", included: true },
-      { label: "Tüm Şablonlar", included: true },
-      { label: "Özel Markalama", included: true },
-      { label: "Öncelikli Destek", included: true },
-    ],
+    color: "from-violet-600 to-indigo-600",
+    features: ["Sınırsız", "Sınırsız", "Sınırsız", "Tüm Özellikler"],
   },
 ]
 
 export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
-  const [isYearly, setIsYearly] = useState(false)
+  const [isYearly, setIsYearly] = useState(true)
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { user } = useUser()
+
+  const currentPlan = user?.plan || "free"
+
+  const handleUpgrade = async (planId: string) => {
+    setIsLoading(true)
+    setSelectedPlan(planId)
+
+    try {
+      if (planId === "pro" || planId === "plus") {
+        const { upgradeUserToPro } = await import("@/lib/actions/user")
+        await upgradeUserToPro()
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error("Upgrade error:", error)
+    } finally {
+      setIsLoading(false)
+      setSelectedPlan(null)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader className="text-center">
-          <DialogTitle className="text-2xl">Pro'ya Yükselt</DialogTitle>
-          <DialogDescription>
-            Ücretsiz dışa aktarma hakkınızı kullandınız. Kataloglarınızı indirmeye ve paylaşmaya devam etmek için
-            yükseltin.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
+        <DialogTitle className="sr-only">Plan Seçimi</DialogTitle>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-5 text-white text-center">
+          <h2 className="text-xl font-bold mb-1">Planınızı Seçin</h2>
 
-        {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-3 py-4">
-          <Label className={cn(!isYearly && "font-semibold")}>Aylık</Label>
-          <Switch checked={isYearly} onCheckedChange={setIsYearly} />
-          <Label className={cn(isYearly && "font-semibold")}>
-            Yıllık
-            <Badge variant="secondary" className="ml-2">
-              %17 Tasarruf
-            </Badge>
-          </Label>
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-3 mt-3">
+            <span className={cn("text-xs", !isYearly ? "font-bold" : "opacity-70")}>Aylık</span>
+            <Switch
+              checked={isYearly}
+              onCheckedChange={setIsYearly}
+              className="data-[state=checked]:bg-white/30 h-5 w-9"
+            />
+            <span className={cn("text-xs flex items-center gap-1", isYearly ? "font-bold" : "opacity-70")}>
+              Yıllık
+              <Badge className="bg-green-500 text-white border-0 text-[9px] px-1.5 py-0">2 AY BEDAVA</Badge>
+            </span>
+          </div>
         </div>
 
-        {/* Plans Comparison */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={cn("relative rounded-lg border p-6", plan.popular && "border-primary bg-primary/5")}
-            >
-              {plan.popular && (
-                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  En Popüler
-                </Badge>
-              )}
+        {/* Plans */}
+        <div className="p-4 grid grid-cols-3 gap-3">
+          {plans.map((plan) => {
+            const Icon = plan.icon
+            const isCurrent = currentPlan === plan.id
+            const monthlyPrice = isYearly ? Math.round(plan.price.yearly / 12) : plan.price.monthly
 
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground">{plan.description}</p>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${isYearly ? plan.price.yearly : plan.price.monthly}</span>
-                  {plan.price.monthly > 0 && <span className="text-muted-foreground">/{isYearly ? "yıl" : "ay"}</span>}
+            return (
+              <div
+                key={plan.id}
+                className={cn(
+                  "relative rounded-xl border-2 p-3 transition-all text-center",
+                  plan.popular
+                    ? "border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-lg"
+                    : "border-border hover:border-primary/50",
+                  isCurrent && "ring-2 ring-green-500"
+                )}
+              >
+                {plan.popular && (
+                  <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-violet-600 text-[9px] px-2">
+                    <Sparkles className="w-2.5 h-2.5 mr-0.5" />
+                    POPÜLER
+                  </Badge>
+                )}
+
+                {/* Icon */}
+                <div className={cn(
+                  "w-10 h-10 rounded-lg mx-auto mb-2 flex items-center justify-center bg-gradient-to-br text-white",
+                  plan.color
+                )}>
+                  <Icon className="w-5 h-5" />
                 </div>
-              </div>
 
-              <ul className="space-y-3 mb-6">
-                {plan.features.map((feature) => (
-                  <li key={feature.label} className="flex items-center gap-2 text-sm">
-                    {feature.included ? (
-                      <Check className="w-4 h-4 text-primary shrink-0" />
-                    ) : (
-                      <X className="w-4 h-4 text-muted-foreground shrink-0" />
+                <h3 className="font-bold text-sm">{plan.name}</h3>
+
+                {/* Price */}
+                <div className="my-2">
+                  {monthlyPrice === 0 ? (
+                    <span className="text-lg font-bold">Ücretsiz</span>
+                  ) : (
+                    <div>
+                      <span className="text-xl font-bold">₺{monthlyPrice}</span>
+                      <span className="text-xs text-muted-foreground">/ay</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Features - Compact */}
+                <ul className="text-[10px] text-muted-foreground space-y-0.5 mb-3">
+                  {plan.features.map((f, i) => (
+                    <li key={i} className="flex items-center justify-center gap-1">
+                      <Check className="w-2.5 h-2.5 text-green-500" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {isCurrent ? (
+                  <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                    Mevcut
+                  </Button>
+                ) : plan.id === "free" ? (
+                  <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                    Temel
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    className={cn(
+                      "w-full h-7 text-xs",
+                      plan.popular && "bg-violet-600 hover:bg-violet-700"
                     )}
-                    <span className={cn(!feature.included && "text-muted-foreground")}>{feature.label}</span>
-                  </li>
-                ))}
-              </ul>
+                    onClick={() => handleUpgrade(plan.id)}
+                    disabled={isLoading}
+                  >
+                    {isLoading && selectedPlan === plan.id ? (
+                      <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <CreditCard className="w-3 h-3 mr-1" />
+                        Seç
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )
+          })}
+        </div>
 
-              {plan.current ? (
-                <Button className="w-full bg-transparent" variant="outline" disabled>
-                  Mevcut Plan
-                </Button>
-              ) : (
-                <Button className="w-full" asChild>
-                  <Link href="/contact">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    İletişime Geç
-                  </Link>
-                </Button>
-              )}
-            </div>
-          ))}
+        {/* Footer */}
+        <div className="px-4 pb-3 text-center text-[10px] text-muted-foreground">
+          ✓ Güvenli ödeme • ✓ İstediğiniz zaman iptal • ✓ 7 gün para iade
         </div>
       </DialogContent>
     </Dialog>

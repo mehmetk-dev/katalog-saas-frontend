@@ -3,76 +3,97 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* <CHANGE> Updated theme to violet/indigo SaaS theme */
+/* <CHANGE> Replaced oklch with hsl/hex for html2canvas compatibility */
 :root {
-  --background: oklch(0.985 0.002 280);
-  --foreground: oklch(0.145 0.015 280);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.015 280);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.015 280);
-  --primary: oklch(0.55 0.25 280);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0.01 280);
-  --secondary-foreground: oklch(0.25 0.02 280);
-  --muted: oklch(0.96 0.008 280);
-  --muted-foreground: oklch(0.45 0.02 280);
-  --accent: oklch(0.94 0.02 280);
-  --accent-foreground: oklch(0.25 0.02 280);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0.01 280);
-  --input: oklch(0.9 0.01 280);
-  --ring: oklch(0.55 0.25 280);
-  --chart-1: oklch(0.55 0.25 280);
-  --chart-2: oklch(0.65 0.2 300);
-  --chart-3: oklch(0.7 0.15 260);
-  --chart-4: oklch(0.75 0.18 320);
-  --chart-5: oklch(0.6 0.22 240);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.985 0.002 280);
-  --sidebar-foreground: oklch(0.145 0.015 280);
-  --sidebar-primary: oklch(0.55 0.25 280);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0.02 280);
-  --sidebar-accent-foreground: oklch(0.25 0.02 280);
-  --sidebar-border: oklch(0.9 0.01 280);
-  --sidebar-ring: oklch(0.55 0.25 280);
+  /* Premium Indigo/Violet Theme - HSL Values */
+  --background: hsl(270 20% 99%);
+  --foreground: hsl(270 50% 10%);
+
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(270 50% 10%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(270 50% 10%);
+
+  --primary: hsl(262 83% 58%);
+  /* #7c3aed */
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(270 20% 96%);
+  --secondary-foreground: hsl(270 50% 20%);
+
+  --muted: hsl(270 20% 96%);
+  --muted-foreground: hsl(270 10% 45%);
+
+  --accent: hsl(270 20% 94%);
+  --accent-foreground: hsl(270 50% 20%);
+
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: hsl(270 20% 92%);
+  --input: hsl(270 20% 92%);
+  --ring: hsl(262 83% 58%);
+
+  --chart-1: hsl(262 83% 58%);
+  --chart-2: hsl(290 60% 55%);
+  --chart-3: hsl(250 60% 60%);
+  --chart-4: hsl(310 60% 70%);
+  --chart-5: hsl(230 60% 50%);
+
+  --radius: 0.75rem;
+
+  --sidebar: hsl(270 20% 98%);
+  --sidebar-foreground: hsl(270 50% 10%);
+  --sidebar-primary: hsl(262 83% 58%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(270 20% 95%);
+  --sidebar-accent-foreground: hsl(270 50% 10%);
+  --sidebar-border: hsl(270 20% 90%);
+  --sidebar-ring: hsl(262 83% 58%);
 }
 
 .dark {
-  --background: oklch(0.12 0.02 280);
-  --foreground: oklch(0.96 0.01 280);
-  --card: oklch(0.16 0.02 280);
-  --card-foreground: oklch(0.96 0.01 280);
-  --popover: oklch(0.16 0.02 280);
-  --popover-foreground: oklch(0.96 0.01 280);
-  --primary: oklch(0.65 0.25 280);
-  --primary-foreground: oklch(0.12 0.02 280);
-  --secondary: oklch(0.22 0.03 280);
-  --secondary-foreground: oklch(0.96 0.01 280);
-  --muted: oklch(0.22 0.03 280);
-  --muted-foreground: oklch(0.65 0.02 280);
-  --accent: oklch(0.22 0.03 280);
-  --accent-foreground: oklch(0.96 0.01 280);
-  --destructive: oklch(0.45 0.2 27);
-  --destructive-foreground: oklch(0.96 0.01 280);
-  --border: oklch(0.26 0.03 280);
-  --input: oklch(0.26 0.03 280);
-  --ring: oklch(0.65 0.25 280);
-  --chart-1: oklch(0.65 0.25 280);
-  --chart-2: oklch(0.7 0.2 300);
-  --chart-3: oklch(0.75 0.15 260);
-  --chart-4: oklch(0.8 0.18 320);
-  --chart-5: oklch(0.65 0.22 240);
-  --sidebar: oklch(0.16 0.02 280);
-  --sidebar-foreground: oklch(0.96 0.01 280);
-  --sidebar-primary: oklch(0.65 0.25 280);
-  --sidebar-primary-foreground: oklch(0.12 0.02 280);
-  --sidebar-accent: oklch(0.22 0.03 280);
-  --sidebar-accent-foreground: oklch(0.96 0.01 280);
-  --sidebar-border: oklch(0.26 0.03 280);
-  --sidebar-ring: oklch(0.65 0.25 280);
+  --background: hsl(270 50% 5%);
+  --foreground: hsl(270 20% 98%);
+
+  --card: hsl(270 50% 7%);
+  --card-foreground: hsl(270 20% 98%);
+  --popover: hsl(270 50% 7%);
+  --popover-foreground: hsl(270 20% 98%);
+
+  --primary: hsl(262 83% 65%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(270 30% 15%);
+  --secondary-foreground: hsl(270 20% 98%);
+
+  --muted: hsl(270 30% 15%);
+  --muted-foreground: hsl(270 10% 65%);
+
+  --accent: hsl(270 30% 15%);
+  --accent-foreground: hsl(270 20% 98%);
+
+  --destructive: hsl(0 62% 30%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: hsl(270 30% 15%);
+  --input: hsl(270 30% 15%);
+  --ring: hsl(262 83% 65%);
+
+  --chart-1: hsl(262 83% 65%);
+  --chart-2: hsl(290 60% 65%);
+  --chart-3: hsl(250 60% 70%);
+  --chart-4: hsl(310 60% 75%);
+  --chart-5: hsl(230 60% 60%);
+
+  --sidebar: hsl(270 50% 6%);
+  --sidebar-foreground: hsl(270 20% 98%);
+  --sidebar-primary: hsl(262 83% 65%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(270 30% 15%);
+  --sidebar-accent-foreground: hsl(270 20% 98%);
+  --sidebar-border: hsl(270 30% 15%);
+  --sidebar-ring: hsl(262 83% 65%);
 }
 
 @theme inline {
@@ -114,13 +135,95 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Override Gray palette to use Hex/RGB to avoid html2canvas oklch/lab errors */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* Override Yellow palette (used in Bold template) */
+  --color-yellow-300: #fde047;
+  --color-yellow-400: #facc15;
+  --color-yellow-900: #713f12;
+
+  /* Override Amber (Used in Premium badge) */
+  --color-amber-200: #fde68a;
+
+  /* Reset generic colors to basic safe legacy keywords or hex */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Dynamic viewport height for mobile */
+  }
+
+  /* Mobil dokunmatik hedefler için minimum boyut */
+  @media (max-width: 640px) {
+
+    button,
+    [role="button"],
+    a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Küçük butonlar için istisna */
+    button.h-8,
+    button.h-7,
+    button.h-6,
+    [class*="size-icon"] {
+      min-height: auto;
+      min-width: auto;
+    }
+  }
+
+  /* Metin seçimi optimizasyonu */
+  @media (hover: none) and (pointer: coarse) {
+
+    input,
+    textarea {
+      font-size: 16px !important;
+      /* iOS zoom önleme */
+    }
+  }
+}
+
+/* Yatay scroll engelleme yardımcı sınıfı */
+.no-scroll-x {
+  overflow-x: hidden !important;
+}
+
+/* Mobil için safe area padding */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
   }
 }

@@ -11,15 +11,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useTranslation } from "@/lib/i18n-provider"
 
 interface AuthFormProps {
   onSignUpComplete: () => void
 }
 
-const SITE_URL = "https://v0-katalogyap.vercel.app"
+const getSiteUrl = () => {
+  if (typeof window !== "undefined") {
+    return window.location.origin
+  }
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+}
 
 export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const router = useRouter()
+  const { t } = useTranslation()
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin"
 
@@ -27,6 +34,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const SITE_URL = getSiteUrl()
 
   // Sign In form state
   const [signInEmail, setSignInEmail] = useState("")
@@ -87,6 +96,14 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+
+    // Email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(signUpEmail)) {
+      setError("Lütfen geçerli bir e-posta adresi giriniz.")
+      setIsLoading(false)
+      return
+    }
 
     const supabase = createClient()
 
@@ -151,8 +168,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">Hoş geldiniz</h2>
-        <p className="text-muted-foreground text-sm">Hesabınıza giriş yapın veya yeni bir hesap oluşturun</p>
+        <h2 className="text-2xl font-semibold tracking-tight">{t("auth.welcome")}</h2>
+        <p className="text-muted-foreground text-sm">{t("auth.subtitle")}</p>
       </div>
 
       {error && (
@@ -196,7 +213,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
             />
           </svg>
         )}
-        Google ile devam et
+        {t("auth.continueWithGoogle")}
       </Button>
 
       <div className="relative">
@@ -204,21 +221,21 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
           <Separator />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Veya</span>
+          <span className="bg-background px-2 text-muted-foreground">{t("auth.or")}</span>
         </div>
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signin">Giriş Yap</TabsTrigger>
-          <TabsTrigger value="signup">Kayıt Ol</TabsTrigger>
+          <TabsTrigger value="signin">{t("auth.signin")}</TabsTrigger>
+          <TabsTrigger value="signup">{t("auth.signup")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="signin" className="space-y-4 mt-4">
           <form onSubmit={handleSignIn} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="signin-email">E-posta</Label>
-              <Input
+              <Label htmlFor="signin-email">{t("auth.email")}</Label>
+              <Input suppressHydrationWarning
                 id="signin-email"
                 type="email"
                 placeholder="ornek@email.com"
@@ -230,12 +247,12 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="signin-password">Şifre</Label>
+                <Label htmlFor="signin-password">{t("auth.password")}</Label>
                 <a href="/auth/forgot-password" className="text-xs text-primary hover:underline">
-                  Şifremi unuttum
+                  {t("auth.forgotPassword")}
                 </a>
               </div>
-              <Input
+              <Input suppressHydrationWarning
                 id="signin-password"
                 type="password"
                 placeholder="••••••••"
@@ -247,7 +264,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
             </div>
             <Button type="submit" className="w-full h-11" disabled={isLoading || isGoogleLoading}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Giriş Yap
+              {t("auth.signin")}
             </Button>
           </form>
         </TabsContent>
@@ -256,8 +273,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
           <form onSubmit={handleSignUp} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-name">Ad Soyad</Label>
-                <Input
+                <Label htmlFor="signup-name">{t("auth.name")}</Label>
+                <Input suppressHydrationWarning
                   id="signup-name"
                   type="text"
                   placeholder="Ahmet Yılmaz"
@@ -268,8 +285,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-company">Şirket Adı</Label>
-                <Input
+                <Label htmlFor="signup-company">{t("auth.company")}</Label>
+                <Input suppressHydrationWarning
                   id="signup-company"
                   type="text"
                   placeholder="Şirket A.Ş."
@@ -281,8 +298,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="signup-email">E-posta</Label>
-              <Input
+              <Label htmlFor="signup-email">{t("auth.email")}</Label>
+              <Input suppressHydrationWarning
                 id="signup-email"
                 type="email"
                 placeholder="ornek@email.com"
@@ -293,8 +310,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="signup-password">Şifre</Label>
-              <Input
+              <Label htmlFor="signup-password">{t("auth.password")}</Label>
+              <Input suppressHydrationWarning
                 id="signup-password"
                 type="password"
                 placeholder="••••••••"
@@ -308,7 +325,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
             </div>
             <Button type="submit" className="w-full h-11" disabled={isLoading || isGoogleLoading}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Hesap Oluştur
+              {t("auth.createAccount")}
             </Button>
           </form>
         </TabsContent>

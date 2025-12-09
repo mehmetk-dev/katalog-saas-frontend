@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,103 +11,312 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { useUser } from "@/lib/user-context"
 import { Skeleton } from "@/components/ui/skeleton"
-
-const navItems = [
-  { href: "/dashboard", label: "Panel", icon: LayoutDashboard },
-  { href: "/dashboard/products", label: "Ürünler", icon: Package },
-  { href: "/dashboard/catalogs", label: "Kataloglar", icon: FolderOpen },
-  { href: "/dashboard/templates", label: "Şablonlar", icon: Palette },
-  { href: "/dashboard/settings", label: "Ayarlar", icon: Settings },
-]
+import { useTranslation } from "@/lib/i18n-provider"
+import { useSidebar } from "@/lib/sidebar-context"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { UpgradeModal } from "@/components/builder/upgrade-modal"
 
 export function DashboardSidebar() {
   const pathname = usePathname()
   const { user, isLoading } = useUser()
+  const { t } = useTranslation()
+  const { isOpen, isCollapsed, isMobile, close, toggle } = useSidebar()
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
+  const navItems = [
+    { href: "/dashboard", label: t("common.dashboard"), icon: LayoutDashboard },
+    { href: "/dashboard/products", label: t("dashboard.products"), icon: Package },
+    { href: "/dashboard/categories", label: "Kategoriler", icon: FolderOpen, premium: true },
+    { href: "/dashboard/catalogs", label: t("dashboard.catalogs"), icon: BookOpen },
+    { href: "/dashboard/templates", label: "Şablonlar", icon: Palette },
+    { href: "/dashboard/settings", label: t("common.settings"), icon: Settings },
+  ]
 
   const exportPercentage = user ? (user.exportsUsed / user.maxExports) * 100 : 0
-  const isPro = user?.plan === "pro"
+  const isFreeUser = user?.plan === "free"
+
+  // Mobilde link tıklandığında sidebar'ı kapat
+  const handleNavClick = () => {
+    if (isMobile) {
+      close()
+    }
+  }
+
+  // Sidebar genişliği
+  const sidebarWidth = isCollapsed && !isMobile ? "w-16" : "w-64"
 
   return (
-    <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col">
-      {/* Logo */}
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
-        <div className="p-1.5 bg-primary rounded-lg">
-          <BookOpen className="w-5 h-5 text-primary-foreground" />
+    <TooltipProvider delayDuration={0}>
+      {/* Overlay - Mobilde sidebar açıkken arka plan */}
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={close}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed lg:sticky lg:top-0 z-50 h-screen border-r border-sidebar-border bg-sidebar flex flex-col transition-all duration-300 ease-in-out overflow-y-auto",
+          sidebarWidth,
+          // Mobilde transform ile aç/kapa
+          isMobile && !isOpen && "-translate-x-full",
+          isMobile && isOpen && "translate-x-0",
+          // Masaüstünde her zaman görünür
+          !isMobile && "translate-x-0"
+        )}
+      >
+        {/* Logo & Close/Collapse Button */}
+        <div className={cn(
+          "h-16 flex items-center border-b border-sidebar-border shrink-0",
+          isCollapsed && !isMobile ? "justify-center px-2" : "justify-between px-4"
+        )}>
+          <Link href="/dashboard" className={cn(
+            "flex items-center gap-3 overflow-hidden",
+            isCollapsed && !isMobile && "justify-center"
+          )}>
+            <div className="p-1.5 bg-primary rounded-lg shrink-0">
+              <BookOpen className="w-5 h-5 text-primary-foreground" />
+            </div>
+            {(!isCollapsed || isMobile) && (
+              <span className="font-semibold text-sidebar-foreground whitespace-nowrap">CatalogPro</span>
+            )}
+          </Link>
+
+          {/* Mobilde kapatma butonu */}
+          {isMobile && (
+            <Button variant="ghost" size="icon" onClick={close} className="lg:hidden shrink-0">
+              <X className="w-5 h-5" />
+            </Button>
+          )}
+
+          {/* Masaüstünde collapse butonu */}
+          {!isMobile && !isCollapsed && (
+            <Button variant="ghost" size="icon" onClick={toggle} className="shrink-0 h-8 w-8">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+          )}
         </div>
-        <span className="font-semibold text-sidebar-foreground">CatalogPro</span>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+        {/* Collapsed durumda expand butonu */}
+        {!isMobile && isCollapsed && (
+          <div className="p-2 flex justify-center">
+            <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8">
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              )}
-            >
-              <Icon className="w-5 h-5" />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+        {/* Navigation */}
+        <nav className={cn(
+          "p-2 space-y-1 overflow-y-auto overflow-x-hidden",
+          !isCollapsed && "p-4"
+        )}>
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+            const isPremiumItem = (item as any).premium
+            const showPremiumBadge = isPremiumItem && user?.plan === "free"
 
-      {/* Usage Tracker Card */}
-      <div className="p-4">
-        <Card className="bg-sidebar-accent/50 border-sidebar-border">
-          <CardContent className="p-4 space-y-4">
-            {isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-2 w-full" />
-                <Skeleton className="h-9 w-full" />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-sidebar-foreground">
-                    {isPro ? "Pro Plan" : "Ücretsiz Plan"}
-                  </span>
-                  <Badge variant="secondary" className="text-xs">
-                    Aktif
-                  </Badge>
-                </div>
-
-                {!isPro && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Katalog Dışa Aktarma</span>
-                      <span className="font-medium text-sidebar-foreground">
-                        {user?.exportsUsed ?? 0}/{user?.maxExports ?? 1} Kullanıldı
-                      </span>
-                    </div>
-                    <Progress value={exportPercentage} className="h-2" />
-                  </div>
+            const navLink = (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={handleNavClick}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
+                  isCollapsed && !isMobile ? "justify-center p-2.5" : "px-3 py-2.5",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 )}
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                {(!isCollapsed || isMobile) && (
+                  <span className="truncate flex-1">{item.label}</span>
+                )}
+                {(!isCollapsed || isMobile) && showPremiumBadge && (
+                  <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 bg-violet-100 text-violet-700">
+                    Plus
+                  </Badge>
+                )}
+              </Link>
+            )
 
-                {!isPro && (
-                  <Button size="sm" className="w-full gap-2" asChild>
-                    <Link href="/pricing">
-                      <Sparkles className="w-4 h-4" />
+            // Collapsed durumda tooltip göster
+            if (isCollapsed && !isMobile) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    {navLink}
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return navLink
+          })}
+        </nav>
+
+        {/* Spacer - Pro paket kartını en alta iter */}
+        <div className="flex-1" />
+
+        {/* Usage Tracker Card - Collapsed olmadığında göster */}
+        {(!isCollapsed || isMobile) && (
+          <div className="p-4 shrink-0 border-t border-sidebar-border">
+            <Card className={cn(
+              "border-sidebar-border overflow-hidden",
+              user?.plan === "pro"
+                ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-0"
+                : user?.plan === "plus"
+                  ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0"
+                  : "bg-sidebar-accent/50"
+            )}>
+              <CardContent className="p-4 space-y-3">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-2 w-full" />
+                    <Skeleton className="h-9 w-full" />
+                  </div>
+                ) : user?.plan === "pro" ? (
+                  /* PRO KULLANICI */
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        <span className="font-semibold">Pro Paket</span>
+                      </div>
+                      <Badge className="bg-white/20 text-white border-0 text-xs">
+                        Aktif
+                      </Badge>
+                    </div>
+                    <div className="text-xs opacity-90">
+                      ✓ Sınırsız Katalog<br />
+                      ✓ Sınırsız İndirme<br />
+                      ✓ Tüm Şablonlar
+                    </div>
+                  </>
+                ) : user?.plan === "plus" ? (
+                  /* PLUS KULLANICI */
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        <span className="font-semibold">Plus Paket</span>
+                      </div>
+                      <Badge className="bg-white/20 text-white border-0 text-xs">
+                        Aktif
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="opacity-80">Katalog</span>
+                        <span className="font-medium">
+                          {user?.catalogsCount ?? 0}/10
+                        </span>
+                      </div>
+                      <Progress
+                        value={((user?.catalogsCount ?? 0) / 10) * 100}
+                        className="h-1.5 bg-white/20"
+                      />
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="opacity-80">İndirme</span>
+                        <span className="font-medium">
+                          {user?.exportsUsed ?? 0}/50
+                        </span>
+                      </div>
+                      <Progress
+                        value={((user?.exportsUsed ?? 0) / 50) * 100}
+                        className="h-1.5 bg-white/20"
+                      />
+                    </div>
+                    <Button size="sm" className="w-full gap-2 bg-white/20 hover:bg-white/30 text-white border-0" onClick={() => setShowUpgradeModal(true)}>
                       Pro'ya Yükselt
                       <ArrowUpRight className="w-3 h-3" />
-                    </Link>
-                  </Button>
+                    </Button>
+                  </>
+                ) : (
+                  /* FREE KULLANICI */
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-sidebar-foreground">
+                        Ücretsiz Paket
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        {t("catalogs.status")}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">İndirme Hakkı</span>
+                        <span className="font-medium text-sidebar-foreground">
+                          {user?.exportsUsed ?? 0}/{user?.maxExports ?? 1}
+                        </span>
+                      </div>
+                      <Progress value={exportPercentage} className="h-2" />
+                    </div>
+
+                    <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" onClick={() => setShowUpgradeModal(true)}>
+                      <Sparkles className="w-4 h-4" />
+                      {t("settings.upgrade")}
+                      <ArrowUpRight className="w-3 h-3" />
+                    </Button>
+                  </>
                 )}
-              </>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Collapsed durumda Pro ise premium icon, değilse upgrade */}
+        {isCollapsed && !isMobile && (
+          <div className="p-2 shrink-0">
+            {user?.plan === "pro" ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-full flex justify-center">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">Pro Paket - Sınırsız</TooltipContent>
+              </Tooltip>
+            ) : user?.plan === "plus" ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-full flex justify-center">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">Plus Paket</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" className="w-full" onClick={() => setShowUpgradeModal(true)}>
+                    <Sparkles className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  Pro'ya Yükselt
+                </TooltipContent>
+              </Tooltip>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </aside>
+          </div>
+        )}
+      </aside>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+    </TooltipProvider>
   )
 }

@@ -1,7 +1,7 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { apiFetch } from "@/lib/api"
 
 export interface CustomAttribute {
   name: string
@@ -25,35 +25,15 @@ export interface Product {
 }
 
 export async function getProducts() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return []
-
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-
-  if (error) {
+  try {
+    return await apiFetch<Product[]>("/products")
+  } catch (error) {
     console.error("Error fetching products:", error)
     return []
   }
-
-  return data as Product[]
 }
 
 export async function createProduct(formData: FormData) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Oturum açılmamış")
-
   const customAttributesJson = formData.get("custom_attributes") as string
   let customAttributes: CustomAttribute[] = []
   try {
@@ -64,8 +44,7 @@ export async function createProduct(formData: FormData) {
     customAttributes = []
   }
 
-  const product = {
-    user_id: user.id,
+  const productData = {
     name: formData.get("name") as string,
     sku: (formData.get("sku") as string) || null,
     description: (formData.get("description") as string) || null,
@@ -76,22 +55,19 @@ export async function createProduct(formData: FormData) {
     custom_attributes: customAttributes,
   }
 
-  const { data, error } = await supabase.from("products").insert(product).select().single()
-
-  if (error) throw error
-
-  revalidatePath("/dashboard/products")
-  return data
+  try {
+    const data = await apiFetch<Product>("/products", {
+      method: "POST",
+      body: JSON.stringify(productData),
+    })
+    revalidatePath("/dashboard/products")
+    return data
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Oturum açılmamış")
-
   const customAttributesJson = formData.get("custom_attributes") as string
   let customAttributes: CustomAttribute[] = []
   try {
@@ -111,66 +87,181 @@ export async function updateProduct(id: string, formData: FormData) {
     category: (formData.get("category") as string) || null,
     image_url: (formData.get("image_url") as string) || null,
     custom_attributes: customAttributes,
-    updated_at: new Date().toISOString(),
   }
 
-  const { error } = await supabase.from("products").update(updates).eq("id", id).eq("user_id", user.id)
-
-  if (error) throw error
-
-  revalidatePath("/dashboard/products")
-  return { success: true }
+  try {
+    await apiFetch(`/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    })
+    revalidatePath("/dashboard/products")
+    return { success: true }
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function deleteProduct(id: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Oturum açılmamış")
-
-  const { error } = await supabase.from("products").delete().eq("id", id).eq("user_id", user.id)
-
-  if (error) throw error
-
-  revalidatePath("/dashboard/products")
-  return { success: true }
+  try {
+    await apiFetch(`/products/${id}`, {
+      method: "DELETE",
+    })
+    revalidatePath("/dashboard/products")
+    return { success: true }
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function deleteProducts(ids: string[]) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) throw new Error("Oturum açılmamış")
-
-  const { error } = await supabase.from("products").delete().in("id", ids).eq("user_id", user.id)
-
-  if (error) throw error
-
-  revalidatePath("/dashboard/products")
-  return { success: true }
+  try {
+    await apiFetch("/products/bulk-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    })
+    revalidatePath("/dashboard/products")
+    return { success: true }
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function bulkImportProducts(products: Omit<Product, "id" | "user_id" | "created_at" | "updated_at">[]) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const importedProducts = await apiFetch<Product[]>("/products/bulk-import", {
+      method: "POST",
+      body: JSON.stringify({ products }),
+    })
+    revalidatePath("/dashboard/products")
+    return importedProducts
+  } catch (error) {
+    throw error
+  }
+}
 
-  if (!user) throw new Error("Oturum açılmamış")
+export async function updateProductOrder(orderData: { id: string; order: number }[]) {
+  try {
+    await apiFetch("/products/reorder", {
+      method: "POST",
+      body: JSON.stringify({ order: orderData }),
+    })
+    revalidatePath("/dashboard/products")
+    return { success: true }
+  } catch (error) {
+    // Sıralama kaydetme başarısız olsa bile UI'da çalışmaya devam et
+    console.error("Error updating product order:", error)
+    return { success: false }
+  }
+}
 
-  const productsWithUserId = products.map((p) => ({
-    ...p,
-    user_id: user.id,
-  }))
+export async function bulkUpdatePrices(
+  productIds: string[],
+  changeType: "increase" | "decrease",
+  changeMode: "percentage" | "fixed",
+  amount: number
+) {
+  try {
+    const updatedProducts = await apiFetch<Product[]>("/products/bulk-price-update", {
+      method: "POST",
+      body: JSON.stringify({
+        productIds,
+        changeType,
+        changeMode,
+        amount
+      }),
+    })
+    revalidatePath("/dashboard/products")
+    return updatedProducts
+  } catch (error) {
+    throw error
+  }
+}
 
-  const { data, error } = await supabase.from("products").insert(productsWithUserId).select()
+export async function renameCategory(oldName: string, newName: string) {
+  try {
+    const updatedProducts = await apiFetch<Product[]>("/products/rename-category", {
+      method: "POST",
+      body: JSON.stringify({ oldName, newName }),
+    })
+    revalidatePath("/dashboard/products")
+    revalidatePath("/dashboard/categories")
+    return updatedProducts
+  } catch (error) {
+    throw error
+  }
+}
 
-  if (error) throw error
+export async function deleteCategory(categoryName: string) {
+  try {
+    const updatedProducts = await apiFetch<Product[]>("/products/delete-category", {
+      method: "POST",
+      body: JSON.stringify({ categoryName }),
+    })
+    revalidatePath("/dashboard/products")
+    revalidatePath("/dashboard/categories")
+    return updatedProducts
+  } catch (error) {
+    throw error
+  }
+}
 
-  revalidatePath("/dashboard/products")
-  return data
+export async function addDummyProducts() {
+  try {
+    const dummyProducts = [
+      {
+        name: "Test Ürün 1",
+        description: "Otomatik oluşturulan test ürünü açıklaması.",
+        price: 150,
+        stock: 20,
+        category: null,
+        sku: `TEST-${Date.now()}-1`,
+        image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
+        custom_attributes: []
+      },
+      {
+        name: "Test Ürün 2",
+        description: "Harika bir test ürünü.",
+        price: 299.99,
+        stock: 5,
+        category: null,
+        sku: `TEST-${Date.now()}-2`,
+        image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
+        custom_attributes: []
+      },
+      {
+        name: "Test Ürün 3",
+        description: "İndirimli test ürünü",
+        price: 49.50,
+        stock: 100,
+        category: null,
+        sku: `TEST-${Date.now()}-3`,
+        image_url: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&q=80",
+        custom_attributes: []
+      },
+      {
+        name: "Test Ürün 4",
+        description: "Premium test ürünü.",
+        price: 1250,
+        stock: 2,
+        category: null,
+        sku: `TEST-${Date.now()}-4`,
+        image_url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80",
+        custom_attributes: []
+      },
+      {
+        name: "Test Ürün 5",
+        description: "Son test ürünü.",
+        price: 15,
+        stock: 50,
+        category: null,
+        sku: `TEST-${Date.now()}-5`,
+        image_url: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500&q=80",
+        custom_attributes: []
+      }
+    ];
+
+    return await bulkImportProducts(dummyProducts);
+  } catch (error) {
+    throw error;
+  }
 }

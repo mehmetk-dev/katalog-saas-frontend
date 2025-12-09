@@ -1,0 +1,83 @@
+import { Router } from 'express';
+import { supabase } from '../services/supabase';
+
+const router = Router();
+
+// GET /admin/users - Tüm kullanıcıları getir
+router.get('/users', async (req, res) => {
+    try {
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.json(users);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /admin/deleted-users - Silinen kullanıcıları getir
+router.get('/deleted-users', async (req, res) => {
+    try {
+        const { data: users, error } = await supabase
+            .from('deleted_users')
+            .select('*')
+            .order('deleted_at', { ascending: false });
+
+        if (error) throw error;
+        res.json(users || []);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /admin/stats - Admin istatistikleri
+router.get('/stats', async (req, res) => {
+    try {
+        const [usersResult, productsResult, catalogsResult, exportsResult, deletedResult] = await Promise.all([
+            supabase.from('users').select('*', { count: 'exact', head: true }),
+            supabase.from('products').select('*', { count: 'exact', head: true }),
+            supabase.from('catalogs').select('*', { count: 'exact', head: true }),
+            supabase.from('users').select('exports_used'),
+            supabase.from('deleted_users').select('*', { count: 'exact', head: true })
+        ]);
+
+        const totalExports = exportsResult.data?.reduce((acc: number, curr: any) => acc + (curr.exports_used || 0), 0) || 0;
+
+        res.json({
+            usersCount: usersResult.count || 0,
+            productsCount: productsResult.count || 0,
+            catalogsCount: catalogsResult.count || 0,
+            totalExports,
+            deletedUsersCount: deletedResult.count || 0
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT /admin/users/:id/plan - Kullanıcı planını güncelle
+router.put('/users/:id/plan', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { plan } = req.body;
+
+        if (!['free', 'plus', 'pro'].includes(plan)) {
+            return res.status(400).json({ error: 'Invalid plan' });
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update({ plan })
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+export default router;
