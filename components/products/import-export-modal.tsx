@@ -993,7 +993,11 @@ export function ImportExportModal({
                                             className="mt-4 bg-green-600 hover:bg-green-700"
                                             onClick={() => {
                                                 onExport()
-                                                setOpen(false)
+                                                if (onOpenChange) {
+                                                    onOpenChange(false)
+                                                } else {
+                                                    setInternalOpen(false)
+                                                }
                                             }}
                                             disabled={productCount === 0 || isLoading}
                                         >
