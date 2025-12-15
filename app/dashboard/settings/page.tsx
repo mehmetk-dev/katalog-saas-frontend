@@ -36,11 +36,17 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const supabase = createClient()
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string | null>(null)
+  const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(null)
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !user) return
+    if (!file) return
 
     // Validate file
     if (!file.type.startsWith('image/')) {
@@ -52,55 +58,130 @@ export default function SettingsPage() {
       return
     }
 
-    setIsUploadingAvatar(true)
-    try {
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`
-      const filePath = `avatars/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true })
-
-      if (uploadError) throw uploadError
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-
-      // Update user profile
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id)
-
-      if (updateError) throw updateError
-
-      await refreshUser()
-      toast.success("Profil fotoğrafı güncellendi")
-    } catch (error) {
-      console.error("Avatar upload error:", error)
-      toast.error("Fotoğraf yüklenemedi")
-    } finally {
-      setIsUploadingAvatar(false)
-    }
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewAvatarUrl(objectUrl)
+    setPendingAvatarFile(file)
   }
 
-  const handleSaveProfile = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast.error("Lütfen bir resim dosyası seçin")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Dosya boyutu 2MB'dan küçük olmalı")
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewLogoUrl(objectUrl)
+    setPendingLogoFile(file)
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!user) return
+
     const formData = new FormData(e.currentTarget)
+
     startTransition(async () => {
       try {
+        let avatarPublicUrl = user.avatar_url
+        let logoPublicUrl = user.logo_url
+        let dbUpdateNeeded = false
+        const dbUpdates: any = {}
+
+        // 1. Upload Avatar if pending
+        if (pendingAvatarFile) {
+          setIsUploadingAvatar(true)
+          const fileExt = pendingAvatarFile.name.split('.').pop()
+          const fileName = `${user.id}-${Date.now()}.${fileExt}`
+          const filePath = `avatars/${fileName}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, pendingAvatarFile, { upsert: true })
+
+          if (uploadError) throw uploadError
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath)
+
+          avatarPublicUrl = publicUrl
+          dbUpdates.avatar_url = publicUrl
+          dbUpdateNeeded = true
+          setIsUploadingAvatar(false)
+        }
+
+        // 2. Upload Logo if pending
+        if (pendingLogoFile) {
+          setIsUploadingLogo(true)
+          const fileExt = pendingLogoFile.name.split('.').pop()
+          const fileName = `logo-${user.id}-${Date.now()}.${fileExt}`
+          const filePath = `company-logos/${fileName}`
+          const bucketName = 'product-images'
+
+          const { error: uploadError } = await supabase.storage
+            .from(bucketName)
+            .upload(filePath, pendingLogoFile, { upsert: true })
+
+          if (uploadError) throw uploadError
+
+          const { data: { publicUrl } } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(filePath)
+
+          logoPublicUrl = publicUrl
+          dbUpdates.logo_url = publicUrl
+          dbUpdateNeeded = true
+          setIsUploadingLogo(false)
+        }
+
+        // 3. Update DB for images if needed
+        if (dbUpdateNeeded) {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update(dbUpdates)
+            .eq('id', user.id)
+
+          if (updateError) throw updateError
+        }
+
+        // 4. Update Profile Text Data
         await updateProfile(formData)
+
         await refreshUser()
+
+        // Reset pending states
+        setPendingAvatarFile(null)
+        setPendingLogoFile(null)
+        // Clear local preview state so it falls back to user data from refreshUser
+        if (previewAvatarUrl) URL.revokeObjectURL(previewAvatarUrl)
+        if (previewLogoUrl) URL.revokeObjectURL(previewLogoUrl)
+        setPreviewAvatarUrl(null)
+        setPreviewLogoUrl(null)
+
         toast.success("Profil başarıyla güncellendi")
-      } catch {
-        toast.error("Profil güncellenemedi")
+      } catch (error: any) {
+        console.error("Save profile error:", error)
+        let msg = "Profil güncellenemedi"
+        if (error?.message) msg += `: ${error.message}`
+        toast.error(msg)
+      } finally {
+        setIsUploadingAvatar(false)
+        setIsUploadingLogo(false)
       }
     })
   }
+
+  // Helper to get display source
+  const displayAvatarUrl = previewAvatarUrl || user?.avatar_url
+  const displayLogoUrl = previewLogoUrl || user?.logo_url
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
@@ -170,7 +251,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-6 pb-6 border-b">
                   <div className="relative group">
                     <Avatar className="w-20 h-20 border-4 border-white shadow-lg">
-                      <AvatarImage src={user?.avatar_url} alt={user?.name} />
+                      <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} />
                       <AvatarFallback className="text-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
                         {user?.name?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
@@ -216,6 +297,44 @@ export default function SettingsPage() {
                     <Input id="company" name="company" defaultValue={user?.company} className="bg-gray-50/50 border-gray-200 focus:bg-white transition-colors" />
                   </div>
                 </div>
+
+                {/* Company Logo Upload */}
+                <div className="flex items-center gap-6 pb-6 border-b">
+                  <div className="relative group">
+                    <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden group-hover:border-primary/50 transition-colors">
+                      {user?.logo_url ? (
+                        <img src={user.logo_url} alt="Company Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <Building2 className="w-8 h-8 text-gray-300" />
+                      )}
+                    </div>
+                    <label
+                      htmlFor="logo-upload"
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      {isUploadingLogo ? (
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-white" />
+                      )}
+                    </label>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      disabled={isUploadingLogo}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Şirket Logosu</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Kataloglarınızda kullanılacak şirket logosu. JPG, PNG (max 2MB)
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
                     <Mail className="w-3.5 h-3.5" /> {t("auth.email")}

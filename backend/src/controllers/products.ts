@@ -156,17 +156,29 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
         }
 
         // Add user_id to each product and filter invalid fields if needed
-        const productsToInsert = products.map((p: any) => ({
-            user_id: userId,
-            name: p.name,
-            sku: p.sku,
-            description: p.description,
-            price: p.price,
-            stock: p.stock,
-            category: p.category,
-            // image_url: p.image_url, // Opsiyonel: Dışarıdan gelen resim URL'leri güvenli olmayabilir
-            custom_attributes: p.custom_attributes || []
-        }));
+        const productsToInsert = products.map((p: any) => {
+            const product: any = {
+                user_id: userId,
+                name: p.name,
+                sku: p.sku || null,
+                description: p.description || null,
+                price: p.price || 0,
+                stock: p.stock || 0,
+                category: p.category || null,
+                image_url: p.image_url || null,
+                custom_attributes: p.custom_attributes || []
+            };
+
+            // images ve product_url opsiyonel - varsa ekle
+            if (p.images && Array.isArray(p.images)) {
+                product.images = p.images;
+            }
+            if (p.product_url) {
+                product.product_url = p.product_url;
+            }
+
+            return product;
+        });
 
         const { data, error } = await supabase
             .from('products')

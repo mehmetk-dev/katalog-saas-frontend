@@ -40,28 +40,48 @@ export function CatalogProTemplate({
 
             {/* Dinamik Grid */}
             <div className={`flex-1 p-4 grid ${getGridCols()} gap-3 content-start overflow-hidden`}>
-                {safeProducts.map((product) => (
-                    <div key={product.id} className="flex flex-col bg-gray-50 rounded-lg overflow-hidden">
-                        <div className="aspect-square bg-white overflow-hidden">
-                            <img loading="lazy"
-                                src={product.image_url || "/placeholder.svg"}
-                                alt={product.name}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform"
-                            />
-                        </div>
-                        <div className="p-2.5 flex-1 flex flex-col min-h-0">
-                            <h3 className="font-semibold text-xs text-gray-900 line-clamp-1">{product.name}</h3>
-                            {showDescriptions && product.description && (
-                                <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">{product.description}</p>
-                            )}
-                            {showPrices && (
-                                <p className="font-bold text-sm mt-auto pt-1" style={{ color: primaryColor }}>
-                                    ₺{Number(product.price).toFixed(2)}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                {safeProducts.map((product) => {
+                    const productUrl = (product as any).product_url
+                    const Wrapper = productUrl ? 'a' : 'div'
+                    const wrapperProps = productUrl ? {
+                        href: productUrl,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        className: 'flex flex-col bg-gray-50 rounded-lg overflow-hidden cursor-pointer group hover:shadow-md transition-all'
+                    } : {
+                        className: 'flex flex-col bg-gray-50 rounded-lg overflow-hidden'
+                    }
+
+                    return (
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            <div className="aspect-square bg-white overflow-hidden relative">
+                                <img loading="lazy"
+                                    src={product.image_url || "/placeholder.svg"}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                />
+                                {productUrl && (
+                                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                                        <svg className="w-3.5 h-3.5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-2.5 flex-1 flex flex-col min-h-0">
+                                <h3 className="font-semibold text-xs text-gray-900 line-clamp-1 group-hover:text-violet-700 transition-colors">{product.name}</h3>
+                                {showDescriptions && product.description && (
+                                    <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">{product.description}</p>
+                                )}
+                                {showPrices && (
+                                    <p className="font-bold text-sm mt-auto pt-1" style={{ color: primaryColor }}>
+                                        ₺{Number(product.price).toFixed(2)}
+                                    </p>
+                                )}
+                            </div>
+                        </Wrapper>
+                    )
+                })}
             </div>
 
             {/* Footer */}

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Bell, Plus, ChevronDown, LogOut, Settings, User, Menu, PanelLeftClose, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { NotificationsPopover } from "@/components/dashboard/notifications-popover"
+import { NotificationDropdown } from "@/components/dashboard/notification-dropdown"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,7 +130,7 @@ export function DashboardHeader() {
           <ThemeToggle />
 
           {/* Notifications */}
-          {mounted ? <NotificationsPopover /> : <Button variant="ghost" size="icon" disabled><Bell className="w-5 h-5 opacity-50" /></Button>}
+          {mounted ? <NotificationDropdown /> : <Button variant="ghost" size="icon" disabled><Bell className="w-5 h-5 opacity-50" /></Button>}
 
           {/* User Dropdown */}
           {UserMenu}

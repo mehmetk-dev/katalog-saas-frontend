@@ -39,12 +39,48 @@ export const getMe = async (req: Request, res: Response) => {
             plan: profile?.plan || 'free',
             productsCount: productsCount || 0,
             catalogsCount: catalogsCount || 0,
-            maxProducts: profile?.plan === 'pro' ? 999999 : 50,
-            maxExports: profile?.plan === 'pro' ? 999999 : 1,
+            maxProducts: profile?.plan === 'pro' ? 999999 : profile?.plan === 'plus' ? 1000 : 50,
+            maxCatalogs: profile?.plan === 'pro' ? 999999 : profile?.plan === 'plus' ? 10 : 1,
+            maxExports: profile?.plan === 'pro' ? 999999 : profile?.plan === 'plus' ? 50 : 1,
             exportsUsed: profile?.exports_used || 0,
         };
 
         res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Hoşgeldin bildirimi gönder (kayıt sonrası çağrılır)
+export const sendWelcomeNotification = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const userMeta = getUserMeta(req);
+        const userName = userMeta?.full_name || 'Değerli Kullanıcı';
+
+        // Check if welcome notification already sent
+        const { data: existingNotif } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('type', 'welcome')
+            .single();
+
+        if (existingNotif) {
+            return res.json({ success: true, message: 'Already sent' });
+        }
+
+        // Send welcome notification
+        const { createNotification } = await import('./notifications');
+        await createNotification(
+            userId,
+            'welcome',
+            'Hoş Geldiniz! 🎉',
+            `Merhaba ${userName}, CatalogPro'ya hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
+            '/dashboard/templates'
+        );
+
+        res.json({ success: true });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -90,6 +126,7 @@ export const deleteMe = async (req: Request, res: Response) => {
 export const incrementExportsUsed = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
+        const { catalogName } = req.body; // Frontend'den katalog adı gelecek
 
         // First get current
         const { data: profile, error: fetchError } = await supabase
@@ -117,6 +154,22 @@ export const incrementExportsUsed = async (req: Request, res: Response) => {
 
         if (updateError) throw updateError;
 
+        // Bildirim gönder
+        try {
+            const { createNotification } = await import('./notifications');
+            await createNotification(
+                userId,
+                'catalog_downloaded',
+                'Katalog İndirildi 📥',
+                catalogName
+                    ? `"${catalogName}" kataloğunuz PDF olarak indirildi.`
+                    : 'Kataloğunuz PDF olarak indirildi.',
+                '/dashboard/catalogs'
+            );
+        } catch (notifError) {
+            console.error('Notification error:', notifError);
+        }
+
         res.json({ success: true });
 
     } catch (error: any) {
@@ -127,12 +180,44 @@ export const incrementExportsUsed = async (req: Request, res: Response) => {
 export const upgradeToPro = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
+        const { plan } = req.body;
+
+        // Validate plan
+        const validPlans = ['free', 'plus', 'pro'];
+        const targetPlan = validPlans.includes(plan) ? plan : 'pro';
+
+        // Set subscription end date (1 year from now for yearly plans)
+        const subscriptionEnd = new Date();
+        subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
+
         const { error } = await supabase.from('users')
-            .update({ plan: 'pro' })
+            .update({
+                plan: targetPlan,
+                subscription_status: 'active',
+                subscription_end: subscriptionEnd.toISOString()
+            })
             .eq('id', userId);
 
         if (error) throw error;
-        res.json({ success: true });
+
+        // Bildirim gönder
+        if (targetPlan !== 'free') {
+            try {
+                const { createNotification } = await import('./notifications');
+                const planName = targetPlan === 'pro' ? 'Pro' : 'Plus';
+                await createNotification(
+                    userId,
+                    'subscription_started',
+                    `${planName} Paketi Aktif! ✨`,
+                    `Tebrikler! ${planName} paketiniz aktif edildi. ${subscriptionEnd.toLocaleDateString('tr-TR')} tarihine kadar tüm premium özelliklerden yararlanabilirsiniz.`,
+                    '/dashboard'
+                );
+            } catch (notifError) {
+                console.error('Notification error:', notifError);
+            }
+        }
+
+        res.json({ success: true, plan: targetPlan });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

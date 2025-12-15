@@ -248,7 +248,7 @@ export function CatalogEditor({
 
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Arka Plan Ayarları - YENİ */}
         <Card className="flex flex-col h-full">
           <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
@@ -360,86 +360,97 @@ export function CatalogEditor({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-            <div className="flex gap-4 h-full">
-              <div className="flex-1 space-y-3 min-w-0">
-                <input type="file" ref={logoInputRef} accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                <Button
-                  variant={logoUrl ? "outline" : "outline"}
-                  className={cn(
-                    "w-full h-9 border-dashed transition-all",
-                    !logoUrl && "h-16 border-primary/20 hover:border-primary/50 text-muted-foreground bg-muted/10"
-                  )}
-                  onClick={() => logoInputRef.current?.click()}
-                >
-                  <Upload className={cn("w-4 h-4 mr-2", !logoUrl && "w-5 h-5 mb-1")} />
-                  {logoUrl ? "Logo Değiştir" : <div className="flex flex-col items-center leading-none gap-1"><span>Logo Yükle</span><span className="text-[10px] opacity-70">max 2MB</span></div>}
-                </Button>
+            <div className="space-y-4">
+              <input type="file" ref={logoInputRef} accept="image/*" className="hidden" onChange={handleLogoUpload} />
 
-                {logoUrl && (
-                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Pozisyon</Label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {[
-                          { value: 'top-left', label: 'Sol Üst' }, { value: 'top-center', label: 'Orta' }, { value: 'top-right', label: 'Sağ Üst' },
-                          { value: 'bottom-left', label: 'Sol Alt' }, { value: 'bottom-center', label: 'Orta' }, { value: 'bottom-right', label: 'Sağ Alt' },
-                        ].map((pos) => (
-                          <button
-                            key={pos.value}
-                            onClick={() => onLogoPositionChange?.(pos.value)}
-                            className={cn(
-                              "h-8 rounded-md border text-[10px] sm:text-xs transition-all hover:bg-muted",
-                              logoPosition === pos.value
-                                ? "border-primary bg-primary/5 text-primary font-medium"
-                                : "border-border"
-                            )}
-                          >
-                            {pos.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Boyut</Label>
-                      <div className="flex gap-1.5">
-                        {[
-                          { value: 'small', label: 'Küçük' },
-                          { value: 'medium', label: 'Orta' },
-                          { value: 'large', label: 'Büyük' },
-                        ].map((size) => (
-                          <button
-                            key={size.value}
-                            onClick={() => onLogoSizeChange?.(size.value)}
-                            className={cn(
-                              "flex-1 h-8 rounded-md border text-[10px] sm:text-xs transition-all hover:bg-muted",
-                              logoSize === size.value
-                                ? "border-primary bg-primary/5 text-primary font-medium"
-                                : "border-border"
-                            )}
-                          >
-                            {size.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+              {/* Logo Preview veya Upload */}
+              {logoUrl ? (
+                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
+                  <div className="w-16 h-16 rounded-lg border bg-white overflow-hidden flex items-center justify-center p-1 shrink-0">
+                    <img src={logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
                   </div>
-                )}
-              </div>
-
-              {logoUrl && (
-                <div className="w-24 sm:w-28 shrink-0 flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm text-center block w-full text-muted-foreground">Önizleme</Label>
-                  <div className="aspect-square w-full rounded-lg border bg-muted/50 overflow-hidden relative group flex items-center justify-center p-2">
-                    <img src={logoUrl || undefined} alt="Logo" className="max-w-full max-h-full object-contain" />
+                  <div className="flex-1 min-w-0 space-y-2">
                     <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs"
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      <Upload className="w-3 h-3 mr-1.5" />
+                      Değiştir
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-8 text-xs text-destructive hover:text-destructive"
                       onClick={() => onLogoUrlChange?.(null)}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3 h-3 mr-1.5" />
+                      Kaldır
                     </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full h-20 border-dashed border-primary/20 hover:border-primary/50 text-muted-foreground bg-muted/10"
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <Upload className="w-5 h-5" />
+                    <span className="text-sm">Logo Yükle</span>
+                    <span className="text-[10px] opacity-70">max 2MB</span>
+                  </div>
+                </Button>
+              )}
+
+              {/* Pozisyon ve Boyut - Logo varsa göster */}
+              {logoUrl && (
+                <div className="space-y-3 pt-2 border-t">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Pozisyon</Label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { value: 'top-left', label: 'Sol' }, { value: 'top-center', label: 'Orta' }, { value: 'top-right', label: 'Sağ' },
+                      ].map((pos) => (
+                        <button
+                          key={pos.value}
+                          onClick={() => onLogoPositionChange?.(pos.value)}
+                          className={cn(
+                            "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
+                            logoPosition === pos.value
+                              ? "border-primary bg-primary/5 text-primary font-medium"
+                              : "border-border"
+                          )}
+                        >
+                          {pos.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Boyut</Label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { value: 'small', label: 'Küçük' },
+                        { value: 'medium', label: 'Orta' },
+                        { value: 'large', label: 'Büyük' },
+                      ].map((size) => (
+                        <button
+                          key={size.value}
+                          onClick={() => onLogoSizeChange?.(size.value)}
+                          className={cn(
+                            "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
+                            logoSize === size.value
+                              ? "border-primary bg-primary/5 text-primary font-medium"
+                              : "border-border"
+                          )}
+                        >
+                          {size.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -771,7 +782,7 @@ export function CatalogEditor({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:flex md:flex-wrap md:justify-center">
+          <div className="grid grid-cols-2 gap-4">
             {TEMPLATES.map((template) => {
               const isLocked = template.isPro && userPlan !== "pro"
               const isSelected = layout === template.id
@@ -780,7 +791,7 @@ export function CatalogEditor({
                   key={template.id}
                   onClick={() => handleTemplateSelect(template.id, template.isPro)}
                   className={cn(
-                    "relative cursor-pointer border rounded-lg p-2 sm:p-3 hover:bg-muted/50 transition-all md:w-[200px]",
+                    "relative cursor-pointer border rounded-lg p-2 sm:p-3 hover:bg-muted/50 transition-all",
                     isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "border-border",
                     isLocked && "opacity-70 hover:opacity-80"
                   )}

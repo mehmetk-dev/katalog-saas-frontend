@@ -225,13 +225,13 @@ export function DashboardSidebar() {
                         className="h-1.5 bg-white/20"
                       />
                       <div className="flex items-center justify-between text-xs">
-                        <span className="opacity-80">İndirme</span>
+                        <span className="opacity-80">Ürün</span>
                         <span className="font-medium">
-                          {user?.exportsUsed ?? 0}/50
+                          {user?.productsCount ?? 0}/1000
                         </span>
                       </div>
                       <Progress
-                        value={((user?.exportsUsed ?? 0) / 50) * 100}
+                        value={((user?.productsCount ?? 0) / 1000) * 100}
                         className="h-1.5 bg-white/20"
                       />
                     </div>
@@ -254,12 +254,19 @@ export function DashboardSidebar() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">İndirme Hakkı</span>
+                        <span className="text-muted-foreground">Katalog</span>
                         <span className="font-medium text-sidebar-foreground">
-                          {user?.exportsUsed ?? 0}/{user?.maxExports ?? 1}
+                          {user?.catalogsCount ?? 0}/1
                         </span>
                       </div>
-                      <Progress value={exportPercentage} className="h-2" />
+                      <Progress value={((user?.catalogsCount ?? 0) / 1) * 100} className="h-2" />
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Ürün</span>
+                        <span className="font-medium text-sidebar-foreground">
+                          {user?.productsCount ?? 0}/50
+                        </span>
+                      </div>
+                      <Progress value={((user?.productsCount ?? 0) / 50) * 100} className="h-2" />
                     </div>
 
                     <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" onClick={() => setShowUpgradeModal(true)}>

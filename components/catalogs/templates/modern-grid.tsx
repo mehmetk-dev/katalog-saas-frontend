@@ -41,44 +41,67 @@ export function ModernGridTemplate({
                 )}
             </div>
 
-            {/* Grid İçerik - Dinamik sütun sayısı */}
-            <div className={`flex-1 p-6 grid ${getGridCols()} gap-4 content-start`}>
-                {(products || []).map((product) => (
-                    <div key={product.id} className="flex flex-col border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm">
-                        {/* Görsel */}
-                        <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
-                            <img loading="lazy"
-                                src={product.image_url || "/placeholder.svg"}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
+            {/* Grid İçerik - Overflow engellendi */}
+            <div className={`flex-1 p-4 grid ${getGridCols()} gap-3 content-start overflow-hidden auto-rows-max`} style={{ maxHeight: 'calc(100% - 90px)' }}>
+                {(products || []).map((product) => {
+                    const productUrl = (product as any).product_url
+                    const Wrapper = productUrl ? 'a' : 'div'
+                    const wrapperProps = productUrl ? {
+                        href: productUrl,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        className: 'flex flex-col border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer'
+                    } : {
+                        className: 'flex flex-col border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm'
+                    }
 
-                        {/* Bilgiler */}
-                        <div className="p-3 flex-1 flex flex-col">
-                            <div className="flex justify-between items-start gap-2 mb-1">
-                                <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">{product.name}</h3>
-                                {showPrices && (
-                                    <span className="font-bold text-sm shrink-0" style={{ color: primaryColor }}>
-                                        {(() => {
-                                            const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
-                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                            return `${symbol}${Number(product.price).toFixed(2)}`
-                                        })()}
-                                    </span>
+                    return (
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            {/* Görsel */}
+                            <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
+                                <img loading="lazy"
+                                    src={product.image_url || (product as any).images?.[0] || "/placeholder.svg"}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = "/placeholder.svg"
+                                    }}
+                                />
+                                {productUrl && (
+                                    <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
+                                        <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </div>
                                 )}
                             </div>
-                            {showDescriptions && product.description && (
-                                <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
-                                    {product.description}
-                                </p>
-                            )}
-                            {product.sku && (
-                                <p className="text-[10px] text-gray-400 mt-auto pt-1 font-mono">SKU: {product.sku}</p>
-                            )}
-                        </div>
-                    </div>
-                ))}
+
+                            {/* Bilgiler */}
+                            <div className="p-3 flex-1 flex flex-col">
+                                <div className="flex justify-between items-start gap-2 mb-1">
+                                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">{product.name}</h3>
+                                    {showPrices && (
+                                        <span className="font-bold text-sm shrink-0" style={{ color: primaryColor }}>
+                                            {(() => {
+                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                return `${symbol}${Number(product.price).toFixed(2)}`
+                                            })()}
+                                        </span>
+                                    )}
+                                </div>
+                                {showDescriptions && product.description && (
+                                    <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
+                                        {product.description}
+                                    </p>
+                                )}
+                                {product.sku && (
+                                    <p className="text-[10px] text-gray-400 mt-auto pt-1 font-mono">SKU: {product.sku}</p>
+                                )}
+                            </div>
+                        </Wrapper>
+                    )
+                })}
             </div>
 
             {/* Footer */}

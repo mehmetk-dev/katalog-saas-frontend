@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Check, BookOpen, ArrowRight, Sparkles, MessageCircle, Star, Zap, Crown } from "lucide-react"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
+import { ArrowRight, Check, Zap, Star, Crown, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const plans = [
@@ -15,7 +17,8 @@ const plans = [
     icon: Star,
     description: "Yeni başlayanlar için",
     price: { monthly: 0, yearly: 0 },
-    color: "from-slate-400 to-slate-500",
+    color: "bg-slate-100",
+    iconColor: "text-slate-600",
     features: [
       "1 Katalog",
       "50 Ürün Limiti",
@@ -23,7 +26,6 @@ const plans = [
       "Filigranlı"
     ],
     cta: "Ücretsiz Başla",
-    ctaVariant: "outline" as const,
     href: "/auth",
   },
   {
@@ -31,7 +33,8 @@ const plans = [
     icon: Zap,
     description: "Büyüyen işletmeler için",
     price: { monthly: 500, yearly: 5000 },
-    color: "from-blue-500 to-cyan-500",
+    color: "bg-blue-100",
+    iconColor: "text-blue-600",
     features: [
       "10 Katalog",
       "1.000 Ürün",
@@ -39,7 +42,6 @@ const plans = [
       "Filigransız"
     ],
     cta: "Plus'a Geç",
-    ctaVariant: "default" as const,
     href: "/auth?plan=plus",
   },
   {
@@ -48,7 +50,8 @@ const plans = [
     description: "Profesyoneller için",
     price: { monthly: 1000, yearly: 10000 },
     popular: true,
-    color: "from-violet-600 to-indigo-600",
+    color: "bg-violet-100",
+    iconColor: "text-violet-600",
     features: [
       "Sınırsız Katalog",
       "Sınırsız Ürün",
@@ -56,7 +59,6 @@ const plans = [
       "Tüm Özellikler"
     ],
     cta: "Pro'ya Geç",
-    ctaVariant: "default" as const,
     href: "/auth?plan=pro",
   },
 ]
@@ -64,15 +66,11 @@ const plans = [
 const faqs = [
   {
     question: "Planımı sonra değiştirebilir miyim?",
-    answer: "Evet! Planınızı istediğiniz zaman yükseltebilir veya düşürebilirsiniz. Değişiklikler anında geçerli olur.",
+    answer: "Evet! Planınızı istediğiniz zaman yükseltebilir veya düşürebilirsiniz.",
   },
   {
     question: "Hangi ödeme yöntemlerini kabul ediyorsunuz?",
-    answer: "Tüm büyük kredi kartlarını, PayPal ve yıllık planlar için banka havalesi kabul ediyoruz.",
-  },
-  {
-    question: "Ücretsiz deneme var mı?",
-    answer: "Evet, tüm ücretli planlarda 14 günlük ücretsiz deneme var. Kredi kartı gerekmez.",
+    answer: "Tüm büyük kredi kartlarını ve banka havalesi kabul ediyoruz.",
   },
   {
     question: "İstediğim zaman iptal edebilir miyim?",
@@ -84,47 +82,24 @@ export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(true)
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="p-1.5 bg-primary rounded-lg">
-              <BookOpen className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-xl">CatalogPro</span>
-          </Link>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/auth">Giriş Yap</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link href="/auth">Başla</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50">
+      <PublicHeader />
 
       {/* Hero Section */}
       <section className="pt-32 pb-16 text-center">
-        <div className="container mx-auto px-4">
-          <Badge variant="secondary" className="mb-4">
-            Fiyatlandırma
-          </Badge>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance">Basit, şeffaf fiyatlandırma</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            İşletmeniz için mükemmel planı seçin. Ücretsiz başlayın.
+        <div className="max-w-4xl mx-auto px-6">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">Basit, şeffaf fiyatlandırma</h1>
+          <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-8">
+            İşletmeniz için mükemmel planı seçin.
           </p>
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-3">
-            <Label className={cn("text-base", !isYearly && "font-semibold")}>Aylık</Label>
+            <Label className={cn("text-base", !isYearly && "font-semibold text-slate-900")}>Aylık</Label>
             <Switch checked={isYearly} onCheckedChange={setIsYearly} />
-            <Label className={cn("text-base", isYearly && "font-semibold")}>
+            <Label className={cn("text-base", isYearly && "font-semibold text-slate-900")}>
               Yıllık
-              <Badge variant="secondary" className="ml-2 bg-green-500 text-white hover:bg-green-600 border-0">
+              <Badge className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600 border-0">
                 2 Ay Bedava
               </Badge>
             </Label>
@@ -134,8 +109,8 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <section className="pb-20">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan) => {
               const Icon = plan.icon
               const price = isYearly ? Math.round(plan.price.yearly / 12) : plan.price.monthly
@@ -144,10 +119,10 @@ export default function PricingPage() {
                 <div
                   key={plan.name}
                   className={cn(
-                    "relative rounded-2xl border-2 bg-card p-6 flex flex-col transition-all",
+                    "relative bg-white rounded-2xl border-2 p-6 flex flex-col transition-all",
                     plan.popular
-                      ? "border-violet-500 bg-violet-50/50 dark:bg-violet-900/10 shadow-xl scale-105 z-10"
-                      : "border-border hover:border-primary/50 hover:shadow-lg",
+                      ? "border-violet-500 shadow-xl scale-105 z-10"
+                      : "border-slate-200 hover:border-slate-300 hover:shadow-lg",
                   )}
                 >
                   {plan.popular && (
@@ -159,24 +134,24 @@ export default function PricingPage() {
 
                   <div className="mb-4 text-center">
                     <div className={cn(
-                      "w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center bg-gradient-to-br text-white shadow-md",
+                      "w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center",
                       plan.color
                     )}>
-                      <Icon className="w-6 h-6" />
+                      <Icon className={cn("w-6 h-6", plan.iconColor)} />
                     </div>
-                    <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground">{plan.description}</p>
+                    <h3 className="text-xl font-bold mb-1 text-slate-900">{plan.name}</h3>
+                    <p className="text-sm text-slate-500">{plan.description}</p>
                   </div>
 
-                  <div className="mb-6 text-center border-y py-4 border-dashed">
+                  <div className="mb-6 text-center border-y border-dashed border-slate-200 py-4">
                     {price === 0 ? (
-                      <span className="text-3xl font-bold">Ücretsiz</span>
+                      <span className="text-3xl font-bold text-slate-900">Ücretsiz</span>
                     ) : (
                       <div>
-                        <span className="text-3xl font-bold">₺{price}</span>
-                        <span className="text-muted-foreground text-sm">/ay</span>
+                        <span className="text-3xl font-bold text-slate-900">₺{price}</span>
+                        <span className="text-slate-500 text-sm">/ay</span>
                         {isYearly && (
-                          <p className="text-xs text-muted-foreground mt-1">Yıllık ₺{plan.price.yearly}</p>
+                          <p className="text-xs text-slate-400 mt-1">Yıllık ₺{plan.price.yearly}</p>
                         )}
                       </div>
                     )}
@@ -185,8 +160,8 @@ export default function PricingPage() {
                   <ul className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-center justify-center gap-2 text-sm text-center">
-                        <Check className="w-4 h-4 text-green-500 shrink-0" />
-                        <span>{feature}</span>
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="text-slate-600">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -212,29 +187,24 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 border-t bg-muted/30">
-        <div className="container mx-auto px-4">
+      <section className="py-20 border-t border-slate-200 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Sıkça Sorulan Sorular</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">Sıkça Sorulan Sorular</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6">
             {faqs.map((faq) => (
-              <div key={faq.question} className="space-y-2 bg-background p-6 rounded-xl border">
-                <h3 className="font-semibold">{faq.question}</h3>
-                <p className="text-muted-foreground text-sm">{faq.answer}</p>
+              <div key={faq.question} className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <h3 className="font-semibold text-slate-900 mb-2">{faq.question}</h3>
+                <p className="text-slate-500 text-sm">{faq.answer}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} CatalogPro. Tüm hakları saklıdır.
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   )
 }

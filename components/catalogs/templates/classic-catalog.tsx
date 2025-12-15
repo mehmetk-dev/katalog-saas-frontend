@@ -40,35 +40,59 @@ export function ClassicCatalogTemplate({
 
             {/* Ürün Listesi */}
             <div className="flex-1 overflow-hidden">
-                {safeProducts.slice(0, 8).map((product, idx) => (
-                    <div
-                        key={product.id}
-                        className={`grid grid-cols-12 gap-2 px-6 py-3 items-center border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                    >
-                        <div className="col-span-1 text-sm font-mono text-gray-400">{String(idx + 1).padStart(2, '0')}</div>
-                        <div className="col-span-2">
-                            <div className="w-14 h-14 rounded bg-gray-100 overflow-hidden">
-                                <img loading="lazy" src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-full h-full object-cover" />
+                {safeProducts.slice(0, 8).map((product, idx) => {
+                    const productUrl = (product as any).product_url
+                    const Wrapper = productUrl ? 'a' : 'div'
+                    const wrapperProps = productUrl ? {
+                        href: productUrl,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        className: `grid grid-cols-12 gap-2 px-6 py-3 items-center border-b hover:bg-gray-50 transition-colors cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} block text-inherit no-underline`
+                    } : {
+                        className: `grid grid-cols-12 gap-2 px-6 py-3 items-center border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`
+                    }
+
+                    return (
+                        <Wrapper
+                            key={product.id}
+                            {...(wrapperProps as any)}
+                        >
+                            <div className="col-span-1 text-sm font-mono text-gray-400">{String(idx + 1).padStart(2, '0')}</div>
+                            <div className="col-span-2">
+                                <div className="w-14 h-14 rounded bg-gray-100 overflow-hidden relative">
+                                    <img loading="lazy" src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-full h-full object-cover" />
+                                    {productUrl && (
+                                        <div className="absolute top-0 right-0 bg-white/80 p-0.5 rounded-bl">
+                                            <svg className="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div className="col-span-4">
-                            <p className="font-semibold text-sm text-gray-900">{product.name}</p>
-                            {product.sku && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{product.sku}</p>}
-                        </div>
-                        <div className="col-span-3">
-                            {showDescriptions && product.description && (
-                                <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
-                            )}
-                        </div>
-                        <div className="col-span-2 text-right">
-                            {showPrices && (
-                                <span className="font-bold text-base" style={{ color: primaryColor }}>
-                                    ₺{Number(product.price).toFixed(2)}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                            <div className="col-span-4">
+                                <p className="font-semibold text-sm text-gray-900 group-hover:text-violet-600 transition-colors">{product.name}</p>
+                                {product.sku && <p className="text-[10px] text-gray-400 font-mono mt-0.5">{product.sku}</p>}
+                            </div>
+                            <div className="col-span-3">
+                                {showDescriptions && product.description && (
+                                    <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
+                                )}
+                            </div>
+                            <div className="col-span-2 text-right">
+                                {showPrices && (
+                                    <span className="font-bold text-base" style={{ color: primaryColor }}>
+                                        {(() => {
+                                            const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                            return `${symbol}${Number(product.price).toFixed(2)}`
+                                        })()}
+                                    </span>
+                                )}
+                            </div>
+                        </Wrapper>
+                    )
+                })}
             </div>
 
             {/* Footer */}

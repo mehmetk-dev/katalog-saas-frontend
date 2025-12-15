@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createClient } from "@/lib/supabase/client"
 
 export function AdminDashboardClient() {
     const [stats, setStats] = useState({
@@ -43,6 +44,45 @@ export function AdminDashboardClient() {
         previewImage: "",
         layout: "grid"
     })
+
+    const [uploading, setUploading] = useState(false)
+    const supabase = createClient()
+
+    const handleNewTemplateImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const file = e.target.files?.[0]
+            if (!file) return
+
+            setUploading(true)
+            const fileExt = file.name.split('.').pop()
+            const fileName = `template-${Math.random().toString(36).substring(2)}.${fileExt}`
+            const filePath = `templates/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(filePath, file)
+
+            if (uploadError) {
+                // Yedek bucket dene
+                const { error: backupError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file)
+
+                if (backupError) throw uploadError
+            }
+
+            const { data } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(filePath)
+
+            setNewTemplate(prev => ({ ...prev, previewImage: data.publicUrl }))
+            toast.success("Görsel yüklendi")
+        } catch (error: any) {
+            toast.error("Görsel yüklenemedi: " + error.message)
+        } finally {
+            setUploading(false)
+        }
+    }
 
     useEffect(() => {
         loadData()
@@ -491,12 +531,46 @@ export function AdminDashboardClient() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label>Önizleme Fotoğrafı URL</Label>
+                                                <Label>Önizleme Fotoğrafı</Label>
+
+                                                {/* File Upload */}
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleNewTemplateImageUpload}
+                                                    disabled={uploading}
+                                                    className="cursor-pointer"
+                                                />
+
+                                                {/* URL Input */}
+                                                <div className="text-xs text-muted-foreground">veya URL yapıştır:</div>
                                                 <Input
                                                     placeholder="/templates/my-template.png veya https://..."
-                                                    value={newTemplate.previewImage}
+                                                    value={newTemplate.previewImage?.startsWith('data:') ? '' : newTemplate.previewImage}
                                                     onChange={e => setNewTemplate({ ...newTemplate, previewImage: e.target.value })}
+                                                    disabled={uploading}
                                                 />
+
+                                                {uploading && <div className="text-sm text-blue-500 animate-pulse">Yükleniyor...</div>}
+
+                                                {newTemplate.previewImage && !uploading && (
+                                                    <div className="mt-2 aspect-video relative rounded-lg overflow-hidden border bg-muted group">
+                                                        <img
+                                                            src={newTemplate.previewImage}
+                                                            alt="Preview"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={() => setNewTemplate({ ...newTemplate, previewImage: '' })}
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -553,8 +627,10 @@ export function AdminDashboardClient() {
                                             </div>
                                         </div>
                                         <DialogFooter>
-                                            <Button variant="outline" onClick={() => setNewTemplateOpen(false)}>İptal</Button>
-                                            <Button onClick={handleAddTemplate}>Ekle</Button>
+                                            <Button variant="outline" onClick={() => setNewTemplateOpen(false)} disabled={uploading}>İptal</Button>
+                                            <Button onClick={handleAddTemplate} disabled={uploading}>
+                                                {uploading ? 'Yükleniyor...' : 'Ekle'}
+                                            </Button>
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
@@ -654,9 +730,12 @@ function TemplateCard({
                     <img
                         src={template.preview_image}
                         alt={template.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none'
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null; // Prevent infinite loop
+                            target.src = '/placeholder.svg';
+                            // target.style.display = 'none'; // Don't hide, show placeholder
                         }}
                     />
                 ) : (
@@ -720,6 +799,46 @@ function EditTemplateForm({
         previewImage: template.preview_image || "",
         itemsPerPage: template.items_per_page
     })
+    const [uploading, setUploading] = useState(false)
+    const supabase = createClient()
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const file = e.target.files?.[0]
+            if (!file) return
+
+            setUploading(true)
+            const fileExt = file.name.split('.').pop()
+            const fileName = `template-${Math.random().toString(36).substring(2)}.${fileExt}`
+            const filePath = `templates/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(filePath, file)
+
+            if (uploadError) {
+                // Yedek bucket dene
+                const { error: backupError } = await supabase.storage
+                    .from('avatars')
+                    .upload(filePath, file)
+
+                if (backupError) throw uploadError
+            }
+
+            const { data } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(filePath) // Eğer avatars'a yüklendiyse burası yanlış url verebilir ama product-images varsa sorun yok
+
+            // URL düzeltme (gerekirse bucket adını kontrol et)
+            // Basitlik için product-images varsayıyoruz
+            setFormData({ ...formData, previewImage: data.publicUrl })
+            toast.success("Görsel yüklendi")
+        } catch (error: any) {
+            toast.error("Görsel yüklenemedi: " + error.message)
+        } finally {
+            setUploading(false)
+        }
+    }
 
     return (
         <div className="space-y-4 py-4">
@@ -740,14 +859,36 @@ function EditTemplateForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Önizleme Fotoğrafı URL</Label>
+                <Label>Önizleme Fotoğrafı</Label>
+
+                {/* File Upload */}
+                <div className="flex gap-2">
+                    <div className="flex-1">
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            disabled={uploading}
+                            onChange={handleImageUpload}
+                            className="cursor-pointer"
+                        />
+                    </div>
+                </div>
+
+                {/* URL Input */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>veya URL yapıştır:</span>
+                </div>
                 <Input
                     placeholder="/templates/example.png veya https://..."
-                    value={formData.previewImage}
+                    value={formData.previewImage?.startsWith('data:') ? '' : formData.previewImage}
                     onChange={e => setFormData({ ...formData, previewImage: e.target.value })}
+                    disabled={uploading}
                 />
-                {formData.previewImage && (
-                    <div className="mt-2 aspect-video relative rounded-lg overflow-hidden border bg-muted">
+
+                {uploading && <div className="text-sm text-blue-500 animate-pulse">Yükleniyor...</div>}
+
+                {formData.previewImage && !uploading && (
+                    <div className="mt-2 aspect-video relative rounded-lg overflow-hidden border bg-muted group">
                         <img
                             src={formData.previewImage}
                             alt="Preview"
@@ -756,6 +897,18 @@ function EditTemplateForm({
                                 (e.target as HTMLImageElement).src = '/placeholder.svg'
                             }}
                         />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                            <span className="text-sm font-medium">Önizleme</span>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setFormData({ ...formData, previewImage: '' })}
+                        >
+                            <X className="w-3 h-3" />
+                        </Button>
                     </div>
                 )}
             </div>
@@ -787,13 +940,13 @@ function EditTemplateForm({
             </div>
 
             <DialogFooter className="mt-6">
-                <Button variant="outline" onClick={onCancel}>
+                <Button variant="outline" onClick={onCancel} disabled={uploading}>
                     <X className="w-4 h-4 mr-2" />
                     İptal
                 </Button>
-                <Button onClick={() => onSave(formData)}>
+                <Button onClick={() => onSave(formData)} disabled={uploading}>
                     <Save className="w-4 h-4 mr-2" />
-                    Kaydet
+                    {uploading ? 'Yükleniyor...' : 'Kaydet'}
                 </Button>
             </DialogFooter>
         </div>

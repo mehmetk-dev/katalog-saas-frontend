@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ImageOff } from "lucide-react"
+import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ImageOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,8 +63,14 @@ export function ProductsTable({
   const [isPending, startTransition] = useTransition()
   const [isMobile, setIsMobile] = useState(false)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+
+  // Reset image index when preview product changes
+  useEffect(() => {
+    setActiveImageIndex(0)
+  }, [previewProduct])
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -217,8 +223,8 @@ export function ProductsTable({
   if (viewMode === "grid" && !isMobile) {
     return (
       <TooltipProvider>
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="space-y-4 p-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
             {filteredProducts.map((product) => {
               const stockStatus = getStockStatus(product.stock)
               const isSelected = selectedIds.includes(product.id)
@@ -235,17 +241,17 @@ export function ProductsTable({
                   onDrop={(e) => handleDrop(e, product.id)}
                   onDragEnd={handleDragEnd}
                   className={cn(
-                    "group overflow-hidden cursor-move transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5",
-                    isSelected && "ring-2 ring-violet-500",
+                    "group overflow-hidden cursor-move transition-all duration-200 hover:shadow-md border border-gray-100 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900",
+                    isSelected && "border-violet-400 bg-violet-50/50 dark:bg-violet-950/20",
                     isDragging && "opacity-50 scale-95",
-                    isDragOver && "ring-2 ring-violet-500 ring-dashed"
+                    isDragOver && "border-dashed border-violet-400"
                   )}
                 >
-                  {/* Resim alanı */}
-                  <div className="relative aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                  {/* Resim alanı - Kare */}
+                  <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800">
                     {/* Placeholder ikonu */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Package className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                      <Package className="w-8 h-8 text-slate-200 dark:text-slate-700" />
                     </div>
 
                     {/* Ürün resmi */}
@@ -257,54 +263,55 @@ export function ProductsTable({
                       />
                     )}
 
-                    {/* Checkbox */}
-                    <div className="absolute top-1.5 left-1.5 z-[5]">
+                    {/* Checkbox - Sadece hover veya seçiliyken görünür */}
+                    <div className={cn(
+                      "absolute top-2 left-2 z-[5] transition-opacity",
+                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}>
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelect(product.id)}
-                        className="bg-white border-gray-300 h-4 w-4"
+                        className="bg-white/95 border-gray-300 h-4 w-4 shadow-sm"
                       />
                     </div>
 
-                    {/* Stok badge */}
-                    <div className="absolute bottom-1.5 left-1.5 z-[5]">
-                      <Badge
-                        variant={stockStatus.variant}
-                        className={cn(
-                          "text-[10px] px-1.5 py-0 h-4",
-                          stockStatus.variant === "destructive" && "bg-red-500",
-                          stockStatus.variant === "secondary" && "bg-amber-500 text-white"
-                        )}
-                      >
-                        {product.stock}
-                      </Badge>
-                    </div>
-
-                    {/* Butonlar */}
-                    <div className="absolute bottom-1.5 right-1.5 z-[5] flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Butonlar - Hover'da görünür */}
+                    <div className="absolute bottom-2 right-2 z-[5] flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-6 w-6 bg-white hover:bg-gray-100"
+                        className="h-7 w-7 bg-white/95 hover:bg-white shadow-sm"
                         onClick={() => setPreviewProduct(product)}
                       >
-                        <Eye className="w-3 h-3" />
+                        <Eye className="w-3.5 h-3.5" />
                       </Button>
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-6 w-6 bg-white hover:bg-gray-100"
+                        className="h-7 w-7 bg-white/95 hover:bg-white shadow-sm"
                         onClick={() => onEdit(product)}
                       >
-                        <Pencil className="w-3 h-3" />
+                        <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
 
                   {/* İçerik alanı */}
-                  <div className="p-2 bg-card">
-                    <div className="flex items-center justify-between gap-1">
-                      <h3 className="font-medium text-xs truncate flex-1 min-w-0">{product.name}</h3>
+                  <div className="p-3">
+                    {/* Ürün adı - Önce ve Kalın */}
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{product.name}</h3>
+                    {/* Fiyat - Altında */}
+                    <p className="text-base font-bold text-violet-600 mt-1">{getCurrencySymbol(product)}</p>
+                    {/* Stok bilgisi */}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className={cn(
+                        "text-xs",
+                        stockStatus.variant === "destructive" && "text-red-500",
+                        stockStatus.variant === "secondary" && "text-amber-500",
+                        stockStatus.variant === "default" && "text-emerald-500"
+                      )}>
+                        {product.stock} adet
+                      </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 -mr-1">
@@ -328,9 +335,6 @@ export function ProductsTable({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="font-bold text-sm">{getCurrencySymbol(product)}</span>
-                    </div>
                   </div>
                 </Card>
               )
@@ -347,42 +351,130 @@ export function ProductsTable({
 
         {/* Preview Dialog */}
         <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
-          <DialogContent className="max-w-2xl">
-            {previewProduct && (
-              <>
-                <DialogHeader>
-                  <DialogTitle>{previewProduct.name}</DialogTitle>
-                </DialogHeader>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="aspect-square rounded-lg overflow-hidden bg-muted">
-                    {previewProduct.image_url ? (
-                      <img src={previewProduct.image_url} alt={previewProduct.name} className="w-full h-full object-cover" />
+          <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden">
+            {previewProduct && (() => {
+              // Parse additional images
+              const additionalImagesAttr = previewProduct.custom_attributes?.find(a => a.name === "additional_images")
+              let additionalImages: string[] = []
+              if (additionalImagesAttr?.value) {
+                try { additionalImages = JSON.parse(additionalImagesAttr.value) } catch { additionalImages = [] }
+              }
+              const allImages = [previewProduct.image_url, ...additionalImages].filter(Boolean) as string[]
+
+              // Custom attributes (excluding system ones)
+              const customAttrs = previewProduct.custom_attributes?.filter(
+                a => a.name !== "currency" && a.name !== "additional_images"
+              ) || []
+
+              const stockStatus = getStockStatus(previewProduct.stock)
+
+              return (
+                <>
+                  {/* Header */}
+                  <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600">
+                    <DialogHeader>
+                      <DialogTitle className="text-white text-lg font-bold pr-8">{previewProduct.name}</DialogTitle>
+                      {previewProduct.sku && <p className="text-white/70 text-sm font-mono">SKU: {previewProduct.sku}</p>}
+                    </DialogHeader>
+                  </div>
+
+                  {/* Content */}
+                  <div className="overflow-y-auto max-h-[calc(85vh-130px)] p-6 space-y-5">
+                    {/* Images */}
+                    {allImages.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          <img src={allImages[activeImageIndex] || allImages[0]} alt={previewProduct.name} className="w-full h-full object-contain" />
+                          {allImages.length > 1 && (
+                            <>
+                              <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => setActiveImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">{activeImageIndex + 1}/{allImages.length}</div>
+                            </>
+                          )}
+                        </div>
+                        {allImages.length > 1 && (
+                          <div className="flex gap-1.5 overflow-x-auto">
+                            {allImages.map((img, idx) => (
+                              <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
+                                <img src={img} alt="" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageOff className="w-16 h-16 text-muted-foreground/30" />
+                      <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <ImageOff className="w-10 h-10 text-gray-400" />
+                      </div>
+                    )}
+
+                    {/* Price & Stock */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
+                        <p className="text-xs text-violet-600 dark:text-violet-400">Fiyat</p>
+                        <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{getCurrencySymbol(previewProduct)}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border">
+                        <p className="text-xs text-muted-foreground">Stok</p>
+                        <p className={cn("text-xl font-bold", stockStatus.variant === "destructive" && "text-red-500", stockStatus.variant === "secondary" && "text-amber-500", stockStatus.variant === "default" && "text-emerald-500")}>{previewProduct.stock} adet</p>
+                      </div>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">Kategori</p>
+                      {previewProduct.category ? (
+                        <div className="flex flex-wrap gap-1">{previewProduct.category.split(',').map((cat, idx) => <Badge key={idx} variant="secondary" className="text-xs">{cat.trim()}</Badge>)}</div>
+                      ) : <p className="text-sm text-muted-foreground">—</p>}
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">Açıklama</p>
+                      <p className="text-sm">{previewProduct.description || "—"}</p>
+                    </div>
+
+                    {/* Product URL */}
+                    {previewProduct.product_url && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
+                        <a href={previewProduct.product_url} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 hover:underline flex items-center gap-1">
+                          {previewProduct.product_url.slice(0, 50)}{previewProduct.product_url.length > 50 && "..."} <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Custom Attributes */}
+                    {customAttrs.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Özellikler</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {customAttrs.map((attr, idx) => (
+                            <div key={idx} className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-800 text-xs">
+                              <span className="text-muted-foreground">{attr.name}</span>
+                              <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                  <div className="space-y-4">
-                    <p className="text-3xl font-bold">{getCurrencySymbol(previewProduct)}</p>
-                    {previewProduct.description && (
-                      <p className="text-sm text-muted-foreground">{previewProduct.description}</p>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getStockStatus(previewProduct.stock).variant}>{previewProduct.stock} Stok</Badge>
-                      {previewProduct.category && <Badge variant="outline">{previewProduct.category}</Badge>}
-                    </div>
-                    <div className="flex gap-2 pt-4">
-                      <Button className="flex-1" onClick={() => { setPreviewProduct(null); onEdit(previewProduct) }}>
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Düzenle
-                      </Button>
-                      <Button variant="outline" onClick={() => setPreviewProduct(null)}>Kapat</Button>
-                    </div>
+
+                  {/* Footer */}
+                  <div className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-900 flex gap-2">
+                    <Button size="sm" className="flex-1 bg-violet-600 hover:bg-violet-700" onClick={() => { setPreviewProduct(null); onEdit(previewProduct) }}>
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Düzenle
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setPreviewProduct(null)}>Kapat</Button>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )
+            })()}
           </DialogContent>
         </Dialog>
 
@@ -404,140 +496,193 @@ export function ProductsTable({
     )
   }
 
-  // List görünümü
+  // List görünümü - Modern tablo stili
   return (
     <TooltipProvider>
-      <div className="space-y-3">
-        {filteredProducts.map((product) => {
-          const stockStatus = getStockStatus(product.stock)
-          const isSelected = selectedIds.includes(product.id)
-          const isDragging = draggingId === product.id
-          const isDragOver = dragOverId === product.id
+      <div className="rounded-xl border bg-card overflow-hidden">
+        {/* Tablo Header */}
+        <div className="hidden md:grid grid-cols-[80px_1fr_100px_100px_100px_100px] gap-4 px-4 py-2.5 bg-muted/50 border-b text-xs font-medium text-muted-foreground items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3.5" /> {/* Grip placeholder */}
+              <Checkbox
+                checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                onCheckedChange={toggleSelectAll}
+                className="h-4 w-4"
+              />
+            </div>
+            <div className="w-11" /> {/* Image placeholder */}
+          </div>
+          <div>Ürün</div>
+          <div className="text-right pr-2">Fiyat</div>
+          <div className="text-center">Stok</div>
+          <div>Kategori</div>
+          <div className="text-right">İşlemler</div>
+        </div>
 
-          return (
-            <Card
-              key={product.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, product.id)}
-              onDragOver={(e) => handleDragOver(e, product.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, product.id)}
-              onDragEnd={handleDragEnd}
-              className={cn(
-                "overflow-hidden cursor-move transition-all duration-200 hover:shadow-md",
-                isSelected && "ring-2 ring-violet-500",
-                isDragging && "opacity-50",
-                isDragOver && "ring-2 ring-violet-500 ring-dashed"
-              )}
-            >
-              <CardContent className="p-3">
-                <div className="flex gap-3">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="w-4 h-4 text-muted-foreground/50" />
-                      <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(product.id)} />
-                    </div>
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Package className="w-6 h-6 text-slate-300 dark:text-slate-600" />
-                      </div>
-                      {product.image_url && (
-                        <img src={product.image_url} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
-                      )}
-                    </div>
+        {/* Ürün Listesi */}
+        <div className="divide-y">
+          {filteredProducts.map((product) => {
+            const stockStatus = getStockStatus(product.stock)
+            const isSelected = selectedIds.includes(product.id)
+            const isDragging = draggingId === product.id
+            const isDragOver = dragOverId === product.id
+
+            return (
+              <div
+                key={product.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, product.id)}
+                onDragOver={(e) => handleDragOver(e, product.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, product.id)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  "group grid grid-cols-[auto_1fr_auto] md:grid-cols-[80px_1fr_100px_100px_100px_100px] gap-4 px-4 py-3 items-center cursor-move transition-all duration-200",
+                  "hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-purple-50/30 dark:hover:from-violet-950/20 dark:hover:to-purple-950/10",
+                  isSelected && "bg-violet-50 dark:bg-violet-950/30",
+                  isDragging && "opacity-50 scale-[0.98]",
+                  isDragOver && "bg-violet-100/50 dark:bg-violet-900/30"
+                )}
+              >
+                {/* Checkbox + Resim */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelect(product.id)}
+                      className="h-4 w-4"
+                    />
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="font-medium text-sm truncate">{product.name}</h3>
-                        {product.sku && <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>}
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2" onClick={() => setPreviewProduct(product)}>
-                            <Eye className="w-4 h-4" />
-                            Önizle
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => onEdit(product)}>
-                            <Pencil className="w-4 h-4" />
-                            {t("common.edit")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => handleDuplicate(product)} disabled={isPending}>
-                            <Copy className="w-4 h-4" />
-                            Kopyala
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteId(product.id)}>
-                            <Trash2 className="w-4 h-4" />
-                            {t("common.delete")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 ring-1 ring-black/5">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className="font-bold text-base">{getCurrencySymbol(product)}</span>
-                      <Badge variant={stockStatus.variant} className="text-xs">{stockStatus.label} ({product.stock})</Badge>
-                      {product.category && product.category.split(',').map((cat, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">{cat.trim()}</Badge>
-                      ))}
-                    </div>
+                    {product.image_url && (
+                      <img src={product.image_url} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+
+                {/* Ürün Bilgisi */}
+                <div className="min-w-0 flex flex-col gap-0.5 pl-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-sm truncate">{product.name}</h3>
+                    {product.product_url && (
+                      <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:text-violet-600" onClick={(e) => e.stopPropagation()}>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  {product.sku && (
+                    <p className="text-[11px] text-muted-foreground font-mono tracking-tight">{product.sku}</p>
+                  )}
+                  {/* Mobil: Fiyat ve Stok */}
+                  <div className="flex items-center gap-2 mt-1 md:hidden">
+                    <span className="font-bold text-sm text-violet-600 dark:text-violet-400">{getCurrencySymbol(product)}</span>
+                    <Badge
+                      variant={stockStatus.variant}
+                      className={cn(
+                        "text-[10px] h-5 px-1.5",
+                        stockStatus.variant === "destructive" && "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
+                        stockStatus.variant === "secondary" && "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
+                        stockStatus.variant === "default" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                      )}
+                    >
+                      {product.stock}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Fiyat - Desktop */}
+                <div className="hidden md:block text-right pr-2">
+                  <span className="font-bold text-sm text-violet-600 dark:text-violet-400">{getCurrencySymbol(product)}</span>
+                </div>
+
+                {/* Stok - Desktop */}
+                <div className="hidden md:flex justify-center">
+                  <Badge
+                    variant={stockStatus.variant}
+                    className={cn(
+                      "text-[10px] h-5 px-2 font-medium",
+                      stockStatus.variant === "destructive" && "bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800",
+                      stockStatus.variant === "secondary" && "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800",
+                      stockStatus.variant === "default" && "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800"
+                    )}
+                  >
+                    {product.stock} adet
+                  </Badge>
+                </div>
+
+                {/* Kategori - Desktop */}
+                <div className="hidden md:block">
+                  {product.category ? (
+                    <span className="text-xs text-muted-foreground truncate block max-w-[100px]" title={product.category}>
+                      {product.category.split(',')[0].trim()}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground/50">—</span>
+                  )}
+                </div>
+
+                {/* Aksiyonlar */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setPreviewProduct(product)}
+                  >
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onEdit(product)}
+                  >
+                    <Pencil className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="gap-2" onClick={() => setPreviewProduct(product)}>
+                        <Eye className="w-4 h-4" />
+                        Önizle
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" onClick={() => onEdit(product)}>
+                        <Pencil className="w-4 h-4" />
+                        {t("common.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" onClick={() => handleDuplicate(product)} disabled={isPending}>
+                        <Copy className="w-4 h-4" />
+                        Kopyala
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteId(product.id)}>
+                        <Trash2 className="w-4 h-4" />
+                        {t("common.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
         {filteredProducts.length === 0 && allProducts.length > 0 && (
           <div className="p-8 text-center text-muted-foreground">{t("products.noProducts")}</div>
         )}
       </div>
 
-      <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
-        <DialogContent className="max-w-2xl">
-          {previewProduct && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{previewProduct.name}</DialogTitle>
-              </DialogHeader>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="aspect-square rounded-lg overflow-hidden bg-muted">
-                  {previewProduct.image_url ? (
-                    <img src={previewProduct.image_url} alt={previewProduct.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageOff className="w-16 h-16 text-muted-foreground/30" />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-4">
-                  <p className="text-3xl font-bold">{getCurrencySymbol(previewProduct)}</p>
-                  {previewProduct.description && <p className="text-sm text-muted-foreground">{previewProduct.description}</p>}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={getStockStatus(previewProduct.stock).variant}>{previewProduct.stock} Stok</Badge>
-                    {previewProduct.category && previewProduct.category.split(',').map((cat, idx) => (
-                      <Badge key={idx} variant="outline">{cat.trim()}</Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button className="flex-1" onClick={() => { setPreviewProduct(null); onEdit(previewProduct) }}>
-                      <Pencil className="w-4 h-4 mr-2" />
-                      Düzenle
-                    </Button>
-                    <Button variant="outline" onClick={() => setPreviewProduct(null)}>Kapat</Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+
+
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>

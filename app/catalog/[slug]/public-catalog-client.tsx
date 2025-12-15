@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
 import { ModernGridTemplate } from "@/components/catalogs/templates/modern-grid"
@@ -20,8 +20,48 @@ import { LuxuryTemplate } from "@/components/catalogs/templates/luxury"
 import { CleanWhiteTemplate } from "@/components/catalogs/templates/clean-white"
 import { ProductTilesTemplate } from "@/components/catalogs/templates/product-tiles"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Download, Share2, Home } from "lucide-react"
+import {
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    Share2,
+    ExternalLink,
+    BookOpen,
+    Sparkles,
+    Copy,
+    Check,
+    X,
+    Maximize2,
+    Minimize2
+} from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
+import { toast } from "sonner"
+import { Toaster } from "sonner"
+import HTMLFlipBook from 'react-pageflip'
+
+// @ts-ignore
+const PageCover = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>((props, ref) => {
+    return (
+        <div className="page page-cover" ref={ref} data-density="soft">
+            <div className="page-content">
+                {props.children}
+            </div>
+        </div>
+    );
+});
+PageCover.displayName = 'PageCover';
+
+const Page = React.forwardRef<HTMLDivElement, { children: React.ReactNode, number?: number }>((props, ref) => {
+    return (
+        <div className="page" ref={ref} data-density="soft">
+            <div className="page-content">
+                {props.children}
+            </div>
+        </div>
+    );
+});
+Page.displayName = 'Page';
 
 interface PublicCatalogClientProps {
     catalog: Catalog
@@ -30,6 +70,28 @@ interface PublicCatalogClientProps {
 
 export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
     const [currentPage, setCurrentPage] = useState(0)
+    const [copied, setCopied] = useState(false)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const [showControls, setShowControls] = useState(true)
+    const bookRef = useRef<any>(null)
+
+    // Helper to access pageFlip instance
+    const getPageFlip = () => {
+        if (bookRef.current && bookRef.current.pageFlip) {
+            return bookRef.current.pageFlip()
+        }
+        return null
+    }
+
+    const handleNextPage = () => {
+        const pageFlip = getPageFlip()
+        if (pageFlip) pageFlip.flipNext()
+    }
+
+    const handlePrevPage = () => {
+        const pageFlip = getPageFlip()
+        if (pageFlip) pageFlip.flipPrev()
+    }
 
     // Sayfa başına ürün sayısı
     const getItemsPerPage = (layout: string) => {
@@ -60,6 +122,18 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             products.slice(i * itemsPerPage, (i + 1) * itemsPerPage)
         )
         : [[]]
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') handlePrevPage()
+            if (e.key === 'ArrowRight') handleNextPage()
+            if (e.key === 'f' || e.key === 'F') setIsFullscreen(!isFullscreen)
+            if (e.key === 'Escape') setIsFullscreen(false)
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isFullscreen])
 
     const renderTemplate = (pageProducts: Product[], pageNum: number, total: number) => {
         const pageProps = {
@@ -127,138 +201,256 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             })
         } else {
             await navigator.clipboard.writeText(url)
-            alert("Link kopyalandı!")
+            setCopied(true)
+            toast.success("Link kopyalandı!")
+            setTimeout(() => setCopied(false), 2000)
         }
     }
 
+    const handleCopyLink = async () => {
+        await navigator.clipboard.writeText(window.location.href)
+        setCopied(true)
+        toast.success("Link kopyalandı!")
+        setTimeout(() => setCopied(false), 2000)
+    }
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200 flex flex-col">
-            {/* Header */}
-            <header className="bg-white border-b shadow-sm sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="text-gray-500 hover:text-gray-700 transition-colors">
-                            <Home className="w-5 h-5" />
-                        </Link>
-                        <div>
-                            <h1 className="font-semibold text-gray-900">{catalog.name}</h1>
-                            {catalog.description && (
-                                <p className="text-sm text-gray-500 line-clamp-1">{catalog.description}</p>
+        <>
+            <Toaster position="top-center" />
+            <div className={cn(
+                "h-screen flex flex-col overflow-hidden transition-all duration-300",
+                isFullscreen
+                    ? "bg-black fixed inset-0 z-[100]"
+                    : "bg-gradient-to-br from-slate-50 via-white to-slate-100"
+            )}>
+                {/* Animated Background Pattern */}
+                {!isFullscreen && (
+                    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+                        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-200/30 to-indigo-200/30 rounded-full blur-3xl opacity-50" />
+                        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-rose-200/30 to-orange-200/30 rounded-full blur-3xl opacity-50" />
+                    </div>
+                )}
+
+                {/* Modern Header */}
+                {!isFullscreen && (
+                    <header className="shrink-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/50">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                {/* Left: Logo & Title */}
+                                <div className="flex items-center gap-4">
+                                    <Link
+                                        href="/"
+                                        className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors group"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-shadow">
+                                            <BookOpen className="w-4 h-4 text-white" />
+                                        </div>
+                                        <span className="hidden sm:inline font-semibold text-sm">CatalogPro</span>
+                                    </Link>
+
+                                    <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+
+                                    <div className="min-w-0">
+                                        <h1 className="font-bold text-slate-900 truncate text-sm sm:text-base">
+                                            {catalog.name}
+                                        </h1>
+                                        {catalog.description && (
+                                            <p className="text-xs text-slate-500 truncate hidden sm:block max-w-md">
+                                                {catalog.description}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Right: Actions */}
+                                <div className="flex items-center gap-2">
+                                    {/* Product Count Badge */}
+                                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-full">
+                                        <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                                        <span className="text-xs font-medium text-slate-700">
+                                            {products.length} ürün
+                                        </span>
+                                    </div>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleCopyLink}
+                                        className="hidden sm:flex gap-2"
+                                    >
+                                        {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                                        <span className="hidden md:inline">{copied ? "Kopyalandı" : "Linki Kopyala"}</span>
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleShare}
+                                        className="gap-2"
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Paylaş</span>
+                                    </Button>
+
+                                    <Button
+                                        size="sm"
+                                        asChild
+                                        className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/20"
+                                    >
+                                        <a href={`/api/catalog/${catalog.share_slug}/pdf`} target="_blank">
+                                            <Download className="w-4 h-4" />
+                                            <span className="hidden sm:inline">PDF İndir</span>
+                                        </a>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+                )}
+
+                {/* Main Content - Flipbook Container */}
+                <main className={cn(
+                    "flex-1 relative flex flex-col items-center justify-center w-full",
+                    isFullscreen ? "py-2 px-2" : "py-4 sm:py-6 px-2 sm:px-4"
+                )}>
+                    <div
+                        className="relative w-full flex items-center justify-center mx-auto"
+                        style={{
+                            maxWidth: isFullscreen ? '98vw' : '1100px',
+                            height: isFullscreen ? 'calc(100vh - 60px)' : 'calc(100vh - 160px)',
+                            minHeight: '450px',
+                            maxHeight: isFullscreen ? '95vh' : '800px'
+                        }}
+                    >
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            {pages.length > 0 && (
+                                // @ts-ignore
+                                <HTMLFlipBook
+                                    width={595}
+                                    height={842}
+                                    size="stretch"
+                                    minWidth={300}
+                                    maxWidth={1000}
+                                    minHeight={400}
+                                    maxHeight={1414}
+                                    maxShadowOpacity={0.5}
+                                    showCover={false}
+                                    mobileScrollSupport={true}
+                                    onFlip={(e) => setCurrentPage(e.data)}
+                                    className="shadow-2xl"
+                                    style={{ margin: '0 auto' }}
+                                    usePortrait={false}
+                                    startZIndex={0}
+                                    autoSize={true}
+                                    clickEventForward={true}
+                                    useMouseEvents={true}
+                                    swipeDistance={30}
+                                    showPageCorners={true}
+                                    disableFlipByClick={false}
+                                    ref={bookRef}
+                                >
+                                    {/* All Pages rendered consistently */}
+                                    {pages.map((pageProds, index) => (
+                                        // @ts-ignore
+                                        <Page key={index} number={index + 1}>
+                                            <div className="w-full h-full bg-white shadow-inner relative border-l border-slate-100" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                                {/* Paper Texture Overlay */}
+                                                <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-20 mix-blend-multiply"
+                                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+                                                />
+
+                                                {/* Spine Shadow */}
+                                                <div className={cn(
+                                                    "absolute top-0 bottom-0 w-8 md:w-12 pointer-events-none z-10",
+                                                    index % 2 === 0
+                                                        ? "left-0 bg-gradient-to-r from-black/10 to-transparent"
+                                                        : "right-0 bg-gradient-to-l from-black/10 to-transparent"
+                                                )} />
+
+                                                {/* Glossy Effect for First Page */}
+                                                {index === 0 && (
+                                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 pointer-events-none z-20" />
+                                                )}
+
+                                                {/* Template Content - Takes full height with flex */}
+                                                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                                    {renderTemplate(pageProds, index + 1, pages.length)}
+                                                </div>
+                                            </div>
+                                        </Page>
+                                    ))}
+
+                                    {/* Back Page - treated as regular page for closure */}
+                                    {/* @ts-ignore */}
+                                    <Page key="end" number={pages.length + 1}>
+                                        <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 relative border-l border-slate-200">
+                                            <div className="absolute top-0 bottom-0 w-4 right-0 bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
+                                            <BookOpen className="w-16 h-16 mb-4 opacity-20" />
+                                            <p className="font-medium tracking-widest text-sm uppercase">Katalog Sonu</p>
+                                        </div>
+                                    </Page>
+                                </HTMLFlipBook>
                             )}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={handleShare}>
-                            <Share2 className="w-4 h-4 mr-2" />
-                            Paylaş
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={`/api/catalog/${catalog.share_slug}/pdf`} target="_blank">
-                                <Download className="w-4 h-4 mr-2" />
-                                PDF İndir
-                            </a>
-                        </Button>
-                    </div>
-                </div>
-            </header>
 
-            {/* Catalog Content */}
-            <main className="flex-1 py-8 px-4">
-                <div className="max-w-4xl mx-auto">
-                    {/* Page Navigation */}
-                    {pages.length > 1 && (
-                        <div className="flex items-center justify-center gap-4 mb-6 bg-white rounded-full px-6 py-3 shadow-md w-fit mx-auto">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => goToPage(currentPage - 1)}
-                                disabled={currentPage === 0}
-                            >
-                                <ChevronLeft className="h-5 w-5" />
-                            </Button>
-
-                            <div className="flex items-center gap-2">
-                                {pages.map((_, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => goToPage(idx)}
-                                        className={`w-2.5 h-2.5 rounded-full transition-all ${idx === currentPage
-                                            ? "bg-primary scale-125"
-                                            : "bg-gray-300 hover:bg-gray-400"
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-
-                            <span className="text-sm text-gray-500 min-w-[80px] text-center">
-                                Sayfa {currentPage + 1} / {pages.length}
-                            </span>
-
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => goToPage(currentPage + 1)}
-                                disabled={currentPage === pages.length - 1}
-                            >
-                                <ChevronRight className="h-5 w-5" />
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Catalog Page */}
-                    <div className="flex justify-center">
-                        <div
-                            className="bg-white shadow-2xl rounded-lg overflow-hidden"
-                            style={{
-                                width: '794px',
-                                height: '1123px',
-                                maxWidth: '100%',
-                            }}
+                    {/* Navigation Buttons */}
+                    <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10 px-4 md:px-10">
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={handlePrevPage}
+                            className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
                         >
-                            {renderTemplate(pages[currentPage] || [], currentPage + 1, pages.length)}
-                        </div>
+                            <ChevronLeft className="h-6 w-6 text-slate-700" />
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            onClick={handleNextPage}
+                            className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
+                        >
+                            <ChevronRight className="h-6 w-6 text-slate-700" />
+                        </Button>
                     </div>
+                </main>
 
-                    {/* Mobile Page Navigation */}
-                    {pages.length > 1 && (
-                        <div className="flex items-center justify-center gap-4 mt-6 md:hidden">
-                            <Button
-                                variant="outline"
-                                onClick={() => goToPage(currentPage - 1)}
-                                disabled={currentPage === 0}
-                            >
-                                <ChevronLeft className="h-4 w-4 mr-1" />
-                                Önceki
-                            </Button>
-                            <span className="text-sm text-gray-600">
-                                {currentPage + 1} / {pages.length}
-                            </span>
-                            <Button
-                                variant="outline"
-                                onClick={() => goToPage(currentPage + 1)}
-                                disabled={currentPage === pages.length - 1}
-                            >
-                                Sonraki
-                                <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </main>
+                {/* Modern Footer */}
+                {
+                    !isFullscreen && (
+                        <footer className="shrink-0 z-50 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 py-4">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                                            <BookOpen className="w-3 h-3 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">
+                                                Built with{" "}
+                                                <Link href="/" className="text-violet-600 hover:text-violet-700 font-semibold">
+                                                    CatalogPro
+                                                </Link>
+                                            </p>
+                                        </div>
+                                    </div>
 
-            {/* Footer */}
-            <footer className="bg-white border-t py-4">
-                <div className="text-center">
-                    <p className="text-sm text-gray-500">
-                        Bu katalog{" "}
-                        <Link href="/" className="text-primary hover:underline font-medium">
-                            CatalogPro
-                        </Link>
-                        {" "}ile oluşturuldu
-                    </p>
-                </div>
-            </footer>
-        </div>
+                                    <div className="flex items-center gap-3">
+                                        <Link href="/">
+                                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-2">
+                                                <ExternalLink className="w-3 h-3" />
+                                                Oluştur
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </footer>
+                    )
+                }
+            </div >
+        </>
     )
 }
+

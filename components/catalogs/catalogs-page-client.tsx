@@ -30,6 +30,7 @@ import { deleteCatalog } from "@/lib/actions/catalogs"
 import { toast } from "sonner"
 import { CatalogPreview } from "./catalog-preview"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
+import { UpgradeModal } from "@/components/builder/upgrade-modal"
 
 interface Catalog {
   id: string
@@ -64,6 +65,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [showLimitModal, setShowLimitModal] = useState(searchParams.get("limit_reached") === "true")
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [qrCatalog, setQrCatalog] = useState<{ name: string; slug: string } | null>(null)
 
   const maxCatalogs = CATALOG_LIMITS[userPlan]
@@ -133,17 +135,22 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
 
       {/* Limit Warning for Free Users */}
       {isFreeUser && isAtLimit && (
-        <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-200">
+        <Card className="bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border-violet-200/50 shadow-sm">
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <p className="font-medium">Katalog limitine ulaştınız</p>
-                <p className="text-sm text-muted-foreground">Free planda 1 katalog oluşturabilirsiniz</p>
+                <p className="font-semibold text-gray-900">Katalog limitine ulaştınız</p>
+                <p className="text-sm text-gray-500">Free planda 1 katalog oluşturabilirsiniz</p>
               </div>
             </div>
-            <Button asChild variant="default" className="bg-amber-600 hover:bg-amber-700">
-              <Link href="/pricing">Planı Yükselt</Link>
+            <Button
+              onClick={() => setShowUpgradeModal(true)}
+              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
+            >
+              Planı Yükselt
             </Button>
           </CardContent>
         </Card>
@@ -282,78 +289,192 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Limit Modal */}
+      {/* Limit Info Modal - Modern Design */}
       <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-amber-600" />
-              Katalog Limitine Ulaştınız
-            </DialogTitle>
-            <DialogDescription>
-              Free planda sadece 1 katalog oluşturabilirsiniz. Daha fazla katalog için planınızı yükseltin.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-3">
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <span className="font-medium">Free</span>
-              <span className="text-muted-foreground">1 katalog</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-violet-50 rounded-lg border border-violet-200">
-              <span className="font-medium text-violet-700">Plus</span>
-              <span className="text-violet-600">10 katalog</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
-              <span className="font-medium text-amber-700">Pro</span>
-              <span className="text-amber-600">Sınırsız</span>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-0 shadow-2xl">
+          {/* Gradient Header */}
+          <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-6 text-white relative overflow-hidden">
+            {/* Decorative Elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400/20 rounded-full blur-2xl" />
+
+            <div className="relative flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
+                <Lock className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Limite Ulaştınız</h2>
+                <p className="text-white/80 text-sm mt-1">Daha fazlası için planınızı yükseltin</p>
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLimitModal(false)}>
+
+          {/* Plans Comparison */}
+          <div className="p-5 space-y-3">
+            {/* Current Plan - Free */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border-2 border-gray-200 relative">
+              <div className="absolute -top-2 right-3 px-2 py-0.5 bg-gray-500 text-white text-[10px] font-bold rounded-full">
+                MEVCUT
+              </div>
+              <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center text-xl">
+                📦
+              </div>
+              <div className="flex-1">
+                <span className="font-semibold text-gray-900">Free</span>
+                <p className="text-xs text-gray-500">Başlangıç planı</p>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-bold text-gray-700">1</span>
+                <p className="text-xs text-gray-400">katalog</p>
+              </div>
+            </div>
+
+            {/* Plus Plan */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border-2 border-violet-300 relative group hover:shadow-lg hover:shadow-violet-500/10 transition-all cursor-pointer"
+              onClick={() => {
+                setShowLimitModal(false)
+                setShowUpgradeModal(true)
+              }}>
+              <div className="absolute -top-2 left-3 px-2 py-0.5 bg-violet-600 text-white text-[10px] font-bold rounded-full flex items-center gap-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                </span>
+                ÖNERİLEN
+              </div>
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-violet-500/30">
+                ⚡
+              </div>
+              <div className="flex-1">
+                <span className="font-bold text-violet-700">Plus</span>
+                <p className="text-xs text-violet-500">₺500/ay</p>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-bold text-violet-700">10</span>
+                <p className="text-xs text-violet-400">katalog</p>
+              </div>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-2 border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 transition-all cursor-pointer"
+              onClick={() => {
+                setShowLimitModal(false)
+                setShowUpgradeModal(true)
+              }}>
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xl shadow-lg shadow-amber-500/30">
+                👑
+              </div>
+              <div className="flex-1">
+                <span className="font-bold text-amber-700">Pro</span>
+                <p className="text-xs text-amber-500">₺1.000/ay</p>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-bold text-amber-700">∞</span>
+                <p className="text-xs text-amber-400">sınırsız</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-5 pb-5 flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => setShowLimitModal(false)}
+              className="flex-1 text-gray-500 hover:text-gray-700"
+            >
               Daha Sonra
             </Button>
-            <Button asChild className="bg-violet-600 hover:bg-violet-700">
-              <Link href="/pricing">Planları İncele</Link>
+            <Button
+              onClick={() => {
+                setShowLimitModal(false)
+                setShowUpgradeModal(true)
+              }}
+              className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
+            >
+              Planları İncele
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* QR Code Modal */}
+      {/* Upgrade Modal */}
+      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+
+      {/* QR Code Modal - Modern Design */}
       <Dialog open={!!qrCatalog} onOpenChange={() => setQrCatalog(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-primary" />
-              QR Kod: {qrCatalog?.name}
+        <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                <QrCode className="w-4 h-4 text-white" />
+              </div>
+              Paylaş
             </DialogTitle>
-            <DialogDescription>
-              Müşterileriniz bu kodu okutarak kataloğa erişebilir.
+            <DialogDescription className="text-xs">
+              {qrCatalog?.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg border border-dashed">
+
+          <div className="px-4 pb-4 space-y-4">
+            {/* QR Code */}
+            <div className="bg-white rounded-xl p-4 flex flex-col items-center border">
+              {qrCatalog && (
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog.slug}`)}`}
+                  alt="QR Code"
+                  className="w-36 h-36"
+                />
+              )}
+            </div>
+
+            {/* Link */}
             {qrCatalog && (
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog.slug}`)}`}
-                alt="QR Code"
-                className="w-48 h-48"
-              />
+              <div className="bg-muted/50 rounded-lg p-2 flex items-center gap-2">
+                <div className="flex-1 text-xs text-muted-foreground truncate font-mono">
+                  {`${window.location.origin}/catalog/${qrCatalog.slug}`}
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 h-7 px-2"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/catalog/${qrCatalog.slug}`)
+                    toast.success("Link kopyalandı!")
+                  }}
+                >
+                  Kopyala
+                </Button>
+              </div>
             )}
-            {qrCatalog && (
-              <p className="mt-4 text-xs text-muted-foreground text-center max-w-[200px]">
-                {`${window.location.origin}/catalog/${qrCatalog.slug}`}
-              </p>
-            )}
+
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  if (qrCatalog) {
+                    window.open(`/catalog/${qrCatalog.slug}`, '_blank')
+                  }
+                }}
+              >
+                <Eye className="w-3.5 h-3.5 mr-1.5" />
+                Görüntüle
+              </Button>
+              <Button
+                size="sm"
+                className="h-9 bg-gradient-to-r from-violet-600 to-purple-600"
+                onClick={() => {
+                  const url = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog?.slug}`)}`;
+                  window.open(url, '_blank');
+                }}
+              >
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                QR İndir
+              </Button>
+            </div>
           </div>
-          <DialogFooter className="sm:justify-center">
-            <Button variant="outline" onClick={() => {
-              const url = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog?.slug}`)}`;
-              window.open(url, '_blank');
-            }}>
-              <Download className="w-4 h-4 mr-2" />
-              Yüksek Çözünürlük İndir
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

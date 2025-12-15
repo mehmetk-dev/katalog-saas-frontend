@@ -21,6 +21,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')     // Replace spaces with -
+    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+    .replace(/\-\-+/g, '-')   // Replace multiple - with single -
+}
+
 interface BuilderPageClientProps {
   catalog: Catalog | null
   products: Product[]
@@ -48,7 +58,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [backgroundImage, setBackgroundImage] = useState<string | null>(catalog?.background_image || null)
   const [backgroundImageFit, setBackgroundImageFit] = useState<string>(catalog?.background_image_fit || 'cover')
   const [backgroundGradient, setBackgroundGradient] = useState<string | null>(catalog?.background_gradient || null)
-  const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || user?.logo_url || null)
   const [logoPosition, setLogoPosition] = useState<string>(catalog?.logo_position || 'top-left')
   const [logoSize, setLogoSize] = useState<string>(catalog?.logo_size || 'medium')
   const tabsId = useId()
@@ -136,10 +146,57 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
     startTransition(async () => {
       try {
-        await publishCatalog(currentCatalogId, !isPublished)
-        setIsPublished(!isPublished)
-        toast.success(isPublished ? "Katalog yayından kaldırıldı" : "Katalog yayınlandı!")
-      } catch {
+        // 1. Önce mevcut durumu ve slug'ı kaydet
+        const companyPart = user?.company || user?.name || "catalog"
+        const namePart = catalogName || "untitled"
+        const idPart = currentCatalogId.slice(0, 6)
+        const shareSlug = `${slugify(companyPart)}-${slugify(namePart)}-${idPart}`
+
+        await updateCatalog(currentCatalogId, {
+          name: catalogName,
+          description: catalogDescription,
+          product_ids: selectedProductIds,
+          layout,
+          primary_color: primaryColor,
+          show_prices: showPrices,
+          show_descriptions: showDescriptions,
+          columns_per_row: columnsPerRow,
+          background_color: backgroundColor,
+          background_image: backgroundImage,
+          background_image_fit: backgroundImageFit as any,
+          background_gradient: backgroundGradient,
+          logo_url: logoUrl,
+          logo_position: logoPosition as any,
+          logo_size: logoSize as any,
+          share_slug: shareSlug,
+        })
+
+        // 2. Sonra yayın durumunu güncelle
+        const newPublishState = !isPublished
+        await publishCatalog(currentCatalogId, newPublishState)
+        setIsPublished(newPublishState)
+
+        if (newPublishState) {
+          // Yayınlandıysa yeni sekmede aç (yeni slug ile)
+          const shareUrl = `${window.location.origin}/catalog/${shareSlug}`
+          toast.success("Katalog yayınlandı ve güncellendi!", {
+            action: {
+              label: "Linki Kopyala",
+              onClick: () => {
+                navigator.clipboard.writeText(shareUrl)
+                toast.success("Link kopyalandı!")
+              }
+            }
+          })
+          // Kısa bir gecikme ile yeni sekme aç
+          setTimeout(() => {
+            window.open(shareUrl, '_blank')
+          }, 500)
+        } else {
+          toast.success("Katalog yayından kaldırıldı")
+        }
+      } catch (error) {
+        console.error("Publish error:", error)
         toast.error("Yayın durumu güncellenemedi")
       }
     })
@@ -268,7 +325,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
       // PDF başarıyla indirildikten SONRA export hakkını kullan
       const { incrementUserExports } = await import("@/lib/actions/user")
-      const result = await incrementUserExports()
+      const result = await incrementUserExports(catalogName)
 
       if (!result.error) {
         // Kullanıcı limitini güncelle
@@ -278,14 +335,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       // Önceki görünüme dön
       setView(previousView)
 
-      toast.dismiss("pdf-process")
-      toast.success("PDF başarıyla indirildi!")
+      toast.success("PDF başarıyla indirildi!", { id: "pdf-process" })
 
     } catch (err: any) {
       console.error("PDF Fail:", err)
       const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err))
-      toast.dismiss("pdf-process")
-      toast.error("PDF Başarısız: " + msg)
+      toast.error("PDF Başarısız: " + msg, { id: "pdf-process" })
     }
   }
 

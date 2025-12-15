@@ -9,13 +9,9 @@ export async function checkIsAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Debugging
+    // Security: Don't log sensitive environment variables
     if (user?.email !== ADMIN_EMAIL) {
-        console.log("Admin Access Denied:", {
-            currentUser: user?.email,
-            expectedAdmin: ADMIN_EMAIL,
-            envVar: process.env.ADMIN_EMAIL
-        })
+        console.warn("Admin access denied for user")
     }
 
     return user?.email === ADMIN_EMAIL

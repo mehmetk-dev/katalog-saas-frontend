@@ -1,120 +1,88 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
+
+export const metadata = {
+  title: "Kullanım Şartları | CatalogPro",
+  description: "CatalogPro kullanım şartları ve koşulları.",
+}
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <Button variant="ghost" asChild className="mb-8">
-          <Link href="/">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Ana Sayfaya Dön
-          </Link>
-        </Button>
+    <div className="min-h-screen bg-slate-50">
+      <PublicHeader />
 
-        <h1 className="text-4xl font-bold mb-8">Kullanım Şartları</h1>
-        <p className="text-muted-foreground mb-8">Son güncelleme: 4 Aralık 2025</p>
+      <main className="pt-32 pb-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-3">Kullanım Şartları</h1>
+          <p className="text-slate-500 mb-12">Son güncelleme: 13 Aralık 2025</p>
 
-        <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8">
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">1. Şartların Kabulü</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              CatalogPro'ya erişerek ve kullanarak bu Kullanım Şartlarına bağlı olmayı kabul ediyorsunuz. Bu şartları
-              kabul etmiyorsanız, lütfen hizmetimizi kullanmayın.
-            </p>
-          </section>
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-10 space-y-10">
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">1. Hizmet Kullanımı</h2>
+              <p className="text-slate-600 leading-relaxed mb-4">
+                CatalogPro platformunu kullanarak aşağıdaki şartları kabul etmiş sayılırsınız:
+              </p>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Hizmetleri yalnızca yasal amaçlarla kullanacaksınız</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Hesap güvenliğinizden siz sorumlusunuz</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Yüklediğiniz içeriklerden siz sorumlusunuz</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">2. Hizmet Açıklaması</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              CatalogPro, kullanıcıların ürün katalogları oluşturmasını, yönetmesini ve paylaşmasını sağlayan bir SaaS
-              platformudur. Hizmetimiz ürün yönetimi, katalog oluşturma, şablon seçimi ve katalog yayınlama
-              özelliklerini içerir.
-            </p>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">2. Fikri Mülkiyet</h2>
+              <p className="text-slate-600 leading-relaxed">
+                Platform tasarımı ve kodları CatalogPro'ya aittir. Yüklediğiniz içerikler üzerindeki
+                haklar size ait olmaya devam eder. Başkalarının fikri mülkiyet haklarını ihlal eden
+                içerik yüklemek yasaktır.
+              </p>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">3. Kullanıcı Hesapları</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">CatalogPro'yu kullanmak için:</p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Doğru bilgilerle hesap oluşturmalısınız</li>
-              <li>Hesap kimlik bilgilerinizin güvenliğini sağlamalısınız</li>
-              <li>En az 18 yaşında olmalı veya ebeveyn onayına sahip olmalısınız</li>
-              <li>Hesabınızı başkalarıyla paylaşmamalısınız</li>
-            </ul>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">3. Ödeme ve Abonelik</h2>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Ödemeler aylık veya yıllık olarak alınır</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Aboneliğinizi istediğiniz zaman iptal edebilirsiniz</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>İade talepleri için destek ekibimize başvurun</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">4. Abonelik Planları</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">Aşağıdaki planları sunuyoruz:</p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>
-                <strong>Ücretsiz Plan:</strong> 50 ürüne kadar, ayda 1 katalog dışa aktarma
-              </li>
-              <li>
-                <strong>Pro Plan:</strong> Sınırsız ürün ve dışa aktarma, premium şablonlar, öncelikli destek
-              </li>
-            </ul>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">4. Yasaklanan Kullanımlar</h2>
+              <p className="text-slate-600 leading-relaxed mb-4">
+                Aşağıdaki davranışlar kesinlikle yasaktır:
+              </p>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex gap-3"><span className="text-red-500">•</span>Yasadışı veya zararlı içerik yayınlamak</li>
+                <li className="flex gap-3"><span className="text-red-500">•</span>Sisteme zarar vermeye çalışmak</li>
+                <li className="flex gap-3"><span className="text-red-500">•</span>Diğer kullanıcıların haklarını ihlal etmek</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">5. Ödeme Koşulları</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Pro abonelikleri aylık veya yıllık olarak faturalandırılır. Tüm ödemeler Stripe aracılığıyla güvenli
-              şekilde işlenir. Aboneliğinizi istediğiniz zaman iptal edebilirsiniz ve fatura döneminin sonuna kadar
-              erişiminiz devam eder.
-            </p>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">5. Sorumluluk</h2>
+              <p className="text-slate-600 leading-relaxed">
+                CatalogPro, hizmet kesintileri veya veri kayıplarından kaynaklanan dolaylı zararlardan
+                sorumlu tutulamaz. Hizmetler "olduğu gibi" sunulmaktadır. Bu şartlar Türkiye Cumhuriyeti
+                yasalarına tabidir.
+              </p>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">6. Kabul Edilebilir Kullanım</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">Şunları yapmamayı kabul ediyorsunuz:</p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Yasadışı, zararlı veya rahatsız edici içerik yüklemek</li>
-              <li>Fikri mülkiyet haklarını ihlal etmek</li>
-              <li>Hizmetimizi hacklemeye veya bozmaya çalışmak</li>
-              <li>Hizmeti spam veya kimlik avı için kullanmak</li>
-              <li>İzin almadan hizmeti yeniden satmak veya dağıtmak</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">7. Fikri Mülkiyet</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              İçeriğinizin sahipliği size aittir. Hizmetimizi kullanarak, içeriğinizi barındırmak ve görüntülemek için
-              bize lisans veriyorsunuz. CatalogPro platformu, şablonları ve markalaması bizim fikri mülkiyetimizdir.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">8. Sorumluluk Sınırlaması</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              CatalogPro garanti olmaksızın "olduğu gibi" sunulmaktadır. Hizmeti kullanımınızdan kaynaklanan dolaylı,
-              arızi veya sonuçsal zararlardan sorumlu değiliz.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">9. Şartlardaki Değişiklikler</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Bu şartları zaman zaman güncelleyebiliriz. Önemli değişiklikler hakkında e-posta veya hizmet aracılığıyla
-              sizi bilgilendireceğiz.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">10. İletişim</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Bu Şartlar hakkında sorularınız için{" "}
-              <a href="mailto:hukuk@catalogpro.com" className="text-primary hover:underline">
-                hukuk@catalogpro.com
-              </a>{" "}
-              adresinden bizimle iletişime geçin.
-            </p>
-          </section>
+            <section className="pt-6 border-t border-slate-100">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">6. İletişim</h2>
+              <p className="text-slate-600 leading-relaxed">
+                Sorularınız için{' '}
+                <a href="mailto:destek@catalogpro.app" className="text-violet-600 hover:underline">
+                  destek@catalogpro.app
+                </a>{' '}
+                adresinden bize ulaşabilirsiniz.
+              </p>
+            </section>
+          </div>
         </div>
-      </div>
+      </main>
+
+      <PublicFooter />
     </div>
   )
 }

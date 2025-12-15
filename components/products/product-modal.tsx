@@ -25,6 +25,7 @@ interface ProductModalProps {
   product: Product | null
   onSaved: (product: Product) => void
   allCategories?: string[]
+  userPlan?: 'free' | 'plus' | 'pro'
 }
 
 const COMMON_UNITS = [
@@ -60,9 +61,10 @@ const MAGIC_DESCRIPTIONS = [
   "Zarif tasarımı ve kullanışlı özellikleriyle dikkat çeken bu ürün, her ortama uyum sağlayacak şekilde tasarlandı.",
 ]
 
-export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [] }: ProductModalProps) {
+export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan = 'free' }: ProductModalProps) {
   const [isPending, startTransition] = useTransition()
   const isEditing = !!product
+  const isFreeUser = userPlan === 'free'
 
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>(() => product?.custom_attributes || [])
   const [activeTab, setActiveTab] = useState("basic")
@@ -83,6 +85,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const [currency, setCurrency] = useState(
     product?.custom_attributes?.find(a => a.name === "currency")?.value || "TRY"
   )
+  const [productUrl, setProductUrl] = useState(product?.product_url || "")
 
   // Upload State
   const [isUploading, setIsUploading] = useState(false)
@@ -94,26 +97,128 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null)
 
   // Reset state when modal opens/closes or product changes
+  // Tıklanan resmi kapak yap
+  const handleSetCover = (url: string) => {
+    setActiveImageUrl(url)
+    toast.success("Kapak fotoğrafı güncellendi")
+  }
+
+  // Resim sil
+  const handleRemoveImage = (index: number) => {
+    const newImages = [...additionalImages]
+    const removedUrl = newImages[index]
+    newImages.splice(index, 1)
+    setAdditionalImages(newImages)
+
+    // Eğer silinen resim kapak fotoğrafıysa ve başka resim varsa, ilkini kapak yap
+    if (removedUrl === activeImageUrl) {
+      if (newImages.length > 0) {
+        setActiveImageUrl(newImages[0])
+      } else {
+        setActiveImageUrl("")
+      }
+    }
+  }
+
+  // Refactored Upload Logic for 5 images limit
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    // Mevcut resim sayısı + yeni seçilenler <= 5 olmalı
+    const currentCount = additionalImages.length
+    const allowedCount = 5 - currentCount
+
+    if (allowedCount <= 0) {
+      toast.error("En fazla 5 fotoğraf yükleyebilirsiniz.")
+      return
+    }
+
+    const filesToUpload = Array.from(files).slice(0, allowedCount)
+    if (files.length > allowedCount) {
+      toast.info(`Sadece ilk ${allowedCount} dosya yüklenecek (limit 5).`)
+    }
+
+    setIsUploading(true)
+    const supabase = createClient()
+    const newUrls: string[] = []
+
+    try {
+      for (const file of filesToUpload) {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`${file.name} boyutu 5MB'dan büyük, atlanıyor.`)
+          continue
+        }
+
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+        const filePath = `${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file)
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath)
+
+        newUrls.push(publicUrl)
+      }
+
+      const updatedImages = [...additionalImages, ...newUrls]
+      setAdditionalImages(updatedImages)
+
+      // İlk yüklenen resmi otomatik kapak yap (eğer hiç yoksa)
+      if (!activeImageUrl && updatedImages.length > 0) {
+        setActiveImageUrl(updatedImages[0])
+      }
+
+      if (newUrls.length > 0) {
+        toast.success(`${newUrls.length} görsel yüklendi`)
+      }
+
+    } catch (error: any) {
+      console.error(error)
+      toast.error("Resimler yüklenirken hata oluştu")
+    } finally {
+      setIsUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  // Update effect to merge legacy images
   useEffect(() => {
     if (open) {
-      // additional_images ve currency haricindeki özellikleri al
       const existingAttrs = product?.custom_attributes?.filter(a => a.name !== "currency" && a.name !== "additional_images") || []
       setCustomAttributes(existingAttrs)
 
-      // additional_images'i parse et
-      const additionalImagesAttr = product?.custom_attributes?.find(a => a.name === "additional_images")
-      if (additionalImagesAttr?.value) {
-        try {
-          const parsed = JSON.parse(additionalImagesAttr.value)
-          setAdditionalImages(Array.isArray(parsed) ? parsed : [])
-        } catch {
-          setAdditionalImages([])
-        }
+      // Merge logic: product.images OR (product.image_url + additional_images)
+      let initialImages: string[] = []
+
+      if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
+        initialImages = product.images
       } else {
-        setAdditionalImages([])
+        // Legacy check
+        const legacyAdditional = product?.custom_attributes?.find(a => a.name === "additional_images")?.value
+        let legacyImages: string[] = []
+        if (legacyAdditional) {
+          try { legacyImages = JSON.parse(legacyAdditional) } catch { }
+        }
+        if (product?.image_url) {
+          // Avoid duplicates if image_url is already in list
+          if (!legacyImages.includes(product.image_url)) {
+            legacyImages.unshift(product.image_url)
+          }
+        }
+        initialImages = legacyImages
       }
 
-      setActiveImageUrl(product?.image_url || "")
+      setAdditionalImages(initialImages)
+      setActiveImageUrl(product?.image_url || initialImages[0] || "")
+
+      // ... rest of state init
       setDescription(product?.description || "")
       setName(product?.name || "")
       setSku(product?.sku || "")
@@ -125,17 +230,111 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       })
       setCategoryInput("")
       setCurrency(product?.custom_attributes?.find(a => a.name === "currency")?.value || "TRY")
+      setProductUrl(product?.product_url || "")
       setUploadedUrl(null)
       setActiveTab("basic")
     }
   }, [open, product])
 
+  // Submit handler update
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    if (!name.trim()) {
+      toast.error("Ürün adı gereklidir")
+      setActiveTab("basic")
+      return
+    }
+
+    const formData = new FormData()
+    formData.append("name", name)
+    formData.append("sku", sku)
+    formData.append("description", description)
+    formData.append("price", price)
+    formData.append("stock", stock)
+    formData.append("category", category.join(", "))
+
+    // activeImageUrl is the cover
+    formData.append("image_url", activeImageUrl || "")
+
+    // additionalImages now contains ALL images including cover
+    formData.append("images", JSON.stringify(additionalImages))
+
+    formData.append("product_url", productUrl)
+
+    const attributesToSave = customAttributes.filter((a) => a.name && a.value && a.name !== "currency" && a.name !== "additional_images")
+    if (currency) {
+      attributesToSave.push({ name: "currency", value: currency, unit: "" })
+    }
+    // No saving additional_images to custom_attributes anymore!
+
+    formData.set("custom_attributes", JSON.stringify(attributesToSave))
+
+    startTransition(async () => {
+      try {
+        if (isEditing) {
+          await updateProduct(product.id, formData)
+          onSaved({
+            ...product,
+            name,
+            sku,
+            description,
+            price: Number.parseFloat(price) || 0,
+            stock: Number.parseInt(stock) || 0,
+            category: category.join(", "),
+            image_url: activeImageUrl,
+            images: additionalImages, // Optimistic update
+            product_url: productUrl || null,
+            custom_attributes: attributesToSave,
+          })
+          toast.success("Ürün güncellendi")
+        } else {
+          const newProduct = await createProduct(formData)
+          onSaved(newProduct)
+          toast.success("Ürün oluşturuldu")
+        }
+        onOpenChange(false)
+      } catch {
+        toast.error(isEditing ? "Ürün güncellenemedi" : "Ürün oluşturulamadı")
+      }
+    })
+  }
+
+  // UI Render Part (Inside TabsContent value="images")
+  /* 
+     Replace the existing tabs content with this:
+  */
+  // ... inside render ... 
+  // <TabsContent value="images" ...>
+  //    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+  //       {additionalImages.map((url, idx) => (
+  //          <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2")}>
+  //              <img src={url} className="w-full h-full object-cover" />
+  //              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+  //                  {activeImageUrl !== url && (
+  //                      <Button size="sm" variant="secondary" onClick={() => handleSetCover(url)}>Kapak Yap</Button>
+  //                  )}
+  //                  <Button size="icon" variant="destructive" onClick={() => handleRemoveImage(idx)}><Trash2 className="w-4 h-4" /></Button>
+  //              </div>
+  //              {activeImageUrl === url && <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-1 rounded">Kapak</div>}
+  //          </div>
+  //       ))}
+  //       {additionalImages.length < 5 && (
+  //          <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+  //              <Upload className="w-8 h-8 text-slate-300 mb-2" />
+  //              <span className="text-xs text-slate-500 font-medium">Fotoğraf Ekle</span>
+  //              <span className="text-[10px] text-slate-400">({5 - additionalImages.length} hak kaldı)</span>
+  //              <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} disabled={isUploading} />
+  //          </label>
+  //       )}
+  //    </div>
+  // </TabsContent>
+
+
+  // Helper Functions
   const generateMagicDescription = () => {
     const random = MAGIC_DESCRIPTIONS[Math.floor(Math.random() * MAGIC_DESCRIPTIONS.length)]
-    // Ürün adını açıklamaya ekle
-    const enhanced = name
-      ? `${name} - ${random}`
-      : random
+    const enhanced = name ? `${name} - ${random}` : random
     setDescription(enhanced)
     toast.success("Sihirli açıklama oluşturuldu! ✨")
   }
@@ -145,111 +344,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     const random = Math.random().toString(36).substring(2, 8).toUpperCase()
     setSku(`${prefix}-${random}`)
     toast.success("SKU oluşturuldu!")
-  }
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Dosya boyutu 5MB'dan küçük olmalıdır")
-      return
-    }
-
-    setIsUploading(true)
-    const supabase = createClient()
-
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
-      const filePath = `${fileName}`
-
-      // 15 saniye zaman aşımı
-      const uploadPromise = supabase.storage
-        .from('product-images')
-        .upload(filePath, file, {
-          upsert: false
-        })
-
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Yükleme zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.")), 15000)
-      })
-
-      const result = await Promise.race([uploadPromise, timeoutPromise]) as any
-
-      if (result.error) throw result.error
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath)
-
-      setUploadedUrl(publicUrl)
-      setActiveImageUrl(publicUrl)
-      toast.success("Resim yüklendi")
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      toast.error(error instanceof Error ? error.message : "Resim yüklenirken hata oluştu")
-    } finally {
-      setIsUploading(false)
-      e.target.value = '' // Reset input
-    }
-  }
-
-  const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    // Boyut kontrolü
-    const OversizedFiles = Array.from(files).filter(f => f.size > 5 * 1024 * 1024)
-    if (OversizedFiles.length > 0) {
-      toast.error(`${OversizedFiles.length} dosya 5MB sınırını aşıyor ve yüklenmeyecek.`)
-    }
-
-    const validFiles = Array.from(files).filter(f => f.size <= 5 * 1024 * 1024)
-    if (validFiles.length === 0) return
-
-    setIsUploading(true)
-    const supabase = createClient()
-
-    try {
-      // Hepsini paralel yükle
-      const uploadPromises = validFiles.map(async (file) => {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
-        const filePath = `${fileName}`
-
-        // Her biri için zaman aşımı kontrolü
-        const uploadOp = supabase.storage
-          .from('product-images')
-          .upload(filePath, file)
-
-        const timeoutOp = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 20000)
-        )
-
-        const result = await Promise.race([uploadOp, timeoutOp]) as any
-        if (result.error) throw result.error
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(filePath)
-
-        return publicUrl
-      })
-
-      const results = await Promise.all(uploadPromises)
-
-      // Mevcut resimlerin üzerine ekle
-      setAdditionalImages(prev => [...prev, ...results])
-      toast.success(`${results.length} yeni görsel eklendi`)
-    } catch (error) {
-      console.error('Error uploading images:', error)
-      toast.error("Bazı görseller yüklenemedi. Bağlantınızı kontrol edin.")
-    } finally {
-      setIsUploading(false)
-      // Input değerini sıfırla ki aynı dosyalar tekrar seçilebilsin
-      e.target.value = ''
-    }
   }
 
   const addCustomAttribute = (presetName?: string) => {
@@ -267,65 +361,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     setCustomAttributes(updated)
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
-    if (!name.trim()) {
-      toast.error("Ürün adı gereklidir")
-      setActiveTab("basic")
-      return
-    }
-
-    const formData = new FormData()
-    formData.append("name", name)
-    formData.append("sku", sku)
-    formData.append("description", description)
-    formData.append("price", price)
-    formData.append("stock", stock)
-    formData.append("category", category.join(", "))
-    formData.append("image_url", activeImageUrl)
-
-    // Filter out existing currency attribute if any, then add the new one
-    // Filter out existing currency and additional_images attributes if any
-    const attributesToSave = customAttributes.filter((a) => a.name && a.value && a.name !== "currency" && a.name !== "additional_images")
-    if (currency) {
-      attributesToSave.push({ name: "currency", value: currency, unit: "" })
-    }
-    // Ek resimleri de attribute olarak kaydet
-    if (additionalImages.length > 0) {
-      attributesToSave.push({ name: "additional_images", value: JSON.stringify(additionalImages), unit: "" })
-    }
-
-    formData.set("custom_attributes", JSON.stringify(attributesToSave))
-
-    startTransition(async () => {
-      try {
-        if (isEditing) {
-          await updateProduct(product.id, formData)
-          onSaved({
-            ...product,
-            name,
-            sku,
-            description,
-            price: Number.parseFloat(price) || 0,
-            stock: Number.parseInt(stock) || 0,
-            category: category.join(", "),
-            image_url: activeImageUrl,
-            custom_attributes: attributesToSave,
-          })
-          toast.success("Ürün güncellendi")
-        } else {
-          const newProduct = await createProduct(formData)
-          onSaved(newProduct)
-          toast.success("Ürün oluşturuldu")
-        }
-        onOpenChange(false)
-      } catch {
-        toast.error(isEditing ? "Ürün güncellenemedi" : "Ürün oluşturulamadı")
-      }
-    })
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[85vh] p-0 gap-0 overflow-hidden flex flex-col">
@@ -340,28 +375,31 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="border-b px-4 sm:px-6 shrink-0">
-              <TabsList className="h-12 w-full grid grid-cols-3 bg-transparent p-0 gap-0">
+            <div className="border-b px-4 sm:px-6 shrink-0 py-2 bg-slate-50/50">
+              <TabsList className="h-11 w-full grid grid-cols-3 bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-lg gap-1">
                 <TabsTrigger
                   value="basic"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-violet-600 data-[state=active]:shadow-none rounded-none h-full text-xs sm:text-sm"
+                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
-                  <Tag className="w-4 h-4 sm:mr-2" />
+                  <Tag className="w-4 h-4" />
                   <span className="hidden sm:inline">Temel Bilgiler</span>
+                  <span className="sm:hidden">Temel</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="images"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-violet-600 data-[state=active]:shadow-none rounded-none h-full text-xs sm:text-sm"
+                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
-                  <ImagePlus className="w-4 h-4 sm:mr-2" />
+                  <ImagePlus className="w-4 h-4" />
                   <span className="hidden sm:inline">Görseller</span>
+                  <span className="sm:hidden">Görsel</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="attributes"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-violet-600 data-[state=active]:shadow-none rounded-none h-full text-xs sm:text-sm"
+                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
-                  <Layers className="w-4 h-4 sm:mr-2" />
+                  <Layers className="w-4 h-4" />
                   <span className="hidden sm:inline">Özellikler</span>
+                  <span className="sm:hidden">Özellik</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -416,132 +454,156 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     </div>
                   </div>
 
-                  {/* Kategoriler - Kompakt ve Daraltılabilir */}
-                  <div className="space-y-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowCategorySection(!showCategorySection)}
-                      className="w-full flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FolderPlus className="w-4 h-4 text-violet-600" />
-                        <span className="font-medium text-sm">Kategoriler</span>
-                        {category.length > 0 && (
-                          <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
-                            {category.length} seçili
-                          </Badge>
+                  {/* Kategoriler - Sadece Plus/Pro için */}
+                  {!isFreeUser ? (
+                    <div className="space-y-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCategorySection(!showCategorySection)}
+                        className="w-full flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FolderPlus className="w-4 h-4 text-violet-600" />
+                          <span className="font-medium text-sm">Kategoriler</span>
+                          {category.length > 0 && (
+                            <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
+                              {category.length} seçili
+                            </Badge>
+                          )}
+                        </div>
+                        {showCategorySection ? (
+                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
                         )}
-                      </div>
-                      {showCategorySection ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </button>
+
+                      {/* Seçili Kategoriler - Her zaman göster */}
+                      {category.length > 0 && !showCategorySection && (
+                        <div className="flex flex-wrap gap-1.5 px-1">
+                          {category.map((cat, idx) => (
+                            <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700 border-violet-100">
+                              {cat}
+                              <button
+                                type="button"
+                                onClick={() => setCategory(category.filter((_, i) => i !== idx))}
+                                className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
                       )}
-                    </button>
 
-                    {/* Seçili Kategoriler - Her zaman göster */}
-                    {category.length > 0 && !showCategorySection && (
-                      <div className="flex flex-wrap gap-1.5 px-1">
-                        {category.map((cat, idx) => (
-                          <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700 border-violet-100">
-                            {cat}
-                            <button
+                      {/* Kategori İçeriği - Açık olduğunda */}
+                      {showCategorySection && (
+                        <div className="space-y-3 p-3 border rounded-lg bg-background animate-in slide-in-from-top-2 duration-200">
+                          {/* Mevcut Kategoriler */}
+                          {allCategories.length > 0 && (
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground">Mevcut Kategoriler</Label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {allCategories.map((cat) => (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => {
+                                      if (category.includes(cat)) {
+                                        setCategory(category.filter(c => c !== cat))
+                                      } else {
+                                        setCategory([...category, cat])
+                                      }
+                                    }}
+                                    className={cn(
+                                      "px-2.5 py-1 text-xs rounded-full border transition-all",
+                                      category.includes(cat)
+                                        ? "bg-violet-600 text-white border-violet-600"
+                                        : "bg-background hover:bg-violet-50 hover:border-violet-300"
+                                    )}
+                                  >
+                                    {cat}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Yeni Kategori Ekle */}
+                          <div className="flex gap-2">
+                            <Input
+                              value={categoryInput}
+                              onChange={(e) => setCategoryInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && categoryInput.trim()) {
+                                  e.preventDefault()
+                                  if (!category.includes(categoryInput.trim())) {
+                                    setCategory([...category, categoryInput.trim()])
+                                  }
+                                  setCategoryInput("")
+                                }
+                              }}
+                              placeholder="Yeni kategori..."
+                              className="h-8 text-sm"
+                            />
+                            <Button
                               type="button"
-                              onClick={() => setCategory(category.filter((_, i) => i !== idx))}
-                              className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
+                              size="sm"
+                              className="h-8 px-3 bg-violet-600 hover:bg-violet-700"
+                              onClick={() => {
+                                if (categoryInput.trim() && !category.includes(categoryInput.trim())) {
+                                  setCategory([...category, categoryInput.trim()])
+                                  setCategoryInput("")
+                                }
+                              }}
+                              disabled={!categoryInput.trim()}
                             >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                              <Plus className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
 
-                    {/* Kategori İçeriği - Açık olduğunda */}
-                    {showCategorySection && (
-                      <div className="space-y-3 p-3 border rounded-lg bg-background animate-in slide-in-from-top-2 duration-200">
-                        {/* Mevcut Kategoriler */}
-                        {allCategories.length > 0 && (
-                          <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">Mevcut Kategoriler</Label>
-                            <div className="flex flex-wrap gap-1.5">
-                              {allCategories.map((cat) => (
-                                <button
-                                  key={cat}
-                                  type="button"
-                                  onClick={() => {
-                                    if (category.includes(cat)) {
-                                      setCategory(category.filter(c => c !== cat))
-                                    } else {
-                                      setCategory([...category, cat])
-                                    }
-                                  }}
-                                  className={cn(
-                                    "px-2.5 py-1 text-xs rounded-full border transition-all",
-                                    category.includes(cat)
-                                      ? "bg-violet-600 text-white border-violet-600"
-                                      : "bg-background hover:bg-violet-50 hover:border-violet-300"
-                                  )}
-                                >
+                          {/* Seçili Kategoriler */}
+                          {category.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+                              {category.map((cat, idx) => (
+                                <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700">
                                   {cat}
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setCategory(category.filter((_, i) => i !== idx))}
+                                    className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </Badge>
                               ))}
                             </div>
-                          </div>
-                        )}
-
-                        {/* Yeni Kategori Ekle */}
-                        <div className="flex gap-2">
-                          <Input
-                            value={categoryInput}
-                            onChange={(e) => setCategoryInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && categoryInput.trim()) {
-                                e.preventDefault()
-                                if (!category.includes(categoryInput.trim())) {
-                                  setCategory([...category, categoryInput.trim()])
-                                }
-                                setCategoryInput("")
-                              }
-                            }}
-                            placeholder="Yeni kategori..."
-                            className="h-8 text-sm"
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 px-3 bg-violet-600 hover:bg-violet-700"
-                            onClick={() => {
-                              if (categoryInput.trim() && !category.includes(categoryInput.trim())) {
-                                setCategory([...category, categoryInput.trim()])
-                                setCategoryInput("")
-                              }
-                            }}
-                            disabled={!categoryInput.trim()}
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </Button>
+                          )}
                         </div>
+                      )}
+                    </div>
+                  ) : null}
 
-                        {/* Seçili Kategoriler */}
-                        {category.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-2 border-t">
-                            {category.map((cat, idx) => (
-                              <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700">
-                                {cat}
-                                <button
-                                  type="button"
-                                  onClick={() => setCategory(category.filter((_, i) => i !== idx))}
-                                  className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
-                                >
-                                  <X className="w-2.5 h-2.5" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                  {/* Ürün Linki */}
+                  <div className="space-y-2 pt-2">
+                    <Label htmlFor="productUrl" className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      Ürün Linki
+                      <span className="text-xs text-muted-foreground font-normal">(opsiyonel)</span>
+                    </Label>
+                    <Input
+                      id="productUrl"
+                      type="url"
+                      value={productUrl}
+                      onChange={(e) => setProductUrl(e.target.value)}
+                      placeholder="https://example.com/urun-sayfasi"
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Dijital katalogda ürün tıklandığında bu linke yönlendirilir
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -621,9 +683,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                           {Number(stock) === 0 ? (
                             <Badge variant="destructive" className="text-sm px-3 py-1">Stok Yok</Badge>
                           ) : Number(stock) < 10 ? (
-                            <Badge className="bg-amber-100 text-amber-700 text-sm px-3 py-1">Az Stok</Badge>
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-3 py-1">Az Stok</Badge>
                           ) : (
-                            <Badge className="bg-emerald-100 text-emerald-700 text-sm px-3 py-1">Stokta</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm px-3 py-1">Stokta</Badge>
                           )}
                         </div>
                       </div>
@@ -632,165 +694,58 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                 </TabsContent>
 
                 {/* Görseller */}
-                <TabsContent value="images" className="space-y-6 m-0 focus-visible:ring-0">
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">Ana Görsel</Label>
-
-                    <Tabs defaultValue="upload" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="upload">Dosya Yükle</TabsTrigger>
-                        <TabsTrigger value="url">URL Yapıştır</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="upload" className="mt-4 space-y-4">
-                        {activeImageUrl ? (
-                          <div className="relative group max-w-sm mx-auto">
-                            <img
-                              src={activeImageUrl}
-                              alt="Preview"
-                              className="w-full aspect-square object-cover rounded-xl border shadow-sm"
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setUploadedUrl(null)
-                                  setActiveImageUrl("")
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Görseli Kaldır
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor="main-image-upload"
-                            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                              {isUploading ? (
-                                <>
-                                  <Loader2 className="w-10 h-10 mb-3 text-violet-600 animate-spin" />
-                                  <p className="text-sm text-muted-foreground">Yükleniyor...</p>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="p-3 rounded-full bg-violet-100 dark:bg-violet-900/30 mb-3">
-                                    <Upload className="w-8 h-8 text-violet-600" />
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mb-1">
-                                    <span className="font-semibold text-foreground">Yüklemek için tıklayın</span> veya sürükleyin
-                                  </p>
-                                  <p className="text-xs text-muted-foreground/70">PNG, JPG, WEBP (MAX. 2MB)</p>
-                                </>
-                              )}
-                            </div>
-                            <input
-                              id="main-image-upload"
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleFileUpload}
-                              disabled={isUploading}
-                            />
-                          </label>
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="url" className="mt-4 space-y-4">
-                        <div className="flex gap-2">
-                          <Input
-                            type="url"
-                            value={activeImageUrl}
-                            onChange={(e) => {
-                              setActiveImageUrl(e.target.value)
-                              setUploadedUrl(null)
-                            }}
-                            placeholder="https://ornek.com/gorsel.jpg"
-                            className="h-11"
-                          />
-                          {activeImageUrl && (
-                            <Button type="button" variant="ghost" size="icon" onClick={() => setActiveImageUrl("")} className="h-11 w-11">
-                              <X className="w-4 h-4" />
+                <TabsContent value="images" className="m-0 focus-visible:ring-0 p-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {additionalImages.map((url, idx) => (
+                      <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900")}>
+                        <img src={url} className="w-full h-full object-cover" alt={`Ürün görseli ${idx + 1}`} />
+                        <div className={cn(
+                          "absolute inset-0 bg-black/40 transition-opacity flex flex-col items-center justify-center gap-2",
+                          activeImageUrl === url ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
+                        )}>
+                          {activeImageUrl !== url && (
+                            <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-white/90 hover:bg-white" onClick={() => handleSetCover(url)}>
+                              <Sparkles className="w-3.5 h-3.5 mr-1" /> Kapak Yap
                             </Button>
                           )}
-                        </div>
-
-                        {activeImageUrl && (
-                          <div className="rounded-xl border bg-muted/50 p-2 max-w-sm mx-auto relative">
-                            <img
-                              src={activeImageUrl}
-                              alt="URL Preview"
-                              className="w-full aspect-square object-cover rounded-lg"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                            <div className="absolute right-4 bottom-4 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                              Önizleme
-                            </div>
-                          </div>
-                        )}
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-
-                  {/* Ek Görseller */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-medium">Ek Görseller</Label>
-                      <Badge variant="secondary">{additionalImages.length} / 5</Badge>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-3">
-                      {additionalImages.map((img, index) => (
-                        <div key={index} className="relative group aspect-square">
-                          <img
-                            src={img}
-                            alt={`Ek görsel ${index + 1}`}
-                            className="w-full h-full object-cover rounded-lg border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => setAdditionalImages(additionalImages.filter((_, i) => i !== index))}
-                          >
-                            <X className="w-3 h-3" />
+                          <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleRemoveImage(idx)}>
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
-                      ))}
+                        {activeImageUrl === url && (
+                          <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
+                            <Sparkles className="w-3 h-3 mr-1" /> Kapak
+                          </div>
+                        )}
+                      </div>
+                    ))}
 
-                      {additionalImages.length < 5 && (
-                        <label
-                          htmlFor="additional-image-upload"
-                          className="aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-center"
-                        >
-                          {isUploading ? (
-                            <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-                          ) : (
-                            <Plus className="w-6 h-6 text-muted-foreground" />
-                          )}
-                          <input
-                            id="additional-image-upload"
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            multiple
-                            onChange={handleAdditionalImageUpload}
-                            disabled={isUploading}
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Ürününüzün farklı açılarından fotoğraflar ekleyebilirsiniz.
-                    </p>
+                    {additionalImages.length < 5 && (
+                      <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-900/20 dark:hover:border-violet-700 transition-all group bg-slate-50/50 dark:bg-slate-900/20">
+                        <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                          <Upload className="w-6 h-6 text-violet-500" />
+                        </div>
+                        <span className="text-xs text-slate-600 font-medium">Fotoğraf Ekle</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">({5 - additionalImages.length} hak kaldı)</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/png, image/jpeg, image/webp"
+                          multiple
+                          onChange={handleImageUpload}
+                          disabled={isUploading}
+                        />
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
+                            <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                          </div>
+                        )}
+                      </label>
+                    )}
                   </div>
+                  <p className="text-[10px] text-muted-foreground mt-4 text-center">
+                    Toplam 5 fotoğraf yükleyebilirsiniz. Kapak fotoğrafını seçmek için fotoğrafın üzerine gelip "Kapak Yap" diyebilirsiniz.
+                  </p>
                 </TabsContent>
 
                 {/* Özellikler */}
@@ -907,15 +862,20 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               {activeTab === "attributes" && "3/3"}
             </div>
             <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
                 İptal
               </Button>
               <Button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || isUploading}
                 className="min-w-[120px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               >
-                {isPending ? (
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Yükleniyor...
+                  </>
+                ) : isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Kaydediliyor...

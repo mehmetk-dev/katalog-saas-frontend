@@ -7,11 +7,14 @@ const getUserId = (req: Request) => (req as any).user.id;
 export const getCatalogs = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
+        console.log(`📋 getCatalogs called for user: ${userId}`);
+
         const cacheKey = cacheKeys.catalogs(userId);
 
         // Cache'den kontrol et
         const cached = await getCache<any[]>(cacheKey);
         if (cached) {
+            console.log(`📋 Returning ${cached.length} catalogs from CACHE for user: ${userId}`);
             return res.json(cached);
         }
 
@@ -22,6 +25,13 @@ export const getCatalogs = async (req: Request, res: Response) => {
             .order('updated_at', { ascending: false });
 
         if (error) throw error;
+
+        console.log(`📋 Returning ${data?.length || 0} catalogs from DATABASE for user: ${userId}`);
+
+        // Debug: Log first catalog's user_id to verify
+        if (data && data.length > 0) {
+            console.log(`📋 First catalog belongs to user_id: ${data[0].user_id}`);
+        }
 
         // Cache'e yaz
         await setCache(cacheKey, data, cacheTTL.catalogs);
@@ -107,8 +117,9 @@ export const createCatalog = async (req: Request, res: Response) => {
                 user_id: userId,
                 name,
                 description: description || null,
-                template_id: template_id || null,
-                layout: layout || 'grid',
+                // template_id is UUID type, but we use string identifiers, so skip it
+                // The layout field is sufficient to identify the template
+                layout: layout || template_id || 'grid',
                 share_slug: shareSlug,
                 product_ids: []
             })
@@ -119,6 +130,21 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.catalogs(userId));
+
+        // Bildirim gönder
+        try {
+            const { createNotification } = await import('./notifications');
+            await createNotification(
+                userId,
+                'catalog_created',
+                'Katalog Oluşturuldu 📦',
+                `"${name}" kataloğunuz başarıyla oluşturuldu.`,
+                `/dashboard/builder?id=${data.id}`
+            );
+        } catch (notifError) {
+            console.error('Notification error:', notifError);
+            // Bildirim hatası ana işlemi etkilemesin
+        }
 
         res.status(201).json(data);
     } catch (error: any) {

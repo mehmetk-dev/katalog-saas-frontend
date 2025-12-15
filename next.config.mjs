@@ -1,17 +1,34 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    // Don't ignore TypeScript errors in production for security
+    ignoreBuildErrors: false,
   },
   output: "standalone",
   images: {
     // Görsel optimizasyonu aç
     unoptimized: false,
-    // Remote görseller için domain ekle
+    // Remote görseller için güvenilir domain'ler - wildcard kaldırıldı
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.pixabay.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
       },
     ],
     // Görsel boyutlarını optimize et
@@ -29,7 +46,6 @@ const nextConfig = {
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-icons',
-      'recharts',
       'date-fns',
     ],
   },

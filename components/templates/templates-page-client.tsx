@@ -43,8 +43,9 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
         })
         toast.success("Katalog oluşturuldu!")
         router.push(`/dashboard/builder?id=${catalog.id}`)
-      } catch {
-        toast.error("Katalog oluşturulamadı")
+      } catch (error: any) {
+        console.error("Template create error:", error)
+        toast.error(error?.message || "Katalog oluşturulamadı")
       }
       setLoadingId(null)
     })

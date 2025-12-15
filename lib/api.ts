@@ -8,17 +8,24 @@ type FetchOptions = Omit<RequestInit, "headers"> & {
 
 export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const supabase = await createServerSupabaseClient();
+
+    // Use getUser() instead of getSession() for security
+    // getUser() validates the token server-side, getSession() only reads from cookie
     const {
-        data: { session },
-    } = await supabase.auth.getSession();
+        data: { user },
+    } = await supabase.auth.getUser();
 
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
         ...options.headers,
     };
 
-    if (session?.access_token) {
-        headers["Authorization"] = `Bearer ${session.access_token}`;
+    // Get session for access token after user is validated
+    if (user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+            headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
     }
 
     const response = await fetch(`${BASE_URL}${endpoint}`, {

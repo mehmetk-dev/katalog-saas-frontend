@@ -227,3 +227,157 @@
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* ========================================
+   React PageFlip Styles
+   ======================================== */
+
+/* Flipbook container */
+.stf__wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.stf__parent {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.stf__block {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Page styles */
+.page {
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  position: relative;
+}
+
+.page-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Cover page styles */
+.page-cover {
+  background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%);
+}
+
+.page-cover .page-content {
+  color: white;
+}
+
+/* Ensure all child content fits within page bounds */
+.page-content > * {
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* Page flip animation shadow */
+.stf__block.--active {
+  z-index: 10;
+}
+
+/* Hard page effect */
+[data-density="hard"] {
+  background-color: #fafafa;
+}
+
+/* Soft page effect */
+[data-density="soft"] {
+  background-color: white;
+}
+
+/* Fix for flipbook sizing */
+.flip-book-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Ensure aspect ratio maintained */
+.flipbook-wrapper {
+  width: 100%;
+  height: 0;
+  padding-bottom: 141.4%; /* A4 aspect ratio */
+  position: relative;
+}
+
+.flipbook-wrapper > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ========================================
+   Landing Page Animations
+   ======================================== */
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-10px); 
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce 3s infinite;
+}
+
+@keyframes text-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-text-gradient {
+  animation: text-gradient 3s ease infinite;
+}
+
+.bg-300\% {
+  background-size: 300%;
+}

@@ -1,101 +1,87 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
+
+export const metadata = {
+  title: "Gizlilik Politikası | CatalogPro",
+  description: "CatalogPro gizlilik politikası ve kişisel verilerin korunması.",
+}
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <Button variant="ghost" asChild className="mb-8">
-          <Link href="/">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Ana Sayfaya Dön
-          </Link>
-        </Button>
+    <div className="min-h-screen bg-slate-50">
+      <PublicHeader />
 
-        <h1 className="text-4xl font-bold mb-8">Gizlilik Politikası</h1>
-        <p className="text-muted-foreground mb-8">Son güncelleme: 4 Aralık 2025</p>
+      <main className="pt-32 pb-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-3">Gizlilik Politikası</h1>
+          <p className="text-slate-500 mb-12">Son güncelleme: 13 Aralık 2025</p>
 
-        <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8">
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">1. Giriş</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              CatalogPro ("biz", "bizim" veya "bize") gizliliğinizi korumaya kararlıdır. Bu Gizlilik Politikası,
-              hizmetimizi kullandığınızda bilgilerinizi nasıl topladığımızı, kullandığımızı, açıkladığımızı ve
-              koruduğumuzu açıklar.
-            </p>
-          </section>
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-10 space-y-10">
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">1. Toplanan Veriler</h2>
+              <p className="text-slate-600 leading-relaxed mb-4">
+                CatalogPro olarak, hizmetlerimizi sunabilmek için bazı kişisel verilerinizi topluyoruz.
+              </p>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex gap-3">
+                  <span className="text-violet-500">•</span>
+                  <span><strong>Hesap Bilgileri:</strong> Ad, soyad, e-posta adresi</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-violet-500">•</span>
+                  <span><strong>Kullanım Verileri:</strong> Platform kullanım istatistikleri</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-violet-500">•</span>
+                  <span><strong>İçerik:</strong> Yüklediğiniz ürün bilgileri ve görseller</span>
+                </li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">2. Topladığımız Bilgiler</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">
-              Bize doğrudan sağladığınız bilgileri topluyoruz:
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Hesap bilgileri (ad, e-posta adresi, şifre)</li>
-              <li>Profil bilgileri (şirket adı, sektör)</li>
-              <li>Oluşturduğunuz ürün ve katalog verileri</li>
-              <li>Ödeme bilgileri (Stripe aracılığıyla güvenli şekilde işlenir)</li>
-              <li>Bizimle iletişimleriniz</li>
-            </ul>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">2. Verilerin Kullanımı</h2>
+              <p className="text-slate-600 leading-relaxed mb-4">Topladığımız verileri şu amaçlarla kullanıyoruz:</p>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Hizmetlerimizi sunmak ve iyileştirmek</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Hesabınızın güvenliğini sağlamak</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Sizinle iletişim kurmak ve destek sağlamak</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Yasal yükümlülüklerimizi yerine getirmek</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">3. Bilgilerinizi Nasıl Kullanıyoruz</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">
-              Topladığımız bilgileri şu amaçlarla kullanıyoruz:
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Hizmetlerimizi sunmak, sürdürmek ve geliştirmek</li>
-              <li>İşlemleri gerçekleştirmek ve ilgili bilgileri göndermek</li>
-              <li>Teknik bildirimler ve destek mesajları göndermek</li>
-              <li>Yorumlarınıza, sorularınıza ve taleplerinize yanıt vermek</li>
-              <li>Eğilimleri, kullanımı ve aktiviteleri izlemek ve analiz etmek</li>
-            </ul>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">3. Veri Güvenliği</h2>
+              <p className="text-slate-600 leading-relaxed">
+                Verileriniz 256-bit SSL şifreleme ile korunur ve güvenli veri merkezlerinde saklanır.
+                Düzenli güvenlik denetimleri yaparak verilerinizin güvende kalmasını sağlıyoruz.
+              </p>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">4. Veri Güvenliği</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Kişisel bilgilerinizi korumak için uygun teknik ve organizasyonel güvenlik önlemleri uyguluyoruz. Tüm
-              veriler aktarım sırasında ve beklemede şifrelenir. Satır düzeyinde güvenlik politikaları ile güvenli veri
-              depolama için Supabase kullanıyoruz.
-            </p>
-          </section>
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">4. Haklarınız</h2>
+              <p className="text-slate-600 leading-relaxed mb-4">6698 sayılı KVKK kapsamında aşağıdaki haklara sahipsiniz:</p>
+              <ul className="space-y-2 text-slate-600">
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Verilerinizin işlenip işlenmediğini öğrenme</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Verilerinize erişim talep etme</li>
+                <li className="flex gap-3"><span className="text-violet-500">•</span>Düzeltme veya silme talep etme</li>
+              </ul>
+            </section>
 
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">5. Veri Saklama</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Kişisel bilgilerinizi hesabınız aktif olduğu sürece veya size hizmet vermek için gerekli olduğu sürece
-              saklıyoruz. Hesabınızı istediğiniz zaman silebilirsiniz, bu tüm verilerinizi sistemlerimizden
-              kaldıracaktır.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">6. Haklarınız</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">Şu haklara sahipsiniz:</p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Kişisel verilerinize erişim</li>
-              <li>Yanlış verileri düzeltme</li>
-              <li>Verilerinizi silme</li>
-              <li>Verilerinizi dışa aktarma</li>
-              <li>Onayı geri çekme</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">7. İletişim</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Bu Gizlilik Politikası hakkında sorularınız varsa, lütfen{" "}
-              <a href="mailto:gizlilik@catalogpro.com" className="text-primary hover:underline">
-                gizlilik@catalogpro.com
-              </a>{" "}
-              adresinden bizimle iletişime geçin.
-            </p>
-          </section>
+            <section className="pt-6 border-t border-slate-100">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">5. İletişim</h2>
+              <p className="text-slate-600 leading-relaxed">
+                Gizlilik ile ilgili sorularınız için{' '}
+                <a href="mailto:destek@catalogpro.app" className="text-violet-600 hover:underline">
+                  destek@catalogpro.app
+                </a>{' '}
+                adresinden bize ulaşabilirsiniz.
+              </p>
+            </section>
+          </div>
         </div>
-      </div>
+      </main>
+
+      <PublicFooter />
     </div>
   )
 }

@@ -40,10 +40,11 @@ export async function deleteUserAccount() {
   }
 }
 
-export async function incrementUserExports() {
+export async function incrementUserExports(catalogName?: string) {
   try {
     await apiFetch("/users/me/export", {
       method: "POST",
+      body: JSON.stringify({ catalogName }),
     })
     return { success: true }
   } catch (error: any) {
@@ -58,9 +59,48 @@ export async function upgradeUserToPro() {
   try {
     await apiFetch("/users/me/upgrade", {
       method: "POST",
+      body: JSON.stringify({ plan: "pro" }),
     })
     // Revalidate user profile paths
     revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function upgradeUserToPlus() {
+  try {
+    await apiFetch("/users/me/upgrade", {
+      method: "POST",
+      body: JSON.stringify({ plan: "plus" }),
+    })
+    // Revalidate user profile paths
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function upgradeUserToPlan(plan: "free" | "plus" | "pro") {
+  try {
+    await apiFetch("/users/me/upgrade", {
+      method: "POST",
+      body: JSON.stringify({ plan }),
+    })
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    return { error: error.message }
+  }
+}
+
+export async function sendWelcomeNotification() {
+  try {
+    await apiFetch("/users/me/welcome", {
+      method: "POST",
+    })
     return { success: true }
   } catch (error: any) {
     return { error: error.message }

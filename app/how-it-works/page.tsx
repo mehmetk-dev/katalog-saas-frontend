@@ -1,98 +1,79 @@
-"use client"
-
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { BookOpen, ArrowRight, CheckCircle2, Layout, Share2, Download } from "lucide-react"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
+import { ArrowRight, Layout, CheckCircle2, Share2 } from "lucide-react"
 
 export default function HowItWorksPage() {
     return (
-        <div className="min-h-screen bg-background">
-            {/* Header */}
-            <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="p-1.5 bg-primary rounded-lg">
-                            <BookOpen className="w-5 h-5 text-primary-foreground" />
-                        </div>
-                        <span className="font-bold text-xl">CatalogPro</span>
-                    </Link>
-                    <div className="flex items-center gap-6">
-                        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-                            <Link href="/" className="hover:text-foreground transition-colors">Ana Sayfa</Link>
-                            <Link href="/how-it-works" className="text-foreground">Nasıl Çalışır</Link>
-                            <Link href="/pricing" className="hover:text-foreground transition-colors">Fiyatlandırma</Link>
-                        </nav>
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" asChild>
-                                <Link href="/auth">Giriş Yap</Link>
-                            </Button>
-                            <Button size="sm" asChild>
-                                <Link href="/auth">Başla</Link>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen bg-slate-50">
+            <PublicHeader />
 
             <main className="pt-32 pb-20">
-                <div className="container mx-auto px-4">
+                <div className="max-w-6xl mx-auto px-6">
                     <div className="text-center max-w-3xl mx-auto mb-16">
-                        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
+                        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 text-slate-900">
                             Dakikalar İçinde Profesyonel Kataloglar
                         </h1>
-                        <p className="text-xl text-muted-foreground">
-                            CatalogPro ile ürünlerinizi ekleyin, şablon seçin ve anında paylaşın. Karmaşık tasarım araçlarına gerek yok.
+                        <p className="text-xl text-slate-500">
+                            CatalogPro ile ürünlerinizi ekleyin, şablon seçin ve anında paylaşın.
                         </p>
                     </div>
 
-                    <div className="grid gap-12 lg:grid-cols-3 max-w-6xl mx-auto">
+                    <div className="grid gap-8 lg:grid-cols-3 max-w-5xl mx-auto">
                         {/* Step 1 */}
-                        <div className="flex flex-col items-center text-center space-y-4">
-                            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-4 rotate-3 transform hover:rotate-6 transition-transform">
-                                <Layout className="w-8 h-8" />
+                        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center mb-6">
+                                <Layout className="w-6 h-6 text-violet-600" />
                             </div>
-                            <h3 className="text-xl font-bold">1. Ürünlerini Ekle</h3>
-                            <p className="text-muted-foreground">
-                                Manuel olarak ürünlerinizi girin veya Excel'den toplu olarak içe aktarın. Fotoğraf, fiyat ve açıklamaları düzenleyin.
+                            <div className="text-sm font-medium text-violet-600 mb-2">Adım 1</div>
+                            <h3 className="text-xl font-bold mb-3 text-slate-900">Ürünlerini Ekle</h3>
+                            <p className="text-slate-500">
+                                Manuel olarak ürünlerinizi girin veya Excel'den toplu olarak içe aktarın.
                             </p>
                         </div>
 
                         {/* Step 2 */}
-                        <div className="flex flex-col items-center text-center space-y-4">
-                            <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 mb-4 -rotate-3 transform hover:-rotate-6 transition-transform">
-                                <CheckCircle2 className="w-8 h-8" />
+                        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-fuchsia-100 flex items-center justify-center mb-6">
+                                <CheckCircle2 className="w-6 h-6 text-fuchsia-600" />
                             </div>
-                            <h3 className="text-xl font-bold">2. Şablonunu Seç</h3>
-                            <p className="text-muted-foreground">
-                                Sektörüne uygun profesyonel şablonlardan birini seç. Renkleri ve yazı tiplerini markana göre özelleştir.
+                            <div className="text-sm font-medium text-fuchsia-600 mb-2">Adım 2</div>
+                            <h3 className="text-xl font-bold mb-3 text-slate-900">Şablonunu Seç</h3>
+                            <p className="text-slate-500">
+                                16+ profesyonel şablondan birini seç ve markanıza göre özelleştir.
                             </p>
                         </div>
 
                         {/* Step 3 */}
-                        <div className="flex flex-col items-center text-center space-y-4">
-                            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center text-amber-600 mb-4 rotate-3 transform hover:rotate-6 transition-transform">
-                                <Share2 className="w-8 h-8" />
+                        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mb-6">
+                                <Share2 className="w-6 h-6 text-emerald-600" />
                             </div>
-                            <h3 className="text-xl font-bold">3. İndir ve Paylaş</h3>
-                            <p className="text-muted-foreground">
-                                Kataloğunu PDF olarak indir veya online link ile müşterilerinle paylaş. QR kod oluşturarak erişimi kolaylaştır.
+                            <div className="text-sm font-medium text-emerald-600 mb-2">Adım 3</div>
+                            <h3 className="text-xl font-bold mb-3 text-slate-900">Paylaş</h3>
+                            <p className="text-slate-500">
+                                PDF olarak indir veya online link ile paylaş. QR kod oluştur.
                             </p>
                         </div>
                     </div>
 
                     <div className="mt-20 text-center">
-                        <div className="inline-flex flex-col items-center p-8 bg-muted/50 rounded-3xl border border-muted">
-                            <h3 className="text-2xl font-bold mb-4">Hemen Başlamaya Hazır mısın?</h3>
-                            <p className="mb-6 text-muted-foreground">Kredi kartı gerekmeden ücretsiz hesabını oluştur.</p>
-                            <Button size="lg" asChild className="px-8">
-                                <Link href="/auth">
-                                    Ücretsiz Dene <ArrowRight className="w-4 h-4 ml-2" />
-                                </Link>
-                            </Button>
+                        <div className="bg-white rounded-2xl border border-slate-200 p-10 max-w-xl mx-auto">
+                            <h3 className="text-2xl font-bold mb-4 text-slate-900">Hemen Başlayın</h3>
+                            <p className="mb-8 text-slate-500">İlk kataloğunuzu dakikalar içinde oluşturun.</p>
+                            <Link href="/auth?tab=signup">
+                                <Button size="lg" className="bg-violet-600 hover:bg-violet-700 h-11 px-8">
+                                    Ücretsiz Hesap Oluştur
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
             </main>
+
+            <PublicFooter />
         </div>
     )
 }

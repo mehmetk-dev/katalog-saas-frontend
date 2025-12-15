@@ -16,6 +16,9 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
+        // DEBUG: Log authenticated user
+        console.log(`🔐 Auth: ${user.email} (${user.id})`);
+
         // Attach user to request object
         (req as any).user = user;
         next();

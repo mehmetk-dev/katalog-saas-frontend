@@ -12,6 +12,7 @@ export interface User {
   email: string
   company: string
   avatar_url?: string
+  logo_url?: string
   plan: UserPlan
   industry?: string
   exportsUsed: number
@@ -97,6 +98,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         name: profile?.full_name || authUser.user_metadata?.full_name || "Kullanıcı",
         company: profile?.company || "",
         avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
+        logo_url: profile?.logo_url || null,
         plan: plan as UserPlan,
         productsCount: productsCount || 0,
         catalogsCount: catalogsCount || 0,

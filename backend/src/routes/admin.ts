@@ -1,7 +1,31 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { supabase } from '../services/supabase';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+
+// Admin email from environment
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+
+// Admin authorization middleware - must be used after requireAuth
+const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    const userEmail = (req as any).user?.email;
+
+    if (!ADMIN_EMAIL) {
+        console.error('ADMIN_EMAIL environment variable is not set');
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    if (userEmail !== ADMIN_EMAIL) {
+        return res.status(403).json({ error: 'Forbidden: Admin access required' });
+    }
+
+    next();
+};
+
+// Apply authentication and admin authorization to all routes
+router.use(requireAuth);
+router.use(requireAdmin);
 
 // GET /admin/users - Tüm kullanıcıları getir
 router.get('/users', async (req, res) => {
