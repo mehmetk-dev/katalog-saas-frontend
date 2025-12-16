@@ -1,0 +1,8 @@
+# Bu klasörleri Docker'a gönderme, yük olmasın!
+node_modules
+.next
+.git
+.vscode
+build
+dist
+README.md
