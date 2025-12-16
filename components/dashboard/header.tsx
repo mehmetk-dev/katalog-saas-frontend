@@ -45,7 +45,7 @@ export function DashboardHeader() {
               {user?.name?.charAt(0) ?? "K"}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium hidden sm:inline-block">{user?.name ?? "Kullanıcı"}</span>
+          <span className="text-sm font-medium hidden sm:inline-block">{user?.name ?? t("common.user")}</span>
           <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
         </Button>
       </DropdownMenuTrigger>
@@ -107,10 +107,10 @@ export function DashboardHeader() {
             </TooltipTrigger>
             <TooltipContent side="bottom">
               {isMobile
-                ? "Menüyü Aç"
+                ? t("sidebar.openMenu")
                 : isCollapsed
-                  ? "Menüyü Genişlet"
-                  : "Menüyü Daralt"
+                  ? t("sidebar.expandMenu")
+                  : t("sidebar.collapseMenu")
               }
             </TooltipContent>
           </Tooltip>
@@ -122,7 +122,7 @@ export function DashboardHeader() {
             <Link href="/dashboard/builder">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t("dashboard.createCatalog")}</span>
-              <span className="sm:hidden">Yeni</span>
+              <span className="sm:hidden">{t("common.new")}</span>
             </Link>
           </Button>
 

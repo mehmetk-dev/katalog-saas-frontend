@@ -54,9 +54,11 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
+import { UpgradeModal } from '@/components/builder/upgrade-modal'
+import { useTranslation } from '@/lib/i18n-provider'
 
 interface ImportExportModalProps {
     onImport: (products: any[]) => Promise<void>
@@ -70,15 +72,8 @@ interface ImportExportModalProps {
 }
 
 // Sistem alanları
-const SYSTEM_FIELDS = [
-    { key: 'name', label: 'Ürün Adı', required: true },
-    { key: 'sku', label: 'SKU (Stok Kodu)', required: false },
-    { key: 'description', label: 'Açıklama', required: false },
-    { key: 'price', label: 'Fiyat', required: true },
-    { key: 'stock', label: 'Stok', required: false },
-    { key: 'category', label: 'Kategori', required: false },
-    { key: 'image_url', label: 'Görsel URL', required: false },
-] as const
+const SYSTEM_FIELDS_KEYS = ['name', 'sku', 'description', 'price', 'stock', 'category', 'image_url'] as const
+
 
 // Otomatik eşleme için header aliases
 const HEADER_ALIASES: Record<string, string> = {
@@ -153,6 +148,7 @@ export function ImportExportModal({
     const open = controlledOpen !== undefined ? controlledOpen : internalOpen
     const [importStatus, setImportStatus] = useState<MappingStatus>('idle')
     const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
     // Mapping state
     const [csvHeaders, setCsvHeaders] = useState<string[]>([])
@@ -161,20 +157,21 @@ export function ImportExportModal({
 
     const canImport = userPlan === 'plus' || userPlan === 'pro'
     const isFreeUser = userPlan === 'free'
+    const { t } = useTranslation()
 
     // CSV şablonunu indir
     const downloadTemplate = () => {
         const headers = [
-            'Ad*',
-            'SKU',
-            'Açıklama',
-            'Fiyat*',
-            'Stok',
-            'Kategori',
-            'Görsel URL',
-            'Ağırlık',
-            'Renk',
-            'Malzeme'
+            t('importExport.systemFields.name') + '*',
+            t('importExport.systemFields.sku'),
+            t('importExport.systemFields.description'),
+            t('importExport.systemFields.price') + '*',
+            t('importExport.systemFields.stock'),
+            t('importExport.systemFields.category'),
+            t('importExport.systemFields.imageUrl'),
+            t('products.attributeNames.weight'),
+            t('products.attributeNames.color'),
+            t('products.attributeNames.material')
         ]
 
         const sampleData = [
@@ -242,7 +239,7 @@ export function ImportExportModal({
         link.download = 'urun-import-sablonu.csv'
         link.click()
         URL.revokeObjectURL(url)
-        toast.success('Örnek şablon indirildi')
+        toast.success(t('toasts.templateDownloaded'))
     }
 
     // CSV satırını parse et (virgül, noktalı virgül, tab desteği)
@@ -309,7 +306,7 @@ export function ImportExportModal({
                     const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 })
 
                     if (jsonData.length < 2) {
-                        reject(new Error('Dosyada yeterli veri bulunamadı'))
+                        reject(new Error(t('toasts.noValidData')))
                         return
                     }
 
@@ -331,7 +328,7 @@ export function ImportExportModal({
                 }
             }
 
-            reader.onerror = () => reject(new Error('Dosya okunamadı'))
+            reader.onerror = () => reject(new Error(t('toasts.errorOccurred')))
             reader.readAsArrayBuffer(file)
         })
     }
@@ -347,7 +344,7 @@ export function ImportExportModal({
                     const lines = text.split('\n').filter(line => line.trim())
 
                     if (lines.length < 2) {
-                        reject(new Error('Dosyada yeterli veri bulunamadı'))
+                        reject(new Error(t('toasts.noValidData')))
                         return
                     }
 
@@ -367,7 +364,7 @@ export function ImportExportModal({
                 }
             }
 
-            reader.onerror = () => reject(new Error('Dosya okunamadı'))
+            reader.onerror = () => reject(new Error(t('toasts.errorOccurred')))
             reader.readAsText(file, 'UTF-8')
         })
     }
@@ -390,7 +387,7 @@ export function ImportExportModal({
             file.name.endsWith('.csv')
 
         if (!isExcelFile && !isCSVFile) {
-            toast.error('Lütfen CSV veya Excel dosyası yükleyin (.csv, .xlsx, .xls)')
+            toast.error(t('toasts.invalidFileFormat'))
             e.target.value = ''
             return
         }
@@ -399,7 +396,7 @@ export function ImportExportModal({
             let result: { headers: string[]; data: string[][] }
 
             if (isExcelFile) {
-                toast.info('Excel dosyası okunuyor...', { duration: 2000 })
+                toast.info(t('toasts.readingExcel'), { duration: 2000 })
                 result = await parseExcelFile(file)
             } else {
                 result = await parseCSVFile(file)
@@ -408,7 +405,7 @@ export function ImportExportModal({
             const { headers, data } = result
 
             if (data.length === 0) {
-                toast.error('Dosyada geçerli veri bulunamadı')
+                toast.error(t('toasts.noValidData'))
                 e.target.value = ''
                 return
             }
@@ -423,11 +420,11 @@ export function ImportExportModal({
 
             // Mapping ekranına geç
             setImportStatus('mapping')
-            toast.success(`${data.length} satır bulundu. Kolon eşlemesini yapın.`)
+            toast.success(t('importExport.rowsFound', { count: data.length }))
 
         } catch (error) {
             console.error('File parse error:', error)
-            toast.error(error instanceof Error ? error.message : 'Dosya işlenirken hata oluştu')
+            toast.error(error instanceof Error ? error.message : t('toasts.processingError'))
         }
 
         e.target.value = ''
@@ -472,6 +469,18 @@ export function ImportExportModal({
         })
     }
 
+    // Hücre düzenleme
+    const handleCellEdit = (rowIndex: number, colIndex: number, value: string) => {
+        const newData = [...csvData]
+        newData[rowIndex][colIndex] = value
+        setCsvData(newData)
+    }
+
+    const SYSTEM_FIELDS = SYSTEM_FIELDS_KEYS.map(key => ({
+        id: key,
+        label: t(`importExport.systemFields.${key === 'image_url' ? 'imageUrl' : key}` as any) + (key === 'name' || key === 'price' ? ' *' : '')
+    }))
+
     // İmport işlemini gerçekleştir
     const executeImport = async () => {
         // Zorunlu alanların kontrolü
@@ -479,11 +488,11 @@ export function ImportExportModal({
         const priceMapped = columnMappings.some(m => m.systemField === 'price')
 
         if (!nameMapped) {
-            toast.error('Ürün Adı alanını eşlemeniz zorunludur')
+            toast.error(t('toasts.nameFieldRequired'))
             return
         }
         if (!priceMapped) {
-            toast.error('Fiyat alanını eşlemeniz zorunludur')
+            toast.error(t('toasts.priceFieldRequired'))
             return
         }
 
@@ -564,7 +573,7 @@ export function ImportExportModal({
 
             if (products.length === 0) {
                 setImportStatus('error')
-                toast.error('Geçerli ürün bulunamadı')
+                toast.error(t('toasts.noValidProducts'))
                 return
             }
 
@@ -572,7 +581,7 @@ export function ImportExportModal({
 
             setImportStatus('success')
             setImportResult({ success: products.length, failed: 0 })
-            toast.success(`${products.length} ürün başarıyla içe aktarıldı!`)
+            toast.success(t('importExport.productsImported', { count: products.length }))
 
             // 2 saniye sonra modal'ı kapat
             setTimeout(() => {
@@ -581,7 +590,7 @@ export function ImportExportModal({
 
         } catch (error) {
             setImportStatus('error')
-            toast.error('Ürünler içe aktarılamadı')
+            toast.error(t('toasts.importFailed'))
         }
     }
 
@@ -608,427 +617,412 @@ export function ImportExportModal({
     }, [columnMappings])
 
     return (
-        <Dialog open={open} onOpenChange={(value) => {
-            if (!value) resetState();
-            else {
-                if (onOpenChange) onOpenChange(true)
-                else setInternalOpen(true)
-            }
-        }}>
-            {!hideTrigger && (
-                <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2" size="sm">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        <span className="hidden sm:inline">İçe/Dışa Aktar</span>
-                        <span className="sm:hidden">CSV</span>
-                    </Button>
-                </DialogTrigger>
-            )}
-            <DialogContent className={cn(
-                "sm:max-w-[600px] max-h-[90vh] overflow-y-auto",
-                importStatus === 'mapping' && "sm:max-w-[800px]"
-            )}>
-                <DialogHeader>
-                    <DialogTitle>
-                        {importStatus === 'mapping' ? 'Kolon Eşleme' : 'Ürün İçe/Dışa Aktarma'}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {importStatus === 'mapping'
-                            ? 'Dosyadaki kolonları sistem alanlarına eşleyin.'
-                            : 'CSV dosyası ile toplu ürün ekleyin veya mevcut ürünlerinizi dışa aktarın.'
-                        }
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={(value) => {
+                if (!value) resetState();
+                else {
+                    if (onOpenChange) onOpenChange(true)
+                    else setInternalOpen(true)
+                }
+            }}>
+                {!hideTrigger && (
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="gap-2" size="sm">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            <span className="hidden sm:inline">{t("importExport.title")}</span>
+                            <span className="sm:hidden">CSV</span>
+                        </Button>
+                    </DialogTrigger>
+                )}
+                <DialogContent className={cn(
+                    "sm:max-w-[600px] max-h-[90vh] overflow-y-auto",
+                    importStatus === 'mapping' && "sm:max-w-[800px]"
+                )}>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {importStatus === 'mapping' ? t("importExport.columnMapping") : t("importExport.title")}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {importStatus === 'mapping'
+                                ? t("importExport.mappingDesc") || 'Map file columns to system fields.'
+                                : t("importExport.mainDesc") || 'Add products in bulk with CSV or export your existing products.'
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
 
-                {importStatus === 'mapping' ? (
-                    // KOLON EŞLEME EKRANI - Modern Tasarım
-                    <div className="space-y-5">
-                        {/* Gradient Header */}
-                        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-4">
-                            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,white)]" />
-                            <div className="relative flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm">
-                                        <Columns3 className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-white text-lg">Kolon Eşleme</h3>
-                                        <p className="text-white/80 text-sm">{csvData.length} satır içe aktarılacak</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
-                                        <Database className="w-3.5 h-3.5 text-white" />
-                                        <span className="text-white text-sm font-medium">{mappingSummary.mapped}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
-                                        <Sparkles className="w-3.5 h-3.5 text-white" />
-                                        <span className="text-white text-sm font-medium">{mappingSummary.custom}</span>
-                                    </div>
-                                    {mappingSummary.skipped > 0 && (
-                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm">
-                                            <Unlink2 className="w-3.5 h-3.5 text-white/70" />
-                                            <span className="text-white/70 text-sm font-medium">{mappingSummary.skipped}</span>
+                    {importStatus === 'mapping' ? (
+                        // KOLON EŞLEME EKRANI - Modern Tasarım
+                        <div className="space-y-5">
+                            {/* Gradient Header */}
+                            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-4">
+                                <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,white)]" />
+                                <div className="relative flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm">
+                                            <Columns3 className="w-6 h-6 text-white" />
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Free kullanıcı uyarısı */}
-                        {isFreeUser && (
-                            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
-                                <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/50">
-                                    <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                                        Ücretsiz Plan Kısıtlaması
-                                    </p>
-                                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                                        Kategori alanı ücretsiz planda desteklenmez. Kategorilerinizi içe aktarmak için Plus veya Pro'ya yükseltin.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Eşleme Kartları - Kompakt */}
-                        <ScrollArea className="h-[300px] pr-2">
-                            <div className="space-y-2">
-                                {csvHeaders.map((header, index) => {
-                                    const mapping = columnMappings[index]
-                                    const sampleValue = csvData[0]?.[index] || ''
-                                    const isMapped = mapping?.systemField && mapping.systemField !== 'skip' && mapping.systemField !== null
-                                    const isCustom = mapping?.systemField === null
-                                    const isSkipped = mapping?.systemField === 'skip'
-
-                                    return (
-                                        <div
-                                            key={index}
-                                            className={cn(
-                                                "relative rounded-lg border p-2 transition-all",
-                                                isMapped && "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
-                                                isCustom && "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800",
-                                                isSkipped && "bg-gray-50 border-gray-200 opacity-60 dark:bg-gray-950/30 dark:border-gray-700",
-                                                !isMapped && !isCustom && !isSkipped && "bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-700"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {/* Sol: Kolon Adı ve Önizleme */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-medium text-sm truncate">{header}</span>
-                                                        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-                                                            ({sampleValue || 'boş'})
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Ok */}
-                                                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-
-                                                {/* Sağ: Hedef Seçimi */}
-                                                <div className="shrink-0 w-[160px]">
-                                                    <Select
-                                                        value={
-                                                            mapping?.systemField === null ? 'custom' :
-                                                                mapping?.systemField === 'skip' ? 'skip' :
-                                                                    mapping?.systemField || 'custom'
-                                                        }
-                                                        onValueChange={(value) => handleMappingChange(index, value)}
-                                                    >
-                                                        <SelectTrigger className="h-8 text-xs">
-                                                            <SelectValue placeholder="Eşle..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="skip">
-                                                                <span className="text-gray-500">Atla</span>
-                                                            </SelectItem>
-                                                            <SelectItem value="custom">
-                                                                <span className="text-violet-600">Özel Özellik</span>
-                                                            </SelectItem>
-                                                            <div className="border-t my-1" />
-                                                            {SYSTEM_FIELDS.map(field => {
-                                                                const isUsed = columnMappings.some(
-                                                                    (m, i) => i !== index && m.systemField === field.key
-                                                                )
-                                                                const isCategoryDisabled = field.key === 'category' && isFreeUser
-                                                                return (
-                                                                    <SelectItem
-                                                                        key={field.key}
-                                                                        value={field.key}
-                                                                        disabled={isUsed || isCategoryDisabled}
-                                                                    >
-                                                                        <span className="flex items-center gap-1">
-                                                                            {field.label}
-                                                                            {field.required && (
-                                                                                <Badge variant="destructive" className="text-[8px] h-3 px-1">*</Badge>
-                                                                            )}
-                                                                        </span>
-                                                                    </SelectItem>
-                                                                )
-                                                            })}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </ScrollArea>
-
-                        {/* Alt Aksiyonlar */}
-                        <div className="flex items-center justify-between pt-4 border-t">
-                            <Button variant="ghost" onClick={resetState} className="text-muted-foreground hover:text-foreground">
-                                <X className="w-4 h-4 mr-2" />
-                                İptal
-                            </Button>
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                                    <FileSpreadsheet className="w-4 h-4" />
-                                    <span className="font-medium">{csvData.length}</span>
-                                    <span>ürün hazır</span>
-                                </div>
-                                <Button
-                                    onClick={executeImport}
-                                    className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
-                                >
-                                    <Upload className="w-4 h-4" />
-                                    İçe Aktar
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    // NORMAL EKRAN (Tabs)
-                    <Tabs defaultValue="import" className="mt-4">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="import" className="gap-2">
-                                <Upload className="h-4 w-4" />
-                                İçe Aktar
-                            </TabsTrigger>
-                            <TabsTrigger value="export" className="gap-2">
-                                <Download className="h-4 w-4" />
-                                Dışa Aktar
-                            </TabsTrigger>
-                        </TabsList>
-
-                        {/* İÇE AKTARMA */}
-                        <TabsContent value="import" className="space-y-4 mt-4">
-                            {/* Free kullanıcılar için Pro badge */}
-                            {!canImport && importStatus === 'idle' && (
-                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-6 text-center">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                        <Crown className="h-8 w-8 text-white" />
-                                    </div>
-                                    <h3 className="font-semibold text-lg text-amber-900 dark:text-amber-100">
-                                        Toplu İçe Aktarma - Pro Özellik
-                                    </h3>
-                                    <p className="text-amber-700 dark:text-amber-300 mt-2 max-w-sm mx-auto">
-                                        CSV ile toplu ürün import etme özelliği Plus ve Pro planlara özeldir.
-                                    </p>
-                                    <div className="flex items-center justify-center gap-2 mt-4">
-                                        <a href="/pricing">
-                                            <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0">
-                                                <Crown className="h-4 w-4 mr-2" />
-                                                Planı Yükselt
-                                            </Button>
-                                        </a>
-                                    </div>
-                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
-                                        Şablonu indirebilir, tek tek ürün ekleyebilirsiniz.
-                                    </p>
-                                </div>
-                            )}
-
-                            {canImport && importStatus === 'idle' && (
-                                <>
-                                    {/* Şablon İndir */}
-                                    <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-lg p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-violet-100 dark:bg-violet-900 rounded-lg">
-                                                <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-medium text-violet-900 dark:text-violet-100">
-                                                    1. Örnek Şablonu İndirin
-                                                </h4>
-                                                <p className="text-sm text-violet-700 dark:text-violet-300 mt-1">
-                                                    Doğru format için örnek şablonu indirin. İçinde 10 örnek ürün bulunmaktadır.
-                                                </p>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="mt-3 border-violet-300"
-                                                    onClick={downloadTemplate}
-                                                >
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    Şablonu İndir (.csv)
-                                                </Button>
-                                            </div>
+                                        <div>
+                                            <h3 className="font-semibold text-white text-lg">{t("importExport.columnMapping")}</h3>
+                                            <p className="text-white/80 text-sm">{csvData.length} {t("importExport.rowsToImport")}</p>
                                         </div>
                                     </div>
-
-                                    {/* Dosya Yükle */}
-                                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                                        <input
-                                            type="file"
-                                            accept=".csv,.xlsx,.xls"
-                                            onChange={handleFileUpload}
-                                            className="hidden"
-                                            id="file-upload"
-                                        />
-                                        <label
-                                            htmlFor="file-upload"
-                                            className="cursor-pointer"
-                                        >
-                                            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                                            <p className="font-medium">2. CSV Dosyanızı Yükleyin</p>
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                Sürükle & bırak veya tıklayarak seçin
-                                            </p>
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                                Desteklenen formatlar: CSV, Excel (.xlsx, .xls)
-                                            </p>
-                                        </label>
-                                    </div>
-
-                                    {/* İpuçları */}
-                                    <div className="bg-muted/50 rounded-lg p-4">
-                                        <h4 className="font-medium mb-2 flex items-center gap-2">
-                                            <HelpCircle className="h-4 w-4" />
-                                            İpuçları
-                                        </h4>
-                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                            <li>• Dosya yüklendikten sonra <strong>kolon eşleme</strong> yapabilirsiniz</li>
-                                            <li>• <strong>Ad</strong> ve <strong>Fiyat</strong> alanları zorunludur</li>
-                                            <li>• Eşlenmeyen kolonlar otomatik "Özel Özellik" olarak eklenir</li>
-                                            <li>• Türkçe karakterler ve farklı kolon isimleri desteklenir</li>
-                                        </ul>
-                                    </div>
-                                </>
-                            )}
-
-                            {importStatus === 'loading' && (
-                                <div className="py-12 text-center">
-                                    <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
-                                    <p className="font-medium">Ürünler içe aktarılıyor...</p>
-                                    <p className="text-sm text-muted-foreground">Lütfen bekleyin</p>
-                                </div>
-                            )}
-
-                            {importStatus === 'success' && importResult && (
-                                <div className="py-12 text-center">
-                                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <CheckCircle2 className="h-8 w-8 text-green-600" />
-                                    </div>
-                                    <p className="font-medium text-lg">İçe Aktarma Başarılı!</p>
-                                    <p className="text-muted-foreground mt-1">
-                                        {importResult.success} ürün başarıyla eklendi
-                                    </p>
-                                </div>
-                            )}
-
-                            {importStatus === 'error' && (
-                                <div className="py-12 text-center">
-                                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <AlertCircle className="h-8 w-8 text-red-600" />
-                                    </div>
-                                    <p className="font-medium text-lg">İçe Aktarma Başarısız</p>
-                                    <p className="text-muted-foreground mt-1">
-                                        Dosyanızı kontrol edip tekrar deneyin
-                                    </p>
-                                    <Button
-                                        variant="outline"
-                                        className="mt-4"
-                                        onClick={() => setImportStatus('idle')}
-                                    >
-                                        Tekrar Dene
-                                    </Button>
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        {/* DIŞA AKTARMA */}
-                        <TabsContent value="export" className="space-y-4 mt-4">
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-green-100 dark:bg-green-900 rounded-xl">
-                                        <FileSpreadsheet className="h-8 w-8 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-lg text-green-900 dark:text-green-100">
-                                            Tüm Ürünleri Dışa Aktar
-                                        </h3>
-                                        <p className="text-green-700 dark:text-green-300 mt-1">
-                                            {productCount > 0
-                                                ? `${productCount} ürününüz CSV formatında indirilecek`
-                                                : 'Henüz dışa aktarılacak ürün yok'
-                                            }
-                                        </p>
-
-                                        {productCount > 0 && (
-                                            <div className="mt-4 space-y-2">
-                                                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-                                                    <CheckCircle2 className="h-4 w-4" />
-                                                    Ad, SKU, Açıklama, Fiyat, Stok, Kategori
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-                                                    <CheckCircle2 className="h-4 w-4" />
-                                                    Görsel URL'leri dahil
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-                                                    <CheckCircle2 className="h-4 w-4" />
-                                                    <strong>Özel özellikler dahil</strong> (Renk, Ağırlık, Malzeme vb.)
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-                                                    <CheckCircle2 className="h-4 w-4" />
-                                                    Excel ve Google Sheets uyumlu
-                                                </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
+                                            <Database className="w-3.5 h-3.5 text-white" />
+                                            <span className="text-white text-sm font-medium">{mappingSummary.mapped}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
+                                            <Sparkles className="w-3.5 h-3.5 text-white" />
+                                            <span className="text-white text-sm font-medium">{mappingSummary.custom}</span>
+                                        </div>
+                                        {mappingSummary.skipped > 0 && (
+                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm">
+                                                <Unlink2 className="w-3.5 h-3.5 text-white/70" />
+                                                <span className="text-white/70 text-sm font-medium">{mappingSummary.skipped}</span>
                                             </div>
                                         )}
-
-                                        <Button
-                                            className="mt-4 bg-green-600 hover:bg-green-700"
-                                            onClick={() => {
-                                                onExport()
-                                                if (onOpenChange) {
-                                                    onOpenChange(false)
-                                                } else {
-                                                    setInternalOpen(false)
-                                                }
-                                            }}
-                                            disabled={productCount === 0 || isLoading}
-                                        >
-                                            {isLoading ? (
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            ) : (
-                                                <Download className="h-4 w-4 mr-2" />
-                                            )}
-                                            CSV Olarak İndir
-                                        </Button>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Export Bilgi */}
-                            <div className="bg-muted/50 rounded-lg p-4">
-                                <h4 className="font-medium mb-2 flex items-center gap-2">
-                                    <HelpCircle className="h-4 w-4" />
-                                    Dışa Aktarma Hakkında
-                                </h4>
-                                <ul className="text-sm text-muted-foreground space-y-1">
-                                    <li>• Dosya UTF-8 formatında kaydedilir</li>
-                                    <li>• Türkçe karakterler korunur</li>
-                                    <li>• Excel'de açmak için "UTF-8" encoding seçin</li>
-                                    <li>• Google Sheets'te doğrudan açabilirsiniz</li>
-                                </ul>
+                            {/* Free kullanıcı uyarısı */}
+                            {isFreeUser && (
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                                    <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/50">
+                                        <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                            {t("importExport.freePlanLimit")}
+                                        </p>
+                                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                                            {t("importExport.freePlanLimitDesc")}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Eşleme ve Düzenleme Tablosu */}
+                            <div className="border rounded-lg overflow-hidden flex-1 min-h-[400px] flex flex-col">
+                                <div className="overflow-auto flex-1">
+                                    <table className="w-full text-sm text-left border-collapse">
+                                        <thead className="bg-muted/50 text-muted-foreground font-medium sticky top-0 z-10 shadow-sm">
+                                            <tr>
+                                                <th className="px-2 py-3 w-[50px] text-center bg-muted/50 text-xs">#</th>
+                                                {csvData[0]?.map((header, index) => (
+                                                    <th key={index} className="px-4 py-3 min-w-[200px] bg-muted/50 border-b">
+                                                        <div className="space-y-2">
+                                                            <div className="font-semibold text-foreground flex items-center gap-2">
+                                                                <span className="truncate">{header}</span>
+                                                                <Badge variant="secondary" className="text-[10px] h-4 px-1">{index + 1}</Badge>
+                                                            </div>
+                                                            <Select
+                                                                value={columnMappings[index]?.systemField === null ? 'custom_attribute' : (columnMappings[index]?.systemField || 'ignore')}
+                                                                onValueChange={(val) => handleMappingChange(index, val === 'custom_attribute' ? 'custom' : val === 'ignore' ? 'skip' : val)}
+                                                            >
+                                                                <SelectTrigger className="h-8 text-xs bg-background border-input/80">
+                                                                    <SelectValue placeholder="Seçiniz" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="ignore" className="text-muted-foreground italic">{t("importExport.ignore")}</SelectItem>
+                                                                    {SYSTEM_FIELDS.map(f => (
+                                                                        <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                                                                    ))}
+                                                                    <SelectItem value="custom_attribute" className="text-violet-600 font-medium">+ {t("importExport.customAttribute")}</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            {columnMappings[index]?.systemField === null && (
+                                                                <Input
+                                                                    placeholder={t("importExport.attributeName")}
+                                                                    value={columnMappings[index]?.customName || ''}
+                                                                    onChange={(e) => handleCustomNameChange(index, e.target.value)}
+                                                                    className="h-7 text-xs mt-1.5 bg-yellow-50 border-yellow-200 focus:border-yellow-400 focus:ring-yellow-400/20"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {csvData.slice(1).map((row, rowIndex) => (
+                                                <tr key={rowIndex} className="group hover:bg-muted/30 transition-colors">
+                                                    <td className="px-2 py-2 text-center text-xs text-muted-foreground bg-muted/10">{rowIndex + 1}</td>
+                                                    {row.map((cell, cellIndex) => (
+                                                        <td key={cellIndex} className="p-0 border-r last:border-r-0 relative">
+                                                            <Input
+                                                                value={cell}
+                                                                onChange={(e) => handleCellEdit(rowIndex + 1, cellIndex, e.target.value)}
+                                                                className="h-9 w-full border-0 rounded-none bg-transparent hover:bg-muted/50 focus:bg-background focus:ring-1 focus:ring-inset focus:ring-violet-500 text-xs px-3"
+                                                            />
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="bg-muted/30 px-4 py-2 text-xs text-muted-foreground text-center border-t shrink-0">
+                                    <span className="opacity-70 italic">
+                                        * {t("importExport.editHint") || "Tablodaki hücrelere tıklayarak verileri düzenleyebilirsiniz."}
+                                    </span>
+                                </div>
                             </div>
-                        </TabsContent>
-                    </Tabs>
-                )}
-            </DialogContent>
-        </Dialog>
+
+                            {/* Alt Aksiyonlar */}
+                            <div className="flex items-center justify-between pt-4 border-t">
+                                <Button variant="ghost" onClick={resetState} className="text-muted-foreground hover:text-foreground">
+                                    <X className="w-4 h-4 mr-2" />
+                                    {t("common.cancel")}
+                                </Button>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+                                        <FileSpreadsheet className="w-4 h-4" />
+                                        <span className="font-medium">{csvData.length}</span>
+                                        <span>{t("importExport.rowsToImport")}</span>
+                                    </div>
+                                    <Button
+                                        onClick={executeImport}
+                                        className="gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
+                                    >
+                                        <Upload className="w-4 h-4" />
+                                        {t("importExport.import")}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        // NORMAL EKRAN (Tabs)
+                        <Tabs defaultValue="import" className="mt-4">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="import" className="gap-2">
+                                    <Upload className="h-4 w-4" />
+                                    {t("importExport.import")}
+                                </TabsTrigger>
+                                <TabsTrigger value="export" className="gap-2">
+                                    <Download className="h-4 w-4" />
+                                    {t("importExport.export")}
+                                </TabsTrigger>
+                            </TabsList>
+
+                            {/* İÇE AKTARMA */}
+                            <TabsContent value="import" className="space-y-4 mt-4">
+                                {/* Free kullanıcılar için Pro badge */}
+                                {!canImport && importStatus === 'idle' && (
+                                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-6 text-center">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                            <Crown className="h-8 w-8 text-white" />
+                                        </div>
+                                        <h3 className="font-semibold text-lg text-amber-900 dark:text-amber-100">
+                                            {t("importExport.proFeature")}
+                                        </h3>
+                                        <p className="text-amber-700 dark:text-amber-300 mt-2 max-w-sm mx-auto">
+                                            {t("importExport.proDesc")}
+                                        </p>
+                                        <div className="flex items-center justify-center gap-2 mt-4">
+                                            <Button
+                                                onClick={() => setShowUpgradeModal(true)}
+                                                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+                                            >
+                                                <Crown className="h-4 w-4 mr-2" />
+                                                {t("importExport.upgradePlan")}
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
+                                            {t("importExport.freeDesc") || "You can download the template or add products manually."}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {canImport && importStatus === 'idle' && (
+                                    <>
+                                        {/* Şablon İndir */}
+                                        <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-lg p-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 bg-violet-100 dark:bg-violet-900 rounded-lg">
+                                                    <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium text-violet-900 dark:text-violet-100">
+                                                        1. {t("importExport.downloadTemplate")}
+                                                    </h4>
+                                                    <p className="text-sm text-violet-700 dark:text-violet-300 mt-1">
+                                                        {t("importExport.templateDesc") || "Download the sample template for the correct format."}
+                                                    </p>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="mt-3 border-violet-300 w-full justify-center sm:w-auto"
+                                                        onClick={downloadTemplate}
+                                                    >
+                                                        <Download className="h-4 w-4 mr-2" />
+                                                        {t("importExport.downloadTemplate")} (.csv)
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Dosya Yükle */}
+                                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                                            <input
+                                                type="file"
+                                                accept=".csv,.xlsx,.xls"
+                                                onChange={handleFileUpload}
+                                                className="hidden"
+                                                id="file-upload"
+                                            />
+                                            <label
+                                                htmlFor="file-upload"
+                                                className="cursor-pointer"
+                                            >
+                                                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                                                <p className="font-medium">2. {t("importExport.uploadFile")}</p>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {t("importExport.dragDrop")}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    {t("importExport.supportedFormats")}
+                                                </p>
+                                            </label>
+                                        </div>
+
+                                        {/* İpuçları */}
+                                        <div className="bg-muted/50 rounded-lg p-4">
+                                            <h4 className="font-medium mb-2 flex items-center gap-2">
+                                                <HelpCircle className="h-4 w-4" />
+                                                {t("importExport.active")}
+                                            </h4>
+                                            <ul className="text-sm text-muted-foreground space-y-1">
+                                                <li>• {t("importExport.tip1") || "You can map columns after upload"}</li>
+                                                <li>• {t("toasts.nameFieldRequired")} & {t("toasts.priceFieldRequired")}</li>
+                                                <li>• {t("importExport.tip2") || "Unmatched columns are added as custom attributes"}</li>
+                                                <li>• {t("importExport.tip3") || "Turkish characters and different column names are supported"}</li>
+                                            </ul>
+                                        </div>
+                                    </>
+                                )}
+
+                                {importStatus === 'loading' && (
+                                    <div className="py-12 text-center">
+                                        <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+                                        <p className="font-medium">{t("common.loading")}</p>
+                                        <p className="text-sm text-muted-foreground">{t("common.wait") || "Please wait"}</p>
+                                    </div>
+                                )}
+
+                                {importStatus === 'success' && importResult && (
+                                    <div className="py-12 text-center">
+                                        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                        </div>
+                                        <p className="font-medium text-lg">{t("importExport.importSuccess")}</p>
+                                        <p className="text-muted-foreground mt-1">
+                                            {t("importExport.productsImported", { count: importResult.success })}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {importStatus === 'error' && (
+                                    <div className="py-12 text-center">
+                                        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <AlertCircle className="h-8 w-8 text-red-600" />
+                                        </div>
+                                        <p className="font-medium text-lg">{t("importExport.importFailed")}</p>
+                                        <p className="text-muted-foreground mt-1">
+                                            {t("importExport.checkFile") || "Check your file and try again"}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            className="mt-4"
+                                            onClick={() => setImportStatus('idle')}
+                                        >
+                                            {t("auth.retry")}
+                                        </Button>
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            {/* DIŞA AKTARMA */}
+                            <TabsContent value="export" className="space-y-4 mt-4">
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="p-3 bg-green-100 dark:bg-green-900 rounded-xl">
+                                            <FileSpreadsheet className="h-8 w-8 text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-lg text-green-900 dark:text-green-100">
+                                                {t("importExport.exportAll")}
+                                            </h3>
+                                            <p className="text-green-700 dark:text-green-300 mt-1">
+                                                {productCount > 0
+                                                    ? t("importExport.willDownload", { count: productCount })
+                                                    : t("importExport.noProductsExport")
+                                                }
+                                            </p>
+
+                                            {productCount > 0 && (
+                                                <div className="mt-4 space-y-2">
+                                                    <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                        {t("products.name")}, SKU, {t("products.description")}, {t("products.price")}, {t("products.stock")}, {t("products.category")}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                        {t("importExport.imagesIncluded")}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                        <strong>{t("importExport.customAttributesIncluded")}</strong>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                        {t("importExport.excelCompatible")}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <Button
+                                                className="mt-4 bg-green-600 hover:bg-green-700"
+                                                onClick={() => {
+                                                    onExport()
+                                                    if (onOpenChange) {
+                                                        onOpenChange(false)
+                                                    } else {
+                                                        setInternalOpen(false)
+                                                    }
+                                                }}
+                                                disabled={productCount === 0 || isLoading}
+                                            >
+                                                {isLoading ? (
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                )}
+                                                {t("importExport.downloadCsv")}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Export Bilgi */}
+                                <div className="bg-muted/50 rounded-lg p-4">
+                                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                                        <HelpCircle className="h-4 w-4" />
+                                        {t("importExport.aboutExport")}
+                                    </h4>
+                                    <ul className="text-sm text-muted-foreground space-y-1">
+                                        <li>• {t("importExport.utf8Note")}</li>
+                                        <li>• {t("importExport.charsNote")}</li>
+                                    </ul>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Upgrade Modal for Free Users */}
+            <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+        </>
     )
 }

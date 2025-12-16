@@ -20,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useTranslation } from "@/lib/i18n-provider"
 
 function slugify(text: string) {
   return text
@@ -39,9 +40,10 @@ interface BuilderPageClientProps {
 export function BuilderPageClient({ catalog, products }: BuilderPageClientProps) {
   const router = useRouter()
   const { user, canExport, refreshUser } = useUser()
+  const { t } = useTranslation()
   const [isPending, startTransition] = useTransition()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [catalogName, setCatalogName] = useState(catalog?.name || "Yeni Katalog")
+  const [catalogName, setCatalogName] = useState(catalog?.name || "")
   const [catalogDescription, setCatalogDescription] = useState(catalog?.description || "")
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(catalog?.product_ids || [])
   const [layout, setLayout] = useState(catalog?.layout || "grid")
@@ -107,7 +109,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logo_position: logoPosition as any,
             logo_size: logoSize as any,
           })
-          toast.success("Katalog kaydedildi!")
+          toast.success(t('toasts.catalogSaved'))
         } else {
           const newCatalog = await createCatalog({
             name: catalogName,
@@ -130,17 +132,17 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logo_size: logoSize as any,
           })
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
-          toast.success("Katalog oluşturuldu!")
+          toast.success(t('toasts.catalogCreated'))
         }
       } catch {
-        toast.error("Katalog kaydedilemedi")
+        toast.error(t('toasts.catalogSaveFailed'))
       }
     })
   }
 
   const handlePublish = () => {
     if (!currentCatalogId) {
-      toast.error("Lütfen önce katalogu kaydedin")
+      toast.error(t('toasts.saveCatalogFirst'))
       return
     }
 
@@ -184,7 +186,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               label: "Linki Kopyala",
               onClick: () => {
                 navigator.clipboard.writeText(shareUrl)
-                toast.success("Link kopyalandı!")
+                toast.success(t('toasts.linkCopied'))
               }
             }
           })
@@ -193,7 +195,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             window.open(shareUrl, '_blank')
           }, 500)
         } else {
-          toast.success("Katalog yayından kaldırıldı")
+          toast.success(t('toasts.catalogDeleted'))
         }
       } catch (error) {
         console.error("Publish error:", error)
@@ -204,7 +206,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
   const handleDownloadPDF = async () => {
     try {
-      toast.info("İndirme işlemi başlatılıyor...", { id: "pdf-process" })
+      toast.info(t('builder.downloadStarting'), { id: "pdf-process" })
 
       if (!canExport()) {
         toast.dismiss("pdf-process")
@@ -335,18 +337,18 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       // Önceki görünüme dön
       setView(previousView)
 
-      toast.success("PDF başarıyla indirildi!", { id: "pdf-process" })
+      toast.success(t('builder.pdfDownloaded'), { id: "pdf-process" })
 
     } catch (err: any) {
       console.error("PDF Fail:", err)
       const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err))
-      toast.error("PDF Başarısız: " + msg, { id: "pdf-process" })
+      toast.error(t('builder.pdfFailed') + ": " + msg, { id: "pdf-process" })
     }
   }
 
   const handleShare = () => {
     if (!currentCatalogId || !catalog?.share_slug) {
-      toast.error("Lütfen önce katalogu kaydedin")
+      toast.error(t('toasts.saveCatalogFirst'))
       return
     }
 
@@ -354,9 +356,9 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     navigator.clipboard.writeText(shareUrl)
 
     if (!isPublished) {
-      toast.success("Link kopyalandı! (Katalog henüz yayında değil)")
+      toast.success(t('toasts.linkCopied'))
     } else {
-      toast.success("Paylaşım linki kopyalandı!")
+      toast.success(t('toasts.linkCopied'))
     }
   }
 
@@ -378,12 +380,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             value={catalogName}
             onChange={(e) => setCatalogName(e.target.value)}
             className="h-8 sm:h-9 font-medium text-sm min-w-0 flex-1 max-w-[180px] sm:max-w-[240px] md:max-w-[300px]"
-            placeholder="Katalog Başlığı"
+            placeholder={t('builder.catalogNamePlaceholder')}
           />
           {isPublished && (
             <span className="hidden sm:flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-950 px-2 py-1 rounded-full shrink-0">
               <Globe className="w-3 h-3" />
-              Yayında
+              {t('builder.published')}
             </span>
           )}
         </div>
@@ -409,15 +411,15 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             <Tabs value={view} onValueChange={(v) => setView(v as typeof view)} className="hidden md:block" id={tabsId}>
               <TabsList className="h-9">
                 <TabsTrigger value="split" className="text-xs px-3" suppressHydrationWarning>
-                  Bölünmüş
+                  {t('builder.split')}
                 </TabsTrigger>
                 <TabsTrigger value="editor" className="text-xs px-3 gap-1" suppressHydrationWarning>
                   <Pencil className="w-3 h-3" />
-                  Düzenleyici
+                  {t('builder.editor')}
                 </TabsTrigger>
                 <TabsTrigger value="preview" className="text-xs px-3 gap-1" suppressHydrationWarning>
                   <Eye className="w-3 h-3" />
-                  Önizleme
+                  {t('builder.preview')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -435,12 +437,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               disabled={isPending}
             >
               <Save className="w-4 h-4" />
-              <span className="hidden md:inline">{isPending ? "Kaydediliyor..." : "Kaydet"}</span>
+              <span className="hidden md:inline">{isPending ? t('builder.saving') : t('builder.save')}</span>
             </Button>
 
             <Button variant="outline" size="sm" className="gap-2 bg-transparent" onClick={handleShare}>
               <Share2 className="w-4 h-4" />
-              <span className="hidden lg:inline">Paylaş</span>
+              <span className="hidden lg:inline">{t('builder.share')}</span>
             </Button>
 
             <Button
@@ -451,14 +453,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               disabled={isPending || !currentCatalogId}
             >
               <Globe className="w-4 h-4" />
-              <span className="hidden lg:inline">{isPublished ? "Yayından Kaldır" : "Yayınla"}</span>
+              <span className="hidden lg:inline">{isPublished ? t('builder.unpublish') : t('builder.publish')}</span>
             </Button>
 
             {isPublished && catalog?.share_slug && (
               <Button variant="ghost" size="sm" className="gap-2" asChild>
                 <a href={`/catalog/${catalog.share_slug}`} target="_blank">
                   <ExternalLink className="w-4 h-4" />
-                  <span className="hidden xl:inline">Görüntüle</span>
+                  <span className="hidden xl:inline">{t('builder.view')}</span>
                 </a>
               </Button>
             )}
@@ -479,21 +481,21 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleSave} disabled={isPending}>
                 <Save className="w-4 h-4 mr-2" />
-                {isPending ? "Kaydediliyor..." : "Kaydet"}
+                {isPending ? t('builder.saving') : t('builder.save')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleShare}>
                 <Share2 className="w-4 h-4 mr-2" />
-                Paylaş
+                {t('builder.share')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handlePublish} disabled={isPending || !currentCatalogId}>
                 <Globe className="w-4 h-4 mr-2" />
-                {isPublished ? "Yayından Kaldır" : "Yayınla"}
+                {isPublished ? t('builder.unpublish') : t('builder.publish')}
               </DropdownMenuItem>
               {isPublished && catalog?.share_slug && (
                 <DropdownMenuItem asChild>
                   <a href={`/catalog/${catalog.share_slug}`} target="_blank">
                     <ExternalLink className="w-4 h-4 mr-2" />
-                    Kataloğu Görüntüle
+                    {t('builder.viewCatalog')}
                   </a>
                 </DropdownMenuItem>
               )}

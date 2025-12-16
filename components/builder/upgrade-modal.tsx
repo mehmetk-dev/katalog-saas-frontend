@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,80 +8,82 @@ import { Switch } from "@/components/ui/switch"
 import { Check, Sparkles, Crown, Zap, Star, CreditCard, Shield, Rocket, Gift } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
+import { useTranslation } from "@/lib/i18n-provider"
 
 interface UpgradeModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const plans = [
-  {
-    id: "free",
-    name: "Ücretsiz",
-    description: "Başlamak için ideal",
-    icon: Star,
-    emoji: "📦",
-    price: { monthly: 0, yearly: 0 },
-    color: "from-slate-400 to-slate-500",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-    features: [
-      { text: "1 Katalog", included: true },
-      { text: "50 Ürün", included: true },
-      { text: "1 PDF Export", included: true },
-      { text: "Filigran", included: false },
-      { text: "Premium Şablonlar", included: false },
-      { text: "Öncelikli Destek", included: false },
-    ],
-  },
-  {
-    id: "plus",
-    name: "Plus",
-    description: "Büyüyen işletmeler için",
-    icon: Zap,
-    emoji: "⚡",
-    price: { monthly: 500, yearly: 5000 },
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-gradient-to-br from-blue-50 to-cyan-50",
-    borderColor: "border-blue-300",
-    features: [
-      { text: "10 Katalog", included: true },
-      { text: "1.000 Ürün", included: true },
-      { text: "50 PDF Export", included: true },
-      { text: "Filigransız", included: true },
-      { text: "Premium Şablonlar", included: true },
-      { text: "Öncelikli Destek", included: false },
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    description: "Profesyoneller için",
-    icon: Crown,
-    emoji: "👑",
-    price: { monthly: 1000, yearly: 10000 },
-    popular: true,
-    color: "from-violet-600 to-purple-600",
-    bgColor: "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50",
-    borderColor: "border-violet-400",
-    features: [
-      { text: "Sınırsız Katalog", included: true },
-      { text: "Sınırsız Ürün", included: true },
-      { text: "Sınırsız PDF Export", included: true },
-      { text: "Filigransız", included: true },
-      { text: "Tüm Şablonlar", included: true },
-      { text: "7/24 Öncelikli Destek", included: true },
-    ],
-  },
-]
-
 export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
   const [isYearly, setIsYearly] = useState(true)
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const { user } = useUser()
+  const { t } = useTranslation()
 
   const currentPlan = user?.plan || "free"
+
+  const plans = useMemo(() => [
+    {
+      id: "free",
+      name: t("upgradeModal.plans.free.name"),
+      description: t("upgradeModal.plans.free.desc"),
+      icon: Star,
+      emoji: "📦",
+      price: { monthly: 0, yearly: 0 },
+      color: "from-slate-400 to-slate-500",
+      bgColor: "bg-gray-50",
+      borderColor: "border-gray-200",
+      features: [
+        { text: t("upgradeModal.features.catalogLimit", { count: 1 }), included: true },
+        { text: t("upgradeModal.features.productLimit", { count: 50 }), included: true },
+        { text: t("upgradeModal.features.pdfLimit", { count: 1 }), included: true },
+        { text: t("upgradeModal.features.watermark"), included: false },
+        { text: t("upgradeModal.features.premiumTemplates"), included: false },
+        { text: t("upgradeModal.features.prioritySupport"), included: false },
+      ],
+    },
+    {
+      id: "plus",
+      name: t("upgradeModal.plans.plus.name"),
+      description: t("upgradeModal.plans.plus.desc"),
+      icon: Zap,
+      emoji: "⚡",
+      price: { monthly: 500, yearly: 5000 },
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-gradient-to-br from-blue-50 to-cyan-50",
+      borderColor: "border-blue-300",
+      features: [
+        { text: t("upgradeModal.features.catalogLimit", { count: 10 }), included: true },
+        { text: t("upgradeModal.features.productLimit", { count: 1000 }), included: true },
+        { text: t("upgradeModal.features.pdfLimit", { count: 50 }), included: true },
+        { text: t("upgradeModal.features.noWatermark"), included: true },
+        { text: t("upgradeModal.features.premiumTemplates"), included: true },
+        { text: t("upgradeModal.features.prioritySupport"), included: false },
+      ],
+    },
+    {
+      id: "pro",
+      name: t("upgradeModal.plans.pro.name"),
+      description: t("upgradeModal.plans.pro.desc"),
+      icon: Crown,
+      emoji: "👑",
+      price: { monthly: 1000, yearly: 10000 },
+      popular: true,
+      color: "from-violet-600 to-purple-600",
+      bgColor: "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50",
+      borderColor: "border-violet-400",
+      features: [
+        { text: t("upgradeModal.features.unlimitedCatalogs"), included: true },
+        { text: t("upgradeModal.features.unlimitedProducts"), included: true },
+        { text: t("upgradeModal.features.unlimitedPdf"), included: true },
+        { text: t("upgradeModal.features.noWatermark"), included: true },
+        { text: t("upgradeModal.features.allTemplates"), included: true },
+        { text: t("upgradeModal.features.support247"), included: true },
+      ],
+    },
+  ], [t])
 
   const handleUpgrade = async (planId: string) => {
     setIsLoading(true)
@@ -108,7 +110,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 shadow-2xl">
-        <DialogTitle className="sr-only">Plan Seçimi</DialogTitle>
+        <DialogTitle className="sr-only">{t("upgradeModal.title")}</DialogTitle>
 
         {/* Clean Modern Header with Plan Info */}
         <div className="relative bg-white border-b overflow-hidden">
@@ -134,7 +136,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-bold text-gray-900">
-                      {currentPlan === "pro" ? "Pro" : currentPlan === "plus" ? "Plus" : "Free"} Planı
+                      {currentPlan === "pro" ? t("upgradeModal.plans.pro.name") : currentPlan === "plus" ? t("upgradeModal.plans.plus.name") : t("upgradeModal.plans.free.name")}
                     </h2>
                     <span className={cn(
                       "text-[9px] px-1.5 py-0.5 rounded font-medium",
@@ -142,15 +144,15 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                         currentPlan === "plus" ? "bg-blue-100 text-blue-700" :
                           "bg-gray-100 text-gray-600"
                     )}>
-                      MEVCUT
+                      {t("upgradeModal.current")}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-[10px] text-gray-500">
-                      📦 {user?.catalogsCount || 0}/{currentPlan === "pro" ? "∞" : currentPlan === "plus" ? "10" : "1"} katalog
+                      📦 {t("upgradeModal.catalogsCount", { count: user?.catalogsCount || 0, limit: currentPlan === "pro" ? "∞" : currentPlan === "plus" ? "10" : "1" })}
                     </span>
                     <span className="text-[10px] text-gray-500">
-                      📋 {user?.productsCount || 0}/{currentPlan === "pro" ? "∞" : currentPlan === "plus" ? "1000" : "50"} ürün
+                      📋 {t("upgradeModal.productsCount", { count: user?.productsCount || 0, limit: currentPlan === "pro" ? "∞" : currentPlan === "plus" ? "1000" : "50" })}
                     </span>
                   </div>
                 </div>
@@ -167,7 +169,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                       : "text-gray-500 hover:text-gray-700"
                   )}
                 >
-                  Aylık
+                  {t("upgradeModal.monthly")}
                 </button>
                 <button
                   onClick={() => setIsYearly(true)}
@@ -178,7 +180,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                       : "text-gray-500 hover:text-gray-700"
                   )}
                 >
-                  Yıllık
+                  {t("upgradeModal.yearly")}
                   <span className="text-[9px] bg-gradient-to-r from-emerald-500 to-green-500 text-white px-1.5 py-0.5 rounded-full font-bold">
                     -17%
                   </span>
@@ -212,7 +214,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                   {plan.popular && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0 px-4 py-1 text-xs shadow-lg">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      EN POPÜLER
+                      {t("upgradeModal.mostPopular")}
                     </Badge>
                   )}
 
@@ -220,7 +222,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                   {isCurrent && (
                     <Badge className="absolute -top-3 right-4 bg-green-500 text-white border-0 px-3 py-1 text-xs">
                       <Check className="w-3 h-3 mr-1" />
-                      MEVCUT
+                      {t("upgradeModal.current")}
                     </Badge>
                   )}
 
@@ -240,25 +242,25 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                   <div className="text-center mb-3 h-16 flex flex-col justify-center">
                     {monthlyPrice === 0 ? (
                       <div>
-                        <span className="text-2xl font-bold text-gray-900">Ücretsiz</span>
+                        <span className="text-2xl font-bold text-gray-900">{t("upgradeModal.free")}</span>
                       </div>
                     ) : (
                       <div>
                         <div className="h-4">
                           {isYearly && (
                             <span className="text-xs text-muted-foreground line-through">
-                              ₺{plan.price.monthly}/ay
+                              ₺{plan.price.monthly}/{t("upgradeModal.monthly").toLowerCase()}
                             </span>
                           )}
                         </div>
                         <div className="flex items-end justify-center gap-0.5">
                           <span className="text-2xl font-bold text-gray-900">₺{monthlyPrice}</span>
-                          <span className="text-xs text-muted-foreground mb-0.5">/ay</span>
+                          <span className="text-xs text-muted-foreground mb-0.5">/{t("upgradeModal.monthly").toLowerCase()}</span>
                         </div>
                         <div className="h-4">
                           {isYearly && (
                             <span className="text-[10px] text-green-600 font-medium">
-                              Yılda ₺{plan.price.monthly * 12 - plan.price.yearly} tasarruf
+                              {t("upgradeModal.saveYearly", { amount: plan.price.monthly * 12 - plan.price.yearly })}
                             </span>
                           )}
                         </div>
@@ -293,7 +295,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                       className="w-full h-9 text-xs font-medium"
                       disabled
                     >
-                      Mevcut
+                      {t("upgradeModal.current")}
                     </Button>
                   ) : plan.id === "free" ? (
                     <Button
@@ -301,7 +303,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                       className="w-full h-9 text-xs font-medium"
                       disabled
                     >
-                      Temel
+                      {t("upgradeModal.basic")}
                     </Button>
                   ) : (
                     <Button
@@ -319,7 +321,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                       ) : (
                         <>
                           <CreditCard className="w-3 h-3 mr-1" />
-                          Seç
+                          {t("upgradeModal.select")}
                         </>
                       )}
                     </Button>
@@ -335,11 +337,11 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
           <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground">
             <div className="flex items-center gap-1">
               <Shield className="w-3 h-3 text-green-500" />
-              <span>Güvenli Ödeme</span>
+              <span>{t("upgradeModal.securePayment")}</span>
             </div>
             <div className="flex items-center gap-1">
               <Check className="w-3 h-3 text-green-500" />
-              <span>İstediğiniz Zaman İptal</span>
+              <span>{t("upgradeModal.cancelAnytime")}</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../services/supabase';
 import { getCache, setCache, deleteCache, cacheKeys, cacheTTL } from '../services/redis';
+import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 const getUserId = (req: Request) => (req as any).user.id;
 
@@ -146,6 +147,17 @@ export const createCatalog = async (req: Request, res: Response) => {
             // Bildirim hatası ana işlemi etkilemesin
         }
 
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'catalog_created',
+            description: ActivityDescriptions.catalogCreated(name),
+            metadata: { catalogId: data.id, catalogName: name },
+            ipAddress,
+            userAgent
+        });
+
         res.status(201).json(data);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -196,6 +208,17 @@ export const deleteCatalog = async (req: Request, res: Response) => {
         await deleteCache(cacheKeys.catalogs(userId));
         await deleteCache(cacheKeys.catalog(userId, id));
 
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'catalog_deleted',
+            description: 'Bir katalog sildi',
+            metadata: { catalogId: id },
+            ipAddress,
+            userAgent
+        });
+
         res.json({ success: true });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -232,6 +255,17 @@ export const publishCatalog = async (req: Request, res: Response) => {
         if (catalog?.share_slug) {
             await deleteCache(cacheKeys.publicCatalog(catalog.share_slug));
         }
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: is_published ? 'catalog_published' : 'catalog_unpublished',
+            description: is_published ? 'Katalog yayınladı' : 'Katalog yayından kaldırdı',
+            metadata: { catalogId: id, shareSlug: catalog?.share_slug },
+            ipAddress,
+            userAgent
+        });
 
         res.json({ success: true });
     } catch (error: any) {

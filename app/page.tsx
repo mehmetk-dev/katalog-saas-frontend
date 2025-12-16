@@ -1,8 +1,11 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
+import { useTranslation } from "@/lib/i18n-provider"
 import {
   ArrowRight,
   LayoutGrid,
@@ -21,6 +24,8 @@ import {
 } from "lucide-react"
 
 export default function HomePage() {
+  const { t } = useTranslation()
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
       <PublicHeader />
@@ -37,21 +42,21 @@ export default function HomePage() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100/80 text-violet-700 border border-violet-200/50 mb-8 backdrop-blur-sm">
               <Sparkles className="w-3.5 h-3.5" />
-              <span className="text-xs font-semibold uppercase tracking-wide">Dijital Katalog Platformu</span>
+              <span className="text-xs font-semibold uppercase tracking-wide">{t('landing.badge')}</span>
             </div>
 
             {/* Headline */}
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight mb-8 leading-[1.1]">
-              Müşterilerinizi Büyüleyen Ürün Kataloglarını{' '}
+              {t('landing.heroTitle')}{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500">
-                Dakikalar İçinde
+                {t('landing.heroTitleHighlight')}
               </span>{' '}
-              Hazırlayın
+              {t('landing.heroTitleEnd')}
             </h1>
 
             {/* Subtext */}
             <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Tasarımcıya ihtiyaç duymadan, Excel'den ürünlerini çek, şablonunu seç ve paylaş. Satışlarını artırmaya hemen başla.
+              {t('landing.heroSubtitle')}
             </p>
 
             {/* CTA Buttons */}
@@ -61,7 +66,7 @@ export default function HomePage() {
                   size="lg"
                   className="h-14 px-8 text-base rounded-full bg-slate-900 hover:bg-slate-800 shadow-xl shadow-slate-900/20 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5"
                 >
-                  Hemen Başla
+                  {t('landing.startNow')}
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
@@ -71,7 +76,7 @@ export default function HomePage() {
                   size="lg"
                   className="h-14 px-8 text-base rounded-full border-slate-200 hover:bg-white hover:border-violet-200 hover:text-violet-600 transition-all duration-300"
                 >
-                  Örnekleri İncele
+                  {t('landing.seeExamples')}
                 </Button>
               </Link>
             </div>
@@ -99,8 +104,8 @@ export default function HomePage() {
                 <Eye className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Yeni Görüntülenme</p>
-                <p className="font-bold text-slate-900">+247 bugün</p>
+                <p className="text-xs text-slate-500 font-medium">{t('landing.newView')}</p>
+                <p className="font-bold text-slate-900">{t('landing.today')}</p>
               </div>
             </div>
 
@@ -110,8 +115,8 @@ export default function HomePage() {
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Katalog Görüntülendi</p>
-                <p className="font-bold text-slate-900">Yaz Koleksiyonu</p>
+                <p className="text-xs text-slate-500 font-medium">{t('landing.catalogViewed')}</p>
+                <p className="font-bold text-slate-900">{t('landing.summerCollection')}</p>
               </div>
             </div>
 
@@ -120,7 +125,7 @@ export default function HomePage() {
               <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                 <QrCode className="w-4 h-4 text-blue-600" />
               </div>
-              <span className="text-sm font-semibold text-slate-700">QR Kod Tarandı</span>
+              <span className="text-sm font-semibold text-slate-700">{t('landing.qrScanned')}</span>
             </div>
           </div>
         </div>
@@ -130,7 +135,7 @@ export default function HomePage() {
       <section className="py-12 border-y border-slate-200/50 bg-white/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-center text-sm font-medium text-slate-400 mb-8 uppercase tracking-wider">
-            200+ İşletme Tarafından Güveniliyor
+            {t('landing.trustedBy')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
             {['Moda Butik', 'Tech Store', 'Home Decor', 'Auto Parts', 'Organic Market', 'Beauty Shop'].map((brand, i) => (
@@ -150,13 +155,13 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <Badge className="mb-4 bg-violet-100 text-violet-700 hover:bg-violet-200 border-0">
-              Özellikler
+              {t('landing.featuresBadge')}
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
-              Tüm katalog ihtiyaçlarınız tek çatı altında
+              {t('landing.featuresTitle')}
             </h2>
             <p className="text-lg text-slate-600">
-              Profesyonel kataloglar oluşturmak için ihtiyacınız olan her şey. Kolay, hızlı ve etkileyici.
+              {t('landing.featuresSubtitle')}
             </p>
           </div>
 
@@ -169,9 +174,9 @@ export default function HomePage() {
                 <div className="w-14 h-14 rounded-2xl bg-violet-100 border border-violet-200/50 flex items-center justify-center mb-6">
                   <MousePointerClick className="w-7 h-7 text-violet-600" />
                 </div>
-                <h3 className="text-2xl font-bold mb-3">Sürükle-Bırak Arayüzü</h3>
+                <h3 className="text-2xl font-bold mb-3">{t('landing.dragDropTitle')}</h3>
                 <p className="text-slate-600 text-lg leading-relaxed mb-8 max-w-lg">
-                  Tasarım bilgisi gerektirmeden, ürünlerinizi sürükleyip bırakarak profesyonel kataloglar oluşturun.
+                  {t('landing.dragDropDesc')}
                 </p>
                 {/* Visual Mockup */}
                 <div className="relative rounded-xl border border-slate-200 shadow-lg overflow-hidden bg-slate-50 aspect-video">
@@ -196,13 +201,13 @@ export default function HomePage() {
                 <div className="w-14 h-14 rounded-2xl bg-blue-100 border border-blue-200/50 flex items-center justify-center mb-6">
                   <QrCode className="w-7 h-7 text-blue-600" />
                 </div>
-                <h3 className="text-2xl font-bold mb-3">Akıllı QR Kod</h3>
+                <h3 className="text-2xl font-bold mb-3">{t('landing.qrTitle')}</h3>
                 <p className="text-slate-600 leading-relaxed">
-                  Her kataloğa özel QR kod. Müşterileriniz tek tarama ile ürünlerinize ulaşsın.
+                  {t('landing.qrDesc')}
                 </p>
                 {/* Mini QR Visual */}
                 <div className="mt-6 w-24 h-24 mx-auto bg-white rounded-xl shadow-lg p-2 border border-slate-100">
-                  <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMSAyMSI+PHBhdGggZmlsbD0iIzFmMjkzNyIgZD0iTTEgMWg3djdIMXptMiAyaDN2M0gzem0tMiA4aDd2N0gxem0yIDJoM3YzSDN6bTgtMTJoN3Y3aC03em0yIDJoM3YzaC0zem0tMiA4aDJ2MmgtMnptMiAwaDJ2Mmgtdmgtd2gtMnptMC0yaDJ2MmgtMnptMiAyaDJ2MmgtMnptMC0yaDJ2MmgtMnptMiAwaDJ2MmgtMnptMCAyaDJ2MmgtMnoiLz48L3N2Zz4=')] bg-contain" />
+                  <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMSAyMSI+PHBhdGggZmlsbD0iIzFmMjkzNyIgZD0iTTEgMWg3djdIMXptMiAyaDN2M0gzem0tMiA4aDd2N0gxem0yIDJoM3YzSDN6bTgtMTJoN3Y3aC03em0yIDJoM3YzaC0zem0tMiA4aDJ2MmgtMnptMiAwaDJ2MmgtMnptMC0yaDJ2MmgtMnptMiAyaDJ2MmgtMnptMC0yaDJ2MmgtMnptMiAwaDJ2MmgtMnptMCAyaDJ2MmgtMnoiLz48L3N2Zz4=')] bg-contain" />
                 </div>
               </div>
             </div>
@@ -213,9 +218,9 @@ export default function HomePage() {
                 <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200/50 flex items-center justify-center mb-6">
                   <BarChart3 className="w-7 h-7 text-emerald-600" />
                 </div>
-                <h3 className="text-2xl font-bold mb-3">Detaylı Analitik</h3>
+                <h3 className="text-2xl font-bold mb-3">{t('landing.analyticsTitle')}</h3>
                 <p className="text-slate-600 leading-relaxed mb-6">
-                  Katalog görüntülenmeleri, en popüler ürünler ve müşteri davranışlarını takip edin.
+                  {t('landing.analyticsDesc')}
                 </p>
                 {/* Sparkline Chart */}
                 <div className="h-20 flex items-end gap-1">
@@ -237,9 +242,9 @@ export default function HomePage() {
                   <div className="w-14 h-14 rounded-2xl bg-fuchsia-100 border border-fuchsia-200/50 flex items-center justify-center mb-6">
                     <Layers className="w-7 h-7 text-fuchsia-600" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-3">Profesyonel Şablonlar</h3>
+                  <h3 className="text-2xl font-bold mb-3">{t('landing.templatesTitle')}</h3>
                   <p className="text-slate-600 text-lg leading-relaxed">
-                    16+ modern ve özelleştirilebilir şablon. Markanıza uygun olanı seçin, kişiselleştirin.
+                    {t('landing.templatesDesc')}
                   </p>
                 </div>
                 {/* Template Preview */}
@@ -289,25 +294,25 @@ export default function HomePage() {
             <div className="w-full lg:w-1/2 space-y-8">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                 <Smartphone className="w-4 h-4" />
-                <span className="text-sm font-medium">Mobil Öncelikli</span>
+                <span className="text-sm font-medium">{t('landing.mobileBadge')}</span>
               </div>
 
               <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-                Müşteriniz Neredeyse,{' '}
+                {t('landing.mobileTitle')}{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">
-                  Kataloğunuz Orada
+                  {t('landing.mobileScore')}
                 </span>
               </h2>
 
               <p className="text-xl text-slate-400 leading-relaxed">
-                Mobil cihazlar için optimize edilmiş kataloglar. Her ekran boyutunda mükemmel görünüm.
+                {t('landing.mobileDesc')}
               </p>
 
               <ul className="space-y-5">
                 {[
-                  'Retina ekran desteği ile kristal netliğinde görseller',
-                  'Dokunmatik dostu arayüz ve akıcı navigasyon',
-                  'Hızlı yükleme ve offline erişim modu'
+                  t('landing.mobileFeature1'),
+                  t('landing.mobileFeature2'),
+                  t('landing.mobileFeature3')
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
@@ -322,7 +327,7 @@ export default function HomePage() {
                 size="lg"
                 className="h-12 px-6 bg-white text-slate-900 hover:bg-slate-100 rounded-full font-semibold shadow-xl shadow-white/10"
               >
-                Detaylı İncele
+                {t('landing.mobileButton')}
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </div>
@@ -371,10 +376,10 @@ export default function HomePage() {
             {/* Right - Timeline */}
             <div className="w-full lg:w-1/2">
               <Badge className="mb-6 bg-violet-100 text-violet-700 hover:bg-violet-200 border-0">
-                Nasıl Çalışır?
+                {t('landing.howItWorksBadge')}
               </Badge>
               <h2 className="text-4xl md:text-5xl font-bold mb-16 tracking-tight">
-                3 Adımda Kataloğunuz Hazır
+                {t('landing.howItWorksTitle')}
               </h2>
 
               {/* Timeline */}
@@ -386,20 +391,20 @@ export default function HomePage() {
                   {[
                     {
                       step: '01',
-                      title: 'Hesabınızı Oluşturun',
-                      desc: 'Sadece e-posta adresinizle saniyeler içinde başlayın.',
+                      title: t('landing.step1Title'),
+                      desc: t('landing.step1Desc'),
                       icon: Users
                     },
                     {
                       step: '02',
-                      title: 'Ürünlerinizi Ekleyin',
-                      desc: 'Panelden ürünlerinizi tek tek veya Excel ile toplu olarak yükleyin.',
+                      title: t('landing.step2Title'),
+                      desc: t('landing.step2Desc'),
                       icon: FileText
                     },
                     {
                       step: '03',
-                      title: 'Yayınlayın & Paylaşın',
-                      desc: 'Şablonunuzu seçin, özelleştirin ve tek tıkla yayınlayın. QR kodunuz hazır!',
+                      title: t('landing.step3Title'),
+                      desc: t('landing.step3Desc'),
                       icon: Share2
                     }
                   ].map((item, i) => (
@@ -410,7 +415,7 @@ export default function HomePage() {
                       </div>
                       {/* Content */}
                       <div className="pt-2">
-                        <span className="text-xs font-bold text-violet-600 uppercase tracking-wider">Adım {item.step}</span>
+                        <span className="text-xs font-bold text-violet-600 uppercase tracking-wider">{t('landing.step')} {item.step}</span>
                         <h3 className="text-xl font-bold mt-1 mb-2">{item.title}</h3>
                         <p className="text-slate-600 leading-relaxed">{item.desc}</p>
                       </div>
@@ -430,14 +435,14 @@ export default function HomePage() {
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
           <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-8">
-            Katalog hazırlamayı{' '}
+            {t('landing.ctaTitle')}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-500">
-              keyifli hale getirin
+              {t('landing.ctaHighlight')}
             </span>
           </h2>
 
           <p className="text-xl text-slate-600 mb-12 max-w-2xl mx-auto">
-            Binlerce mutlu kullanıcının arasına katılın. İlk kataloğunuzu oluşturmak için teknik bilgiye ihtiyacınız yok.
+            {t('landing.ctaDesc')}
           </p>
 
           <Link href="/auth?tab=signup">
@@ -445,7 +450,7 @@ export default function HomePage() {
               size="lg"
               className="h-16 px-12 text-lg rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1 font-bold"
             >
-              Ücretsiz Başlayın
+              {t('landing.ctaButton')}
               <ArrowRight className="ml-3 w-6 h-6" />
             </Button>
           </Link>

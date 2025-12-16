@@ -13,6 +13,7 @@ import { CatalogPreview } from "../catalogs/catalog-preview"
 import { PREVIEW_PRODUCTS } from "./preview-data"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import Image from "next/image"
+import { useTranslation } from "@/lib/i18n-provider"
 
 interface TemplatesPageClientProps {
   templates: CatalogTemplate[]
@@ -21,6 +22,7 @@ interface TemplatesPageClientProps {
 export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
   const router = useRouter()
   const { user } = useUser()
+  const { t } = useTranslation()
   const [isPending, startTransition] = useTransition()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState<Record<string, boolean>>({})
@@ -29,7 +31,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
 
   const handleUseTemplate = (template: CatalogTemplate) => {
     if (template.is_premium && isFreeUser) {
-      toast.error("Premium şablonları kullanmak için Pro'ya geçin")
+      toast.error(t('toasts.premiumRequired'))
       return
     }
 
@@ -37,15 +39,15 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
     startTransition(async () => {
       try {
         const catalog = await createCatalog({
-          name: `Yeni ${template.name} Kataloğu`,
+          name: `${t('builder.newCatalog')} - ${template.name}`,
           template_id: template.id,
           layout: template.layout,
         })
-        toast.success("Katalog oluşturuldu!")
+        toast.success(t('toasts.catalogCreated'))
         router.push(`/dashboard/builder?id=${catalog.id}`)
       } catch (error: any) {
         console.error("Template create error:", error)
-        toast.error(error?.message || "Katalog oluşturulamadı")
+        toast.error(error?.message || t('toasts.catalogSaveFailed'))
       }
       setLoadingId(null)
     })
@@ -58,14 +60,14 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Şablonlar</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Kataloğunuzu oluşturmaya başlamak için bir şablon seçin</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('sidebar.templates')}</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">{t('common.selectTemplate')}</p>
       </div>
 
       {templates.length === 0 ? (
         <div className="text-center py-8 sm:py-12">
           <Palette className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground/50 mb-3 sm:mb-4" />
-          <p className="text-sm sm:text-base text-muted-foreground">Henüz şablon bulunmuyor.</p>
+          <p className="text-sm sm:text-base text-muted-foreground">{t('common.noTemplates')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">

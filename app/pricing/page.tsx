@@ -10,76 +10,78 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { ArrowRight, Check, Zap, Star, Crown, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const plans = [
-  {
-    name: "Ücretsiz",
-    icon: Star,
-    description: "Yeni başlayanlar için",
-    price: { monthly: 0, yearly: 0 },
-    color: "bg-slate-100",
-    iconColor: "text-slate-600",
-    features: [
-      "1 Katalog",
-      "50 Ürün Limiti",
-      "1 PDF İhracatı",
-      "Filigranlı"
-    ],
-    cta: "Ücretsiz Başla",
-    href: "/auth",
-  },
-  {
-    name: "Plus",
-    icon: Zap,
-    description: "Büyüyen işletmeler için",
-    price: { monthly: 500, yearly: 5000 },
-    color: "bg-blue-100",
-    iconColor: "text-blue-600",
-    features: [
-      "10 Katalog",
-      "1.000 Ürün",
-      "50 PDF İhracatı",
-      "Filigransız"
-    ],
-    cta: "Plus'a Geç",
-    href: "/auth?plan=plus",
-  },
-  {
-    name: "Pro",
-    icon: Crown,
-    description: "Profesyoneller için",
-    price: { monthly: 1000, yearly: 10000 },
-    popular: true,
-    color: "bg-violet-100",
-    iconColor: "text-violet-600",
-    features: [
-      "Sınırsız Katalog",
-      "Sınırsız Ürün",
-      "Sınırsız PDF İhracatı",
-      "Tüm Özellikler"
-    ],
-    cta: "Pro'ya Geç",
-    href: "/auth?plan=pro",
-  },
-]
-
-const faqs = [
-  {
-    question: "Planımı sonra değiştirebilir miyim?",
-    answer: "Evet! Planınızı istediğiniz zaman yükseltebilir veya düşürebilirsiniz.",
-  },
-  {
-    question: "Hangi ödeme yöntemlerini kabul ediyorsunuz?",
-    answer: "Tüm büyük kredi kartlarını ve banka havalesi kabul ediyoruz.",
-  },
-  {
-    question: "İstediğim zaman iptal edebilir miyim?",
-    answer: "Kesinlikle. Aboneliğinizi herhangi bir zamanda gizli ücret olmadan iptal edebilirsiniz.",
-  },
-]
+import { useTranslation } from "@/lib/i18n-provider"
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(true)
+  const { t } = useTranslation()
+
+  const plans = [
+    {
+      name: t('pricingPage.free'),
+      icon: Star,
+      description: t('pricingPage.freeDesc'),
+      price: { monthly: 0, yearly: 0 },
+      color: "bg-slate-100",
+      iconColor: "text-slate-600",
+      features: [
+        "1 " + t('catalogs.catalog'),
+        "50 " + t('plans.productLimit'),
+        "1 " + t('builder.download'),
+        t('header.pricing') === 'Pricing' ? 'Watermarked' : 'Filigranlı'
+      ],
+      cta: t('pricingPage.ctaFree'),
+      href: "/auth",
+    },
+    {
+      name: t('pricingPage.plus'),
+      icon: Zap,
+      description: t('pricingPage.plusDesc'),
+      price: { monthly: 500, yearly: 5000 },
+      color: "bg-blue-100",
+      iconColor: "text-blue-600",
+      features: [
+        "10 " + t('catalogs.catalog'),
+        "1.000 " + t('plans.productLimit'),
+        "50 " + t('builder.download'),
+        t('header.pricing') === 'Pricing' ? 'No Watermark' : 'Filigransız'
+      ],
+      cta: t('pricingPage.ctaPlus'),
+      href: "/auth?plan=plus",
+    },
+    {
+      name: t('pricingPage.pro'),
+      icon: Crown,
+      description: t('pricingPage.proDesc'),
+      price: { monthly: 1000, yearly: 10000 },
+      popular: true,
+      color: "bg-violet-100",
+      iconColor: "text-violet-600",
+      features: [
+        t('plans.unlimitedCatalogs'),
+        t('plans.unlimited') + " " + t('footer.product'),
+        t('plans.unlimitedDownloads'),
+        t('plans.allTemplates')
+      ],
+      cta: t('pricingPage.ctaPro'),
+      href: "/auth?plan=pro",
+    },
+  ]
+
+  const faqs = [
+    {
+      question: t('pricingPage.faq1Q'),
+      answer: t('pricingPage.faq1A'),
+    },
+    {
+      question: t('pricingPage.faq2Q'),
+      answer: t('pricingPage.faq2A'),
+    },
+    {
+      question: t('pricingPage.faq3Q'),
+      answer: t('pricingPage.faq3A'),
+    },
+  ]
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -88,19 +90,19 @@ export default function PricingPage() {
       {/* Hero Section */}
       <section className="pt-32 pb-16 text-center">
         <div className="max-w-4xl mx-auto px-6">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">Basit, şeffaf fiyatlandırma</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900">{t('pricingPage.title')}</h1>
           <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-8">
-            İşletmeniz için mükemmel planı seçin.
+            {t('pricingPage.subtitle')}
           </p>
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-3">
-            <Label className={cn("text-base", !isYearly && "font-semibold text-slate-900")}>Aylık</Label>
+            <Label className={cn("text-base", !isYearly && "font-semibold text-slate-900")}>{t('pricingPage.monthly')}</Label>
             <Switch checked={isYearly} onCheckedChange={setIsYearly} />
             <Label className={cn("text-base", isYearly && "font-semibold text-slate-900")}>
-              Yıllık
+              {t('pricingPage.yearly')}
               <Badge className="ml-2 bg-emerald-500 text-white hover:bg-emerald-600 border-0">
-                2 Ay Bedava
+                {t('pricingPage.freeMonths')}
               </Badge>
             </Label>
           </div>
@@ -120,15 +122,17 @@ export default function PricingPage() {
                   key={plan.name}
                   className={cn(
                     "relative bg-white rounded-2xl border-2 p-6 flex flex-col transition-all",
+                    // @ts-ignore
                     plan.popular
                       ? "border-violet-500 shadow-xl scale-105 z-10"
                       : "border-slate-200 hover:border-slate-300 hover:shadow-lg",
                   )}
                 >
+                  {/* @ts-ignore */}
                   {plan.popular && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-violet-600 hover:bg-violet-700 border-0">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      En Popüler
+                      {t('pricingPage.mostPopular')}
                     </Badge>
                   )}
 
@@ -145,13 +149,13 @@ export default function PricingPage() {
 
                   <div className="mb-6 text-center border-y border-dashed border-slate-200 py-4">
                     {price === 0 ? (
-                      <span className="text-3xl font-bold text-slate-900">Ücretsiz</span>
+                      <span className="text-3xl font-bold text-slate-900">{t('pricingPage.free')}</span>
                     ) : (
                       <div>
                         <span className="text-3xl font-bold text-slate-900">₺{price}</span>
-                        <span className="text-slate-500 text-sm">/ay</span>
+                        <span className="text-slate-500 text-sm">{t('pricingPage.month')}</span>
                         {isYearly && (
-                          <p className="text-xs text-slate-400 mt-1">Yıllık ₺{plan.price.yearly}</p>
+                          <p className="text-xs text-slate-400 mt-1">{t('pricingPage.year')} ₺{plan.price.yearly}</p>
                         )}
                       </div>
                     )}
@@ -167,9 +171,11 @@ export default function PricingPage() {
                   </ul>
 
                   <Button
+                    // @ts-ignore
                     variant={plan.popular ? "default" : "outline"}
                     className={cn(
                       "w-full",
+                      // @ts-ignore
                       plan.popular && "bg-violet-600 hover:bg-violet-700"
                     )}
                     asChild
@@ -190,7 +196,7 @@ export default function PricingPage() {
       <section className="py-20 border-t border-slate-200 bg-white">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Sıkça Sorulan Sorular</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">{t('pricingPage.faqTitle')}</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">

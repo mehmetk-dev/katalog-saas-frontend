@@ -1,4 +1,5 @@
 import { TemplateProps } from "./types"
+import { useTranslation } from "@/lib/i18n-provider"
 
 // Luxury - Lüks koleksiyon, altın tema
 export function LuxuryTemplate({
@@ -11,6 +12,7 @@ export function LuxuryTemplate({
     totalPages = 1,
     columnsPerRow = 2,
 }: TemplateProps) {
+    const { t } = useTranslation()
     const safeProducts = products || []
 
     const getGridCols = () => {
@@ -31,8 +33,8 @@ export function LuxuryTemplate({
             <div className="h-20 px-10 flex items-center justify-center shrink-0">
                 {pageNumber === 1 ? (
                     <div className="text-center">
-                        <div className="text-[10px] text-yellow-600 tracking-[0.4em] uppercase mb-2">Premium Collection</div>
-                        <h1 className="text-2xl font-serif text-white tracking-wide">{catalogName || "Luxury"}</h1>
+                        <div className="text-[10px] text-yellow-600 tracking-[0.4em] uppercase mb-2">{t('catalogs.premiumCollection')}</div>
+                        <h1 className="text-2xl font-serif text-white tracking-wide">{catalogName || t('catalogs.luxury')}</h1>
                     </div>
                 ) : (
                     <div className="flex items-center gap-4">
@@ -82,3 +84,4 @@ export function LuxuryTemplate({
         </div>
     )
 }
+

@@ -40,7 +40,7 @@ import { toast } from "sonner"
 import { Toaster } from "sonner"
 import HTMLFlipBook from 'react-pageflip'
 
-// @ts-ignore
+
 const PageCover = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>((props, ref) => {
     return (
         <div className="page page-cover" ref={ref} data-density="soft">
@@ -214,6 +214,15 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         setTimeout(() => setCopied(false), 2000)
     }
 
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
     return (
         <>
             <Toaster position="top-center" />
@@ -308,112 +317,132 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                     </header>
                 )}
 
-                {/* Main Content - Flipbook Container */}
+                {/* Main Content - Responsive */}
                 <main className={cn(
-                    "flex-1 relative flex flex-col items-center justify-center w-full",
-                    isFullscreen ? "py-2 px-2" : "py-4 sm:py-6 px-2 sm:px-4"
+                    "flex-1 relative w-full",
+                    isFullscreen ? "bg-black" : "",
+                    isMobile ? "overflow-y-auto" : "flex flex-col items-center justify-center overflow-hidden"
                 )}>
-                    <div
-                        className="relative w-full flex items-center justify-center mx-auto"
-                        style={{
-                            maxWidth: isFullscreen ? '98vw' : '1100px',
-                            height: isFullscreen ? 'calc(100vh - 60px)' : 'calc(100vh - 160px)',
-                            minHeight: '450px',
-                            maxHeight: isFullscreen ? '95vh' : '800px'
-                        }}
-                    >
-                        <div className="relative w-full h-full flex items-center justify-center">
-                            {pages.length > 0 && (
-                                // @ts-ignore
-                                <HTMLFlipBook
-                                    width={595}
-                                    height={842}
-                                    size="stretch"
-                                    minWidth={300}
-                                    maxWidth={1000}
-                                    minHeight={400}
-                                    maxHeight={1414}
-                                    maxShadowOpacity={0.5}
-                                    showCover={false}
-                                    mobileScrollSupport={true}
-                                    onFlip={(e) => setCurrentPage(e.data)}
-                                    className="shadow-2xl"
-                                    style={{ margin: '0 auto' }}
-                                    usePortrait={false}
-                                    startZIndex={0}
-                                    autoSize={true}
-                                    clickEventForward={true}
-                                    useMouseEvents={true}
-                                    swipeDistance={30}
-                                    showPageCorners={true}
-                                    disableFlipByClick={false}
-                                    ref={bookRef}
-                                >
-                                    {/* All Pages rendered consistently */}
-                                    {pages.map((pageProds, index) => (
-                                        // @ts-ignore
-                                        <Page key={index} number={index + 1}>
-                                            <div className="w-full h-full bg-white shadow-inner relative border-l border-slate-100" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                                {/* Paper Texture Overlay */}
-                                                <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-20 mix-blend-multiply"
-                                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-                                                />
-
-                                                {/* Spine Shadow */}
-                                                <div className={cn(
-                                                    "absolute top-0 bottom-0 w-8 md:w-12 pointer-events-none z-10",
-                                                    index % 2 === 0
-                                                        ? "left-0 bg-gradient-to-r from-black/10 to-transparent"
-                                                        : "right-0 bg-gradient-to-l from-black/10 to-transparent"
-                                                )} />
-
-                                                {/* Glossy Effect for First Page */}
-                                                {index === 0 && (
-                                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 pointer-events-none z-20" />
-                                                )}
-
-                                                {/* Template Content - Takes full height with flex */}
-                                                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                                    {renderTemplate(pageProds, index + 1, pages.length)}
-                                                </div>
-                                            </div>
-                                        </Page>
-                                    ))}
-
-                                    {/* Back Page - treated as regular page for closure */}
-                                    {/* @ts-ignore */}
-                                    <Page key="end" number={pages.length + 1}>
-                                        <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 relative border-l border-slate-200">
-                                            <div className="absolute top-0 bottom-0 w-4 right-0 bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
-                                            <BookOpen className="w-16 h-16 mb-4 opacity-20" />
-                                            <p className="font-medium tracking-widest text-sm uppercase">Katalog Sonu</p>
-                                        </div>
-                                    </Page>
-                                </HTMLFlipBook>
-                            )}
+                    {isMobile ? (
+                        /* Mobile View - Single Column Vertical Scroll */
+                        <div className="w-full min-h-full p-4 flex flex-col gap-4 pb-20">
+                            {pages.map((pageProds, index) => (
+                                <div key={index} className="w-full bg-white shadow-md rounded-lg overflow-hidden border border-slate-100">
+                                    {/* Sayfa İçeriği */}
+                                    <div className="w-full">
+                                        {renderTemplate(pageProds, index + 1, pages.length)}
+                                    </div>
+                                    <div className="bg-slate-50 py-2 border-t px-4 flex justify-between items-center text-xs text-muted-foreground">
+                                        <span>Sayfa {index + 1} / {pages.length}</span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    ) : (
+                        /* Desktop View - FlipBook */
+                        <>
+                            <div
+                                className="relative w-full flex items-center justify-center mx-auto transition-all duration-300"
+                                style={{
+                                    maxWidth: isFullscreen ? '98vw' : '1100px',
+                                    height: isFullscreen ? 'calc(100vh - 60px)' : 'calc(100vh - 160px)',
+                                    minHeight: '450px',
+                                    maxHeight: isFullscreen ? '95vh' : '800px'
+                                }}
+                            >
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    {pages.length > 0 && (
+                                        // @ts-expect-error
+                                        <HTMLFlipBook
+                                            width={595}
+                                            height={842}
+                                            size="stretch"
+                                            minWidth={300}
+                                            maxWidth={1000}
+                                            minHeight={400}
+                                            maxHeight={1414}
+                                            maxShadowOpacity={0.5}
+                                            showCover={false}
+                                            mobileScrollSupport={true}
+                                            onFlip={(e) => setCurrentPage(e.data)}
+                                            className="shadow-2xl"
+                                            style={{ margin: '0 auto' }}
+                                            usePortrait={false}
+                                            startZIndex={0}
+                                            autoSize={true}
+                                            clickEventForward={true}
+                                            useMouseEvents={true}
+                                            swipeDistance={30}
+                                            showPageCorners={true}
+                                            disableFlipByClick={false}
+                                            ref={bookRef}
+                                        >
+                                            {/* All Pages rendered consistently */}
+                                            {pages.map((pageProds, index) => (
 
+                                                <Page key={index} number={index + 1}>
+                                                    <div className="w-full h-full bg-white shadow-inner relative border-l border-slate-100" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                                        {/* Paper Texture Overlay */}
+                                                        <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-20 mix-blend-multiply"
+                                                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+                                                        />
 
-                    {/* Navigation Buttons */}
-                    <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10 px-4 md:px-10">
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            onClick={handlePrevPage}
-                            className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
-                        >
-                            <ChevronLeft className="h-6 w-6 text-slate-700" />
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            onClick={handleNextPage}
-                            className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
-                        >
-                            <ChevronRight className="h-6 w-6 text-slate-700" />
-                        </Button>
-                    </div>
+                                                        {/* Spine Shadow */}
+                                                        <div className={cn(
+                                                            "absolute top-0 bottom-0 w-8 md:w-12 pointer-events-none z-10",
+                                                            index % 2 === 0
+                                                                ? "left-0 bg-gradient-to-r from-black/10 to-transparent"
+                                                                : "right-0 bg-gradient-to-l from-black/10 to-transparent"
+                                                        )} />
+
+                                                        {/* Glossy Effect for First Page */}
+                                                        {index === 0 && (
+                                                            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 pointer-events-none z-20" />
+                                                        )}
+
+                                                        {/* Template Content - Takes full height with flex */}
+                                                        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                                            {renderTemplate(pageProds, index + 1, pages.length)}
+                                                        </div>
+                                                    </div>
+                                                </Page>
+                                            ))}
+
+                                            {/* Back Page - treated as regular page for closure */}
+                                            {/* @ts-ignore */}
+                                            <Page key="end" number={pages.length + 1}>
+                                                <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 relative border-l border-slate-200">
+                                                    <div className="absolute top-0 bottom-0 w-4 right-0 bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
+                                                    <BookOpen className="w-16 h-16 mb-4 opacity-20" />
+                                                    <p className="font-medium tracking-widest text-sm uppercase">Katalog Sonu</p>
+                                                </div>
+                                            </Page>
+                                        </HTMLFlipBook>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Navigation Buttons */}
+                            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10 px-4 md:px-10">
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={handlePrevPage}
+                                    className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
+                                >
+                                    <ChevronLeft className="h-6 w-6 text-slate-700" />
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={handleNextPage}
+                                    className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
+                                >
+                                    <ChevronRight className="h-6 w-6 text-slate-700" />
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </main>
 
                 {/* Modern Footer */}

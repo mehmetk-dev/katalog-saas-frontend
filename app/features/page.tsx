@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/i18n-provider"
 import {
     ArrowRight,
     MousePointerClick,
@@ -15,60 +18,57 @@ import {
     Smartphone
 } from "lucide-react"
 
-export const metadata = {
-    title: "Özellikler | CatalogPro",
-    description: "CatalogPro'nun sunduğu tüm özellikler.",
-}
-
-const features = [
-    {
-        icon: MousePointerClick,
-        title: "Sürükle-Bırak Editör",
-        description: "Teknik bilgi gerektirmeden, görsel arayüz ile kataloglarınızı oluşturun."
-    },
-    {
-        icon: Layers,
-        title: "Profesyonel Şablonlar",
-        description: "16+ farklı şablon arasından markanıza uygun olanı seçin."
-    },
-    {
-        icon: QrCode,
-        title: "QR Kod",
-        description: "Her katalog için otomatik QR kod oluşturma."
-    },
-    {
-        icon: BarChart3,
-        title: "Detaylı Analitik",
-        description: "Görüntülenme ve etkileşim verilerini takip edin."
-    },
-    {
-        icon: Share2,
-        title: "Kolay Paylaşım",
-        description: "Tek tıkla WhatsApp veya sosyal medyada paylaşın."
-    },
-    {
-        icon: Download,
-        title: "PDF Dışa Aktarma",
-        description: "Kataloglarınızı PDF olarak indirin."
-    },
-    {
-        icon: FileText,
-        title: "Excel Import",
-        description: "Ürünlerinizi Excel'den toplu olarak içe aktarın."
-    },
-    {
-        icon: Palette,
-        title: "Marka Özelleştirme",
-        description: "Logo ve renklerinizi ekleyin."
-    },
-    {
-        icon: Smartphone,
-        title: "Mobil Uyumlu",
-        description: "Tüm cihazlarda mükemmel görünüm."
-    }
-]
-
 export default function FeaturesPage() {
+    const { t } = useTranslation()
+
+    const features = [
+        {
+            icon: MousePointerClick,
+            title: t('featuresPage.dragDropTitle'),
+            description: t('featuresPage.dragDropDesc')
+        },
+        {
+            icon: Layers,
+            title: t('featuresPage.templatesTitle'),
+            description: t('featuresPage.templatesDesc')
+        },
+        {
+            icon: QrCode,
+            title: t('featuresPage.qrTitle'),
+            description: t('featuresPage.qrDesc')
+        },
+        {
+            icon: BarChart3,
+            title: t('featuresPage.analyticsTitle'),
+            description: t('featuresPage.analyticsDesc')
+        },
+        {
+            icon: Share2,
+            title: t('featuresPage.shareTitle'),
+            description: t('featuresPage.shareDesc')
+        },
+        {
+            icon: Download,
+            title: t('featuresPage.pdfTitle'),
+            description: t('featuresPage.pdfDesc')
+        },
+        {
+            icon: FileText,
+            title: t('featuresPage.excelTitle'),
+            description: t('featuresPage.excelDesc')
+        },
+        {
+            icon: Palette,
+            title: t('featuresPage.brandTitle'),
+            description: t('featuresPage.brandDesc')
+        },
+        {
+            icon: Smartphone,
+            title: t('featuresPage.mobileTitle'),
+            description: t('featuresPage.mobileDesc')
+        }
+    ]
+
     return (
         <div className="min-h-screen bg-slate-50">
             <PublicHeader />
@@ -77,10 +77,10 @@ export default function FeaturesPage() {
                 {/* Hero */}
                 <div className="max-w-4xl mx-auto px-6 text-center mb-20">
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-4">
-                        Özellikler
+                        {t('featuresPage.title')}
                     </h1>
                     <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-                        Profesyonel kataloglar oluşturmak için ihtiyacınız olan tüm araçlar.
+                        {t('featuresPage.subtitle')}
                     </p>
                 </div>
 
@@ -105,11 +105,11 @@ export default function FeaturesPage() {
                 {/* CTA */}
                 <div className="max-w-4xl mx-auto px-6 text-center">
                     <div className="bg-white rounded-2xl border border-slate-200 p-10">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-3">Hemen başlayın</h2>
-                        <p className="text-slate-500 mb-8">İlk kataloğunuzu birkaç dakika içinde oluşturun.</p>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-3">{t('featuresPage.ctaTitle')}</h2>
+                        <p className="text-slate-500 mb-8">{t('featuresPage.ctaDesc')}</p>
                         <Link href="/auth?tab=signup">
                             <Button className="bg-violet-600 hover:bg-violet-700 h-11 px-6">
-                                Ücretsiz Hesap Oluştur
+                                {t('featuresPage.ctaButton')}
                                 <ArrowRight className="ml-2 w-4 h-4" />
                             </Button>
                         </Link>

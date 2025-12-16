@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../services/supabase';
 import { getCache, setCache, deleteCache, cacheKeys, cacheTTL } from '../services/redis';
+import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req: Request) => (req as any).user.id;
@@ -59,6 +60,17 @@ export const createProduct = async (req: Request, res: Response) => {
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
 
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'product_created',
+            description: ActivityDescriptions.productCreated(name),
+            metadata: { productId: data.id, productName: name },
+            ipAddress,
+            userAgent
+        });
+
         res.status(201).json(data);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -113,6 +125,17 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'product_deleted',
+            description: 'Bir ürün sildi',
+            metadata: { productId: id },
+            ipAddress,
+            userAgent
+        });
 
         res.json({ success: true });
     } catch (error: any) {
@@ -189,6 +212,17 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'products_imported',
+            description: ActivityDescriptions.productsImported(data?.length || 0),
+            metadata: { count: data?.length || 0 },
+            ipAddress,
+            userAgent
+        });
 
         res.status(201).json(data);
     } catch (error: any) {

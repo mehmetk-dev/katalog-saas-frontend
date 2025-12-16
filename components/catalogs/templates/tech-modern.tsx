@@ -1,4 +1,5 @@
 import { TemplateProps } from "./types"
+import { useTranslation } from "@/lib/i18n-provider"
 
 // Tech Modern - Teknoloji ürünleri için koyu tema
 export function TechModernTemplate({
@@ -11,6 +12,7 @@ export function TechModernTemplate({
     totalPages = 1,
     columnsPerRow = 2,
 }: TemplateProps) {
+    const { t } = useTranslation()
     const safeProducts = products || []
 
     const getGridCols = () => {
@@ -29,8 +31,8 @@ export function TechModernTemplate({
                 <div className="flex items-center gap-4">
                     <div className="w-3 h-8 rounded-full" style={{ backgroundColor: primaryColor }} />
                     <div>
-                        <h1 className="font-bold tracking-tight">{catalogName || "Tech Catalog"}</h1>
-                        <p className="text-xs text-slate-500">Premium Products</p>
+                        <h1 className="font-bold tracking-tight">{catalogName || t('catalogs.techCatalog')}</h1>
+                        <p className="text-xs text-slate-500">{t('catalogs.premiumProducts')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -82,3 +84,4 @@ export function TechModernTemplate({
         </div>
     )
 }
+

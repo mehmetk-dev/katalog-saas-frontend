@@ -15,8 +15,10 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
+import { useTranslation } from "@/lib/i18n-provider"
 
 export function AdminDashboardClient() {
+    const { t } = useTranslation()
     const [stats, setStats] = useState({
         usersCount: 0,
         productsCount: 0,
@@ -29,6 +31,8 @@ export function AdminDashboardClient() {
     const [loading, setLoading] = useState(true)
     const [loadingUsers, setLoadingUsers] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const [activityLogs, setActivityLogs] = useState<any[]>([])
+    const [loadingLogs, setLoadingLogs] = useState(false)
 
     // Template States - Artık tüm şablonlar database'den
     const [templates, setTemplates] = useState<Template[]>([])
@@ -76,9 +80,9 @@ export function AdminDashboardClient() {
                 .getPublicUrl(filePath)
 
             setNewTemplate(prev => ({ ...prev, previewImage: data.publicUrl }))
-            toast.success("Görsel yüklendi")
+            toast.success(t('toasts.imageUploaded'))
         } catch (error: any) {
-            toast.error("Görsel yüklenemedi: " + error.message)
+            toast.error(t('toasts.imageUploadFailed') + ": " + error.message)
         } finally {
             setUploading(false)
         }
@@ -103,9 +107,36 @@ export function AdminDashboardClient() {
         }))
     }
 
+
+
+    const fetchActivityLogs = async () => {
+        setLoadingLogs(true)
+        try {
+            const { data, error } = await supabase
+                .from('activity_logs')
+                .select(`
+                    *,
+                    user:users(email)
+                `)
+                .order('created_at', { ascending: false })
+                .limit(50)
+
+            if (error) {
+                console.error('Error fetching logs:', error)
+            } else {
+                setActivityLogs(data || [])
+            }
+        } catch (error) {
+            console.error('Error:', error)
+        } finally {
+            setLoadingLogs(false)
+        }
+    }
+
     async function loadData() {
         try {
             setLoading(true)
+            fetchActivityLogs()
             const statsData = await getAdminStats()
             setStats(statsData)
 
@@ -121,7 +152,7 @@ export function AdminDashboardClient() {
             setLoadingUsers(false)
         } catch (error) {
             console.error("Failed to load admin data")
-            toast.error("Veriler yüklenemedi")
+            toast.error(t('toasts.errorOccurred'))
         } finally {
             setLoading(false)
         }
@@ -131,20 +162,20 @@ export function AdminDashboardClient() {
         try {
             await updateUserPlan(userId, newPlan)
             setUsers(users.map(u => u.id === userId ? { ...u, plan: newPlan } : u))
-            toast.success(`Kullanıcı planı ${newPlan.toUpperCase()} olarak güncellendi`)
+            toast.success(`${t('toasts.profileUpdated')} (${newPlan.toUpperCase()})`)
         } catch (error) {
-            toast.error("Plan güncellenemedi")
+            toast.error(t('toasts.profileUpdateFailed'))
         }
     }
 
     const handleAddTemplate = async () => {
         try {
             if (!newTemplate.componentName || !newTemplate.name) {
-                toast.error("Lütfen gerekli alanları doldurun")
+                toast.error(t('admin.requiredFields'))
                 return
             }
 
-            toast.loading("Şablon oluşturuluyor...")
+            toast.loading(t('admin.uploading'))
 
             await createTemplate({
                 ...newTemplate,
@@ -166,45 +197,45 @@ export function AdminDashboardClient() {
                 layout: "grid"
             })
             toast.dismiss()
-            toast.success("Şablon başarıyla oluşturuldu!")
+            toast.success(t('admin.added'))
         } catch (error: any) {
             toast.dismiss()
-            toast.error("Hata: " + error.message)
+            toast.error(t('toasts.errorOccurred') + ": " + error.message)
         }
     }
 
     const handleDeleteTemplate = async (id: string) => {
         const template = templates.find(t => t.id === id)
         if (template?.is_system) {
-            toast.error("Sistem şablonları silinemez!")
+            toast.error(t('admin.systemDeleteError'))
             return
         }
 
-        if (!confirm("Bu şablonu silmek istediğinize emin misiniz?")) return
+        if (!confirm(t('admin.deleteConfirm'))) return
 
         try {
-            toast.loading("Şablon siliniyor...")
+            toast.loading(t('common.deleting') || "Deleting...")
             await deleteTemplate(id)
             setTemplates(templates.filter(t => t.id !== id))
             toast.dismiss()
-            toast.success("Şablon silindi")
+            toast.success(t('admin.deleted'))
         } catch (error: any) {
             toast.dismiss()
-            toast.error("Hata: " + error.message)
+            toast.error(t('toasts.errorOccurred') + ": " + error.message)
         }
     }
 
     const handleUpdateTemplateImage = async (id: string, imageUrl: string) => {
         try {
-            toast.loading("Fotoğraf güncelleniyor...")
+            toast.loading(t('admin.uploading'))
             await updateTemplate(id, { previewImage: imageUrl })
             setTemplates(templates.map(t => t.id === id ? { ...t, preview_image: imageUrl } : t))
             setEditingTemplate(null)
             toast.dismiss()
-            toast.success("Fotoğraf güncellendi!")
+            toast.success(t('admin.imageUpdated'))
         } catch (error: any) {
             toast.dismiss()
-            toast.error("Hata: " + error.message)
+            toast.error(t('toasts.errorOccurred') + ": " + error.message)
         }
     }
 
@@ -216,7 +247,7 @@ export function AdminDashboardClient() {
         itemsPerPage: number
     }>) => {
         try {
-            toast.loading("Güncelleniyor...")
+            toast.loading(t('common.updating') || "Updating...")
             await updateTemplate(id, data)
 
             // Local state güncelle
@@ -234,10 +265,10 @@ export function AdminDashboardClient() {
 
             setEditingTemplate(null)
             toast.dismiss()
-            toast.success("Şablon güncellendi!")
+            toast.success(t('admin.updated'))
         } catch (error: any) {
             toast.dismiss()
-            toast.error("Hata: " + error.message)
+            toast.error(t('toasts.errorOccurred') + ": " + error.message)
         }
     }
 
@@ -253,7 +284,7 @@ export function AdminDashboardClient() {
         return <div className="p-8 flex items-center justify-center min-h-[50vh]">
             <div className="flex flex-col items-center gap-4">
                 <Activity className="w-8 h-8 animate-spin text-primary" />
-                <p>Admin paneli yükleniyor...</p>
+                <p>{t('common.loading')}</p>
             </div>
         </div>
     }
@@ -262,23 +293,24 @@ export function AdminDashboardClient() {
         <div className="space-y-8 p-8 max-w-7xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Admin Paneli</h1>
-                    <p className="text-muted-foreground">Sistem yönetimi ve istatistikler</p>
+                    <h1 className="text-3xl font-bold tracking-tight">{t('admin.title')}</h1>
+                    <p className="text-muted-foreground">{t('admin.subtitle')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={loadData}>
                         <Activity className="w-4 h-4 mr-2" />
-                        Yenile
+                        {t('common.reload')}
                     </Button>
                 </div>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
                 <TabsList className="bg-muted/50 p-1">
-                    <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
-                    <TabsTrigger value="users">Müşteriler ({users.length})</TabsTrigger>
-                    <TabsTrigger value="deleted">Silinen Kullanıcılar ({deletedUsers.length})</TabsTrigger>
-                    <TabsTrigger value="templates">Şablonlar ({templates.length})</TabsTrigger>
+                    <TabsTrigger value="overview">{t('admin.overview')}</TabsTrigger>
+                    <TabsTrigger value="users">{t('admin.users')} ({users.length})</TabsTrigger>
+                    <TabsTrigger value="deleted">{t('admin.deletedUsers')} ({deletedUsers.length})</TabsTrigger>
+                    <TabsTrigger value="templates">{t('admin.templates')} ({templates.length})</TabsTrigger>
+                    <TabsTrigger value="activity">Aktivite Logları</TabsTrigger>
                 </TabsList>
 
                 {/* OVERVIEW TAB */}
@@ -286,42 +318,42 @@ export function AdminDashboardClient() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Toplam Kullanıcı</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('admin.totalUsers')}</CardTitle>
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.usersCount}</div>
-                                <p className="text-xs text-muted-foreground">Sistemdeki kayıtlı hesaplar</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.totalUsersDesc')}</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Toplam Ürün</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('admin.totalProducts')}</CardTitle>
                                 <Package className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.productsCount}</div>
-                                <p className="text-xs text-muted-foreground">Tüm kullanıcıların ürünleri</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.totalProductsDesc')}</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Toplam Katalog</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('admin.totalCatalogs')}</CardTitle>
                                 <FileText className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.catalogsCount}</div>
-                                <p className="text-xs text-muted-foreground">Oluşturulan kataloglar</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.totalCatalogsDesc')}</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">İndirme Sayısı</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('admin.downloads')}</CardTitle>
                                 <Download className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.totalExports}</div>
-                                <p className="text-xs text-muted-foreground">Toplam PDF çıktısı</p>
+                                <p className="text-xs text-muted-foreground">{t('admin.downloadsDesc')}</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -333,13 +365,13 @@ export function AdminDashboardClient() {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle>Müşteri Listesi</CardTitle>
-                                    <CardDescription>Kayıtlı kullanıcıları yönetin ve planlarını düzenleyin.</CardDescription>
+                                    <CardTitle>{t('admin.userList')}</CardTitle>
+                                    <CardDescription>{t('admin.userListDesc')}</CardDescription>
                                 </div>
                                 <div className="relative w-64">
                                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="İsim veya Email ara..."
+                                        placeholder={t('admin.searchPlaceholder')}
                                         className="pl-8"
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
@@ -351,19 +383,19 @@ export function AdminDashboardClient() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Kullanıcı</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Kayıt Tarihi</TableHead>
-                                        <TableHead>Yenilenme Tarihi</TableHead>
-                                        <TableHead>Durum</TableHead>
-                                        <TableHead>Mevcut Plan</TableHead>
-                                        <TableHead className="text-right">İşlemler</TableHead>
+                                        <TableHead>{t('admin.user')}</TableHead>
+                                        <TableHead>{t('admin.email')}</TableHead>
+                                        <TableHead>{t('admin.registerDate')}</TableHead>
+                                        <TableHead>{t('admin.renewalDate')}</TableHead>
+                                        <TableHead>{t('admin.status')}</TableHead>
+                                        <TableHead>{t('admin.currentPlan')}</TableHead>
+                                        <TableHead className="text-right">{t('common.actions')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredUsers.map((user) => (
                                         <TableRow key={user.id}>
-                                            <TableCell className="font-medium">{user.full_name || "İsimsiz"}</TableCell>
+                                            <TableCell className="font-medium">{user.full_name || "Isimsiz"}</TableCell>
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>{new Date(user.created_at).toLocaleDateString("tr-TR")}</TableCell>
                                             <TableCell>
@@ -373,7 +405,7 @@ export function AdminDashboardClient() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant={user.subscription_status === 'active' ? 'outline' : 'destructive'} className={user.subscription_status === 'active' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : ''}>
-                                                    {user.subscription_status === 'active' ? 'Aktif' : 'Pasif'}
+                                                    {user.subscription_status === 'active' ? t('common.active') : t('common.passive')}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -404,7 +436,7 @@ export function AdminDashboardClient() {
                                     {filteredUsers.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                                Kullanıcı bulunamadı.
+                                                {t('admin.noUsersFound')}
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -421,10 +453,10 @@ export function AdminDashboardClient() {
                             <div>
                                 <CardTitle className="flex items-center gap-2">
                                     <Trash2 className="w-5 h-5 text-destructive" />
-                                    Silinen Kullanıcılar
+                                    {t('admin.deletedUsers')}
                                 </CardTitle>
                                 <CardDescription>
-                                    Hesabını silen kullanıcıların arşivi. Bu veriler geri yüklenemez.
+                                    {t('admin.deletedUsersDesc')}
                                 </CardDescription>
                             </div>
                         </CardHeader>
@@ -432,24 +464,24 @@ export function AdminDashboardClient() {
                             {deletedUsers.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">
                                     <Trash2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                                    <p>Henüz silinen kullanıcı yok.</p>
+                                    <p>{t('admin.noDeletedUsers')}</p>
                                 </div>
                             ) : (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Kullanıcı</TableHead>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Plan</TableHead>
-                                            <TableHead>Kayıt Tarihi</TableHead>
-                                            <TableHead>Silinme Tarihi</TableHead>
-                                            <TableHead>Silen</TableHead>
+                                            <TableHead>{t('admin.user')}</TableHead>
+                                            <TableHead>{t('admin.email')}</TableHead>
+                                            <TableHead>{t('admin.layout')}</TableHead>
+                                            <TableHead>{t('admin.registerDate')}</TableHead>
+                                            <TableHead>{t('admin.deletionDate')}</TableHead>
+                                            <TableHead>{t('admin.deletedBy')}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {deletedUsers.map((user) => (
                                             <TableRow key={user.id} className="opacity-70">
-                                                <TableCell className="font-medium">{user.full_name || "İsimsiz"}</TableCell>
+                                                <TableCell className="font-medium">{user.full_name || "Isimsiz"}</TableCell>
                                                 <TableCell>{user.email}</TableCell>
                                                 <TableCell>
                                                     <Badge variant="outline">{(user.plan || 'Free').toUpperCase()}</Badge>
@@ -464,7 +496,7 @@ export function AdminDashboardClient() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant={user.deleted_by === 'admin' ? 'destructive' : 'secondary'}>
-                                                        {user.deleted_by === 'admin' ? 'Admin' : 'Kullanıcı'}
+                                                        {user.deleted_by === 'admin' ? t('admin.admin') : t('admin.user')}
                                                     </Badge>
                                                 </TableCell>
                                             </TableRow>
@@ -482,29 +514,29 @@ export function AdminDashboardClient() {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle>Şablon Yönetimi</CardTitle>
+                                    <CardTitle>{t('admin.templateManagement')}</CardTitle>
                                     <CardDescription>
-                                        Tüm katalog şablonlarını tek yerden yönetin. Fotoğrafları güncellemek için düzenle butonuna tıklayın.
+                                        {t('admin.templateManagementDesc')}
                                     </CardDescription>
                                 </div>
                                 <Dialog open={newTemplateOpen} onOpenChange={setNewTemplateOpen}>
                                     <DialogTrigger asChild>
                                         <Button className="gap-2">
                                             <Plus className="w-4 h-4" />
-                                            Yeni Şablon Ekle
+                                            {t('admin.addTemplate')}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-lg">
                                         <DialogHeader>
-                                            <DialogTitle>Yeni Şablon Ekle</DialogTitle>
+                                            <DialogTitle>{t('admin.addTemplate')}</DialogTitle>
                                             <DialogDescription>
-                                                Yeni bir katalog şablonu oluşturun.
+                                                {t('admin.newTemplateDesc')}
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label>Şablon Adı *</Label>
+                                                    <Label>{t('admin.templateName')} *</Label>
                                                     <Input
                                                         placeholder="Örn: Modern Minimal"
                                                         value={newTemplate.name}
@@ -512,7 +544,7 @@ export function AdminDashboardClient() {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label>ID (Opsiyonel)</Label>
+                                                    <Label>ID ({t('common.active')})</Label>
                                                     <Input
                                                         placeholder="otomatik-olusturulur"
                                                         value={newTemplate.id}
@@ -522,16 +554,16 @@ export function AdminDashboardClient() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label>Açıklama</Label>
+                                                <Label>{t('admin.description')}</Label>
                                                 <Input
-                                                    placeholder="Kısa açıklama..."
+                                                    placeholder={t('admin.description')}
                                                     value={newTemplate.description}
                                                     onChange={e => setNewTemplate({ ...newTemplate, description: e.target.value })}
                                                 />
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label>Önizleme Fotoğrafı</Label>
+                                                <Label>{t('admin.previewImage')}</Label>
 
                                                 {/* File Upload */}
                                                 <Input
@@ -543,7 +575,7 @@ export function AdminDashboardClient() {
                                                 />
 
                                                 {/* URL Input */}
-                                                <div className="text-xs text-muted-foreground">veya URL yapıştır:</div>
+                                                <div className="text-xs text-muted-foreground">{t('admin.urlOrUpload')}</div>
                                                 <Input
                                                     placeholder="/templates/my-template.png veya https://..."
                                                     value={newTemplate.previewImage?.startsWith('data:') ? '' : newTemplate.previewImage}
@@ -551,7 +583,7 @@ export function AdminDashboardClient() {
                                                     disabled={uploading}
                                                 />
 
-                                                {uploading && <div className="text-sm text-blue-500 animate-pulse">Yükleniyor...</div>}
+                                                {uploading && <div className="text-sm text-blue-500 animate-pulse">{t('admin.uploading')}</div>}
 
                                                 {newTemplate.previewImage && !uploading && (
                                                     <div className="mt-2 aspect-video relative rounded-lg overflow-hidden border bg-muted group">
@@ -575,7 +607,7 @@ export function AdminDashboardClient() {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label>Component İsmi *</Label>
+                                                    <Label>{t('admin.componentName')} *</Label>
                                                     <Input
                                                         placeholder="Örn: MyNewTemplate"
                                                         value={newTemplate.componentName}
@@ -583,7 +615,7 @@ export function AdminDashboardClient() {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label>Sayfa Başına Ürün</Label>
+                                                    <Label>{t('admin.itemsPerPage')}</Label>
                                                     <Input
                                                         type="number"
                                                         value={newTemplate.itemsPerPage}
@@ -594,7 +626,7 @@ export function AdminDashboardClient() {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label>Paket Tipi</Label>
+                                                    <Label>{t('admin.packageType')}</Label>
                                                     <Select
                                                         value={newTemplate.isPro ? "pro" : "free"}
                                                         onValueChange={v => setNewTemplate({ ...newTemplate, isPro: v === "pro" })}
@@ -603,13 +635,13 @@ export function AdminDashboardClient() {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="free">Ücretsiz (Free)</SelectItem>
-                                                            <SelectItem value="pro">Premium (Pro)</SelectItem>
+                                                            <SelectItem value="free">{t('common.freePlan')}</SelectItem>
+                                                            <SelectItem value="pro">{t('common.proPackage')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label>Layout</Label>
+                                                    <Label>{t('admin.layout')}</Label>
                                                     <Select
                                                         value={newTemplate.layout}
                                                         onValueChange={v => setNewTemplate({ ...newTemplate, layout: v })}
@@ -618,18 +650,18 @@ export function AdminDashboardClient() {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="grid">Grid</SelectItem>
-                                                            <SelectItem value="list">List</SelectItem>
-                                                            <SelectItem value="magazine">Magazine</SelectItem>
+                                                            <SelectItem value="grid">{t('admin.grid')}</SelectItem>
+                                                            <SelectItem value="list">{t('admin.list')}</SelectItem>
+                                                            <SelectItem value="magazine">{t('admin.magazine')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
                                             </div>
                                         </div>
                                         <DialogFooter>
-                                            <Button variant="outline" onClick={() => setNewTemplateOpen(false)} disabled={uploading}>İptal</Button>
+                                            <Button variant="outline" onClick={() => setNewTemplateOpen(false)} disabled={uploading}>{t('common.cancel')}</Button>
                                             <Button onClick={handleAddTemplate} disabled={uploading}>
-                                                {uploading ? 'Yükleniyor...' : 'Ekle'}
+                                                {uploading ? t('common.loading') : t('common.create')}
                                             </Button>
                                         </DialogFooter>
                                     </DialogContent>
@@ -641,7 +673,7 @@ export function AdminDashboardClient() {
                             <div>
                                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                     <FileText className="w-5 h-5" />
-                                    Sistem Şablonları
+                                    {t('admin.systemTemplates')}
                                     <Badge variant="secondary" className="ml-2">{systemTemplates.length}</Badge>
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -661,14 +693,14 @@ export function AdminDashboardClient() {
                             <div>
                                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                     <Plus className="w-5 h-5" />
-                                    Özel Şablonlar
+                                    {t('admin.customTemplates')}
                                     <Badge variant="outline" className="ml-2">{customTemplates.length}</Badge>
                                 </h3>
                                 {customTemplates.length === 0 ? (
                                     <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
                                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                                        <p>Henüz özel şablon eklenmemiş.</p>
-                                        <p className="text-sm mt-1">"Yeni Şablon Ekle" butonuyla başlayın.</p>
+                                        <p>{t('admin.noCustomTemplates')}</p>
+                                        <p className="text-sm mt-1">"{t('admin.addTemplate')}"...</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -687,15 +719,75 @@ export function AdminDashboardClient() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {/* ACTIVITY LOGS TAB */}
+                <TabsContent value="activity" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="w-5 h-5" />
+                                Aktivite Logları
+                            </CardTitle>
+                            <CardDescription>
+                                Tüm kullanıcı aktivitelerini buradan takip edebilirsiniz
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {loadingLogs ? (
+                                <div className="text-center py-8">Yükleniyor...</div>
+                            ) : activityLogs.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                                    <p>Henüz aktivite kaydı bulunmuyor.</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tarih</TableHead>
+                                            <TableHead>Kullanıcı</TableHead>
+                                            <TableHead>İşlem</TableHead>
+                                            <TableHead>Detay</TableHead>
+                                            <TableHead>IP</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {activityLogs.map((log) => (
+                                            <TableRow key={log.id}>
+                                                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                                    {new Date(log.created_at).toLocaleString('tr-TR')}
+                                                </TableCell>
+                                                <TableCell className="font-medium text-xs">
+                                                    {log.user?.email || 'Anonim'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {log.action}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-xs max-w-[200px] truncate" title={JSON.stringify(log.details, null, 2)}>
+                                                    {log.details ? JSON.stringify(log.details) : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {log.ip_address || '-'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
 
             {/* Edit Template Dialog */}
             <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && setEditingTemplate(null)}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Şablon Düzenle: {editingTemplate?.name}</DialogTitle>
+                        <DialogTitle>{t('admin.editTemplate')}: {editingTemplate?.name}</DialogTitle>
                         <DialogDescription>
-                            Şablon bilgilerini ve önizleme fotoğrafını güncelleyin.
+                            {t('admin.editTemplateDesc')}
                         </DialogDescription>
                     </DialogHeader>
                     {editingTemplate && (
@@ -711,6 +803,7 @@ export function AdminDashboardClient() {
     )
 }
 
+
 // Template Kartı Componenti
 function TemplateCard({
     template,
@@ -723,6 +816,7 @@ function TemplateCard({
     onDelete: () => void
     isSystem: boolean
 }) {
+    const { t } = useTranslation()
     return (
         <div className={`group relative border rounded-lg overflow-hidden bg-card hover:shadow-md transition-all ${isSystem ? '' : 'border-violet-200'}`}>
             <div className="aspect-[4/3] bg-muted relative">
@@ -745,12 +839,12 @@ function TemplateCard({
                 )}
                 <div className="absolute top-2 right-2 flex gap-1">
                     <Badge variant={template.is_pro ? "default" : "secondary"}>
-                        {template.is_pro ? "PRO" : "FREE"}
+                        {template.is_pro ? t('plans.pro') : t('plans.free')}
                     </Badge>
                 </div>
                 {!isSystem && (
                     <Badge variant="outline" className="absolute top-2 left-2 bg-white/80 text-violet-600 border-violet-300">
-                        Custom
+                        {t('admin.custom')}
                     </Badge>
                 )}
             </div>
@@ -758,12 +852,12 @@ function TemplateCard({
                 <h3 className="font-semibold">{template.name}</h3>
                 <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{template.description}</p>
                 <p className="text-xs text-muted-foreground/60 mt-2">
-                    ID: {template.id} • {template.items_per_page} ürün/sayfa
+                    ID: {template.id} • {template.items_per_page} {t('admin.itemsPerPageShort')}
                 </p>
                 <div className="flex items-center gap-2 mt-4">
                     <Button variant="outline" size="sm" className="flex-1" onClick={onEdit}>
                         <Edit className="w-3 h-3 mr-2" />
-                        Düzenle
+                        {t('common.edit')}
                     </Button>
                     {!isSystem && (
                         <Button variant="destructive" size="sm" onClick={onDelete}>
@@ -792,6 +886,7 @@ function EditTemplateForm({
     }>) => void
     onCancel: () => void
 }) {
+    const { t } = useTranslation()
     const [formData, setFormData] = useState({
         name: template.name,
         description: template.description || "",
@@ -832,9 +927,9 @@ function EditTemplateForm({
             // URL düzeltme (gerekirse bucket adını kontrol et)
             // Basitlik için product-images varsayıyoruz
             setFormData({ ...formData, previewImage: data.publicUrl })
-            toast.success("Görsel yüklendi")
+            toast.success(t('toasts.imageUploaded'))
         } catch (error: any) {
-            toast.error("Görsel yüklenemedi: " + error.message)
+            toast.error(t('toasts.imageUploadFailed') + ": " + error.message)
         } finally {
             setUploading(false)
         }
@@ -843,7 +938,7 @@ function EditTemplateForm({
     return (
         <div className="space-y-4 py-4">
             <div className="space-y-2">
-                <Label>Şablon Adı</Label>
+                <Label>{t('admin.templateName')}</Label>
                 <Input
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -851,7 +946,7 @@ function EditTemplateForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Açıklama</Label>
+                <Label>{t('admin.description')}</Label>
                 <Input
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -859,7 +954,7 @@ function EditTemplateForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Önizleme Fotoğrafı</Label>
+                <Label>{t('admin.previewImage')}</Label>
 
                 {/* File Upload */}
                 <div className="flex gap-2">
@@ -876,7 +971,7 @@ function EditTemplateForm({
 
                 {/* URL Input */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>veya URL yapıştır:</span>
+                    <span>{t('admin.urlOrUpload')}</span>
                 </div>
                 <Input
                     placeholder="/templates/example.png veya https://..."
@@ -885,7 +980,7 @@ function EditTemplateForm({
                     disabled={uploading}
                 />
 
-                {uploading && <div className="text-sm text-blue-500 animate-pulse">Yükleniyor...</div>}
+                {uploading && <div className="text-sm text-blue-500 animate-pulse">{t('admin.uploading')}</div>}
 
                 {formData.previewImage && !uploading && (
                     <div className="mt-2 aspect-video relative rounded-lg overflow-hidden border bg-muted group">
@@ -898,7 +993,7 @@ function EditTemplateForm({
                             }}
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                            <span className="text-sm font-medium">Önizleme</span>
+                            <span className="text-sm font-medium">{t('common.preview')}</span>
                         </div>
                         <Button
                             type="button"
@@ -915,7 +1010,7 @@ function EditTemplateForm({
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label>Paket Tipi</Label>
+                    <Label>{t('admin.packageType')}</Label>
                     <Select
                         value={formData.isPro ? "pro" : "free"}
                         onValueChange={v => setFormData({ ...formData, isPro: v === "pro" })}
@@ -924,13 +1019,13 @@ function EditTemplateForm({
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="free">Ücretsiz (Free)</SelectItem>
-                            <SelectItem value="pro">Premium (Pro)</SelectItem>
+                            <SelectItem value="free">{t('common.freePlan')}</SelectItem>
+                            <SelectItem value="pro">{t('common.proPackage')}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label>Sayfa Başına Ürün</Label>
+                    <Label>{t('admin.itemsPerPage')}</Label>
                     <Input
                         type="number"
                         value={formData.itemsPerPage}
@@ -942,11 +1037,11 @@ function EditTemplateForm({
             <DialogFooter className="mt-6">
                 <Button variant="outline" onClick={onCancel} disabled={uploading}>
                     <X className="w-4 h-4 mr-2" />
-                    İptal
+                    {t('common.cancel')}
                 </Button>
                 <Button onClick={() => onSave(formData)} disabled={uploading}>
                     <Save className="w-4 h-4 mr-2" />
-                    {uploading ? 'Yükleniyor...' : 'Kaydet'}
+                    {uploading ? t('common.loading') : t('common.save')}
                 </Button>
             </DialogFooter>
         </div>

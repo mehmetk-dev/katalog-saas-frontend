@@ -5,6 +5,7 @@ import Link from "next/link"
 import { AuthForm } from "@/components/auth/auth-form"
 import { OnboardingModal } from "@/components/auth/onboarding-modal"
 import { BookOpen, Loader2 } from "lucide-react"
+import { useTranslation } from "@/lib/i18n-provider"
 
 function AuthContent({ onSignUpComplete }: { onSignUpComplete: () => void }) {
     return <AuthForm onSignUpComplete={onSignUpComplete} />
@@ -20,6 +21,7 @@ function AuthLoading() {
 
 export function AuthPageClient() {
     const [showOnboarding, setShowOnboarding] = useState(false)
+    const { t } = useTranslation()
 
     const handleSignUpComplete = () => {
         setShowOnboarding(true)
@@ -50,10 +52,10 @@ export function AuthPageClient() {
                     <div className="space-y-6">
                         <blockquote className="space-y-2">
                             <p className="text-lg font-medium leading-relaxed">
-                                "CatalogPro ile ürünlerimizi müşterilerimize sunmak hiç bu kadar kolay olmamıştı. Profesyonel şablonlar işimizi bir üst seviyeye taşıdı."
+                                {t('auth.testimonialQuote')}
                             </p>
                             <footer className="text-sm text-white/80">
-                                Ahmet Yılmaz, <cite className="not-italic">TechStore Kurucusu</cite>
+                                <cite className="not-italic">{t('auth.testimonialAuthor')}</cite>
                             </footer>
                         </blockquote>
                     </div>
@@ -61,15 +63,15 @@ export function AuthPageClient() {
             </div>
 
             {/* Right side - Auth Form */}
-            <div className="flex-1 flex items-center justify-center p-8 bg-background animate-in fade-in slide-in-from-right-4 duration-700">
-                <div className="w-full max-w-sm space-y-6">
+            <div className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-background animate-in fade-in slide-in-from-right-4 duration-700">
+                <div className="w-full max-w-sm space-y-4 sm:space-y-6">
                     {/* Mobile Logo */}
-                    <div className="lg:hidden flex justify-center mb-8">
+                    <div className="lg:hidden flex justify-center mb-4 sm:mb-8">
                         <Link href="/" className="flex items-center gap-2">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                <BookOpen className="w-6 h-6 text-primary" />
+                            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+                                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                             </div>
-                            <span className="text-xl font-bold">CatalogPro</span>
+                            <span className="text-lg sm:text-xl font-bold">CatalogPro</span>
                         </Link>
                     </div>
 

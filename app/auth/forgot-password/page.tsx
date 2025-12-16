@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Loader2, Mail, CheckCircle2 } from "lucide-react"
+import { useTranslation } from "@/lib/i18n-provider"
 
 const SITE_URL = "https://v0-katalogyap.vercel.app"
 
@@ -18,6 +19,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const { t } = useTranslation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,7 +37,7 @@ export default function ForgotPasswordPage() {
 
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bir hata oluştu")
+      setError(err instanceof Error ? err.message : t("common.error"))
     } finally {
       setIsLoading(false)
     }
@@ -49,17 +51,17 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">E-posta Gönderildi</CardTitle>
-            <CardDescription className="text-base">Şifre sıfırlama linki e-posta adresinize gönderildi</CardDescription>
+            <CardTitle className="text-2xl">{t("auth.emailSentTitle")}</CardTitle>
+            <CardDescription className="text-base">{t("auth.emailSentDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-center text-sm text-muted-foreground">
-              <strong>{email}</strong> adresine şifre sıfırlama linki gönderdik. Lütfen gelen kutunuzu kontrol edin.
+              {t("auth.emailSentText", { email })}
             </p>
             <Link href="/auth">
               <Button variant="outline" className="w-full bg-transparent">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Giriş Sayfasına Dön
+                {t("auth.backToLogin")}
               </Button>
             </Link>
           </CardContent>
@@ -75,9 +77,9 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-violet-600" />
           </div>
-          <CardTitle className="text-2xl">Şifremi Unuttum</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.forgotPasswordTitle")}</CardTitle>
           <CardDescription className="text-base">
-            E-posta adresinizi girin, size şifre sıfırlama linki gönderelim
+            {t("auth.forgotPasswordSubtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,7 +91,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-posta</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -103,13 +105,13 @@ export default function ForgotPasswordPage() {
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Sıfırlama Linki Gönder
+              {t("auth.sendResetLink")}
             </Button>
 
             <Link href="/auth">
               <Button variant="ghost" className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Giriş Sayfasına Dön
+                {t("auth.backToLogin")}
               </Button>
             </Link>
           </form>

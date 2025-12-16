@@ -31,6 +31,7 @@ import { toast } from "sonner"
 import { CatalogPreview } from "./catalog-preview"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { useTranslation } from "@/lib/i18n-provider"
 
 interface Catalog {
   id: string
@@ -71,6 +72,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const maxCatalogs = CATALOG_LIMITS[userPlan]
   const isAtLimit = catalogs.length >= maxCatalogs
   const isFreeUser = userPlan === "free"
+  const { t } = useTranslation()
 
   const filteredCatalogs = catalogs.filter(
     (catalog) =>
@@ -84,9 +86,9 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
     const result = await deleteCatalog(deleteId)
     if (result.success) {
       setCatalogs(catalogs.filter((c) => c.id !== deleteId))
-      toast.success("Katalog silindi")
+      toast.success(t('toasts.catalogDeleted'))
     } else {
-      toast.error((result as any).error || "Silinemedi")
+      toast.error((result as any).error || t('catalogs.deleteFailed'))
     }
     setDeleteId(null)
   }
@@ -94,7 +96,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const copyShareLink = (slug: string) => {
     const url = `${window.location.origin}/catalog/${slug}`
     navigator.clipboard.writeText(url)
-    toast.success("Link kopyalandı!")
+    toast.success(t('toasts.linkCopied'))
   }
 
   const handleNewCatalog = () => {
@@ -108,12 +110,12 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Kataloglarım</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">{t("catalogs.title")}</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Oluşturduğunuz tüm katalogları yönetin
+            {t("catalogs.subtitle")}
             {isFreeUser && (
               <Badge variant="secondary" className="ml-2 font-normal">
-                {catalogs.length}/{maxCatalogs} katalog
+                {t("catalogs.catalogCount", { count: catalogs.length, max: maxCatalogs })}
               </Badge>
             )}
           </p>
@@ -121,13 +123,13 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
         {isAtLimit ? (
           <Button onClick={handleNewCatalog} className="w-full sm:w-auto gap-2">
             <Lock className="w-4 h-4" />
-            Yeni Katalog
+            {t("catalogs.createNew")}
           </Button>
         ) : (
           <Button asChild className="w-full sm:w-auto">
             <Link href="/dashboard/builder">
               <Plus className="w-4 h-4 mr-2" />
-              Yeni Katalog
+              {t("catalogs.createNew")}
             </Link>
           </Button>
         )}
@@ -142,15 +144,15 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <Lock className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">Katalog limitine ulaştınız</p>
-                <p className="text-sm text-gray-500">Free planda 1 katalog oluşturabilirsiniz</p>
+                <p className="font-semibold text-gray-900">{t("catalogs.limitReached")}</p>
+                <p className="text-sm text-gray-500">{t("catalogs.limitDesc")}</p>
               </div>
             </div>
             <Button
               onClick={() => setShowUpgradeModal(true)}
               className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
             >
-              Planı Yükselt
+              {t("catalogs.upgradePlan")}
             </Button>
           </CardContent>
         </Card>
@@ -161,7 +163,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
         <div className="relative flex-1 max-w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Katalog ara..."
+            placeholder={t("catalogs.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -176,10 +178,10 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mb-3 sm:mb-4">
               <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold mb-1 text-sm sm:text-base">Henüz katalog yok</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 text-center">İlk katalogumu oluşturmak için başla</p>
+            <h3 className="font-semibold mb-1 text-sm sm:text-base">{t("catalogs.noCatalogsYet")}</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 text-center">{t("catalogs.createFirstDesc")}</p>
             <Button asChild className="w-full sm:w-auto">
-              <Link href="/dashboard/builder">Katalog Oluştur</Link>
+              <Link href="/dashboard/builder">{t("catalogs.createCatalog")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -206,7 +208,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                       <Button variant="secondary" size="default" className="rounded-full px-4 sm:px-8 font-semibold shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300" asChild>
                         <Link href={`/dashboard/builder?id=${catalog.id}`}>
                           <Pencil className="w-4 h-4 mr-2" />
-                          Düzenle
+                          {t("catalogs.edit")}
                         </Link>
                       </Button>
                     </div>
@@ -219,7 +221,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                         <Link href={`/dashboard/builder?id=${catalog.id}`} className="hover:underline">
                           <h3 className="font-semibold truncate text-sm sm:text-base text-gray-900">{catalog.name}</h3>
                         </Link>
-                        <p className="text-xs sm:text-sm text-gray-500 truncate">{catalog.description || "Açıklama yok"}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">{catalog.description || t("catalogs.noDescription")}</p>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -231,7 +233,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                           <DropdownMenuItem asChild>
                             <Link href={`/dashboard/builder?id=${catalog.id}`}>
                               <Pencil className="w-4 h-4 mr-2" />
-                              Düzenle
+                              {t("catalogs.edit")}
                             </Link>
                           </DropdownMenuItem>
                           {catalog.is_published && catalog.share_slug && (
@@ -239,22 +241,22 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                               <DropdownMenuItem asChild>
                                 <Link href={`/catalog/${catalog.share_slug}`} target="_blank">
                                   <Eye className="w-4 h-4 mr-2" />
-                                  Görüntüle
+                                  {t("catalogs.view")}
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => copyShareLink(catalog.share_slug!)}>
                                 <Share2 className="w-4 h-4 mr-2" />
-                                Linki Kopyala
+                                {t("catalogs.copyLink")}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setQrCatalog({ name: catalog.name, slug: catalog.share_slug! })}>
                                 <QrCode className="w-4 h-4 mr-2" />
-                                QR Kod
+                                {t("catalogs.qrCode")}
                               </DropdownMenuItem>
                             </>
                           )}
                           <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(catalog.id)}>
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Sil
+                            {t("catalogs.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -262,9 +264,9 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
 
                     <div className="flex items-center gap-2 mt-2 sm:mt-3 flex-wrap">
                       <Badge variant={catalog.is_published ? "default" : "secondary"} className="rounded-sm font-normal text-xs">
-                        {catalog.is_published ? "Yayında" : "Taslak"}
+                        {catalog.is_published ? t("catalogs.published") : t("catalogs.draft")}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{catalog.product_ids?.length || 0} ürün</span>
+                      <span className="text-xs text-muted-foreground">{catalog.product_ids?.length || 0} {t("catalogs.products")}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -277,13 +279,13 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">Katalogu silmek istediğinize emin misiniz?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">Bu işlem geri alınamaz. Katalog kalıcı olarak silinecektir.</AlertDialogDescription>
+            <AlertDialogTitle className="text-base sm:text-lg">{t("catalogs.deleteConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">{t("catalogs.deleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">İptal</AlertDialogCancel>
+            <AlertDialogCancel className="w-full sm:w-auto">{t("catalogs.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto bg-destructive text-destructive-foreground">
-              Sil
+              {t("catalogs.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -303,8 +305,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <Lock className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Limite Ulaştınız</h2>
-                <p className="text-white/80 text-sm mt-1">Daha fazlası için planınızı yükseltin</p>
+                <h2 className="text-xl font-bold">{t("catalogs.limitReached")}</h2>
+                <p className="text-white/80 text-sm mt-1">{t("catalogs.limitModalDesc")}</p>
               </div>
             </div>
           </div>
@@ -314,18 +316,18 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             {/* Current Plan - Free */}
             <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border-2 border-gray-200 relative">
               <div className="absolute -top-2 right-3 px-2 py-0.5 bg-gray-500 text-white text-[10px] font-bold rounded-full">
-                MEVCUT
+                {t("catalogs.current")}
               </div>
               <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center text-xl">
                 📦
               </div>
               <div className="flex-1">
                 <span className="font-semibold text-gray-900">Free</span>
-                <p className="text-xs text-gray-500">Başlangıç planı</p>
+                <p className="text-xs text-gray-500">{t("catalogs.startPlan")}</p>
               </div>
               <div className="text-right">
                 <span className="text-lg font-bold text-gray-700">1</span>
-                <p className="text-xs text-gray-400">katalog</p>
+                <p className="text-xs text-gray-400">{t("catalogs.catalog")}</p>
               </div>
             </div>
 
@@ -340,18 +342,18 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                 </span>
-                ÖNERİLEN
+                {t("catalogs.recommended")}
               </div>
               <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-violet-500/30">
                 ⚡
               </div>
               <div className="flex-1">
                 <span className="font-bold text-violet-700">Plus</span>
-                <p className="text-xs text-violet-500">₺500/ay</p>
+                <p className="text-xs text-violet-500">{t("plans.pricePlus")}</p>
               </div>
               <div className="text-right">
                 <span className="text-lg font-bold text-violet-700">10</span>
-                <p className="text-xs text-violet-400">katalog</p>
+                <p className="text-xs text-violet-400">{t("catalogs.catalog")}</p>
               </div>
             </div>
 
@@ -366,11 +368,11 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
               </div>
               <div className="flex-1">
                 <span className="font-bold text-amber-700">Pro</span>
-                <p className="text-xs text-amber-500">₺1.000/ay</p>
+                <p className="text-xs text-amber-500">{t("plans.pricePro")}</p>
               </div>
               <div className="text-right">
                 <span className="text-lg font-bold text-amber-700">∞</span>
-                <p className="text-xs text-amber-400">sınırsız</p>
+                <p className="text-xs text-amber-400">{t("catalogs.unlimited")}</p>
               </div>
             </div>
           </div>
@@ -382,7 +384,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
               onClick={() => setShowLimitModal(false)}
               className="flex-1 text-gray-500 hover:text-gray-700"
             >
-              Daha Sonra
+              {t("catalogs.laterButton")}
             </Button>
             <Button
               onClick={() => {
@@ -391,7 +393,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
               }}
               className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
             >
-              Planları İncele
+              {t("catalogs.viewPlans")}
             </Button>
           </div>
         </DialogContent>
@@ -408,7 +410,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
                 <QrCode className="w-4 h-4 text-white" />
               </div>
-              Paylaş
+              {t("catalogs.share")}
             </DialogTitle>
             <DialogDescription className="text-xs">
               {qrCatalog?.name}
@@ -439,10 +441,10 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                   className="shrink-0 h-7 px-2"
                   onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/catalog/${qrCatalog.slug}`)
-                    toast.success("Link kopyalandı!")
+                    toast.success(t('toasts.linkCopied'))
                   }}
                 >
-                  Kopyala
+                  {t("common.copy")}
                 </Button>
               </div>
             )}
@@ -460,7 +462,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 }}
               >
                 <Eye className="w-3.5 h-3.5 mr-1.5" />
-                Görüntüle
+                {t("catalogs.view")}
               </Button>
               <Button
                 size="sm"
@@ -471,7 +473,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 }}
               >
                 <Download className="w-3.5 h-3.5 mr-1.5" />
-                QR İndir
+                {t("catalogs.downloadQr")}
               </Button>
             </div>
           </div>

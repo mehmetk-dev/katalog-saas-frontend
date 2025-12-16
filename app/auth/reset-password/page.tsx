@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Lock, CheckCircle2 } from "lucide-react"
+import { useTranslation } from "@/lib/i18n-provider"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -18,6 +19,7 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     // Check if user has a valid session from the reset link
@@ -39,12 +41,12 @@ export default function ResetPasswordPage() {
     setError(null)
 
     if (password !== confirmPassword) {
-      setError("Şifreler eşleşmiyor")
+      setError(t("auth.passwordMismatch"))
       return
     }
 
     if (password.length < 6) {
-      setError("Şifre en az 6 karakter olmalıdır")
+      setError(t("auth.passwordLength"))
       return
     }
 
@@ -64,7 +66,7 @@ export default function ResetPasswordPage() {
         router.push("/dashboard")
       }, 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Şifre güncellenirken bir hata oluştu")
+      setError(err instanceof Error ? err.message : t("auth.passwordUpdateError"))
     } finally {
       setIsLoading(false)
     }
@@ -78,9 +80,9 @@ export default function ResetPasswordPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">Şifre Güncellendi!</CardTitle>
+            <CardTitle className="text-2xl">{t("auth.passwordUpdatedTitle")}</CardTitle>
             <CardDescription className="text-base">
-              Şifreniz başarıyla değiştirildi. Panele yönlendiriliyorsunuz...
+              {t("auth.passwordUpdatedDesc")}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -95,8 +97,8 @@ export default function ResetPasswordPage() {
           <div className="mx-auto w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mb-4">
             <Lock className="w-8 h-8 text-violet-600" />
           </div>
-          <CardTitle className="text-2xl">Yeni Şifre Belirle</CardTitle>
-          <CardDescription className="text-base">Hesabınız için yeni bir şifre oluşturun</CardDescription>
+          <CardTitle className="text-2xl">{t("auth.resetPasswordTitle")}</CardTitle>
+          <CardDescription className="text-base">{t("auth.resetPasswordSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,7 +109,7 @@ export default function ResetPasswordPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">Yeni Şifre</Label>
+              <Label htmlFor="password">{t("auth.newPassword")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -118,11 +120,11 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
               />
-              <p className="text-xs text-muted-foreground">En az 6 karakter</p>
+              <p className="text-xs text-muted-foreground">{t("auth.passwordLength")}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Şifre Tekrar</Label>
+              <Label htmlFor="confirm-password">{t("auth.confirmPassword")}</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -136,7 +138,7 @@ export default function ResetPasswordPage() {
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Şifreyi Güncelle
+              {t("auth.updatePassword")}
             </Button>
           </form>
         </CardContent>

@@ -50,11 +50,11 @@ export default function SettingsPage() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      toast.error("Lütfen bir resim dosyası seçin")
+      toast.error(t('toasts.invalidImageFile'))
       return
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Dosya boyutu 2MB'dan küçük olmalı")
+      toast.error(t('toasts.imageSizeLimit', { size: 2 }))
       return
     }
 
@@ -69,11 +69,11 @@ export default function SettingsPage() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      toast.error("Lütfen bir resim dosyası seçin")
+      toast.error(t('toasts.invalidImageFile'))
       return
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Dosya boyutu 2MB'dan küçük olmalı")
+      toast.error(t('toasts.imageSizeLimit', { size: 2 }))
       return
     }
 
@@ -166,10 +166,10 @@ export default function SettingsPage() {
         setPreviewAvatarUrl(null)
         setPreviewLogoUrl(null)
 
-        toast.success("Profil başarıyla güncellendi")
+        toast.success(t('toasts.profileUpdated'))
       } catch (error: any) {
         console.error("Save profile error:", error)
-        let msg = "Profil güncellenemedi"
+        let msg = t('toasts.profileUpdateFailed')
         if (error?.message) msg += `: ${error.message}`
         toast.error(msg)
       } finally {
@@ -187,10 +187,10 @@ export default function SettingsPage() {
     setIsDeleting(true)
     try {
       await deleteAccount()
-      toast.success("Hesabınız silindi")
+      toast.success(t('toasts.accountDeleted'))
       window.location.href = "/auth"
     } catch {
-      toast.error("Hesap silinemedi")
+      toast.error(t('toasts.accountDeleteFailed'))
       setIsDeleting(false)
     }
   }
@@ -212,7 +212,7 @@ export default function SettingsPage() {
 
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">{t("settings.title")}</h1>
-        <p className="text-muted-foreground mt-2 text-lg">Hesabınızı ve tercihlerinizi yönetin.</p>
+        <p className="text-muted-foreground mt-2 text-lg">{t("settings.managePreferences")}</p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -223,11 +223,11 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="subscription" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <CreditCard className="w-4 h-4" />
-            Abonelik
+            {t("settings.subscription")}
           </TabsTrigger>
           <TabsTrigger value="preferences" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
             <Globe className="w-4 h-4" />
-            Tercihler
+            {t("settings.preferences")}
           </TabsTrigger>
         </TabsList>
 
@@ -240,8 +240,8 @@ export default function SettingsPage() {
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Kişisel Bilgiler</CardTitle>
-                  <CardDescription>İsminiz ve şirket bilgileriniz.</CardDescription>
+                  <CardTitle className="text-xl">{t("settings.personalInfo")}</CardTitle>
+                  <CardDescription>{t("settings.personalInfoDesc")}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -276,9 +276,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-900">Profil Fotoğrafı</h3>
+                    <h3 className="font-medium text-gray-900">{t("settings.profilePhoto")}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Fotoğrafınızı değiştirmek için tıklayın. JPG, PNG (max 2MB)
+                      {t("settings.photoDesc")}
                     </p>
                   </div>
                 </div>
@@ -328,9 +328,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-900">Şirket Logosu</h3>
+                    <h3 className="font-medium text-gray-900">{t("settings.companyLogo")}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Kataloglarınızda kullanılacak şirket logosu. JPG, PNG (max 2MB)
+                      {t("settings.logoDesc")}
                     </p>
                   </div>
                 </div>
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                     {isPending ? (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Kaydediliyor
+                        {t("settings.saving")}
                       </div>
                     ) : (
                       t("common.save")
@@ -362,7 +362,7 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 text-destructive">
                 <Trash2 className="w-5 h-5" />
-                <CardTitle className="text-lg">Tehlikeli Bölge</CardTitle>
+                <CardTitle className="text-lg">{t("settings.dangerZone")}</CardTitle>
               </div>
               <CardDescription>{t("settings.deleteWarning")}</CardDescription>
             </CardHeader>
@@ -375,9 +375,9 @@ export default function SettingsPage() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-destructive">Hesabınızı silmek istediğinize emin misiniz?</AlertDialogTitle>
+                    <AlertDialogTitle className="text-destructive">{t("settings.deleteConfirmTitle")}</AlertDialogTitle>
                     <AlertDialogDescription className="text-gray-600">
-                      Bu işlem geri alınamaz. Tüm kataloglarınız, ürünleriniz ve verileriniz kalıcı olarak silinecektir.
+                      {t("settings.deleteConfirmDesc")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -387,7 +387,7 @@ export default function SettingsPage() {
                       disabled={isDeleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {isDeleting ? "Siliniyor..." : "Evet, Hesabı Sil"}
+                      {isDeleting ? t("settings.deleting") : t("settings.yesDelete")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -404,19 +404,19 @@ export default function SettingsPage() {
             </div>
             <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
               <CardTitle className="flex items-center gap-2 text-xl">
-                Mevcut Planınız:
+                {t("settings.currentPlanTitle")}
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${user?.plan === "pro" ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg" :
                   user?.plan === "plus" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg" :
                     "bg-gray-200 text-gray-700"}`}>
-                  {user?.plan === "pro" ? "PRO" : user?.plan === "plus" ? "PLUS" : "ÜCRETSİZ"}
+                  {user?.plan === "pro" ? t("plans.pro") : user?.plan === "plus" ? t("plans.plus") : t("plans.free")}
                 </span>
               </CardTitle>
               <CardDescription>
                 {user?.plan === "pro"
-                  ? "Tüm özelliklere sınırsız erişiminiz var. Tadını çıkarın!"
+                  ? t("settings.planDescPro")
                   : user?.plan === "plus"
-                    ? "Harika özelliklere sahipsiniz. Sınırsız deneyim için Pro'yu inceleyin."
-                    : "Şu anda sınırlı özelliklere sahip ücretsiz planı kullanıyorsunuz."}
+                    ? t("settings.planDescPlus")
+                    : t("settings.planDescFree")}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-8 pb-8">
@@ -424,28 +424,28 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    Plan Özellikleri
+                    {t("settings.planFeatures")}
                   </h3>
                   <ul className="space-y-3 pl-2">
                     <li className="flex items-center gap-3 text-sm text-gray-600">
                       <div className={`w-2 h-2 rounded-full ${user?.plan === "pro" ? "bg-green-500" : user?.plan === "plus" ? "bg-green-500" : "bg-yellow-500"}`} />
-                      {user?.plan === "pro" ? "Sınırsız Katalog" : user?.plan === "plus" ? "10 Adet Katalog" : "1 Adet Katalog"}
+                      {user?.plan === "pro" ? t("plans.features.unlimitedCatalogs") : user?.plan === "plus" ? t("plans.features.catalogsCount", { count: 10 }) : t("plans.features.catalogsCount", { count: 1 })}
                     </li>
                     <li className="flex items-center gap-3 text-sm text-gray-600">
                       <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"}`} />
-                      {user?.plan !== "free" ? "Sınırsız Ürün" : "50 Ürün Limiti"}
+                      {user?.plan !== "free" ? t("plans.features.unlimitedProducts") : t("plans.features.productLimit", { count: 50 })}
                     </li>
                     <li className="flex items-center gap-3 text-sm text-gray-600">
                       <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-gray-300"}`} />
-                      {user?.plan !== "free" ? "Kategori Yönetimi" : "Kategori Yönetimi Yok"}
+                      {user?.plan !== "free" ? t("plans.features.categoryManagement") : t("plans.features.noCategoryManagement")}
                     </li>
                     <li className="flex items-center gap-3 text-sm text-gray-600">
                       <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"}`} />
-                      {user?.plan !== "free" ? "Premium Şablonlar & Filigransız" : "Temel Şablonlar (Filigranlı)"}
+                      {user?.plan !== "free" ? t("plans.features.premiumTemplates") : t("plans.features.basicTemplates")}
                     </li>
                     <li className="flex items-center gap-3 text-sm text-gray-600">
                       <div className={`w-2 h-2 rounded-full ${user?.plan === "pro" ? "bg-green-500" : user?.plan === "plus" ? "bg-green-500" : "bg-gray-300"}`} />
-                      {user?.plan === "pro" ? "Gelişmiş Analitik" : user?.plan === "plus" ? "Temel İhracat" : "Analitik Yok"}
+                      {user?.plan === "pro" ? t("plans.features.advancedAnalytics") : user?.plan === "plus" ? t("plans.features.basicExport") : t("plans.features.noAnalytics")}
                     </li>
                   </ul>
                 </div>
@@ -453,22 +453,22 @@ export default function SettingsPage() {
                 {(user?.plan === "free" || user?.plan === "plus") && (
                   <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 text-center space-y-4">
                     <h3 className="font-bold text-indigo-900 text-lg">
-                      {user?.plan === "plus" ? "Pro'ya Geçin" : "Yükseltin"}
+                      {user?.plan === "plus" ? t("plans.upgradeToPro") : t("plans.upgrade")}
                     </h3>
                     <p className="text-sm text-indigo-700/80">
-                      {user?.plan === "plus" ? "Sınırsız özgürlük için Pro planına geçin." : "İşinizi büyütmek için daha fazla özelliğe erişin."}
+                      {user?.plan === "plus" ? t("plans.upgradeDescPro") : t("plans.upgradeDescPlus")}
                     </p>
                     <Button size="lg" onClick={() => setShowUpgrade(true)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/20 text-white font-semibold">
-                      {user?.plan === "plus" ? "Pro'ya Yükselt" : "Planları İncele"}
+                      {user?.plan === "plus" ? t("plans.upgradeToProBtn") : t("plans.viewPlans")}
                     </Button>
                   </div>
                 )}
                 {user?.plan === "pro" && (
                   <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-xl border border-green-100 text-center space-y-4">
-                    <h3 className="font-bold text-green-900 text-lg">Harika Seçim!</h3>
-                    <p className="text-sm text-green-700/80">Pro üyelik ile tüm özelliklerin keyfini çıkarıyorsunuz.</p>
+                    <h3 className="font-bold text-green-900 text-lg">{t("settings.greatChoice")}</h3>
+                    <p className="text-sm text-green-700/80">{t("settings.planDescPro")}</p>
                     <Button variant="outline" className="w-full border-green-200 text-green-700 hover:bg-green-100">
-                      Fatura Geçmişi
+                      {t("settings.billingHistory")}
                     </Button>
                   </div>
                 )}
@@ -501,7 +501,7 @@ export default function SettingsPage() {
                   <span className="text-2xl">🇹🇷</span>
                   <div className="flex flex-col items-start">
                     <span className="font-semibold">Türkçe</span>
-                    <span className="text-xs opacity-70">Varsayılan dil</span>
+                    <span className="text-xs opacity-70">{t("settings.defaultLanguage")}</span>
                   </div>
                   {language === 'tr' && <CheckCircle2 className="w-5 h-5 ml-auto text-white" />}
                 </Button>
@@ -514,7 +514,7 @@ export default function SettingsPage() {
                   <span className="text-2xl">🇺🇸</span>
                   <div className="flex flex-col items-start">
                     <span className="font-semibold">English</span>
-                    <span className="text-xs opacity-70">International</span>
+                    <span className="text-xs opacity-70">{t("settings.international")}</span>
                   </div>
                   {language === 'en' && <CheckCircle2 className="w-5 h-5 ml-auto text-white" />}
                 </Button>

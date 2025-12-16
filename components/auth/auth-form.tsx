@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, WifiOff, RefreshCw, CheckCircle2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useTranslation } from "@/lib/i18n-provider"
+import { cn } from "@/lib/utils"
 
 interface AuthFormProps {
   onSignUpComplete: () => void
@@ -24,9 +25,31 @@ const getSiteUrl = () => {
   return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 }
 
+// Loading state messages for better UX
+type LoadingPhase = "idle" | "connecting" | "authenticating" | "creating_account" | "redirecting" | "slow_connection" | "success"
+
+const getLoadingMessage = (phase: LoadingPhase, t: (key: string) => string): string => {
+  switch (phase) {
+    case "connecting":
+      return t("auth.connecting")
+    case "authenticating":
+      return t("auth.authenticating")
+    case "creating_account":
+      return t("auth.creatingAccount")
+    case "redirecting":
+      return t("auth.redirecting")
+    case "slow_connection":
+      return t("auth.slowConnection")
+    case "success":
+      return t("auth.success")
+    default:
+      return ""
+  }
+}
+
 export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const router = useRouter()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const searchParams = useSearchParams()
   const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin"
 
@@ -34,8 +57,43 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>("idle")
+  const [isSlowConnection, setIsSlowConnection] = useState(false)
+  const [showRetry, setShowRetry] = useState(false)
+  const [isOnline, setIsOnline] = useState(true)
+
+  // Handle URL error parameters from callback
+  useEffect(() => {
+    const urlError = searchParams.get("error")
+    if (urlError) {
+      const errorMessages: Record<string, string> = {
+        "auth_failed": t("auth.authFailed"),
+        "code_expired": t("auth.sessionExpired"),
+        "invalid_code": t("auth.invalidCode"),
+        "network_error": t("auth.networkError"),
+        "unexpected_error": t("auth.unexpectedError"),
+        "missing_code": t("auth.missingCode"),
+        "could_not_authenticate": t("auth.couldNotAuthenticate"),
+        "access_denied": t("auth.accessDenied"),
+      }
+      setError(errorMessages[urlError] || `${t("auth.errorPrefix")} ${urlError}`)
+      setShowRetry(true)
+
+      // Clean URL without refreshing
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete("error")
+      newUrl.searchParams.delete("error_description")
+      window.history.replaceState({}, "", newUrl.toString())
+    }
+  }, [searchParams, t])
+
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const slowConnectionRef = useRef<NodeJS.Timeout | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const SITE_URL = getSiteUrl()
+  const SLOW_CONNECTION_THRESHOLD = 5000 // 5 seconds
+  const TIMEOUT_THRESHOLD = 30000 // 30 seconds
 
   // Sign In form state
   const [signInEmail, setSignInEmail] = useState("")
@@ -46,6 +104,76 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const [signUpCompany, setSignUpCompany] = useState("")
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      setError(null)
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+      setError(t("auth.offlineUser"))
+      setIsLoading(false)
+      setLoadingPhase("idle")
+    }
+
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
+    setIsOnline(navigator.onLine)
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [t])
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (slowConnectionRef.current) clearTimeout(slowConnectionRef.current)
+      if (abortControllerRef.current) abortControllerRef.current.abort()
+    }
+  }, [])
+
+  const startLoadingTimers = useCallback(() => {
+    // Clear existing timers
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    if (slowConnectionRef.current) clearTimeout(slowConnectionRef.current)
+
+    setIsSlowConnection(false)
+    setShowRetry(false)
+
+    // Slow connection warning after 5 seconds
+    slowConnectionRef.current = setTimeout(() => {
+      setIsSlowConnection(true)
+      setLoadingPhase("slow_connection")
+    }, SLOW_CONNECTION_THRESHOLD)
+
+    // Timeout after 30 seconds
+    timeoutRef.current = setTimeout(() => {
+      setShowRetry(true)
+      setError(t("auth.slowOperation"))
+      setIsLoading(false)
+      setLoadingPhase("idle")
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }, TIMEOUT_THRESHOLD)
+  }, [t])
+
+  const clearLoadingTimers = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    if (slowConnectionRef.current) {
+      clearTimeout(slowConnectionRef.current)
+      slowConnectionRef.current = null
+    }
+    setIsSlowConnection(false)
+  }, [])
 
   useEffect(() => {
     const handleFocus = () => {
@@ -62,52 +190,96 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Check online status
+    if (!isOnline) {
+      setError(t("auth.offlineUser"))
+      return
+    }
+
     setIsLoading(true)
     setError(null)
+    setShowRetry(false)
+    setLoadingPhase("connecting")
+    startLoadingTimers()
 
     const supabase = createClient()
 
     try {
+      setLoadingPhase("authenticating")
+
       const { error } = await supabase.auth.signInWithPassword({
         email: signInEmail,
         password: signInPassword,
       })
 
       if (error) {
+        clearLoadingTimers()
         if (error.message.includes("Invalid login credentials")) {
-          throw new Error("E-posta veya şifre hatalı")
+          throw new Error(t("auth.invalidCredentials"))
         }
         if (error.message.includes("Email not confirmed")) {
-          throw new Error("E-posta adresiniz henüz doğrulanmamış. Lütfen gelen kutunuzu kontrol edin.")
+          throw new Error(t("auth.emailNotConfirmed"))
+        }
+        if (error.message.includes("fetch") || error.message.includes("network")) {
+          throw new Error(t("auth.networkError"))
         }
         throw error
       }
 
+      clearLoadingTimers()
+      setLoadingPhase("success")
+
+      // Brief success indication before redirect
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      setLoadingPhase("redirecting")
       router.push("/dashboard")
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Giriş yapılırken bir hata oluştu")
+      clearLoadingTimers()
+      const errorMessage = err instanceof Error ? err.message : t("auth.loginError")
+      setError(errorMessage)
+
+      // Show retry button for connection errors
+      if (errorMessage.includes("bağlantı") || errorMessage.includes("network") || errorMessage.includes("fetch")) {
+        setShowRetry(true)
+      }
+      setLoadingPhase("idle")
     } finally {
-      setIsLoading(false)
+      if (loadingPhase !== "redirecting") {
+        setIsLoading(false)
+      }
     }
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError(null)
+
+    // Check online status
+    if (!isOnline) {
+      setError(t("auth.offlineUser"))
+      return
+    }
 
     // Email validation
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
     if (!emailRegex.test(signUpEmail)) {
-      setError("Lütfen geçerli bir e-posta adresi giriniz.")
-      setIsLoading(false)
+      setError(t("auth.invalidEmail"))
       return
     }
+
+    setIsLoading(true)
+    setError(null)
+    setShowRetry(false)
+    setLoadingPhase("connecting")
+    startLoadingTimers()
 
     const supabase = createClient()
 
     try {
+      setLoadingPhase("creating_account")
+
       const { data, error } = await supabase.auth.signUp({
         email: signUpEmail,
         password: signUpPassword,
@@ -121,25 +293,46 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       })
 
       if (error) {
+        clearLoadingTimers()
         if (error.message.includes("already registered")) {
-          throw new Error("Bu e-posta adresi zaten kayıtlı")
+          throw new Error(t("auth.alreadyRegistered"))
         }
         if (error.message.includes("Password should be")) {
-          throw new Error("Şifre en az 6 karakter olmalıdır")
+          throw new Error(t("auth.passwordLength"))
+        }
+        if (error.message.includes("fetch") || error.message.includes("network")) {
+          throw new Error(t("auth.networkError"))
         }
         throw error
       }
 
+      clearLoadingTimers()
+      setLoadingPhase("success")
+
+      // Brief success indication before redirect
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       if (data.session) {
         // Email confirmation kapalıysa direkt giriş yap
+        setLoadingPhase("redirecting")
         router.push("/dashboard")
         router.refresh()
       } else if (data.user && !data.session) {
+        // Email doğrulama gerekiyorsa
+        setLoadingPhase("idle")
+        setIsLoading(false)
         router.push("/auth/verify")
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kayıt olurken bir hata oluştu")
-    } finally {
+      clearLoadingTimers()
+      const errorMessage = err instanceof Error ? err.message : t("auth.signupError")
+      setError(errorMessage)
+
+      // Show retry button for connection errors
+      if (errorMessage.includes("bağlantı") || errorMessage.includes("network") || errorMessage.includes("fetch")) {
+        setShowRetry(true)
+      }
+      setLoadingPhase("idle")
       setIsLoading(false)
     }
   }
@@ -160,7 +353,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
       if (error) throw error
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google ile giriş yapılırken bir hata oluştu")
+      setError(err instanceof Error ? err.message : t("auth.googleAuthError"))
       setIsGoogleLoading(false)
     }
   }
@@ -172,29 +365,99 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
         <p className="text-muted-foreground text-sm">{t("auth.subtitle")}</p>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+      {/* Offline Status Banner */}
+      {!isOnline && (
+        <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span className="text-sm">{t("auth.offlineTitle")}</span>
+            <span className="text-xs opacity-75">{t("auth.offlineDesc")}</span>
+          </AlertDescription>
         </Alert>
       )}
 
+      {/* Loading Status */}
+      {isLoading && loadingPhase !== "idle" && (
+        <div className={cn(
+          "rounded-lg p-3 sm:p-4 transition-all duration-300",
+          isSlowConnection
+            ? "bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800"
+            : loadingPhase === "success"
+              ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
+              : "bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800"
+        )}>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {loadingPhase === "success" ? (
+              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400 shrink-0" />
+            ) : (
+              <Loader2 className={cn(
+                "h-4 w-4 sm:h-5 sm:w-5 animate-spin shrink-0",
+                isSlowConnection ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
+              )} />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className={cn(
+                "text-xs sm:text-sm font-medium truncate",
+                isSlowConnection
+                  ? "text-amber-700 dark:text-amber-300"
+                  : loadingPhase === "success"
+                    ? "text-green-700 dark:text-green-300"
+                    : "text-blue-700 dark:text-blue-300"
+              )}>
+                {getLoadingMessage(loadingPhase, t)}
+              </p>
+              {isSlowConnection && (
+                <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">
+                  {t("auth.slowOperationShort")}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span className="text-sm leading-relaxed">{error}</span>
+            {showRetry && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setError(null)
+                  setShowRetry(false)
+                }}
+                className="shrink-0 h-7 px-2 text-xs bg-transparent border-destructive/50 hover:bg-destructive/10 w-full sm:w-auto mt-1 sm:mt-0"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                {t("auth.retry")}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Success Message */}
       {message && (
-        <Alert>
-          <AlertDescription>{message}</AlertDescription>
+        <Alert className="animate-in fade-in slide-in-from-top-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700 dark:text-green-300">{message}</AlertDescription>
         </Alert>
       )}
 
       <Button
         variant="outline"
-        className="w-full h-11 bg-transparent"
+        className="w-full h-10 sm:h-11 bg-transparent text-sm sm:text-base"
         onClick={handleGoogleAuth}
-        disabled={isLoading || isGoogleLoading}
+        disabled={isLoading || isGoogleLoading || !isOnline}
       >
         {isGoogleLoading ? (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />
         ) : (
-          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 mr-2 shrink-0" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -213,7 +476,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
             />
           </svg>
         )}
-        {t("auth.continueWithGoogle")}
+        <span className="truncate">{t("auth.continueWithGoogle")}</span>
       </Button>
 
       <div className="relative">
@@ -262,16 +525,18 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full h-11" disabled={isLoading || isGoogleLoading}>
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {t("auth.signin")}
+            <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isLoading || isGoogleLoading || !isOnline}>
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
+              <span className="truncate">
+                {isLoading ? getLoadingMessage(loadingPhase, t) || t("auth.signin") : t("auth.signin")}
+              </span>
             </Button>
           </form>
         </TabsContent>
 
         <TabsContent value="signup" className="space-y-4 mt-4">
           <form onSubmit={handleSignUp} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-name">{t("auth.name")}</Label>
                 <Input suppressHydrationWarning
@@ -321,26 +586,43 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
                 onChange={(e) => setSignUpPassword(e.target.value)}
                 disabled={isLoading}
               />
-              <p className="text-xs text-muted-foreground">En az 6 karakter</p>
+              <p className="text-xs text-muted-foreground">{t("auth.passwordLength")}</p>
             </div>
-            <Button type="submit" className="w-full h-11" disabled={isLoading || isGoogleLoading}>
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {t("auth.createAccount")}
+            <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isLoading || isGoogleLoading || !isOnline}>
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
+              <span className="truncate">
+                {isLoading ? getLoadingMessage(loadingPhase, t) || t("auth.createAccount") : t("auth.createAccount")}
+              </span>
             </Button>
           </form>
         </TabsContent>
       </Tabs>
 
       <p className="text-center text-xs text-muted-foreground">
-        Devam ederek{" "}
-        <a href="/terms" className="text-primary hover:underline">
-          Kullanım Şartları
-        </a>{" "}
-        ve{" "}
-        <a href="/privacy" className="text-primary hover:underline">
-          Gizlilik Politikası
-        </a>
-        {"'"}nı kabul etmiş olursunuz.
+        {language === "tr" ? (
+          <>
+            Devam ederek{" "}
+            <a href="/terms" className="text-primary hover:underline">
+              {t("auth.terms")}
+            </a>{" "}
+            ve{" "}
+            <a href="/privacy" className="text-primary hover:underline">
+              {t("auth.privacy")}
+            </a>
+            {"'"}nı kabul etmiş olursunuz.
+          </>
+        ) : (
+          <>
+            By continuing, you agree to our{" "}
+            <a href="/terms" className="text-primary hover:underline">
+              {t("auth.terms")}
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" className="text-primary hover:underline">
+              {t("auth.privacy")}
+            </a>.
+          </>
+        )}
       </p>
     </div>
   )

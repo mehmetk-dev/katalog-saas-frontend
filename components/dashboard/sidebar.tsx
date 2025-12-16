@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,11 +26,16 @@ export function DashboardSidebar() {
   const navItems = [
     { href: "/dashboard", label: t("common.dashboard"), icon: LayoutDashboard },
     { href: "/dashboard/products", label: t("dashboard.products"), icon: Package },
-    { href: "/dashboard/categories", label: "Kategoriler", icon: FolderOpen, premium: true },
-    { href: "/dashboard/catalogs", label: t("dashboard.catalogs"), icon: BookOpen },
-    { href: "/dashboard/templates", label: "Şablonlar", icon: Palette },
+    { href: "/dashboard/categories", label: t("sidebar.categories"), icon: FolderOpen, premium: true },
+    { href: "/dashboard/catalogs", label: t("sidebar.catalogs"), icon: BookOpen },
+    { href: "/dashboard/templates", label: t("sidebar.templates"), icon: Palette },
     { href: "/dashboard/settings", label: t("common.settings"), icon: Settings },
   ]
+
+  // Admin menu items - only for admin users
+  const adminItems = user?.isAdmin ? [
+    { href: "/dashboard/admin", label: "Admin Panel", icon: Shield, isAdmin: true },
+  ] : []
 
   const exportPercentage = user ? (user.exportsUsed / user.maxExports) * 100 : 0
   const isFreeUser = user?.plan === "free"
@@ -160,124 +165,175 @@ export function DashboardSidebar() {
 
             return navLink
           })}
+
+          {/* Admin Section - only for admin users */}
+          {adminItems.length > 0 && (
+            <>
+              <div className={cn(
+                "my-2 border-t border-sidebar-border",
+                isCollapsed && !isMobile && "mx-2"
+              )} />
+              {adminItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href || pathname.startsWith(item.href)
+
+                const adminLink = (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={handleNavClick}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
+                      isCollapsed && !isMobile ? "justify-center p-2.5" : "px-3 py-2.5",
+                      isActive
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        : "text-red-600/80 hover:bg-red-50 hover:text-red-700 dark:text-red-400/80 dark:hover:bg-red-900/20",
+                    )}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" />
+                    {(!isCollapsed || isMobile) && (
+                      <span className="truncate flex-1">{item.label}</span>
+                    )}
+                  </Link>
+                )
+
+                if (isCollapsed && !isMobile) {
+                  return (
+                    <Tooltip key={item.href}>
+                      <TooltipTrigger asChild>
+                        {adminLink}
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="font-medium">
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                }
+
+                return adminLink
+              })}
+            </>
+          )}
         </nav>
 
         {/* Spacer - Pro paket kartını en alta iter */}
         <div className="flex-1" />
 
-        {/* Usage Tracker Card - Collapsed olmadığında göster */}
+        {/* Usage Tracker Card */}
         {(!isCollapsed || isMobile) && (
-          <div className="p-4 shrink-0 border-t border-sidebar-border">
-            <Card className={cn(
-              "border-sidebar-border overflow-hidden",
-              user?.plan === "pro"
-                ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-0"
-                : user?.plan === "plus"
-                  ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0"
-                  : "bg-sidebar-accent/50"
-            )}>
-              <CardContent className="p-4 space-y-3">
-                {isLoading ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-2 w-full" />
-                    <Skeleton className="h-9 w-full" />
-                  </div>
-                ) : user?.plan === "pro" ? (
-                  /* PRO KULLANICI */
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        <span className="font-semibold">Pro Paket</span>
+          <div className="p-4 shrink-0 border-t border-sidebar-border overflow-hidden">
+            <div className="w-[224px]">
+              <Card className={cn(
+                "border-sidebar-border overflow-hidden",
+                user?.plan === "pro"
+                  ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-0"
+                  : user?.plan === "plus"
+                    ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0"
+                    : "bg-sidebar-accent/50"
+              )}>
+                <CardContent className="p-4 space-y-3">
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-2 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                    </div>
+                  ) : user?.plan === "pro" ? (
+                    /* PRO KULLANICI */
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4" />
+                          <span className="font-semibold">{t("common.proPackage")}</span>
+                        </div>
+                        <Badge className="bg-white/20 text-white border-0 text-xs">
+                          {t("common.active")}
+                        </Badge>
                       </div>
-                      <Badge className="bg-white/20 text-white border-0 text-xs">
-                        Aktif
-                      </Badge>
-                    </div>
-                    <div className="text-xs opacity-90">
-                      ✓ Sınırsız Katalog<br />
-                      ✓ Sınırsız İndirme<br />
-                      ✓ Tüm Şablonlar
-                    </div>
-                  </>
-                ) : user?.plan === "plus" ? (
-                  /* PLUS KULLANICI */
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        <span className="font-semibold">Plus Paket</span>
+                      <div className="text-xs opacity-90">
+                        ✓ {t("plans.unlimitedCatalogs")}<br />
+                        ✓ {t("plans.unlimitedDownloads")}<br />
+                        ✓ {t("plans.allTemplates")}
                       </div>
-                      <Badge className="bg-white/20 text-white border-0 text-xs">
-                        Aktif
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="opacity-80">Katalog</span>
-                        <span className="font-medium">
-                          {user?.catalogsCount ?? 0}/10
+                    </>
+                  ) : user?.plan === "plus" ? (
+                    /* PLUS KULLANICI */
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4" />
+                          <span className="font-semibold">{t("common.plusPackage")}</span>
+                        </div>
+                        <Badge className="bg-white/20 text-white border-0 text-xs">
+                          {t("common.active")}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="opacity-80">{t("sidebar.catalogs")}</span>
+                          <span className="font-medium">
+                            {user?.catalogsCount ?? 0}/10
+                          </span>
+                        </div>
+                        <Progress
+                          value={((user?.catalogsCount ?? 0) / 10) * 100}
+                          className="h-1.5 bg-white/20"
+                        />
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="opacity-80">{t("sidebar.products")}</span>
+                          <span className="font-medium">
+                            {user?.productsCount ?? 0}/1000
+                          </span>
+                        </div>
+                        <Progress
+                          value={((user?.productsCount ?? 0) / 1000) * 100}
+                          className="h-1.5 bg-white/20"
+                        />
+                      </div>
+                      <Button size="sm" className="w-full gap-2 bg-white/20 hover:bg-white/30 text-white border-0" onClick={() => setShowUpgradeModal(true)}>
+                        {t("settings.upgrade")}
+                        <ArrowUpRight className="w-3 h-3" />
+                      </Button>
+                    </>
+                  ) : (
+                    /* FREE KULLANICI */
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-sidebar-foreground">
+                          {t("common.freePlan")}
                         </span>
+                        <Badge variant="secondary" className="text-xs">
+                          {t("catalogs.status")}
+                        </Badge>
                       </div>
-                      <Progress
-                        value={((user?.catalogsCount ?? 0) / 10) * 100}
-                        className="h-1.5 bg-white/20"
-                      />
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="opacity-80">Ürün</span>
-                        <span className="font-medium">
-                          {user?.productsCount ?? 0}/1000
-                        </span>
-                      </div>
-                      <Progress
-                        value={((user?.productsCount ?? 0) / 1000) * 100}
-                        className="h-1.5 bg-white/20"
-                      />
-                    </div>
-                    <Button size="sm" className="w-full gap-2 bg-white/20 hover:bg-white/30 text-white border-0" onClick={() => setShowUpgradeModal(true)}>
-                      Pro'ya Yükselt
-                      <ArrowUpRight className="w-3 h-3" />
-                    </Button>
-                  </>
-                ) : (
-                  /* FREE KULLANICI */
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-sidebar-foreground">
-                        Ücretsiz Paket
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {t("catalogs.status")}
-                      </Badge>
-                    </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Katalog</span>
-                        <span className="font-medium text-sidebar-foreground">
-                          {user?.catalogsCount ?? 0}/1
-                        </span>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{t("sidebar.catalogs")}</span>
+                          <span className="font-medium text-sidebar-foreground">
+                            {user?.catalogsCount ?? 0}/1
+                          </span>
+                        </div>
+                        <Progress value={((user?.catalogsCount ?? 0) / 1) * 100} className="h-2" />
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{t("sidebar.products")}</span>
+                          <span className="font-medium text-sidebar-foreground">
+                            {user?.productsCount ?? 0}/50
+                          </span>
+                        </div>
+                        <Progress value={((user?.productsCount ?? 0) / 50) * 100} className="h-2" />
                       </div>
-                      <Progress value={((user?.catalogsCount ?? 0) / 1) * 100} className="h-2" />
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Ürün</span>
-                        <span className="font-medium text-sidebar-foreground">
-                          {user?.productsCount ?? 0}/50
-                        </span>
-                      </div>
-                      <Progress value={((user?.productsCount ?? 0) / 50) * 100} className="h-2" />
-                    </div>
 
-                    <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" onClick={() => setShowUpgradeModal(true)}>
-                      <Sparkles className="w-4 h-4" />
-                      {t("settings.upgrade")}
-                      <ArrowUpRight className="w-3 h-3" />
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                      <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" onClick={() => setShowUpgradeModal(true)}>
+                        <Sparkles className="w-4 h-4" />
+                        {t("settings.upgrade")}
+                        <ArrowUpRight className="w-3 h-3" />
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
@@ -293,7 +349,7 @@ export function DashboardSidebar() {
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right">Pro Paket - Sınırsız</TooltipContent>
+                <TooltipContent side="right">{t("common.proPackage")} - {t("plans.unlimited")}</TooltipContent>
               </Tooltip>
             ) : user?.plan === "plus" ? (
               <Tooltip>
@@ -304,7 +360,7 @@ export function DashboardSidebar() {
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right">Plus Paket</TooltipContent>
+                <TooltipContent side="right">{t("common.plusPackage")}</TooltipContent>
               </Tooltip>
             ) : (
               <Tooltip>
@@ -314,7 +370,7 @@ export function DashboardSidebar() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
-                  Pro'ya Yükselt
+                  {t("settings.upgrade")}
                 </TooltipContent>
               </Tooltip>
             )}

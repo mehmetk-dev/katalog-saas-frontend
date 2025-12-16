@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useTranslation } from "@/lib/i18n-provider"
 
 interface ProductModalProps {
   open: boolean
@@ -28,30 +29,8 @@ interface ProductModalProps {
   userPlan?: 'free' | 'plus' | 'pro'
 }
 
-const COMMON_UNITS = [
-  { value: "none", label: "Birim yok" },
-  { value: "kg", label: "Kilogram (kg)" },
-  { value: "g", label: "Gram (g)" },
-  { value: "m", label: "Metre (m)" },
-  { value: "cm", label: "Santimetre (cm)" },
-  { value: "mm", label: "Milimetre (mm)" },
-  { value: "L", label: "Litre (L)" },
-  { value: "mL", label: "Mililitre (mL)" },
-  { value: "adet", label: "Adet" },
-  { value: "paket", label: "Paket" },
-  { value: "kutu", label: "Kutu" },
-]
-
-const QUICK_ATTRIBUTES = [
-  { name: "Renk", icon: "🎨" },
-  { name: "Malzeme", icon: "🧱" },
-  { name: "Ağırlık", icon: "⚖️" },
-  { name: "Boyut", icon: "📐" },
-  { name: "Menşei", icon: "🌍" },
-  { name: "Garanti", icon: "🛡️" },
-]
-
-const MAGIC_DESCRIPTIONS = [
+// Magic descriptions kept as hardcoded fallback for now
+const MAGIC_DESCRIPTIONS_TR = [
   "Modern tasarımı ve üstün kalitesiyle yaşam alanınıza zarafet katacak bu ürün, dayanıklı malzemelerden üretilmiş olup uzun ömürlü kullanım sunar.",
   "Ergonomik yapısı ve şık detaylarıyla dikkat çeken bu parça, beklentilerinizi fazlasıyla karşılayacak. Hem fonksiyonel hem estetik.",
   "Minimalist çizgileri ve fonksiyonel yapısıyla öne çıkan bu tasarım, kullanım kolaylığı sağlarken şıklığından ödün vermiyor.",
@@ -61,10 +40,31 @@ const MAGIC_DESCRIPTIONS = [
   "Zarif tasarımı ve kullanışlı özellikleriyle dikkat çeken bu ürün, her ortama uyum sağlayacak şekilde tasarlandı.",
 ]
 
+const MAGIC_DESCRIPTIONS_EN = [
+  "With its modern design and superior quality, this product adds elegance to your living space. Made from durable materials for long-lasting use.",
+  "Standing out with its ergonomic structure and stylish details, this piece will exceed your expectations. Both functional and aesthetic.",
+  "Featuring minimalist lines and functional structure, this design offers ease of use without compromising on style.",
+  "Designed specifically for those who do not compromise on quality. Every detail is carefully considered, ideal for stylish users.",
+  "High performance and aesthetics combined. this product will add a modern touch to your space while meeting your daily needs.",
+  "Designed for professional use, this product stands out with superior quality standards. It will accompany you for many years with its durable structure.",
+  "Attention-grabbing with its elegant design and useful features, this product is designed to fit into any environment.",
+]
+
 export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan = 'free' }: ProductModalProps) {
   const [isPending, startTransition] = useTransition()
+  const { t, language } = useTranslation()
   const isEditing = !!product
   const isFreeUser = userPlan === 'free'
+
+  const unitKeys = ["none", "kg", "g", "m", "cm", "mm", "L", "mL", "adet", "paket", "kutu"]
+  const quickAttributeKeys = [
+    { key: "color", icon: "🎨" },
+    { key: "material", icon: "🧱" },
+    { key: "weight", icon: "⚖️" },
+    { key: "size", icon: "📐" },
+    { key: "origin", icon: "🌍" },
+    { key: "warranty", icon: "🛡️" },
+  ]
 
   const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>(() => product?.custom_attributes || [])
   const [activeTab, setActiveTab] = useState("basic")
@@ -100,7 +100,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   // Tıklanan resmi kapak yap
   const handleSetCover = (url: string) => {
     setActiveImageUrl(url)
-    toast.success("Kapak fotoğrafı güncellendi")
+    toast.success(t('toasts.coverUpdated'))
   }
 
   // Resim sil
@@ -130,13 +130,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     const allowedCount = 5 - currentCount
 
     if (allowedCount <= 0) {
-      toast.error("En fazla 5 fotoğraf yükleyebilirsiniz.")
+      toast.error(t('toasts.maxPhotos'))
       return
     }
 
     const filesToUpload = Array.from(files).slice(0, allowedCount)
     if (files.length > allowedCount) {
-      toast.info(`Sadece ilk ${allowedCount} dosya yüklenecek (limit 5).`)
+      toast.info(t('toasts.limitInfo', { count: allowedCount }))
     }
 
     setIsUploading(true)
@@ -146,19 +146,28 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     try {
       for (const file of filesToUpload) {
         if (file.size > 5 * 1024 * 1024) {
-          toast.error(`${file.name} boyutu 5MB'dan büyük, atlanıyor.`)
+          toast.error(t('toasts.fileTooLarge', { name: file.name }))
           continue
         }
 
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+        const randomId = Math.random().toString(36).substring(2, 10)
+        const timestamp = Date.now()
+        // Dosya ismini güvenli hale getir
+        const fileName = `${timestamp}-${randomId}.${fileExt}`
         const filePath = `${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(filePath, file)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error("Upload error details:", uploadError)
+          throw uploadError
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
@@ -176,12 +185,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       }
 
       if (newUrls.length > 0) {
-        toast.success(`${newUrls.length} görsel yüklendi`)
+        toast.success(t('toasts.imagesUploaded', { count: newUrls.length }))
       }
 
     } catch (error: any) {
-      console.error(error)
-      toast.error("Resimler yüklenirken hata oluştu")
+      console.error("Image upload failed:", error)
+      toast.error(t('toasts.imageUploadFailed') + " " + (error.message || ""))
     } finally {
       setIsUploading(false)
       e.target.value = ''
@@ -241,7 +250,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     e.preventDefault()
 
     if (!name.trim()) {
-      toast.error("Ürün adı gereklidir")
+      toast.error(t('toasts.productNameRequired'))
       setActiveTab("basic")
       return
     }
@@ -287,15 +296,15 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
             product_url: productUrl || null,
             custom_attributes: attributesToSave,
           })
-          toast.success("Ürün güncellendi")
+          toast.success(t('toasts.productUpdated'))
         } else {
           const newProduct = await createProduct(formData)
           onSaved(newProduct)
-          toast.success("Ürün oluşturuldu")
+          toast.success(t('toasts.productCreated'))
         }
         onOpenChange(false)
       } catch {
-        toast.error(isEditing ? "Ürün güncellenemedi" : "Ürün oluşturulamadı")
+        toast.error(isEditing ? t('toasts.productUpdateFailed') : t('toasts.productCreateFailed'))
       }
     })
   }
@@ -333,17 +342,18 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Helper Functions
   const generateMagicDescription = () => {
-    const random = MAGIC_DESCRIPTIONS[Math.floor(Math.random() * MAGIC_DESCRIPTIONS.length)]
+    const source = language === 'tr' ? MAGIC_DESCRIPTIONS_TR : MAGIC_DESCRIPTIONS_EN
+    const random = source[Math.floor(Math.random() * source.length)]
     const enhanced = name ? `${name} - ${random}` : random
     setDescription(enhanced)
-    toast.success("Sihirli açıklama oluşturuldu! ✨")
+    toast.success(t('toasts.magicDescription'))
   }
 
   const generateSKU = () => {
     const prefix = category.length > 0 ? category[0].substring(0, 3).toUpperCase() : "URN"
     const random = Math.random().toString(36).substring(2, 8).toUpperCase()
     setSku(`${prefix}-${random}`)
-    toast.success("SKU oluşturuldu!")
+    toast.success(t('toasts.skuGenerated'))
   }
 
   const addCustomAttribute = (presetName?: string) => {
@@ -369,7 +379,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
             <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600">
               <Package2 className="w-5 h-5 text-white" />
             </div>
-            {isEditing ? "Ürünü Düzenle" : "Yeni Ürün Ekle"}
+            {isEditing ? t('products.editProduct') : t('products.addNew')}
           </DialogTitle>
         </DialogHeader>
 
@@ -382,24 +392,24 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <Tag className="w-4 h-4" />
-                  <span className="hidden sm:inline">Temel Bilgiler</span>
-                  <span className="sm:hidden">Temel</span>
+                  <span className="hidden sm:inline">{t('products.basicInfo')}</span>
+                  <span className="sm:hidden">{t('products.basicInfo')}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="images"
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <ImagePlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Görseller</span>
-                  <span className="sm:hidden">Görsel</span>
+                  <span className="hidden sm:inline">{t('products.images')}</span>
+                  <span className="sm:hidden">{t('products.images')}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="attributes"
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <Layers className="w-4 h-4" />
-                  <span className="hidden sm:inline">Özellikler</span>
-                  <span className="sm:hidden">Özellik</span>
+                  <span className="hidden sm:inline">{t('products.attributes')}</span>
+                  <span className="sm:hidden">{t('products.attributes')}</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -412,14 +422,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="name" className="flex items-center gap-2">
                         <Tag className="w-4 h-4 text-muted-foreground" />
-                        Ürün Adı *
+                        {t('products.name')} *
                       </Label>
                       <Input
                         id="name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        placeholder="örn: Premium Ahşap Sandalye"
+                        placeholder={t('products.productNamePlaceholder')}
                         className="h-11"
                       />
                     </div>
@@ -427,14 +437,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     <div className="space-y-2">
                       <Label htmlFor="sku" className="flex items-center gap-2">
                         <Barcode className="w-4 h-4 text-muted-foreground" />
-                        Stok Kodu (SKU)
+                        {t('products.sku')}
                       </Label>
                       <div className="flex gap-2">
                         <Input
                           id="sku"
                           value={sku}
                           onChange={(e) => setSku(e.target.value)}
-                          placeholder="örn: MOB-001"
+                          placeholder={t('products.skuPlaceholder')}
                           className="h-11"
                         />
                         <Button
@@ -464,10 +474,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       >
                         <div className="flex items-center gap-2">
                           <FolderPlus className="w-4 h-4 text-violet-600" />
-                          <span className="font-medium text-sm">Kategoriler</span>
+                          <span className="font-medium text-sm">{t('categories.title')}</span>
                           {category.length > 0 && (
                             <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
-                              {category.length} seçili
+                              {t('products.selected', { count: category.length })}
                             </Badge>
                           )}
                         </div>
@@ -502,7 +512,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                           {/* Mevcut Kategoriler */}
                           {allCategories.length > 0 && (
                             <div className="space-y-1.5">
-                              <Label className="text-xs text-muted-foreground">Mevcut Kategoriler</Label>
+                              <Label className="text-xs text-muted-foreground">{t('products.existingCategories')}</Label>
                               <div className="flex flex-wrap gap-1.5">
                                 {allCategories.map((cat) => (
                                   <button
@@ -543,7 +553,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                                   setCategoryInput("")
                                 }
                               }}
-                              placeholder="Yeni kategori..."
+                              placeholder={t('products.newCategory')}
                               className="h-8 text-sm"
                             />
                             <Button
@@ -590,7 +600,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
-                      Ürün Linki
+                      {t('products.productUrl')}
                       <span className="text-xs text-muted-foreground font-normal">(opsiyonel)</span>
                     </Label>
                     <Input
@@ -602,13 +612,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       className="h-10"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Dijital katalogda ürün tıklandığında bu linke yönlendirilir
+                      {t('products.productUrlDesc')}
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="description">Açıklama</Label>
+                      <Label htmlFor="description">{t('products.description')}</Label>
                       <Button
                         type="button"
                         variant="ghost"
@@ -617,14 +627,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         onClick={generateMagicDescription}
                       >
                         <Wand2 className="w-3.5 h-3.5" />
-                        AI ile Oluştur
+                        {t('products.generateAi')}
                       </Button>
                     </div>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Ürününüzü detaylı bir şekilde tanımlayın..."
+                      placeholder={t('products.descriptionPlaceholder')}
                       rows={4}
                       className="resize-none"
                     />
@@ -635,7 +645,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     {/* Fiyat */}
                     <div className="space-y-2">
                       <Label htmlFor="price" className="text-sm font-medium">
-                        Fiyat
+                        {t('products.price')}
                       </Label>
                       <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
                         <Select value={currency} onValueChange={setCurrency}>
@@ -667,7 +677,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     {/* Stok */}
                     <div className="space-y-2">
                       <Label htmlFor="stock" className="text-sm font-medium">
-                        Stok Adedi
+                        {t('products.stockCount')}
                       </Label>
                       <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
                         <Input
@@ -681,11 +691,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         />
                         <div className="shrink-0">
                           {Number(stock) === 0 ? (
-                            <Badge variant="destructive" className="text-sm px-3 py-1">Stok Yok</Badge>
+                            <Badge variant="destructive" className="text-sm px-3 py-1">{t('products.outOfStock')}</Badge>
                           ) : Number(stock) < 10 ? (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-3 py-1">Az Stok</Badge>
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-3 py-1">{t('products.lowStock')}</Badge>
                           ) : (
-                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm px-3 py-1">Stokta</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm px-3 py-1">{t('products.inStock')}</Badge>
                           )}
                         </div>
                       </div>
@@ -705,7 +715,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         )}>
                           {activeImageUrl !== url && (
                             <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-white/90 hover:bg-white" onClick={() => handleSetCover(url)}>
-                              <Sparkles className="w-3.5 h-3.5 mr-1" /> Kapak Yap
+                              <Sparkles className="w-3.5 h-3.5 mr-1" /> {t('products.makeCover')}
                             </Button>
                           )}
                           <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleRemoveImage(idx)}>
@@ -714,7 +724,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         </div>
                         {activeImageUrl === url && (
                           <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
-                            <Sparkles className="w-3 h-3 mr-1" /> Kapak
+                            <Sparkles className="w-3 h-3 mr-1" /> {t('products.cover')}
                           </div>
                         )}
                       </div>
@@ -725,8 +735,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm mb-2 group-hover:scale-110 transition-transform">
                           <Upload className="w-6 h-6 text-violet-500" />
                         </div>
-                        <span className="text-xs text-slate-600 font-medium">Fotoğraf Ekle</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">({5 - additionalImages.length} hak kaldı)</span>
+                        <span className="text-xs text-slate-600 font-medium">{t('products.addPhoto')}</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">{t('products.remainingUploads', { count: 5 - additionalImages.length })}</span>
                         <input
                           type="file"
                           className="hidden"
@@ -744,7 +754,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-4 text-center">
-                    Toplam 5 fotoğraf yükleyebilirsiniz. Kapak fotoğrafını seçmek için fotoğrafın üzerine gelip "Kapak Yap" diyebilirsiniz.
+                    {t('products.maxPhotosDesc')}
                   </p>
                 </TabsContent>
 
@@ -753,9 +763,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label className="text-base font-medium">Özel Özellikler</Label>
+                        <Label className="text-base font-medium">{t('products.customAttributes')}</Label>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Ağırlık, uzunluk, renk gibi özel özellikler ekleyebilirsiniz.
+                          {t('products.customAttributesDesc')}
                         </p>
                       </div>
                       <Button
@@ -766,26 +776,29 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         className="gap-1.5"
                       >
                         <Plus className="w-4 h-4" />
-                        Özellik Ekle
+                        {t('products.addAttribute')}
                       </Button>
                     </div>
 
                     {/* Hızlı Ekleme */}
                     <div className="flex flex-wrap gap-2">
-                      {QUICK_ATTRIBUTES.map((attr) => (
-                        <Button
-                          key={attr.name}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5"
-                          onClick={() => addCustomAttribute(attr.name)}
-                          disabled={customAttributes.some(a => a.name === attr.name)}
-                        >
-                          <span>{attr.icon}</span>
-                          {attr.name}
-                        </Button>
-                      ))}
+                      {quickAttributeKeys.map((attr) => {
+                        const label = t(`products.attributeNames.${attr.key}` as any)
+                        return (
+                          <Button
+                            key={attr.key}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5"
+                            onClick={() => addCustomAttribute(label)}
+                            disabled={customAttributes.some(a => a.name === label)}
+                          >
+                            <span>{attr.icon}</span>
+                            {label}
+                          </Button>
+                        )
+                      })}
                     </div>
 
                     {customAttributes.length === 0 ? (
@@ -793,7 +806,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         <CardContent className="py-8 text-center">
                           <Layers className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                           <p className="text-sm text-muted-foreground">
-                            Henüz özellik eklenmedi. Yukarıdaki butonları kullanarak hızlıca ekleyebilirsiniz.
+                            {t('products.noAttributes')}
                           </p>
                         </CardContent>
                       </Card>
@@ -806,13 +819,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                                 <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />
                                 <div className="flex-1 grid grid-cols-3 gap-2">
                                   <Input
-                                    placeholder="Özellik adı"
+                                    placeholder={t('products.attributes')}
                                     value={attr.name}
                                     onChange={(e) => updateCustomAttribute(index, "name", e.target.value)}
                                     className="h-9"
                                   />
                                   <Input
-                                    placeholder="Değer"
+                                    placeholder="Value"
                                     value={attr.value}
                                     onChange={(e) => updateCustomAttribute(index, "value", e.target.value)}
                                     className="h-9"
@@ -822,12 +835,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                                     onValueChange={(value) => updateCustomAttribute(index, "unit", value)}
                                   >
                                     <SelectTrigger className="h-9">
-                                      <SelectValue placeholder="Birim" />
+                                      <SelectValue placeholder="Unit" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {COMMON_UNITS.map((unit) => (
-                                        <SelectItem key={unit.value} value={unit.value}>
-                                          {unit.label}
+                                      {unitKeys.map((key) => (
+                                        <SelectItem key={key} value={key}>
+                                          {t(`products.units.${key}` as any)}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -863,7 +876,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
             </div>
             <div className="flex gap-3">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
-                İptal
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -873,17 +886,17 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                 {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Yükleniyor...
+                    {t('common.loading')}
                   </>
                 ) : isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Kaydediliyor...
+                    {t('builder.saving')}
                   </>
                 ) : isEditing ? (
-                  "Kaydet"
+                  t('common.save')
                 ) : (
-                  "Ürün Ekle"
+                  t('products.addProduct')
                 )}
               </Button>
             </div>

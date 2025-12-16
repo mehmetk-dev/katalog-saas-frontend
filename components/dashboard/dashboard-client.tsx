@@ -81,17 +81,17 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
             label: t("dashboard.totalProducts"),
             value: productCount.toString(),
             icon: Package,
-            change: user?.maxProducts === 999999 ? "Sınırsız" : `${productCount}/${user?.maxProducts} kullanıldı`,
+            change: user?.maxProducts === 999999 ? t("dashboard.unlimited") : t("dashboard.used", { current: productCount, max: user?.maxProducts || 0 }),
             trend: null, // Ürün trendi gösterilmiyor - statik veri
             trendUp: true,
             color: "violet",
             sparkline: generateSparkline(productCount),
         },
         {
-            label: "Toplam Görüntülenme",
+            label: t("dashboard.totalViews"),
             value: totalViews.toLocaleString(),
             icon: Eye,
-            change: "Tüm kataloglar",
+            change: t("dashboard.allCatalogs"),
             trend: totalViews > 0 ? null : null, // Görüntülenme trendi henüz hesaplanamıyor
             trendUp: true,
             color: "blue",
@@ -115,7 +115,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0">
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                        {t("dashboard.welcomeUser", { name: user?.name?.split(" ")[0] ?? "Kullanıcı" })} 👋
+                        {t("dashboard.welcomeUser", { name: user?.name?.split(" ")[0] ?? t("common.user") })} 👋
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground/80 mt-1">
                         {t("marketing.heroSubtitle")}
@@ -246,7 +246,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                             </p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-muted-foreground">
-                                                    {catalog.product_ids?.length || 0} ürün
+                                                    {catalog.product_ids?.length || 0} {t('products.product').toLowerCase()}
                                                 </span>
                                                 <span className="text-muted-foreground/30">•</span>
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -264,7 +264,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                                 catalog.is_published && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 border-0"
                                             )}
                                         >
-                                            {catalog.is_published ? "Yayında" : "Taslak"}
+                                            {catalog.is_published ? t("dashboard.published") : t("dashboard.draft")}
                                         </Badge>
                                         <Button
                                             variant="ghost"
@@ -273,7 +273,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                             className="opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <Link href={`/dashboard/builder?id=${catalog.id}`}>
-                                                Düzenle
+                                                {t("dashboard.edit")}
                                                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                                             </Link>
                                         </Button>
@@ -309,7 +309,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                         </div>
                         <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-base">{t("dashboard.addProduct")}</h3>
-                            <p className="text-sm text-muted-foreground mt-0.5">{t("products.importExcel")}</p>
+                            <p className="text-sm text-muted-foreground mt-0.5">{t("dashboard.importExcel")}</p>
                         </div>
                         <Button
                             asChild
@@ -317,7 +317,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                         >
                             <Link href="/dashboard/products" className="gap-2">
                                 <Plus className="w-4 h-4" />
-                                Ürün Ekle
+                                {t("products.addProduct")}
                             </Link>
                         </Button>
                     </CardContent>
@@ -354,7 +354,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                         >
                             <Link href="/dashboard/templates" className="gap-2">
                                 <Sparkles className="w-4 h-4" />
-                                Şablonlar
+                                {t("sidebar.templates")}
                             </Link>
                         </Button>
                     </CardContent>

@@ -4,9 +4,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BookOpen, Home, ArrowLeft, Search, FileQuestion } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useTranslation } from "@/lib/i18n-provider"
 
 export default function NotFound() {
     const [mounted, setMounted] = useState(false)
+    const { t } = useTranslation()
 
     useEffect(() => {
         setMounted(true)
@@ -42,7 +44,7 @@ export default function NotFound() {
                                 404
                             </h1>
                             <p className="text-white/80 text-lg sm:text-xl">
-                                Sayfa Bulunamadı
+                                {t('notFound.title')}
                             </p>
                         </div>
                     </div>
@@ -63,11 +65,10 @@ export default function NotFound() {
 
                         <div className="text-center space-y-4 mb-8">
                             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
-                                Aradığınız sayfa bulunamadı
+                                {t('notFound.desc')}
                             </h2>
                             <p className="text-gray-500 max-w-md mx-auto">
-                                Bu sayfa taşınmış, silinmiş veya hiç var olmamış olabilir.
-                                Ana sayfaya dönerek yolculuğunuza devam edebilirsiniz.
+                                {t('notFound.text')}
                             </p>
                         </div>
 
@@ -80,7 +81,7 @@ export default function NotFound() {
                             >
                                 <Link href="/">
                                     <Home className="w-4 h-4 mr-2" />
-                                    Ana Sayfaya Git
+                                    {t('notFound.home')}
                                 </Link>
                             </Button>
                             <Button
@@ -91,7 +92,7 @@ export default function NotFound() {
                             >
                                 <Link href="/dashboard">
                                     <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Dashboard'a Dön
+                                    {t('notFound.dashboard')}
                                 </Link>
                             </Button>
                         </div>

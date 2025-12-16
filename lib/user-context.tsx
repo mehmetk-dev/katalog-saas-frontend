@@ -20,6 +20,7 @@ export interface User {
   productsCount: number
   maxProducts: number
   catalogsCount: number
+  isAdmin?: boolean
 }
 
 interface UserContextType {
@@ -89,6 +90,13 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         .select("*", { count: "exact", head: true })
         .eq("user_id", authUser.id)
 
+      // Get admin status from users table
+      const { data: userAdmin } = await supabase
+        .from("users")
+        .select("is_admin")
+        .eq("id", authUser.id)
+        .single()
+
       // Profile varsa plan'ı al, yoksa yeni kullanıcı olabilir
       const plan = profile?.plan ? profile.plan.toLowerCase() : "free"
 
@@ -105,6 +113,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         maxProducts: plan === "pro" ? 999999 : plan === "plus" ? 1000 : 50,
         maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 1,
         exportsUsed: profile?.exports_used || 0,
+        isAdmin: userAdmin?.is_admin || false,
       })
       return true
     } catch (error) {

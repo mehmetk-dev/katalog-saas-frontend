@@ -28,20 +28,34 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
         }
     }
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
+    // Timeout kontrolü için AbortController kullan
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API Error: ${response.statusText}`);
+    try {
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `API Error: ${response.statusText}`);
+        }
+
+        // Some endpoints might return empty body (e.g. 204 No Content)
+        if (response.status === 204) {
+            return {} as T;
+        }
+
+        return response.json();
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('İstek zaman aşımına uğradı. Lütfen tekrar deneyin.');
+        }
+        throw error;
     }
-
-    // Some endpoints might return empty body (e.g. 204 No Content)
-    if (response.status === 204) {
-        return {} as T;
-    }
-
-    return response.json();
 }

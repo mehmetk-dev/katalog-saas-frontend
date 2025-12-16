@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { useTranslation } from "@/lib/i18n-provider"
 
 import { TEMPLATES } from "@/lib/constants"
 
@@ -95,6 +96,7 @@ export function CatalogEditor({
   onLogoSizeChange,
 }: CatalogEditorProps) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -170,24 +172,47 @@ export function CatalogEditor({
     setDropIndex(null)
   }
 
-  // Görsel yükleme handler'ları
+  // Görsel yükleme handler'ları - Supabase Storage
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Dosya boyutu kontrolü (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Logo dosyası 2MB'dan küçük olmalı")
+      toast.error(t('toasts.imageSizeLimit', { size: 2 }))
+      e.target.value = ''
       return
     }
 
-    // Base64'e çevir (gerçek projede Supabase Storage kullanılmalı)
-    const reader = new FileReader()
-    reader.onload = () => {
-      onLogoUrlChange?.(reader.result as string)
-      toast.success("Logo yüklendi!")
+    toast.loading('Logo yükleniyor...', { id: 'logo-upload' })
+
+    try {
+      const { createClient } = await import("@/lib/supabase/client")
+      const supabase = createClient()
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const fileName = `logo-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath)
+
+      onLogoUrlChange?.(publicUrl)
+      toast.success(t('toasts.logoUploaded'), { id: 'logo-upload' })
+    } catch (error: any) {
+      console.error("Logo upload error:", error)
+      toast.error(error?.message || t('common.error'), { id: 'logo-upload' })
+    } finally {
+      e.target.value = ''
     }
-    reader.readAsDataURL(file)
   }
 
   const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,27 +220,52 @@ export function CatalogEditor({
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Arka plan dosyası 5MB'dan küçük olmalı")
+      toast.error(t('toasts.imageSizeLimit', { size: 5 }))
+      e.target.value = ''
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      onBackgroundImageChange?.(reader.result as string)
-      toast.success("Arka plan yüklendi!")
+    toast.loading('Arka plan yükleniyor...', { id: 'bg-upload' })
+
+    try {
+      const { createClient } = await import("@/lib/supabase/client")
+      const supabase = createClient()
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const fileName = `bg-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath)
+
+      onBackgroundImageChange?.(publicUrl)
+      toast.success(t('toasts.backgroundUploaded'), { id: 'bg-upload' })
+    } catch (error: any) {
+      console.error("Background upload error:", error)
+      toast.error(error?.message || t('common.error'), { id: 'bg-upload' })
+    } finally {
+      e.target.value = ''
     }
-    reader.readAsDataURL(file)
   }
 
   // Hazır gradient'ler
   const gradientPresets = [
-    { name: "Yok", value: "" },
-    { name: "Gün Batımı", value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
-    { name: "Okyanus", value: "linear-gradient(135deg, #667eea 0%, #5AB9EA 100%)" },
-    { name: "Altın", value: "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" },
-    { name: "Gece", value: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)" },
-    { name: "Mint", value: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
-    { name: "Pembe", value: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)" },
+    { name: t("builder.none"), value: "" },
+    { name: t("builder.presets.sunset"), value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
+    { name: t("builder.presets.ocean"), value: "linear-gradient(135deg, #667eea 0%, #5AB9EA 100%)" },
+    { name: t("builder.presets.gold"), value: "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" },
+    { name: t("builder.presets.night"), value: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)" },
+    { name: t("builder.presets.mint"), value: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
+    { name: t("builder.presets.pink"), value: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)" },
   ]
 
   return (
@@ -225,19 +275,19 @@ export function CatalogEditor({
         <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
           <CardTitle className="text-sm sm:text-base flex items-center gap-2">
             <Type className="w-4 h-4" />
-            Katalog Detayları
+            {t("builder.catalogDetails")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
           <div className="space-y-1.5 sm:space-y-2 shrink-0">
-            <Label htmlFor="title" className="text-xs sm:text-sm">Başlık</Label>
-            <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-9 sm:h-10" />
+            <Label htmlFor="title" className="text-xs sm:text-sm">{t("builder.catalogName")}</Label>
+            <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-9 sm:h-10" placeholder={t("builder.catalogNamePlaceholder") || "Catalog Title"} />
           </div>
           <div className="space-y-1.5 sm:space-y-2 flex-1 flex flex-col min-h-0">
-            <Label htmlFor="description" className="text-xs sm:text-sm shrink-0">Açıklama</Label>
+            <Label htmlFor="description" className="text-xs sm:text-sm shrink-0">{t("builder.description")}</Label>
             <Textarea
               id="description"
-              placeholder="Kataloğunuz için bir açıklama ekleyin..."
+              placeholder={t("builder.descriptionPlaceholder")}
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
               className="text-sm flex-1 resize-none h-auto min-h-[100px]"
@@ -248,13 +298,67 @@ export function CatalogEditor({
 
 
 
+      {/* Şablon Seçimi - Moved to Top */}
+      <Card>
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+            <Grid3X3 className="w-4 h-4" />
+            {t("builder.templateStyle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
+          <div className="grid grid-cols-2 gap-4">
+            {TEMPLATES.map((template) => {
+              const isLocked = template.isPro && userPlan !== "pro"
+              const isSelected = layout === template.id
+              return (
+                <div
+                  key={template.id}
+                  onClick={() => handleTemplateSelect(template.id, template.isPro)}
+                  className={cn(
+                    "relative cursor-pointer border rounded-lg p-2 sm:p-3 hover:bg-muted/50 transition-all",
+                    isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "border-border",
+                    isLocked && "opacity-70 hover:opacity-80"
+                  )}
+                >
+                  {/* Template içeriği aynı kalacak */}
+                  <div className="aspect-[3/4] rounded-md overflow-hidden border mb-2 bg-muted relative group">
+                    {/* Preview Image - Placeholder */}
+                    <div className={cn("absolute inset-0 bg-gradient-to-br",
+                      template.id === 'modern-grid' ? "from-slate-100 to-white" :
+                        template.id === 'minimalist' ? "from-gray-50 to-white" :
+                          template.id === 'magazine' ? "from-violet-50 to-white" :
+                            "from-slate-100 to-white"
+                    )} />
+
+                    {/* Template name / badge */}
+                    {isLocked && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-black/70 text-white backdrop-blur-sm border-0">
+                          <Lock className="w-2.5 h-2.5 mr-1" />
+                          PRO
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-medium truncate">{template.name}</span>
+                    {isSelected && <CheckSquare className="w-3.5 h-3.5 text-primary shrink-0" />}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Arka Plan Ayarları - YENİ */}
         <Card className="flex flex-col h-full">
           <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
             <CardTitle className="text-sm sm:text-base flex items-center gap-2">
               <ImageIcon className="w-4 h-4" />
-              Arka Plan
+              {t("builder.backgroundSettings")}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
@@ -263,16 +367,16 @@ export function CatalogEditor({
                 {/* Renk ve Gradient */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm">Renk</Label>
+                    <Label className="text-xs sm:text-sm">{t("builder.color")}</Label>
                     <div className="flex gap-1.5">
                       <Input type="color" value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-8 h-9 p-0.5 shrink-0" />
                       <Input value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="flex-1 font-mono text-xs h-9" placeholder="#ffffff" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm">Gradient</Label>
+                    <Label className="text-xs sm:text-sm">{t("builder.gradient")}</Label>
                     <Select value={backgroundGradient || ""} onValueChange={(v) => onBackgroundGradientChange?.(v || null)}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Seç..." /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={t("common.select") || "Select..."} /></SelectTrigger>
                       <SelectContent>
                         {gradientPresets.map((preset) => (
                           <SelectItem key={preset.name} value={preset.value || "none"}>{preset.name}</SelectItem>
@@ -287,9 +391,9 @@ export function CatalogEditor({
                   {backgroundImage && (
                     <div className="flex bg-muted/50 p-1 rounded-lg">
                       {[
-                        { value: 'cover', icon: <ImageIcon className="w-3.5 h-3.5" />, label: 'Kapla' },
-                        { value: 'contain', icon: <BoxSelect className="w-3.5 h-3.5" />, label: 'Sığdır' },
-                        { value: 'fill', icon: <Maximize2 className="w-3.5 h-3.5" />, label: 'Yay' },
+                        { value: 'cover', icon: <ImageIcon className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.cover") },
+                        { value: 'contain', icon: <BoxSelect className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.contain") },
+                        { value: 'fill', icon: <Maximize2 className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.fill") },
                       ].map((opt) => (
                         <Button
                           key={opt.value}
@@ -318,7 +422,7 @@ export function CatalogEditor({
                     onClick={() => bgInputRef.current?.click()}
                   >
                     <Upload className={cn("w-4 h-4 mr-2", !backgroundImage && "w-5 h-5 mb-1")} />
-                    {backgroundImage ? "Görseli Değiştir" : <div className="flex flex-col items-center leading-none gap-1"><span>Görsel Yükle</span><span className="text-[10px] opacity-70">max 5MB</span></div>}
+                    {backgroundImage ? t("builder.changeBackground") : <div className="flex flex-col items-center leading-none gap-1"><span>{t("builder.uploadBackground")}</span><span className="text-[10px] opacity-70">max 5MB</span></div>}
                   </Button>
                 </div>
               </div>
@@ -326,7 +430,7 @@ export function CatalogEditor({
               {/* Preview Area */}
               {backgroundImage && (
                 <div className="sm:w-[120px] shrink-0 flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm text-center block w-full text-muted-foreground">Önizleme</Label>
+                  <Label className="text-xs sm:text-sm text-center block w-full text-muted-foreground">{t("builder.preview")}</Label>
                   <div className="aspect-[210/297] w-full rounded-lg border bg-muted overflow-hidden relative group shadow-sm">
                     <div className="absolute inset-0 w-full h-full" style={{ backgroundColor: backgroundColor || '#ffffff' }} />
                     <div className="absolute inset-0 w-full h-full transition-all duration-300" style={{
@@ -356,7 +460,7 @@ export function CatalogEditor({
           <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
             <CardTitle className="text-sm sm:text-base flex items-center gap-2">
               <Image className="w-4 h-4" />
-              Logo / Marka
+              {t("builder.logoBranding")}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
@@ -377,7 +481,7 @@ export function CatalogEditor({
                       onClick={() => logoInputRef.current?.click()}
                     >
                       <Upload className="w-3 h-3 mr-1.5" />
-                      Değiştir
+                      {t("builder.changeLogo")}
                     </Button>
                     <Button
                       variant="ghost"
@@ -386,7 +490,7 @@ export function CatalogEditor({
                       onClick={() => onLogoUrlChange?.(null)}
                     >
                       <Trash2 className="w-3 h-3 mr-1.5" />
-                      Kaldır
+                      {t("builder.removeLogo")}
                     </Button>
                   </div>
                 </div>
@@ -398,7 +502,7 @@ export function CatalogEditor({
                 >
                   <div className="flex flex-col items-center gap-1">
                     <Upload className="w-5 h-5" />
-                    <span className="text-sm">Logo Yükle</span>
+                    <span className="text-sm">{t("builder.logoUpload")}</span>
                     <span className="text-[10px] opacity-70">max 2MB</span>
                   </div>
                 </Button>
@@ -408,10 +512,10 @@ export function CatalogEditor({
               {logoUrl && (
                 <div className="space-y-3 pt-2 border-t">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Pozisyon</Label>
+                    <Label className="text-xs text-muted-foreground">{t("builder.position")}</Label>
                     <div className="grid grid-cols-3 gap-1">
                       {[
-                        { value: 'top-left', label: 'Sol' }, { value: 'top-center', label: 'Orta' }, { value: 'top-right', label: 'Sağ' },
+                        { value: 'top-left', label: t("builder.positions.topLeft") }, { value: 'top-center', label: t("builder.positions.topCenter") }, { value: 'top-right', label: t("builder.positions.topRight") },
                       ].map((pos) => (
                         <button
                           key={pos.value}
@@ -430,12 +534,12 @@ export function CatalogEditor({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Boyut</Label>
+                    <Label className="text-xs text-muted-foreground">{t("builder.size")}</Label>
                     <div className="grid grid-cols-3 gap-1">
                       {[
-                        { value: 'small', label: 'Küçük' },
-                        { value: 'medium', label: 'Orta' },
-                        { value: 'large', label: 'Büyük' },
+                        { value: 'small', label: t("builder.sizes.small") },
+                        { value: 'medium', label: t("builder.sizes.medium") },
+                        { value: 'large', label: t("builder.sizes.large") },
                       ].map((size) => (
                         <button
                           key={size.value}
@@ -465,7 +569,7 @@ export function CatalogEditor({
         <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
           <CardTitle className="text-sm sm:text-base flex items-center gap-2">
             <Palette className="w-4 h-4" />
-            Vurgu Rengi
+            {t("builder.accentColor")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
@@ -485,7 +589,7 @@ export function CatalogEditor({
             </div>
           </div>
           <div className="space-y-1.5 sm:space-y-2">
-            <Label className="text-xs sm:text-sm text-muted-foreground">Hızlı Paletler</Label>
+            <Label className="text-xs sm:text-sm text-muted-foreground">{t("builder.quickPalettes")}</Label>
             <div className="flex flex-wrap gap-2">
               {[
                 { name: "Sunset", color: "#f97316" },
@@ -515,33 +619,34 @@ export function CatalogEditor({
 
       {/* Products Selection */}
       <Card>
-        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
+        <CardHeader className="pb-1 sm:pb-2 p-2 sm:p-3 md:p-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm sm:text-base">Ürün Seçimi</CardTitle>
+            <CardTitle className="text-xs sm:text-sm">{t("builder.productSelection")}</CardTitle>
             <Button
               variant="ghost"
-              size="sm"
-              title="Ürün listesini yenile"
+              size="icon"
+              title={t("builder.refreshList")}
               onClick={() => router.refresh()}
-              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+              className="h-6 w-6 sm:h-7 sm:w-7"
             >
-              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0 space-y-4">
           {/* Kategori Seçimi & Tümünü Seç */}
           {products.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Kategori Filtreleri */}
               {categories.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   <Button
                     variant={selectedCategory === "all" ? "default" : "outline"}
                     size="sm"
+                    className="h-6 sm:h-7 text-[10px] sm:text-xs px-2"
                     onClick={() => { setSelectedCategory("all"); setVisibleCount(12) }}
                   >
-                    Tümü ({products.length})
+                    {t("common.all")} ({products.length})
                   </Button>
                   {categories.map(cat => {
                     const count = products.filter(p => p.category === cat).length
@@ -550,9 +655,10 @@ export function CatalogEditor({
                         key={cat}
                         variant={selectedCategory === cat ? "default" : "outline"}
                         size="sm"
+                        className="h-6 sm:h-7 text-[10px] sm:text-xs px-2"
                         onClick={() => { setSelectedCategory(cat); setVisibleCount(12) }}
                       >
-                        <Tag className="w-3 h-3 mr-1" />
+                        <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                         {cat} ({count})
                       </Button>
                     )
@@ -561,7 +667,7 @@ export function CatalogEditor({
               )}
 
               {/* Toplu Seçim Butonları */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1 sm:gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -569,19 +675,21 @@ export function CatalogEditor({
                     const allIds = filteredProducts.map(p => p.id)
                     onSelectedProductIdsChange([...new Set([...selectedProductIds, ...allIds])])
                   }}
-                  className="gap-2"
+                  className="gap-1 sm:gap-2 h-6 sm:h-7 text-[10px] sm:text-xs px-2"
                 >
-                  <CheckSquare className="w-3.5 h-3.5" />
-                  {selectedCategory === "all" ? "Tümünü Seç" : `${selectedCategory} Seç`} ({filteredProducts.length})
+                  <CheckSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span className="hidden sm:inline">{selectedCategory === "all" ? t("builder.selectAll") : t("builder.selectCategory", { category: selectedCategory })} ({filteredProducts.length})</span>
+                  <span className="sm:hidden">Seç ({filteredProducts.length})</span>
                 </Button>
                 {selectedProductIds.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onSelectedProductIdsChange([])}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive h-6 sm:h-7 text-[10px] sm:text-xs px-2"
                   >
-                    Seçimi Temizle ({selectedProductIds.length})
+                    <span className="hidden sm:inline">{t("builder.clearSelection")} ({selectedProductIds.length})</span>
+                    <span className="sm:hidden">Temizle ({selectedProductIds.length})</span>
                   </Button>
                 )}
               </div>
@@ -591,14 +699,14 @@ export function CatalogEditor({
           {/* All Products List */}
           <div className="space-y-2">
             <Label className="text-xs sm:text-sm text-muted-foreground">
-              {selectedCategory === "all" ? "Tüm Ürünler" : selectedCategory} ({filteredProducts.length})
+              {selectedCategory === "all" ? t("common.all") : selectedCategory} ({filteredProducts.length})
             </Label>
             {products.length === 0 ? (
               <div className="text-center py-6 sm:py-8 border rounded-lg bg-muted/20">
                 <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-muted-foreground/50 mb-2 sm:mb-3" />
-                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">Henüz ürün yok</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t("builder.noProductsResult")}</p>
                 <Button size="sm" asChild className="w-full sm:w-auto">
-                  <Link href="/dashboard/products">Ürün Ekle</Link>
+                  <Link href="/dashboard/products">{t("products.addProduct") || "Add Product"}</Link>
                 </Button>
               </div>
             ) : (
@@ -639,7 +747,7 @@ export function CatalogEditor({
                       onClick={() => setVisibleCount(prev => prev + 12)}
                     >
                       <ChevronDown className="w-4 h-4" />
-                      Daha Fazla Gör ({filteredProducts.length - visibleCount} ürün)
+                      {t("builder.loadMore", { count: filteredProducts.length - visibleCount })}
                     </Button>
                   </div>
                 )}
@@ -653,7 +761,7 @@ export function CatalogEditor({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-xs sm:text-sm text-muted-foreground">
-                Seçili Ürünler ({selectedProductIds.length}) - <span className="text-primary italic">Sıralamak için sürükleyin</span>
+                {t("builder.selectedProducts", { count: selectedProductIds.length })} - <span className="text-primary italic">{t("builder.dragToReorder")}</span>
               </Label>
               {selectedProductIds.length > 0 && (
                 <Button
@@ -662,14 +770,14 @@ export function CatalogEditor({
                   onClick={() => onSelectedProductIdsChange([])}
                   className="h-6 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
-                  Temizle
+                  {t("builder.clearSelection")}
                 </Button>
               )}
             </div>
 
             {selectedProductIds.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
-                Kataloğa eklemek için yukarıdan ürün seçin
+                {t("builder.noProductsSelected")}
               </div>
             ) : (
               <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
@@ -729,12 +837,12 @@ export function CatalogEditor({
         <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
           <CardTitle className="text-sm sm:text-base flex items-center gap-2">
             <Columns className="w-4 h-4" />
-            Sayfa Düzeni
+            {t("builder.pageLayout")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm">Satır Başına Ürün Sayısı</Label>
+            <Label className="text-xs sm:text-sm">{t("builder.productsPerRow")}</Label>
             <div className="flex gap-2">
               {[2, 3, 4].map((num) => (
                 <button
@@ -752,7 +860,7 @@ export function CatalogEditor({
                       <div key={i} className="w-3 h-4 bg-current rounded-sm opacity-60" />
                     ))}
                   </div>
-                  <span className="text-xs font-medium">{num} Sütun</span>
+                  <span className="text-xs font-medium">{t("builder.columns", { count: num })}</span>
                 </button>
               ))}
             </div>
@@ -760,77 +868,21 @@ export function CatalogEditor({
           <Separator />
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5 min-w-0">
-              <Label className="text-xs sm:text-sm">Fiyatları Göster</Label>
+              <Label className="text-xs sm:text-sm">{t("builder.showPrices")}</Label>
             </div>
             <Switch checked={showPrices} onCheckedChange={onShowPricesChange} />
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5 min-w-0">
-              <Label className="text-xs sm:text-sm">Açıklamaları Göster</Label>
+              <Label className="text-xs sm:text-sm">{t("builder.showDescriptions")}</Label>
             </div>
             <Switch checked={showDescriptions} onCheckedChange={onShowDescriptionsChange} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Şablon Seçimi */}
-      <Card>
-        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Grid3X3 className="w-4 h-4" />
-            Şablon Stili
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="grid grid-cols-2 gap-4">
-            {TEMPLATES.map((template) => {
-              const isLocked = template.isPro && userPlan !== "pro"
-              const isSelected = layout === template.id
-              return (
-                <div
-                  key={template.id}
-                  onClick={() => handleTemplateSelect(template.id, template.isPro)}
-                  className={cn(
-                    "relative cursor-pointer border rounded-lg p-2 sm:p-3 hover:bg-muted/50 transition-all",
-                    isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "border-border",
-                    isLocked && "opacity-70 hover:opacity-80"
-                  )}
-                >
-                  <div className="aspect-[210/297] rounded-md bg-muted mb-1.5 sm:mb-2 overflow-hidden relative">
-                    <img
-                      src={template.image}
-                      alt={template.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {template.isPro && (
-                      <div className="absolute top-1 right-1">
-                        {isLocked ? (
-                          <div className="bg-black/80 text-white rounded-full p-0.5 sm:p-1 shadow-sm">
-                            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          </div>
-                        ) : (
-                          <Badge variant="secondary" className="text-[8px] sm:text-[10px] h-4 sm:h-5 px-1 sm:px-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-0">
-                            PRO
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-0.5 sm:space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className={cn("font-medium text-xs sm:text-sm", isSelected && "text-primary")}>{template.name}</p>
-                      {isSelected && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary" />}
-                    </div>
-                    <p className="text-[9px] sm:text-[10px] text-muted-foreground line-clamp-2 leading-tight hidden sm:block">
-                      {template.description}
-                    </p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+
+
 
     </div >
 
