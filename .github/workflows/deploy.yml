@@ -30,7 +30,7 @@ jobs:
             # --force-recreate: Container'ı zorla baştan yaratır
             docker-compose down
             # Önce önbellek kullanmadan sıfırdan inşa et (Node 20'yi kesin görsün diye)
-            docker-compose build --no-cache
+            docker-compose build
             
             # Sonra sistemi ayağa kaldır
             docker-compose up -d --force-recreate
