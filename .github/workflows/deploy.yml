@@ -20,11 +20,16 @@ jobs:
             # 1. Proje klasörüne git
             cd /root/katalog-app
             
-            # 2. En güncel kodları GitHub'dan çek
-            git pull origin main
+            # 2. ACIMASIZ TEMİZLİK: Git Conflict hatasını kökten çözer
+            # Sunucudaki tüm değişiklikleri siler, GitHub ile birebir eşitler
+            git fetch --all
+            git reset --hard origin/main
             
             # 3. Docker ile sistemi güncelle ve yeniden başlat
-            docker-compose up -d --build
+            # --build: Kod değiştiği için image'ı yeniden oluşturur
+            # --force-recreate: Container'ı zorla baştan yaratır
+            docker-compose down
+            docker-compose up -d --build --force-recreate
             
-            # 4. Gereksiz dolan hafızayı temizle (isteğe bağlı)
+            # 4. Temizlik (Eski image'ları siler, yer açar)
             docker image prune -f
