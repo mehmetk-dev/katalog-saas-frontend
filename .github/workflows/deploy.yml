@@ -31,5 +31,5 @@ jobs:
             docker-compose down
             docker-compose up -d --build --force-recreate
             
-            # 4. Temizlik (Eski image'ları siler, yer açar)
+            # 4. -Temizlik (Eski image'ları siler, yer açar)
             docker image prune -f
