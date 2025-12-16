@@ -92,7 +92,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [activeImageUrl, setActiveImageUrl] = useState(product?.image_url || "")
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
-
+  //
   // Drag state for images
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null)
 
