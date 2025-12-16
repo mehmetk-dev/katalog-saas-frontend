@@ -29,7 +29,11 @@ jobs:
             # --build: Kod değiştiği için image'ı yeniden oluşturur
             # --force-recreate: Container'ı zorla baştan yaratır
             docker-compose down
-            docker-compose up -d --build --force-recreate --no-cache
+            # Önce önbellek kullanmadan sıfırdan inşa et (Node 20'yi kesin görsün diye)
+            docker-compose build --no-cache
+            
+            # Sonra sistemi ayağa kaldır
+            docker-compose up -d --force-recreate
             
             # 4. -Temizlik (Eski image'ları siler, yer açar)
             docker image prune -f
