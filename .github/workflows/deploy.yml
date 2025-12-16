@@ -25,7 +25,7 @@ jobs:
             git fetch --all
             git reset --hard origin/main
             
-            # 3. Docker ile sistemi güncelle ve yeniden başlat
+            # 3. Docker  ile sistemi güncelle ve yeniden başlat
             # --build: Kod değiştiği için image'ı yeniden oluşturur
             # --force-recreate: Container'ı zorla baştan yaratır
             docker-compose down
