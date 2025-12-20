@@ -6,6 +6,7 @@ export function MagazineTemplate({
     primaryColor,
     showPrices,
     showDescriptions,
+    showAttributes,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -71,15 +72,24 @@ export function MagazineTemplate({
                                     })()}
                                 </p>
                             )}
+                            {showAttributes && featured.custom_attributes && featured.custom_attributes.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {featured.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
+                                        <span key={idx} className="text-[9px] text-white/90 bg-white/10 px-1.5 py-0.5 rounded backdrop-blur-sm border border-white/10">
+                                            {attr.name}: {attr.value}{attr.unit}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
 
                 {/* Diğer Ürünler - 2x2 grid */}
                 {others.length > 0 && (
-                    <div className={`grid ${getGridCols()} gap-3 flex-1`}>
+                    <div className={`grid ${getGridCols()} grid-rows-2 gap-3 flex-1`}>
                         {others.map((product) => (
-                            <div key={product.id} className="relative overflow-hidden rounded-lg bg-gray-100 group">
+                            <div key={product.id} className="relative overflow-hidden rounded-lg bg-gray-100 group h-full">
                                 <img loading="lazy"
                                     crossOrigin="anonymous"
                                     src={product.image_url || "/placeholder.svg"}
@@ -100,6 +110,15 @@ export function MagazineTemplate({
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}
                                         </p>
+                                    )}
+                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, idx) => (
+                                                <span key={idx} className="text-[8px] text-white/80 bg-white/5 px-1 py-0.2 rounded leading-tight">
+                                                    {attr.value}{attr.unit}
+                                                </span>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
                             </div>

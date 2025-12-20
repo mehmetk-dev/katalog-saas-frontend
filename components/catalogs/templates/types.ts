@@ -6,6 +6,7 @@ export interface TemplateProps {
     primaryColor: string
     showPrices: boolean
     showDescriptions: boolean
+    showAttributes: boolean
     isFreeUser: boolean
     pageNumber?: number
     totalPages?: number

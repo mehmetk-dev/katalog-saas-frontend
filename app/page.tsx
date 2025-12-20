@@ -1,11 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { PublicHeader } from "@/components/layout/public-header"
-import { PublicFooter } from "@/components/layout/public-footer"
-import { useTranslation } from "@/lib/i18n-provider"
 import {
   ArrowRight,
   LayoutGrid,
@@ -23,8 +19,19 @@ import {
   TrendingUp
 } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
+import { useTranslation } from "@/lib/i18n-provider"
+
 export default function HomePage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+
+  // Update document title when language changes
+  useEffect(() => {
+    document.title = t('common.siteTitle')
+  }, [language, t])
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">

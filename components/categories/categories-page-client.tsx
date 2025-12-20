@@ -1,6 +1,22 @@
 "use client"
 
 import { useState, useTransition, useRef } from "react"
+import {
+    FolderPlus,
+    Folder,
+    MoreVertical,
+    Pencil,
+    Trash2,
+    Lock,
+    Package,
+    FolderOpen,
+    ImagePlus,
+    X,
+    Loader2
+} from "lucide-react"
+import { toast } from "sonner"
+import { createBrowserClient } from "@supabase/ssr"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,22 +35,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import {
-    FolderPlus,
-    Folder,
-    MoreVertical,
-    Pencil,
-    Trash2,
-    Lock,
-    Package,
-    FolderOpen,
-    ImagePlus,
-    X,
-    Loader2
-} from "lucide-react"
-import { toast } from "sonner"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
-import { createBrowserClient } from "@supabase/ssr"
 import { useTranslation } from "@/lib/i18n-provider"
 
 interface Category {
@@ -100,13 +101,18 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
             )
 
-            const fileExt = file.name.split('.').pop()
-            const fileName = `category-${Date.now()}.${fileExt}`
+            // 1. WebP Conversion
+            const { convertToWebP } = await import("@/lib/image-utils")
+            const { blob } = await convertToWebP(file)
+
+            const fileName = `category-${Date.now()}.webp`
             const filePath = `categories/${fileName}`
 
             const { error: uploadError } = await supabase.storage
                 .from('product-images')
-                .upload(filePath, file)
+                .upload(filePath, blob, {
+                    contentType: 'image/webp'
+                })
 
             if (uploadError) throw uploadError
 

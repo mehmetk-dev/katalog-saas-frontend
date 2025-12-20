@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+
 import { supabase } from '../services/supabase';
+import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req: Request) => (req as any).user.id;
@@ -13,11 +15,47 @@ export const getMe = async (req: Request, res: Response) => {
         const userMeta = getUserMeta(req);
 
         // Get user profile
-        const { data: profile, error: profileError } = await supabase
+        let { data: profile, error: profileError } = await supabase
             .from('users')
             .select('*')
             .eq('id', userId)
             .single();
+
+        // Check for subscription expiry
+        if (profile && profile.plan !== 'free' && profile.subscription_end) {
+            const expiry = new Date(profile.subscription_end);
+            if (expiry < new Date()) {
+                // Subscription expired, downgrade to free
+                const { data: updatedProfile, error: upgradeError } = await supabase
+                    .from('users')
+                    .update({
+                        plan: 'free',
+                        subscription_status: 'expired',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId)
+                    .select()
+                    .single();
+
+                if (!upgradeError && updatedProfile) {
+                    profile = updatedProfile;
+
+                    // Bildirim gönder
+                    try {
+                        const { createNotification } = await import('./notifications');
+                        await createNotification(
+                            userId,
+                            'subscription_expired',
+                            'Üyelik Süreniz Doldu ⏰',
+                            'Premium üyeliğinizin süresi dolduğu için hesabınız Free plana geçirildi. Bazı özellikler kısıtlanmış olabilir.',
+                            '/dashboard/settings'
+                        );
+                    } catch (notifError) {
+                        console.error('Notification error:', notifError);
+                    }
+                }
+            }
+        }
 
         // Get counts
         const { count: productsCount } = await supabase
@@ -101,6 +139,17 @@ export const updateMe = async (req: Request, res: Response) => {
             .eq('id', userId);
 
         if (error) throw error;
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'profile_updated',
+            description: ActivityDescriptions.profileUpdated(),
+            ipAddress,
+            userAgent
+        });
+
         res.json({ success: true });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -110,6 +159,16 @@ export const updateMe = async (req: Request, res: Response) => {
 export const deleteMe = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
+        const { ipAddress, userAgent } = getRequestInfo(req);
+
+        // Log activity before deletion
+        await logActivity({
+            userId,
+            activityType: 'account_deleted',
+            description: ActivityDescriptions.accountDeleted(),
+            ipAddress,
+            userAgent
+        });
 
         // Transactional delete: Deleting from Auth (via Admin) triggers 
         // ON DELETE CASCADE on public.users, which cascades to other tables.
@@ -153,6 +212,17 @@ export const incrementExportsUsed = async (req: Request, res: Response) => {
             .eq('id', userId);
 
         if (updateError) throw updateError;
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'pdf_downloaded',
+            description: ActivityDescriptions.pdfDownloaded(catalogName || 'Katalog'),
+            metadata: { catalogName },
+            ipAddress,
+            userAgent
+        });
 
         // Bildirim gönder
         try {
@@ -199,6 +269,17 @@ export const upgradeToPro = async (req: Request, res: Response) => {
             .eq('id', userId);
 
         if (error) throw error;
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'plan_upgrade',
+            description: ActivityDescriptions.planUpgrade(targetPlan.toUpperCase()),
+            metadata: { newPlan: targetPlan },
+            ipAddress,
+            userAgent
+        });
 
         // Bildirim gönder
         if (targetPlan !== 'free') {

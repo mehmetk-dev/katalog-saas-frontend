@@ -6,6 +6,7 @@ export function MinimalistTemplate({
     primaryColor,
     showPrices,
     showDescriptions,
+    showAttributes,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -19,6 +20,11 @@ export function MinimalistTemplate({
             case 4: return "grid-cols-4"
             default: return "grid-cols-2"
         }
+    }
+
+    const getGridRows = () => {
+        if (columnsPerRow === 2) return "grid-rows-3"
+        return "grid-rows-2"
     }
 
     return (
@@ -40,7 +46,7 @@ export function MinimalistTemplate({
             </div>
 
             {/* Dinamik Grid İçerik */}
-            <div className={`flex-1 p-6 grid ${getGridCols()} gap-5 content-start`}>
+            <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-5 overflow-hidden`} style={{ maxHeight: 'calc(100% - 92px)' }}>
                 {(products || []).map((product) => {
                     const productUrl = (product as any).product_url
                     const Wrapper = productUrl ? 'a' : 'div'
@@ -48,15 +54,15 @@ export function MinimalistTemplate({
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'flex flex-col bg-gray-50 rounded-lg overflow-hidden cursor-pointer group hover:bg-gray-100 transition-colors'
+                        className: 'flex flex-col h-full bg-gray-50 rounded-lg overflow-hidden cursor-pointer group hover:bg-gray-100 transition-colors shrink-0'
                     } : {
-                        className: 'flex flex-col bg-gray-50 rounded-lg overflow-hidden'
+                        className: 'flex flex-col h-full bg-gray-50 rounded-lg overflow-hidden shrink-0'
                     }
 
                     return (
                         <Wrapper key={product.id} {...(wrapperProps as any)}>
                             {/* Görsel */}
-                            <div className="aspect-square p-4 flex items-center justify-center bg-white relative">
+                            <div className="aspect-square p-3 flex items-center justify-center bg-white relative shrink-0">
                                 <img loading="lazy"
                                     crossOrigin="anonymous"
                                     src={product.image_url || "/placeholder.svg"}
@@ -73,28 +79,45 @@ export function MinimalistTemplate({
                             </div>
 
                             {/* Bilgiler */}
-                            <div className="p-4 text-center space-y-1.5">
-                                <h3 className="text-sm font-medium text-gray-900 line-clamp-1 group-hover:text-black transition-colors">{product.name}</h3>
+                            <div className="p-3 text-center flex-1 flex flex-col justify-between overflow-hidden">
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-medium text-gray-900 line-clamp-1 group-hover:text-black transition-colors leading-tight">{product.name}</h3>
 
-                                {showDescriptions && product.description && (
-                                    <p className="text-gray-500 font-light text-xs line-clamp-2 leading-relaxed">
-                                        {product.description}
-                                    </p>
-                                )}
+                                    {showDescriptions && product.description && (
+                                        <p className="text-gray-500 font-light text-[10px] line-clamp-2 leading-tight">
+                                            {product.description}
+                                        </p>
+                                    )}
 
-                                {showPrices && (
-                                    <p className="text-lg font-light pt-1" style={{ color: primaryColor }}>
-                                        {(() => {
-                                            const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
-                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                            return `${symbol}${Number(product.price).toFixed(2)}`
-                                        })()}
-                                    </p>
-                                )}
+                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                        <div className="pt-1.5 border-t border-gray-100 space-y-0.5 mt-1">
+                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
+                                                <div key={idx} className="flex justify-between items-center text-[9px] gap-1">
+                                                    <span className="text-gray-400 font-light truncate flex-1">{attr.name}</span>
+                                                    <span className="text-gray-600 font-medium shrink-0 truncate max-w-[60%]">
+                                                        {attr.value}{attr.unit}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
 
-                                {product.sku && (
-                                    <p className="text-[9px] text-gray-400 font-mono">SKU: {product.sku}</p>
-                                )}
+                                <div className="mt-auto pt-1.5">
+                                    {showPrices && (
+                                        <p className="text-base font-light leading-none" style={{ color: primaryColor }}>
+                                            {(() => {
+                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                return `${symbol}${Number(product.price).toFixed(2)}`
+                                            })()}
+                                        </p>
+                                    )}
+
+                                    {product.sku && (
+                                        <p className="text-[8px] text-gray-300 font-mono mt-0.5">SKU: {product.sku}</p>
+                                    )}
+                                </div>
                             </div>
                         </Wrapper>
                     )

@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
-import { ALL_TEMPLATES } from "../catalogs/templates/registry"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+
+import { ALL_TEMPLATES } from "../catalogs/templates/registry"
 
 interface CatalogPreviewProps {
   catalogName: string
@@ -14,6 +16,7 @@ interface CatalogPreviewProps {
   primaryColor: string
   showPrices: boolean
   showDescriptions: boolean
+  showAttributes: boolean
   // Yeni kişiselleştirme props
   columnsPerRow?: number
   backgroundColor?: string
@@ -66,9 +69,32 @@ export function CatalogPreview(props: CatalogPreviewProps) {
 
   // Sütun sayısına göre sayfa başına ürün hesapla
   const getItemsPerPage = () => {
-    // Sütun sayısına göre otomatik hesapla (satır sayısı sabit: 3)
-    const rowsPerPage = 3
-    return columnsPerRow * rowsPerPage
+    switch (props.layout) {
+      case 'magazine':
+        return 1 + (columnsPerRow * 2); // 1 büyük + (sütun sayısı * 2 satır)
+      case 'showcase':
+        return columnsPerRow === 2 ? 4 : 7; // 1 büyük + (2 veya 4 küçük)
+      case 'fashion-lookbook':
+        return 4; // Sabit tasarım (1 büyük sol, 3 sağ)
+      case 'industrial':
+        return columnsPerRow * 4; // Daha sıkı teknik görünüm (4 satır)
+      case 'compact-list':
+        return 12; // Sabit liste görünümü
+      case 'classic-catalog':
+        return 10; // Tablo görünümü
+      case 'retail':
+        return columnsPerRow * 5; // Fiyat listesi (5 satır)
+      case 'catalog-pro':
+        return columnsPerRow * 3; // 3 satır
+      case 'product-tiles':
+        return columnsPerRow === 2 ? 8 : columnsPerRow * 3; // 2 sütunda 4 satır, diğerlerinde 3 satır
+      default:
+        // Standart gridler: Sütun sayısına göre satır ayarı
+        if (columnsPerRow === 2) return 6; // 2x3
+        if (columnsPerRow === 3) return 9; // 3x3
+        if (columnsPerRow === 4) return 12; // 4x3
+        return 9;
+    }
   }
 
   const itemsPerPage = getItemsPerPage()

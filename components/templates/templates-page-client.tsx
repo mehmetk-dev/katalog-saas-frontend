@@ -1,19 +1,21 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { Lock, Palette } from "lucide-react"
+import { toast } from "sonner"
+import { useState, useTransition } from "react"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Lock, Palette, FileText } from "lucide-react"
 import { useUser } from "@/lib/user-context"
 import { type CatalogTemplate, createCatalog } from "@/lib/actions/catalogs"
-import { toast } from "sonner"
-import { useState, useTransition } from "react"
-import { CatalogPreview } from "../catalogs/catalog-preview"
-import { PREVIEW_PRODUCTS } from "./preview-data"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
-import Image from "next/image"
 import { useTranslation } from "@/lib/i18n-provider"
+
+import { CatalogPreview } from "../catalogs/catalog-preview"
+
+import { getPreviewProductsByLayout } from "./preview-data"
 
 interface TemplatesPageClientProps {
   templates: CatalogTemplate[]
@@ -25,7 +27,6 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
   const { t } = useTranslation()
   const [isPending, startTransition] = useTransition()
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [showPreview, setShowPreview] = useState<Record<string, boolean>>({})
 
   const isFreeUser = user?.plan === "free"
 
@@ -53,10 +54,6 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
     })
   }
 
-  const togglePreview = (id: string) => {
-    setShowPreview(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -73,45 +70,15 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
           {templates.map((template) => (
             <Card key={template.id} className="overflow-hidden group hover:shadow-md transition-shadow ring-1 ring-gray-200 border-0">
-              {/* Template Preview / Image */}
+              {/* Template Preview - Her şablon kendi temasına uygun ürünlerle */}
               <div className="relative border-b group-hover:opacity-95 transition-opacity bg-gray-50/50">
-                {/* Fotoğraf varsa göster, yoksa preview */}
-                {template.thumbnail_url && !showPreview[template.id] ? (
-                  <div className="aspect-[4/3] relative">
-                    <img
-                      src={template.thumbnail_url}
-                      alt={template.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fotoğraf yüklenemezse preview'a geç
-                        setShowPreview(prev => ({ ...prev, [template.id]: true }))
-                      }}
-                    />
-                    {/* Preview toggle button */}
-                    <button
-                      onClick={() => togglePreview(template.id)}
-                      className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      Önizleme
-                    </button>
-                  </div>
-                ) : (
-                  <ResponsiveContainer>
-                    <CatalogPreview
-                      layout={template.layout}
-                      name={template.name}
-                      products={PREVIEW_PRODUCTS}
-                    />
-                    {template.thumbnail_url && (
-                      <button
-                        onClick={() => togglePreview(template.id)}
-                        className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        Fotoğraf
-                      </button>
-                    )}
-                  </ResponsiveContainer>
-                )}
+                <ResponsiveContainer>
+                  <CatalogPreview
+                    layout={template.layout}
+                    name={template.name}
+                    products={getPreviewProductsByLayout(template.layout)}
+                  />
+                </ResponsiveContainer>
 
                 {/* Pro Lock Overlay */}
                 {template.is_premium && isFreeUser && (

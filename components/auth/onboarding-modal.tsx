@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Sofa, Shirt, Package, Utensils, Laptop, MoreHorizontal, Loader2 } from "lucide-react"
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Sofa, Shirt, Package, Utensils, Laptop, MoreHorizontal, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface OnboardingModalProps {

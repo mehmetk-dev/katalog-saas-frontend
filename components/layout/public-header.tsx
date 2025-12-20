@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { LayoutGrid, Sparkles } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-provider"
 

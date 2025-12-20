@@ -2,6 +2,11 @@
 
 import type React from "react"
 import { useState, useTransition, useRef, useMemo, useCallback } from "react"
+import { Upload, ChevronDown, Search, Plus, Download, Trash2, FileDown, LayoutGrid, List, SortAsc, SortDesc, Filter, X, ArrowUpDown, Package, Sparkles, TrendingUp, AlertTriangle, Percent, DollarSign, Tag, Check, MoreHorizontal, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+
 import { ProductsTable } from "@/components/products/products-table"
 import { ProductModal } from "@/components/products/product-modal"
 import { ImportExportModal } from "@/components/products/import-export-modal"
@@ -9,16 +14,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Upload, ChevronDown, Search, Plus, Download, Trash2, FileDown, LayoutGrid, List, SortAsc, SortDesc, Filter, X, ArrowUpDown, Package, Sparkles, TrendingUp, AlertTriangle, Percent, DollarSign, Tag, Check, MoreHorizontal, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n-provider"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { type Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
-import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
@@ -569,10 +570,10 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
           {/* Toolbar - Yüzer Tasarım */}
           <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-2 shadow-sm">
-            {/* Tümünü Seç Checkbox */}
+            {/* Tümünü Seç Checkbox - Mobilde daha küçük */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center justify-center h-9 w-9 shrink-0">
+                <div className="flex items-center justify-center h-7 w-7 sm:h-9 sm:w-9 shrink-0">
                   <Checkbox
                     checked={selectedIds.length > 0 && selectedIds.length === filteredAndSortedProducts.length}
                     onCheckedChange={(checked) => {
@@ -582,7 +583,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
                         setSelectedIds([])
                       }
                     }}
-                    className="h-4 w-4"
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                   />
                 </div>
               </TooltipTrigger>

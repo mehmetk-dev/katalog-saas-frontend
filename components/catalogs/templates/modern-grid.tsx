@@ -6,6 +6,7 @@ export function ModernGridTemplate({
     primaryColor,
     showPrices,
     showDescriptions,
+    showAttributes,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -21,6 +22,11 @@ export function ModernGridTemplate({
             case 4: return "grid-cols-4"
             default: return "grid-cols-2"
         }
+    }
+
+    const getGridRows = () => {
+        if (columnsPerRow === 2) return "grid-rows-3"
+        return "grid-rows-2"
     }
 
     return (
@@ -41,8 +47,8 @@ export function ModernGridTemplate({
                 )}
             </div>
 
-            {/* Grid İçerik - Overflow engellendi */}
-            <div className={`flex-1 p-4 grid ${getGridCols()} gap-3 content-start overflow-hidden auto-rows-max`} style={{ maxHeight: 'calc(100% - 90px)' }}>
+            {/* Grid İçerik - Fixed rows to prevent overflow */}
+            <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`} style={{ maxHeight: 'calc(100% - 92px)' }}>
                 {(products || []).map((product) => {
                     const productUrl = (product as any).product_url
                     const Wrapper = productUrl ? 'a' : 'div'
@@ -50,9 +56,9 @@ export function ModernGridTemplate({
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'flex flex-col border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer'
+                        className: 'flex flex-col h-full border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer'
                     } : {
-                        className: 'flex flex-col border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm'
+                        className: 'flex flex-col h-full border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm'
                     }
 
                     return (
@@ -94,6 +100,18 @@ export function ModernGridTemplate({
                                     <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
                                         {product.description}
                                     </p>
+                                )}
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="mt-2 space-y-0.5 border-t pt-2 border-gray-50">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 4).map((attr, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-[10px] gap-2">
+                                                <span className="text-gray-400 font-medium truncate flex-1">{attr.name}</span>
+                                                <span className="text-gray-600 font-semibold shrink-0 truncate max-w-[60%]">
+                                                    {attr.value}{attr.unit}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                                 {product.sku && (
                                     <p className="text-[10px] text-gray-400 mt-auto pt-1 font-mono">SKU: {product.sku}</p>

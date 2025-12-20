@@ -1,6 +1,10 @@
 "use client"
 
 import { useState, useRef } from "react"
+import { Palette, Type, Grid3X3, GripVertical, Trash2, Package, Lock, LayoutTemplate, RefreshCw, Image, Upload, Columns, ImageIcon, ChevronDown, Tag, CheckSquare, BoxSelect, Maximize2 } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -8,19 +12,19 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Palette, Type, Grid3X3, GripVertical, Trash2, Package, Lock, LayoutTemplate, RefreshCw, Image, Upload, Columns, ImageIcon, ChevronDown, Tag, CheckSquare, BoxSelect, Maximize2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import type { Product } from "@/lib/actions/products"
-import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n-provider"
-
+import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { TEMPLATES } from "@/lib/constants"
+
+import { CatalogPreview } from "../catalogs/catalog-preview"
+import { getPreviewProductsByLayout } from "../templates/preview-data"
+
 
 interface CatalogEditorProps {
   products: Product[]
@@ -57,6 +61,8 @@ interface CatalogEditorProps {
   onLogoPositionChange?: (position: string) => void
   logoSize?: string
   onLogoSizeChange?: (size: string) => void
+  showAttributes?: boolean
+  onShowAttributesChange?: (show: boolean) => void
 }
 
 export function CatalogEditor({
@@ -94,6 +100,8 @@ export function CatalogEditor({
   onLogoPositionChange,
   logoSize = 'medium',
   onLogoSizeChange,
+  showAttributes = false,
+  onShowAttributesChange,
 }: CatalogEditorProps) {
   const router = useRouter()
   const { t } = useTranslation()
@@ -128,7 +136,7 @@ export function CatalogEditor({
   }
 
   const handleTemplateSelect = (templateId: string, isPro: boolean) => {
-    if (isPro && userPlan !== "pro") {
+    if (isPro && userPlan === "free") {
       onUpgrade()
       return
     }
@@ -188,15 +196,19 @@ export function CatalogEditor({
     try {
       const { createClient } = await import("@/lib/supabase/client")
       const supabase = createClient()
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const fileName = `logo-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      // 1. WebP Conversion
+      const { convertToWebP } = await import("@/lib/image-utils")
+      const { blob } = await convertToWebP(file)
+
+      const fileName = `logo-${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
       const filePath = `${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(filePath, file, {
+        .upload(filePath, blob, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: 'image/webp'
         })
 
       if (uploadError) throw uploadError
@@ -230,15 +242,19 @@ export function CatalogEditor({
     try {
       const { createClient } = await import("@/lib/supabase/client")
       const supabase = createClient()
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const fileName = `bg-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      // 1. WebP Conversion
+      const { convertToWebP } = await import("@/lib/image-utils")
+      const { blob } = await convertToWebP(file)
+
+      const fileName = `bg-${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
       const filePath = `${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(filePath, file, {
+        .upload(filePath, blob, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: 'image/webp'
         })
 
       if (uploadError) throw uploadError
@@ -309,7 +325,7 @@ export function CatalogEditor({
         <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
           <div className="grid grid-cols-2 gap-4">
             {TEMPLATES.map((template) => {
-              const isLocked = template.isPro && userPlan !== "pro"
+              const isLocked = template.isPro && userPlan === "free"
               const isSelected = layout === template.id
               return (
                 <div
@@ -321,17 +337,17 @@ export function CatalogEditor({
                     isLocked && "opacity-70 hover:opacity-80"
                   )}
                 >
-                  {/* Template içeriği aynı kalacak */}
+                  {/* Template Canlı Önizleme */}
                   <div className="aspect-[3/4] rounded-md overflow-hidden border mb-2 bg-muted relative group">
-                    {/* Preview Image - Placeholder */}
-                    <div className={cn("absolute inset-0 bg-gradient-to-br",
-                      template.id === 'modern-grid' ? "from-slate-100 to-white" :
-                        template.id === 'minimalist' ? "from-gray-50 to-white" :
-                          template.id === 'magazine' ? "from-violet-50 to-white" :
-                            "from-slate-100 to-white"
-                    )} />
+                    <ResponsiveContainer contentWidth={794} contentHeight={1123}>
+                      <CatalogPreview
+                        layout={template.id}
+                        name={template.name}
+                        products={getPreviewProductsByLayout(template.id)}
+                      />
+                    </ResponsiveContainer>
 
-                    {/* Template name / badge */}
+                    {/* Pro Lock Badge */}
                     {isLocked && (
                       <div className="absolute top-2 right-2 z-10">
                         <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-black/70 text-white backdrop-blur-sm border-0">
@@ -841,29 +857,49 @@ export function CatalogEditor({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="space-y-2">
-            <Label className="text-xs sm:text-sm">{t("builder.productsPerRow")}</Label>
-            <div className="flex gap-2">
+          <div className="space-y-3">
+            <Label className="text-xs sm:text-sm font-semibold flex items-center gap-2">
+              <Columns className="w-3.5 h-3.5" />
+              {t("builder.productsPerRow")}
+            </Label>
+            <div className="flex gap-3">
               {[2, 3, 4].map((num) => (
                 <button
                   key={num}
                   onClick={() => onColumnsPerRowChange?.(num)}
                   className={cn(
-                    "flex-1 h-12 rounded-lg border-2 transition-all flex flex-col items-center justify-center gap-1",
+                    "flex-1 group relative h-16 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 overflow-hidden",
                     columnsPerRow === num
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-primary/50"
+                      ? "border-primary bg-primary/10 text-primary shadow-sm"
+                      : "border-border hover:border-primary/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   )}
                 >
-                  <div className="flex gap-0.5">
-                    {Array(num).fill(0).map((_, i) => (
-                      <div key={i} className="w-3 h-4 bg-current rounded-sm opacity-60" />
+                  <div className="flex gap-1">
+                    {Array.from({ length: num }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "w-2.5 h-3.5 rounded-sm transition-all duration-300",
+                          columnsPerRow === num ? "bg-primary" : "bg-muted-foreground/30 group-hover:bg-primary/40"
+                        )}
+                      />
                     ))}
                   </div>
-                  <span className="text-xs font-medium">{t("builder.columns", { count: num })}</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{t("builder.columns", { count: num })}</span>
+
+                  {columnsPerRow === num && (
+                    <div className="absolute top-1 right-1">
+                      <div className="w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                        <CheckSquare className="w-2 h-2 text-white" />
+                      </div>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-muted-foreground italic">
+              * Seçtiğiniz sütun sayısı bazı şablonlarda sayfa yapısını dinamik olarak günceller.
+            </p>
           </div>
           <Separator />
           <div className="flex items-center justify-between gap-2">
@@ -877,6 +913,12 @@ export function CatalogEditor({
               <Label className="text-xs sm:text-sm">{t("builder.showDescriptions")}</Label>
             </div>
             <Switch checked={showDescriptions} onCheckedChange={onShowDescriptionsChange} />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="space-y-0.5 min-w-0">
+              <Label className="text-xs sm:text-sm">{t("builder.showAttributes")}</Label>
+            </div>
+            <Switch checked={showAttributes} onCheckedChange={onShowAttributesChange} />
           </div>
         </CardContent>
       </Card>

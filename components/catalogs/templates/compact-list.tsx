@@ -6,6 +6,7 @@ export function CompactListTemplate({
     primaryColor,
     showPrices,
     showDescriptions,
+    showAttributes,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -38,9 +39,9 @@ export function CompactListTemplate({
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'flex items-center gap-4 p-3 rounded-lg border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group'
+                        className: 'flex items-center gap-3 p-2 h-[68px] rounded-lg border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group shrink-0'
                     } : {
-                        className: 'flex items-center gap-4 p-3 rounded-lg border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors'
+                        className: 'flex items-center gap-3 p-2 h-[68px] rounded-lg border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors shrink-0'
                     }
 
                     return (
@@ -49,7 +50,7 @@ export function CompactListTemplate({
                             {...(wrapperProps as any)}
                         >
                             {/* Görsel */}
-                            <div className="w-16 h-16 shrink-0 bg-white rounded-md border border-gray-200 overflow-hidden relative">
+                            <div className="w-12 h-12 shrink-0 bg-white rounded-md border border-gray-200 overflow-hidden relative">
                                 <img loading="lazy"
                                     crossOrigin="anonymous"
                                     src={product.image_url || "/placeholder.svg"}
@@ -69,12 +70,22 @@ export function CompactListTemplate({
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-semibold text-sm text-gray-900 truncate group-hover:text-blue-600 transition-colors">{product.name}</h3>
+                                        <h3 className="font-semibold text-sm text-gray-900 truncate group-hover:text-blue-600 transition-colors leading-none">{product.name}</h3>
                                         {showDescriptions && product.description && (
-                                            <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.description}</p>
+                                            <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5 leading-none">{product.description}</p>
                                         )}
                                         {product.sku && (
                                             <p className="text-[10px] text-gray-400 font-mono mt-0.5">SKU: {product.sku}</p>
+                                        )}
+                                        {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                                                {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
+                                                    <span key={idx} className="text-[9px] text-gray-500 bg-gray-100 px-1 py-0.2 rounded flex items-center gap-0.5 max-w-[120px]">
+                                                        <span className="font-medium opacity-70 truncate">{attr.name}:</span>
+                                                        <span className="font-semibold text-gray-700 truncate">{attr.value}{attr.unit}</span>
+                                                    </span>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
 

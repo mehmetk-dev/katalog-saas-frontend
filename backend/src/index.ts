@@ -1,10 +1,12 @@
+import path from 'path';
+
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import path from 'path';
 import rateLimit from 'express-rate-limit';
+
 import { initRedis } from './services/redis';
 
 // Load environment variables
@@ -89,5 +91,5 @@ initRedis();
 
 // Start Server
 app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    
 });

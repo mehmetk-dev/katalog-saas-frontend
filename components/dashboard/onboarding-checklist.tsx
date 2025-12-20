@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { CheckCircle2, Circle, ChevronRight, X } from "lucide-react"
+import Link from "next/link"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 
 interface OnboardingChecklistProps {
     hasProducts: boolean

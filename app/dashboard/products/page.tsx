@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+
 import { getProducts } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { ProductsPageClient } from "@/components/products/products-page-client"

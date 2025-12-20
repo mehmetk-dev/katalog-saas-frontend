@@ -3,7 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield, BarChart3 } from "lucide-react"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,6 +26,7 @@ export function DashboardSidebar() {
 
   const navItems = [
     { href: "/dashboard", label: t("common.dashboard"), icon: LayoutDashboard },
+    { href: "/dashboard/analytics", label: t("dashboard.analytics.title"), icon: BarChart3 },
     { href: "/dashboard/products", label: t("dashboard.products"), icon: Package },
     { href: "/dashboard/categories", label: t("sidebar.categories"), icon: FolderOpen, premium: true },
     { href: "/dashboard/catalogs", label: t("sidebar.catalogs"), icon: BookOpen },
@@ -55,7 +57,7 @@ export function DashboardSidebar() {
       {/* Overlay - Mobilde sidebar açıkken arka plan */}
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[60] lg:hidden"
           onClick={close}
         />
       )}
@@ -63,11 +65,11 @@ export function DashboardSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky lg:top-0 z-50 h-screen border-r border-sidebar-border bg-sidebar flex flex-col transition-all duration-300 ease-in-out overflow-y-auto",
+          "fixed lg:sticky lg:top-0 z-[70] h-screen border-r border-sidebar-border bg-sidebar flex flex-col transition-all duration-300 ease-in-out overflow-y-auto",
           sidebarWidth,
           // Mobilde transform ile aç/kapa
           isMobile && !isOpen && "-translate-x-full",
-          isMobile && isOpen && "translate-x-0",
+          isMobile && isOpen && "translate-x-0 top-0 left-0",
           // Masaüstünde her zaman görünür
           !isMobile && "translate-x-0"
         )}

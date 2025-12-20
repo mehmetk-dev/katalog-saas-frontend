@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { Check, Sparkles, Crown, Zap, Star, CreditCard, Shield, Rocket, Gift } from "lucide-react"
+
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Check, Sparkles, Crown, Zap, Star, CreditCard, Shield, Rocket, Gift } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -39,6 +40,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         { text: t("upgradeModal.features.catalogLimit", { count: 1 }), included: true },
         { text: t("upgradeModal.features.productLimit", { count: 50 }), included: true },
         { text: t("upgradeModal.features.pdfLimit", { count: 1 }), included: true },
+        { text: t("upgradeModal.features.standardPdf"), included: true },
         { text: t("upgradeModal.features.watermark"), included: false },
         { text: t("upgradeModal.features.premiumTemplates"), included: false },
         { text: t("upgradeModal.features.prioritySupport"), included: false },
@@ -58,6 +60,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         { text: t("upgradeModal.features.catalogLimit", { count: 10 }), included: true },
         { text: t("upgradeModal.features.productLimit", { count: 1000 }), included: true },
         { text: t("upgradeModal.features.pdfLimit", { count: 50 }), included: true },
+        { text: t("upgradeModal.features.standardPdf"), included: true },
         { text: t("upgradeModal.features.noWatermark"), included: true },
         { text: t("upgradeModal.features.premiumTemplates"), included: true },
         { text: t("upgradeModal.features.prioritySupport"), included: false },
@@ -78,6 +81,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         { text: t("upgradeModal.features.unlimitedCatalogs"), included: true },
         { text: t("upgradeModal.features.unlimitedProducts"), included: true },
         { text: t("upgradeModal.features.unlimitedPdf"), included: true },
+        { text: t("upgradeModal.features.highResPdf"), included: true },
         { text: t("upgradeModal.features.noWatermark"), included: true },
         { text: t("upgradeModal.features.allTemplates"), included: true },
         { text: t("upgradeModal.features.support247"), included: true },

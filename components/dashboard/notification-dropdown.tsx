@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Bell, Check, CheckCheck, Trash2, ExternalLink, Package, Download, CreditCard, Sparkles, X } from "lucide-react"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -19,7 +21,6 @@ import {
     deleteAllNotifications,
     type Notification,
 } from "@/lib/actions/notifications"
-import Link from "next/link"
 
 export function NotificationDropdown() {
     const [notifications, setNotifications] = useState<Notification[]>([])

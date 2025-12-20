@@ -3,13 +3,14 @@
 import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Loader2, AlertCircle, WifiOff, RefreshCw, CheckCircle2 } from "lucide-react"
+
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, AlertCircle, WifiOff, RefreshCw, CheckCircle2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useTranslation } from "@/lib/i18n-provider"
 import { cn } from "@/lib/utils"
@@ -208,7 +209,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
     try {
       setLoadingPhase("authenticating")
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: signInEmail,
         password: signInPassword,
       })
@@ -225,6 +226,21 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
           throw new Error(t("auth.networkError"))
         }
         throw error
+      }
+
+      // Log activity after successful login
+      if (signInData?.user) {
+         // Debug log
+        try {
+          await supabase.from('activity_logs').insert({
+            user_id: signInData.user.id,
+            user_email: signInData.user.email || signInEmail,
+            activity_type: 'user_login',
+            description: `${signInData.user.email || signInEmail} sisteme giriş yaptı`,
+          })
+        } catch (logError) {
+          console.error('Activity log error:', logError)
+        }
       }
 
       clearLoadingTimers()
@@ -308,6 +324,22 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
       clearLoadingTimers()
       setLoadingPhase("success")
+
+      // Log activity after successful signup
+      if (data.user) {
+         // Debug log
+        try {
+          await supabase.from('activity_logs').insert({
+            user_id: data.user.id,
+            user_email: data.user.email || signUpEmail,
+            user_name: signUpName,
+            activity_type: 'user_signup',
+            description: `${data.user.email || signUpEmail} yeni hesap oluşturdu`,
+          })
+        } catch (logError) {
+          console.error('Activity log error:', logError)
+        }
+      }
 
       // Brief success indication before redirect
       await new Promise(resolve => setTimeout(resolve, 500))

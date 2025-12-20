@@ -2,18 +2,19 @@
 
 import { useState, useTransition, useId, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { Download, Share2, Save, ArrowLeft, Eye, Pencil, Globe, MoreVertical, ExternalLink } from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+
 import { CatalogEditor } from "@/components/builder/catalog-editor"
 import { CatalogPreview } from "@/components/builder/catalog-preview"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Download, Share2, Save, ArrowLeft, Eye, Pencil, Globe, MoreVertical, ExternalLink } from "lucide-react"
-import Link from "next/link"
 import { useUser } from "@/lib/user-context"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type Catalog, createCatalog, updateCatalog, publishCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
-import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +51,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [primaryColor, setPrimaryColor] = useState(catalog?.primary_color || "#7c3aed")
   const [showPrices, setShowPrices] = useState(catalog?.show_prices ?? true)
   const [showDescriptions, setShowDescriptions] = useState(catalog?.show_descriptions ?? true)
+  const [showAttributes, setShowAttributes] = useState(catalog?.show_attributes ?? false)
   const [view, setView] = useState<"split" | "editor" | "preview">("split")
   const [currentCatalogId, setCurrentCatalogId] = useState(catalog?.id || null)
   const [isPublished, setIsPublished] = useState(catalog?.is_published || false)
@@ -162,6 +164,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           primary_color: primaryColor,
           show_prices: showPrices,
           show_descriptions: showDescriptions,
+          show_attributes: showAttributes,
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
@@ -221,7 +224,9 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         await new Promise(resolve => setTimeout(resolve, 1000))
       }
 
-      toast.loading("Görseller işleniyor ve PDF hazırlanıyor...", { id: "pdf-process" })
+      const isPro = user?.plan === "pro"
+      const resolutionText = isPro ? " (Yüksek Çözünürlük)" : ""
+      toast.loading(`Görseller işleniyor ve PDF hazırlanıyor${resolutionText}...`, { id: "pdf-process" })
 
       const { toPng } = await import("html-to-image")
       const { jsPDF } = await import("jspdf")
@@ -246,7 +251,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       // Process Each Page
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i] as HTMLElement
-        toast.loading(`Sayfa ${i + 1} / ${pages.length} hazırlanıyor...`, { id: "pdf-process" })
+        toast.loading(`Sayfa ${i + 1} / ${pages.length} hazırlanıyor${resolutionText}...`, { id: "pdf-process" })
 
         // Clone Page individually
         const clone = page.cloneNode(true) as HTMLElement
@@ -307,8 +312,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           await new Promise(r => setTimeout(r, 500))
 
           const imgData = await toPng(clone, {
-            quality: 0.95,
-            pixelRatio: 2,
+            quality: 1, // Max quality
+            pixelRatio: isPro ? 4 : 2, // Pro users get double resolution (for printing)
             backgroundColor: '#ffffff',
             cacheBust: true,
           })
@@ -337,7 +342,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       // Önceki görünüme dön
       setView(previousView)
 
-      toast.success(t('builder.pdfDownloaded'), { id: "pdf-process" })
+      toast.success(t('builder.pdfDownloaded') + resolutionText, { id: "pdf-process" })
 
     } catch (err: any) {
       console.error("PDF Fail:", err)
@@ -525,6 +530,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onShowPricesChange={setShowPrices}
               showDescriptions={showDescriptions}
               onShowDescriptionsChange={setShowDescriptions}
+              showAttributes={showAttributes}
+              onShowAttributesChange={setShowAttributes}
               userPlan={user?.plan || "free"}
               onUpgrade={() => setShowUpgradeModal(true)}
               columnsPerRow={columnsPerRow}
@@ -557,6 +564,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               primaryColor={primaryColor}
               showPrices={showPrices}
               showDescriptions={showDescriptions}
+              showAttributes={showAttributes}
               columnsPerRow={columnsPerRow}
               backgroundColor={backgroundColor}
               backgroundImage={backgroundImage}

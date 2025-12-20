@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
+
 import { supabase } from '../services/supabase';
-import { getCache, setCache, deleteCache, cacheKeys, cacheTTL } from '../services/redis';
+import { getCache, setCache, deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 // Helper to get user ID from request (attached by auth middleware)
@@ -11,22 +12,16 @@ export const getProducts = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const cacheKey = cacheKeys.products(userId);
 
-        // Cache'den kontrol et
-        const cached = await getCache<any[]>(cacheKey);
-        if (cached) {
-            return res.json(cached);
-        }
+        const data = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
 
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Cache'e yaz
-        await setCache(cacheKey, data, cacheTTL.products);
+            if (error) throw error;
+            return data;
+        });
 
         res.json(data);
     } catch (error: any) {
@@ -38,6 +33,26 @@ export const createProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { name, sku, description, price, stock, category, image_url, custom_attributes } = req.body;
+
+        // Limit kontrolü
+        const [user, productsCountResult] = await Promise.all([
+            getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+                const { data } = await supabase.from('users').select('plan').eq('id', userId).single();
+                return data;
+            }),
+            supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
+
+        const plan = user?.plan || 'free';
+        const currentCount = productsCountResult.count || 0;
+        const maxProducts = plan === 'pro' ? 999999 : (plan === 'plus' ? 1000 : 50);
+
+        if (currentCount >= maxProducts) {
+            return res.status(403).json({
+                error: 'Limit Reached',
+                message: `Ürün ekleme limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxProducts} adet). Daha fazla eklemek için paketinizi yükseltin.`
+            });
+        }
 
         const { data, error } = await supabase
             .from('products')
@@ -103,6 +118,17 @@ export const updateProduct = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'product_updated',
+            description: ActivityDescriptions.productUpdated(name),
+            metadata: { productId: id, productName: name },
+            ipAddress,
+            userAgent
+        });
 
         res.json({ success: true });
     } catch (error: any) {
@@ -431,9 +457,88 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
 
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'category_deleted',
+            description: ActivityDescriptions.categoryDeleted(categoryName),
+            metadata: { categoryName, affectedProducts: updatedProducts.length },
+            ipAddress,
+            userAgent
+        });
+
         res.json(updatedProducts);
     } catch (error: any) {
         console.error('Delete category error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Ürünün hangi kataloglarda olduğunu kontrol et
+export const checkProductInCatalogs = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const { id } = req.params;
+
+        // Bu ürünü içeren katalogları bul
+        const { data: catalogs, error } = await supabase
+            .from('catalogs')
+            .select('id, name')
+            .eq('user_id', userId)
+            .contains('product_ids', [id]);
+
+        if (error) throw error;
+
+        res.json({
+            isInCatalogs: (catalogs?.length || 0) > 0,
+            catalogs: catalogs || [],
+            count: catalogs?.length || 0
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Birden fazla ürünün kataloglarda olup olmadığını kontrol et
+export const checkProductsInCatalogs = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const { productIds } = req.body;
+
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            return res.json({ productsInCatalogs: [], catalogs: [] });
+        }
+
+        // Kullanıcının tüm kataloglarını al
+        const { data: catalogs, error } = await supabase
+            .from('catalogs')
+            .select('id, name, product_ids')
+            .eq('user_id', userId);
+
+        if (error) throw error;
+
+        // Hangi ürünler kataloglarda var
+        const productsInCatalogs: { productId: string; catalogs: { id: string; name: string }[] }[] = [];
+
+        for (const productId of productIds) {
+            const catalogsContaining = catalogs?.filter(c =>
+                c.product_ids?.includes(productId)
+            ).map(c => ({ id: c.id, name: c.name })) || [];
+
+            if (catalogsContaining.length > 0) {
+                productsInCatalogs.push({
+                    productId,
+                    catalogs: catalogsContaining
+                });
+            }
+        }
+
+        res.json({
+            productsInCatalogs,
+            hasAnyInCatalogs: productsInCatalogs.length > 0
+        });
+    } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
 };

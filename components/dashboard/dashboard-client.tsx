@@ -2,15 +2,16 @@
 
 import Link from "next/link"
 import { Package, FileText, TrendingUp, Clock, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { tr } from "date-fns/locale"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { formatDistanceToNow } from "date-fns"
 import { useTranslation } from "@/lib/i18n-provider"
 import { useUser, type User } from "@/lib/user-context"
 import { DashboardStats } from "@/lib/actions/catalogs"
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
-import { tr } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 
 interface DashboardClientProps {
@@ -233,11 +234,40 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                 >
                                     <div className="flex items-center gap-4 min-w-0">
                                         {/* Catalog Thumbnail/Preview */}
-                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center shrink-0 border border-violet-200/50 dark:border-violet-800/50 overflow-hidden">
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center shrink-0 border border-violet-200/50 dark:border-violet-800/50 overflow-hidden relative">
                                             {catalog.logo_url ? (
                                                 <img src={catalog.logo_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
-                                                <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-violet-500" />
+                                                (() => {
+                                                    const catalogProducts = initialProducts
+                                                        .filter(p => catalog.product_ids?.includes(p.id))
+                                                        .filter(p => p.images?.[0] || p.image_url) // En az bir görseli olanlar
+                                                        .slice(0, 4);
+
+                                                    if (catalogProducts.length === 0) {
+                                                        return <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-violet-500" />;
+                                                    }
+
+                                                    if (catalogProducts.length === 1) {
+                                                        return <img src={catalogProducts[0].images?.[0] || catalogProducts[0].image_url} alt="" className="w-full h-full object-cover" />;
+                                                    }
+
+                                                    return (
+                                                        <div className="grid grid-cols-2 w-full h-full gap-0.5 bg-violet-100/50">
+                                                            {catalogProducts.map((p, i) => (
+                                                                <img
+                                                                    key={p.id}
+                                                                    src={p.images?.[0] || p.image_url}
+                                                                    alt=""
+                                                                    className={cn(
+                                                                        "w-full h-full object-cover",
+                                                                        catalogProducts.length === 3 && i === 2 && "col-span-2"
+                                                                    )}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })()
                                             )}
                                         </div>
                                         <div className="min-w-0">

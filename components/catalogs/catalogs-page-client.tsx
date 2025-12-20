@@ -2,6 +2,10 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download } from "lucide-react"
+import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -25,22 +29,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download } from "lucide-react"
 import { deleteCatalog } from "@/lib/actions/catalogs"
-import { toast } from "sonner"
-import { CatalogPreview } from "./catalog-preview"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { useTranslation } from "@/lib/i18n-provider"
 
+import { CatalogPreview } from "./catalog-preview"
+
 interface Catalog {
   id: string
+  user_id: string
+  template_id: string | null
   name: string
   description: string | null
   layout: string
+  primary_color: string
+  show_prices: boolean
+  show_descriptions: boolean
+  show_attributes: boolean
   is_published: boolean
   share_slug: string | null
   product_ids: string[]
+  // Yeni kişiselleştirme alanları
+  columns_per_row: number  // 2, 3, 4
+  background_color: string
+  background_image: string | null
+  background_image_fit?: 'cover' | 'contain' | 'fill'
+  background_gradient: string | null
+  logo_url: string | null
+  logo_position: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | null
+  logo_size: 'small' | 'medium' | 'large'
+  is_disabled?: boolean
   created_at: string
   updated_at: string
 }
@@ -58,7 +77,6 @@ const CATALOG_LIMITS = {
   pro: Infinity,
 }
 
-import { useSearchParams } from "next/navigation"
 
 export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "free" }: CatalogsPageClientProps) {
   const searchParams = useSearchParams()
@@ -200,27 +218,62 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                         layout={catalog.layout}
                         name={catalog.name}
                         products={catalogProducts}
+                        primaryColor={catalog.primary_color}
+                        showPrices={catalog.show_prices}
+                        showDescriptions={catalog.show_descriptions}
+                        showAttributes={catalog.show_attributes}
+                        columnsPerRow={catalog.columns_per_row}
+                        backgroundColor={catalog.background_color}
+                        backgroundImage={catalog.background_image}
+                        backgroundImageFit={catalog.background_image_fit}
+                        backgroundGradient={catalog.background_gradient}
+                        logoUrl={catalog.logo_url}
+                        logoPosition={catalog.logo_position || undefined}
+                        logoSize={catalog.logo_size}
                       />
                     </ResponsiveContainer>
 
-                    {/* Overlay for Edit */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 duration-300">
-                      <Button variant="secondary" size="default" className="rounded-full px-4 sm:px-8 font-semibold shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300" asChild>
-                        <Link href={`/dashboard/builder?id=${catalog.id}`}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          {t("catalogs.edit")}
-                        </Link>
-                      </Button>
-                    </div>
+                    {/* Overlay for Edit or Disabled */}
+                    {catalog.is_disabled ? (
+                      <div className="absolute inset-0 bg-gray-900/60 flex flex-col items-center justify-center z-10 p-4 text-center backdrop-blur-[2px]">
+                        <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-3 border border-white/30">
+                          <Lock className="w-6 h-6 text-white" />
+                        </div>
+                        <p className="text-white font-bold text-sm mb-2">{t("catalogs.limitReached")}</p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="rounded-full shadow-lg font-bold bg-violet-600 border-violet-600 text-white hover:bg-violet-700"
+                          onClick={() => setShowUpgradeModal(true)}
+                        >
+                          {t("catalogs.upgradePlan")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 duration-300">
+                        <Button variant="secondary" size="default" className="rounded-full px-4 sm:px-8 font-semibold shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300" asChild>
+                          <Link href={`/dashboard/builder?id=${catalog.id}`}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            {t("catalogs.edit")}
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer Info */}
                   <div className="p-3 sm:p-4 border-t bg-white relative z-20">
                     <div className="flex items-start justify-between mb-2 gap-2">
                       <div className="flex-1 min-w-0">
-                        <Link href={`/dashboard/builder?id=${catalog.id}`} className="hover:underline">
-                          <h3 className="font-semibold truncate text-sm sm:text-base text-gray-900">{catalog.name}</h3>
-                        </Link>
+                        {catalog.is_disabled ? (
+                          <div className="cursor-not-allowed">
+                            <h3 className="font-semibold truncate text-sm sm:text-base text-gray-400">{catalog.name}</h3>
+                          </div>
+                        ) : (
+                          <Link href={`/dashboard/builder?id=${catalog.id}`} className="hover:underline">
+                            <h3 className="font-semibold truncate text-sm sm:text-base text-gray-900">{catalog.name}</h3>
+                          </Link>
+                        )}
                         <p className="text-xs sm:text-sm text-gray-500 truncate">{catalog.description || t("catalogs.noDescription")}</p>
                       </div>
                       <DropdownMenu>
@@ -230,11 +283,18 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/builder?id=${catalog.id}`}>
-                              <Pencil className="w-4 h-4 mr-2" />
-                              {t("catalogs.edit")}
-                            </Link>
+                          <DropdownMenuItem asChild disabled={catalog.is_disabled}>
+                            {catalog.is_disabled ? (
+                              <div className="flex items-center text-muted-foreground opacity-50 cursor-not-allowed w-full px-2 py-1.5 text-sm">
+                                <Lock className="w-4 h-4 mr-2" />
+                                {t("catalogs.edit")}
+                              </div>
+                            ) : (
+                              <Link href={`/dashboard/builder?id=${catalog.id}`}>
+                                <Pencil className="w-4 h-4 mr-2" />
+                                {t("catalogs.edit")}
+                              </Link>
+                            )}
                           </DropdownMenuItem>
                           {catalog.is_published && catalog.share_slug && (
                             <>

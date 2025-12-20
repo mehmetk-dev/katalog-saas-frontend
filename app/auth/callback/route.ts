@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       const supabase = await createClient()
 
       // Exchange code for session with timeout handling
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
       if (exchangeError) {
         console.error("Session exchange error:", exchangeError)
@@ -36,6 +37,21 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.redirect(`${origin}/auth?error=${errorCode}`)
+      }
+
+      // Log activity after successful authentication
+      if (sessionData?.user) {
+        try {
+          await supabase.from('activity_logs').insert({
+            user_id: sessionData.user.id,
+            user_email: sessionData.user.email,
+            activity_type: 'user_login',
+            description: `${sessionData.user.email} sisteme giriş yaptı`,
+          })
+        } catch (logError) {
+          console.error('Activity log error:', logError)
+          // Don't block auth flow if logging fails
+        }
       }
 
       // Successful authentication - redirect to dashboard
@@ -56,3 +72,4 @@ export async function GET(request: Request) {
   // No code provided
   return NextResponse.redirect(`${origin}/auth?error=missing_code`)
 }
+

@@ -7,6 +7,7 @@ export function ElegantCardsTemplate({
     primaryColor,
     showPrices,
     showDescriptions,
+    showAttributes,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -20,6 +21,11 @@ export function ElegantCardsTemplate({
             case 4: return "grid-cols-4"
             default: return "grid-cols-2"
         }
+    }
+
+    const getGridRows = () => {
+        if (columnsPerRow === 2) return "grid-rows-3"
+        return "grid-rows-2"
     }
 
     return (
@@ -43,32 +49,73 @@ export function ElegantCardsTemplate({
             </div>
 
             {/* Dinamik Grid - Büyük kartlar */}
-            <div className={`flex-1 p-8 grid ${getGridCols()} gap-6 content-center`}>
-                {safeProducts.map((product) => (
-                    <div
-                        key={product.id}
-                        className="bg-white rounded-3xl shadow-lg overflow-hidden flex flex-col group"
-                    >
-                        <div className="h-40 bg-gradient-to-br from-stone-100 to-stone-50 overflow-hidden">
-                            <img loading="lazy"
-                                src={product.image_url || "/placeholder.svg"}
-                                alt={product.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col">
-                            <h3 className="font-serif text-lg text-stone-800 mb-2">{product.name}</h3>
-                            {showDescriptions && product.description && (
-                                <p className="text-sm text-stone-500 line-clamp-2 leading-relaxed flex-1">{product.description}</p>
-                            )}
-                            {showPrices && (
-                                <p className="text-xl font-light mt-3" style={{ color: primaryColor }}>
-                                    ₺{Number(product.price).toFixed(2)}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                ))}
+            <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 128px)' }}>
+                {safeProducts.map((product) => {
+                    const productUrl = (product as any).product_url
+                    const Wrapper = productUrl ? 'a' : 'div'
+                    const wrapperProps = productUrl ? {
+                        href: productUrl,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        className: 'bg-white rounded-3xl shadow-lg border border-stone-100 overflow-hidden flex flex-col group h-full cursor-pointer shrink-0'
+                    } : {
+                        className: 'bg-white rounded-3xl shadow-lg border border-stone-100 overflow-hidden flex flex-col h-full shrink-0'
+                    }
+
+                    return (
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            <div className="h-32 min-h-[128px] bg-gradient-to-br from-stone-100 to-stone-50 overflow-hidden shrink-0 relative">
+                                <img loading="lazy"
+                                    src={product.image_url || "/placeholder.svg"}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                />
+                                {productUrl && (
+                                    <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-md rounded-full p-2 text-stone-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 flex-1 flex flex-col justify-between overflow-hidden">
+                                <div className="space-y-1">
+                                    <h3 className="font-serif text-base text-stone-800 line-clamp-1 leading-tight">{product.name}</h3>
+                                    {showDescriptions && product.description && (
+                                        <p className="text-[10px] text-stone-500 line-clamp-2 leading-tight italic">{product.description}</p>
+                                    )}
+
+                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                        <div className="mt-2 space-y-0.5 border-t border-stone-100 pt-2">
+                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
+                                                <div key={idx} className="flex justify-between items-center text-[9px] gap-2">
+                                                    <span className="text-stone-400 font-serif italic truncate flex-1">{attr.name}</span>
+                                                    <span className="text-stone-600 font-medium shrink-0 truncate max-w-[50%]">
+                                                        {attr.value}{attr.unit}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-auto pt-2 flex items-center justify-between">
+                                    {showPrices && (
+                                        <p className="text-lg font-light leading-none" style={{ color: primaryColor }}>
+                                            {(() => {
+                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                return `${symbol}${Number(product.price).toFixed(2)}`
+                                            })()}
+                                        </p>
+                                    )}
+                                    {product.sku && (
+                                        <span className="text-[8px] text-stone-300 font-serif tracking-widest">{product.sku}</span>
+                                    )}
+                                </div>
+                            </div>
+                        </Wrapper>
+                    )
+                })}
             </div>
 
             {/* Footer */}

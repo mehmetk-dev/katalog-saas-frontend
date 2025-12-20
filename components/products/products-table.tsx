@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
+import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ImageOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react"
+import { toast } from "sonner"
+
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ImageOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { type Product, deleteProduct, createProduct, updateProductOrder } from "@/lib/actions/products"
-import { toast } from "sonner"
+import { type Product, deleteProduct, createProduct, updateProductOrder, checkProductInCatalogs } from "@/lib/actions/products"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +61,8 @@ export function ProductsTable({
 }: ProductsTableProps) {
   const { t } = useTranslation()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteCatalogs, setDeleteCatalogs] = useState<{ id: string; name: string }[]>([])
+  const [isCheckingCatalogs, setIsCheckingCatalogs] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isMobile, setIsMobile] = useState(false)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
@@ -109,12 +112,28 @@ export function ProductsTable({
     return { label: "Stokta", variant: "default" as const }
   }
 
+  // Silmeden önce katalog kontrolü yap
+  const initiateDelete = async (id: string) => {
+    setIsCheckingCatalogs(true)
+    try {
+      const result = await checkProductInCatalogs(id)
+      setDeleteCatalogs(result.catalogs)
+      setDeleteId(id)
+    } catch {
+      setDeleteCatalogs([])
+      setDeleteId(id)
+    } finally {
+      setIsCheckingCatalogs(false)
+    }
+  }
+
   const handleDelete = (id: string) => {
     startTransition(async () => {
       try {
         await deleteProduct(id)
         onDeleted(id)
         setDeleteId(null)
+        setDeleteCatalogs([])
         toast.success(t("common.success"))
       } catch {
         toast.error(t("common.error"))
@@ -207,6 +226,46 @@ export function ProductsTable({
     setDragOverId(null)
   }
 
+  // Shared Delete Alert Dialog - her iki view için de kullanılır
+  const DeleteAlertDialog = (
+    <AlertDialog open={!!deleteId} onOpenChange={() => { setDeleteId(null); setDeleteCatalogs([]); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("products.deleteProduct")}</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p>{t("products.deleteConfirm")}</p>
+              {deleteCatalogs.length > 0 && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-amber-800 dark:text-amber-200 font-medium text-sm mb-2">
+                    ⚠️ Bu ürün {deleteCatalogs.length} katalogda kullanılıyor:
+                  </p>
+                  <ul className="text-amber-700 dark:text-amber-300 text-sm space-y-1">
+                    {deleteCatalogs.map(c => (
+                      <li key={c.id} className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        {c.name}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-amber-600 dark:text-amber-400 text-xs mt-2">
+                    Silme işlemi sonrası ürün bu kataloglardan otomatik kaldırılacaktır.
+                  </p>
+                </div>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+          <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)} disabled={isPending} className="bg-destructive text-destructive-foreground">
+            {deleteCatalogs.length > 0 ? "Yine de Sil" : t("common.delete")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+
   if (filteredProducts.length === 0 && allProducts.length === 0) {
     return (
       <div className="border rounded-xl p-12 text-center bg-gradient-to-b from-muted/50 to-transparent">
@@ -269,15 +328,16 @@ export function ProductsTable({
                       />
                     )}
 
-                    {/* Checkbox - Mobilde sadece seçiliyse, Masaüstünde hover/seçiliyken */}
+                    {/* Checkbox - Mobilde küçük ve her zaman görünür, Masaüstünde hover/seçiliyken */}
                     <div className={cn(
-                      "absolute top-2 left-2 z-[5] transition-opacity",
-                      isSelected ? "opacity-100" : (isMobile ? "hidden" : "opacity-0 group-hover:opacity-100")
+                      "absolute top-1.5 left-1.5 z-[5] transition-opacity",
+                      isSelected ? "opacity-100" : (isMobile ? "opacity-70" : "opacity-0 group-hover:opacity-100")
                     )}>
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelect(product.id)}
-                        className="bg-white/95 border-gray-300 h-4 w-4 shadow-sm scale-75 origin-center"
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white/95 border-gray-300 h-4 w-4 shadow-sm"
                       />
                     </div>
 
@@ -343,7 +403,7 @@ export function ProductsTable({
                             Kopyala
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="gap-2 text-xs text-destructive" onClick={() => setDeleteId(product.id)}>
+                          <DropdownMenuItem className="gap-2 text-xs text-destructive" onClick={() => initiateDelete(product.id)}>
                             <Trash2 className="w-3 h-3" />
                             Sil
                           </DropdownMenuItem>
@@ -493,20 +553,7 @@ export function ProductsTable({
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("products.deleteProduct")}</AlertDialogTitle>
-              <AlertDialogDescription>{t("products.deleteConfirm")}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)} disabled={isPending} className="bg-destructive text-destructive-foreground">
-                {t("common.delete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {DeleteAlertDialog}
       </TooltipProvider>
     )
   }
@@ -568,12 +615,13 @@ export function ProductsTable({
               >
                 {/* Checkbox + Resim */}
                 <div className="flex items-center gap-3">
-                  <div className={cn("flex items-center gap-1.5", isMobile && !isSelected && "hidden")}>
-                    <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className={cn("flex items-center gap-1.5", isMobile && !isSelected && "opacity-60")}>
+                    <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity" />
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleSelect(product.id)}
-                      className="h-4 w-4 scale-75 origin-center"
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4"
                     />
                   </div>
                   <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 ring-1 ring-black/5">
@@ -697,7 +745,7 @@ export function ProductsTable({
                         Kopyala
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteId(product.id)}>
+                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => initiateDelete(product.id)}>
                         <Trash2 className="w-4 h-4" />
                         {t("common.delete")}
                       </DropdownMenuItem>
@@ -846,20 +894,7 @@ export function ProductsTable({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("products.deleteProduct")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("products.deleteConfirm")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && handleDelete(deleteId)} disabled={isPending} className="bg-destructive text-destructive-foreground">
-              {t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {DeleteAlertDialog}
     </TooltipProvider>
   )
 }

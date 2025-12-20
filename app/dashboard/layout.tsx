@@ -1,12 +1,13 @@
 import type React from "react"
 import { redirect } from "next/navigation"
+import { Toaster } from "sonner"
+
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { UserProvider } from "@/lib/user-context"
 import { SidebarProvider } from "@/lib/sidebar-context"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "sonner"
 import { I18nProvider } from "@/lib/i18n-provider"
 
 export default async function DashboardLayout({

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+
 import { supabase } from '../services/supabase';
 
 export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
@@ -17,7 +18,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         }
 
         // DEBUG: Log authenticated user
-        console.log(`🔐 Auth: ${user.email} (${user.id})`);
+        `);
 
         // Attach user to request object
         (req as any).user = user;

@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Users, Package, FileText, Download, Activity, Search, Trash2, Edit, Plus, Image, Save, X } from "lucide-react"
+import { toast } from "sonner"
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { getAdminStats, getAdminUsers, getDeletedUsers, updateUserPlan } from "@/lib/actions/admin"
 import { getTemplates, createTemplate, deleteTemplate, updateTemplate, type Template } from "@/lib/actions/templates"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -114,15 +115,12 @@ export function AdminDashboardClient() {
         try {
             const { data, error } = await supabase
                 .from('activity_logs')
-                .select(`
-                    *,
-                    user:users(email)
-                `)
+                .select('*')
                 .order('created_at', { ascending: false })
                 .limit(50)
 
             if (error) {
-                console.error('Error fetching logs:', error)
+                console.error('Error fetching logs:', error.message, error.code, error.details)
             } else {
                 setActivityLogs(data || [])
             }
@@ -758,15 +756,15 @@ export function AdminDashboardClient() {
                                                     {new Date(log.created_at).toLocaleString('tr-TR')}
                                                 </TableCell>
                                                 <TableCell className="font-medium text-xs">
-                                                    {log.user?.email || 'Anonim'}
+                                                    {log.user_email || log.user_name || 'Anonim'}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant="outline" className="text-xs">
-                                                        {log.action}
+                                                        {log.activity_type || '-'}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-xs max-w-[200px] truncate" title={JSON.stringify(log.details, null, 2)}>
-                                                    {log.details ? JSON.stringify(log.details) : '-'}
+                                                <TableCell className="text-xs max-w-[200px] truncate" title={log.description}>
+                                                    {log.description || '-'}
                                                 </TableCell>
                                                 <TableCell className="text-xs text-muted-foreground">
                                                     {log.ip_address || '-'}

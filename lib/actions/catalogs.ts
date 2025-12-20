@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+
 import { apiFetch } from "@/lib/api"
 
 export interface Catalog {
@@ -13,6 +14,7 @@ export interface Catalog {
   primary_color: string
   show_prices: boolean
   show_descriptions: boolean
+  show_attributes: boolean
   is_published: boolean
   share_slug: string | null
   product_ids: string[]

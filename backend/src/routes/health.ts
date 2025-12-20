@@ -1,32 +1,45 @@
 import { Router } from 'express';
+import { supabase } from '../services/supabase';
+import { redis } from '../services/redis';
 
 const router = Router();
 
-interface HealthStatus {
-    status: 'ok' | 'degraded' | 'error';
-    timestamp: string;
-    uptime: number;
-    version: string;
-    checks: {
-        database: boolean;
-        redis: boolean;
-    };
-}
+// ... (HealthStatus interface)
 
 // GET /health - Basic health check
-router.get('/', (req, res) => {
-    const health: HealthStatus = {
-        status: 'ok',
+router.get('/', async (req, res) => {
+    let dbStatus = false;
+    let redisStatus = false;
+
+    try {
+        // Quick DB check
+        const { error } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
+        dbStatus = !error;
+    } catch (e) {
+        dbStatus = false;
+    }
+
+    try {
+        // Quick Redis check
+        if (redis) {
+            const pong = await redis.ping();
+            redisStatus = pong === 'PONG';
+        }
+    } catch (e) {
+        redisStatus = false;
+    }
+
+    const health = {
+        status: dbStatus && redisStatus ? 'ok' : (dbStatus || redisStatus ? 'degraded' : 'error'),
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        version: process.env.npm_package_version || '1.0.0',
         checks: {
-            database: true, // Will be updated by actual check
-            redis: true,    // Will be updated by actual check
+            database: dbStatus,
+            redis: redisStatus,
         }
     };
 
-    res.json(health);
+    res.status(health.status === 'error' ? 503 : 200).json(health);
 });
 
 // GET /health/ready - Readiness check (for Kubernetes)

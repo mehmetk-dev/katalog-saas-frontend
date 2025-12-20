@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation"
 import { Metadata } from "next"
+
 import { getPublicCatalog } from "@/lib/actions/catalogs"
 import { createClient } from "@/lib/supabase/server"
+
 import { PublicCatalogClient } from "./public-catalog-client"
 
 

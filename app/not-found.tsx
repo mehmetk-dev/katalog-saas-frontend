@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { BookOpen, Home, ArrowLeft, Search, FileQuestion } from "lucide-react"
 import { useEffect, useState } from "react"
+
+import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-provider"
 
 export default function NotFound() {

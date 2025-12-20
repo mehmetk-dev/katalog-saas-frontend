@@ -1,8 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { createClient } from "@/lib/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+
+import { createClient } from "@/lib/supabase/client"
 
 type UserPlan = "free" | "plus" | "pro"
 

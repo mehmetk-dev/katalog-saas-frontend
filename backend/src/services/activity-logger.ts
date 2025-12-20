@@ -1,4 +1,5 @@
 import { supabase } from '../services/supabase'
+import { getOrSetCache, cacheKeys, cacheTTL } from '../services/redis'
 
 export type ActivityType =
     | 'user_login'
@@ -39,12 +40,16 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
     const { userId, activityType, description, metadata, ipAddress, userAgent } = params
 
     try {
-        // Get user profile info
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', userId)
-            .single()
+        // Get user profile info from cache (preferred) or DB
+        const profile = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('email, full_name')
+                .eq('id', userId)
+                .single()
+            if (error) return null;
+            return data;
+        });
 
         const { error } = await supabase
             .from('activity_logs')
@@ -61,8 +66,6 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
 
         if (error) {
             console.error('[Activity Logger] Failed to log activity:', error.message)
-        } else {
-            console.log(`[Activity] ${profile?.email || userId}: ${activityType} - ${description}`)
         }
     } catch (error) {
         console.error('[Activity Logger] Error:', error)

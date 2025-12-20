@@ -1,12 +1,31 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { apiFetch } from "@/lib/api"
 
 export async function signOut() {
   const supabase = await createServerSupabaseClient()
+
+  // Get current user before signing out
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Log logout activity
+  if (user) {
+    try {
+      await supabase.from('activity_logs').insert({
+        user_id: user.id,
+        user_email: user.email,
+        activity_type: 'user_logout',
+        description: `${user.email} sistemden çıkış yaptı`,
+      })
+    } catch (error) {
+      console.error('Activity log error:', error)
+    }
+  }
+
   await supabase.auth.signOut()
   revalidatePath("/", "layout")
   redirect("/auth")

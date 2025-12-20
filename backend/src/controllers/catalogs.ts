@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
+
 import { supabase } from '../services/supabase';
-import { getCache, setCache, deleteCache, cacheKeys, cacheTTL } from '../services/redis';
+import { getCache, setCache, deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 const getUserId = (req: Request) => (req as any).user.id;
@@ -8,36 +9,35 @@ const getUserId = (req: Request) => (req as any).user.id;
 export const getCatalogs = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        console.log(`📋 getCatalogs called for user: ${userId}`);
-
         const cacheKey = cacheKeys.catalogs(userId);
 
-        // Cache'den kontrol et
-        const cached = await getCache<any[]>(cacheKey);
-        if (cached) {
-            console.log(`📋 Returning ${cached.length} catalogs from CACHE for user: ${userId}`);
-            return res.json(cached);
-        }
+        const data = await getOrSetCache(cacheKey, cacheTTL.catalogs, async () => {
+            const { data, error } = await supabase
+                .from('catalogs')
+                .select('*')
+                .eq('user_id', userId)
+                .order('updated_at', { ascending: false });
 
-        const { data, error } = await supabase
-            .from('catalogs')
-            .select('*')
-            .eq('user_id', userId)
-            .order('updated_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        });
 
-        if (error) throw error;
+        // Get user plan to mark disabled catalogs
+        const user = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+            const { data } = await supabase.from('users').select('plan').eq('id', userId).single();
+            return data;
+        });
 
-        console.log(`📋 Returning ${data?.length || 0} catalogs from DATABASE for user: ${userId}`);
+        const plan = user?.plan || 'free';
+        const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
-        // Debug: Log first catalog's user_id to verify
-        if (data && data.length > 0) {
-            console.log(`📋 First catalog belongs to user_id: ${data[0].user_id}`);
-        }
+        // Mark catalogs beyond the limit as disabled
+        const catalogsWithStatus = data.map((catalog: any, index: number) => ({
+            ...catalog,
+            is_disabled: index >= maxCatalogs
+        }));
 
-        // Cache'e yaz
-        await setCache(cacheKey, data, cacheTTL.catalogs);
-
-        res.json(data);
+        res.json(catalogsWithStatus);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -49,27 +49,45 @@ export const getCatalog = async (req: Request, res: Response) => {
         const { id } = req.params;
         const cacheKey = cacheKeys.catalog(userId, id);
 
-        // Cache'den kontrol et
-        const cached = await getCache<any>(cacheKey);
-        if (cached) {
-            return res.json(cached);
+        const data = await getOrSetCache(cacheKey, cacheTTL.catalogs, async () => {
+            const { data, error } = await supabase
+                .from('catalogs')
+                .select('*')
+                .eq('id', id)
+                .eq('user_id', userId)
+                .single();
+
+            if (error) throw new Error('Catalog not found');
+            return data;
+        });
+
+        // Limit kontrolü: Bu katalog erişilebilir mi?
+        // Tüm kataloglarını çekip sırasına bakalım (getCatalogs'daki mantıkla aynı)
+        const allCatalogs = await getOrSetCache(cacheKeys.catalogs(userId), cacheTTL.catalogs, async () => {
+            const { data } = await supabase.from('catalogs').select('id').eq('user_id', userId).order('updated_at', { ascending: false });
+            return data || [];
+        });
+
+        const user = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+            const { data } = await supabase.from('users').select('plan').eq('id', userId).single();
+            return data;
+        });
+
+        const plan = user?.plan || 'free';
+        const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
+
+        const catalogIndex = allCatalogs.findIndex((c: any) => c.id === id);
+        if (catalogIndex >= maxCatalogs) {
+            return res.status(403).json({
+                error: 'Limit Reached',
+                message: 'Bu kataloğa erişmek için planınızı yükseltmeniz gerekmektedir.'
+            });
         }
-
-        const { data, error } = await supabase
-            .from('catalogs')
-            .select('*')
-            .eq('id', id)
-            .eq('user_id', userId)
-            .single();
-
-        if (error) return res.status(404).json({ error: 'Catalog not found' });
-
-        // Cache'e yaz
-        await setCache(cacheKey, data, cacheTTL.catalogs);
 
         res.json(data);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        const status = error.message === 'Catalog not found' ? 404 : 500;
+        res.status(status).json({ error: error.message });
     }
 };
 
@@ -97,8 +115,12 @@ const TEMPLATES = [
 
 export const getTemplates = async (req: Request, res: Response) => {
     try {
-        // Templates statik, direkt döndür
-        res.json(TEMPLATES);
+        // Templates statik ama gelecekte DB'den gelebilir diye cacheKey hazır
+        const cacheKey = cacheKeys.templates();
+        const data = await getOrSetCache(cacheKey, cacheTTL.templates, async () => {
+            return TEMPLATES;
+        });
+        res.json(data);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -108,6 +130,26 @@ export const createCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { name, description, template_id, layout } = req.body;
+
+        // Limit kontrolü
+        const [user, catalogsCountResult] = await Promise.all([
+            getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+                const { data } = await supabase.from('users').select('plan').eq('id', userId).single();
+                return data;
+            }),
+            supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
+
+        const plan = user?.plan || 'free';
+        const currentCount = catalogsCountResult.count || 0;
+        const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
+
+        if (currentCount >= maxCatalogs) {
+            return res.status(403).json({
+                error: 'Limit Reached',
+                message: `Katalog oluşturma limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxCatalogs} adet). Daha fazla oluşturmak için paketinizi yükseltin.`
+            });
+        }
 
         // Generate unique share slug
         const shareSlug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`;
@@ -134,13 +176,14 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         // Bildirim gönder
         try {
-            const { createNotification } = await import('./notifications');
+            const { createNotification, NotificationTemplates } = await import('./notifications');
+            const template = NotificationTemplates.catalogCreated(name, data.id);
             await createNotification(
                 userId,
                 'catalog_created',
-                'Katalog Oluşturuldu 📦',
-                `"${name}" kataloğunuz başarıyla oluşturuldu.`,
-                `/dashboard/builder?id=${data.id}`
+                template.title,
+                template.message,
+                template.actionUrl
             );
         } catch (notifError) {
             console.error('Notification error:', notifError);
@@ -184,6 +227,17 @@ export const updateCatalog = async (req: Request, res: Response) => {
         // Cache'leri temizle
         await deleteCache(cacheKeys.catalogs(userId));
         await deleteCache(cacheKeys.catalog(userId, id));
+
+        // Log activity
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'catalog_updated',
+            description: ActivityDescriptions.catalogUpdated(updates.name || 'Katalog'),
+            metadata: { catalogId: id, updates: Object.keys(updates) },
+            ipAddress,
+            userAgent
+        });
 
         res.json({ success: true });
     } catch (error: any) {
@@ -279,34 +333,46 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
         const { slug } = req.params;
         const cacheKey = cacheKeys.publicCatalog(slug);
 
-        // Cache'den kontrol et
-        const cached = await getCache<any>(cacheKey);
-        if (cached) {
-            // View count artır (async, bekleme)
-            incrementViewCount(cached.id);
-            return res.json(cached);
+        const data = await getOrSetCache(cacheKey, cacheTTL.publicCatalog, async () => {
+            const { data, error } = await supabase
+                .from('catalogs')
+                .select('*')
+                .eq('share_slug', slug)
+                .eq('is_published', true)
+                .single();
+
+            if (error || !data) throw new Error('Catalog not found or not published');
+            return data;
+        });
+
+        // Limit kontrolü: Paylaşılan katalog hala aktif mi?
+        const userId = data.user_id;
+        const [allCatalogs, user] = await Promise.all([
+            getOrSetCache(cacheKeys.catalogs(userId), cacheTTL.catalogs, async () => {
+                const { data: list } = await supabase.from('catalogs').select('id').eq('user_id', userId).order('updated_at', { ascending: false });
+                return list || [];
+            }),
+            getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+                const { data: u } = await supabase.from('users').select('plan').eq('id', userId).single();
+                return u;
+            })
+        ]);
+
+        const plan = user?.plan || 'free';
+        const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
+
+        const catalogIndex = allCatalogs.findIndex((c: any) => c.id === data.id);
+        if (catalogIndex >= maxCatalogs) {
+            return res.status(403).json({ error: 'Bu katalog şu an erişime kapalıdır. (Limit aşımı)' });
         }
 
-        const { data, error } = await supabase
-            .from('catalogs')
-            .select('*')
-            .eq('share_slug', slug)
-            .eq('is_published', true)
-            .single();
-
-        if (error || !data) {
-            return res.status(404).json({ error: 'Catalog not found or not published' });
-        }
-
-        // View count artır
+        // View count artır (async, bekleme)
         incrementViewCount(data.id);
-
-        // Cache'e yaz
-        await setCache(cacheKey, data, cacheTTL.publicCatalog);
 
         res.json(data);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        const status = error.message === 'Catalog not found or not published' ? 404 : 500;
+        res.status(status).json({ error: error.message });
     }
 };
 

@@ -1,5 +1,4 @@
 
-const { createClient } = require('@supabase/supabase-js');
 
 // Initialize Supabase client
 // Note: In a real scenario, you should use environment variables.
@@ -11,6 +10,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 const fs = require('fs');
 const path = require('path');
+
+const { createClient } = require('@supabase/supabase-js');
 
 function getEnvVars() {
     try {

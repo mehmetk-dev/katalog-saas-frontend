@@ -1,5 +1,6 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { AuthPageClient } from "@/components/auth/auth-page-client"
 
 export default async function AuthPage() {

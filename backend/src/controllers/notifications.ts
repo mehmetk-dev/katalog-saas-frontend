@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+
 import { supabase } from '../services/supabase';
 
 const getUserId = (req: Request) => (req as any).user.id;

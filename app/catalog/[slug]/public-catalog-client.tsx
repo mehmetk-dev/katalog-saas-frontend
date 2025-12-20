@@ -1,6 +1,28 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import {
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    Share2,
+    ExternalLink,
+    BookOpen,
+    Sparkles,
+    Copy,
+    Check,
+    X,
+    Maximize2,
+    Minimize2,
+    Search,
+    Filter,
+    Layers
+} from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+import { Toaster } from "sonner"
+import HTMLFlipBook from 'react-pageflip'
+
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
 import { ModernGridTemplate } from "@/components/catalogs/templates/modern-grid"
@@ -20,25 +42,9 @@ import { LuxuryTemplate } from "@/components/catalogs/templates/luxury"
 import { CleanWhiteTemplate } from "@/components/catalogs/templates/clean-white"
 import { ProductTilesTemplate } from "@/components/catalogs/templates/product-tiles"
 import { Button } from "@/components/ui/button"
-import {
-    ChevronLeft,
-    ChevronRight,
-    Download,
-    Share2,
-    ExternalLink,
-    BookOpen,
-    Sparkles,
-    Copy,
-    Check,
-    X,
-    Maximize2,
-    Minimize2
-} from "lucide-react"
-import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
-import { Toaster } from "sonner"
-import HTMLFlipBook from 'react-pageflip'
+import { useTranslation } from "@/lib/i18n-provider"
+
 
 
 const PageCover = React.forwardRef<HTMLDivElement, { children: React.ReactNode }>((props, ref) => {
@@ -69,11 +75,36 @@ interface PublicCatalogClientProps {
 }
 
 export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
+    const { t } = useTranslation()
     const [currentPage, setCurrentPage] = useState(0)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [selectedCategory, setSelectedCategory] = useState("all")
     const [copied, setCopied] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [showControls, setShowControls] = useState(true)
     const bookRef = useRef<any>(null)
+
+    // Kategorileri çıkar
+    const categories = ["all", ...new Set(products.map(p => p.category).filter(Boolean))] as string[]
+
+    // Filtrelenmiş Ürünler
+    const filteredProducts = products.filter(product => {
+        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+
+        const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
+
+        return matchesSearch && matchesCategory
+    })
+
+    // Reset page on filter
+    useEffect(() => {
+        const pageFlip = getPageFlip()
+        if (pageFlip) {
+            pageFlip.turnToPage(0)
+        }
+    }, [searchTerm, selectedCategory])
 
     // Helper to access pageFlip instance
     const getPageFlip = () => {
@@ -95,31 +126,29 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
 
     // Sayfa başına ürün sayısı
     const getItemsPerPage = (layout: string) => {
+        const columnsPerRow = catalog.columns_per_row || 3
         switch (layout) {
-            case 'modern-grid': return 6
-            case 'minimalist': return 4
-            case 'compact-list': return 10
-            case 'bold': return 6
-            case 'magazine': return 5
-            case 'elegant-cards': return 4
-            case 'classic-catalog': return 8
-            case 'showcase': return 3
-            case 'catalog-pro': return 9
-            case 'retail': return 6
-            case 'tech-modern': return 4
+            case 'magazine': return 1 + (columnsPerRow * 2)
+            case 'showcase': return columnsPerRow === 2 ? 4 : 7
             case 'fashion-lookbook': return 4
-            case 'industrial': return 7
-            case 'luxury': return 4
-            case 'clean-white': return 6
-            case 'product-tiles': return 12
-            default: return 6
+            case 'industrial': return columnsPerRow * 4
+            case 'compact-list': return 12
+            case 'classic-catalog': return 10
+            case 'retail': return columnsPerRow * 5
+            case 'catalog-pro': return columnsPerRow * 3
+            case 'product-tiles': return columnsPerRow === 2 ? 8 : columnsPerRow * 3
+            default:
+                if (columnsPerRow === 2) return 6
+                if (columnsPerRow === 3) return 9
+                if (columnsPerRow === 4) return 12
+                return 9
         }
     }
 
     const itemsPerPage = getItemsPerPage(catalog.layout)
-    const pages = products.length > 0
-        ? Array.from({ length: Math.ceil(products.length / itemsPerPage) }, (_, i) =>
-            products.slice(i * itemsPerPage, (i + 1) * itemsPerPage)
+    const pages = filteredProducts.length > 0
+        ? Array.from({ length: Math.ceil(filteredProducts.length / itemsPerPage) }, (_, i) =>
+            filteredProducts.slice(i * itemsPerPage, (i + 1) * itemsPerPage)
         )
         : [[]]
 
@@ -142,6 +171,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             primaryColor: catalog.primary_color,
             showPrices: catalog.show_prices,
             showDescriptions: catalog.show_descriptions,
+            showAttributes: catalog.show_attributes,
+            columnsPerRow: catalog.columns_per_row || 3,
             pageNumber: pageNum,
             totalPages: total,
             isFreeUser: false
@@ -202,7 +233,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         } else {
             await navigator.clipboard.writeText(url)
             setCopied(true)
-            toast.success("Link kopyalandı!")
+            toast.success(t("catalogs.copyLink"))
             setTimeout(() => setCopied(false), 2000)
         }
     }
@@ -210,7 +241,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const handleCopyLink = async () => {
         await navigator.clipboard.writeText(window.location.href)
         setCopied(true)
-        toast.success("Link kopyalandı!")
+        toast.success(t("catalogs.copyLink"))
         setTimeout(() => setCopied(false), 2000)
     }
 
@@ -222,6 +253,50 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         window.addEventListener('resize', checkMobile)
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
+
+    // Arka plan stili hesaplama
+    const getBackgroundStyle = (): React.CSSProperties => {
+        const style: React.CSSProperties = {
+            backgroundColor: catalog.background_color || '#ffffff',
+        }
+
+        if (catalog.background_gradient && catalog.background_gradient !== 'none') {
+            style.background = catalog.background_gradient
+        }
+
+        if (catalog.background_image) {
+            style.backgroundImage = `url(${catalog.background_image})`
+            style.backgroundSize = catalog.background_image_fit === 'fill' ? '100% 100%' : (catalog.background_image_fit || 'cover')
+            style.backgroundPosition = 'center'
+            style.backgroundRepeat = 'no-repeat'
+        }
+
+        return style
+    }
+
+    // Logo boyut hesaplama
+    const getLogoSizeStyle = () => {
+        switch (catalog.logo_size) {
+            case 'small': return { width: '60px', height: 'auto' }
+            case 'medium': return { width: '100px', height: 'auto' }
+            case 'large': return { width: '150px', height: 'auto' }
+            default: return { width: '100px', height: 'auto' }
+        }
+    }
+
+    // Logo pozisyon hesaplama
+    const getLogoPositionStyle = (): React.CSSProperties => {
+        const base: React.CSSProperties = { position: 'absolute', zIndex: 40 }
+        switch (catalog.logo_position) {
+            case 'top-left': return { ...base, top: '20px', left: '20px' }
+            case 'top-center': return { ...base, top: '20px', left: '50%', transform: 'translateX(-50%)' }
+            case 'top-right': return { ...base, top: '20px', right: '20px' }
+            case 'bottom-left': return { ...base, bottom: '20px', left: '20px' }
+            case 'bottom-center': return { ...base, bottom: '20px', left: '50%', transform: 'translateX(-50%)' }
+            case 'bottom-right': return { ...base, bottom: '20px', right: '20px' }
+            default: return { ...base, top: '20px', left: '20px' }
+        }
+    }
 
     return (
         <>
@@ -277,7 +352,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                     <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-full">
                                         <Sparkles className="w-3.5 h-3.5 text-violet-600" />
                                         <span className="text-xs font-medium text-slate-700">
-                                            {products.length} ürün
+                                            {products.length} {t("catalogs.products")}
                                         </span>
                                     </div>
 
@@ -288,7 +363,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                         className="hidden sm:flex gap-2"
                                     >
                                         {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                                        <span className="hidden md:inline">{copied ? "Kopyalandı" : "Linki Kopyala"}</span>
+                                        <span className="hidden md:inline">{copied ? t("common.copied") : t("catalogs.copyLink")}</span>
                                     </Button>
 
                                     <Button
@@ -298,7 +373,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                         className="gap-2"
                                     >
                                         <Share2 className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Paylaş</span>
+                                        <span className="hidden sm:inline">{t("catalogs.share")}</span>
                                     </Button>
 
                                     <Button
@@ -308,9 +383,50 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                     >
                                         <a href={`/api/catalog/${catalog.share_slug}/pdf`} target="_blank">
                                             <Download className="w-4 h-4" />
-                                            <span className="hidden sm:inline">PDF İndir</span>
+                                            <span className="hidden sm:inline">{t("builder.download")}</span>
                                         </a>
                                     </Button>
+                                </div>
+                            </div>
+
+                            {/* Search & Filter Bar */}
+                            <div className="bg-slate-50/50 border-t border-slate-200/50 px-4 sm:px-6 lg:px-8 py-2">
+                                <div className="max-w-7xl mx-auto flex items-center gap-4">
+                                    <div className="relative flex-1 group">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder={t("catalogs.public.search")}
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {categories.length > 1 && (
+                                            <div className="flex bg-white border border-slate-200 rounded-lg p-1 overflow-x-auto max-w-[300px] no-scrollbar">
+                                                {categories.slice(0, 4).map(cat => (
+                                                    <button
+                                                        key={cat}
+                                                        onClick={() => setSelectedCategory(cat)}
+                                                        className={cn(
+                                                            "px-3 py-1 text-xs rounded-md transition-all whitespace-nowrap",
+                                                            selectedCategory === cat
+                                                                ? "bg-violet-100 text-violet-700 font-medium"
+                                                                : "text-slate-500 hover:bg-slate-50"
+                                                        )}
+                                                    >
+                                                        {cat === "all" ? t("catalogs.public.all") : cat}
+                                                    </button>
+                                                ))}
+                                                {categories.length > 4 && (
+                                                    <div className="flex items-center px-1">
+                                                        <Filter className="w-3 h-3 text-slate-300" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -326,17 +442,35 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                     {isMobile ? (
                         /* Mobile View - Single Column Vertical Scroll */
                         <div className="w-full min-h-full p-4 flex flex-col gap-4 pb-20">
-                            {pages.map((pageProds, index) => (
-                                <div key={index} className="w-full bg-white shadow-md rounded-lg overflow-hidden border border-slate-100">
-                                    {/* Sayfa İçeriği */}
-                                    <div className="w-full">
-                                        {renderTemplate(pageProds, index + 1, pages.length)}
+                            {pages.length > 0 && pages[0].length > 0 ? (
+                                pages.map((pageProds, index) => (
+                                    <div key={index} className="w-full shadow-md rounded-lg overflow-hidden border border-slate-100 relative" style={getBackgroundStyle()}>
+                                        {/* Logo Overlay */}
+                                        {catalog.logo_url && (
+                                            <div style={{ ...getLogoPositionStyle(), transform: catalog.logo_position?.includes('center') ? 'translateX(-50%)' : 'none', scale: '0.8' }}>
+                                                <img
+                                                    src={catalog.logo_url}
+                                                    alt="Logo"
+                                                    style={getLogoSizeStyle()}
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                        )}
+                                        {/* Sayfa İçeriği */}
+                                        <div className="w-full">
+                                            {renderTemplate(pageProds, index + 1, pages.length)}
+                                        </div>
+                                        <div className="bg-slate-50/80 backdrop-blur-sm py-2 border-t px-4 flex justify-between items-center text-xs text-muted-foreground relative z-30">
+                                            <span>{t("builder.preparingPage", { current: index + 1, total: pages.length }).replace('hazırlanıyor...', '')}</span>
+                                        </div>
                                     </div>
-                                    <div className="bg-slate-50 py-2 border-t px-4 flex justify-between items-center text-xs text-muted-foreground">
-                                        <span>Sayfa {index + 1} / {pages.length}</span>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <Search className="w-12 h-12 mb-4 opacity-20" />
+                                    <p>{t("catalogs.public.noResults")}</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     ) : (
                         /* Desktop View - FlipBook */
@@ -351,7 +485,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                 }}
                             >
                                 <div className="relative w-full h-full flex items-center justify-center">
-                                    {pages.length > 0 && (
+                                    {pages.length > 0 && pages[0].length > 0 ? (
                                         // @ts-expect-error
                                         <HTMLFlipBook
                                             width={595}
@@ -381,7 +515,19 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                             {pages.map((pageProds, index) => (
 
                                                 <Page key={index} number={index + 1}>
-                                                    <div className="w-full h-full bg-white shadow-inner relative border-l border-slate-100" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                                    <div className="w-full h-full shadow-inner relative" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', ...getBackgroundStyle() }}>
+                                                        {/* Logo Overlay */}
+                                                        {catalog.logo_url && (
+                                                            <div style={getLogoPositionStyle()}>
+                                                                <img
+                                                                    src={catalog.logo_url}
+                                                                    alt="Logo"
+                                                                    style={getLogoSizeStyle()}
+                                                                    className="object-contain"
+                                                                />
+                                                            </div>
+                                                        )}
+
                                                         {/* Paper Texture Overlay */}
                                                         <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-20 mix-blend-multiply"
                                                             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
@@ -414,33 +560,44 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                                 <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 relative border-l border-slate-200">
                                                     <div className="absolute top-0 bottom-0 w-4 right-0 bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
                                                     <BookOpen className="w-16 h-16 mb-4 opacity-20" />
-                                                    <p className="font-medium tracking-widest text-sm uppercase">Katalog Sonu</p>
+                                                    <p className="font-medium tracking-widest text-sm uppercase">{t("catalogs.public.noResults").replace('Aradığınız ürün bulunamadı.', 'Katalog Sonu')}</p>
                                                 </div>
                                             </Page>
                                         </HTMLFlipBook>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white/50 backdrop-blur-sm rounded-3xl p-12 border border-dashed border-slate-200">
+                                            <Search className="w-16 h-16 mb-4 opacity-10" />
+                                            <h3 className="text-xl font-semibold text-slate-900 mb-2">{t("catalogs.public.noResults")}</h3>
+                                            <p>{t("catalogs.public.noResults")}</p>
+                                            <Button variant="link" onClick={() => { setSearchTerm(""); setSelectedCategory("all") }} className="mt-4 text-violet-600">
+                                                {t("catalogs.public.resetFilters")}
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Navigation Buttons */}
-                            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10 px-4 md:px-10">
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onClick={handlePrevPage}
-                                    className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
-                                >
-                                    <ChevronLeft className="h-6 w-6 text-slate-700" />
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onClick={handleNextPage}
-                                    className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
-                                >
-                                    <ChevronRight className="h-6 w-6 text-slate-700" />
-                                </Button>
-                            </div>
+                            {pages.length > 1 && (
+                                <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10 px-4 md:px-10">
+                                    <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        onClick={handlePrevPage}
+                                        className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
+                                    >
+                                        <ChevronLeft className="h-6 w-6 text-slate-700" />
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        onClick={handleNextPage}
+                                        className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
+                                    >
+                                        <ChevronRight className="h-6 w-6 text-slate-700" />
+                                    </Button>
+                                </div>
+                            )}
                         </>
                     )}
                 </main>
@@ -448,28 +605,32 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 {/* Modern Footer */}
                 {
                     !isFullscreen && (
-                        <footer className="shrink-0 z-50 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 py-4">
+                        <footer className="shrink-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-200/50 py-4">
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                                            <BookOpen className="w-3 h-3 text-white" />
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                                            <BookOpen className="w-4 h-4 text-white" />
                                         </div>
                                         <div>
-                                            <p className="text-slate-600">
-                                                Built with{" "}
-                                                <Link href="/" className="text-violet-600 hover:text-violet-700 font-semibold">
+                                            <p className="text-slate-600 text-sm font-medium">
+                                                {t("catalogs.public.createdWithPrefix")}{" "}
+                                                <Link href="/" className="text-violet-600 hover:text-violet-700 font-bold">
                                                     CatalogPro
-                                                </Link>
+                                                </Link>{" "}
+                                                {t("catalogs.public.createdWithSuffix")}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-4">
+                                        <p className="text-slate-400 text-xs hidden md:block">
+                                            {t("catalogs.public.ctaDesc")}
+                                        </p>
                                         <Link href="/">
-                                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-2">
-                                                <ExternalLink className="w-3 h-3" />
-                                                Oluştur
+                                            <Button size="sm" className="h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2 text-xs font-semibold">
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                {t("catalogs.public.startNow")}
                                             </Button>
                                         </Link>
                                     </div>
@@ -482,4 +643,3 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         </>
     )
 }
-

@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { useState, useTransition, useCallback } from "react"
+import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ArrowRight } from "lucide-react"
+import { toast } from "sonner"
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ArrowRight } from "lucide-react"
-import { toast } from "sonner"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -139,13 +140,19 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
             try {
                 // 1. Upload
-                const fileExt = img.file.name.split('.').pop()
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+                // 1. WebP Conversion
+                const { convertToWebP } = await import("@/lib/image-utils")
+                const { blob } = await convertToWebP(img.file)
+
+                // 2. Upload
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
                 const filePath = `${fileName}`
 
                 const { error: uploadError } = await supabase.storage
                     .from('product-images')
-                    .upload(filePath, img.file)
+                    .upload(filePath, blob, {
+                        contentType: 'image/webp'
+                    })
 
                 if (uploadError) throw uploadError
 

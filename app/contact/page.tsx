@@ -1,9 +1,10 @@
 "use client"
 
+import { Mail, MapPin, Clock } from "lucide-react"
+
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
-import { Mail, MapPin, Clock } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-provider"
 
 export default function ContactPage() {

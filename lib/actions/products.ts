@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+
 import { apiFetch } from "@/lib/api"
 
 export interface CustomAttribute {
@@ -175,6 +176,45 @@ export async function deleteProducts(ids: string[]) {
     return { success: true }
   } catch (error) {
     throw error
+  }
+}
+
+export interface CatalogReference {
+  id: string
+  name: string
+}
+
+export interface ProductCatalogCheck {
+  isInCatalogs: boolean
+  catalogs: CatalogReference[]
+  count: number
+}
+
+export interface ProductsCatalogCheck {
+  productsInCatalogs: { productId: string; catalogs: CatalogReference[] }[]
+  hasAnyInCatalogs: boolean
+}
+
+// Tek bir ürünün hangi kataloglarda olduğunu kontrol et
+export async function checkProductInCatalogs(productId: string): Promise<ProductCatalogCheck> {
+  try {
+    return await apiFetch<ProductCatalogCheck>(`/products/${productId}/catalogs`)
+  } catch (error) {
+    console.error("Error checking product catalogs:", error)
+    return { isInCatalogs: false, catalogs: [], count: 0 }
+  }
+}
+
+// Birden fazla ürünün kataloglarda olup olmadığını kontrol et
+export async function checkProductsInCatalogs(productIds: string[]): Promise<ProductsCatalogCheck> {
+  try {
+    return await apiFetch<ProductsCatalogCheck>("/products/check-catalogs", {
+      method: "POST",
+      body: JSON.stringify({ productIds }),
+    })
+  } catch (error) {
+    console.error("Error checking products catalogs:", error)
+    return { productsInCatalogs: [], hasAnyInCatalogs: false }
   }
 }
 

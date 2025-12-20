@@ -24,6 +24,8 @@ import {
     FileType,
     Columns3
 } from 'lucide-react'
+import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -52,7 +54,6 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
-import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'

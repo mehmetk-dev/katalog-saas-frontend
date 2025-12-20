@@ -1,8 +1,10 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
-import { checkIsAdmin } from "./admin"
 import { revalidatePath } from "next/cache"
+
+import { createClient } from "@/lib/supabase/server"
+
+import { checkIsAdmin } from "./admin"
 
 export interface Template {
     id: string

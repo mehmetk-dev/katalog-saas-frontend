@@ -2,14 +2,15 @@
 
 import type React from "react"
 import { useState, useTransition, useEffect, useRef } from "react"
+import { toast } from "sonner"
+import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, DollarSign, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { type Product, type CustomAttribute, createProduct, updateProduct } from "@/lib/actions/products"
-import { toast } from "sonner"
-import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, DollarSign, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/client"
@@ -150,18 +151,23 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           continue
         }
 
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-        const randomId = Math.random().toString(36).substring(2, 10)
-        const timestamp = Date.now()
-        // Dosya ismini güvenli hale getir
-        const fileName = `${timestamp}-${randomId}.${fileExt}`
+        // WebP Dönüşümü
+        toast.loading(`${file.name} optimize ediliyor...`, { id: 'webp-process' })
+        // 1. WebP Conversion
+        const { convertToWebP } = await import("@/lib/image-utils")
+        const { blob, fileName: webpName } = await convertToWebP(file)
+        toast.dismiss('webp-process')
+
+        // 2. Upload
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
         const filePath = `${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(filePath, file, {
+          .upload(filePath, blob, {
             cacheControl: '3600',
-            upsert: false
+            upsert: false,
+            contentType: 'image/webp'
           })
 
         if (uploadError) {

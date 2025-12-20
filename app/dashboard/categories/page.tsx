@@ -24,7 +24,7 @@ export default async function CategoriesPage() {
 
     // Parse categories from products with images
     const categoryData = new Map<string, { count: number, images: string[], productNames: string[] }>()
-    let uncategorizedData = { count: 0, images: [] as string[], productNames: [] as string[] }
+    const uncategorizedData = { count: 0, images: [] as string[], productNames: [] as string[] }
 
     products?.forEach(p => {
         if (!p.category || p.category.trim() === '') {

@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import { ArrowRight, Layout, CheckCircle2, Share2 } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
-import { ArrowRight, Layout, CheckCircle2, Share2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-provider"
 
 export default function HowItWorksPage() {

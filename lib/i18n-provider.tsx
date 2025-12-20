@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
+
 import { translations, Language } from "./translations"
 
 type Translations = typeof translations.tr
@@ -26,12 +27,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
             return
         }
 
-        // If no saved preference, detect from browser
-        const browserLang = navigator.language?.split("-")[0]?.toLowerCase() || "tr"
-        const detectedLang: Language = browserLang === "en" ? "en" : "tr"
-
-        setLanguageState(detectedLang)
-        localStorage.setItem("language", detectedLang)
+        // Default to Turkish
+        setLanguageState("tr")
+        localStorage.setItem("language", "tr")
         setIsInitialized(true)
     }, [])
 

@@ -25,7 +25,7 @@ export const initRedis = () => {
         });
 
         redis.on('connect', () => {
-            console.log('✅ Redis connected successfully');
+
         });
 
         // Bağlantıyı test et
@@ -72,17 +72,48 @@ export const setCache = async (key: string, data: any, ttlSeconds: number = 300)
     }
 };
 
-// Cache'i sil
+// Cache'i sil (SCAN kullanarak performanslı silme)
 export const deleteCache = async (pattern: string): Promise<void> => {
     if (!redis) return;
     try {
-        const keys = await redis.keys(pattern);
-        if (keys.length > 0) {
-            await redis.del(...keys);
-        }
+        const stream = redis.scanStream({
+            match: pattern,
+            count: 100
+        });
+
+        stream.on('data', async (keys: string[]) => {
+            if (keys.length > 0) {
+                const pipeline = redis?.pipeline();
+                keys.forEach((key: string) => pipeline?.del(key));
+                await pipeline?.exec();
+            }
+        });
+
+        return new Promise((resolve, reject) => {
+            stream.on('end', resolve);
+            stream.on('error', reject);
+        });
     } catch (error) {
         console.warn('Cache delete error:', error);
     }
+};
+
+/**
+ * Get data from cache or fetch from source and cache it
+ */
+export const getOrSetCache = async <T>(
+    key: string,
+    ttlSeconds: number,
+    fetchFn: () => Promise<T>
+): Promise<T> => {
+    const cached = await getCache<T>(key);
+    if (cached) return cached;
+
+    const data = await fetchFn();
+    if (data !== null && data !== undefined) {
+        await setCache(key, data, ttlSeconds);
+    }
+    return data;
 };
 
 // Cache key helper'ları
@@ -101,6 +132,9 @@ export const cacheKeys = {
 
     // Kullanıcı
     user: (userId: string) => createKey('user', userId),
+
+    // Admin
+    adminStats: () => createKey('admin', 'stats'),
 };
 
 // TTL değerleri (saniye)
@@ -110,6 +144,7 @@ export const cacheTTL = {
     templates: 3600,    // 1 saat
     publicCatalog: 600, // 10 dakika
     user: 600,          // 10 dakika
+    adminStats: 300,    // 5 dakika
 };
 
 export { redis };

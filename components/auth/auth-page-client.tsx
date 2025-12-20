@@ -2,9 +2,10 @@
 
 import { useState, Suspense } from "react"
 import Link from "next/link"
+import { BookOpen, Loader2 } from "lucide-react"
+
 import { AuthForm } from "@/components/auth/auth-form"
 import { OnboardingModal } from "@/components/auth/onboarding-modal"
-import { BookOpen, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-provider"
 
 function AuthContent({ onSignUpComplete }: { onSignUpComplete: () => void }) {

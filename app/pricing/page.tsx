@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { ArrowRight, Check, Zap, Star, Crown, Sparkles } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
-import { ArrowRight, Check, Zap, Star, Crown, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
 
@@ -28,6 +29,7 @@ export default function PricingPage() {
         "1 " + t('catalogs.catalog'),
         "50 " + t('plans.productLimit'),
         "1 " + t('builder.download'),
+        t('upgradeModal.features.standardPdf'),
         t('header.pricing') === 'Pricing' ? 'Watermarked' : 'Filigranlı'
       ],
       cta: t('pricingPage.ctaFree'),
@@ -44,6 +46,7 @@ export default function PricingPage() {
         "10 " + t('catalogs.catalog'),
         "1.000 " + t('plans.productLimit'),
         "50 " + t('builder.download'),
+        t('upgradeModal.features.standardPdf'),
         t('header.pricing') === 'Pricing' ? 'No Watermark' : 'Filigransız'
       ],
       cta: t('pricingPage.ctaPlus'),
@@ -61,6 +64,7 @@ export default function PricingPage() {
         t('plans.unlimitedCatalogs'),
         t('plans.unlimited') + " " + t('footer.product'),
         t('plans.unlimitedDownloads'),
+        t('upgradeModal.features.highResPdf'),
         t('plans.allTemplates')
       ],
       cta: t('pricingPage.ctaPro'),

@@ -2,6 +2,10 @@
 
 import type React from "react"
 import { useState, useTransition } from "react"
+import { toast } from "sonner"
+import Link from "next/link"
+import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -9,8 +13,6 @@ import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/user-context"
 import { useTranslation } from "@/lib/i18n-provider"
 import { updateProfile, deleteAccount } from "@/lib/actions/auth"
-import { toast } from "sonner"
-import Link from "next/link"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -25,7 +27,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
