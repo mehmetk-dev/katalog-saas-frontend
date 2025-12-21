@@ -15,7 +15,7 @@ export function FashionLookbookTemplate({
     const [hero, second, third, fourth] = safeProducts
 
     return (
-        <div className="bg-white h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Minimal Header */}
             <div className="h-12 px-8 flex items-center justify-center shrink-0">
                 <h1 className="text-xs font-light tracking-[0.6em] uppercase text-gray-600">{catalogName || "Lookbook"}</h1>

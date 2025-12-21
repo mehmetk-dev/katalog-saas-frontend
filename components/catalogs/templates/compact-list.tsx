@@ -9,23 +9,62 @@ export function CompactListTemplate({
     showAttributes,
     pageNumber = 1,
     totalPages = 1,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
-    const HEADER_HEIGHT = "56px"
+    const HEADER_HEIGHT = "48px"
+
+    // Logo boyutu
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 22
+            case 'large': return 36
+            default: return 28
+        }
+    }
+
+    // Header'da logo var mı?
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
 
     return (
-        <div className="bg-white h-full flex flex-col relative overflow-hidden">
-            {/* Header Alanı - Tüm sayfalarda aynı yükseklik */}
+        <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
+            {/* Header */}
             <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
                 {pageNumber === 1 ? (
                     <div className="h-full px-6 flex items-center border-b-2" style={{ borderColor: primaryColor }}>
-                        <h1 className="text-lg font-bold uppercase tracking-widest" style={{ color: primaryColor }}>
-                            {catalogName || "Katalog"}
-                        </h1>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-3" />
+                        )}
+                        {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
+                            <h1 className="text-base font-bold uppercase tracking-widest" style={{ color: primaryColor }}>
+                                {catalogName || "Katalog"}
+                            </h1>
+                        )}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                            <div className="flex-1 flex justify-center">
+                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            </div>
+                        )}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <>
+                                <div className="flex-1" />
+                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className="h-full px-6 flex items-center justify-between border-b border-gray-200">
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 6 }} className="object-contain mr-2" />
+                        )}
                         <span className="text-sm font-medium" style={{ color: primaryColor }}>{catalogName}</span>
+                        <div className="flex-1" />
                         <span className="text-xs text-gray-400">Sayfa {pageNumber}</span>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 6 }} className="object-contain ml-2" />
+                        )}
                     </div>
                 )}
             </div>

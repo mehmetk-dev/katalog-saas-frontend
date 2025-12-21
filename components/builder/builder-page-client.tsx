@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useId, useEffect } from "react"
+import { useState, useTransition, useId, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Download, Share2, Save, ArrowLeft, Eye, Pencil, Globe, MoreVertical, ExternalLink } from "lucide-react"
 import Link from "next/link"
@@ -21,6 +21,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useTranslation } from "@/lib/i18n-provider"
 
 function slugify(text: string) {
@@ -63,9 +73,133 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [backgroundImageFit, setBackgroundImageFit] = useState<string>(catalog?.background_image_fit || 'cover')
   const [backgroundGradient, setBackgroundGradient] = useState<string | null>(catalog?.background_gradient || null)
   const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || user?.logo_url || null)
-  const [logoPosition, setLogoPosition] = useState<string>(catalog?.logo_position || 'top-left')
+  const [logoPosition, setLogoPosition] = useState<string>(catalog?.logo_position || 'header-left')
   const [logoSize, setLogoSize] = useState<string>(catalog?.logo_size || 'medium')
+  const [titlePosition, setTitlePosition] = useState<string>((catalog as any)?.title_position || 'left')
   const tabsId = useId()
+  const [showExitDialog, setShowExitDialog] = useState(false)
+
+  // Kaydedilmemiş değişiklik takibi
+  const [isDirty, setIsDirty] = useState(false)
+  const [lastSavedState, setLastSavedState] = useState({
+    name: catalog?.name || "",
+    description: catalog?.description || "",
+    productIds: catalog?.product_ids || [],
+    layout: catalog?.layout || "grid",
+    primaryColor: catalog?.primary_color || "#7c3aed",
+    showPrices: catalog?.show_prices ?? true,
+    showDescriptions: catalog?.show_descriptions ?? true,
+    showAttributes: catalog?.show_attributes ?? false,
+    columnsPerRow: catalog?.columns_per_row || 3,
+    backgroundColor: catalog?.background_color || '#ffffff',
+  })
+
+  // Değişiklik var mı kontrol et
+  const hasUnsavedChanges = isDirty || (
+    catalogName !== lastSavedState.name ||
+    catalogDescription !== lastSavedState.description ||
+    JSON.stringify(selectedProductIds) !== JSON.stringify(lastSavedState.productIds) ||
+    layout !== lastSavedState.layout ||
+    primaryColor !== lastSavedState.primaryColor ||
+    showPrices !== lastSavedState.showPrices ||
+    showDescriptions !== lastSavedState.showDescriptions ||
+    showAttributes !== lastSavedState.showAttributes ||
+    columnsPerRow !== lastSavedState.columnsPerRow ||
+    backgroundColor !== lastSavedState.backgroundColor
+  )
+
+  // Sayfa kapatma/yenileme uyarısı
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        const message = 'Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılmak istediğinizden emin misiniz?'
+        e.preventDefault()
+        e.returnValue = message
+        return message
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Herhangi bir değişiklikte isDirty'i true yap
+  useEffect(() => {
+    // İlk render'da değil, sonraki değişikliklerde dirty yap
+    const isInitialRender =
+      catalogName === (catalog?.name || "") &&
+      catalogDescription === (catalog?.description || "") &&
+      JSON.stringify(selectedProductIds) === JSON.stringify(catalog?.product_ids || [])
+
+    if (!isInitialRender) {
+      setIsDirty(true)
+    }
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, columnsPerRow, backgroundColor])
+
+  // Autosave state
+  const [isAutoSaving, setIsAutoSaving] = useState(false)
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounced Autosave - 3 saniye bekle, sonra kaydet
+  useEffect(() => {
+    // Sadece varolan kataloglar için autosave (yeni katalog = ilk manuel kayıt gerekli)
+    if (!currentCatalogId || !isDirty) return
+
+    // Önceki timeout'u temizle
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current)
+    }
+
+    // 3 saniye sonra kaydet
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSaving(true)
+      try {
+        await updateCatalog(currentCatalogId, {
+          name: catalogName,
+          description: catalogDescription,
+          product_ids: selectedProductIds,
+          layout,
+          primary_color: primaryColor,
+          show_prices: showPrices,
+          show_descriptions: showDescriptions,
+          columns_per_row: columnsPerRow,
+          background_color: backgroundColor,
+          background_image: backgroundImage,
+          background_image_fit: backgroundImageFit as any,
+          background_gradient: backgroundGradient,
+          logo_url: logoUrl,
+          logo_position: logoPosition as any,
+          logo_size: logoSize as any,
+        })
+
+        // Başarılı - state'leri güncelle
+        setLastSavedState({
+          name: catalogName,
+          description: catalogDescription,
+          productIds: selectedProductIds,
+          layout,
+          primaryColor,
+          showPrices,
+          showDescriptions,
+          showAttributes,
+          columnsPerRow,
+          backgroundColor,
+        })
+        setIsDirty(false)
+      } catch (error) {
+        console.error('Autosave failed:', error)
+        // Sessizce fail - kullanıcıyı rahatsız etme
+      } finally {
+        setIsAutoSaving(false)
+      }
+    }, 3000)
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current)
+      }
+    }
+  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
   const selectedProducts = selectedProductIds
@@ -136,6 +270,21 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
           toast.success(t('toasts.catalogCreated'))
         }
+
+        // Kayıt başarılı - lastSavedState güncelle
+        setLastSavedState({
+          name: catalogName,
+          description: catalogDescription,
+          productIds: selectedProductIds,
+          layout,
+          primaryColor,
+          showPrices,
+          showDescriptions,
+          showAttributes,
+          columnsPerRow,
+          backgroundColor,
+        })
+        setIsDirty(false)
       } catch {
         toast.error(t('toasts.catalogSaveFailed'))
       }
@@ -372,122 +521,147 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
   return (
     <div className="h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
-      {/* Header */}
-      <div className="h-12 sm:h-14 border-b bg-background flex items-center justify-between px-2 sm:px-4 shrink-0 gap-2">
-        {/* Sol taraf - Geri ve Input */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Button variant="ghost" size="icon" asChild className="shrink-0">
-            <Link href="/dashboard">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
+      {/* Header - Clean Single Row */}
+      <div className="h-12 sm:h-14 border-b bg-background/95 backdrop-blur-sm flex items-center justify-between px-2 sm:px-4 shrink-0">
+
+        {/* Left: Back + Name + Status */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-8 w-8"
+            onClick={() => {
+              if (hasUnsavedChanges) {
+                setShowExitDialog(true)
+              } else {
+                router.push('/dashboard')
+              }
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" />
           </Button>
           <Input
             value={catalogName}
             onChange={(e) => setCatalogName(e.target.value)}
-            className="h-8 sm:h-9 font-medium text-sm min-w-0 flex-1 max-w-[180px] sm:max-w-[240px] md:max-w-[300px]"
+            className="h-8 font-medium text-sm w-[120px] sm:w-[180px] md:w-[220px] border-none bg-muted/50 focus:bg-background"
             placeholder={t('builder.catalogNamePlaceholder')}
           />
           {isPublished && (
-            <span className="hidden sm:flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-950 px-2 py-1 rounded-full shrink-0">
-              <Globe className="w-3 h-3" />
-              {t('builder.published')}
-            </span>
+            <div className="hidden sm:flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
+              <Globe className="w-2.5 h-2.5" />
+              <span className="hidden md:inline">{t('builder.published')}</span>
+            </div>
           )}
+          {isAutoSaving ? (
+            <div className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+              <span className="hidden sm:inline">Kaydediliyor...</span>
+            </div>
+          ) : hasUnsavedChanges ? (
+            <div className="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+              <span className="hidden sm:inline">Kaydedilmedi</span>
+            </div>
+          ) : currentCatalogId ? (
+            <div className="hidden sm:flex items-center gap-1 text-[10px] text-green-600 bg-green-50 dark:bg-green-950/50 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+              <span className="hidden md:inline">Kaydedildi</span>
+            </div>
+          ) : null}
         </div>
 
-        {/* Sağ taraf - Aksiyonlar */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Mobil görünüm seçici */}
-          {isMobile && (
-            <Tabs value={effectiveView} onValueChange={(v) => setView(v as typeof view)} id={`${tabsId}-mobile`}>
-              <TabsList className="h-8">
-                <TabsTrigger value="editor" className="text-xs px-2 gap-1" suppressHydrationWarning>
-                  <Pencil className="w-3 h-3" />
-                </TabsTrigger>
-                <TabsTrigger value="preview" className="text-xs px-2 gap-1" suppressHydrationWarning>
-                  <Eye className="w-3 h-3" />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-
-          {/* Masaüstü görünüm seçici */}
-          {!isMobile && (
-            <Tabs value={view} onValueChange={(v) => setView(v as typeof view)} className="hidden md:block" id={tabsId}>
-              <TabsList className="h-9">
-                <TabsTrigger value="split" className="text-xs px-3" suppressHydrationWarning>
-                  {t('builder.split')}
-                </TabsTrigger>
-                <TabsTrigger value="editor" className="text-xs px-3 gap-1" suppressHydrationWarning>
-                  <Pencil className="w-3 h-3" />
-                  {t('builder.editor')}
-                </TabsTrigger>
-                <TabsTrigger value="preview" className="text-xs px-3 gap-1" suppressHydrationWarning>
-                  <Eye className="w-3 h-3" />
-                  {t('builder.preview')}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-
-          <div className="h-6 w-px bg-border mx-1 hidden md:block" />
-
-          {/* Masaüstünde görünen butonlar */}
-          <div className="hidden sm:flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 bg-transparent"
-              onClick={handleSave}
-              disabled={isPending}
+        {/* Center: View Mode Segmented Control (Desktop only) */}
+        <div className="hidden md:flex items-center">
+          <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
+            <button
+              onClick={() => setView("split")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${view === "split"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
-              <Save className="w-4 h-4" />
-              <span className="hidden md:inline">{isPending ? t('builder.saving') : t('builder.save')}</span>
-            </Button>
-
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent" onClick={handleShare}>
-              <Share2 className="w-4 h-4" />
-              <span className="hidden lg:inline">{t('builder.share')}</span>
-            </Button>
-
-            <Button
-              variant={isPublished ? "outline" : "default"}
-              size="sm"
-              className="gap-2"
-              onClick={handlePublish}
-              disabled={isPending || !currentCatalogId}
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="18" rx="1" />
+                <rect x="14" y="3" width="7" height="18" rx="1" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setView("editor")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${view === "editor"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
-              <Globe className="w-4 h-4" />
-              <span className="hidden lg:inline">{isPublished ? t('builder.unpublish') : t('builder.publish')}</span>
-            </Button>
-
-            {isPublished && catalog?.share_slug && (
-              <Button variant="ghost" size="sm" className="gap-2" asChild>
-                <a href={`/catalog/${catalog.share_slug}`} target="_blank">
-                  <ExternalLink className="w-4 h-4" />
-                  <span className="hidden xl:inline">{t('builder.view')}</span>
-                </a>
-              </Button>
-            )}
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setView("preview")}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${view === "preview"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
           </div>
+        </div>
 
-          <Button size="sm" className="gap-2" onClick={handleDownloadPDF}>
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">PDF</span>
+        {/* Mobile View Toggle */}
+        {isMobile && (
+          <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
+            <button
+              onClick={() => setView("editor")}
+              className={`p-1.5 rounded-md transition-all ${effectiveView === "editor"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground"
+                }`}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setView("preview")}
+              className={`p-1.5 rounded-md transition-all ${effectiveView === "preview"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground"
+                }`}
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Save - Primary Action */}
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isPending}
+            className="h-8 gap-1.5 px-3 bg-primary hover:bg-primary/90"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-xs">{isPending ? t('builder.saving') : t('builder.save')}</span>
           </Button>
 
-          {/* Mobil menü */}
+          {/* PDF - Secondary Action */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 px-3"
+            onClick={handleDownloadPDF}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-xs">PDF</span>
+          </Button>
+
+          {/* More Actions Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="sm:hidden">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleSave} disabled={isPending}>
-                <Save className="w-4 h-4 mr-2" />
-                {isPending ? t('builder.saving') : t('builder.save')}
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={handleShare}>
                 <Share2 className="w-4 h-4 mr-2" />
                 {t('builder.share')}
@@ -550,6 +724,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onLogoPositionChange={setLogoPosition}
               logoSize={logoSize}
               onLogoSizeChange={setLogoSize}
+              titlePosition={titlePosition}
+              onTitlePositionChange={setTitlePosition}
             />
           </div>
         )}
@@ -573,12 +749,49 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               logoUrl={logoUrl}
               logoPosition={logoPosition}
               logoSize={logoSize}
+              titlePosition={titlePosition}
             />
           </div>
         )}
       </div>
 
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
+            <AlertDialogDescription>
+              Katalogda kaydedilmemiş değişiklikler var. Çıkmadan önce kaydetmek ister misiniz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setShowExitDialog(false)}>
+              İptal
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowExitDialog(false)
+                router.push('/dashboard')
+              }}
+            >
+              Kaydetmeden Çık
+            </Button>
+            <Button
+              onClick={() => {
+                handleSave()
+                setShowExitDialog(false)
+                // Kayıt tamamlandıktan sonra yönlendir
+                setTimeout(() => router.push('/dashboard'), 500)
+              }}
+            >
+              Kaydet ve Çık
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

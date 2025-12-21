@@ -10,6 +10,9 @@ export function MinimalistTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const HEADER_HEIGHT = "60px"
 
@@ -27,20 +30,50 @@ export function MinimalistTemplate({
         return "grid-rows-2"
     }
 
+    // Logo boyutu
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 28
+            case 'large': return 44
+            default: return 36
+        }
+    }
+
+    // Header'da logo var mı?
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
     return (
-        <div className="bg-white h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Header Alanı - Tüm sayfalarda aynı yükseklik */}
             <div className="shrink-0 px-8" style={{ height: HEADER_HEIGHT }}>
                 {pageNumber === 1 ? (
                     <div className="h-full flex items-center justify-center border-b border-gray-200">
-                        <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.25em]">
-                            {catalogName || "KATALOG"}
-                        </h1>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-4 absolute left-8" />
+                        )}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                        ) : (
+                            <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.25em]">
+                                {catalogName || "KATALOG"}
+                            </h1>
+                        )}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain ml-4 absolute right-8" />
+                        )}
                     </div>
                 ) : (
                     <div className="h-full flex items-center justify-between border-b border-gray-200">
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
+                        )}
                         <span className="text-sm font-light uppercase tracking-widest text-gray-500">{catalogName}</span>
+                        <div className="flex-1" />
                         <span className="text-xs text-gray-400">Sayfa {pageNumber}</span>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
+                        )}
                     </div>
                 )}
             </div>

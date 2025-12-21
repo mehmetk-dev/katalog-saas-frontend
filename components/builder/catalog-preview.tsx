@@ -26,6 +26,7 @@ interface CatalogPreviewProps {
   logoUrl?: string | null
   logoPosition?: string
   logoSize?: string
+  titlePosition?: string
 }
 
 export function CatalogPreview(props: CatalogPreviewProps) {
@@ -46,9 +47,6 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   const backgroundImage = props.backgroundImage
   const backgroundImageFit = props.backgroundImageFit || 'cover'
   const backgroundGradient = props.backgroundGradient
-  const logoUrl = props.logoUrl
-  const logoPosition = props.logoPosition || 'top-left'
-  const logoSize = props.logoSize || 'medium'
 
   // Container genişliğine göre scale hesapla
   useEffect(() => {
@@ -71,28 +69,25 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   const getItemsPerPage = () => {
     switch (props.layout) {
       case 'magazine':
-        return 1 + (columnsPerRow * 2); // 1 büyük + (sütun sayısı * 2 satır)
+        return 1 + (columnsPerRow * 2);
       case 'showcase':
-        return columnsPerRow === 2 ? 4 : 7; // 1 büyük + (2 veya 4 küçük)
+        return columnsPerRow === 2 ? 4 : 7;
       case 'fashion-lookbook':
-        return 4; // Sabit tasarım (1 büyük sol, 3 sağ)
+        return 4;
       case 'industrial':
-        return columnsPerRow * 4; // Daha sıkı teknik görünüm (4 satır)
+        return columnsPerRow * 4;
       case 'compact-list':
-        return 12; // Sabit liste görünümü
+        return 12;
       case 'classic-catalog':
-        return 10; // Tablo görünümü
-      case 'retail':
-        return columnsPerRow * 5; // Fiyat listesi (5 satır)
+        return 10;
       case 'catalog-pro':
-        return columnsPerRow * 3; // 3 satır
+        return columnsPerRow * 3;
       case 'product-tiles':
-        return columnsPerRow === 2 ? 8 : columnsPerRow * 3; // 2 sütunda 4 satır, diğerlerinde 3 satır
+        return columnsPerRow === 2 ? 8 : columnsPerRow * 3;
       default:
-        // Standart gridler: Sütun sayısına göre satır ayarı
-        if (columnsPerRow === 2) return 6; // 2x3
-        if (columnsPerRow === 3) return 9; // 3x3
-        if (columnsPerRow === 4) return 12; // 4x3
+        if (columnsPerRow === 2) return 6;
+        if (columnsPerRow === 3) return 9;
+        if (columnsPerRow === 4) return 12;
         return 9;
     }
   }
@@ -111,30 +106,6 @@ export function CatalogPreview(props: CatalogPreviewProps) {
       setCurrentPage(Math.max(0, pages.length - 1))
     }
   }, [pages.length, currentPage])
-
-  // Logo boyut hesaplama
-  const getLogoSizeStyle = () => {
-    switch (logoSize) {
-      case 'small': return { width: '60px', height: 'auto' }
-      case 'medium': return { width: '100px', height: 'auto' }
-      case 'large': return { width: '150px', height: 'auto' }
-      default: return { width: '100px', height: 'auto' }
-    }
-  }
-
-  // Logo pozisyon hesaplama
-  const getLogoPositionStyle = (): React.CSSProperties => {
-    const base: React.CSSProperties = { position: 'absolute', zIndex: 40 }
-    switch (logoPosition) {
-      case 'top-left': return { ...base, top: '20px', left: '20px' }
-      case 'top-center': return { ...base, top: '20px', left: '50%', transform: 'translateX(-50%)' }
-      case 'top-right': return { ...base, top: '20px', right: '20px' }
-      case 'bottom-left': return { ...base, bottom: '20px', left: '20px' }
-      case 'bottom-center': return { ...base, bottom: '20px', left: '50%', transform: 'translateX(-50%)' }
-      case 'bottom-right': return { ...base, bottom: '20px', right: '20px' }
-      default: return { ...base, top: '20px', left: '20px' }
-    }
-  }
 
   // Arka plan stili hesaplama
   const getBackgroundStyle = (): React.CSSProperties => {
@@ -156,72 +127,62 @@ export function CatalogPreview(props: CatalogPreviewProps) {
     return style
   }
 
-  const renderTemplate = (pageProducts: Product[], pageNum: number, total: number) => {
-    const pageProps = {
-      ...props,
-      products: pageProducts,
-      isFreeUser,
-      pageNumber: pageNum,
-      totalPages: total,
-      columnsPerRow, // Sütun sayısını template'e geçir
-    }
-
-    const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
-    return <TemplateComponent {...pageProps} />
-  }
-
   const goToPage = (page: number) => {
     if (page >= 0 && page < pages.length) {
       setCurrentPage(page)
     }
   }
 
-  // Sayfa içeriğini render et
-  const renderPage = (pageProducts: Product[], pageIndex: number, isClickable: boolean = false) => (
-    <div
-      key={pageIndex}
-      className={`catalog-page shadow-2xl overflow-hidden relative shrink-0 ${isClickable ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
-      style={{
-        width: A4_WIDTH,
-        height: A4_HEIGHT,
-        transform: `scale(${scale})`,
-        transformOrigin: 'top center',
-        ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {}),
-        ...getBackgroundStyle(),
-      }}
-      onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
-    >
-      {/* Logo Overlay */}
-      {logoUrl && (
-        <div style={getLogoPositionStyle()}>
-          <img
-            src={logoUrl}
-            alt="Logo"
-            style={getLogoSizeStyle()}
-            className="object-contain"
-          />
-        </div>
-      )}
+  // Sayfa içeriğini render et - Logo bilgisi template'e geçirilir
+  const renderPage = (pageProducts: Product[], pageIndex: number, isClickable: boolean = false) => {
+    const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
 
-      {/* Watermark for Free Users */}
-      {isFreeUser && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 mix-blend-multiply opacity-20">
-          <div className="text-8xl font-black text-gray-300 rotate-[-30deg] select-none border-8 border-gray-300 p-8">
-            PREVIEW ONLY
+    return (
+      <div
+        key={pageIndex}
+        className={`catalog-page shadow-2xl overflow-hidden relative shrink-0 ${isClickable ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
+        style={{
+          width: A4_WIDTH,
+          height: A4_HEIGHT,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top center',
+          ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {}),
+          ...getBackgroundStyle(),
+        }}
+        onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
+      >
+        {/* Watermark for Free Users */}
+        {isFreeUser && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 mix-blend-multiply opacity-20">
+            <div className="text-8xl font-black text-gray-300 rotate-[-30deg] select-none border-8 border-gray-300 p-8">
+              PREVIEW ONLY
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Sayfa numarası rozeti (sadece tüm sayfalar görünümünde) */}
-      {isClickable && (
-        <div className="absolute top-3 right-3 z-50 bg-black/70 text-white text-xs px-2 py-1 rounded">
-          Sayfa {pageIndex + 1}
-        </div>
-      )}
+        {/* Sayfa numarası rozeti (sadece tüm sayfalar görünümünde) */}
+        {isClickable && (
+          <div className="absolute top-3 right-3 z-50 bg-black/70 text-white text-xs px-2 py-1 rounded">
+            Sayfa {pageIndex + 1}
+          </div>
+        )}
 
-      {renderTemplate(pageProducts, pageIndex + 1, pages.length)}
-    </div>
-  )
+        {/* Template - Logo bilgisi template'e geçirilir */}
+        <TemplateComponent
+          {...props}
+          products={pageProducts}
+          isFreeUser={isFreeUser}
+          pageNumber={pageIndex + 1}
+          totalPages={pages.length}
+          columnsPerRow={columnsPerRow}
+          logoUrl={props.logoUrl}
+          logoPosition={props.logoPosition}
+          logoSize={props.logoSize}
+          titlePosition={props.titlePosition}
+        />
+      </div>
+    )
+  }
 
   return (
     <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-gray-100/50">

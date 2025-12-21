@@ -175,7 +175,12 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             columnsPerRow: catalog.columns_per_row || 3,
             pageNumber: pageNum,
             totalPages: total,
-            isFreeUser: false
+            isFreeUser: false,
+            // Logo ve başlık konumu
+            logoUrl: catalog.logo_url || undefined,
+            logoPosition: catalog.logo_position || undefined,
+            logoSize: catalog.logo_size || undefined,
+            titlePosition: (catalog as any).title_position || 'left',
         }
 
         switch (catalog.layout) {
@@ -284,16 +289,16 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         }
     }
 
-    // Logo pozisyon hesaplama
+    // Logo pozisyon hesaplama (eski kod - artık template içinde handle ediliyor)
     const getLogoPositionStyle = (): React.CSSProperties => {
         const base: React.CSSProperties = { position: 'absolute', zIndex: 40 }
         switch (catalog.logo_position) {
-            case 'top-left': return { ...base, top: '20px', left: '20px' }
-            case 'top-center': return { ...base, top: '20px', left: '50%', transform: 'translateX(-50%)' }
-            case 'top-right': return { ...base, top: '20px', right: '20px' }
-            case 'bottom-left': return { ...base, bottom: '20px', left: '20px' }
-            case 'bottom-center': return { ...base, bottom: '20px', left: '50%', transform: 'translateX(-50%)' }
-            case 'bottom-right': return { ...base, bottom: '20px', right: '20px' }
+            case 'header-left': return { ...base, top: '20px', left: '20px' }
+            case 'header-center': return { ...base, top: '20px', left: '50%', transform: 'translateX(-50%)' }
+            case 'header-right': return { ...base, top: '20px', right: '20px' }
+            case 'footer-left': return { ...base, bottom: '20px', left: '20px' }
+            case 'footer-center': return { ...base, bottom: '20px', left: '50%', transform: 'translateX(-50%)' }
+            case 'footer-right': return { ...base, bottom: '20px', right: '20px' }
             default: return { ...base, top: '20px', left: '20px' }
         }
     }
@@ -516,17 +521,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
 
                                                 <Page key={index} number={index + 1}>
                                                     <div className="w-full h-full shadow-inner relative" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', ...getBackgroundStyle() }}>
-                                                        {/* Logo Overlay */}
-                                                        {catalog.logo_url && (
-                                                            <div style={getLogoPositionStyle()}>
-                                                                <img
-                                                                    src={catalog.logo_url}
-                                                                    alt="Logo"
-                                                                    style={getLogoSizeStyle()}
-                                                                    className="object-contain"
-                                                                />
-                                                            </div>
-                                                        )}
+                                                        {/* Logo artık template içinde render ediliyor */}
 
                                                         {/* Paper Texture Overlay */}
                                                         <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-20 mix-blend-multiply"

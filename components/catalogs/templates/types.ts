@@ -19,4 +19,8 @@ export interface TemplateProps {
     logoUrl?: string | null
     logoPosition?: string
     logoSize?: string
+    titlePosition?: 'left' | 'center' | 'right'  // Başlık konumu
+    // Evrensel header/footer kullanıldığında template kendi header/footer'ını gizler
+    hideHeader?: boolean
+    hideFooter?: boolean
 }

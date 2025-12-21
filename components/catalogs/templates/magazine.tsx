@@ -10,6 +10,9 @@ export function MagazineTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const HEADER_HEIGHT = "70px"
     const safeProducts = products || []
@@ -24,24 +27,62 @@ export function MagazineTemplate({
         }
     }
 
+    // Logo boyutu
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 32
+            case 'large': return 52
+            default: return 42
+        }
+    }
+
+    // Header'da logo var mı?
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
     return (
-        <div className="bg-white h-full flex flex-col relative overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
             {/* Dekoratif arka plan */}
             <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full opacity-5 blur-3xl translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ backgroundColor: primaryColor }} />
 
             {/* Header Alanı - Tüm sayfalarda aynı yükseklik */}
             <div className="shrink-0 relative z-10" style={{ height: HEADER_HEIGHT }}>
                 {pageNumber === 1 ? (
-                    <div className="h-full px-6 flex flex-col justify-center">
-                        <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-gray-400">Koleksiyon 2024</span>
-                        <h1 className="text-2xl font-serif font-medium text-gray-900 italic">
-                            {catalogName || "Katalog"}
-                        </h1>
+                    <div className="h-full px-6 flex items-center">
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-5" />
+                        )}
+                        {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
+                            <div className="flex flex-col justify-center">
+                                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-gray-400">Koleksiyon 2024</span>
+                                <h1 className="text-2xl font-serif font-medium text-gray-900 italic">
+                                    {catalogName || "Katalog"}
+                                </h1>
+                            </div>
+                        )}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                            <div className="flex-1 flex justify-center">
+                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            </div>
+                        )}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <>
+                                <div className="flex-1" />
+                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className="h-full px-6 flex items-center justify-between border-b border-gray-100">
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 10 }} className="object-contain mr-3" />
+                        )}
                         <span className="text-sm font-serif italic text-gray-600">{catalogName}</span>
+                        <div className="flex-1" />
                         <span className="text-xs text-gray-400">Sayfa {pageNumber}</span>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 10 }} className="object-contain ml-3" />
+                        )}
                     </div>
                 )}
             </div>

@@ -11,6 +11,9 @@ export function ProductTilesTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 3,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const safeProducts = products || []
 
@@ -28,15 +31,40 @@ export function ProductTilesTemplate({
         return "grid-rows-3"
     }
 
+    // Logo boyutu
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 22
+            case 'large': return 34
+            default: return 28
+        }
+    }
+
+    // Header'da logo var mı?
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
     return (
         <div className="bg-gray-100 h-full flex flex-col overflow-hidden">
             {/* Header */}
             <div className="h-12 bg-white border-b px-5 flex items-center justify-between shrink-0">
-                <h1 className="font-bold text-sm text-gray-900 truncate max-w-[200px]">{catalogName || "Ürünler"}</h1>
+                {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-3" />
+                )}
+                {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
+                    <h1 className="font-bold text-sm text-gray-900 truncate max-w-[200px]">{catalogName || "Ürünler"}</h1>
+                )}
+                {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                )}
+                <div className="flex-1" />
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] text-gray-400 font-medium">{safeProducts.length} ÜRÜN</span>
                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600">{pageNumber}/{totalPages}</span>
                 </div>
+                {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain ml-3" />
+                )}
             </div>
 
             {/* Dinamik Grid */}

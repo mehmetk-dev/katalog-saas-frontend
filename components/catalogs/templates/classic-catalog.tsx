@@ -14,7 +14,7 @@ export function ClassicCatalogTemplate({
     const safeProducts = products || []
 
     return (
-        <div className="bg-white h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Header */}
             <div className="shrink-0" style={{ backgroundColor: primaryColor }}>
                 {pageNumber === 1 ? (

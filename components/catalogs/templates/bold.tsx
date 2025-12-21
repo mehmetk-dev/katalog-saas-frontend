@@ -10,6 +10,9 @@ export function BoldTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const HEADER_HEIGHT = "56px"
 
@@ -27,20 +30,60 @@ export function BoldTemplate({
         return "grid-rows-2"
     }
 
+    // Logo boyutu
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 28
+            case 'large': return 44
+            default: return 36
+        }
+    }
+
+    // Header'da logo var mı?
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
     return (
-        <div className="bg-white h-full border-[10px] flex flex-col overflow-hidden" style={{ borderColor: primaryColor }}>
+        <div className="bg-transparent h-full border-[10px] flex flex-col overflow-hidden" style={{ borderColor: primaryColor }}>
             {/* Header Alanı - Tüm sayfalarda aynı yükseklik */}
             <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
                 {pageNumber === 1 ? (
                     <div className="h-full bg-black text-white px-5 flex items-center">
-                        <h1 className="text-2xl font-black uppercase tracking-tighter">
-                            {catalogName || "KATALOG"}
-                        </h1>
+                        {/* Logo Sol */}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-4" />
+                        )}
+                        {/* Başlık - Logo ortada değilse göster */}
+                        {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
+                            <h1 className="text-2xl font-black uppercase tracking-tighter">
+                                {catalogName || "KATALOG"}
+                            </h1>
+                        )}
+                        {/* Logo Orta */}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                            <div className="flex-1 flex justify-center">
+                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            </div>
+                        )}
+                        {/* Logo Sağ */}
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <>
+                                <div className="flex-1" />
+                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className="h-full bg-black text-white px-5 flex items-center justify-between">
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
+                        )}
                         <span className="font-bold uppercase tracking-tight">{catalogName}</span>
+                        <div className="flex-1" />
                         <span className="text-sm font-mono">#{pageNumber}</span>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
+                        )}
                     </div>
                 )}
             </div>

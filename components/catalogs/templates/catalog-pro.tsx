@@ -29,7 +29,7 @@ export function CatalogProTemplate({
     }
 
     return (
-        <div className="bg-white h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Kalın renkli header bar */}
             <div className="h-2 shrink-0" style={{ backgroundColor: primaryColor }} />
 

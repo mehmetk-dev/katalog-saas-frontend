@@ -18,13 +18,6 @@ export const TEMPLATES = [
         image: "/templates/compact-list.png"
     },
     {
-        id: "clean-white",
-        name: "Temiz Beyaz",
-        isPro: false,
-        description: "Minimalist beyaz tasarım",
-        image: "/templates/modern-grid.png"
-    },
-    {
         id: "product-tiles",
         name: "Ürün Karoları",
         isPro: false,
@@ -80,20 +73,6 @@ export const TEMPLATES = [
         isPro: true,
         description: "3 sütunlu profesyonel görünüm",
         image: "/templates/modern-grid.png"
-    },
-    {
-        id: "retail",
-        name: "Perakende",
-        isPro: true,
-        description: "Fiyat listesi tablo formatı",
-        image: "/templates/compact-list.png"
-    },
-    {
-        id: "tech-modern",
-        name: "Teknoloji",
-        isPro: true,
-        description: "Koyu tema, tech ürünleri için",
-        image: "/templates/bold.png"
     },
     {
         id: "fashion-lookbook",

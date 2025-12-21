@@ -4,6 +4,8 @@
 - **Dashboard İyileştirmesi:** Katalog logosu olmayanlar için ürün görsellerinden oluşan akıllı kolaj sistemi eklendi.
 - **Analitik Sayfası:** Kullanıcılar için detaylı istatistik, cihaz dağılımı ve coğrafi verileri içeren yeni `/dashboard/analytics` sayfası oluşturuldu. Yan menüye (Sidebar) link eklendi.
 - **Lint Temizliği:** Kritik bileşenlerdeki `console.log` ve `console.error` ifadeleri temizlenerek kod kalitesi artırıldı.
+- **Katalog Özelleştirme:** Katalog başlık konumu (Sol/Orta/Sağ) ve logo konumu (Header/Footer Sol/Orta/Sağ) ayarları eklendi. Başlık ve logonun header içinde akıllıca konumlanması sağlandı.
+- **Public Katalog Düzeltmesi:** Yayınlanan katalog sayfalarında çift logo görünme sorunu giderildi ve builder önizlemesi ile birebir aynı görünüm sağlandı.
 
 ## 17 Aralık 2025
 - **Kod Temizliği:** Gereksiz geçici dosyaları (temp_icon_*.png, remove-bg.js, build.log) sildik. Lint kontrolü yapıldı, kritik hata yok.

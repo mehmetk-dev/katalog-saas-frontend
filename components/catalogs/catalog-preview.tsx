@@ -126,7 +126,11 @@ export function CatalogPreview({
         showDescriptions,
         showAttributes,
         columnsPerRow,
-        isFreeUser: false
+        isFreeUser: false,
+        // Logo props - template handles rendering
+        logoUrl: logoUrl || undefined,
+        logoPosition: logoPosition || undefined,
+        logoSize: logoSize || undefined,
     }
 
     // Map layout string to component
@@ -175,17 +179,6 @@ export function CatalogPreview({
             className="w-[794px] h-[1123px] overflow-hidden shadow-sm relative shrink-0"
             style={getBackgroundStyle()}
         >
-            {/* Logo Overlay */}
-            {logoUrl && (
-                <div style={getLogoPositionStyle()}>
-                    <img
-                        src={logoUrl}
-                        alt="Logo"
-                        style={getLogoSizeStyle()}
-                        className="object-contain"
-                    />
-                </div>
-            )}
             <div className="pointer-events-none select-none h-full">
                 {getTemplate()}
             </div>

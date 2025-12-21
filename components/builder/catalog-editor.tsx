@@ -61,6 +61,8 @@ interface CatalogEditorProps {
   onLogoPositionChange?: (position: string) => void
   logoSize?: string
   onLogoSizeChange?: (size: string) => void
+  titlePosition?: string  // Başlık konumu: left, center, right
+  onTitlePositionChange?: (position: string) => void
   showAttributes?: boolean
   onShowAttributesChange?: (show: boolean) => void
 }
@@ -96,10 +98,12 @@ export function CatalogEditor({
   onBackgroundGradientChange,
   logoUrl = null,
   onLogoUrlChange,
-  logoPosition = 'top-left',
+  logoPosition = 'header-left',
   onLogoPositionChange,
   logoSize = 'medium',
   onLogoSizeChange,
+  titlePosition = 'left',
+  onTitlePositionChange,
   showAttributes = false,
   onShowAttributesChange,
 }: CatalogEditorProps) {
@@ -286,84 +290,57 @@ export function CatalogEditor({
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-      {/* Catalog Details */}
+      {/* Catalog Details - Kompakt */}
       <Card>
-        <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Type className="w-4 h-4" />
-            {t("builder.catalogDetails")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="space-y-1.5 sm:space-y-2 shrink-0">
-            <Label htmlFor="title" className="text-xs sm:text-sm">{t("builder.catalogName")}</Label>
-            <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-9 sm:h-10" placeholder={t("builder.catalogNamePlaceholder") || "Catalog Title"} />
-          </div>
-          <div className="space-y-1.5 sm:space-y-2 flex-1 flex flex-col min-h-0">
-            <Label htmlFor="description" className="text-xs sm:text-sm shrink-0">{t("builder.description")}</Label>
-            <Textarea
-              id="description"
-              placeholder={t("builder.descriptionPlaceholder")}
-              value={description}
-              onChange={(e) => onDescriptionChange(e.target.value)}
-              className="text-sm flex-1 resize-none h-auto min-h-[100px]"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-
-
-      {/* Şablon Seçimi - Moved to Top */}
-      <Card>
-        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Grid3X3 className="w-4 h-4" />
-            {t("builder.templateStyle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="grid grid-cols-2 gap-4">
-            {TEMPLATES.map((template) => {
-              const isLocked = template.isPro && userPlan === "free"
-              const isSelected = layout === template.id
-              return (
-                <div
-                  key={template.id}
-                  onClick={() => handleTemplateSelect(template.id, template.isPro)}
-                  className={cn(
-                    "relative cursor-pointer border rounded-lg p-2 sm:p-3 hover:bg-muted/50 transition-all",
-                    isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "border-border",
-                    isLocked && "opacity-70 hover:opacity-80"
-                  )}
-                >
-                  {/* Template Canlı Önizleme */}
-                  <div className="aspect-[3/4] rounded-md overflow-hidden border mb-2 bg-muted relative group">
-                    <ResponsiveContainer contentWidth={794} contentHeight={1123}>
-                      <CatalogPreview
-                        layout={template.id}
-                        name={template.name}
-                        products={getPreviewProductsByLayout(template.id)}
-                      />
-                    </ResponsiveContainer>
-
-                    {/* Pro Lock Badge */}
-                    {isLocked && (
-                      <div className="absolute top-2 right-2 z-10">
-                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-black/70 text-white backdrop-blur-sm border-0">
-                          <Lock className="w-2.5 h-2.5 mr-1" />
-                          PRO
-                        </Badge>
-                      </div>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1 space-y-1">
+              <Label htmlFor="title" className="text-xs text-muted-foreground">{t("builder.catalogName")}</Label>
+              <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-8" placeholder={t("builder.catalogNamePlaceholder") || "Catalog Title"} />
+            </div>
+            <div className="flex-[2] space-y-1">
+              <Label htmlFor="description" className="text-xs text-muted-foreground">{t("builder.description")}</Label>
+              <Input
+                id="description"
+                placeholder={t("builder.descriptionPlaceholder")}
+                value={description}
+                onChange={(e) => onDescriptionChange(e.target.value)}
+                className="h-8"
+              />
+            </div>
+            {/* Vurgu Rengi - Inline */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">{t("builder.accentColor")}</Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => onPrimaryColorChange(e.target.value)}
+                  className="w-8 h-8 p-0.5 cursor-pointer"
+                />
+                {[
+                  { name: "Sunset", color: "#f97316" },
+                  { name: "Ocean", color: "#0ea5e9" },
+                  { name: "Forest", color: "#22c55e" },
+                  { name: "Berry", color: "#ec4899" },
+                  { name: "Royal", color: "#6366f1" },
+                  { name: "Slate", color: "#0f172a" },
+                  { name: "Gold", color: "#eab308" },
+                  { name: "Red", color: "#dc2626" },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() => onPrimaryColorChange(preset.color)}
+                    className={cn(
+                      "w-6 h-6 rounded-full border transition-all hover:scale-110",
+                      primaryColor === preset.color && "ring-2 ring-primary ring-offset-1 scale-110"
                     )}
-                  </div>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-medium truncate">{template.name}</span>
-                    {isSelected && <CheckSquare className="w-3.5 h-3.5 text-primary shrink-0" />}
-                  </div>
-                </div>
-              )
-            })}
+                    style={{ backgroundColor: preset.color }}
+                    title={preset.name}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -379,20 +356,25 @@ export function CatalogEditor({
           </CardHeader>
           <CardContent className="flex-1 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
             <div className="flex flex-col sm:flex-row gap-4 h-full">
-              <div className="flex-1 space-y-3 min-w-0">
-                {/* Renk ve Gradient */}
-                <div className="grid grid-cols-2 gap-2">
+              <div className="flex-1 space-y-4 min-w-0">
+                {/* Renk ve Gradient - Tek satır */}
+                <div className="space-y-3">
+                  {/* Renk */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm">{t("builder.color")}</Label>
-                    <div className="flex gap-1.5">
-                      <Input type="color" value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-8 h-9 p-0.5 shrink-0" />
-                      <Input value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="flex-1 font-mono text-xs h-9" placeholder="#ffffff" />
+                    <Label className="text-xs text-muted-foreground">{t("builder.color")}</Label>
+                    <div className="flex gap-2">
+                      <Input type="color" value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-10 h-9 p-0.5 shrink-0 cursor-pointer" />
+                      <Input value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-24 font-mono text-xs h-9" placeholder="#ffffff" />
                     </div>
                   </div>
+
+                  {/* Gradient */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm">{t("builder.gradient")}</Label>
+                    <Label className="text-xs text-muted-foreground">{t("builder.gradient")}</Label>
                     <Select value={backgroundGradient || ""} onValueChange={(v) => onBackgroundGradientChange?.(v || null)}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue placeholder={t("common.select") || "Select..."} /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs w-full">
+                        <SelectValue placeholder={t("common.select") || "Gradient seçin..."} />
+                      </SelectTrigger>
                       <SelectContent>
                         {gradientPresets.map((preset) => (
                           <SelectItem key={preset.name} value={preset.value || "none"}>{preset.name}</SelectItem>
@@ -403,9 +385,9 @@ export function CatalogEditor({
                 </div>
 
                 {/* Upload & Controls */}
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2">
                   {backgroundImage && (
-                    <div className="flex bg-muted/50 p-1 rounded-lg">
+                    <div className="flex bg-muted/50 p-1 rounded-lg gap-1">
                       {[
                         { value: 'cover', icon: <ImageIcon className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.cover") },
                         { value: 'contain', icon: <BoxSelect className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.contain") },
@@ -416,13 +398,13 @@ export function CatalogEditor({
                           variant={backgroundImageFit === opt.value ? 'secondary' : 'ghost'}
                           size="sm"
                           className={cn(
-                            "flex-1 h-7 text-[10px] sm:text-xs gap-1.5",
+                            "flex-1 h-8 text-xs gap-1.5",
                             backgroundImageFit === opt.value && "shadow-sm"
                           )}
                           onClick={() => onBackgroundImageFitChange?.(opt.value)}
                         >
                           {opt.icon}
-                          <span className="hidden sm:inline">{opt.label}</span>
+                          {opt.label}
                         </Button>
                       ))}
                     </div>
@@ -430,15 +412,15 @@ export function CatalogEditor({
 
                   <input type="file" ref={bgInputRef} accept="image/*" className="hidden" onChange={handleBackgroundUpload} />
                   <Button
-                    variant={backgroundImage ? "outline" : "outline"}
+                    variant="outline"
                     className={cn(
-                      "w-full h-9 border-dashed transition-all",
-                      !backgroundImage && "h-16 border-primary/20 hover:border-primary/50 text-muted-foreground bg-muted/10"
+                      "w-full h-10 border-dashed transition-all text-xs",
+                      !backgroundImage && "border-primary/20 hover:border-primary/50 text-muted-foreground"
                     )}
                     onClick={() => bgInputRef.current?.click()}
                   >
-                    <Upload className={cn("w-4 h-4 mr-2", !backgroundImage && "w-5 h-5 mb-1")} />
-                    {backgroundImage ? t("builder.changeBackground") : <div className="flex flex-col items-center leading-none gap-1"><span>{t("builder.uploadBackground")}</span><span className="text-[10px] opacity-70">max 5MB</span></div>}
+                    <Upload className="w-4 h-4 mr-2" />
+                    {backgroundImage ? t("builder.changeBackground") : t("builder.uploadBackground")}
                   </Button>
                 </div>
               </div>
@@ -527,28 +509,62 @@ export function CatalogEditor({
               {/* Pozisyon ve Boyut - Logo varsa göster */}
               {logoUrl && (
                 <div className="space-y-3 pt-2 border-t">
+                  {/* Pozisyon Seçimi */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">{t("builder.position")}</Label>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { value: 'top-left', label: t("builder.positions.topLeft") }, { value: 'top-center', label: t("builder.positions.topCenter") }, { value: 'top-right', label: t("builder.positions.topRight") },
-                      ].map((pos) => (
-                        <button
-                          key={pos.value}
-                          onClick={() => onLogoPositionChange?.(pos.value)}
-                          className={cn(
-                            "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
-                            logoPosition === pos.value
-                              ? "border-primary bg-primary/5 text-primary font-medium"
-                              : "border-border"
-                          )}
-                        >
-                          {pos.label}
-                        </button>
-                      ))}
+                    <Label className="text-xs text-muted-foreground">Logo Konumu</Label>
+                    <div className="space-y-2">
+                      {/* Header Pozisyonları */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Header</span>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { value: 'header-left', label: 'Sol' },
+                            { value: 'header-center', label: 'Orta' },
+                            { value: 'header-right', label: 'Sağ' },
+                          ].map((pos) => (
+                            <button
+                              key={pos.value}
+                              onClick={() => onLogoPositionChange?.(pos.value)}
+                              className={cn(
+                                "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
+                                logoPosition === pos.value
+                                  ? "border-primary bg-primary/5 text-primary font-medium"
+                                  : "border-border"
+                              )}
+                            >
+                              {pos.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Footer Pozisyonları */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Footer</span>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { value: 'footer-left', label: 'Sol' },
+                            { value: 'footer-center', label: 'Orta' },
+                            { value: 'footer-right', label: 'Sağ' },
+                          ].map((pos) => (
+                            <button
+                              key={pos.value}
+                              onClick={() => onLogoPositionChange?.(pos.value)}
+                              className={cn(
+                                "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
+                                logoPosition === pos.value
+                                  ? "border-primary bg-primary/5 text-primary font-medium"
+                                  : "border-border"
+                              )}
+                            >
+                              {pos.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Boyut Seçimi */}
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground">{t("builder.size")}</Label>
                     <div className="grid grid-cols-3 gap-1">
@@ -572,66 +588,37 @@ export function CatalogEditor({
                       ))}
                     </div>
                   </div>
+
+                  {/* Başlık Konumu */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Başlık Konumu</Label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { value: 'left', label: 'Sol' },
+                        { value: 'center', label: 'Orta' },
+                        { value: 'right', label: 'Sağ' },
+                      ].map((pos) => (
+                        <button
+                          key={pos.value}
+                          onClick={() => onTitlePositionChange?.(pos.value)}
+                          className={cn(
+                            "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
+                            titlePosition === pos.value
+                              ? "border-primary bg-primary/5 text-primary font-medium"
+                              : "border-border"
+                          )}
+                        >
+                          {pos.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-
-      {/* Ana Renk */}
-      <Card>
-        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Palette className="w-4 h-4" />
-            {t("builder.accentColor")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="flex gap-2">
-              <Input
-                type="color"
-                value={primaryColor}
-                onChange={(e) => onPrimaryColorChange(e.target.value)}
-                className="w-10 h-9 sm:w-12 sm:h-10 p-1"
-              />
-              <Input
-                value={primaryColor}
-                onChange={(e) => onPrimaryColorChange(e.target.value)}
-                className="flex-1 font-mono text-xs sm:text-sm h-9 sm:h-10"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5 sm:space-y-2">
-            <Label className="text-xs sm:text-sm text-muted-foreground">{t("builder.quickPalettes")}</Label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { name: "Sunset", color: "#f97316" },
-                { name: "Ocean", color: "#0ea5e9" },
-                { name: "Forest", color: "#22c55e" },
-                { name: "Berry", color: "#ec4899" },
-                { name: "Royal", color: "#6366f1" },
-                { name: "Slate", color: "#0f172a" },
-                { name: "Gold", color: "#eab308" },
-                { name: "Red", color: "#dc2626" },
-              ].map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => onPrimaryColorChange(preset.color)}
-                  className={cn(
-                    "w-6 h-6 sm:w-8 sm:h-8 rounded-full border shadow-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                    primaryColor === preset.color && "ring-2 ring-ring ring-offset-2 scale-110"
-                  )}
-                  style={{ backgroundColor: preset.color }}
-                  title={preset.name}
-                />
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Products Selection */}
       <Card>
@@ -923,8 +910,59 @@ export function CatalogEditor({
         </CardContent>
       </Card>
 
+      {/* Şablon Seçimi - En Altta */}
+      <Card>
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+            <Grid3X3 className="w-4 h-4" />
+            {t("builder.templateStyle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            {TEMPLATES.map((template) => {
+              const isLocked = template.isPro && userPlan === "free"
+              const isSelected = layout === template.id
+              return (
+                <div
+                  key={template.id}
+                  onClick={() => handleTemplateSelect(template.id, template.isPro)}
+                  className={cn(
+                    "relative cursor-pointer border rounded-lg p-1.5 hover:bg-muted/50 transition-all",
+                    isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "border-border",
+                    isLocked && "opacity-70 hover:opacity-80"
+                  )}
+                >
+                  {/* Template Canlı Önizleme */}
+                  <div className="aspect-[3/4] rounded overflow-hidden border mb-1 bg-muted relative group">
+                    <ResponsiveContainer contentWidth={794} contentHeight={1123}>
+                      <CatalogPreview
+                        layout={template.id}
+                        name={template.name}
+                        products={getPreviewProductsByLayout(template.id)}
+                      />
+                    </ResponsiveContainer>
 
-
+                    {/* Pro Lock Badge */}
+                    {isLocked && (
+                      <div className="absolute top-1 right-1 z-10">
+                        <Badge variant="secondary" className="h-4 px-1 text-[8px] bg-black/70 text-white backdrop-blur-sm border-0">
+                          <Lock className="w-2 h-2 mr-0.5" />
+                          PRO
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-0.5">
+                    <span className="text-[10px] font-medium truncate">{template.name}</span>
+                    {isSelected && <CheckSquare className="w-3 h-3 text-primary shrink-0" />}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
     </div >
 

@@ -29,7 +29,7 @@ export function CleanWhiteTemplate({
     }
 
     return (
-        <div className="bg-white h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Minimal Header */}
             <div className="h-16 px-12 flex items-end pb-4 shrink-0">
                 {pageNumber === 1 ? (

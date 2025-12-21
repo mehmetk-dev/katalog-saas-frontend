@@ -14,7 +14,7 @@ export function IndustrialTemplate({
     const safeProducts = products || []
 
     return (
-        <div className="bg-zinc-100 h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Üst Header Bar */}
             <div className="h-2 shrink-0" style={{ backgroundColor: primaryColor }} />
 

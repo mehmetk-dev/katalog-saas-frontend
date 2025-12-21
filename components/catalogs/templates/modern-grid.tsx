@@ -10,9 +10,12 @@ export function ModernGridTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
+    titlePosition = 'left',
 }: TemplateProps) {
-    // A4 boyutu için baskıya uygun kenar boşlukları
-    const HEADER_HEIGHT = "60px"
+    const HEADER_HEIGHT = "56px"
 
     // Dinamik grid sınıfı
     const getGridCols = () => {
@@ -29,26 +32,84 @@ export function ModernGridTemplate({
         return "grid-rows-2"
     }
 
-    return (
-        <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
-            {/* Header Alanı - Tüm sayfalarda aynı yükseklik */}
-            <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
-                {pageNumber === 1 ? (
-                    <div className="h-full px-8 flex items-center text-white" style={{ backgroundColor: primaryColor }}>
-                        <div className="w-full text-center">
-                            <h1 className="text-xl font-bold tracking-tight">{catalogName || "Katalog Başlığı"}</h1>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="h-full px-8 flex items-center justify-between border-b border-gray-200">
-                        <span className="text-sm font-medium text-gray-600">{catalogName}</span>
-                        <span className="text-sm text-gray-400">Sayfa {pageNumber}</span>
-                    </div>
+    // Logo boyutu
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 24
+            case 'large': return 40
+            default: return 32
+        }
+    }
+
+    // Header'da logo var mı?
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
+    // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
+    const renderHeaderContent = (isFirstPage: boolean) => {
+        const textColor = isFirstPage ? 'text-white' : 'text-gray-600'
+        const textSize = isFirstPage ? 'text-lg font-bold' : 'text-sm font-medium'
+
+        // Sol bölge
+        const leftContent = (
+            <div className="flex items-center gap-3">
+                {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain shrink-0" />
+                )}
+                {titlePosition === 'left' && (
+                    <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
                 )}
             </div>
+        )
 
-            {/* Grid İçerik - Fixed rows to prevent overflow */}
-            <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`} style={{ maxHeight: 'calc(100% - 92px)' }}>
+        // Orta bölge
+        const centerContent = (
+            <div className="flex-1 flex items-center justify-center gap-3">
+                {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain shrink-0" />
+                )}
+                {titlePosition === 'center' && (
+                    <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
+                )}
+            </div>
+        )
+
+        // Sağ bölge
+        const rightContent = (
+            <div className="flex items-center gap-3">
+                {!isFirstPage && <span className="text-sm text-gray-400">Sayfa {pageNumber}</span>}
+                {titlePosition === 'right' && (
+                    <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
+                )}
+                {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain shrink-0" />
+                )}
+            </div>
+        )
+
+        return (
+            <>
+                {leftContent}
+                {centerContent}
+                {rightContent}
+            </>
+        )
+    }
+
+    return (
+        <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
+            {/* Header */}
+            <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
+                <div
+                    className={`h-full px-6 flex items-center ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}
+                    style={{ backgroundColor: pageNumber === 1 ? primaryColor : 'transparent' }}
+                >
+                    {renderHeaderContent(pageNumber === 1)}
+                </div>
+            </div>
+
+            {/* Grid İçerik */}
+            <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`}>
                 {(products || []).map((product) => {
                     const productUrl = (product as any).product_url
                     const Wrapper = productUrl ? 'a' : 'div'

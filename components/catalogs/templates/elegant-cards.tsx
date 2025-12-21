@@ -29,7 +29,7 @@ export function ElegantCardsTemplate({
     }
 
     return (
-        <div className="bg-stone-50 h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden">
             {/* Header - Sayfanın üst kısmı */}
             <div className="h-20 px-10 flex items-end pb-4 border-b border-stone-200 shrink-0">
                 {pageNumber === 1 ? (
