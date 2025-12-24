@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Loader2, AlertCircle, WifiOff, RefreshCw, CheckCircle2 } from "lucide-react"
+import { Loader2, AlertCircle, WifiOff, RefreshCw, CheckCircle2, BookOpen } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -52,7 +52,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const router = useRouter()
   const { t, language } = useTranslation()
   const searchParams = useSearchParams()
-  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin"
+  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin" // Default: signin (giriş)
 
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
@@ -62,6 +62,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const [isSlowConnection, setIsSlowConnection] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   // Handle URL error parameters from callback
   useEffect(() => {
@@ -230,7 +231,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
       // Log activity after successful login
       if (signInData?.user) {
-         // Debug log
+        // Debug log
         try {
           await supabase.from('activity_logs').insert({
             user_id: signInData.user.id,
@@ -250,6 +251,11 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       await new Promise(resolve => setTimeout(resolve, 500))
 
       setLoadingPhase("redirecting")
+      setIsRedirecting(true) // Tam ekran loading göster
+
+      // Kısa bir gecikme ile smooth geçiş
+      await new Promise(resolve => setTimeout(resolve, 300))
+
       router.push("/dashboard")
       router.refresh()
     } catch (err) {
@@ -327,7 +333,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
       // Log activity after successful signup
       if (data.user) {
-         // Debug log
+        // Debug log
         try {
           await supabase.from('activity_logs').insert({
             user_id: data.user.id,
@@ -347,6 +353,8 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       if (data.session) {
         // Email confirmation kapalıysa direkt giriş yap
         setLoadingPhase("redirecting")
+        setIsRedirecting(true)
+        await new Promise(resolve => setTimeout(resolve, 300))
         router.push("/dashboard")
         router.refresh()
       } else if (data.user && !data.session) {
@@ -388,6 +396,26 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       setError(err instanceof Error ? err.message : t("auth.googleAuthError"))
       setIsGoogleLoading(false)
     }
+  }
+
+  // Tam ekran loading overlay - yönlendirme sırasında
+  if (isRedirecting) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="p-3 bg-primary/10 rounded-2xl">
+            <BookOpen className="w-10 h-10 text-primary" />
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <span className="text-lg font-medium">{t("auth.redirecting")}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Panele yönlendiriliyorsunuz...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -482,7 +510,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
       <Button
         variant="outline"
-        className="w-full h-10 sm:h-11 bg-transparent text-sm sm:text-base"
+        className="w-full h-12 bg-white dark:bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-medium rounded-xl transition-all duration-200"
         onClick={handleGoogleAuth}
         disabled={isLoading || isGoogleLoading || !isOnline}
       >
@@ -521,9 +549,19 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signin">{t("auth.signin")}</TabsTrigger>
-          <TabsTrigger value="signup">{t("auth.signup")}</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 h-12 p-1.5 bg-muted/60 dark:bg-muted/40 rounded-xl gap-1">
+          <TabsTrigger
+            value="signin"
+            className="text-sm font-semibold rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-all duration-200"
+          >
+            {t("auth.signin")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="signup"
+            className="text-sm font-semibold rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-all duration-200"
+          >
+            {t("auth.signup")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="signin" className="space-y-4 mt-4">
@@ -557,7 +595,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isLoading || isGoogleLoading || !isOnline}>
+            <Button type="submit" className="w-full h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-lg shadow-violet-500/25 transition-all duration-200" disabled={isLoading || isGoogleLoading || !isOnline}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
               <span className="truncate">
                 {isLoading ? getLoadingMessage(loadingPhase, t) || t("auth.signin") : t("auth.signin")}
@@ -620,7 +658,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
               />
               <p className="text-xs text-muted-foreground">{t("auth.passwordLength")}</p>
             </div>
-            <Button type="submit" className="w-full h-10 sm:h-11 text-sm sm:text-base" disabled={isLoading || isGoogleLoading || !isOnline}>
+            <Button type="submit" className="w-full h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-lg shadow-violet-500/25 transition-all duration-200" disabled={isLoading || isGoogleLoading || !isOnline}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
               <span className="truncate">
                 {isLoading ? getLoadingMessage(loadingPhase, t) || t("auth.createAccount") : t("auth.createAccount")}

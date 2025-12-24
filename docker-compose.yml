@@ -18,7 +18,7 @@ services:
       - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --header 'Origin: http://localhost:3000' http://127.0.0.1:4000 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
