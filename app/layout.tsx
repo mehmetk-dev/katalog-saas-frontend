@@ -71,11 +71,7 @@ export const metadata: Metadata = {
     creator: "@catalogpro",
   },
   alternates: {
-    canonical: "/",
-    languages: {
-      'tr-TR': '/tr',
-      'en-US': '/en',
-    },
+    canonical: siteUrl,
   },
   icons: {
     icon: [
