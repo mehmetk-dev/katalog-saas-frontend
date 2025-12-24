@@ -100,8 +100,11 @@ export default function HomePage() {
             <div className="relative">
               <img
                 src="/hero-catalog.png"
-                alt="CatalogPro Dashboard"
+                alt="CatalogPro dijital katalog oluşturucu arayüzü - Ürün yönetimi ve katalog tasarım ekranı"
                 className="w-full"
+                loading="eager"
+                width={1200}
+                height={675}
               />
             </div>
 
@@ -289,8 +292,11 @@ export default function HomePage() {
                   <div className="rounded-[2.2rem] overflow-hidden bg-white aspect-[9/19]">
                     <img
                       src="/hero-dashboard.webp"
-                      alt="Mobile Catalog"
+                      alt="CatalogPro mobil uyumlu katalog görünümü - Akıllı telefon üzerinde ürün kataloğu"
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      width={280}
+                      height={592}
                     />
                   </div>
                 </div>

@@ -16,7 +16,7 @@ export default function EmailConfirmedPage() {
           <CardDescription className="text-base">Hesabınız başarıyla aktifleştirildi</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-center text-muted-foreground">Artık KatalogYap'ın tüm özelliklerini kullanabilirsiniz.</p>
+          <p className="text-center text-muted-foreground">Artık CatalogPro'nun tüm özelliklerini kullanabilirsiniz.</p>
 
           <Link href="/dashboard">
             <Button className="w-full bg-violet-600 hover:bg-violet-700">Panele Git</Button>

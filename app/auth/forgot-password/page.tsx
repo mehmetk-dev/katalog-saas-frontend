@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useTranslation } from "@/lib/i18n-provider"
 
-const SITE_URL = "https://v0-katalogyap.vercel.app"
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catalogpro.app"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")

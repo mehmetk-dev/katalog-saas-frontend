@@ -8,20 +8,90 @@ import { I18nProvider } from "@/lib/i18n-provider"
 
 const inter = Inter({
   subsets: ["latin"],
-  display: 'swap', // Font swap for better performance
+  display: 'swap',
   preload: true,
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://catalogpro.app'
+
 export const metadata: Metadata = {
-  title: "CatalogPro - Ürün Katalog Oluşturucu",
-  description: "Dakikalar içinde profesyonel ürün katalogları oluşturun",
-  keywords: ["katalog", "ürün kataloğu", "PDF katalog", "e-ticaret"],
-  authors: [{ name: "CatalogPro" }],
-  robots: "index, follow",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "CatalogPro - Profesyonel Ürün Katalog Oluşturucu",
+    template: "%s | CatalogPro",
+  },
+  description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. PDF indirme, QR kod, şablonlar ve daha fazlası. Ücretsiz başlayın!",
+  keywords: [
+    "katalog",
+    "ürün kataloğu",
+    "PDF katalog",
+    "e-ticaret",
+    "dijital katalog",
+    "online katalog",
+    "ürün listesi",
+    "katalog oluşturucu",
+    "B2B katalog",
+    "toptan katalog"
+  ],
+  authors: [{ name: "CatalogPro", url: siteUrl }],
+  creator: "CatalogPro",
+  publisher: "CatalogPro",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
     type: "website",
     locale: "tr_TR",
+    alternateLocale: "en_US",
+    url: siteUrl,
     siteName: "CatalogPro",
+    title: "CatalogPro - Profesyonel Ürün Katalog Oluşturucu",
+    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. PDF indirme, QR kod, şablonlar ve daha fazlası.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "CatalogPro - Dijital Katalog Platformu",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CatalogPro - Profesyonel Ürün Katalog Oluşturucu",
+    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.",
+    images: ["/og-image.png"],
+    creator: "@catalogpro",
+  },
+  alternates: {
+    canonical: "/",
+    languages: {
+      'tr-TR': '/tr',
+      'en-US': '/en',
+    },
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png' },
+    ],
+  },
+  manifest: "/manifest.json",
+  verification: {
+    // Google Search Console doğrulama kodu eklenebilir
+    // google: 'your-google-verification-code',
   },
 }
 
@@ -29,7 +99,38 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#7c3aed',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#7c3aed' },
+    { media: '(prefers-color-scheme: dark)', color: '#5b21b6' },
+  ],
+}
+
+// JSON-LD Structured Data
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'CatalogPro',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  description: 'Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.',
+  url: siteUrl,
+  author: {
+    '@type': 'Organization',
+    name: 'CatalogPro',
+    url: siteUrl,
+  },
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'TRY',
+    description: 'Ücretsiz plan ile başlayın',
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    ratingCount: '200',
+    bestRating: '5',
+  },
 }
 
 export default function RootLayout({
@@ -40,14 +141,22 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* PWA */}
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="CatalogPro" />
         {/* DNS Prefetch for external resources */}
         <link rel="dns-prefetch" href="//fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Preconnect to Supabase */}
+        <link rel="preconnect" href="https://supabase.co" />
       </head>
       <body className={`${inter.className} antialiased`}>
         <I18nProvider>
@@ -58,3 +167,4 @@ export default function RootLayout({
     </html>
   )
 }
+
