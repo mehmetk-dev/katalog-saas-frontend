@@ -12,12 +12,26 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
+import type { LucideIcon } from "lucide-react"
+
+interface Plan {
+  name: string
+  icon: LucideIcon
+  description: string
+  price: { monthly: number; yearly: number }
+  color: string
+  iconColor: string
+  features: string[]
+  cta: string
+  href: string
+  popular?: boolean
+}
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(true)
   const { t } = useTranslation()
 
-  const plans = [
+  const plans: Plan[] = [
     {
       name: t('pricingPage.free'),
       icon: Star,
@@ -34,6 +48,7 @@ export default function PricingPage() {
       ],
       cta: t('pricingPage.ctaFree'),
       href: "/auth",
+      popular: false,
     },
     {
       name: t('pricingPage.plus'),
@@ -51,6 +66,7 @@ export default function PricingPage() {
       ],
       cta: t('pricingPage.ctaPlus'),
       href: "/auth?plan=plus",
+      popular: false,
     },
     {
       name: t('pricingPage.pro'),
@@ -126,13 +142,11 @@ export default function PricingPage() {
                   key={plan.name}
                   className={cn(
                     "relative bg-white rounded-2xl border-2 p-6 flex flex-col transition-all",
-                    // @ts-ignore
                     plan.popular
                       ? "border-violet-500 shadow-xl scale-105 z-10"
                       : "border-slate-200 hover:border-slate-300 hover:shadow-lg",
                   )}
                 >
-                  {/* @ts-ignore */}
                   {plan.popular && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-violet-600 hover:bg-violet-700 border-0">
                       <Sparkles className="w-3 h-3 mr-1" />
@@ -175,11 +189,9 @@ export default function PricingPage() {
                   </ul>
 
                   <Button
-                    // @ts-ignore
                     variant={plan.popular ? "default" : "outline"}
                     className={cn(
                       "w-full",
-                      // @ts-ignore
                       plan.popular && "bg-violet-600 hover:bg-violet-700"
                     )}
                     asChild

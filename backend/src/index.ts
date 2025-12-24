@@ -43,8 +43,15 @@ const authLimiter = rateLimit({
 // Middleware
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.)
-        if (!origin) return callback(null, true);
+        // In production, require origin header for security
+        if (!origin) {
+            // Allow requests without origin only in development (mobile apps, curl, etc.)
+            if (isDev) {
+                return callback(null, true);
+            }
+            // In production, block requests without origin for better security
+            return callback(new Error('Origin header required'));
+        }
 
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
