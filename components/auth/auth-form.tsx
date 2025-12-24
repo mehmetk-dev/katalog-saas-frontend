@@ -510,7 +510,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
       <Button
         variant="outline"
-        className="w-full h-12 bg-white dark:bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-medium rounded-xl transition-all duration-200"
+        className="w-full h-12 bg-white dark:bg-background border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30 text-sm font-medium rounded-xl transition-colors"
         onClick={handleGoogleAuth}
         disabled={isLoading || isGoogleLoading || !isOnline}
       >
@@ -549,16 +549,16 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-12 p-1.5 bg-muted/60 dark:bg-muted/40 rounded-xl gap-1">
+        <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
           <TabsTrigger
             value="signin"
-            className="text-sm font-semibold rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-all duration-200"
+            className="text-sm font-medium rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-colors"
           >
             {t("auth.signin")}
           </TabsTrigger>
           <TabsTrigger
             value="signup"
-            className="text-sm font-semibold rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-all duration-200"
+            className="text-sm font-medium rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-colors"
           >
             {t("auth.signup")}
           </TabsTrigger>
@@ -595,7 +595,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-lg shadow-violet-500/25 transition-all duration-200" disabled={isLoading || isGoogleLoading || !isOnline}>
+            <Button type="submit" className="w-full h-12 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-700 transition-colors" disabled={isLoading || isGoogleLoading || !isOnline}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
               <span className="truncate">
                 {isLoading ? getLoadingMessage(loadingPhase, t) || t("auth.signin") : t("auth.signin")}
@@ -658,7 +658,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
               />
               <p className="text-xs text-muted-foreground">{t("auth.passwordLength")}</p>
             </div>
-            <Button type="submit" className="w-full h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-lg shadow-violet-500/25 transition-all duration-200" disabled={isLoading || isGoogleLoading || !isOnline}>
+            <Button type="submit" className="w-full h-12 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-700 transition-colors" disabled={isLoading || isGoogleLoading || !isOnline}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
               <span className="truncate">
                 {isLoading ? getLoadingMessage(loadingPhase, t) || t("auth.createAccount") : t("auth.createAccount")}
