@@ -719,34 +719,55 @@ export function ImportExportModal({
 
                     {importStatus === 'mapping' ? (
                         // KOLON EŞLEME EKRANI - Modern Tasarım
-                        <div className="space-y-5">
-                            {/* Gradient Header */}
-                            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-4">
+                        <div className="space-y-4">
+                            {/* Gradient Header - Sabit, scroll olmaz */}
+                            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 p-4 shrink-0">
                                 <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,white)]" />
-                                <div className="relative flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm">
-                                            <Columns3 className="w-6 h-6 text-white" />
+                                <div className="relative flex items-center justify-between flex-wrap gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm">
+                                            <Columns3 className="w-5 h-5 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-white text-lg">{t("importExport.columnMapping")}</h3>
+                                            <h3 className="font-semibold text-white text-base">{t("importExport.columnMapping")}</h3>
                                             <p className="text-white/80 text-sm">{csvData.length} {t("importExport.rowsToImport")}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
-                                            <Database className="w-3.5 h-3.5 text-white" />
-                                            <span className="text-white text-sm font-medium">{mappingSummary.mapped}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm">
-                                            <Sparkles className="w-3.5 h-3.5 text-white" />
-                                            <span className="text-white text-sm font-medium">{mappingSummary.custom}</span>
-                                        </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm cursor-help">
+                                                        <Database className="w-3.5 h-3.5 text-white" />
+                                                        <span className="text-white text-sm font-medium">{mappingSummary.mapped}</span>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>{t("importExport.mappedFields") || "Eşlenen Alanlar"}</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm cursor-help">
+                                                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                                                        <span className="text-white text-sm font-medium">{mappingSummary.custom}</span>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>{t("importExport.customFields") || "Özel Özellikler"}</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                         {mappingSummary.skipped > 0 && (
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm">
-                                                <Unlink2 className="w-3.5 h-3.5 text-white/70" />
-                                                <span className="text-white/70 text-sm font-medium">{mappingSummary.skipped}</span>
-                                            </div>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm cursor-help">
+                                                            <Unlink2 className="w-3.5 h-3.5 text-white/70" />
+                                                            <span className="text-white/70 text-sm font-medium">{mappingSummary.skipped}</span>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent><p>{t("importExport.skippedFields") || "Atlanan Alanlar"}</p></TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         )}
                                     </div>
                                 </div>
@@ -777,33 +798,56 @@ export function ImportExportModal({
                                             <tr>
                                                 <th className="px-2 py-3 w-[50px] text-center bg-muted/50 text-xs">#</th>
                                                 {csvHeaders.map((header, index) => (
-                                                    <th key={index} className="px-4 py-3 min-w-[200px] bg-muted/50 border-b">
+                                                    <th key={index} className="px-4 py-3 min-w-[220px] bg-muted/50 border-b align-top">
                                                         <div className="space-y-2">
                                                             <div className="font-semibold text-foreground flex items-center gap-2">
-                                                                <span className="truncate">{header}</span>
-                                                                <Badge variant="secondary" className="text-[10px] h-4 px-1">{index + 1}</Badge>
+                                                                <span className="truncate max-w-[150px]" title={header}>{header}</span>
+                                                                <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">{index + 1}</Badge>
                                                             </div>
                                                             <Select
                                                                 value={columnMappings[index]?.systemField === null ? 'custom_attribute' : (columnMappings[index]?.systemField || 'ignore')}
                                                                 onValueChange={(val) => handleMappingChange(index, val === 'custom_attribute' ? 'custom' : val === 'ignore' ? 'skip' : val)}
                                                             >
-                                                                <SelectTrigger className="h-8 text-xs bg-background border-input/80">
-                                                                    <SelectValue placeholder="Seçiniz" />
+                                                                <SelectTrigger className="h-9 text-xs bg-background border-input hover:border-violet-400 focus:ring-violet-500 w-full">
+                                                                    <SelectValue placeholder={t("importExport.selectField") || "Seçiniz"} />
                                                                 </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="ignore" className="text-muted-foreground italic">{t("importExport.ignore")}</SelectItem>
+                                                                <SelectContent
+                                                                    className="z-[9999] max-h-[300px]"
+                                                                    position="popper"
+                                                                    sideOffset={4}
+                                                                >
+                                                                    <SelectItem value="ignore" className="text-muted-foreground italic">
+                                                                        <span className="flex items-center gap-2">
+                                                                            <Unlink2 className="w-3.5 h-3.5" />
+                                                                            {t("importExport.ignore")}
+                                                                        </span>
+                                                                    </SelectItem>
+                                                                    <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-t my-1">
+                                                                        {t("importExport.systemFieldsTitle") || "Sistem Alanları"}
+                                                                    </div>
                                                                     {SYSTEM_FIELDS.map(f => (
-                                                                        <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                                                                        <SelectItem key={f.id} value={f.id} className="cursor-pointer">
+                                                                            <span className="flex items-center gap-2">
+                                                                                <Database className="w-3.5 h-3.5 text-blue-500" />
+                                                                                {f.label}
+                                                                            </span>
+                                                                        </SelectItem>
                                                                     ))}
-                                                                    <SelectItem value="custom_attribute" className="text-violet-600 font-medium">+ {t("importExport.customAttribute")}</SelectItem>
+                                                                    <div className="border-t my-1" />
+                                                                    <SelectItem value="custom_attribute" className="text-violet-600 font-medium cursor-pointer">
+                                                                        <span className="flex items-center gap-2">
+                                                                            <Sparkles className="w-3.5 h-3.5" />
+                                                                            + {t("importExport.customAttribute")}
+                                                                        </span>
+                                                                    </SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                             {columnMappings[index]?.systemField === null && (
                                                                 <Input
-                                                                    placeholder={t("importExport.attributeName")}
+                                                                    placeholder={t("importExport.attributeNamePlaceholder") || "Özellik adı (ör: Renk, Ağırlık)"}
                                                                     value={columnMappings[index]?.customName || ''}
                                                                     onChange={(e) => handleCustomNameChange(index, e.target.value)}
-                                                                    className="h-7 text-xs mt-1.5 bg-yellow-50 border-yellow-200 focus:border-yellow-400 focus:ring-yellow-400/20"
+                                                                    className="h-8 text-xs mt-1.5 bg-violet-50 dark:bg-violet-950/30 border-violet-300 dark:border-violet-700 focus:border-violet-500 focus:ring-violet-500/30 placeholder:text-violet-400 dark:placeholder:text-violet-500 text-violet-700 dark:text-violet-200 font-medium"
                                                                 />
                                                             )}
                                                         </div>
