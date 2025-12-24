@@ -22,7 +22,8 @@ import {
     Tag,
     Database,
     FileType,
-    Columns3
+    Columns3,
+    RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -60,6 +61,8 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { UpgradeModal } from '@/components/builder/upgrade-modal'
 import { useTranslation } from '@/lib/i18n-provider'
+import { useAsyncTimeout } from '@/lib/hooks/use-async-timeout'
+import { Progress } from '@/components/ui/progress'
 
 interface ImportExportModalProps {
     onImport: (products: any[]) => Promise<void>
@@ -78,53 +81,99 @@ const SYSTEM_FIELDS_KEYS = ['name', 'sku', 'description', 'price', 'stock', 'cat
 
 // Otomatik eşleme için header aliases
 const HEADER_ALIASES: Record<string, string> = {
-    // İsim
+    // İsim - tüm varyasyonlar
     'ad': 'name',
     'isim': 'name',
+    'adi': 'name',
+    'adı': 'name',
     'ürün adı': 'name',
+    'urun adi': 'name',
+    'ürün_adı': 'name',
+    'urun_adi': 'name',
+    'ürünadı': 'name',
+    'urunadi': 'name',
     'ürün': 'name',
+    'urun': 'name',
     'name': 'name',
     'product name': 'name',
+    'product_name': 'name',
+    'productname': 'name',
     'başlık': 'name',
+    'baslik': 'name',
     'title': 'name',
     // SKU
     'sku': 'sku',
     'stok kodu': 'sku',
+    'stok_kodu': 'sku',
+    'stokkodu': 'sku',
     'kod': 'sku',
     'ürün kodu': 'sku',
+    'urun kodu': 'name',
+    'ürün_kodu': 'sku',
+    'urun_kodu': 'sku',
     'product code': 'sku',
+    'product_code': 'sku',
+    'productcode': 'sku',
+    'barkod': 'sku',
+    'barcode': 'sku',
     // Açıklama
     'açıklama': 'description',
+    'aciklama': 'description',
     'detay': 'description',
     'description': 'description',
     'desc': 'description',
+    'bilgi': 'description',
+    'ürün açıklaması': 'description',
+    'urun aciklamasi': 'description',
     // Fiyat
     'fiyat': 'price',
     'ücret': 'price',
+    'ucret': 'price',
     'tutar': 'price',
     'price': 'price',
     'birim fiyat': 'price',
+    'birim_fiyat': 'price',
     'satış fiyatı': 'price',
+    'satis fiyati': 'price',
+    'satis_fiyati': 'price',
+    'amount': 'price',
     // Stok
     'stok': 'stock',
     'adet': 'stock',
     'miktar': 'stock',
     'stock': 'stock',
     'quantity': 'stock',
+    'qty': 'stock',
+    'stok adedi': 'stock',
+    'stok_adedi': 'stock',
     // Kategori
     'kategori': 'category',
     'category': 'category',
     'grup': 'category',
     'tür': 'category',
+    'tur': 'category',
     'type': 'category',
+    'ürün kategorisi': 'category',
+    'urun kategorisi': 'category',
     // Görsel
     'görsel': 'image_url',
+    'gorsel': 'image_url',
     'görsel url': 'image_url',
+    'gorsel url': 'image_url',
+    'görsel_url': 'image_url',
+    'gorsel_url': 'image_url',
     'resim': 'image_url',
+    'resim url': 'image_url',
+    'resim_url': 'image_url',
     'image': 'image_url',
     'image_url': 'image_url',
+    'imageurl': 'image_url',
     'photo': 'image_url',
     'foto': 'image_url',
+    'fotoğraf': 'image_url',
+    'fotograf': 'image_url',
+    'url': 'image_url',
+    'link': 'image_url',
 }
 
 type MappingStatus = 'idle' | 'mapping' | 'loading' | 'success' | 'error'
@@ -159,6 +208,15 @@ export function ImportExportModal({
     const canImport = userPlan === 'plus' || userPlan === 'pro'
     const isFreeUser = userPlan === 'free'
     const { t } = useTranslation()
+
+    // Timeout hook for import process
+    const importTimeout = useAsyncTimeout({
+        totalTimeoutMs: 90000, // 90 saniye
+        stuckTimeoutMs: 30000, // 30 saniye ilerleme yoksa
+        timeoutMessage: t('toasts.importTimeout') || 'İçe aktarma işlemi zaman aşımına uğradı.',
+        showToast: true,
+        onTimeout: () => setImportStatus('error')
+    })
 
     // CSV şablonunu indir
     const downloadTemplate = () => {
@@ -499,10 +557,16 @@ export function ImportExportModal({
 
         setImportStatus('loading')
 
-        try {
+        await importTimeout.execute(async () => {
             const products: any[] = []
+            const totalRows = csvData.length
 
-            for (const row of csvData) {
+            for (let rowIdx = 0; rowIdx < csvData.length; rowIdx++) {
+                const row = csvData[rowIdx]
+
+                // Progress güncelle (veri işleme: %0-50)
+                importTimeout.setProgress(Math.round((rowIdx / totalRows) * 50))
+
                 const product: any = {
                     name: '',
                     sku: null,
@@ -526,7 +590,6 @@ export function ImportExportModal({
                     if (mapping.systemField === null) {
                         // Özel özellik olarak ekle
                         if (value && csvHeaders[index]) {
-                            // Kullanıcı özel isim belirlemişse onu kullan, yoksa CSV header'ını kullan
                             const attrName = mapping.customName?.trim() ||
                                 csvHeaders[index].charAt(0).toUpperCase() + csvHeaders[index].slice(1).replace(/\*/g, '')
                             customAttrs.push({
@@ -555,7 +618,6 @@ export function ImportExportModal({
                             product.stock = parseInt(value) || 0
                             break
                         case 'category':
-                            // Free kullanıcılar için kategori atla
                             product.category = isFreeUser ? null : (value || null)
                             break
                         case 'image_url':
@@ -566,7 +628,6 @@ export function ImportExportModal({
 
                 product.custom_attributes = customAttrs
 
-                // Sadece adı olan ürünleri ekle
                 if (product.name) {
                     products.push(product)
                 }
@@ -578,20 +639,25 @@ export function ImportExportModal({
                 return
             }
 
+            // Progress güncelle (API çağrısı: %50-100)
+            importTimeout.setProgress(50)
+
             await onImport(products)
+
+            importTimeout.setProgress(100)
 
             setImportStatus('success')
             setImportResult({ success: products.length, failed: 0 })
             toast.success(t('importExport.productsImported', { count: products.length }))
 
-            // 2 saniye sonra modal'ı kapat
             setTimeout(() => {
                 resetState()
             }, 2000)
+        })
 
-        } catch (error) {
+        // Timeout olmuşsa error durumu zaten ayarlandı
+        if (importTimeout.hasTimeout) {
             setImportStatus('error')
-            toast.error(t('toasts.importFailed'))
         }
     }
 
@@ -710,7 +776,7 @@ export function ImportExportModal({
                                         <thead className="bg-muted/50 text-muted-foreground font-medium sticky top-0 z-10 shadow-sm">
                                             <tr>
                                                 <th className="px-2 py-3 w-[50px] text-center bg-muted/50 text-xs">#</th>
-                                                {csvData[0]?.map((header, index) => (
+                                                {csvHeaders.map((header, index) => (
                                                     <th key={index} className="px-4 py-3 min-w-[200px] bg-muted/50 border-b">
                                                         <div className="space-y-2">
                                                             <div className="font-semibold text-foreground flex items-center gap-2">
@@ -746,14 +812,14 @@ export function ImportExportModal({
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y">
-                                            {csvData.slice(1).map((row, rowIndex) => (
+                                            {csvData.map((row, rowIndex) => (
                                                 <tr key={rowIndex} className="group hover:bg-muted/30 transition-colors">
                                                     <td className="px-2 py-2 text-center text-xs text-muted-foreground bg-muted/10">{rowIndex + 1}</td>
                                                     {row.map((cell, cellIndex) => (
                                                         <td key={cellIndex} className="p-0 border-r last:border-r-0 relative">
                                                             <Input
                                                                 value={cell}
-                                                                onChange={(e) => handleCellEdit(rowIndex + 1, cellIndex, e.target.value)}
+                                                                onChange={(e) => handleCellEdit(rowIndex, cellIndex, e.target.value)}
                                                                 className="h-9 w-full border-0 rounded-none bg-transparent hover:bg-muted/50 focus:bg-background focus:ring-1 focus:ring-inset focus:ring-violet-500 text-xs px-3"
                                                             />
                                                         </td>

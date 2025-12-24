@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useTransition, useEffect, useRef } from "react"
 import { toast } from "sonner"
-import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, DollarSign, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
+import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, DollarSign, Layers, ChevronDown, ChevronUp, FolderPlus, AlertCircle, RefreshCw } from "lucide-react"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTranslation } from "@/lib/i18n-provider"
+import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
+import { Progress } from "@/components/ui/progress"
 
 interface ProductModalProps {
   open: boolean
@@ -88,8 +90,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   )
   const [productUrl, setProductUrl] = useState(product?.product_url || "")
 
-  // Upload State
-  const [isUploading, setIsUploading] = useState(false)
+  // Upload State with timeout
+  const uploadTimeout = useAsyncTimeout<string[]>({
+    totalTimeoutMs: 60000,
+    stuckTimeoutMs: 20000,
+    timeoutMessage: t('toasts.uploadTimeout') || 'Yükleme zaman aşımına uğradı. Bağlantınızı kontrol edin.',
+    showToast: true
+  })
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [activeImageUrl, setActiveImageUrl] = useState(product?.image_url || "")
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
@@ -121,7 +128,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     }
   }
 
-  // Refactored Upload Logic for 5 images limit
+  // Refactored Upload Logic for 5 images limit with timeout support
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -140,12 +147,20 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       toast.info(t('toasts.limitInfo', { count: allowedCount }))
     }
 
-    setIsUploading(true)
-    const supabase = createClient()
-    const newUrls: string[] = []
+    // Reset input değeri
+    const inputRef = e.target
 
-    try {
-      for (const file of filesToUpload) {
+    await uploadTimeout.execute(async () => {
+      const supabase = createClient()
+      const newUrls: string[] = []
+      const totalFiles = filesToUpload.length
+
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i]
+
+        // İlerleme güncelle
+        uploadTimeout.setProgress(Math.round((i / totalFiles) * 100))
+
         if (file.size > 5 * 1024 * 1024) {
           toast.error(t('toasts.fileTooLarge', { name: file.name }))
           continue
@@ -153,12 +168,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         // WebP Dönüşümü
         toast.loading(`${file.name} optimize ediliyor...`, { id: 'webp-process' })
-        // 1. WebP Conversion
         const { convertToWebP } = await import("@/lib/image-utils")
-        const { blob, fileName: webpName } = await convertToWebP(file)
+        const { blob } = await convertToWebP(file)
         toast.dismiss('webp-process')
 
-        // 2. Upload
+        // Upload
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
         const filePath = `${fileName}`
 
@@ -180,6 +194,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           .getPublicUrl(filePath)
 
         newUrls.push(publicUrl)
+
+        // Her başarılı yüklemede ilerleme güncelle
+        uploadTimeout.setProgress(Math.round(((i + 1) / totalFiles) * 100))
       }
 
       const updatedImages = [...additionalImages, ...newUrls]
@@ -194,13 +211,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         toast.success(t('toasts.imagesUploaded', { count: newUrls.length }))
       }
 
-    } catch (error: any) {
-      console.error("Image upload failed:", error)
-      toast.error(t('toasts.imageUploadFailed') + " " + (error.message || ""))
-    } finally {
-      setIsUploading(false)
-      e.target.value = ''
-    }
+      return newUrls
+    })
+
+    inputRef.value = ''
   }
 
   // Update effect to merge legacy images
@@ -749,9 +763,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                           accept="image/png, image/jpeg, image/webp"
                           multiple
                           onChange={handleImageUpload}
-                          disabled={isUploading}
+                          disabled={uploadTimeout.isLoading}
                         />
-                        {isUploading && (
+                        {uploadTimeout.isLoading && (
                           <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
                             <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
                           </div>
@@ -881,15 +895,15 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               {activeTab === "attributes" && "3/3"}
             </div>
             <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={uploadTimeout.isLoading}>
                 {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || isUploading}
+                disabled={isPending || uploadTimeout.isLoading}
                 className="min-w-[120px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               >
-                {isUploading ? (
+                {uploadTimeout.isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {t('common.loading')}

@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useState, useTransition, useCallback } from "react"
-import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ArrowRight } from "lucide-react"
+import { useState, useCallback } from "react"
+import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ArrowRight, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { type Product, updateProduct } from "@/lib/actions/products"
+import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
 
 interface BulkImageUploadModalProps {
     open: boolean
@@ -31,9 +32,16 @@ interface ImageFile {
 
 export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }: BulkImageUploadModalProps) {
     const [images, setImages] = useState<ImageFile[]>([])
-    const [isUploading, setIsUploading] = useState(false)
-    const [uploadProgress, setUploadProgress] = useState(0)
     const [dragActive, setDragActive] = useState(false)
+    const [autoUploadPending, setAutoUploadPending] = useState(false)
+
+    // Merkezi timeout hook'u
+    const uploadTimeout = useAsyncTimeout({
+        totalTimeoutMs: 120000, // 120 saniye (toplu yükleme daha uzun sürebilir)
+        stuckTimeoutMs: 20000, // 20 saniye ilerleme yoksa
+        timeoutMessage: "Yükleme zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edin ve tekrar deneyin.",
+        showToast: true
+    })
 
     // Cleanup object URLs on unmount
     React.useEffect(() => {
@@ -42,32 +50,158 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         }
     }, [])
 
+    // Otomatik yükleme: Yeni fotoğraflar eklendiğinde eşleşenler için otomatik yükle
+    React.useEffect(() => {
+        if (autoUploadPending && !uploadTimeout.isLoading && images.length > 0 && !uploadTimeout.hasTimeout) {
+            const hasMatchedPending = images.some(img => img.matchedProductId && img.status === 'pending')
+            if (hasMatchedPending) {
+                // Kısa bir gecikme ile yüklemeyi başlat (UI güncellemesi için)
+                const timer = setTimeout(() => {
+                    handleUpload()
+                }, 500)
+                return () => clearTimeout(timer)
+            }
+            setAutoUploadPending(false)
+        }
+    }, [autoUploadPending, uploadTimeout.isLoading, images, uploadTimeout.hasTimeout])
+
+    // Türkçe karakterleri normalize et
+    const normalizeText = (text: string): string => {
+        return text
+            .toLowerCase()
+            .replace(/ı/g, 'i')
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c')
+            .replace(/İ/g, 'i')
+            .replace(/Ğ/g, 'g')
+            .replace(/Ü/g, 'u')
+            .replace(/Ş/g, 's')
+            .replace(/Ö/g, 'o')
+            .replace(/Ç/g, 'c')
+    }
+
+    // Metni kelimelere ayır (-, _, boşluk, sayılar hariç)
+    const tokenize = (text: string): string[] => {
+        const normalized = normalizeText(text)
+        // Tire, alt çizgi, boşluk ve sayılarla böl, boş stringleri filtrele
+        return normalized
+            .split(/[-_\s.]+/)
+            .filter(word => word.length > 1 && !/^\d+$/.test(word)) // 1 karakterden uzun ve sadece rakam olmayan
+    }
+
+    // İki kelime listesi arasındaki eşleşme puanını hesapla
+    const calculateMatchScore = (productTokens: string[], fileTokens: string[]): number => {
+        if (productTokens.length === 0 || fileTokens.length === 0) return 0
+
+        let matchedWords = 0
+        let consecutiveBonus = 0
+        let lastMatchIndex = -2
+
+        // Her ürün kelimesi için dosya kelimelerinde ara
+        for (let i = 0; i < productTokens.length; i++) {
+            const productWord = productTokens[i]
+
+            // Dosya kelimelerinde bu kelimeyi ara
+            const fileIndex = fileTokens.findIndex((fileWord, idx) => {
+                // Tam eşleşme veya başlangıç eşleşmesi (min 3 karakter)
+                if (fileWord === productWord) return true
+                if (productWord.length >= 3 && fileWord.startsWith(productWord)) return true
+                if (fileWord.length >= 3 && productWord.startsWith(fileWord)) return true
+                return false
+            })
+
+            if (fileIndex !== -1) {
+                matchedWords++
+                // Ardışık eşleşmelere bonus ver
+                if (fileIndex === lastMatchIndex + 1) {
+                    consecutiveBonus += 0.5
+                }
+                lastMatchIndex = fileIndex
+            }
+        }
+
+        if (matchedWords === 0) return 0
+
+        // Puanlama: eşleşen kelime oranı + ardışıklık bonusu
+        const matchRatio = matchedWords / productTokens.length
+        const score = matchRatio + consecutiveBonus
+
+        // Minimum 2 kelime eşleşmesi gerekli (tek kelimelik ürünler hariç)
+        if (productTokens.length > 1 && matchedWords < 2) {
+            return 0
+        }
+
+        // Çok kısa eşleşmeleri düşük puanla
+        if (matchedWords === 1 && productTokens.length === 1 && productTokens[0].length < 4) {
+            return score * 0.5
+        }
+
+        return score
+    }
+
+    // En iyi eşleşen ürünü bul
+    const findBestMatch = (fileName: string): string | null => {
+        const fileTokens = tokenize(fileName)
+
+        if (fileTokens.length === 0) return null
+
+        let bestMatch: { productId: string; score: number } | null = null
+
+        for (const product of products) {
+            // 1. Tam SKU eşleşmesi (en yüksek öncelik)
+            if (product.sku) {
+                const normalizedSku = normalizeText(product.sku)
+                const normalizedFileName = normalizeText(fileName)
+                if (normalizedFileName === normalizedSku || normalizedFileName.startsWith(normalizedSku + '-') || normalizedFileName.startsWith(normalizedSku + '_')) {
+                    return product.id
+                }
+            }
+
+            // 2. Tam isim eşleşmesi
+            const normalizedName = normalizeText(product.name)
+            const normalizedFileName = normalizeText(fileName)
+            if (normalizedFileName === normalizedName) {
+                return product.id
+            }
+
+            // 3. Kelime bazlı puanlama
+            const productTokens = tokenize(product.name)
+            const score = calculateMatchScore(productTokens, fileTokens)
+
+            // SKU tokenlarını da kontrol et
+            let skuScore = 0
+            if (product.sku) {
+                const skuTokens = tokenize(product.sku)
+                skuScore = calculateMatchScore(skuTokens, fileTokens)
+            }
+
+            const finalScore = Math.max(score, skuScore)
+
+            // Minimum eşleşme eşiği: %60 veya 2 kelime
+            if (finalScore >= 0.6 || (finalScore > 0 && productTokens.length <= 2)) {
+                if (!bestMatch || finalScore > bestMatch.score) {
+                    bestMatch = { productId: product.id, score: finalScore }
+                }
+            }
+        }
+
+        return bestMatch?.productId || null
+    }
+
     const handleFiles = useCallback((files: FileList) => {
         const newImages: ImageFile[] = []
 
         Array.from(files).forEach(file => {
             if (!file.type.startsWith('image/')) return
 
-            // Auto-match logic: Check if filename matches name, sku, or slug
-            const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.').toLowerCase()
+            // Dosya adından uzantıyı çıkar
+            const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.')
 
-            let matchedId: string | null = null
-
-            // 1. Exact SKU match
-            const skuMatch = products.find(p => p.sku?.toLowerCase() === fileNameWithoutExt)
-            if (skuMatch) matchedId = skuMatch.id
-
-            // 2. Exact Name match (if no SKU match)
-            if (!matchedId) {
-                const nameMatch = products.find(p => p.name.toLowerCase() === fileNameWithoutExt)
-                if (nameMatch) matchedId = nameMatch.id
-            }
-
-            // 3. Fuzzy match (starts with) - e.g. "chair-01.jpg" matches "chair"
-            if (!matchedId) {
-                const fuzzyMatch = products.find(p => fileNameWithoutExt.startsWith(p.name.toLowerCase()) || (p.sku && fileNameWithoutExt.startsWith(p.sku.toLowerCase())))
-                if (fuzzyMatch) matchedId = fuzzyMatch.id
-            }
+            // Akıllı eşleştirme algoritması
+            const matchedId = findBestMatch(fileNameWithoutExt)
 
             newImages.push({
                 file,
@@ -78,7 +212,14 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             })
         })
 
-        setImages(prev => [...prev, ...newImages])
+        if (newImages.length > 0) {
+            setImages(prev => [...prev, ...newImages])
+            // Eşleşen fotoğraflar varsa otomatik yüklemeyi tetikle
+            const hasMatched = newImages.some(img => img.matchedProductId)
+            if (hasMatched) {
+                setAutoUploadPending(true)
+            }
+        }
     }, [products])
 
     const handleDrop = (e: React.DragEvent) => {
@@ -92,110 +233,119 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
     const handleUpload = async () => {
         if (images.length === 0) return
-        setIsUploading(true)
-        setUploadProgress(0)
 
-        const supabase = createClient()
-        const totalImages = images.length
-        let uploadedCount = 0
+        await uploadTimeout.execute(async () => {
+            const supabase = createClient()
+            const totalImages = images.length
+            let uploadedCount = 0
 
-        const results = [...images]
-        // Group by product to handle array updates correctly
-        // But we process sequentially here for progress bar.
-        // We need to fetch FRESH product data or trust the prop? 
-        // Trust prop for now.
+            const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
 
-        // We need to track how many we added to each product during this session to append correctly?
-        // Actually, we can just append to the list we know.
+            for (let i = 0; i < images.length; i++) {
+                const img = images[i]
+                if (img.status === 'success') {
+                    uploadedCount++
+                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                    continue
+                }
 
-        const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
+                // Skip if no match
+                if (!img.matchedProductId) {
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "Ürün eşleşmedi" } : p))
+                    uploadedCount++
+                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                    continue
+                }
 
-        for (let i = 0; i < results.length; i++) {
-            const img = results[i]
-            if (img.status === 'success') continue
+                const product = products.find(p => p.id === img.matchedProductId)
+                if (!product) {
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "Ürün bulunamadı" } : p))
+                    uploadedCount++
+                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                    continue
+                }
 
-            // Skip if no match
-            if (!img.matchedProductId) {
-                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "Ürün eşleşmedi" } : p))
-                uploadedCount++
-                setUploadProgress(Math.round((uploadedCount / totalImages) * 100))
-                continue
-            }
-
-            const product = products.find(p => p.id === img.matchedProductId)
-            if (!product) continue;
-
-            // Calculate limit
-            const currentImages = product.images || (product.image_url ? [product.image_url] : []);
-            const pendingForThis = results.slice(0, i).filter(r => r.matchedProductId === product.id && r.status !== 'error').length;
-
-            if (currentImages.length + pendingForThis >= 5) {
-                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "5 resim limiti dolu" } : p))
-                uploadedCount++
-                setUploadProgress(Math.round((uploadedCount / totalImages) * 100))
-                continue
-            }
-
-            setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'uploading' } : p))
-
-            try {
-                // 1. Upload
-                // 1. WebP Conversion
-                const { convertToWebP } = await import("@/lib/image-utils")
-                const { blob } = await convertToWebP(img.file)
-
-                // 2. Upload
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-                const filePath = `${fileName}`
-
-                const { error: uploadError } = await supabase.storage
-                    .from('product-images')
-                    .upload(filePath, blob, {
-                        contentType: 'image/webp'
-                    })
-
-                if (uploadError) throw uploadError
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('product-images')
-                    .getPublicUrl(filePath)
-
-                // 2. Queue for update
-                const existing = productUpdates.get(product.id) || []
-                productUpdates.set(product.id, [...existing, publicUrl])
-
-                // Success state for image
-                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'success' } : p))
-
-            } catch (error: any) {
-                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: error.message } : p))
-            }
-
-            uploadedCount++
-            setUploadProgress(Math.round((uploadedCount / totalImages) * 100))
-        }
-
-        // Batch update products
-        for (const [productId, newUrls] of productUpdates.entries()) {
-            const product = products.find(p => p.id === productId)
-            if (product) {
+                // Calculate limit - count existing images + already uploaded in this session
                 const currentImages = product.images || (product.image_url ? [product.image_url] : []);
-                const allImages = [...currentImages, ...newUrls].slice(0, 5); // Ensure max 5
+                const alreadyUploadedForThis = productUpdates.get(product.id)?.length || 0;
 
-                // Use supabase directly
-                await supabase
-                    .from('products')
-                    .update({
-                        images: allImages,
-                        image_url: allImages[0] // Ensure cover is set if it was empty, or keep first
-                    })
-                    .eq('id', productId)
+                if (currentImages.length + alreadyUploadedForThis >= 5) {
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "5 resim limiti dolu" } : p))
+                    uploadedCount++
+                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                    continue
+                }
+
+                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'uploading' } : p))
+
+                try {
+                    // 1. WebP Conversion
+                    const { convertToWebP } = await import("@/lib/image-utils")
+                    const { blob } = await convertToWebP(img.file)
+
+                    // 2. Upload
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
+                    const filePath = `${fileName}`
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('product-images')
+                        .upload(filePath, blob, {
+                            contentType: 'image/webp'
+                        })
+
+                    if (uploadError) throw uploadError
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('product-images')
+                        .getPublicUrl(filePath)
+
+                    // Queue for update
+                    const existing = productUpdates.get(product.id) || []
+                    productUpdates.set(product.id, [...existing, publicUrl])
+
+                    // Success state for image
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'success' } : p))
+
+                } catch (error: any) {
+                    console.error('Image upload error:', error)
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: error.message || 'Yükleme hatası' } : p))
+                }
+
+                uploadedCount++
+                uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
             }
-        }
 
-        setIsUploading(false)
-        toast.success("İşlem tamamlandı")
-        onSuccess()
+            // Batch update products
+            try {
+                for (const [productId, newUrls] of productUpdates.entries()) {
+                    const product = products.find(p => p.id === productId)
+                    if (product) {
+                        const currentImages = product.images || (product.image_url ? [product.image_url] : []);
+                        const allImages = [...currentImages, ...newUrls].slice(0, 5); // Ensure max 5
+
+                        // Use supabase directly
+                        const { error } = await supabase
+                            .from('products')
+                            .update({
+                                images: allImages,
+                                image_url: allImages[0] // Ensure cover is set if it was empty, or keep first
+                            })
+                            .eq('id', productId)
+
+                        if (error) {
+                            console.error('Product update error:', error)
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Batch update error:', error)
+                toast.error("Bazı ürünler güncellenemedi")
+            }
+
+            setAutoUploadPending(false)
+            toast.success("İşlem tamamlandı")
+            onSuccess()
+        })
     }
 
     const removeImage = (id: string) => {
@@ -344,7 +494,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                                             )}
                                                             value={img.matchedProductId || "none"}
                                                             onChange={(e) => handleMatchChange(img.id, e.target.value)}
-                                                            disabled={isSuccess || isUploading}
+                                                            disabled={isSuccess || uploadTimeout.isLoading}
                                                         >
                                                             <option value="none">Seçim Yapılmadı</option>
                                                             {products.map(p => (
@@ -384,7 +534,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                                 {/* Actions */}
                                                 <button
                                                     onClick={() => removeImage(img.id)}
-                                                    disabled={isUploading}
+                                                    disabled={uploadTimeout.isLoading}
                                                     className="absolute -top-2 -right-2 w-6 h-6 bg-white border rounded-full shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 text-red-500 z-10"
                                                 >
                                                     <X className="w-3 h-3" />
@@ -406,28 +556,47 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
                 <DialogFooter className="px-6 py-4 border-t bg-white">
                     <div className="flex-1 flex items-center gap-4">
-                        {isUploading && (
+                        {uploadTimeout.isLoading && (
                             <div className="flex-1 max-w-sm">
                                 <div className="flex justify-between text-xs mb-1">
                                     <span>Yükleniyor...</span>
-                                    <span>{uploadProgress}%</span>
+                                    <span>{uploadTimeout.progress}%</span>
                                 </div>
-                                <Progress value={uploadProgress} className="h-2" />
+                                <Progress value={uploadTimeout.progress} className="h-2" />
+                            </div>
+                        )}
+                        {uploadTimeout.hasTimeout && (
+                            <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                                <AlertCircle className="w-4 h-4" />
+                                <span className="text-sm">Zaman aşımı! Bağlantınızı kontrol edin.</span>
                             </div>
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
+                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploadTimeout.isLoading}>
                             İptal
                         </Button>
-                        <Button
-                            onClick={handleUpload}
-                            disabled={images.length === 0 || isUploading}
-                            className="bg-violet-600 hover:bg-violet-700 gap-2"
-                        >
-                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                            {images.filter(i => i.matchedProductId).length} Fotoğrafı Yükle & Kaydet
-                        </Button>
+                        {uploadTimeout.hasTimeout ? (
+                            <Button
+                                onClick={() => {
+                                    uploadTimeout.reset()
+                                    handleUpload()
+                                }}
+                                className="bg-amber-600 hover:bg-amber-700 gap-2"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Tekrar Dene
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handleUpload}
+                                disabled={images.length === 0 || uploadTimeout.isLoading}
+                                className="bg-violet-600 hover:bg-violet-700 gap-2"
+                            >
+                                {uploadTimeout.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                                {images.filter(i => i.matchedProductId).length} Fotoğrafı Yükle & Kaydet
+                            </Button>
+                        )}
                     </div>
                 </DialogFooter>
             </DialogContent>

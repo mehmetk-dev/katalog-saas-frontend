@@ -772,8 +772,13 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
               onOpenChange={setShowImportModal}
               hideTrigger
               onImport={async (productsToImport) => {
-                const imported = await bulkImportProducts(productsToImport)
-                setProducts([...imported, ...products])
+                try {
+                  const imported = await bulkImportProducts(productsToImport)
+                  setProducts([...imported, ...products])
+                } catch (error) {
+                  console.error('Bulk import failed:', error)
+                  throw error // Re-throw so the modal can catch it and show error state
+                }
               }}
               onExport={downloadAllProducts}
               productCount={products.length}

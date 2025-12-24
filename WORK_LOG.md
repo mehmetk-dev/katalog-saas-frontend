@@ -1,11 +1,20 @@
 # Proje Geliştirme Günlüğü
 
+## 22 Aralık 2025
+- **Merkezi Timeout Hook Oluşturuldu:** `lib/hooks/use-async-timeout.ts` dosyasında yeniden kullanılabilir `useAsyncTimeout<T>` hook'u oluşturuldu. Bu hook ilerleme takibi, zaman aşımı kontrolü (toplam + stuck), otomatik toast mesajları, iptal ve yeniden deneme özellikleri sunuyor.
+- **Product Modal Entegrasyonu:** Ürün resim yükleme işlemi artık timeout kontrolü ile yapılıyor. 60 saniye toplam / 20 saniye stuck timeout ayarlandı. Her dosya için progress takibi eklendi.
+- **Import Modal Entegrasyonu:** CSV/Excel import işlemi timeout kontrolü ile güçlendirildi. 90 saniye toplam / 30 saniye stuck timeout ayarlandı. Progress bar veri işleme (%0-50) ve API çağrısı (%50-100) olarak bölündü.
+- **Bulk Image Upload Hook Migrasyonu:** Manuel timeout mekanizması merkezi `useAsyncTimeout` hook'una geçirildi. 120 saniye toplam / 20 saniye stuck timeout ile kod tutarlılığı sağlandı. RefreshCw ikonu ile "Tekrar Dene" butonu güncellendi.
+- **Akıllı Ürün-Fotoğraf Eşleştirme:** Toplu fotoğraf yüklemede kelime bazlı skorlama algoritması eklendi. "Kuva Koltuk Takımı" ile "kuva-koltuk-takimi-01.jpg" eşleşirken "kuva-mutfak-masasi.jpg" eşleşmiyor.
+- **Import Mapping Düzeltmeleri:** CSV/Excel import'ta kolon başlıkları düzeltildi ve `HEADER_ALIASES`'a 40+ yeni varyasyon eklendi (product_name, urun_adi, birim_fiyat, resim_url vb.).
+
 ## 21 Aralık 2025
 - **Dashboard İyileştirmesi:** Katalog logosu olmayanlar için ürün görsellerinden oluşan akıllı kolaj sistemi eklendi.
 - **Analitik Sayfası:** Kullanıcılar için detaylı istatistik, cihaz dağılımı ve coğrafi verileri içeren yeni `/dashboard/analytics` sayfası oluşturuldu. Yan menüye (Sidebar) link eklendi.
 - **Lint Temizliği:** Kritik bileşenlerdeki `console.log` ve `console.error` ifadeleri temizlenerek kod kalitesi artırıldı.
 - **Katalog Özelleştirme:** Katalog başlık konumu (Sol/Orta/Sağ) ve logo konumu (Header/Footer Sol/Orta/Sağ) ayarları eklendi. Başlık ve logonun header içinde akıllıca konumlanması sağlandı.
 - **Public Katalog Düzeltmesi:** Yayınlanan katalog sayfalarında çift logo görünme sorunu giderildi ve builder önizlemesi ile birebir aynı görünüm sağlandı.
+
 
 ## 17 Aralık 2025
 - **Kod Temizliği:** Gereksiz geçici dosyaları (temp_icon_*.png, remove-bg.js, build.log) sildik. Lint kontrolü yapıldı, kritik hata yok.
