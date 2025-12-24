@@ -20,20 +20,15 @@ jobs:
             # 1. Proje klasörüne git
             cd /root/katalog-app
             
-            # 2. ACIMASIZ TEMİZLİK: Git Conflict hatasını kökten çözer
-            # Sunucudaki tüm değişiklikleri siler, GitHub ile birebir eşitler
+            # 2. Kodu Güncelle
             git fetch --all
             git reset --hard origin/main
             
-            # 3. Docker  ile sistemi güncelle ve yeniden başlat
-            # --build: Kod değiştiği için image'ı yeniden oluşturur
-            # --force-recreate: Container'ı zorla baştan yaratır
-            docker-compose down
-            # Önce önbellek kullanmadan sıfırdan inşa et (Node 20'yi kesin görsün diye)
-            docker-compose build
+            # 3. SİHİRLİ DOKUNUŞ: 'down' yok, sadece 'up --build' var!
+            # Bu komut şu sırayla çalışır:
+            # a) Site çalışmaya devam ederken arkada sessizce yeni 'build' alır.
+            # b) Build bittiği an, eski container'ı durdurup milisaniyeler içinde yenisini koyar.
+            docker-compose up -d --build --remove-orphans
             
-            # Sonra sistemi ayağa kaldır
-            docker-compose up -d --force-recreate
-            
-            # 4. -Temizlik (Eski image'ları siler, yer açar)
+            # 4. Temizlik (Eski image'ları siler)
             docker image prune -f
