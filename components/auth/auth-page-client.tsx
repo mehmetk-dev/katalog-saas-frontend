@@ -177,11 +177,49 @@ export function AuthPageClient() {
             </div>
 
             {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#FDFDFD] relative overflow-hidden">
+            <div className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-b from-violet-100 via-violet-50/50 to-white relative overflow-hidden">
+                {/* Background Decorations - Both Mobile & Desktop */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {/* Top Wave Shape - More Visible */}
+                    <svg
+                        className="absolute -top-1 left-0 w-full h-56"
+                        viewBox="0 0 1440 320"
+                        preserveAspectRatio="none"
+                    >
+                        <defs>
+                            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.4" />
+                                <stop offset="50%" stopColor="#a855f7" stopOpacity="0.3" />
+                                <stop offset="100%" stopColor="#d946ef" stopOpacity="0.2" />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            fill="url(#waveGradient)"
+                            d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
+                        />
+                    </svg>
+
+                    {/* Decorative Circles - More Visible */}
+                    <div className="absolute top-20 right-6 w-24 h-24 rounded-full border-[3px] border-violet-300/60" />
+                    <div className="absolute top-28 right-14 w-10 h-10 rounded-full bg-gradient-to-br from-violet-400/50 to-fuchsia-400/40" />
+                    <div className="absolute top-16 right-32 w-5 h-5 rounded-full bg-violet-400/60" />
+                    <div className="absolute top-36 right-4 w-3 h-3 rounded-full bg-fuchsia-500/50" />
+
+                    {/* Bottom Gradient Blobs - Much Stronger */}
+                    <div className="absolute -bottom-32 -left-16 w-72 h-72 bg-gradient-to-tr from-violet-500/40 via-purple-400/30 to-fuchsia-400/20 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-16 right-0 w-56 h-56 bg-gradient-to-tl from-indigo-400/35 to-violet-300/25 rounded-full blur-2xl" />
+
+                    {/* Floating Accent Dots - More Visible */}
+                    <div className="absolute top-1/4 left-6 w-3 h-3 rounded-full bg-violet-500/70" />
+                    <div className="absolute top-1/3 left-14 w-2 h-2 rounded-full bg-fuchsia-500/60" />
+                    <div className="absolute bottom-1/3 right-10 w-4 h-4 rounded-full bg-purple-400/50" />
+                    <div className="absolute bottom-1/4 left-10 w-2.5 h-2.5 rounded-full bg-indigo-400/60" />
+                </div>
+
                 {/* Mobile Back Button */}
                 <div className="absolute top-6 left-6 z-20">
                     <Link href="/" className="group flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-violet-700 transition-colors">
-                        <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white lg:bg-transparent">
+                        <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white/80 backdrop-blur-sm lg:bg-transparent">
                             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                         </div>
                         <span className="hidden sm:inline">{t("auth.backToHome")}</span>

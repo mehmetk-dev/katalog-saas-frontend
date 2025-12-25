@@ -80,9 +80,13 @@ import userRoutes from './routes/users';
 import adminRoutes from './routes/admin';
 import healthRoutes from './routes/health';
 import notificationRoutes from './routes/notifications';
+import authRoutes from './routes/auth';
 
 // Health check routes (no auth required)
 app.use('/health', healthRoutes);
+
+// Public auth routes (no auth required)
+app.use('/api/v1/auth', authRoutes);
 
 // API Routes
 app.use('/api/v1/products', productRoutes);

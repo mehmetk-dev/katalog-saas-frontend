@@ -37,7 +37,8 @@ services:
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+        # Hem sunucu IP'sine HEM DE localhost'a izin veriyoruz
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://34.122.56.172:3000,http://34.122.56.172}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
     depends_on:
       - redis
