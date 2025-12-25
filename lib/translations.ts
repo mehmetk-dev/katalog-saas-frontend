@@ -456,6 +456,7 @@ export const translations = {
             customFields: "Özel Özellikler",
             skippedFields: "Atlanan Alanlar",
             editHint: "Tablodaki hücrelere tıklayarak verileri düzenleyebilirsiniz.",
+            freeDesc: "Şablonu indirebilir veya ürünlerinizi manuel olarak ekleyebilirsiniz.",
         },
         catalogs: {
             title: "Kataloglarım",
@@ -1462,6 +1463,7 @@ export const translations = {
             customFields: "Custom Attributes",
             skippedFields: "Skipped Fields",
             editHint: "Click on table cells to edit data.",
+            freeDesc: "You can download the template or add products manually.",
         },
         catalogs: {
             title: "My Catalogs",
