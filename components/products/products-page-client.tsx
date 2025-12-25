@@ -706,15 +706,14 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
                       </DropdownMenuItem>
                     </>
                   )}
-                  {process.env.NODE_ENV === 'development' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="gap-2" onClick={handleTestImport}>
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        {t("products.addTestProducts")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                  {/* Örnek Veri Yükle - Her zaman görünür */}
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="gap-2" onClick={handleTestImport}>
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      {t("products.addTestProducts")}
+                    </DropdownMenuItem>
+                  </>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -753,15 +752,14 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
                       </DropdownMenuItem>
                     </>
                   )}
-                  {process.env.NODE_ENV === 'development' && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="gap-2" onClick={handleTestImport}>
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        {t("products.addTestProducts")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                  {/* Örnek Veri Yükle - Her zaman görünür */}
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="gap-2" onClick={handleTestImport}>
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      {t("products.addTestProducts")}
+                    </DropdownMenuItem>
+                  </>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
