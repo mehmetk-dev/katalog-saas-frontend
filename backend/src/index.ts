@@ -43,19 +43,17 @@ const authLimiter = rateLimit({
 // Middleware
 app.use(cors({
     origin: (origin, callback) => {
-        // In production, require origin header for security
+        // Allow requests without origin (server-to-server, SSR, mobile apps, curl)
+        // Next.js server-side requests don't send Origin header
         if (!origin) {
-            // Allow requests without origin only in development (mobile apps, curl, etc.)
-            if (isDev) {
-                return callback(null, true);
-            }
-            // In production, block requests without origin for better security
-            return callback(new Error('Origin header required'));
+            return callback(null, true);
         }
 
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            // Log rejected origins for debugging
+            console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
