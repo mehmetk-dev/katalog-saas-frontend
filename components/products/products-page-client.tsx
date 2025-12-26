@@ -1376,8 +1376,11 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           open={showBulkImageModal}
           onOpenChange={setShowBulkImageModal}
           products={products}
-          onSuccess={() => {
-            router.refresh()
+          onSuccess={async () => {
+            // Güncellenmiş ürünleri çek
+            const { getProducts } = await import('@/lib/actions/products')
+            const updatedProducts = await getProducts()
+            setProducts(updatedProducts)
             setShowBulkImageModal(false)
             toast.success(t('toasts.photosUpdated'))
           }}

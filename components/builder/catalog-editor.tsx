@@ -290,33 +290,36 @@ export function CatalogEditor({
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-      {/* Catalog Details - Kompakt */}
+      {/* Catalog Details - Tablet/Desktop Responsive */}
       <Card>
         <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="title" className="text-xs text-muted-foreground">{t("builder.catalogName")}</Label>
-              <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-8" placeholder={t("builder.catalogNamePlaceholder") || "Catalog Title"} />
+          {/* İlk satır: Katalog Adı ve Açıklama */}
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-1">
+              <div className="flex-1 min-w-0 space-y-1">
+                <Label htmlFor="title" className="text-xs text-muted-foreground">{t("builder.catalogName")}</Label>
+                <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-8" placeholder={t("builder.catalogNamePlaceholder") || "Catalog Title"} />
+              </div>
+              <div className="flex-[2] min-w-0 space-y-1">
+                <Label htmlFor="description" className="text-xs text-muted-foreground">{t("builder.description")}</Label>
+                <Input
+                  id="description"
+                  placeholder={t("builder.descriptionPlaceholder")}
+                  value={description}
+                  onChange={(e) => onDescriptionChange(e.target.value)}
+                  className="h-8"
+                />
+              </div>
             </div>
-            <div className="flex-[2] space-y-1">
-              <Label htmlFor="description" className="text-xs text-muted-foreground">{t("builder.description")}</Label>
-              <Input
-                id="description"
-                placeholder={t("builder.descriptionPlaceholder")}
-                value={description}
-                onChange={(e) => onDescriptionChange(e.target.value)}
-                className="h-8"
-              />
-            </div>
-            {/* Vurgu Rengi - Inline */}
-            <div className="space-y-1">
+            {/* Vurgu Rengi - Tablet'te yeni satır, Desktop'ta yanyana */}
+            <div className="space-y-1 shrink-0">
               <Label className="text-xs text-muted-foreground">{t("builder.accentColor")}</Label>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 flex-wrap">
                 <Input
                   type="color"
                   value={primaryColor}
                   onChange={(e) => onPrimaryColorChange(e.target.value)}
-                  className="w-8 h-8 p-0.5 cursor-pointer"
+                  className="w-8 h-8 p-0.5 cursor-pointer shrink-0"
                 />
                 {[
                   { name: "Sunset", color: "#f97316" },
@@ -332,7 +335,7 @@ export function CatalogEditor({
                     key={preset.name}
                     onClick={() => onPrimaryColorChange(preset.color)}
                     className={cn(
-                      "w-6 h-6 rounded-full border transition-all hover:scale-110",
+                      "w-6 h-6 rounded-full border transition-all hover:scale-110 shrink-0",
                       primaryColor === preset.color && "ring-2 ring-primary ring-offset-1 scale-110"
                     )}
                     style={{ backgroundColor: preset.color }}

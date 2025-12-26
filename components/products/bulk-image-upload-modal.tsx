@@ -37,8 +37,8 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
     // Merkezi timeout hook'u
     const uploadTimeout = useAsyncTimeout({
-        totalTimeoutMs: 120000, // 120 saniye (toplu yükleme daha uzun sürebilir)
-        stuckTimeoutMs: 20000, // 20 saniye ilerleme yoksa
+        totalTimeoutMs: 300000, // 5 dakika (sunucu yavaş bağlantılarda)
+        stuckTimeoutMs: 60000, // 60 saniye ilerleme yoksa
         timeoutMessage: "Yükleme zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edin ve tekrar deneyin.",
         showToast: true
     })
