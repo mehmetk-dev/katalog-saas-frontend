@@ -43,7 +43,7 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
         // Get user profile info from cache (preferred) or DB
         const profile = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
             const { data, error } = await supabase
-                .from('profiles')
+                .from('users')
                 .select('email, full_name')
                 .eq('id', userId)
                 .single()

@@ -14,7 +14,7 @@ async function logActivity(params) {
         // Get user profile info from cache (preferred) or DB
         const profile = await (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
             const { data, error } = await supabase_1.supabase
-                .from('profiles')
+                .from('users')
                 .select('email, full_name')
                 .eq('id', userId)
                 .single();
