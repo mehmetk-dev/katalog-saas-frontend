@@ -1,5 +1,13 @@
 # Proje Geliştirme Günlüğü
 
+## 31 Aralık 2025
+- **Sosyal Medya Paylaşım Modalı:** WhatsApp, Facebook, Twitter/X, LinkedIn, Telegram ve E-posta ile katalog paylaşımı için ShareModal komponenti eklendi. Public katalog ve builder sayfalarına entegre edildi.
+- **QR Kod Özelliği:** Katalog linki için QR kod oluşturma ve PNG olarak indirme özelliği eklendi.
+- **Akıllı Görüntülenme Takibi:** IP + User-Agent hash ile benzersiz ziyaretçi takibi, günlük unique sayım ve katalog sahibi görüntülemelerinin hariç tutulması sağlandı.
+- **Analitik Sayfası Yenilendi:** Dummy/mock veriler kaldırıldı, gerçek veriler gösteriliyor. Çift dil desteği (TR/EN) eklendi. Cihaz dağılımı ve günlük görüntülenmeler eklendi.
+- **SEO Metadata:** Dashboard sayfalarına (Panel, Ürünler, Kataloglar, Builder, Analitik) SEO metadata eklendi.
+- **Backend Genişletildi:** getDashboardStats endpoint'i uniqueVisitors, deviceStats ve dailyViews döndürecek şekilde güncellendi.
+
 ## 26 Aralık 2025
 - **Sürükle-Bırak Temizliği:** `product-modal.tsx` dosyasındaki kullanılmayan `draggedImageIndex` state'i kaldırıldı. Tüm sürükle-bırak alanları (`products-table.tsx`, `catalog-editor.tsx`, `bulk-image-upload-modal.tsx`) kontrol edildi ve düzgün çalıştığı doğrulandı.
 - **Tablet Responsive Düzeltmesi:** Katalog builder sayfası (1024x960 gibi tablet boyutları) için responsive layout iyileştirildi. Katalog bilgileri kartı artık tablet'te düzgün sığıyor, renk paleti `flex-wrap` ile sarılıyor.
