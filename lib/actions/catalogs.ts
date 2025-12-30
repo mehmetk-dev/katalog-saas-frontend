@@ -30,6 +30,8 @@ export interface Catalog {
   title_position: 'left' | 'center' | 'right'  // Başlık konumu
   created_at: string
   updated_at: string
+  // Public API'den gelen ürünler (opsiyonel)
+  products?: any[]
 }
 
 export interface CatalogTemplate {
@@ -167,6 +169,10 @@ export interface DashboardStats {
   totalViews: number
   totalProducts: number
   topCatalogs: { id: string; name: string; views: number }[]
+  // Detaylı analitik verileri (catalog_views tablosundan)
+  uniqueVisitors?: number
+  deviceStats?: { device_type: string; view_count: number; percentage: number }[]
+  dailyViews?: { view_date: string; view_count: number }[]
 }
 
 export async function getDashboardStats() {

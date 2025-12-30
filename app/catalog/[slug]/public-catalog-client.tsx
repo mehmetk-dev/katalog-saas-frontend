@@ -41,6 +41,7 @@ import { IndustrialTemplate } from "@/components/catalogs/templates/industrial"
 import { LuxuryTemplate } from "@/components/catalogs/templates/luxury"
 import { CleanWhiteTemplate } from "@/components/catalogs/templates/clean-white"
 import { ProductTilesTemplate } from "@/components/catalogs/templates/product-tiles"
+import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -82,6 +83,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const [copied, setCopied] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [showControls, setShowControls] = useState(true)
+    const [showShareModal, setShowShareModal] = useState(false)
     const bookRef = useRef<any>(null)
 
     // Kategorileri çıkar
@@ -227,20 +229,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         }
     }
 
-    const handleShare = async () => {
-        const url = window.location.href
-        if (navigator.share) {
-            await navigator.share({
-                title: catalog.name,
-                text: catalog.description || `${catalog.name} kataloğunu görüntüle`,
-                url: url,
-            })
-        } else {
-            await navigator.clipboard.writeText(url)
-            setCopied(true)
-            toast.success(t("catalogs.copyLink"))
-            setTimeout(() => setCopied(false), 2000)
-        }
+    const handleShare = () => {
+        setShowShareModal(true)
     }
 
     const handleCopyLink = async () => {
@@ -635,6 +625,15 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                     )
                 }
             </div >
+
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                catalogName={catalog.name}
+                catalogDescription={catalog.description}
+                shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+            />
         </>
     )
 }

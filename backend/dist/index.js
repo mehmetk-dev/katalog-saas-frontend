@@ -39,13 +39,17 @@ const authLimiter = (0, express_rate_limit_1.default)({
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.)
-        if (!origin)
+        // Allow requests without origin (server-to-server, SSR, mobile apps, curl)
+        // Next.js server-side requests don't send Origin header
+        if (!origin) {
             return callback(null, true);
+        }
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         }
         else {
+            // Log rejected origins for debugging
+            console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -69,8 +73,11 @@ const users_1 = __importDefault(require("./routes/users"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const health_1 = __importDefault(require("./routes/health"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
+const auth_1 = __importDefault(require("./routes/auth"));
 // Health check routes (no auth required)
 app.use('/health', health_1.default);
+// Public auth routes (no auth required)
+app.use('/api/v1/auth', auth_1.default);
 // API Routes
 app.use('/api/v1/products', products_1.default);
 app.use('/api/v1/catalogs', catalogs_1.default);

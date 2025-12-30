@@ -2,7 +2,6 @@ import { notFound } from "next/navigation"
 import { Metadata } from "next"
 
 import { getPublicCatalog } from "@/lib/actions/catalogs"
-import { createClient } from "@/lib/supabase/server"
 
 import { PublicCatalogClient } from "./public-catalog-client"
 
@@ -42,22 +41,13 @@ export default async function PublicCatalogPage({ params }: PublicCatalogPagePro
     notFound()
   }
 
-  // Ürünleri getir
-  const supabase = await createClient()
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .in("id", catalog.product_ids || [])
-
-  // Ürünleri catalog.product_ids sırasına göre sırala
-  const orderedProducts = catalog.product_ids
-    ?.map(id => products?.find(p => p.id === id))
-    .filter(Boolean) || []
+  // Ürünler artık API'den geliyor (catalog.products), RLS sorunu yok
+  const products = catalog.products || []
 
   return (
     <PublicCatalogClient
       catalog={catalog}
-      products={orderedProducts}
+      products={products}
     />
   )
 }

@@ -366,23 +366,89 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'Bu katalog şu an erişime kapalıdır. (Limit aşımı)' });
         }
 
-        // View count artır (async, bekleme)
-        incrementViewCount(data.id);
+        // Ürünleri çek (RLS bypass - service role ile backend çalışıyor)
+        let products: any[] = [];
+        if (data.product_ids && data.product_ids.length > 0) {
+            const { data: productData } = await supabase
+                .from('products')
+                .select('*')
+                .in('id', data.product_ids);
 
-        res.json(data);
+            // Ürünleri catalog.product_ids sırasına göre sırala
+            if (productData) {
+                products = data.product_ids
+                    .map((id: string) => productData.find((p: any) => p.id === id))
+                    .filter(Boolean);
+            }
+        }
+
+        // View count artır (akıllı - IP bazlı, sahip hariç)
+        const visitorInfo = getVisitorInfo(req);
+        const isOwner = req.headers['x-user-id'] === data.user_id;
+        await smartIncrementViewCount(data.id, visitorInfo, isOwner);
+
+        // Catalog ve products'ı birlikte döndür
+        res.json({ ...data, products });
     } catch (error: any) {
         const status = error.message === 'Catalog not found or not published' ? 404 : 500;
         res.status(status).json({ error: error.message });
     }
 };
 
-// View count helper (fire and forget)
-const incrementViewCount = async (catalogId: string) => {
+// Ziyaretçi bilgilerini al
+const getVisitorInfo = (req: Request) => {
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+        req.headers['x-real-ip']?.toString() ||
+        req.socket?.remoteAddress ||
+        'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Cihaz tipi algılama
+    let deviceType = 'desktop';
+    if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
+        deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
+    }
+
+    // Visitor hash oluştur (IP + UA kombinasyonu)
+    const crypto = require('crypto');
+    const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
+
+    return { ip, userAgent, deviceType, visitorHash };
+};
+
+// Akıllı view count (günlük benzersiz, sahip hariç)
+const smartIncrementViewCount = async (
+    catalogId: string,
+    visitorInfo: { ip: string; userAgent: string; deviceType: string; visitorHash: string },
+    isOwner: boolean
+) => {
     try {
-        await supabase.rpc('increment_view_count', { catalog_id: catalogId });
+        // Sahip görüntülemesi sayılmaz
+        if (isOwner) {
+            return;
+        }
+
+        // Akıllı fonksiyon varsa onu kullan, yoksa basit artırma
+        const { error } = await supabase.rpc('smart_increment_view_count', {
+            p_catalog_id: catalogId,
+            p_visitor_hash: visitorInfo.visitorHash,
+            p_ip_address: visitorInfo.ip,
+            p_user_agent: visitorInfo.userAgent.substring(0, 500), // Max 500 karakter
+            p_device_type: visitorInfo.deviceType,
+            p_is_owner: isOwner
+        });
+
+        // Eğer fonksiyon yoksa (migration uygulanmamış) eski yönteme fallback
+        if (error && error.message.includes('function')) {
+            await supabase.rpc('increment_view_count', { catalog_id: catalogId });
+        }
     } catch (error) {
-        // Hata olursa sessizce devam et
-        console.warn('View count increment failed:', error);
+        // Hata olursa sessizce devam et, basit artırmayı dene
+        try {
+            await supabase.rpc('increment_view_count', { catalog_id: catalogId });
+        } catch {
+            console.warn('View count increment failed completely');
+        }
     }
 };
 
@@ -419,7 +485,81 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             })),
         };
 
-        res.json(stats);
+        // Detaylı analitik verilerini çekmeye çalış (catalog_views tablosu varsa)
+        let detailedStats = {
+            uniqueVisitors: 0,
+            deviceStats: [] as { device_type: string; view_count: number; percentage: number }[],
+            dailyViews: [] as { view_date: string; view_count: number }[],
+        };
+
+        try {
+            // Kullanıcının tüm kataloglarının ID'lerini al
+            const catalogIds = catalogs.map(c => c.id);
+
+            if (catalogIds.length > 0) {
+                // Benzersiz ziyaretçi sayısı
+                const { data: uniqueData } = await supabase
+                    .from('catalog_views')
+                    .select('visitor_hash')
+                    .in('catalog_id', catalogIds)
+                    .eq('is_owner', false);
+
+                if (uniqueData) {
+                    const uniqueHashes = new Set(uniqueData.map(d => d.visitor_hash));
+                    detailedStats.uniqueVisitors = uniqueHashes.size;
+                }
+
+                // Cihaz dağılımı
+                const { data: deviceData } = await supabase
+                    .from('catalog_views')
+                    .select('device_type')
+                    .in('catalog_id', catalogIds)
+                    .eq('is_owner', false);
+
+                if (deviceData && deviceData.length > 0) {
+                    const deviceCounts: Record<string, number> = {};
+                    deviceData.forEach(d => {
+                        const type = d.device_type || 'unknown';
+                        deviceCounts[type] = (deviceCounts[type] || 0) + 1;
+                    });
+
+                    const total = deviceData.length;
+                    detailedStats.deviceStats = Object.entries(deviceCounts).map(([type, count]) => ({
+                        device_type: type,
+                        view_count: count,
+                        percentage: Math.round((count / total) * 100)
+                    })).sort((a, b) => b.view_count - a.view_count);
+                }
+
+                // Son 30 günlük görüntülenmeler
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                const { data: dailyData } = await supabase
+                    .from('catalog_views')
+                    .select('view_date')
+                    .in('catalog_id', catalogIds)
+                    .eq('is_owner', false)
+                    .gte('view_date', thirtyDaysAgo.toISOString().split('T')[0]);
+
+                if (dailyData && dailyData.length > 0) {
+                    const dailyCounts: Record<string, number> = {};
+                    dailyData.forEach(d => {
+                        const date = d.view_date;
+                        dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+                    });
+
+                    detailedStats.dailyViews = Object.entries(dailyCounts)
+                        .map(([date, count]) => ({ view_date: date, view_count: count }))
+                        .sort((a, b) => a.view_date.localeCompare(b.view_date));
+                }
+            }
+        } catch (err) {
+            // catalog_views tablosu yoksa sessizce devam et
+            console.log('Detailed analytics not available (table may not exist)');
+        }
+
+        res.json({ ...stats, ...detailedStats });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

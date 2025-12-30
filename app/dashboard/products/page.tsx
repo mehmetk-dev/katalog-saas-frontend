@@ -1,9 +1,15 @@
 import { Suspense } from "react"
+import { Metadata } from "next"
 
 import { getProducts } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { ProductsPageClient } from "@/components/products/products-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
+
+export const metadata: Metadata = {
+  title: "Ürünler | CatalogPro",
+  description: "Ürün envanterinizi yönetin, düzenleyin ve kataloglara ekleyin.",
+}
 
 export default async function ProductsPage() {
   const [products, user] = await Promise.all([getProducts(), getCurrentUser()])

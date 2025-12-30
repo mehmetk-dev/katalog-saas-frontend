@@ -1,10 +1,16 @@
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
+import { Metadata } from "next"
 
 import { getCatalog } from "@/lib/actions/catalogs"
 import { getProducts } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
+
+export const metadata: Metadata = {
+  title: "Katalog Oluşturucu | CatalogPro",
+  description: "Sürükle-bırak editörü ile profesyonel kataloglar oluşturun.",
+}
 
 interface BuilderPageProps {
   searchParams: Promise<{ id?: string }>

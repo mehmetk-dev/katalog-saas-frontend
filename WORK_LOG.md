@@ -1,5 +1,12 @@
 # Proje Geliştirme Günlüğü
 
+## 26 Aralık 2025
+- **Sürükle-Bırak Temizliği:** `product-modal.tsx` dosyasındaki kullanılmayan `draggedImageIndex` state'i kaldırıldı. Tüm sürükle-bırak alanları (`products-table.tsx`, `catalog-editor.tsx`, `bulk-image-upload-modal.tsx`) kontrol edildi ve düzgün çalıştığı doğrulandı.
+- **Tablet Responsive Düzeltmesi:** Katalog builder sayfası (1024x960 gibi tablet boyutları) için responsive layout iyileştirildi. Katalog bilgileri kartı artık tablet'te düzgün sığıyor, renk paleti `flex-wrap` ile sarılıyor.
+- **Toplu Fotoğraf Yükleme Sorunu Giderildi:** `BulkImageUploadModal` bileşeninde `onSuccess` callback'i düzeltildi. Artık fotoğraflar yüklendikten sonra `getProducts()` çağrılarak ürün listesi anında güncelleniyor.
+- **Docker Compose Format Hatası:** `docker-compose.yml` dosyasındaki `ALLOWED_ORIGINS` ve `REDIS_URL` aynı satırda birleşme hatası düzeltildi.
+- **Proje İstatistikleri:** Proje şu anda ~30,000 satır kod içeriyor (20,856 TSX + 6,902 TS + 319 CSS).
+
 ## 22 Aralık 2025
 - **Merkezi Timeout Hook Oluşturuldu:** `lib/hooks/use-async-timeout.ts` dosyasında yeniden kullanılabilir `useAsyncTimeout<T>` hook'u oluşturuldu. Bu hook ilerleme takibi, zaman aşımı kontrolü (toplam + stuck), otomatik toast mesajları, iptal ve yeniden deneme özellikleri sunuyor.
 - **Product Modal Entegrasyonu:** Ürün resim yükleme işlemi artık timeout kontrolü ile yapılıyor. 60 saniye toplam / 20 saniye stuck timeout ayarlandı. Her dosya için progress takibi eklendi.

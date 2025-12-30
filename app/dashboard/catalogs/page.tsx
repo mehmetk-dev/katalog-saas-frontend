@@ -1,5 +1,11 @@
+import { Metadata } from "next"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { CatalogsPageClient } from "@/components/catalogs/catalogs-page-client"
+
+export const metadata: Metadata = {
+  title: "Kataloglar | CatalogPro",
+  description: "Oluşturduğunuz tüm katalogları yönetin, düzenleyin ve paylaşın.",
+}
 
 export default async function CatalogsPage() {
   const supabase = await createServerSupabaseClient()

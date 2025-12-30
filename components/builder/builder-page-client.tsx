@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { CatalogEditor } from "@/components/builder/catalog-editor"
 import { CatalogPreview } from "@/components/builder/catalog-preview"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useUser } from "@/lib/user-context"
@@ -76,6 +77,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [logoPosition, setLogoPosition] = useState<string>(catalog?.logo_position || 'header-left')
   const [logoSize, setLogoSize] = useState<string>(catalog?.logo_size || 'medium')
   const [titlePosition, setTitlePosition] = useState<string>((catalog as any)?.title_position || 'left')
+  const [showShareModal, setShowShareModal] = useState(false)
   const tabsId = useId()
   const [showExitDialog, setShowExitDialog] = useState(false)
 
@@ -505,15 +507,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       toast.error(t('toasts.saveCatalogFirst'))
       return
     }
-
-    const shareUrl = `${window.location.origin}/catalog/${catalog.share_slug}`
-    navigator.clipboard.writeText(shareUrl)
-
-    if (!isPublished) {
-      toast.success(t('toasts.linkCopied'))
-    } else {
-      toast.success(t('toasts.linkCopied'))
-    }
+    setShowShareModal(true)
   }
 
   // Görünüm modunu mobil için kontrol et
@@ -756,6 +750,17 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       </div>
 
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+
+      {/* Share Modal */}
+      {catalog?.share_slug && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          catalogName={catalogName || catalog?.name || 'Katalog'}
+          catalogDescription={catalogDescription || catalog?.description}
+          shareUrl={typeof window !== 'undefined' ? `${window.location.origin}/catalog/${catalog.share_slug}` : ''}
+        />
+      )}
 
       {/* Exit Confirmation Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
