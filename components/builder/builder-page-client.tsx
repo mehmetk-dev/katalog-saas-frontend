@@ -81,6 +81,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [showShareModal, setShowShareModal] = useState(false)
   const tabsId = useId()
   const [showExitDialog, setShowExitDialog] = useState(false)
+  const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false)
+
 
   // Kaydedilmemiş değişiklik takibi
   const [isDirty, setIsDirty] = useState(false)
@@ -194,7 +196,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           backgroundColor,
         })
         setIsDirty(false)
+        if (isPublished) {
+          setHasUnpushedChanges(true)
+        }
       } catch (error) {
+
         console.error('Autosave failed:', error)
         // Sessizce fail - kullanıcıyı rahatsız etme
       } finally {
@@ -298,11 +304,57 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           backgroundColor,
         })
         setIsDirty(false)
+        if (isPublished) {
+          setHasUnpushedChanges(true)
+        }
       } catch {
         toast.error(t('toasts.catalogSaveFailed'))
       }
     })
   }
+
+  const handlePushUpdates = () => {
+    if (!currentCatalogId) return
+
+    startTransition(async () => {
+      try {
+        // 1. Önce kaydet
+        await updateCatalog(currentCatalogId, {
+          name: catalogName,
+          description: catalogDescription,
+          product_ids: selectedProductIds,
+          layout,
+          primary_color: primaryColor,
+          show_prices: showPrices,
+          show_descriptions: showDescriptions,
+          show_attributes: showAttributes,
+          show_sku: showSku,
+          columns_per_row: columnsPerRow,
+          background_color: backgroundColor,
+          background_image: backgroundImage,
+          background_image_fit: backgroundImageFit as any,
+          background_gradient: backgroundGradient,
+          logo_url: logoUrl,
+          logo_position: logoPosition as any,
+          logo_size: logoSize as any,
+        })
+
+        // 2. Cache temizle (Slug kullanarak)
+        const shareSlug = catalog?.share_slug
+        if (shareSlug) {
+          const { revalidateCatalogPublic } = await import("@/lib/actions/catalogs")
+          await revalidateCatalogPublic(shareSlug)
+        }
+
+        setHasUnpushedChanges(false)
+        setIsDirty(false)
+        toast.success("Yayındaki katalog güncellendi! 🚀")
+      } catch (error) {
+        toast.error("Güncelleme sırasında bir hata oluştu.")
+      }
+    })
+  }
+
 
   const handlePublish = () => {
     if (!currentCatalogId) {
@@ -312,13 +364,15 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
     startTransition(async () => {
       try {
-        // 1. Önce mevcut durumu ve slug'ı kaydet (yayınlanmadan önce son halini)
-        const companyPart = user?.company || user?.name || "user"
-        const namePart = catalogName || "catalog"
-        const idPart = currentCatalogId.slice(0, 4)
-        const shareSlug = `${slugify(companyPart)}-${slugify(namePart)}-${idPart}`
+        // 1. Durumu kaydet ve slug oluştur (eğer yoksa)
+        let shareSlug = catalog?.share_slug
+        if (!shareSlug) {
+          const companyPart = user?.company || user?.name || "user"
+          const namePart = catalogName || "catalog"
+          const idPart = currentCatalogId.slice(0, 4)
+          shareSlug = `${slugify(companyPart)}-${slugify(namePart)}-${idPart}`
+        }
 
-        // Sadece değişen veya gerekli alanları gönderelim
         await updateCatalog(currentCatalogId, {
           name: catalogName,
           description: catalogDescription,
@@ -339,12 +393,19 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_size: logoSize as any,
           share_slug: shareSlug,
         })
-        setIsDirty(false)
 
         // 2. Şimdi yayın durumunu güncelle
         const newPublishState = !isPublished
-        await publishCatalog(currentCatalogId, newPublishState)
+        const { publishCatalog: publishCatalogAction, revalidateCatalogPublic } = await import("@/lib/actions/catalogs")
+        await publishCatalogAction(currentCatalogId, newPublishState, shareSlug)
+
+        if (newPublishState && shareSlug) {
+          await revalidateCatalogPublic(shareSlug)
+        }
+
         setIsPublished(newPublishState)
+        setHasUnpushedChanges(false)
+        setIsDirty(false)
 
         if (newPublishState) {
           const shareUrl = `${window.location.origin}/catalog/${shareSlug}`
@@ -365,11 +426,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         }
       } catch (error: any) {
         console.error("Publish error:", error)
-        const errorMsg = error.message || "İşlem sırasında bir hata oluştu"
-        toast.error(`Hata: ${errorMsg}. Lütfen veritabanı kolonlarının güncel olduğundan emin olun.`)
+        toast.error("İşlem sırasında bir hata oluştu.")
       }
     })
   }
+
 
   const handleDownloadPDF = async () => {
     try {
@@ -651,6 +712,20 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             <Save className="w-3.5 h-3.5" />
             <span className="hidden sm:inline text-xs">{isPending ? t('builder.saving') : t('builder.save')}</span>
           </Button>
+
+          {isPublished && hasUnpushedChanges && (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handlePushUpdates}
+              disabled={isPending}
+              className="h-8 gap-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg animate-in fade-in zoom-in duration-300"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-xs">{t('builder.publishUpdates') || "Güncellemeleri Yayınla"}</span>
+            </Button>
+          )}
+
 
           {/* PDF - Secondary Action */}
           <Button

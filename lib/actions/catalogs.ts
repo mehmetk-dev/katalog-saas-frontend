@@ -143,18 +143,32 @@ export async function deleteCatalog(id: string) {
   }
 }
 
-export async function publishCatalog(id: string, isPublished: boolean) {
+export async function publishCatalog(id: string, isPublished: boolean, share_slug?: string | null) {
   try {
     await apiFetch(`/catalogs/${id}/publish`, {
       method: "PATCH",
       body: JSON.stringify({ is_published: isPublished }),
     })
     revalidatePath("/dashboard")
+    if (share_slug) {
+      revalidatePath(`/catalog/${share_slug}`)
+    }
     return { success: true }
   } catch (error) {
     throw error
   }
 }
+
+export async function revalidateCatalogPublic(slug: string) {
+  try {
+    revalidatePath(`/catalog/${slug}`)
+    return { success: true }
+  } catch (error) {
+    console.error("Revalidation error:", error)
+    return { success: false }
+  }
+}
+
 
 export async function getPublicCatalog(slug: string) {
   try {

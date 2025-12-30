@@ -24,6 +24,7 @@ interface CatalogPreviewProps {
     showPrices?: boolean
     showDescriptions?: boolean
     showAttributes?: boolean
+    showSku?: boolean
     columnsPerRow?: number
     backgroundColor?: string
     backgroundImage?: string | null
@@ -42,6 +43,7 @@ export function CatalogPreview({
     showPrices = true,
     showDescriptions = true,
     showAttributes = true,
+    showSku = true,
     columnsPerRow = 3,
     backgroundColor = "#ffffff",
     backgroundImage,
@@ -125,6 +127,7 @@ export function CatalogPreview({
         showPrices,
         showDescriptions,
         showAttributes,
+        showSku,
         columnsPerRow,
         isFreeUser: false,
         // Logo props - template handles rendering

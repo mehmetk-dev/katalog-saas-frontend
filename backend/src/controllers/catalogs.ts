@@ -259,6 +259,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: any) {
+        console.error('Update catalog error:', error);
         res.status(500).json({ error: error.message });
     }
 };
