@@ -17,6 +17,7 @@ interface CatalogPreviewProps {
   showPrices: boolean
   showDescriptions: boolean
   showAttributes: boolean
+  showSku: boolean
   // Yeni kişiselleştirme props
   columnsPerRow?: number
   backgroundColor?: string
@@ -75,20 +76,24 @@ export function CatalogPreview(props: CatalogPreviewProps) {
       case 'fashion-lookbook':
         return 4;
       case 'industrial':
-        return columnsPerRow * 4;
+        return 8;
       case 'compact-list':
         return 12;
       case 'classic-catalog':
         return 10;
       case 'catalog-pro':
-        return columnsPerRow * 3;
+      case 'retail':
       case 'product-tiles':
-        return columnsPerRow === 2 ? 8 : columnsPerRow * 3;
+      case 'modern-grid':
+      case 'bold':
+      case 'luxury':
+      case 'minimalist':
+      case 'tech-modern':
+      case 'clean-white':
+      case 'elegant-cards':
+        return columnsPerRow * 3;
       default:
-        if (columnsPerRow === 2) return 6;
-        if (columnsPerRow === 3) return 9;
-        if (columnsPerRow === 4) return 12;
-        return 9;
+        return columnsPerRow * 3;
     }
   }
 
@@ -175,10 +180,6 @@ export function CatalogPreview(props: CatalogPreviewProps) {
           pageNumber={pageIndex + 1}
           totalPages={pages.length}
           columnsPerRow={columnsPerRow}
-          logoUrl={props.logoUrl}
-          logoPosition={props.logoPosition}
-          logoSize={props.logoSize}
-          titlePosition={props.titlePosition}
         />
       </div>
     )
@@ -241,15 +242,16 @@ export function CatalogPreview(props: CatalogPreviewProps) {
 
         {/* Mini sayfa göstergeleri */}
         {pages.length > 1 && viewMode === "single" && (
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 max-w-[120px] sm:max-w-[200px] min-w-0">
             {pages.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => goToPage(idx)}
-                className={`w-2 h-2 rounded-full transition-colors ${idx === currentPage
-                  ? "bg-primary"
-                  : "bg-gray-300 hover:bg-gray-400"
+                className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${idx === currentPage
+                  ? "bg-primary shadow-sm"
+                  : "bg-slate-300 hover:bg-slate-400"
                   }`}
+                title={`Sayfa ${idx + 1}`}
               />
             ))}
           </div>

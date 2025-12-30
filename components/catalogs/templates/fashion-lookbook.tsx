@@ -8,6 +8,7 @@ export function FashionLookbookTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -47,6 +48,9 @@ export function FashionLookbookTemplate({
                                             return `${symbol}${Number(hero.price).toFixed(2)}`
                                         })()}
                                     </p>
+                                )}
+                                {showSku && hero.sku && (
+                                    <p className="text-[10px] text-white/50 font-mono mt-1">SKU: {hero.sku}</p>
                                 )}
                             </div>
                         </div>
@@ -99,6 +103,9 @@ export function FashionLookbookTemplate({
                                                 return `${symbol}${Number(product!.price).toFixed(2)}`
                                             })()}
                                         </p>
+                                    )}
+                                    {showSku && product!.sku && (
+                                        <p className="text-[8px] text-gray-400 font-mono mt-0.5">#{product!.sku}</p>
                                     )}
                                 </div>
                             </Wrapper>

@@ -9,6 +9,7 @@ export function TechModernTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -26,8 +27,7 @@ export function TechModernTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        return "grid-rows-3"
     }
 
     return (
@@ -105,7 +105,7 @@ export function TechModernTemplate({
                                             })()}
                                         </span>
                                     )}
-                                    {product.sku && (
+                                    {showSku && product.sku && (
                                         <span className="text-[8px] text-slate-600 font-mono px-1.5 py-0.5 bg-slate-950 rounded border border-slate-800">
                                             #{product.sku}
                                         </span>

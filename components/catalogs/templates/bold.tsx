@@ -7,6 +7,7 @@ export function BoldTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -26,8 +27,10 @@ export function BoldTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        // 2 sütun -> 6 ürün (3 satır)
+        // 3 sütun -> 9 ürün (3 satır)
+        // 4 sütun -> 12 ürün (3 satır)
+        return "grid-rows-3"
     }
 
     // Logo boyutu
@@ -156,7 +159,7 @@ export function BoldTemplate({
                                             })()}
                                         </span>
                                     )}
-                                    {product.sku && (
+                                    {showSku && product.sku && (
                                         <span className="text-[8px] font-mono font-bold bg-gray-100 px-0.5">{product.sku}</span>
                                     )}
                                 </div>

@@ -7,6 +7,7 @@ export function ModernGridTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -28,8 +29,10 @@ export function ModernGridTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        // columnsPerRow: 2 -> 6 items (3 rows)
+        // columnsPerRow: 3 -> 9 items (3 rows)
+        // columnsPerRow: 4 -> 12 items (3 rows)
+        return "grid-rows-3"
     }
 
     // Logo boyutu
@@ -174,7 +177,7 @@ export function ModernGridTemplate({
                                         ))}
                                     </div>
                                 )}
-                                {product.sku && (
+                                {showSku && product.sku && (
                                     <p className="text-[10px] text-gray-400 mt-auto pt-1 font-mono">SKU: {product.sku}</p>
                                 )}
                             </div>

@@ -8,6 +8,7 @@ export function IndustrialTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -29,7 +30,7 @@ export function IndustrialTemplate({
 
             {/* Tek kolon tam genişlik liste */}
             <div className="flex-1 p-4 flex flex-col gap-2 overflow-hidden">
-                {safeProducts.slice(0, 8).map((product, idx) => {
+                {safeProducts.map((product, idx) => {
                     const productUrl = (product as any).product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
@@ -64,7 +65,7 @@ export function IndustrialTemplate({
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <h3 className="font-bold text-xs text-zinc-900 uppercase truncate leading-none">{product.name}</h3>
-                                    {product.sku && <span className="text-[8px] text-zinc-400 font-mono bg-zinc-100 px-1 py-0.2 rounded shrink-0 leading-none">#{product.sku}</span>}
+                                    {showSku && product.sku && <span className="text-[8px] text-zinc-400 font-mono bg-zinc-100 px-1 py-0.2 rounded shrink-0 leading-none">#{product.sku}</span>}
                                 </div>
                                 {showDescriptions && product.description && (
                                     <p className="text-[10px] text-zinc-500 line-clamp-1 leading-none italic">{product.description}</p>

@@ -40,7 +40,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
     startTransition(async () => {
       try {
         const catalog = await createCatalog({
-          name: `${t('builder.newCatalog')} - ${template.name}`,
+          name: t('builder.newCatalog'),
           template_id: template.id,
           layout: template.layout,
         })

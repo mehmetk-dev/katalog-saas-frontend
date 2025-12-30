@@ -8,6 +8,7 @@ export function ProductTilesTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 3,
@@ -27,7 +28,6 @@ export function ProductTilesTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-4"
         return "grid-rows-3"
     }
 
@@ -125,7 +125,7 @@ export function ProductTilesTemplate({
                                             })()}
                                         </p>
                                     )}
-                                    {product.sku && <span className="text-[8px] text-gray-300 font-mono">#{product.sku}</span>}
+                                    {showSku && product.sku && <span className="text-[8px] text-gray-300 font-mono">#{product.sku}</span>}
                                 </div>
                             </div>
                         </Wrapper>

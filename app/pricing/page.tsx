@@ -40,11 +40,11 @@ export default function PricingPage() {
       color: "bg-slate-100",
       iconColor: "text-slate-600",
       features: [
-        "1 " + t('catalogs.catalog'),
-        "50 " + t('plans.productLimit'),
-        "1 " + t('builder.download'),
+        t('plans.features.catalogsCount', { count: 1 }),
+        t('plans.features.productLimit', { count: 50 }),
+        t('upgradeModal.features.pdfLimit', { count: 1 }),
         t('upgradeModal.features.standardPdf'),
-        t('header.pricing') === 'Pricing' ? 'Watermarked' : 'Filigranlı'
+        t('pricingPage.watermarked')
       ],
       cta: t('pricingPage.ctaFree'),
       href: "/auth",
@@ -58,11 +58,11 @@ export default function PricingPage() {
       color: "bg-blue-100",
       iconColor: "text-blue-600",
       features: [
-        "10 " + t('catalogs.catalog'),
-        "1.000 " + t('plans.productLimit'),
-        "50 " + t('builder.download'),
+        t('plans.features.catalogsCount', { count: 10 }),
+        t('plans.features.productLimit', { count: 1000 }),
+        t('upgradeModal.features.pdfLimit', { count: 50 }),
         t('upgradeModal.features.standardPdf'),
-        t('header.pricing') === 'Pricing' ? 'No Watermark' : 'Filigransız'
+        t('pricingPage.noWatermark')
       ],
       cta: t('pricingPage.ctaPlus'),
       href: "/auth?plan=plus",
@@ -78,7 +78,7 @@ export default function PricingPage() {
       iconColor: "text-violet-600",
       features: [
         t('plans.unlimitedCatalogs'),
-        t('plans.unlimited') + " " + t('footer.product'),
+        t('plans.features.unlimitedProducts'),
         t('plans.unlimitedDownloads'),
         t('upgradeModal.features.highResPdf'),
         t('plans.allTemplates')

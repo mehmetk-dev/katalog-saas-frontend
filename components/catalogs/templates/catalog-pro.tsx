@@ -8,6 +8,7 @@ export function CatalogProTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 3,
@@ -24,8 +25,7 @@ export function CatalogProTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        return "grid-rows-3"
     }
 
     return (
@@ -104,7 +104,7 @@ export function CatalogProTemplate({
                                             })()}
                                         </p>
                                     )}
-                                    {product.sku && <span className="text-[8px] text-gray-400 font-mono">#{product.sku}</span>}
+                                    {showSku && product.sku && <span className="text-[8px] text-gray-400 font-mono">#{product.sku}</span>}
                                 </div>
                             </div>
                         </Wrapper>

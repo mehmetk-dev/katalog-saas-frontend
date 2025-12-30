@@ -8,6 +8,7 @@ export function ElegantCardsTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -24,8 +25,7 @@ export function ElegantCardsTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        return "grid-rows-3"
     }
 
     return (
@@ -108,7 +108,7 @@ export function ElegantCardsTemplate({
                                             })()}
                                         </p>
                                     )}
-                                    {product.sku && (
+                                    {showSku && product.sku && (
                                         <span className="text-[8px] text-stone-300 font-serif tracking-widest">{product.sku}</span>
                                     )}
                                 </div>

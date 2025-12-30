@@ -8,6 +8,7 @@ export function CleanWhiteTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -24,8 +25,7 @@ export function CleanWhiteTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        return "grid-rows-3"
     }
 
     return (
@@ -108,7 +108,7 @@ export function CleanWhiteTemplate({
                                         </div>
                                     )}
                                 </div>
-                                {product.sku && (
+                                {showSku && product.sku && (
                                     <div className="mt-auto pt-2">
                                         <span className="text-[8px] text-gray-200 font-mono tracking-widest leading-none uppercase">SKU: {product.sku}</span>
                                     </div>

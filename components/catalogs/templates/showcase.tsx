@@ -8,6 +8,7 @@ export function ShowcaseTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -62,7 +63,9 @@ export function ShowcaseTemplate({
                                 </div>
                             )}
                             <div className="absolute bottom-0 left-0 p-10 max-w-lg z-20">
-                                <span className="text-[10px] text-blue-500 font-bold tracking-[0.3em] uppercase mb-2 block">{main.sku || "FEATURED"}</span>
+                                {showSku && (
+                                    <span className="text-[10px] text-blue-500 font-bold tracking-[0.3em] uppercase mb-2 block">{main.sku || "FEATURED"}</span>
+                                )}
                                 <h2 className="text-4xl font-light mb-4 group-hover:text-blue-200 transition-colors leading-tight">{main.name}</h2>
                                 {showDescriptions && main.description && (
                                     <p className="text-white/50 text-sm line-clamp-3 mb-6 leading-relaxed font-light">{main.description}</p>
@@ -138,7 +141,9 @@ export function ShowcaseTemplate({
                                             ))}
                                         </div>
                                     )}
-
+                                    {showSku && product.sku && (
+                                        <span className="text-[8px] text-gray-400 font-mono bg-gray-100 px-1 py-0.2 rounded">#{product.sku}</span>
+                                    )}
                                     {showPrices && (
                                         <p className="text-sm font-light mt-0.5" style={{ color: primaryColor }}>
                                             {(() => {

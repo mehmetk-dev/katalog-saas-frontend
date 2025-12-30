@@ -9,6 +9,7 @@ export function LuxuryTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -26,8 +27,10 @@ export function LuxuryTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        // 2 sütun -> 6 ürün (3 satır)
+        // 3 sütun -> 9 ürün (3 satır)
+        // 4 sütun -> 12 ürün (3 satır)
+        return "grid-rows-3"
     }
 
     return (
@@ -112,7 +115,7 @@ export function LuxuryTemplate({
                                             })()}
                                         </p>
                                     )}
-                                    {product.sku && (
+                                    {showSku && product.sku && (
                                         <span className="text-[8px] text-zinc-700 font-serif tracking-[0.2em]">#{product.sku}</span>
                                     )}
                                 </div>

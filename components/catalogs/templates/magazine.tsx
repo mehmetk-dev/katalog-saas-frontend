@@ -7,6 +7,7 @@ export function MagazineTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -113,6 +114,9 @@ export function MagazineTemplate({
                                     })()}
                                 </p>
                             )}
+                            {showSku && featured.sku && (
+                                <p className="text-[10px] text-white/50 font-mono mt-1">SKU: {featured.sku}</p>
+                            )}
                             {showAttributes && featured.custom_attributes && featured.custom_attributes.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {featured.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
@@ -151,6 +155,9 @@ export function MagazineTemplate({
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}
                                         </p>
+                                    )}
+                                    {showSku && product.sku && (
+                                        <p className="text-[8px] text-white/50 font-mono mt-0.5">#{product.sku}</p>
                                     )}
                                     {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">

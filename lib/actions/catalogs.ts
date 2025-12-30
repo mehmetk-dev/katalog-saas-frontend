@@ -15,6 +15,7 @@ export interface Catalog {
   show_prices: boolean
   show_descriptions: boolean
   show_attributes: boolean
+  show_sku: boolean
   is_published: boolean
   share_slug: string | null
   product_ids: string[]

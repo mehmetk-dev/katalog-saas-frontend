@@ -63,6 +63,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [showPrices, setShowPrices] = useState(catalog?.show_prices ?? true)
   const [showDescriptions, setShowDescriptions] = useState(catalog?.show_descriptions ?? true)
   const [showAttributes, setShowAttributes] = useState(catalog?.show_attributes ?? false)
+  const [showSku, setShowSku] = useState(catalog?.show_sku ?? true)
   const [view, setView] = useState<"split" | "editor" | "preview">("split")
   const [currentCatalogId, setCurrentCatalogId] = useState(catalog?.id || null)
   const [isPublished, setIsPublished] = useState(catalog?.is_published || false)
@@ -92,6 +93,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     showPrices: catalog?.show_prices ?? true,
     showDescriptions: catalog?.show_descriptions ?? true,
     showAttributes: catalog?.show_attributes ?? false,
+    showSku: catalog?.show_sku ?? true,
     columnsPerRow: catalog?.columns_per_row || 3,
     backgroundColor: catalog?.background_color || '#ffffff',
   })
@@ -106,6 +108,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     showPrices !== lastSavedState.showPrices ||
     showDescriptions !== lastSavedState.showDescriptions ||
     showAttributes !== lastSavedState.showAttributes ||
+    showSku !== lastSavedState.showSku ||
     columnsPerRow !== lastSavedState.columnsPerRow ||
     backgroundColor !== lastSavedState.backgroundColor
   )
@@ -136,7 +139,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, columnsPerRow, backgroundColor])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor])
 
   // Autosave state
   const [isAutoSaving, setIsAutoSaving] = useState(false)
@@ -164,6 +167,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           primary_color: primaryColor,
           show_prices: showPrices,
           show_descriptions: showDescriptions,
+          show_attributes: showAttributes,
+          show_sku: showSku,
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
@@ -184,6 +189,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           showPrices,
           showDescriptions,
           showAttributes,
+          showSku,
           columnsPerRow,
           backgroundColor,
         })
@@ -201,7 +207,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize])
+  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
   const selectedProducts = selectedProductIds
@@ -238,6 +244,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             primary_color: primaryColor,
             show_prices: showPrices,
             show_descriptions: showDescriptions,
+            show_attributes: showAttributes,
+            show_sku: showSku,
             columns_per_row: columnsPerRow,
             background_color: backgroundColor,
             background_image: backgroundImage,
@@ -260,6 +268,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             primary_color: primaryColor,
             show_prices: showPrices,
             show_descriptions: showDescriptions,
+            show_attributes: showAttributes,
+            show_sku: showSku,
             columns_per_row: columnsPerRow,
             background_color: backgroundColor,
             background_image: backgroundImage,
@@ -283,6 +293,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           showPrices,
           showDescriptions,
           showAttributes,
+          showSku,
           columnsPerRow,
           backgroundColor,
         })
@@ -301,12 +312,13 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
     startTransition(async () => {
       try {
-        // 1. Önce mevcut durumu ve slug'ı kaydet
-        const companyPart = user?.company || user?.name || "catalog"
-        const namePart = catalogName || "untitled"
-        const idPart = currentCatalogId.slice(0, 6)
+        // 1. Önce mevcut durumu ve slug'ı kaydet (yayınlanmadan önce son halini)
+        const companyPart = user?.company || user?.name || "user"
+        const namePart = catalogName || "catalog"
+        const idPart = currentCatalogId.slice(0, 4)
         const shareSlug = `${slugify(companyPart)}-${slugify(namePart)}-${idPart}`
 
+        // Sadece değişen veya gerekli alanları gönderelim
         await updateCatalog(currentCatalogId, {
           name: catalogName,
           description: catalogDescription,
@@ -316,6 +328,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           show_prices: showPrices,
           show_descriptions: showDescriptions,
           show_attributes: showAttributes,
+          show_sku: showSku,
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
@@ -326,16 +339,17 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_size: logoSize as any,
           share_slug: shareSlug,
         })
+        setIsDirty(false)
 
-        // 2. Sonra yayın durumunu güncelle
+        // 2. Şimdi yayın durumunu güncelle
         const newPublishState = !isPublished
         await publishCatalog(currentCatalogId, newPublishState)
         setIsPublished(newPublishState)
 
         if (newPublishState) {
-          // Yayınlandıysa yeni sekmede aç (yeni slug ile)
           const shareUrl = `${window.location.origin}/catalog/${shareSlug}`
-          toast.success("Katalog yayınlandı ve güncellendi!", {
+          toast.success("Katalog başarıyla yayınlandı! 🎉", {
+            description: "Artık herkes tarafından görüntülenebilir.",
             action: {
               label: "Linki Kopyala",
               onClick: () => {
@@ -344,16 +358,15 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               }
             }
           })
-          // Kısa bir gecikme ile yeni sekme aç
-          setTimeout(() => {
-            window.open(shareUrl, '_blank')
-          }, 500)
         } else {
-          toast.success(t('toasts.catalogDeleted'))
+          toast.success("Katalog yayından kaldırıldı.", {
+            description: "Mevcut link artık çalışmayacaktır."
+          })
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Publish error:", error)
-        toast.error("Yayın durumu güncellenemedi")
+        const errorMsg = error.message || "İşlem sırasında bir hata oluştu"
+        toast.error(`Hata: ${errorMsg}. Lütfen veritabanı kolonlarının güncel olduğundan emin olun.`)
       }
     })
   }
@@ -534,12 +547,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <Input
-            value={catalogName}
-            onChange={(e) => setCatalogName(e.target.value)}
-            className="h-8 font-medium text-sm w-[120px] sm:w-[180px] md:w-[220px] border-none bg-muted/50 focus:bg-background"
-            placeholder={t('builder.catalogNamePlaceholder')}
-          />
+          <div className="flex flex-col min-w-0">
+            <Input
+              value={catalogName}
+              onChange={(e) => setCatalogName(e.target.value)}
+              className="h-8 font-bold text-base min-w-[150px] sm:min-w-[200px] border-none bg-transparent hover:bg-muted/30 focus:bg-background transition-colors p-1 rounded-md focus:ring-1 focus:ring-primary/20"
+              placeholder={t('builder.catalogNamePlaceholder')}
+            />
+          </div>
           {isPublished && (
             <div className="hidden sm:flex items-center gap-1 text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
               <Globe className="w-2.5 h-2.5" />
@@ -605,7 +620,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
             <button
               onClick={() => setView("editor")}
-              className={`p-1.5 rounded-md transition-all ${effectiveView === "editor"
+              className={`w-9 h-8 flex items-center justify-center rounded-md transition-all ${effectiveView === "editor"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground"
                 }`}
@@ -614,7 +629,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             </button>
             <button
               onClick={() => setView("preview")}
-              className={`p-1.5 rounded-md transition-all ${effectiveView === "preview"
+              className={`w-9 h-8 flex items-center justify-center rounded-md transition-all ${effectiveView === "preview"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground"
                 }`}
@@ -686,8 +701,6 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               products={products}
               selectedProductIds={selectedProductIds}
               onSelectedProductIdsChange={setSelectedProductIds}
-              catalogName={catalogName}
-              onCatalogNameChange={setCatalogName}
               description={catalogDescription}
               onDescriptionChange={setCatalogDescription}
               layout={layout}
@@ -700,6 +713,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onShowDescriptionsChange={setShowDescriptions}
               showAttributes={showAttributes}
               onShowAttributesChange={setShowAttributes}
+              showSku={showSku}
+              onShowSkuChange={setShowSku}
               userPlan={user?.plan || "free"}
               onUpgrade={() => setShowUpgradeModal(true)}
               columnsPerRow={columnsPerRow}
@@ -735,6 +750,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               showPrices={showPrices}
               showDescriptions={showDescriptions}
               showAttributes={showAttributes}
+              showSku={showSku}
               columnsPerRow={columnsPerRow}
               backgroundColor={backgroundColor}
               backgroundImage={backgroundImage}

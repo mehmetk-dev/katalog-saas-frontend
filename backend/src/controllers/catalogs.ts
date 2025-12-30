@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { supabase } from '../services/supabase';
 import { getCache, setCache, deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
+import { createNotification } from '../controllers/notifications';
 
 const getUserId = (req: Request) => (req as any).user.id;
 
@@ -131,16 +132,17 @@ export const createCatalog = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const { name, description, template_id, layout } = req.body;
 
-        // Limit kontrolü
-        const [user, catalogsCountResult] = await Promise.all([
+        // Limit kontrolü ve kullanıcı bilgileri
+        const [userData, catalogsCountResult] = await Promise.all([
             getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
-                const { data } = await supabase.from('users').select('plan').eq('id', userId).single();
+                const { data } = await supabase.from('users').select('plan, full_name, company').eq('id', userId).single();
                 return data;
             }),
             supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId)
         ]);
 
-        const plan = user?.plan || 'free';
+        const plan = userData?.plan || 'free';
+        const userName = userData?.company || userData?.full_name || 'user';
         const currentCount = catalogsCountResult.count || 0;
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
@@ -151,8 +153,10 @@ export const createCatalog = async (req: Request, res: Response) => {
             });
         }
 
-        // Generate unique share slug
-        const shareSlug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`;
+        // Generate unique dynamic share slug: [username]-[catalogname]-[random]
+        const cleanUserName = userName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        const cleanCatalogName = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        const shareSlug = `${cleanUserName}-${cleanCatalogName}-${Date.now().toString(36)}`;
 
         const { data, error } = await supabase
             .from('catalogs')
@@ -164,7 +168,8 @@ export const createCatalog = async (req: Request, res: Response) => {
                 // The layout field is sufficient to identify the template
                 layout: layout || template_id || 'grid',
                 share_slug: shareSlug,
-                product_ids: []
+                product_ids: [],
+                is_published: false
             })
             .select()
             .single();
@@ -213,6 +218,13 @@ export const updateCatalog = async (req: Request, res: Response) => {
         const { id } = req.params;
         const updates = req.body;
 
+        // Eski slug'ı bul (cache temizlemek için)
+        const { data: oldCatalog } = await supabase
+            .from('catalogs')
+            .select('share_slug')
+            .eq('id', id)
+            .single();
+
         const { error } = await supabase
             .from('catalogs')
             .update({
@@ -227,6 +239,12 @@ export const updateCatalog = async (req: Request, res: Response) => {
         // Cache'leri temizle
         await deleteCache(cacheKeys.catalogs(userId));
         await deleteCache(cacheKeys.catalog(userId, id));
+        if (oldCatalog?.share_slug) {
+            await deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug));
+        }
+        if (updates.share_slug && updates.share_slug !== oldCatalog?.share_slug) {
+            await deleteCache(cacheKeys.publicCatalog(updates.share_slug));
+        }
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -320,6 +338,27 @@ export const publishCatalog = async (req: Request, res: Response) => {
             ipAddress,
             userAgent
         });
+
+        // Yayınlandığında bildirim gönder
+        if (is_published && catalog?.share_slug) {
+            const { data: catalogData } = await supabase
+                .from('catalogs')
+                .select('name')
+                .eq('id', id)
+                .single();
+
+            const catalogName = catalogData?.name || 'Katalog';
+            const publicUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/catalog/${catalog.share_slug}`;
+
+            await createNotification(
+                userId,
+                'catalog_created',
+                `"${catalogName}" Yayında! 🎉`,
+                `Katalogonuz başarıyla yayınlandı. Artık müşterileriniz ile paylaşabilirsiniz.`,
+                `/catalog/${catalog.share_slug}`,
+                { catalogId: id, publicUrl }
+            );
+        }
 
         res.json({ success: true });
     } catch (error: any) {

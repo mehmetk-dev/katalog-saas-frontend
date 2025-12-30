@@ -1,37 +1,36 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Palette, Type, Grid3X3, GripVertical, Trash2, Package, Lock, LayoutTemplate, RefreshCw, Image, Upload, Columns, ImageIcon, ChevronDown, Tag, CheckSquare, BoxSelect, Maximize2 } from "lucide-react"
-import Link from "next/link"
+import {
+  Palette, Grid3X3, GripVertical, Trash2, Package, Image as ImageIcon,
+  Upload, ChevronDown, Tag, CheckSquare, BoxSelect, Maximize2,
+  ChevronRight, Layout, Settings2, Sparkles, Search
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import type { Product } from "@/lib/actions/products"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "@/lib/i18n-provider"
-import { ResponsiveContainer } from "@/components/ui/responsive-container"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
 import { TEMPLATES } from "@/lib/constants"
-
 import { CatalogPreview } from "../catalogs/catalog-preview"
 import { getPreviewProductsByLayout } from "../templates/preview-data"
-
+import { ResponsiveContainer } from "@/components/ui/responsive-container"
 
 interface CatalogEditorProps {
   products: Product[]
   selectedProductIds: string[]
   onSelectedProductIdsChange: (ids: string[]) => void
-  catalogName: string
-  onCatalogNameChange: (name: string) => void
   description: string
   onDescriptionChange: (desc: string) => void
   layout: string
@@ -44,7 +43,6 @@ interface CatalogEditorProps {
   onShowDescriptionsChange: (show: boolean) => void
   userPlan: string
   onUpgrade: () => void
-  // Yeni kişiselleştirme props
   columnsPerRow?: number
   onColumnsPerRowChange?: (columns: number) => void
   backgroundColor?: string
@@ -61,18 +59,18 @@ interface CatalogEditorProps {
   onLogoPositionChange?: (position: string) => void
   logoSize?: string
   onLogoSizeChange?: (size: string) => void
-  titlePosition?: string  // Başlık konumu: left, center, right
+  titlePosition?: string
   onTitlePositionChange?: (position: string) => void
   showAttributes?: boolean
   onShowAttributesChange?: (show: boolean) => void
+  showSku?: boolean
+  onShowSkuChange?: (show: boolean) => void
 }
 
 export function CatalogEditor({
   products,
   selectedProductIds,
   onSelectedProductIdsChange,
-  catalogName,
-  onCatalogNameChange,
   description,
   onDescriptionChange,
   layout,
@@ -85,7 +83,6 @@ export function CatalogEditor({
   onShowDescriptionsChange,
   userPlan,
   onUpgrade,
-  // Yeni kişiselleştirme props (varsayılan değerlerle)
   columnsPerRow = 3,
   onColumnsPerRowChange,
   backgroundColor = '#ffffff',
@@ -106,25 +103,28 @@ export function CatalogEditor({
   onTitlePositionChange,
   showAttributes = false,
   onShowAttributesChange,
+  showSku = true,
+  onShowSkuChange,
 }: CatalogEditorProps) {
-  const router = useRouter()
   const { t } = useTranslation()
+  const router = useRouter()
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const bgInputRef = useRef<HTMLInputElement>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [visibleCount, setVisibleCount] = useState(12)
+  const [activeTab, setActiveTab] = useState("content")
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // Kategorileri çıkar
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
 
-  // Filtrelenmiş ürünler
-  const filteredProducts = selectedCategory === "all"
-    ? products
-    : products.filter(p => p.category === selectedCategory)
+  const filteredProducts = products.filter(p => {
+    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
 
-  // Görünen ürünler (lazy loading)
   const visibleProducts = filteredProducts.slice(0, visibleCount)
 
   const toggleProduct = (id: string) => {
@@ -135,10 +135,6 @@ export function CatalogEditor({
     }
   }
 
-  const removeProduct = (id: string) => {
-    onSelectedProductIdsChange(selectedProductIds.filter((i) => i !== id))
-  }
-
   const handleTemplateSelect = (templateId: string, isPro: boolean) => {
     if (isPro && userPlan === "free") {
       onUpgrade()
@@ -147,827 +143,579 @@ export function CatalogEditor({
     onLayoutChange(templateId)
   }
 
-  // Drag & Drop Handlers
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.effectAllowed = "move"
-    e.dataTransfer.setData("text/plain", index.toString())
-    setDraggingIndex(index)
-  }
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = "move"
-    setDropIndex(index)
-  }
-
-  const handleDrop = (e: React.DragEvent, index: number) => {
-    e.preventDefault()
-    const startIndex = Number.parseInt(e.dataTransfer.getData("text/plain"))
-
-    if (isNaN(startIndex) || startIndex === index) {
-      setDraggingIndex(null)
-      setDropIndex(null)
-      return
-    }
-
-    const newOrder = [...selectedProductIds]
-    const [movedItem] = newOrder.splice(startIndex, 1)
-    newOrder.splice(index, 0, movedItem)
-
-    onSelectedProductIdsChange(newOrder)
-    setDraggingIndex(null)
-    setDropIndex(null)
-  }
-
-  const handleDragEnd = () => {
-    setDraggingIndex(null)
-    setDropIndex(null)
-  }
-
-  // Görsel yükleme handler'ları - Supabase Storage
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Logo/BG Upload Logic
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg') => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error(t('toasts.imageSizeLimit', { size: 2 }))
-      e.target.value = ''
+    const limit = type === 'logo' ? 2 : 5
+    if (file.size > limit * 1024 * 1024) {
+      toast.error(t('toasts.imageSizeLimit', { size: limit }))
       return
     }
 
-    toast.loading('Logo yükleniyor...', { id: 'logo-upload' })
-
+    const toastId = toast.loading(`${type === 'logo' ? 'Logo' : 'Arka plan'} yükleniyor...`)
     try {
       const { createClient } = await import("@/lib/supabase/client")
-      const supabase = createClient()
-      // 1. WebP Conversion
       const { convertToWebP } = await import("@/lib/image-utils")
+      const supabase = createClient()
       const { blob } = await convertToWebP(file)
 
-      const fileName = `logo-${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-      const filePath = `${fileName}`
+      const fileName = `${type}-${Date.now()}.webp`
+      const { error } = await supabase.storage.from('product-images').upload(fileName, blob, { contentType: 'image/webp' })
+      if (error) throw error
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'image/webp'
-        })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath)
-
-      onLogoUrlChange?.(publicUrl)
-      toast.success(t('toasts.logoUploaded'), { id: 'logo-upload' })
-    } catch (error: any) {
-      console.error("Logo upload error:", error)
-      toast.error(error?.message || t('common.error'), { id: 'logo-upload' })
-    } finally {
-      e.target.value = ''
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName)
+      if (type === 'logo') onLogoUrlChange?.(publicUrl)
+      else onBackgroundImageChange?.(publicUrl)
+      toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
+    } catch (err) {
+      toast.error(t('common.error'), { id: toastId })
     }
   }
-
-  const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('toasts.imageSizeLimit', { size: 5 }))
-      e.target.value = ''
-      return
-    }
-
-    toast.loading('Arka plan yükleniyor...', { id: 'bg-upload' })
-
-    try {
-      const { createClient } = await import("@/lib/supabase/client")
-      const supabase = createClient()
-      // 1. WebP Conversion
-      const { convertToWebP } = await import("@/lib/image-utils")
-      const { blob } = await convertToWebP(file)
-
-      const fileName = `bg-${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-      const filePath = `${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'image/webp'
-        })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath)
-
-      onBackgroundImageChange?.(publicUrl)
-      toast.success(t('toasts.backgroundUploaded'), { id: 'bg-upload' })
-    } catch (error: any) {
-      console.error("Background upload error:", error)
-      toast.error(error?.message || t('common.error'), { id: 'bg-upload' })
-    } finally {
-      e.target.value = ''
-    }
-  }
-
-  // Hazır gradient'ler
-  const gradientPresets = [
-    { name: t("builder.none"), value: "" },
-    { name: t("builder.presets.sunset"), value: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" },
-    { name: t("builder.presets.ocean"), value: "linear-gradient(135deg, #667eea 0%, #5AB9EA 100%)" },
-    { name: t("builder.presets.gold"), value: "linear-gradient(135deg, #f5af19 0%, #f12711 100%)" },
-    { name: t("builder.presets.night"), value: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)" },
-    { name: t("builder.presets.mint"), value: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)" },
-    { name: t("builder.presets.pink"), value: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)" },
-  ]
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-      {/* Catalog Details - Tablet/Desktop Responsive */}
-      <Card>
-        <CardContent className="p-3 sm:p-4">
-          {/* İlk satır: Katalog Adı ve Açıklama */}
-          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-1">
-              <div className="flex-1 min-w-0 space-y-1">
-                <Label htmlFor="title" className="text-xs text-muted-foreground">{t("builder.catalogName")}</Label>
-                <Input id="title" value={catalogName} onChange={(e) => onCatalogNameChange(e.target.value)} className="h-8" placeholder={t("builder.catalogNamePlaceholder") || "Catalog Title"} />
-              </div>
-              <div className="flex-[2] min-w-0 space-y-1">
-                <Label htmlFor="description" className="text-xs text-muted-foreground">{t("builder.description")}</Label>
-                <Input
-                  id="description"
-                  placeholder={t("builder.descriptionPlaceholder")}
-                  value={description}
-                  onChange={(e) => onDescriptionChange(e.target.value)}
-                  className="h-8"
-                />
-              </div>
-            </div>
-            {/* Vurgu Rengi - Tablet'te yeni satır, Desktop'ta yanyana */}
-            <div className="space-y-1 shrink-0">
-              <Label className="text-xs text-muted-foreground">{t("builder.accentColor")}</Label>
-              <div className="flex items-center gap-1 flex-wrap">
-                <Input
-                  type="color"
-                  value={primaryColor}
-                  onChange={(e) => onPrimaryColorChange(e.target.value)}
-                  className="w-8 h-8 p-0.5 cursor-pointer shrink-0"
-                />
-                {[
-                  { name: "Sunset", color: "#f97316" },
-                  { name: "Ocean", color: "#0ea5e9" },
-                  { name: "Forest", color: "#22c55e" },
-                  { name: "Berry", color: "#ec4899" },
-                  { name: "Royal", color: "#6366f1" },
-                  { name: "Slate", color: "#0f172a" },
-                  { name: "Gold", color: "#eab308" },
-                  { name: "Red", color: "#dc2626" },
-                ].map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => onPrimaryColorChange(preset.color)}
-                    className={cn(
-                      "w-6 h-6 rounded-full border transition-all hover:scale-110 shrink-0",
-                      primaryColor === preset.color && "ring-2 ring-primary ring-offset-1 scale-110"
-                    )}
-                    style={{ backgroundColor: preset.color }}
-                    title={preset.name}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-900/50 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        {/* Sub-Header / Navigation */}
+        <div className="bg-white dark:bg-slate-900 border-b px-2 py-3 shrink-0">
+          <TabsList className="flex w-full max-w-[500px] mx-auto h-11 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50">
+            <TabsTrigger
+              value="content"
+              className="flex-1 rounded-lg text-[11px] sm:text-xs uppercase tracking-wider font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all gap-2"
+            >
+              <Package className="w-3.5 h-3.5" />
+              {t('builder.productSelection')}
+            </TabsTrigger>
+            <TabsTrigger
+              value="design"
+              className="flex-1 rounded-lg text-[11px] sm:text-xs uppercase tracking-wider font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all gap-2"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              {t('builder.designSettings')}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 sm:gap-6">
-        {/* Arka Plan Ayarları - YENİ */}
-        <Card className="flex flex-col h-full">
-          <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
-            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              {t("builder.backgroundSettings")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-            <div className="flex flex-col sm:flex-row gap-4 h-full">
-              <div className="flex-1 space-y-4 min-w-0">
-                {/* Renk ve Gradient - Tek satır */}
-                <div className="space-y-3">
-                  {/* Renk */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">{t("builder.color")}</Label>
-                    <div className="flex gap-2">
-                      <Input type="color" value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-10 h-9 p-0.5 shrink-0 cursor-pointer" />
-                      <Input value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-24 font-mono text-xs h-9" placeholder="#ffffff" />
-                    </div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 custom-scrollbar">
+          <TabsContent value="content" className="m-0 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* CATALOG DETAILS */}
+            <Card className="bg-white shadow-sm border-slate-200 overflow-hidden">
+              <div className="bg-slate-50/50 px-4 py-2 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-primary">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </div>
-
-                  {/* Gradient */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">{t("builder.gradient")}</Label>
-                    <Select value={backgroundGradient || ""} onValueChange={(v) => onBackgroundGradientChange?.(v || null)}>
-                      <SelectTrigger className="h-9 text-xs w-full">
-                        <SelectValue placeholder={t("common.select") || "Gradient seçin..."} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {gradientPresets.map((preset) => (
-                          <SelectItem key={preset.name} value={preset.value || "none"}>{preset.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">{t('builder.catalogDetails')}</h3>
                 </div>
-
-                {/* Upload & Controls */}
+              </div>
+              <CardContent className="p-4">
                 <div className="space-y-2">
-                  {backgroundImage && (
-                    <div className="flex bg-muted/50 p-1 rounded-lg gap-1">
-                      {[
-                        { value: 'cover', icon: <ImageIcon className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.cover") },
-                        { value: 'contain', icon: <BoxSelect className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.contain") },
-                        { value: 'fill', icon: <Maximize2 className="w-3.5 h-3.5" />, label: t("builder.backgroundSize.fill") },
-                      ].map((opt) => (
-                        <Button
-                          key={opt.value}
-                          variant={backgroundImageFit === opt.value ? 'secondary' : 'ghost'}
-                          size="sm"
-                          className={cn(
-                            "flex-1 h-8 text-xs gap-1.5",
-                            backgroundImageFit === opt.value && "shadow-sm"
-                          )}
-                          onClick={() => onBackgroundImageFitChange?.(opt.value)}
-                        >
-                          {opt.icon}
-                          {opt.label}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">{t('builder.description')}</Label>
+                  <textarea
+                    className="w-full min-h-[80px] p-3 text-sm bg-slate-50 border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none placeholder:text-slate-400 font-medium"
+                    placeholder={t('builder.descriptionPlaceholder')}
+                    value={description}
+                    onChange={(e) => onDescriptionChange(e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                  <input type="file" ref={bgInputRef} accept="image/*" className="hidden" onChange={handleBackgroundUpload} />
+            {/* SEARCH & FILTERS SECTION HEADER */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center text-blue-500">
+                  <Package className="w-3.5 h-3.5" />
+                </div>
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">{t('builder.productSelection')}</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                <div className="md:col-span-5 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t('builder.searchProducts')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-11 bg-white rounded-xl border-slate-200 shadow-sm transition-all focus:ring-primary/20"
+                  />
+                </div>
+                <div className="md:col-span-4">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full h-11 bg-white shadow-sm border-slate-200 rounded-xl font-medium">
+                      <SelectValue placeholder={t('common.category')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('common.all')}</SelectItem>
+                      {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-3 flex gap-2">
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full h-10 border-dashed transition-all text-xs",
-                      !backgroundImage && "border-primary/20 hover:border-primary/50 text-muted-foreground"
-                    )}
-                    onClick={() => bgInputRef.current?.click()}
+                    className="flex-1 h-11 rounded-xl text-xs font-bold border-slate-200 hover:bg-slate-50"
+                    onClick={() => {
+                      const allIds = filteredProducts.map(p => p.id)
+                      const isAllSelected = allIds.every(id => selectedProductIds.includes(id))
+                      if (isAllSelected) {
+                        onSelectedProductIdsChange(selectedProductIds.filter(id => !allIds.includes(id)))
+                      } else {
+                        onSelectedProductIdsChange([...new Set([...selectedProductIds, ...allIds])])
+                      }
+                    }}
                   >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {backgroundImage ? t("builder.changeBackground") : t("builder.uploadBackground")}
+                    {filteredProducts.every(p => selectedProductIds.includes(p.id)) ? t('builder.clearSelection') : t('builder.selectAll')}
                   </Button>
                 </div>
               </div>
-
-              {/* Preview Area */}
-              {backgroundImage && (
-                <div className="sm:w-[120px] shrink-0 flex flex-col gap-2">
-                  <Label className="text-xs sm:text-sm text-center block w-full text-muted-foreground">{t("builder.preview")}</Label>
-                  <div className="aspect-[210/297] w-full rounded-lg border bg-muted overflow-hidden relative group shadow-sm">
-                    <div className="absolute inset-0 w-full h-full" style={{ backgroundColor: backgroundColor || '#ffffff' }} />
-                    <div className="absolute inset-0 w-full h-full transition-all duration-300" style={{
-                      backgroundImage: `url(${backgroundImage})`,
-                      backgroundSize: backgroundImageFit === 'fill' ? '100% 100%' : backgroundImageFit,
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat'
-                    }} />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 transition-all shadow-md"
-                      onClick={() => onBackgroundImageChange?.(null)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
 
-          </CardContent>
-        </Card>
-
-        {/* Logo/Marka - YENİ */}
-        <Card className="flex flex-col h-full">
-          <CardHeader className="pb-1 p-2 sm:p-3 shrink-0">
-            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-              <Image className="w-4 h-4" />
-              {t("builder.logoBranding")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-            <div className="space-y-4">
-              <input type="file" ref={logoInputRef} accept="image/*" className="hidden" onChange={handleLogoUpload} />
-
-              {/* Logo Preview veya Upload */}
-              {logoUrl ? (
-                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30">
-                  <div className="w-16 h-16 rounded-lg border bg-white overflow-hidden flex items-center justify-center p-1 shrink-0">
-                    <img src={logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-8 text-xs"
-                      onClick={() => logoInputRef.current?.click()}
+            {/* PRODUCTS LIST SCROLLABLE */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <div className="max-h-[400px] overflow-y-auto p-3 custom-scrollbar">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {visibleProducts.map(product => (
+                    <div
+                      key={product.id}
+                      className={cn(
+                        "relative aspect-square rounded-lg border-2 transition-all cursor-pointer overflow-hidden group bg-white",
+                        selectedProductIds.includes(product.id)
+                          ? "border-primary ring-2 ring-primary/10 scale-[0.98]"
+                          : "border-transparent hover:border-slate-100"
+                      )}
+                      onClick={() => toggleProduct(product.id)}
                     >
-                      <Upload className="w-3 h-3 mr-1.5" />
-                      {t("builder.changeLogo")}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full h-8 text-xs text-destructive hover:text-destructive"
-                      onClick={() => onLogoUrlChange?.(null)}
-                    >
-                      <Trash2 className="w-3 h-3 mr-1.5" />
-                      {t("builder.removeLogo")}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full h-20 border-dashed border-primary/20 hover:border-primary/50 text-muted-foreground bg-muted/10"
-                  onClick={() => logoInputRef.current?.click()}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <Upload className="w-5 h-5" />
-                    <span className="text-sm">{t("builder.logoUpload")}</span>
-                    <span className="text-[10px] opacity-70">max 2MB</span>
-                  </div>
-                </Button>
-              )}
-
-              {/* Pozisyon ve Boyut - Logo varsa göster */}
-              {logoUrl && (
-                <div className="space-y-3 pt-2 border-t">
-                  {/* Pozisyon Seçimi */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Logo Konumu</Label>
-                    <div className="space-y-2">
-                      {/* Header Pozisyonları */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Header</span>
-                        <div className="grid grid-cols-3 gap-1">
-                          {[
-                            { value: 'header-left', label: 'Sol' },
-                            { value: 'header-center', label: 'Orta' },
-                            { value: 'header-right', label: 'Sağ' },
-                          ].map((pos) => (
-                            <button
-                              key={pos.value}
-                              onClick={() => onLogoPositionChange?.(pos.value)}
-                              className={cn(
-                                "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
-                                logoPosition === pos.value
-                                  ? "border-primary bg-primary/5 text-primary font-medium"
-                                  : "border-border"
-                              )}
-                            >
-                              {pos.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Footer Pozisyonları */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Footer</span>
-                        <div className="grid grid-cols-3 gap-1">
-                          {[
-                            { value: 'footer-left', label: 'Sol' },
-                            { value: 'footer-center', label: 'Orta' },
-                            { value: 'footer-right', label: 'Sağ' },
-                          ].map((pos) => (
-                            <button
-                              key={pos.value}
-                              onClick={() => onLogoPositionChange?.(pos.value)}
-                              className={cn(
-                                "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
-                                logoPosition === pos.value
-                                  ? "border-primary bg-primary/5 text-primary font-medium"
-                                  : "border-border"
-                              )}
-                            >
-                              {pos.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Boyut Seçimi */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">{t("builder.size")}</Label>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { value: 'small', label: t("builder.sizes.small") },
-                        { value: 'medium', label: t("builder.sizes.medium") },
-                        { value: 'large', label: t("builder.sizes.large") },
-                      ].map((size) => (
-                        <button
-                          key={size.value}
-                          onClick={() => onLogoSizeChange?.(size.value)}
-                          className={cn(
-                            "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
-                            logoSize === size.value
-                              ? "border-primary bg-primary/5 text-primary font-medium"
-                              : "border-border"
-                          )}
-                        >
-                          {size.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Başlık Konumu */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Başlık Konumu</Label>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { value: 'left', label: 'Sol' },
-                        { value: 'center', label: 'Orta' },
-                        { value: 'right', label: 'Sağ' },
-                      ].map((pos) => (
-                        <button
-                          key={pos.value}
-                          onClick={() => onTitlePositionChange?.(pos.value)}
-                          className={cn(
-                            "h-7 rounded-md border text-[10px] transition-all hover:bg-muted",
-                            titlePosition === pos.value
-                              ? "border-primary bg-primary/5 text-primary font-medium"
-                              : "border-border"
-                          )}
-                        >
-                          {pos.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Products Selection */}
-      <Card>
-        <CardHeader className="pb-1 sm:pb-2 p-2 sm:p-3 md:p-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xs sm:text-sm">{t("builder.productSelection")}</CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              title={t("builder.refreshList")}
-              onClick={() => router.refresh()}
-              className="h-6 w-6 sm:h-7 sm:w-7"
-            >
-              <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0 space-y-4">
-          {/* Kategori Seçimi & Tümünü Seç */}
-          {products.length > 0 && (
-            <div className="space-y-2">
-              {/* Kategori Filtreleri */}
-              {categories.length > 0 && (
-                <div className="flex flex-wrap gap-1 sm:gap-2">
-                  <Button
-                    variant={selectedCategory === "all" ? "default" : "outline"}
-                    size="sm"
-                    className="h-6 sm:h-7 text-[10px] sm:text-xs px-2"
-                    onClick={() => { setSelectedCategory("all"); setVisibleCount(12) }}
-                  >
-                    {t("common.all")} ({products.length})
-                  </Button>
-                  {categories.map(cat => {
-                    const count = products.filter(p => p.category === cat).length
-                    return (
-                      <Button
-                        key={cat}
-                        variant={selectedCategory === cat ? "default" : "outline"}
-                        size="sm"
-                        className="h-6 sm:h-7 text-[10px] sm:text-xs px-2"
-                        onClick={() => { setSelectedCategory(cat); setVisibleCount(12) }}
-                      >
-                        <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                        {cat} ({count})
-                      </Button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Toplu Seçim Butonları */}
-              <div className="flex flex-wrap gap-1 sm:gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const allIds = filteredProducts.map(p => p.id)
-                    onSelectedProductIdsChange([...new Set([...selectedProductIds, ...allIds])])
-                  }}
-                  className="gap-1 sm:gap-2 h-6 sm:h-7 text-[10px] sm:text-xs px-2"
-                >
-                  <CheckSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span className="hidden sm:inline">{selectedCategory === "all" ? t("builder.selectAll") : t("builder.selectCategory", { category: selectedCategory })} ({filteredProducts.length})</span>
-                  <span className="sm:hidden">Seç ({filteredProducts.length})</span>
-                </Button>
-                {selectedProductIds.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onSelectedProductIdsChange([])}
-                    className="text-destructive hover:text-destructive h-6 sm:h-7 text-[10px] sm:text-xs px-2"
-                  >
-                    <span className="hidden sm:inline">{t("builder.clearSelection")} ({selectedProductIds.length})</span>
-                    <span className="sm:hidden">Temizle ({selectedProductIds.length})</span>
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* All Products List */}
-          <div className="space-y-2">
-            <Label className="text-xs sm:text-sm text-muted-foreground">
-              {selectedCategory === "all" ? t("common.all") : selectedCategory} ({filteredProducts.length})
-            </Label>
-            {products.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 border rounded-lg bg-muted/20">
-                <Package className="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-muted-foreground/50 mb-2 sm:mb-3" />
-                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">{t("builder.noProductsResult")}</p>
-                <Button size="sm" asChild className="w-full sm:w-auto">
-                  <Link href="/dashboard/products">{t("products.addProduct") || "Add Product"}</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                {/* Kompakt ürün listesi */}
-                <div className="max-h-52 overflow-auto p-1.5 space-y-1">
-                  {visibleProducts.map((product) => (
-                    <div key={product.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 group">
-                      <Checkbox
-                        checked={selectedProductIds.includes(product.id)}
-                        onCheckedChange={() => toggleProduct(product.id)}
-                        className="h-4 w-4"
+                      <img
+                        src={product.image_url || "/placeholder.svg"}
+                        alt=""
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
-                      <div className="w-6 h-6 rounded overflow-hidden bg-muted shrink-0">
-                        <img
-                          src={product.image_url || "/placeholder.svg?height=24&width=24&query=product"}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+
+                      <div className="absolute top-1.5 right-1.5">
+                        <div className={cn(
+                          "w-4 h-4 rounded-full flex items-center justify-center transition-all shadow-sm border border-white/20",
+                          selectedProductIds.includes(product.id) ? "bg-primary text-white" : "bg-white/80 text-transparent"
+                        )}>
+                          <CheckSquare className="w-3 h-3" />
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                        <p className="text-xs font-medium truncate">{product.name}</p>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {product.price ? `₺${Number(product.price).toFixed(0)}` : "-"}
-                        </span>
+
+                      <div className="absolute bottom-1.5 left-1.5 right-1.5 text-white">
+                        <p className="text-[9px] sm:text-[10px] font-bold truncate">{product.name}</p>
+                        <p className="text-[9px] opacity-90 font-medium">{product.price ? `₺${product.price}` : "-"}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Daha Fazla Gör - Belirgin */}
                 {visibleCount < filteredProducts.length && (
-                  <div className="border-t bg-muted/30 p-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="w-full gap-2"
-                      onClick={() => setVisibleCount(prev => prev + 12)}
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                      {t("builder.loadMore", { count: filteredProducts.length - visibleCount })}
+                  <div className="flex justify-center pt-4 pb-2">
+                    <Button variant="ghost" size="sm" onClick={() => setVisibleCount(v => v + 20)} className="rounded-full h-8 text-xs font-bold text-slate-500 hover:text-primary">
+                      {t('builder.loadMore', { count: filteredProducts.length - visibleCount })}
+                      <ChevronDown className="w-4 h-4 ml-1" />
                     </Button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Selected Products (Sortable) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs sm:text-sm text-muted-foreground">
-                {t("builder.selectedProducts", { count: selectedProductIds.length })} - <span className="text-primary italic">{t("builder.dragToReorder")}</span>
-              </Label>
-              {selectedProductIds.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSelectedProductIdsChange([])}
-                  className="h-6 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  {t("builder.clearSelection")}
-                </Button>
-              )}
             </div>
 
-            {selectedProductIds.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
-                {t("builder.noProductsSelected")}
+            <Separator className="opacity-50" />
+
+            {/* SORTING AREA */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: selectedProductIds.length })}</h3>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder')}</p>
+                </div>
+                {selectedProductIds.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => onSelectedProductIdsChange([])} className="h-8 text-xs font-bold text-destructive hover:bg-destructive/5 px-3 rounded-lg">
+                    {t('builder.clearSelection')}
+                  </Button>
+                )}
               </div>
-            ) : (
-              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-                {selectedProductIds.map((id, index) => {
-                  const product = products.find(p => p.id === id)
-                  if (!product) return null
 
-                  return (
-                    <div
-                      key={id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDrop={(e) => handleDrop(e, index)}
-                      onDragEnd={handleDragEnd}
-                      className={cn(
-                        "flex items-center gap-2 sm:gap-3 p-2 rounded-lg border bg-card hover:border-primary/50 transition-colors cursor-move",
-                        draggingIndex === index && "opacity-50 border-primary border-dashed",
-                        dropIndex === index && "border-t-4 border-t-primary"
-                      )}
-                    >
-                      <div className="p-1 text-muted-foreground">
-                        <GripVertical className="w-4 h-4" />
-                      </div>
-                      <div className="font-mono text-xs text-muted-foreground w-6 text-center">
-                        {index + 1}
-                      </div>
-                      <div className="w-8 h-8 rounded overflow-hidden bg-muted shrink-0 border">
-                        <img
-                          src={product.image_url || "/placeholder.svg?height=32&width=32&query=product"}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{product.name}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeProduct(product.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Sayfa Düzeni */}
-      <Card>
-        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Columns className="w-4 h-4" />
-            {t("builder.pageLayout")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="space-y-3">
-            <Label className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-              <Columns className="w-3.5 h-3.5" />
-              {t("builder.productsPerRow")}
-            </Label>
-            <div className="flex gap-3">
-              {[2, 3, 4].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => onColumnsPerRowChange?.(num)}
-                  className={cn(
-                    "flex-1 group relative h-16 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 overflow-hidden",
-                    columnsPerRow === num
-                      ? "border-primary bg-primary/10 text-primary shadow-sm"
-                      : "border-border hover:border-primary/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <div className="flex gap-1">
-                    {Array.from({ length: num }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "w-2.5 h-3.5 rounded-sm transition-all duration-300",
-                          columnsPerRow === num ? "bg-primary" : "bg-muted-foreground/30 group-hover:bg-primary/40"
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{t("builder.columns", { count: num })}</span>
-
-                  {columnsPerRow === num && (
-                    <div className="absolute top-1 right-1">
-                      <div className="w-3 h-3 bg-primary rounded-full flex items-center justify-center">
-                        <CheckSquare className="w-2 h-2 text-white" />
-                      </div>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground italic">
-              * Seçtiğiniz sütun sayısı bazı şablonlarda sayfa yapısını dinamik olarak günceller.
-            </p>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between gap-2">
-            <div className="space-y-0.5 min-w-0">
-              <Label className="text-xs sm:text-sm">{t("builder.showPrices")}</Label>
-            </div>
-            <Switch checked={showPrices} onCheckedChange={onShowPricesChange} />
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <div className="space-y-0.5 min-w-0">
-              <Label className="text-xs sm:text-sm">{t("builder.showDescriptions")}</Label>
-            </div>
-            <Switch checked={showDescriptions} onCheckedChange={onShowDescriptionsChange} />
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <div className="space-y-0.5 min-w-0">
-              <Label className="text-xs sm:text-sm">{t("builder.showAttributes")}</Label>
-            </div>
-            <Switch checked={showAttributes} onCheckedChange={onShowAttributesChange} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Şablon Seçimi - En Altta */}
-      <Card>
-        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 md:p-6">
-          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-            <Grid3X3 className="w-4 h-4" />
-            {t("builder.templateStyle")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-            {TEMPLATES.map((template) => {
-              const isLocked = template.isPro && userPlan === "free"
-              const isSelected = layout === template.id
-              return (
-                <div
-                  key={template.id}
-                  onClick={() => handleTemplateSelect(template.id, template.isPro)}
-                  className={cn(
-                    "relative cursor-pointer border rounded-lg p-1.5 hover:bg-muted/50 transition-all",
-                    isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "border-border",
-                    isLocked && "opacity-70 hover:opacity-80"
-                  )}
-                >
-                  {/* Template Canlı Önizleme */}
-                  <div className="aspect-[3/4] rounded overflow-hidden border mb-1 bg-muted relative group">
-                    <ResponsiveContainer contentWidth={794} contentHeight={1123}>
-                      <CatalogPreview
-                        layout={template.id}
-                        name={template.name}
-                        products={getPreviewProductsByLayout(template.id)}
-                      />
-                    </ResponsiveContainer>
-
-                    {/* Pro Lock Badge */}
-                    {isLocked && (
-                      <div className="absolute top-1 right-1 z-10">
-                        <Badge variant="secondary" className="h-4 px-1 text-[8px] bg-black/70 text-white backdrop-blur-sm border-0">
-                          <Lock className="w-2 h-2 mr-0.5" />
-                          PRO
-                        </Badge>
+              <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-3">
+                <div className="max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedProductIds.map((id, index) => {
+                      const product = products.find(p => p.id === id)
+                      if (!product) return null
+                      return (
+                        <div
+                          key={id}
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.setData("text", index.toString()); setDraggingIndex(index) }}
+                          onDragOver={(e) => { e.preventDefault(); setDropIndex(index) }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            const from = Number(e.dataTransfer.getData("text"))
+                            const newList = [...selectedProductIds]
+                            const [moved] = newList.splice(from, 1)
+                            newList.splice(index, 0, moved)
+                            onSelectedProductIdsChange(newList)
+                            setDraggingIndex(null); setDropIndex(null)
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-200 shadow-sm transition-all group",
+                            draggingIndex === index && "opacity-50 scale-95 border-dashed border-primary pre-drag",
+                            dropIndex === index && draggingIndex !== index && "border-primary ring-2 ring-primary/10"
+                          )}
+                        >
+                          <div className="cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-500 shrink-0">
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="w-8 h-8 rounded shrink-0 border border-slate-100 overflow-hidden">
+                            <img src={product.image_url || "/placeholder.svg"} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold truncate text-slate-700">{product.name}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))} className="h-7 w-7 text-slate-400 hover:text-destructive transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )
+                    })}
+                    {selectedProductIds.length === 0 && (
+                      <div className="col-span-full py-10 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-white">
+                        <Package className="w-8 h-8 mb-2 opacity-20" />
+                        <p className="text-xs font-medium">Henüz ürün seçilmedi</p>
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-0.5">
-                    <span className="text-[10px] font-medium truncate">{template.name}</span>
-                    {isSelected && <CheckSquare className="w-3 h-3 text-primary shrink-0" />}
-                  </div>
                 </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            </div>
+          </TabsContent>
 
-    </div >
+          <TabsContent value="design" className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+            {/* APPEARANCE BASICS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="shadow-sm border-slate-200">
+                <CardContent className="p-4 sm:p-6 space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Layout className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider">{t('builder.accentColor')}</h3>
+                  </div>
 
+                  {/* Colors */}
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { name: "Slate", color: "#0f172a" }, { name: "Royal", color: "#6366f1" },
+                        { name: "Ocean", color: "#0ea5e9" }, { name: "Forest", color: "#22c55e" },
+                        { name: "Gold", color: "#eab308" }, { name: "Sunset", color: "#f97316" },
+                        { name: "Berry", color: "#ec4899" }, { name: "Red", color: "#dc2626" },
+                      ].map((preset) => (
+                        <button
+                          key={preset.name}
+                          onClick={() => onPrimaryColorChange(preset.color)}
+                          className={cn(
+                            "w-8 h-8 rounded-full border border-white shadow-sm transition-all hover:scale-110",
+                            primaryColor === preset.color && "ring-2 ring-primary ring-offset-2 scale-110"
+                          )}
+                          style={{ backgroundColor: preset.color }}
+                        />
+                      ))}
+                      <div className="relative">
+                        <Input
+                          type="color"
+                          value={primaryColor}
+                          onChange={(e) => onPrimaryColorChange(e.target.value)}
+                          className="w-8 h-8 p-0 border-none cursor-pointer rounded-full overflow-hidden"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                      {/* Premium Toggle Row */}
+                      {[
+                        { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange },
+                        { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
+                        { label: t('builder.showAttributes') || "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange },
+                        { label: t('builder.showSku') || "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between group cursor-pointer" onClick={() => item.onChange?.(!item.value)}>
+                          <Label className="text-sm font-medium text-slate-700 cursor-pointer group-hover:text-primary transition-colors">{item.label}</Label>
+                          <div className={cn(
+                            "w-10 h-5 rounded-full relative transition-all duration-300 shadow-inner",
+                            item.value ? "bg-primary" : "bg-slate-200"
+                          )}>
+                            <div className={cn(
+                              "absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300",
+                              item.value && "translate-x-5"
+                            )} />
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="space-y-2 pt-2">
+                        <Label className="text-xs font-bold uppercase text-slate-400">Sütun Sayısı (Web)</Label>
+                        <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                          {[2, 3, 4].map((num) => (
+                            <button
+                              key={num}
+                              onClick={() => onColumnsPerRowChange?.(num)}
+                              className={cn(
+                                "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                columnsPerRow === num
+                                  ? "bg-white text-primary shadow-sm"
+                                  : "text-slate-500 hover:text-slate-700"
+                              )}
+                            >
+                              {num} Sütun
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* LOGO & BRANDING */}
+              <Card className="shadow-sm border-slate-200 overflow-hidden">
+                <CardContent className="p-4 sm:p-6 space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider">{t('builder.logoBranding')}</h3>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div
+                      className={cn(
+                        "relative aspect-[16/6] rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all cursor-pointer bg-slate-50 hover:bg-white hover:border-primary/50",
+                        logoUrl && "border-solid border-slate-100 bg-white"
+                      )}
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      {logoUrl ? (
+                        <>
+                          <img src={logoUrl} alt="Logo" className="max-h-[80%] max-w-[80%] object-contain" />
+                          <div className="absolute inset-0 bg-black/5 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                            <p className="text-[10px] font-bold uppercase text-slate-800 bg-white px-2 py-1 rounded shadow-sm">{t('builder.changeLogo')}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-4">
+                          <Upload className="w-6 h-6 mx-auto mb-2 text-slate-400" />
+                          <p className="text-xs text-slate-600 font-medium">{t('builder.logoUpload')}</p>
+                          <p className="text-[10px] text-slate-400 mt-1">max 2MB, WebP önerilir</p>
+                        </div>
+                      )}
+                      <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
+                    </div>
+
+                    {logoUrl && (
+                      <div className="flex flex-col sm:flex-row gap-3 animate-in fade-in duration-300">
+                        <div className="flex-1 space-y-1.5">
+                          <Label className="text-[10px] uppercase font-bold text-slate-400">Boyut</Label>
+                          <Select value={logoSize} onValueChange={onLogoSizeChange}>
+                            <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="small">{t('builder.sizes.small')}</SelectItem>
+                              <SelectItem value="medium">{t('builder.sizes.medium')}</SelectItem>
+                              <SelectItem value="large">{t('builder.sizes.large')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <Label className="text-[10px] uppercase font-bold text-slate-400">Konum</Label>
+                          <Select value={logoPosition} onValueChange={onLogoPositionChange}>
+                            <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="header-left">Sol Üst</SelectItem>
+                              <SelectItem value="header-center">Orta Üst</SelectItem>
+                              <SelectItem value="header-right">Sağ Üst</SelectItem>
+                              <SelectItem value="footer-left">Sol Alt</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* BACKGROUND SETTINGS */}
+              <Card className="shadow-sm border-slate-200 md:col-span-2">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider">{t('builder.backgroundSettings')}</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase text-slate-400">Arka Plan Rengi</Label>
+                        <div className="flex gap-2">
+                          <Input type="color" value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-10 h-10 p-0 border-none cursor-pointer rounded-lg" />
+                          <Input value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="h-10 font-mono text-sm" />
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-xs font-bold uppercase text-slate-400">Gradyan (Geçiş)</Label>
+                        <div className="flex flex-col gap-3">
+                          <Select value={backgroundGradient?.includes('linear-gradient') ? 'custom' : (backgroundGradient || 'none')} onValueChange={(v) => {
+                            if (v === 'none') onBackgroundGradientChange?.(null)
+                            else if (v === 'custom') onBackgroundGradientChange?.(`linear-gradient(135deg, ${backgroundColor}, ${primaryColor})`)
+                            else onBackgroundGradientChange?.(v)
+                          }}>
+                            <SelectTrigger className="h-10 bg-white"><SelectValue placeholder="Gradyan seçin" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">{t('builder.none')}</SelectItem>
+                              <SelectItem value="custom">Özel Gradyan</SelectItem>
+                              <SelectItem value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">Sunset</SelectItem>
+                              <SelectItem value="linear-gradient(135deg, #667eea 0%, #5AB9EA 100%)">Ocean</SelectItem>
+                              <SelectItem value="linear-gradient(135deg, #f5af19 0%, #f12711 100%)">Warm</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {backgroundGradient?.includes('linear-gradient') && (
+                            <div className="p-3 bg-slate-50 rounded-xl space-y-3 border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 space-y-1">
+                                  <Label className="text-[10px] uppercase font-bold text-slate-400">Başlangıç</Label>
+                                  <div className="flex gap-1.5 items-center">
+                                    <Input
+                                      type="color"
+                                      value={backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[0] || backgroundColor}
+                                      onChange={(e) => {
+                                        const colors = backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g) || [backgroundColor, primaryColor]
+                                        onBackgroundGradientChange?.(`linear-gradient(135deg, ${e.target.value}, ${colors[1] || primaryColor})`)
+                                      }}
+                                      className="w-7 h-7 p-0 border-none cursor-pointer rounded-full"
+                                    />
+                                    <span className="text-[10px] font-mono text-slate-500 uppercase">{backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[0] || backgroundColor}</span>
+                                  </div>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <Label className="text-[10px] uppercase font-bold text-slate-400">Bitiş</Label>
+                                  <div className="flex gap-1.5 items-center">
+                                    <Input
+                                      type="color"
+                                      value={backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[1] || primaryColor}
+                                      onChange={(e) => {
+                                        const colors = backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g) || [backgroundColor, primaryColor]
+                                        onBackgroundGradientChange?.(`linear-gradient(135deg, ${colors[0] || backgroundColor}, ${e.target.value})`)
+                                      }}
+                                      className="w-7 h-7 p-0 border-none cursor-pointer rounded-full"
+                                    />
+                                    <span className="text-[10px] font-mono text-slate-500 uppercase">{backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[1] || primaryColor}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-2 space-y-4">
+                      <Label className="text-xs font-bold uppercase text-slate-400">Arka Plan Görseli</Label>
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div
+                          className={cn(
+                            "flex-1 min-h-[100px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-all cursor-pointer bg-slate-50 hover:bg-white hover:border-primary/50",
+                            backgroundImage && "border-solid border-slate-100 bg-white"
+                          )}
+                          onClick={() => bgInputRef.current?.click()}
+                        >
+                          {backgroundImage ? (
+                            <img src={backgroundImage} className="max-h-[80px] rounded shadow-sm" />
+                          ) : (
+                            <div className="text-center p-2">
+                              <ImageIcon className="w-5 h-5 mx-auto mb-1 text-slate-400" />
+                              <p className="text-[10px] font-medium text-slate-600">Görsel Yükle</p>
+                            </div>
+                          )}
+                          <input type="file" ref={bgInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'bg')} />
+                        </div>
+
+                        {backgroundImage && (
+                          <div className="flex-1 space-y-3 animate-in slide-in-from-right-2 duration-300">
+                            <Select value={backgroundImageFit} onValueChange={onBackgroundImageFitChange}>
+                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="cover">Kapla (Cover)</SelectItem>
+                                <SelectItem value="contain">Sığdır (Contain)</SelectItem>
+                                <SelectItem value="fill">Doldur (Stretch)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button variant="destructive" size="sm" onClick={() => onBackgroundImageChange?.(null)} className="w-full h-8 text-xs">
+                              Görseli Kaldır
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Separator className="opacity-50" />
+
+            {/* TEMPLATE SELECTION - MOVED TO BOTTOM */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
+                  <Layout className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold uppercase tracking-wider">{t('builder.templateStyle')}</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                {TEMPLATES.map((tmpl) => (
+                  <div
+                    key={tmpl.id}
+                    onClick={() => handleTemplateSelect(tmpl.id, tmpl.isPro)}
+                    className={cn(
+                      "group relative aspect-[3/4] rounded-xl border-2 transition-all cursor-pointer overflow-hidden bg-white shadow-sm",
+                      layout === tmpl.id
+                        ? "border-primary ring-2 ring-primary/20 scale-[0.98]"
+                        : "border-slate-100 hover:border-slate-300"
+                    )}
+                  >
+                    <ResponsiveContainer>
+                      <CatalogPreview
+                        layout={tmpl.id}
+                        name={tmpl.name}
+                        products={getPreviewProductsByLayout(tmpl.id)}
+                      />
+                    </ResponsiveContainer>
+
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 z-10">
+                      <p className="text-[10px] font-bold text-white truncate">{tmpl.name}</p>
+                      {tmpl.isPro && (
+                        <div className="absolute top-2 right-2 bg-amber-400 text-[8px] font-bold text-slate-900 px-1.5 py-0.5 rounded-full shadow-sm">
+                          PRO
+                        </div>
+                      )}
+                    </div>
+                    {layout === tmpl.id && (
+                      <div className="absolute inset-0 bg-primary/10 flex items-center justify-center z-20">
+                        <div className="bg-primary text-white p-1 rounded-full shadow-lg">
+                          <CheckSquare className="w-4 h-4" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
   )
 }

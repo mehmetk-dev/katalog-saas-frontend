@@ -7,6 +7,7 @@ export interface TemplateProps {
     showPrices: boolean
     showDescriptions: boolean
     showAttributes: boolean
+    showSku: boolean
     isFreeUser: boolean
     pageNumber?: number
     totalPages?: number

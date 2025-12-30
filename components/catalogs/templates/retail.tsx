@@ -8,6 +8,7 @@ export function RetailTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -24,7 +25,6 @@ export function RetailTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-4"
         return "grid-rows-3"
     }
 
@@ -104,7 +104,7 @@ export function RetailTemplate({
                                             })()}
                                         </span>
                                     )}
-                                    {product.sku && (
+                                    {showSku && product.sku && (
                                         <span className="text-[8px] text-gray-400 font-mono bg-gray-100 px-1 py-0.2 rounded">#{product.sku}</span>
                                     )}
                                 </div>

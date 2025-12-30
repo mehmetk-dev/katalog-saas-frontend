@@ -7,6 +7,7 @@ export function MinimalistTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -26,8 +27,7 @@ export function MinimalistTemplate({
     }
 
     const getGridRows = () => {
-        if (columnsPerRow === 2) return "grid-rows-3"
-        return "grid-rows-2"
+        return "grid-rows-3"
     }
 
     // Logo boyutu
@@ -147,7 +147,7 @@ export function MinimalistTemplate({
                                         </p>
                                     )}
 
-                                    {product.sku && (
+                                    {showSku && product.sku && (
                                         <p className="text-[8px] text-gray-300 font-mono mt-0.5">SKU: {product.sku}</p>
                                     )}
                                 </div>

@@ -8,6 +8,7 @@ export function ClassicCatalogTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -76,7 +77,7 @@ export function ClassicCatalogTemplate({
                             <div className="col-span-10 grid grid-cols-10 gap-2 items-center">
                                 <div className="col-span-4 pl-4 overflow-hidden">
                                     <p className="font-bold text-sm text-gray-900 truncate leading-tight">{product.name}</p>
-                                    {product.sku && <p className="text-[9px] text-gray-400 font-mono mt-0.5 truncate tracking-tighter">SKU: {product.sku}</p>}
+                                    {showSku && product.sku && <p className="text-[9px] text-gray-400 font-mono mt-0.5 truncate tracking-tighter">SKU: {product.sku}</p>}
                                 </div>
                                 <div className="col-span-4 px-2 overflow-hidden">
                                     {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 ? (

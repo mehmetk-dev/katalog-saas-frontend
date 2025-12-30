@@ -7,6 +7,7 @@ export function CompactListTemplate({
     showPrices,
     showDescriptions,
     showAttributes,
+    showSku,
     pageNumber = 1,
     totalPages = 1,
     logoUrl,
@@ -113,7 +114,7 @@ export function CompactListTemplate({
                                         {showDescriptions && product.description && (
                                             <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5 leading-none">{product.description}</p>
                                         )}
-                                        {product.sku && (
+                                        {showSku && product.sku && (
                                             <p className="text-[10px] text-gray-400 font-mono mt-0.5">SKU: {product.sku}</p>
                                         )}
                                         {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (

@@ -174,6 +174,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             showPrices: catalog.show_prices,
             showDescriptions: catalog.show_descriptions,
             showAttributes: catalog.show_attributes,
+            showSku: catalog.show_sku,
             columnsPerRow: catalog.columns_per_row || 3,
             pageNumber: pageNum,
             totalPages: total,
