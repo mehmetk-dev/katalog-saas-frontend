@@ -29,6 +29,27 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 };
 
+export const getProduct = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const { id } = req.params;
+
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ error: 'Ürün bulunamadı' });
+
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const createProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Users, Package, FileText, Download, Activity, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Users, Package, FileText, Download, Activity, Search, Trash2, ChevronLeft, ChevronRight, Film } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -387,6 +387,7 @@ export function AdminDashboardClient() {
                                             <TableHead>Kullanıcı</TableHead>
                                             <TableHead>Konu</TableHead>
                                             <TableHead>Mesaj</TableHead>
+                                            <TableHead>Ekler</TableHead>
                                             <TableHead>Sayfa</TableHead>
                                             <TableHead>Durum</TableHead>
                                             <TableHead className="text-right">İşlem</TableHead>
@@ -409,6 +410,31 @@ export function AdminDashboardClient() {
                                                 </TableCell>
                                                 <TableCell className="text-xs max-w-[200px] break-words">
                                                     {f.message}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1 max-w-[120px]">
+                                                        {f.attachments?.map((url, idx) => {
+                                                            const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('/video');
+                                                            return (
+                                                                <a
+                                                                    key={idx}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="relative w-8 h-8 rounded border overflow-hidden bg-slate-100 flex items-center justify-center hover:opacity-80 transition-opacity"
+                                                                >
+                                                                    {isVideo ? (
+                                                                        <Film className="w-4 h-4 text-slate-500" />
+                                                                    ) : (
+                                                                        <img src={url} alt="" className="w-full h-full object-cover" />
+                                                                    )}
+                                                                </a>
+                                                            )
+                                                        })}
+                                                        {(!f.attachments || f.attachments.length === 0) && (
+                                                            <span className="text-[10px] text-muted-foreground">-</span>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-[10px] text-violet-600 font-mono">
                                                     {f.page_url || '-'}

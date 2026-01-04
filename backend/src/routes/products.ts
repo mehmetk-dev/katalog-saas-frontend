@@ -20,6 +20,7 @@ router.post('/delete-category', ProductController.deleteCategoryFromProducts);
 router.post('/check-catalogs', ProductController.checkProductsInCatalogs);
 
 // Dynamic :id routes last
+router.get('/:id', ProductController.getProduct);
 router.get('/:id/catalogs', ProductController.checkProductInCatalogs);
 router.put('/:id', ProductController.updateProduct);
 router.delete('/:id', ProductController.deleteProduct);

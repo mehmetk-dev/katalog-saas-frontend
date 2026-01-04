@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
 import { type Product, updateProduct, bulkUpdateProductImages } from "@/lib/actions/products"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
+import { convertToWebP } from "@/lib/image-utils"
+import { cn } from "@/lib/utils"
 
 interface BulkImageUploadModalProps {
     open: boolean
@@ -282,26 +283,18 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
         await uploadTimeout.execute(async () => {
             const supabase = createClient()
-            const totalImages = images.length
-            let uploadedCount = 0
+            const imagesToUpload = images.filter(img => img.status === 'pending' && img.matchedProductId)
+            const totalImages = imagesToUpload.length
 
+            if (totalImages === 0) {
+                toast.error("Yüklenecek uygun fotoğraf bulunamadı. Lütfen ürünlerle eşleştiğinden emin olun.")
+                return
+            }
+
+            let uploadedCount = 0
             const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
 
-            for (let i = 0; i < images.length; i++) {
-                const img = images[i]
-                if (img.status === 'success') {
-                    uploadedCount++
-                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
-                    continue
-                }
-
-                // Skip if no match
-                if (!img.matchedProductId) {
-                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "Ürün eşleşmedi" } : p))
-                    uploadedCount++
-                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
-                    continue
-                }
+            for (const img of imagesToUpload) {
 
                 const product = products.find(p => p.id === img.matchedProductId)
                 if (!product) {
@@ -330,13 +323,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                     uploadTimeout.setProgress(baseProgress)
 
                     // 1. WebP Conversion (büyük fotoğrafları otomatik küçültür)
-                    const { convertToWebP } = await import("@/lib/image-utils")
-                    console.log(`Converting ${img.file.name} (${(img.file.size / 1024 / 1024).toFixed(2)}MB)...`)
+                    console.log(`Converting ${img.file.name}...`)
                     const { blob } = await convertToWebP(img.file)
                     console.log(`Converted to WebP: ${(blob.size / 1024).toFixed(0)}KB`)
 
                     // Progress güncelle - dönüşüm tamamlandı, yükleme başlıyor
-                    uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 50))
+                    uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 30))
 
                     // 2. Upload
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
@@ -384,13 +376,14 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 if (updatesArray.length > 0) {
                     await bulkUpdateProductImages(updatesArray)
                 }
-            } catch (error) {
-                console.error('Batch update error:', error)
-                toast.error("Bazı ürün bilgileri güncellenemedi")
-            }
 
-            toast.success("Tüm fotoğraflar başarıyla yüklendi")
-            onSuccess()
+                toast.success("Tüm fotoğraflar başarıyla yüklendi")
+                onSuccess()
+            } catch (error: any) {
+                console.error('Batch update error:', error)
+                toast.error("Bazı ürün bilgileri güncellenemedi: " + (error.message || "Bilinmeyen hata"))
+                // Hata durumunda onSuccess ÇAĞIRMIYORUZ ki kullanıcı düzeltebilsin
+            }
         })
     }
 
@@ -619,7 +612,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={uploadTimeout.isLoading}>
+                        <Button variant="outline" onClick={() => handleOpenChange(false)}>
                             İptal
                         </Button>
                         {uploadTimeout.hasTimeout ? (

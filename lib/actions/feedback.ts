@@ -11,11 +11,17 @@ export type Feedback = {
     subject: string
     message: string
     page_url?: string
+    attachments?: string[]
     status: 'pending' | 'resolved' | 'closed'
     created_at: string
 }
 
-export async function sendFeedback(data: { subject: string; message: string; page_url?: string }) {
+export async function sendFeedback(data: {
+    subject: string;
+    message: string;
+    page_url?: string;
+    attachments?: string[];
+}) {
     const supabase = await createServerSupabaseClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -35,6 +41,7 @@ export async function sendFeedback(data: { subject: string; message: string; pag
         subject: data.subject,
         message: data.message,
         page_url: data.page_url,
+        attachments: data.attachments || [],
         status: 'pending'
     })
 

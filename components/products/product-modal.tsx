@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTranslation } from "@/lib/i18n-provider"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
 import { Progress } from "@/components/ui/progress"
+import { convertToWebP } from "@/lib/image-utils"
 
 interface ProductModalProps {
   open: boolean
@@ -92,8 +93,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Upload State with timeout
   const uploadTimeout = useAsyncTimeout<string[]>({
-    totalTimeoutMs: 60000,
-    stuckTimeoutMs: 20000,
+    totalTimeoutMs: 180000, // 3 dakika
+    stuckTimeoutMs: 60000,  // 60 saniye ilerleme yoksa
     timeoutMessage: t('toasts.uploadTimeout') || 'Yükleme zaman aşımına uğradı. Bağlantınızı kontrol edin.',
     showToast: true
   })
@@ -165,7 +166,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         // WebP Dönüşümü
         toast.loading(`${file.name} optimize ediliyor...`, { id: 'webp-process' })
-        const { convertToWebP } = await import("@/lib/image-utils")
         const { blob } = await convertToWebP(file)
         toast.dismiss('webp-process')
 

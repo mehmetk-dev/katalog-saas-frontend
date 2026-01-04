@@ -76,11 +76,8 @@ export function useAsyncTimeout<T = void>(
             return
         }
 
-        // İlerleme değiştiyse son zamanı güncelle
-        if (progress !== lastProgressRef.current) {
-            lastProgressTimeRef.current = Date.now()
-            lastProgressRef.current = progress
-        }
+        // İlerleme referansını güncelle
+        lastProgressRef.current = progress
 
         intervalRef.current = setInterval(() => {
             if (cancelledRef.current) return
@@ -90,7 +87,12 @@ export function useAsyncTimeout<T = void>(
             const stuckTime = now - (lastProgressTimeRef.current || now)
 
             // Zaman aşımı kontrolü
-            if ((progress === 0 && stuckTime > stuckTimeoutMs) || totalElapsed > totalTimeoutMs) {
+            // 1. İlerleme var ama çok uzun süredir aynı değerde (takılma)
+            // 2. Toplam süre aşıldı
+            const isStuck = progress < 100 && stuckTime > stuckTimeoutMs
+            const isTotalExceeded = totalElapsed > totalTimeoutMs
+
+            if (isStuck || isTotalExceeded) {
                 setHasTimeout(true)
                 setIsLoading(false)
                 setError(timeoutMessage)
@@ -175,6 +177,7 @@ export function useAsyncTimeout<T = void>(
 
     const updateProgress = useCallback((newProgress: number) => {
         setProgress(Math.min(100, Math.max(0, newProgress)))
+        lastProgressTimeRef.current = Date.now()
     }, [])
 
     return {
