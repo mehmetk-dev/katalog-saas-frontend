@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield, BarChart3, HelpCircle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 import { useSidebar } from "@/lib/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { FeedbackModal } from "./feedback-modal"
 
 export function DashboardSidebar() {
   const pathname = usePathname()
@@ -100,18 +101,32 @@ export function DashboardSidebar() {
 
           {/* Masaüstünde collapse butonu */}
           {!isMobile && !isCollapsed && (
-            <Button variant="ghost" size="icon" onClick={toggle} className="shrink-0 h-8 w-8">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={toggle} className="shrink-0 h-8 w-8">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {t("sidebar.collapseMenu")}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
 
         {/* Collapsed durumda expand butonu */}
         {!isMobile && isCollapsed && (
           <div className="p-2 flex justify-center">
-            <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {t("sidebar.expandMenu")}
+              </TooltipContent>
+            </Tooltip>
           </div>
         )}
 
@@ -220,6 +235,27 @@ export function DashboardSidebar() {
 
         {/* Spacer - Pro paket kartını en alta iter */}
         <div className="flex-1" />
+
+        {/* Feedback Section */}
+        <div className="p-2 border-t border-sidebar-border">
+          <FeedbackModal>
+            {isCollapsed && !isMobile ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-center p-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors">
+                    <HelpCircle className="w-5 h-5 shrink-0" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">Sorun Bildir / Geri Bildirim</TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors">
+                <HelpCircle className="w-5 h-5 shrink-0" />
+                <span className="truncate flex-1">Sorun Bildir</span>
+              </div>
+            )}
+          </FeedbackModal>
+        </div>
 
         {/* Usage Tracker Card */}
         {(!isCollapsed || isMobile) && (

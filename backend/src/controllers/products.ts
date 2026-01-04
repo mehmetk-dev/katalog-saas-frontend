@@ -32,7 +32,7 @@ export const getProducts = async (req: Request, res: Response) => {
 export const createProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name, sku, description, price, stock, category, image_url, custom_attributes } = req.body;
+        const { name, sku, description, price, stock, category, image_url, images, custom_attributes } = req.body;
 
         // Limit kontrolü
         const [user, productsCountResult] = await Promise.all([
@@ -65,6 +65,7 @@ export const createProduct = async (req: Request, res: Response) => {
                 stock,
                 category,
                 image_url,
+                images: images || [],
                 custom_attributes
             })
             .select()
@@ -96,7 +97,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { name, sku, description, price, stock, category, image_url, custom_attributes } = req.body;
+        const { name, sku, description, price, stock, category, image_url, images, custom_attributes } = req.body;
 
         const { error } = await supabase
             .from('products')
@@ -108,6 +109,7 @@ export const updateProduct = async (req: Request, res: Response) => {
                 stock,
                 category,
                 image_url,
+                images: images || [],
                 custom_attributes,
                 updated_at: new Date().toISOString()
             })

@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { type Product, updateProduct } from "@/lib/actions/products"
+import { type Product, updateProduct, bulkUpdateProductImages } from "@/lib/actions/products"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
 
 interface BulkImageUploadModalProps {
@@ -370,34 +370,26 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
             }
 
-            // Batch update products
+            // Batch update products via Server Action (ensures cache clearing)
             try {
-                for (const [productId, newUrls] of productUpdates.entries()) {
+                const updatesArray = Array.from(productUpdates.entries()).map(([productId, newUrls]) => {
                     const product = products.find(p => p.id === productId)
-                    if (product) {
-                        const currentImages = product.images || (product.image_url ? [product.image_url] : []);
-                        const allImages = [...currentImages, ...newUrls].slice(0, 5); // Ensure max 5
-
-                        // Use supabase directly
-                        const { error } = await supabase
-                            .from('products')
-                            .update({
-                                images: allImages,
-                                image_url: allImages[0] // Ensure cover is set if it was empty, or keep first
-                            })
-                            .eq('id', productId)
-
-                        if (error) {
-                            console.error('Product update error:', error)
-                        }
+                    const currentImages = product?.images || (product?.image_url ? [product.image_url] : [])
+                    return {
+                        productId,
+                        images: [...currentImages, ...newUrls].slice(0, 5)
                     }
+                })
+
+                if (updatesArray.length > 0) {
+                    await bulkUpdateProductImages(updatesArray)
                 }
             } catch (error) {
                 console.error('Batch update error:', error)
-                toast.error("Bazı ürünler güncellenemedi")
+                toast.error("Bazı ürün bilgileri güncellenemedi")
             }
 
-            toast.success("İşlem tamamlandı")
+            toast.success("Tüm fotoğraflar başarıyla yüklendi")
             onSuccess()
         })
     }

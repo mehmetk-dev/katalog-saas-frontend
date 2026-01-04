@@ -274,6 +274,34 @@ export async function bulkUpdatePrices(
   }
 }
 
+export async function bulkUpdateProductImages(updates: { productId: string; images: string[] }[]) {
+  try {
+    for (const update of updates) {
+      // Backend'deki updateProduct controller'ı full object bekliyor.
+      // Bu yüzden önce ürünü çekmemiz gerekebilir ya da backend'e patch ekleyebiliriz.
+      // Şimdilik existing ürünü çekip güncelliyoruz ki cache doğru temizlensin.
+      const product = await apiFetch<Product>(`/products/${update.productId}`, { method: 'GET' })
+
+      const newProductData = {
+        ...product,
+        images: update.images,
+        image_url: update.images[0] || product.image_url
+      }
+
+      await apiFetch(`/products/${update.productId}`, {
+        method: "PUT",
+        body: JSON.stringify(newProductData),
+      })
+    }
+
+    revalidatePath("/dashboard/products")
+    return { success: true }
+  } catch (error) {
+    console.error("Bulk image update error:", error)
+    throw error
+  }
+}
+
 export async function renameCategory(oldName: string, newName: string) {
   try {
     const updatedProducts = await apiFetch<Product[]>("/products/rename-category", {

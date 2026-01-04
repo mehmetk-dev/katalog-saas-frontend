@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react"
 import { Users, Package, FileText, Download, Activity, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { getAdminStats, getAdminUsers, getDeletedUsers, updateUserPlan } from "@/lib/actions/admin"
+import { getFeedbacks, updateFeedbackStatus, type Feedback } from "@/lib/actions/feedback"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +30,7 @@ export function AdminDashboardClient() {
     })
     const [users, setUsers] = useState<any[]>([])
     const [deletedUsers, setDeletedUsers] = useState<any[]>([])
+    const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
     const [loading, setLoading] = useState(true)
     const [loadingUsers, setLoadingUsers] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -88,12 +91,14 @@ export function AdminDashboardClient() {
             setStats(statsData)
 
             setLoadingUsers(true)
-            const [usersData, deletedUsersData] = await Promise.all([
+            const [usersData, deletedUsersData, feedbacksData] = await Promise.all([
                 getAdminUsers(),
-                getDeletedUsers()
+                getDeletedUsers(),
+                getFeedbacks()
             ])
             setUsers(usersData)
             setDeletedUsers(deletedUsersData)
+            setFeedbacks(feedbacksData)
             setLoadingUsers(false)
         } catch (error) {
             console.error("Failed to load admin data")
@@ -110,6 +115,16 @@ export function AdminDashboardClient() {
             toast.success(`${t('toasts.profileUpdated')} (${newPlan.toUpperCase()})`)
         } catch (error) {
             toast.error(t('toasts.profileUpdateFailed'))
+        }
+    }
+
+    const handleFeedbackStatusUpdate = async (id: string, status: Feedback['status']) => {
+        try {
+            await updateFeedbackStatus(id, status)
+            setFeedbacks(feedbacks.map(f => f.id === id ? { ...f, status } : f))
+            toast.success("Geri bildirim durumu güncellendi")
+        } catch (error) {
+            toast.error("İşlem başarısız oldu")
         }
     }
 
@@ -147,6 +162,7 @@ export function AdminDashboardClient() {
                     <TabsTrigger value="overview">{t('admin.overview')}</TabsTrigger>
                     <TabsTrigger value="users">{t('admin.users')} ({users.length})</TabsTrigger>
                     <TabsTrigger value="deleted">{t('admin.deletedUsers')} ({deletedUsers.length})</TabsTrigger>
+                    <TabsTrigger value="feedbacks">Geri Bildirimler ({feedbacks.length})</TabsTrigger>
                     <TabsTrigger value="activity">Aktivite Logları</TabsTrigger>
                 </TabsList>
 
@@ -335,6 +351,94 @@ export function AdminDashboardClient() {
                                                     <Badge variant={user.deleted_by === 'admin' ? 'destructive' : 'secondary'}>
                                                         {user.deleted_by === 'admin' ? t('admin.admin') : t('admin.user')}
                                                     </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* FEEDBACKS TAB */}
+                <TabsContent value="feedbacks" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-violet-600" />
+                                Geri Bildirimler & Sorun Bildirimleri
+                            </CardTitle>
+                            <CardDescription>
+                                Kullanıcılardan gelen tüm geri bildirimleri buradan takip edebilirsiniz
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {feedbacks.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                                    <p>Henüz geri bildirim bulunmuyor.</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tarih</TableHead>
+                                            <TableHead>Kullanıcı</TableHead>
+                                            <TableHead>Konu</TableHead>
+                                            <TableHead>Mesaj</TableHead>
+                                            <TableHead>Sayfa</TableHead>
+                                            <TableHead>Durum</TableHead>
+                                            <TableHead className="text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {feedbacks.map((f) => (
+                                            <TableRow key={f.id}>
+                                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {new Date(f.created_at).toLocaleString('tr-TR')}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-xs">{f.user_name}</span>
+                                                        <span className="text-[10px] text-muted-foreground">{f.user_email}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-medium text-xs">
+                                                    {f.subject}
+                                                </TableCell>
+                                                <TableCell className="text-xs max-w-[200px] break-words">
+                                                    {f.message}
+                                                </TableCell>
+                                                <TableCell className="text-[10px] text-violet-600 font-mono">
+                                                    {f.page_url || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={f.status === 'pending' ? 'outline' : f.status === 'resolved' ? 'default' : 'secondary'}
+                                                        className={cn(
+                                                            "text-[10px] whitespace-nowrap",
+                                                            f.status === 'pending' && "bg-amber-50 text-amber-700 border-amber-200",
+                                                            f.status === 'resolved' && "bg-green-50 text-green-700 border-green-200"
+                                                        )}
+                                                    >
+                                                        {f.status === 'pending' ? 'Beklemede' : f.status === 'resolved' ? 'Çözüldü' : 'Kapatıldı'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Select
+                                                        defaultValue={f.status}
+                                                        onValueChange={(val) => handleFeedbackStatusUpdate(f.id, val as any)}
+                                                    >
+                                                        <SelectTrigger className="w-[110px] ml-auto h-7 text-[10px]">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="pending">Beklemede</SelectItem>
+                                                            <SelectItem value="resolved">Çözüldü</SelectItem>
+                                                            <SelectItem value="closed">Kapatıldı</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

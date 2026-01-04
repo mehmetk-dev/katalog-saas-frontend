@@ -106,7 +106,7 @@ export function DashboardHeader() {
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">
+            <TooltipContent side="bottom" align="start" sideOffset={5}>
               {isMobile
                 ? t("sidebar.openMenu")
                 : isCollapsed
