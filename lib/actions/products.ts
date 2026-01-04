@@ -220,13 +220,18 @@ export async function checkProductsInCatalogs(productIds: string[]): Promise<Pro
 
 export async function bulkImportProducts(products: Omit<Product, "id" | "user_id" | "created_at" | "updated_at">[]) {
   try {
+    // Toplu import için retry ve daha uzun timeout kullan
     const importedProducts = await apiFetch<Product[]>("/products/bulk-import", {
       method: "POST",
       body: JSON.stringify({ products }),
+      retries: 3, // 3 kez retry yap
+      retryDelay: 2000, // Her retry arasında 2 saniye bekle
+      timeout: 120000, // 120 saniye timeout - büyük dosyalar için
     })
     revalidatePath("/dashboard/products")
     return importedProducts
   } catch (error) {
+    console.error("Bulk import error:", error)
     throw error
   }
 }

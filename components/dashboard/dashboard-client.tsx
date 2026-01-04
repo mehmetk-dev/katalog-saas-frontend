@@ -58,11 +58,27 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
 
 export function DashboardClient({ initialCatalogs, initialProducts, initialStats }: DashboardClientProps) {
     const { t } = useTranslation()
-    const { user } = useUser()
+    const { user, isLoading } = useUser()
 
-    const currentCatalogs = initialCatalogs
-    const currentProducts = initialProducts
+    // Güvenli fallback değerleri - undefined/null durumlarını ele al
+    const currentCatalogs = initialCatalogs ?? []
+    const currentProducts = initialProducts ?? []
     const recentCatalogs = currentCatalogs.slice(0, 3)
+
+    // User henüz yüklenmediyse basit bir skeleton göster
+    if (isLoading) {
+        return (
+            <div className="space-y-6 md:space-y-8 animate-pulse">
+                <div className="h-10 bg-muted rounded w-1/3"></div>
+                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-3">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-40 bg-muted rounded-xl"></div>
+                    ))}
+                </div>
+                <div className="h-64 bg-muted rounded-xl"></div>
+            </div>
+        )
+    }
 
     // Sparkline verileri - gerçek değerlere dayalı
     const totalViews = initialStats?.totalViews || 0

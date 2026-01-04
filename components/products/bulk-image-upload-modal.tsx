@@ -33,7 +33,6 @@ interface ImageFile {
 export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }: BulkImageUploadModalProps) {
     const [images, setImages] = useState<ImageFile[]>([])
     const [dragActive, setDragActive] = useState(false)
-    const [autoUploadPending, setAutoUploadPending] = useState(false)
 
     // Merkezi timeout hook'u
     const uploadTimeout = useAsyncTimeout({
@@ -43,147 +42,199 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         showToast: true
     })
 
+    // Modal kapandığında state'i temizle - useEffect ile
+    React.useEffect(() => {
+        if (!open) {
+            // Modal kapandığında temizle
+            setImages(prev => {
+                prev.forEach(img => URL.revokeObjectURL(img.preview))
+                return []
+            })
+            uploadTimeout.reset()
+        }
+    }, [open])
+
+    // handleOpenChange sadece parent'a bildirim yapar
+    const handleOpenChange = React.useCallback((isOpen: boolean) => {
+        onOpenChange(isOpen)
+    }, [onOpenChange])
+
     // Cleanup object URLs on unmount
     React.useEffect(() => {
         return () => {
-            images.forEach(img => URL.revokeObjectURL(img.preview))
+            setImages(prev => {
+                prev.forEach(img => URL.revokeObjectURL(img.preview))
+                return []
+            })
         }
     }, [])
 
-    // Otomatik yükleme: Yeni fotoğraflar eklendiğinde eşleşenler için otomatik yükle
-    React.useEffect(() => {
-        if (autoUploadPending && !uploadTimeout.isLoading && images.length > 0 && !uploadTimeout.hasTimeout) {
-            const hasMatchedPending = images.some(img => img.matchedProductId && img.status === 'pending')
-            if (hasMatchedPending) {
-                // Kısa bir gecikme ile yüklemeyi başlat (UI güncellemesi için)
-                const timer = setTimeout(() => {
-                    handleUpload()
-                }, 500)
-                return () => clearTimeout(timer)
-            }
-            setAutoUploadPending(false)
-        }
-    }, [autoUploadPending, uploadTimeout.isLoading, images, uploadTimeout.hasTimeout])
-
-    // Türkçe karakterleri normalize et
+    // Türkçe karakterleri normalize et - DÜZELTILMIŞ VERSİYON
     const normalizeText = (text: string): string => {
-        return text
-            .toLowerCase()
+        if (!text) return ''
+
+        // Önce toLowerCase yapmadan Türkçe büyük harfleri dönüştür
+        let normalized = text
+            // Büyük Türkçe harfler
+            .replace(/İ/g, 'i')  // Büyük İ -> i
+            .replace(/I/g, 'i')  // I harfi de i'ye (Türkçe'de I = ı ama dosya adlarında genelde i olarak kullanılır)
+            .replace(/Ğ/g, 'g')
+            .replace(/Ü/g, 'u')
+            .replace(/Ş/g, 's')
+            .replace(/Ö/g, 'o')
+            .replace(/Ç/g, 'c')
+            // Küçük Türkçe harfler
             .replace(/ı/g, 'i')
             .replace(/ğ/g, 'g')
             .replace(/ü/g, 'u')
             .replace(/ş/g, 's')
             .replace(/ö/g, 'o')
             .replace(/ç/g, 'c')
-            .replace(/İ/g, 'i')
-            .replace(/Ğ/g, 'g')
-            .replace(/Ü/g, 'u')
-            .replace(/Ş/g, 's')
-            .replace(/Ö/g, 'o')
-            .replace(/Ç/g, 'c')
+
+        // Şimdi lowercase yap
+        return normalized.toLowerCase().trim()
     }
 
-    // Metni kelimelere ayır (-, _, boşluk, sayılar hariç)
+    // Metni kelimelere ayır - DÜZELTILMIŞ VERSİYON
     const tokenize = (text: string): string[] => {
         const normalized = normalizeText(text)
-        // Tire, alt çizgi, boşluk ve sayılarla böl, boş stringleri filtrele
+        if (!normalized) return []
+
+        // Tire, alt çizgi, boşluk, nokta ve parantezlerle böl
         return normalized
-            .split(/[-_\s.]+/)
-            .filter(word => word.length > 1 && !/^\d+$/.test(word)) // 1 karakterden uzun ve sadece rakam olmayan
+            .split(/[-_\s.()[\]{}]+/)
+            .filter(word => {
+                // Boş, çok kısa veya sadece rakamdan oluşan kelimeleri filtrele
+                if (!word || word.length < 2) return false
+                if (/^\d+$/.test(word)) return false
+                // Tek harflik kelimeler de kabul edilmez
+                return true
+            })
     }
 
-    // İki kelime listesi arasındaki eşleşme puanını hesapla
+    // İki kelime arasındaki benzerlik skoru (0-1)
+    const wordSimilarity = (word1: string, word2: string): number => {
+        if (word1 === word2) return 1
+
+        // Kısa kelimelerde kesin eşleşme gerekli
+        if (word1.length < 4 || word2.length < 4) {
+            return word1 === word2 ? 1 : 0
+        }
+
+        // Başlangıç eşleşmesi (en az 4 karakter)
+        const minLen = Math.min(word1.length, word2.length)
+        if (minLen >= 4) {
+            if (word1.startsWith(word2) || word2.startsWith(word1)) {
+                // Ne kadar benzer o kadar yüksek puan
+                return minLen / Math.max(word1.length, word2.length)
+            }
+        }
+
+        return 0
+    }
+
+    // İki kelime listesi arasındaki eşleşme puanını hesapla - DÜZELTILMIŞ
     const calculateMatchScore = (productTokens: string[], fileTokens: string[]): number => {
         if (productTokens.length === 0 || fileTokens.length === 0) return 0
 
-        let matchedWords = 0
-        let consecutiveBonus = 0
-        let lastMatchIndex = -2
+        let totalScore = 0
+        let matchedCount = 0
+        const usedFileTokens = new Set<number>()
 
-        // Her ürün kelimesi için dosya kelimelerinde ara
-        for (let i = 0; i < productTokens.length; i++) {
-            const productWord = productTokens[i]
+        // Her dosya kelimesi için ürün kelimelerinde en iyi eşleşmeyi bul
+        // (Ters yönde - dosya kelimelerini ürünle eşleştir)
+        for (let fi = 0; fi < fileTokens.length; fi++) {
+            const fileWord = fileTokens[fi]
+            let bestSimilarity = 0
 
-            // Dosya kelimelerinde bu kelimeyi ara
-            const fileIndex = fileTokens.findIndex((fileWord, idx) => {
-                // Tam eşleşme veya başlangıç eşleşmesi (min 3 karakter)
-                if (fileWord === productWord) return true
-                if (productWord.length >= 3 && fileWord.startsWith(productWord)) return true
-                if (fileWord.length >= 3 && productWord.startsWith(fileWord)) return true
-                return false
-            })
-
-            if (fileIndex !== -1) {
-                matchedWords++
-                // Ardışık eşleşmelere bonus ver
-                if (fileIndex === lastMatchIndex + 1) {
-                    consecutiveBonus += 0.5
+            for (let pi = 0; pi < productTokens.length; pi++) {
+                const similarity = wordSimilarity(fileWord, productTokens[pi])
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity
                 }
-                lastMatchIndex = fileIndex
+            }
+
+            if (bestSimilarity >= 0.8) { // Minimum %80 benzerlik
+                matchedCount++
+                totalScore += bestSimilarity
+                usedFileTokens.add(fi)
             }
         }
 
-        if (matchedWords === 0) return 0
+        if (matchedCount === 0) return 0
 
-        // Puanlama: eşleşen kelime oranı + ardışıklık bonusu
-        const matchRatio = matchedWords / productTokens.length
-        const score = matchRatio + consecutiveBonus
+        // Dosya kelimelerinin ne kadarı eşleşti
+        const fileMatchRatio = matchedCount / fileTokens.length
+        const avgSimilarity = totalScore / matchedCount
 
-        // Minimum 2 kelime eşleşmesi gerekli (tek kelimelik ürünler hariç)
-        if (productTokens.length > 1 && matchedWords < 2) {
+        // ÖZEL DURUM: Dosya adı kısa (1-2 kelime) ve tam eşleşme varsa
+        // Örnek: "LUPİN (5).jpg" -> ["lupin"] ürün "LUPİN YATAK ODASI" ile eşleşmeli
+        if (fileTokens.length <= 2 && matchedCount >= 1 && avgSimilarity >= 0.95) {
+            // 1-2 kelimelik dosya adının ilk kelimesi ürünün ilk kelimesiyle eşleşiyorsa yüksek puan
+            if (wordSimilarity(fileTokens[0], productTokens[0]) >= 0.9) {
+                return 0.9 // Yüksek güven
+            }
+            return 0.8 // Orta güven
+        }
+
+        // Normal durumlar için dosya kelimelerinin çoğunluğu eşleşmeli
+        if (fileMatchRatio < 0.5) {
             return 0
         }
 
-        // Çok kısa eşleşmeleri düşük puanla
-        if (matchedWords === 1 && productTokens.length === 1 && productTokens[0].length < 4) {
-            return score * 0.5
-        }
-
-        return score
+        // Final skor
+        return fileMatchRatio * avgSimilarity
     }
 
-    // En iyi eşleşen ürünü bul
+    // En iyi eşleşen ürünü bul - DÜZELTILMIŞ
     const findBestMatch = (fileName: string): string | null => {
+        const normalizedFileName = normalizeText(fileName)
         const fileTokens = tokenize(fileName)
 
-        if (fileTokens.length === 0) return null
+        if (!normalizedFileName) return null
 
         let bestMatch: { productId: string; score: number } | null = null
+        const MIN_SCORE = 0.70 // Minimum %70 eşleşme skoru gerekli
 
         for (const product of products) {
-            // 1. Tam SKU eşleşmesi (en yüksek öncelik)
+            // 1. TAM SKU EŞLEŞMESİ (en yüksek öncelik)
             if (product.sku) {
                 const normalizedSku = normalizeText(product.sku)
-                const normalizedFileName = normalizeText(fileName)
-                if (normalizedFileName === normalizedSku || normalizedFileName.startsWith(normalizedSku + '-') || normalizedFileName.startsWith(normalizedSku + '_')) {
-                    return product.id
+                if (normalizedSku && normalizedSku.length >= 2) {
+                    // Dosya adı SKU ile başlıyorsa veya tam eşleşiyorsa
+                    if (normalizedFileName === normalizedSku) {
+                        return product.id // Kesin eşleşme
+                    }
+                    // SKU ile başlayıp tire veya alt çizgi ile devam ediyorsa
+                    if (normalizedFileName.startsWith(normalizedSku + '-') ||
+                        normalizedFileName.startsWith(normalizedSku + '_') ||
+                        normalizedFileName.startsWith(normalizedSku + ' ')) {
+                        return product.id // Kesin eşleşme
+                    }
+                    // SKU dosya adının içinde tam olarak geçiyorsa
+                    const skuPattern = new RegExp(`(^|[-_ ])${normalizedSku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[-_ ])`)
+                    if (skuPattern.test(normalizedFileName)) {
+                        return product.id // Kesin eşleşme
+                    }
                 }
             }
 
-            // 2. Tam isim eşleşmesi
+            // 2. TAM İSİM EŞLEŞMESİ
             const normalizedName = normalizeText(product.name)
-            const normalizedFileName = normalizeText(fileName)
             if (normalizedFileName === normalizedName) {
-                return product.id
+                return product.id // Kesin eşleşme
             }
 
-            // 3. Kelime bazlı puanlama
+            // 3. KELIME BAZLI PUANLAMA
             const productTokens = tokenize(product.name)
+            if (productTokens.length === 0 || fileTokens.length === 0) continue
+
             const score = calculateMatchScore(productTokens, fileTokens)
 
-            // SKU tokenlarını da kontrol et
-            let skuScore = 0
-            if (product.sku) {
-                const skuTokens = tokenize(product.sku)
-                skuScore = calculateMatchScore(skuTokens, fileTokens)
-            }
-
-            const finalScore = Math.max(score, skuScore)
-
-            // Minimum eşleşme eşiği: %60 veya 2 kelime
-            if (finalScore >= 0.6 || (finalScore > 0 && productTokens.length <= 2)) {
-                if (!bestMatch || finalScore > bestMatch.score) {
-                    bestMatch = { productId: product.id, score: finalScore }
+            // Minimum skor kontrolü
+            if (score >= MIN_SCORE) {
+                if (!bestMatch || score > bestMatch.score) {
+                    bestMatch = { productId: product.id, score }
                 }
             }
         }
@@ -214,11 +265,6 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
         if (newImages.length > 0) {
             setImages(prev => [...prev, ...newImages])
-            // Eşleşen fotoğraflar varsa otomatik yüklemeyi tetikle
-            const hasMatched = newImages.some(img => img.matchedProductId)
-            if (hasMatched) {
-                setAutoUploadPending(true)
-            }
         }
     }, [products])
 
@@ -279,9 +325,18 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'uploading' } : p))
 
                 try {
-                    // 1. WebP Conversion
+                    // Progress güncelle - dönüşüm başlıyor
+                    const baseProgress = Math.round((uploadedCount / totalImages) * 100)
+                    uploadTimeout.setProgress(baseProgress)
+
+                    // 1. WebP Conversion (büyük fotoğrafları otomatik küçültür)
                     const { convertToWebP } = await import("@/lib/image-utils")
+                    console.log(`Converting ${img.file.name} (${(img.file.size / 1024 / 1024).toFixed(2)}MB)...`)
                     const { blob } = await convertToWebP(img.file)
+                    console.log(`Converted to WebP: ${(blob.size / 1024).toFixed(0)}KB`)
+
+                    // Progress güncelle - dönüşüm tamamlandı, yükleme başlıyor
+                    uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 50))
 
                     // 2. Upload
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
@@ -342,7 +397,6 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 toast.error("Bazı ürünler güncellenemedi")
             }
 
-            setAutoUploadPending(false)
             toast.success("İşlem tamamlandı")
             onSuccess()
         })
@@ -357,7 +411,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] flex flex-col p-0 gap-0 sm:max-w-[95vw]">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle className="flex items-center gap-2">
@@ -573,7 +627,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploadTimeout.isLoading}>
+                        <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={uploadTimeout.isLoading}>
                             İptal
                         </Button>
                         {uploadTimeout.hasTimeout ? (

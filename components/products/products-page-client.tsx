@@ -524,7 +524,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   return (
     <TooltipProvider>
       <div className="flex flex-col min-h-[calc(100vh-200px)] -m-4 sm:-m-6 p-4 sm:p-6 bg-gray-50 dark:bg-gray-950">
-        <div className="flex-1 space-y-3">
+        <div className="space-y-3">
 
           {/* KPI Kartları - Mobile Optimized */}
           <div className="grid grid-cols-3 gap-2 sm:gap-4">

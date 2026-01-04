@@ -108,7 +108,7 @@ const HEADER_ALIASES: Record<string, string> = {
     'stokkodu': 'sku',
     'kod': 'sku',
     'ürün kodu': 'sku',
-    'urun kodu': 'name',
+    'urun kodu': 'sku',
     'ürün_kodu': 'sku',
     'urun_kodu': 'sku',
     'product code': 'sku',
@@ -301,8 +301,8 @@ export function ImportExportModal({
         toast.success(t('toasts.templateDownloaded'))
     }
 
-    // CSV satırını parse et (virgül, noktalı virgül, tab desteği)
-    const parseCSVLine = (line: string): string[] => {
+    // CSV satırını parse et (belirli bir ayırıcı ile)
+    const parseCSVLine = (line: string, delimiter: string): string[] => {
         const result: string[] = []
         let current = ''
         let inQuotes = false
@@ -317,7 +317,7 @@ export function ImportExportModal({
                 } else {
                     inQuotes = !inQuotes
                 }
-            } else if ((char === ';' || char === ',' || char === '\t') && !inQuotes) {
+            } else if (char === delimiter && !inQuotes) {
                 result.push(current.trim())
                 current = ''
             } else {
@@ -327,6 +327,18 @@ export function ImportExportModal({
 
         result.push(current.trim())
         return result
+    }
+
+    // En uygun ayırıcıyı tespit et
+    const detectDelimiter = (line: string): string => {
+        const delimiters = [';', ',', '\t']
+        const counts = delimiters.map(d => ({
+            delimiter: d,
+            count: (line.match(new RegExp(d, 'g')) || []).length
+        }))
+
+        // En çok geçen karakteri ayırıcı kabul et
+        return counts.sort((a, b) => b.count - a.count)[0].delimiter
     }
 
     // Otomatik eşleme yap
@@ -400,20 +412,28 @@ export function ImportExportModal({
             reader.onload = (event) => {
                 try {
                     const text = event.target?.result as string
-                    const lines = text.split('\n').filter(line => line.trim())
+                    const lines = text.split(/\r?\n/).filter(line => line.trim())
 
                     if (lines.length < 2) {
                         reject(new Error(t('toasts.noValidData')))
                         return
                     }
 
-                    const headers = parseCSVLine(lines[0])
+                    // Ayırıcıyı tespit et
+                    const delimiter = detectDelimiter(lines[0])
+                    const headers = parseCSVLine(lines[0], delimiter)
 
                     const data: string[][] = []
                     for (let i = 1; i < lines.length; i++) {
-                        const values = parseCSVLine(lines[i])
-                        if (values.some(v => v)) {
-                            data.push(values)
+                        const values = parseCSVLine(lines[i], delimiter)
+                        // Header sayısı kadar kolon olmasını garanti et
+                        const paddedValues = Array(headers.length).fill('')
+                        values.forEach((v, idx) => {
+                            if (idx < headers.length) paddedValues[idx] = v
+                        })
+
+                        if (paddedValues.some(v => v)) {
+                            data.push(paddedValues)
                         }
                     }
 
@@ -611,12 +631,57 @@ export function ImportExportModal({
                         case 'description':
                             product.description = value || null
                             break
-                        case 'price':
-                            product.price = parseFloat(value.replace(',', '.').replace(/[^\d.]/g, '')) || 0
+                        case 'price': {
+                            // Fiyat parsing - Hem TR hem EN formatlarını destekle
+                            const cleanValue = value.replace(/[^\d.,]/g, '')
+                            if (!cleanValue) {
+                                product.price = 0
+                                break
+                            }
+
+                            const dotIndex = cleanValue.lastIndexOf('.')
+                            const commaIndex = cleanValue.lastIndexOf(',')
+
+                            if (dotIndex !== -1 && commaIndex !== -1) {
+                                // Hem nokta hem virgül var (örn: 1.234,56 veya 1,234.56)
+                                if (commaIndex > dotIndex) {
+                                    // TR Format: 1.234,56 -> Noktayı sil, virgülü noktaya çevir
+                                    product.price = parseFloat(cleanValue.replace(/\./g, '').replace(',', '.')) || 0
+                                } else {
+                                    // EN Format: 1,234.56 -> Virgülü sil
+                                    product.price = parseFloat(cleanValue.replace(/,/g, '')) || 0
+                                }
+                            } else if (commaIndex !== -1) {
+                                // Sadece virgül var (örn: 44,50 veya 44.000)
+                                // Eğer 1,000 gibi tam 3 hane varsa binlik ayraç olabilir ama genelde fiyatta ondalıktır
+                                // TR'de fiyatta tek ayraç virgüldür (10,50)
+                                product.price = parseFloat(cleanValue.replace(',', '.')) || 0
+                            } else if (dotIndex !== -1) {
+                                // Sadece nokta var (örn: 44.100 veya 44.50)
+                                // Kullanıcı durumu: 44.100 -> 44 bin olması lazım
+                                // Heuristik: Eğer noktadan sonra tam 3 hane varsa ve başka nokta yoksa binlik ayraç kabul et
+                                if (cleanValue.match(/\.\d{3}$/)) {
+                                    product.price = parseFloat(cleanValue.replace(/\./g, '')) || 0
+                                } else {
+                                    product.price = parseFloat(cleanValue) || 0
+                                }
+                            } else {
+                                product.price = parseFloat(cleanValue) || 0
+                            }
                             break
-                        case 'stock':
-                            product.stock = parseInt(value) || 0
+                        }
+                        case 'stock': {
+                            // Stok parsing - Binlik ayraçları temizle
+                            const cleanValue = value.replace(/[^\d.,]/g, '')
+                            if (cleanValue.includes('.') && cleanValue.match(/\.\d{3}$/)) {
+                                product.stock = parseInt(cleanValue.replace(/\./g, '')) || 0
+                            } else if (cleanValue.includes(',') && cleanValue.match(/,\d{3}$/)) {
+                                product.stock = parseInt(cleanValue.replace(/,/g, '')) || 0
+                            } else {
+                                product.stock = parseInt(cleanValue.replace(/[^\d]/g, '')) || 0
+                            }
                             break
+                        }
                         case 'category':
                             product.category = isFreeUser ? null : (value || null)
                             break

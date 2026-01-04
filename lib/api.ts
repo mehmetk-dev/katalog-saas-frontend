@@ -8,6 +8,8 @@ type FetchOptions = Omit<RequestInit, "headers"> & {
     retries?: number;
     /** Retry delay (ms) - varsayılan 1000 */
     retryDelay?: number;
+    /** Timeout (ms) - varsayılan 60000 (60 saniye) */
+    timeout?: number;
 };
 
 interface ApiError extends Error {
@@ -17,7 +19,7 @@ interface ApiError extends Error {
 }
 
 export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-    const { retries = 0, retryDelay = 1000, ...fetchOptions } = options;
+    const { retries = 0, retryDelay = 1000, timeout = 60000, ...fetchOptions } = options;
     const supabase = await createServerSupabaseClient();
 
     // Use getUser() instead of getSession() for security
@@ -41,7 +43,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
     // Timeout kontrolü için AbortController kullan
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
+    const timeoutId = setTimeout(() => controller.abort(), timeout); // Parametrik timeout
 
     let lastError: ApiError | null = null;
     let attempts = 0;
