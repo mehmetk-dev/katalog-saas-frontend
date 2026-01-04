@@ -4,7 +4,7 @@ import { AnalyticsClient } from "@/components/analytics/analytics-client"
 import { getCatalogs } from "@/lib/actions/catalogs"
 
 export const metadata: Metadata = {
-    title: "Analitik | CatalogPro",
+    title: "Analitik",
     description: "Katalog performansınızı ve ziyaretçi istatistiklerinizi takip edin.",
 }
 

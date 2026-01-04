@@ -276,23 +276,11 @@ export async function bulkUpdatePrices(
 
 export async function bulkUpdateProductImages(updates: { productId: string; images: string[] }[]) {
   try {
-    // Ürünleri paralel olarak güncelleyerek hızı artırıyoruz
-    await Promise.all(updates.map(async (update) => {
-      // Mevcut ürünü çek
-      const product = await apiFetch<Product>(`/products/${update.productId}`, { method: 'GET' })
-
-      const newProductData = {
-        ...product,
-        images: update.images,
-        image_url: update.images[0] || product.image_url
-      }
-
-      // Güncelle (Bu işlem backend cache'ini otomatik temizler)
-      await apiFetch(`/products/${update.productId}`, {
-        method: "PUT",
-        body: JSON.stringify(newProductData),
-      })
-    }))
+    // Tek bir API isteği ile tüm ürünleri sunucu tarafında güncelle
+    await apiFetch("/products/bulk-image-update", {
+      method: "POST",
+      body: JSON.stringify({ updates }),
+    })
 
     revalidatePath("/dashboard/products")
     return { success: true }

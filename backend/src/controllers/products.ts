@@ -34,6 +34,8 @@ export const getProduct = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const { id } = req.params;
 
+        console.log(`[GET_PRODUCT] User: ${userId}, ID: ${id}`);
+
         const { data, error } = await supabase
             .from('products')
             .select('*')
@@ -41,11 +43,19 @@ export const getProduct = async (req: Request, res: Response) => {
             .eq('user_id', userId)
             .single();
 
-        if (error) throw error;
-        if (!data) return res.status(404).json({ error: 'Ürün bulunamadı' });
+        if (error) {
+            console.error(`[GET_PRODUCT_ERROR] DB Error:`, error);
+            throw error;
+        }
+
+        if (!data) {
+            console.warn(`[GET_PRODUCT_WARN] Product not found or unauthorized: ${id}`);
+            return res.status(404).json({ error: 'Ürün bulunamadı veya yetkiniz yok.' });
+        }
 
         res.json(data);
     } catch (error: any) {
+        console.error(`[GET_PRODUCT_CRITICAL]`, error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -565,3 +575,49 @@ export const checkProductsInCatalogs = async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const bulkUpdateImages = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const { updates } = req.body; // { productId: string; images: string[] }[]
+
+        if (!Array.isArray(updates)) {
+            return res.status(400).json({ error: 'updates must be an array' });
+        }
+
+        console.log(`[BULK_IMAGE_UPDATE] User: ${userId}, Count: ${updates.length}`);
+
+        const results = [];
+        for (const update of updates) {
+            const { productId, images } = update;
+
+            const { data, error } = await supabase
+                .from('products')
+                .update({
+                    images: images || [],
+                    image_url: (images && images.length > 0) ? images[0] : null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', productId)
+                .eq('user_id', userId)
+                .select()
+                .single();
+
+            if (error) {
+                console.error(`[BULK_IMAGE_UPDATE_ERROR] Product ${productId}:`, error);
+                results.push({ productId, success: false, error: error.message });
+            } else {
+                results.push({ productId, success: true });
+            }
+        }
+
+        // Cache'i sadece bir kez temizle!
+        await deleteCache(cacheKeys.products(userId));
+
+        res.json({ success: true, count: updates.length });
+    } catch (error: any) {
+        console.error('[BULK_IMAGE_UPDATE_CRITICAL]', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+

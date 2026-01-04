@@ -15,6 +15,7 @@ router.post('/bulk-delete', ProductController.bulkDeleteProducts);
 router.post('/bulk-import', ProductController.bulkImportProducts);
 router.post('/reorder', ProductController.reorderProducts);
 router.post('/bulk-price-update', ProductController.bulkUpdatePrices);
+router.post('/bulk-image-update', ProductController.bulkUpdateImages);
 router.post('/rename-category', ProductController.renameCategory);
 router.post('/delete-category', ProductController.deleteCategoryFromProducts);
 router.post('/check-catalogs', ProductController.checkProductsInCatalogs);

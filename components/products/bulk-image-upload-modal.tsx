@@ -51,9 +51,14 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 prev.forEach(img => URL.revokeObjectURL(img.preview))
                 return []
             })
-            uploadTimeout.reset()
+            uploadTimeout.cancel()
         }
     }, [open])
+
+    // Ürünleri isimlerine göre alfabetik sırala (A'dan Z'ye)
+    const sortedProducts = React.useMemo(() => {
+        return [...products].sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }))
+    }, [products])
 
     // handleOpenChange sadece parent'a bildirim yapar
     const handleOpenChange = React.useCallback((isOpen: boolean) => {
@@ -536,7 +541,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                                             disabled={isSuccess || uploadTimeout.isLoading}
                                                         >
                                                             <option value="none">Seçim Yapılmadı</option>
-                                                            {products.map(p => (
+                                                            {sortedProducts.map(p => (
                                                                 <option key={p.id} value={p.id}>
                                                                     {p.sku ? `[${p.sku}] ` : ''}{p.name}
                                                                 </option>

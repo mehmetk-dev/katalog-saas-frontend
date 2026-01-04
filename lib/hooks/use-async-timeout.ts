@@ -157,6 +157,7 @@ export function useAsyncTimeout<T = void>(
     }, [showToast])
 
     const reset = useCallback(() => {
+        setIsLoading(false)
         setHasTimeout(false)
         setError(null)
         setProgress(0)

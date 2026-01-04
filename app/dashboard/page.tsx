@@ -5,7 +5,7 @@ import { getProducts } from "@/lib/actions/products"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 
 export const metadata: Metadata = {
-  title: "Panel | CatalogPro",
+  title: "Panel",
   description: "Kataloglarınızı, ürünlerinizi ve istatistiklerinizi yönetin.",
 }
 

@@ -7,7 +7,7 @@ import { ProductsPageClient } from "@/components/products/products-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export const metadata: Metadata = {
-  title: "Ürünler | CatalogPro",
+  title: "Ürünler",
   description: "Ürün envanterinizi yönetin, düzenleyin ve kataloglara ekleyin.",
 }
 

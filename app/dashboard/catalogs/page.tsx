@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { CatalogsPageClient } from "@/components/catalogs/catalogs-page-client"
 
 export const metadata: Metadata = {
-  title: "Kataloglar | CatalogPro",
+  title: "Kataloglar",
   description: "Oluşturduğunuz tüm katalogları yönetin, düzenleyin ve paylaşın.",
 }
 

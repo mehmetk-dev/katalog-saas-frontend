@@ -8,7 +8,7 @@ import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export const metadata: Metadata = {
-  title: "Katalog Oluşturucu | CatalogPro",
+  title: "Katalog Oluşturucu",
   description: "Sürükle-bırak editörü ile profesyonel kataloglar oluşturun.",
 }
 
