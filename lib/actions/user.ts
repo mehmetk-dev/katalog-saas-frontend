@@ -16,15 +16,16 @@ export async function updateUserProfile(data: {
     })
     revalidatePath("/dashboard/settings")
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    return { success: false, error: errorMessage }
   }
 }
 
 export async function getUserProfile() {
   try {
     return await apiFetch("/users/me")
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -36,8 +37,9 @@ export async function deleteUserAccount() {
     })
     await signOut()
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    return { success: false, error: errorMessage }
   }
 }
 
@@ -48,11 +50,12 @@ export async function incrementUserExports(catalogName?: string) {
       body: JSON.stringify({ catalogName }),
     })
     return { success: true }
-  } catch (error: any) {
-    if (error.message.includes("Export limit reached")) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    if (errorMessage.includes("Export limit reached")) {
       return { error: "limit_reached" }
     }
-    return { error: error.message }
+    return { error: errorMessage }
   }
 }
 
@@ -65,8 +68,9 @@ export async function upgradeUserToPro() {
     // Revalidate user profile paths
     revalidatePath("/dashboard")
     return { success: true }
-  } catch (error: any) {
-    return { error: error.message }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    return { error: errorMessage }
   }
 }
 
@@ -79,8 +83,9 @@ export async function upgradeUserToPlus() {
     // Revalidate user profile paths
     revalidatePath("/dashboard")
     return { success: true }
-  } catch (error: any) {
-    return { error: error.message }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    return { error: errorMessage }
   }
 }
 
@@ -92,8 +97,9 @@ export async function upgradeUserToPlan(plan: "free" | "plus" | "pro") {
     })
     revalidatePath("/dashboard")
     return { success: true }
-  } catch (error: any) {
-    return { error: error.message }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    return { error: errorMessage }
   }
 }
 
@@ -103,8 +109,9 @@ export async function sendWelcomeNotification() {
       method: "POST",
     })
     return { success: true }
-  } catch (error: any) {
-    return { error: error.message }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+    return { error: errorMessage }
   }
 }
 

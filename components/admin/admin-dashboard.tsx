@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import NextImage from "next/image"
 import { Users, Package, FileText, Download, Activity, Search, Trash2, ChevronLeft, ChevronRight, Film } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
 
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { getAdminStats, getAdminUsers, getDeletedUsers, updateUserPlan } from "@/lib/actions/admin"
 import { getFeedbacks, updateFeedbackStatus, type Feedback } from "@/lib/actions/feedback"
@@ -17,6 +18,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/lib/supabase/client"
 import { useTranslation } from "@/lib/i18n-provider"
 
+interface AdminUser {
+    id: string
+    name?: string
+    full_name?: string
+    email: string
+    created_at: string
+    subscription_end?: string
+    subscription_status?: string
+    plan?: 'free' | 'plus' | 'pro'
+}
+
+interface DeletedUser extends AdminUser {
+    deleted_at: string
+    deleted_by: string
+    original_created_at: string
+}
+
+interface ActivityLog {
+    id: string
+    created_at: string
+    user_email?: string
+    user_name?: string
+    activity_type: string
+    description: string
+    ip_address?: string
+}
+
 export function AdminDashboardClient() {
     const { t } = useTranslation()
     const supabase = createClient()
@@ -28,23 +56,25 @@ export function AdminDashboardClient() {
         totalExports: 0,
         deletedUsersCount: 0
     })
-    const [users, setUsers] = useState<any[]>([])
-    const [deletedUsers, setDeletedUsers] = useState<any[]>([])
+    const [users, setUsers] = useState<AdminUser[]>([])
+    const [deletedUsers, setDeletedUsers] = useState<DeletedUser[]>([])
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
     const [loading, setLoading] = useState(true)
-    const [loadingUsers, setLoadingUsers] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
-    const [activityLogs, setActivityLogs] = useState<any[]>([])
+    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
     const [loadingLogs, setLoadingLogs] = useState(false)
     const [logsPage, setLogsPage] = useState(0)
     const [logsTotalCount, setLogsTotalCount] = useState(0)
     const LOGS_PER_PAGE = 20
 
-    useEffect(() => {
-        loadData()
-    }, [])
+    const totalLogsPages = Math.ceil(logsTotalCount / LOGS_PER_PAGE)
 
-    const fetchActivityLogs = async (page: number = 0) => {
+    const handleLogsPageChange = (newPage: number) => {
+        setLogsPage(newPage)
+        fetchActivityLogs(newPage)
+    }
+
+    const fetchActivityLogs = useCallback(async (page: number = 0) => {
         setLoadingLogs(true)
         try {
             // Get total count
@@ -74,46 +104,41 @@ export function AdminDashboardClient() {
         } finally {
             setLoadingLogs(false)
         }
-    }
+    }, [supabase])
 
-    const handleLogsPageChange = (newPage: number) => {
-        setLogsPage(newPage)
-        fetchActivityLogs(newPage)
-    }
-
-    const totalLogsPages = Math.ceil(logsTotalCount / LOGS_PER_PAGE)
-
-    async function loadData() {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true)
             fetchActivityLogs()
             const statsData = await getAdminStats()
             setStats(statsData)
 
-            setLoadingUsers(true)
             const [usersData, deletedUsersData, feedbacksData] = await Promise.all([
                 getAdminUsers(),
                 getDeletedUsers(),
                 getFeedbacks()
             ])
-            setUsers(usersData)
-            setDeletedUsers(deletedUsersData)
+            setUsers(usersData as AdminUser[])
+            setDeletedUsers(deletedUsersData as DeletedUser[])
             setFeedbacks(feedbacksData)
-            setLoadingUsers(false)
-        } catch (error) {
-            console.error("Failed to load admin data")
+        } catch (error: unknown) {
+            console.error("Failed to load admin data:", error)
             toast.error(t('toasts.errorOccurred'))
         } finally {
             setLoading(false)
         }
-    }
+    }, [fetchActivityLogs, t])
+
+    useEffect(() => {
+        loadData()
+    }, [loadData])
 
     const handlePlanUpdate = async (userId: string, newPlan: 'free' | 'plus' | 'pro') => {
         try {
             await updateUserPlan(userId, newPlan)
             setUsers(users.map(u => u.id === userId ? { ...u, plan: newPlan } : u))
             toast.success(`${t('toasts.profileUpdated')} (${newPlan.toUpperCase()})`)
-        } catch (error) {
+        } catch {
             toast.error(t('toasts.profileUpdateFailed'))
         }
     }
@@ -123,7 +148,7 @@ export function AdminDashboardClient() {
             await updateFeedbackStatus(id, status)
             setFeedbacks(feedbacks.map(f => f.id === id ? { ...f, status } : f))
             toast.success("Geri bildirim durumu güncellendi")
-        } catch (error) {
+        } catch {
             toast.error("İşlem başarısız oldu")
         }
     }
@@ -272,7 +297,7 @@ export function AdminDashboardClient() {
                                             <TableCell className="text-right">
                                                 <Select
                                                     defaultValue={user.plan || 'free'}
-                                                    onValueChange={(val) => handlePlanUpdate(user.id, val as any)}
+                                                    onValueChange={(val) => handlePlanUpdate(user.id, val as 'free' | 'plus' | 'pro')}
                                                 >
                                                     <SelectTrigger className="w-[100px] ml-auto h-8">
                                                         <SelectValue />
@@ -426,7 +451,7 @@ export function AdminDashboardClient() {
                                                                     {isVideo ? (
                                                                         <Film className="w-4 h-4 text-slate-500" />
                                                                     ) : (
-                                                                        <img src={url} alt="" className="w-full h-full object-cover" />
+                                                                        <NextImage src={url} alt="" fill className="object-cover" unoptimized />
                                                                     )}
                                                                 </a>
                                                             )
@@ -454,7 +479,7 @@ export function AdminDashboardClient() {
                                                 <TableCell className="text-right">
                                                     <Select
                                                         defaultValue={f.status}
-                                                        onValueChange={(val) => handleFeedbackStatusUpdate(f.id, val as any)}
+                                                        onValueChange={(val) => handleFeedbackStatusUpdate(f.id, val as Feedback['status'])}
                                                     >
                                                         <SelectTrigger className="w-[110px] ml-auto h-7 text-[10px]">
                                                             <SelectValue />

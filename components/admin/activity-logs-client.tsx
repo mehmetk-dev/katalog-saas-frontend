@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { LucideIcon } from "lucide-react"
 import {
     Activity, Search, Filter, RefreshCw, ChevronLeft, ChevronRight,
     LogIn, LogOut, UserPlus, Crown, ArrowDown, BookOpen, Edit, Trash,
@@ -25,7 +26,7 @@ interface ActivityLogsClientProps {
     initialTotal: number
 }
 
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
+const ICON_MAP: Record<string, LucideIcon> = {
     LogIn, LogOut, UserPlus, Crown, ArrowDown, BookOpen, Edit, Trash,
     Globe, EyeOff, Package, Upload, Download, Tag, FileDown, User, Key, UserMinus
 }
@@ -41,7 +42,7 @@ const COLOR_MAP: Record<string, string> = {
 }
 
 export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsClientProps) {
-    const { t, language } = useTranslation()
+    const { language } = useTranslation()
     const [logs, setLogs] = useState<ActivityLog[]>(initialLogs)
     const [total, setTotal] = useState(initialTotal)
     const [page, setPage] = useState(1)
@@ -50,7 +51,7 @@ export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsCl
     const [activityFilter, setActivityFilter] = useState<string>("all")
     const limit = 25
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         setLoading(true)
         try {
             const params = new URLSearchParams({
@@ -73,11 +74,11 @@ export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsCl
         } finally {
             setLoading(false)
         }
-    }
+    }, [page, activityFilter, limit])
 
     useEffect(() => {
         fetchLogs()
-    }, [page, activityFilter])
+    }, [fetchLogs])
 
     const filteredLogs = searchTerm
         ? logs.filter(log =>

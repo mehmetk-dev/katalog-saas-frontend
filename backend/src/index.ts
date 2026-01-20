@@ -1,4 +1,4 @@
-import path from 'path';
+// path import removed as it was unused
 
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 
 import { initRedis } from './services/redis';
+import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 // Load environment variables
 dotenv.config();
@@ -31,14 +32,7 @@ const apiLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Stricter rate limit for auth endpoints
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 auth requests per windowMs
-    message: { error: 'Too many authentication attempts, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// authLimiter removed as it was unused
 
 // Middleware
 app.use(cors({
@@ -98,7 +92,14 @@ app.use('/api/v1/notifications', notificationRoutes);
 // Initialize Redis (optional - works without it)
 initRedis();
 
+// 404 handler for undefined routes
+app.use(notFoundHandler);
+
+// Global error handler (must be last middleware)
+app.use(errorHandler);
+
 // Start Server
 app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
     console.log(`Server is running on port ${PORT} 🚀`);
 });

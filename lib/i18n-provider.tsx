@@ -4,8 +4,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 import { translations, Language } from "./translations"
 
-type Translations = typeof translations.tr
-
 interface I18nContextType {
     language: Language
     setLanguage: (lang: Language) => void
@@ -40,23 +38,30 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
     const t = (path: string, params?: Record<string, string | number>): string => {
         const keys = path.split(".")
-        let current: any = translations[language]
+        let current: unknown = translations[language]
 
         for (const key of keys) {
-            if (current?.[key] === undefined) {
+            if (current && typeof current === 'object' && key in current) {
+                current = (current as Record<string, unknown>)[key]
+            } else {
                 // Fallback to Turkish if key not found in current language
-                let fallback: any = translations.tr
+                let fallback: unknown = translations.tr
                 for (const k of keys) {
-                    if (fallback?.[k] === undefined) {
+                    if (fallback && typeof fallback === 'object' && k in fallback) {
+                        fallback = (fallback as Record<string, unknown>)[k]
+                    } else {
                         console.warn(`Translation missing for key: ${path}`)
                         return path
                     }
-                    fallback = fallback[k]
                 }
                 current = fallback
                 break
             }
-            current = current[key]
+            if (current && typeof current === 'object' && key in current) {
+                current = (current as Record<string, unknown>)[key]
+            } else {
+                break
+            }
         }
 
         let result = current as string

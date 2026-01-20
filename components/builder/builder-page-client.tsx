@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useTransition, useId, useEffect, useCallback, useRef } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Download, Share2, Save, ArrowLeft, Eye, Pencil, Globe, MoreVertical, ExternalLink } from "lucide-react"
-import Link from "next/link"
 import { toast } from "sonner"
 
 import { CatalogEditor } from "@/components/builder/catalog-editor"
@@ -13,8 +12,7 @@ import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useUser } from "@/lib/user-context"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { type Catalog, createCatalog, updateCatalog, publishCatalog } from "@/lib/actions/catalogs"
+import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import {
   DropdownMenu,
@@ -24,7 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -40,8 +37,8 @@ function slugify(text: string) {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')     // Replace spaces with -
-    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
-    .replace(/\-\-+/g, '-')   // Replace multiple - with single -
+    .replace(/[^\w-]+/g, '') // Remove all non-word chars
+    .replace(/-+/g, '-')   // Replace multiple - with single -
 }
 
 interface BuilderPageClientProps {
@@ -72,14 +69,13 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [columnsPerRow, setColumnsPerRow] = useState(catalog?.columns_per_row || 3)
   const [backgroundColor, setBackgroundColor] = useState(catalog?.background_color || '#ffffff')
   const [backgroundImage, setBackgroundImage] = useState<string | null>(catalog?.background_image || null)
-  const [backgroundImageFit, setBackgroundImageFit] = useState<string>(catalog?.background_image_fit || 'cover')
+  const [backgroundImageFit, setBackgroundImageFit] = useState<NonNullable<Catalog['background_image_fit']>>(catalog?.background_image_fit || 'cover')
   const [backgroundGradient, setBackgroundGradient] = useState<string | null>(catalog?.background_gradient || null)
   const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || user?.logo_url || null)
-  const [logoPosition, setLogoPosition] = useState<string>(catalog?.logo_position || 'header-left')
-  const [logoSize, setLogoSize] = useState<string>(catalog?.logo_size || 'medium')
-  const [titlePosition, setTitlePosition] = useState<string>((catalog as any)?.title_position || 'left')
+  const [logoPosition, setLogoPosition] = useState<Catalog['logo_position']>(catalog?.logo_position || 'header-left')
+  const [logoSize, setLogoSize] = useState<Catalog['logo_size']>(catalog?.logo_size || 'medium')
+  const [titlePosition, setTitlePosition] = useState<Catalog['title_position']>(catalog?.title_position || 'left')
   const [showShareModal, setShowShareModal] = useState(false)
-  const tabsId = useId()
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false)
 
@@ -141,7 +137,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor, catalog?.name, catalog?.description, catalog?.product_ids])
 
   // Autosave state
   const [isAutoSaving, setIsAutoSaving] = useState(false)
@@ -174,11 +170,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
-          background_image_fit: backgroundImageFit as any,
+          background_image_fit: backgroundImageFit,
           background_gradient: backgroundGradient,
           logo_url: logoUrl,
-          logo_position: logoPosition as any,
-          logo_size: logoSize as any,
+          logo_position: logoPosition,
+          logo_size: logoSize,
         })
 
         // Başarılı - state'leri güncelle
@@ -213,7 +209,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize])
+  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize, isPublished])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
   const selectedProducts = selectedProductIds
@@ -236,7 +232,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
-  }, []) // Only run on mount
+  }, [view]) // Include view to handle view changes
 
   const handleSave = () => {
     startTransition(async () => {
@@ -255,11 +251,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             columns_per_row: columnsPerRow,
             background_color: backgroundColor,
             background_image: backgroundImage,
-            background_image_fit: backgroundImageFit as any,
+            background_image_fit: backgroundImageFit,
             background_gradient: backgroundGradient,
             logo_url: logoUrl,
-            logo_position: logoPosition as any,
-            logo_size: logoSize as any,
+            logo_position: logoPosition,
+            logo_size: logoSize,
           })
           toast.success(t('toasts.catalogSaved'))
         } else {
@@ -279,11 +275,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             columns_per_row: columnsPerRow,
             background_color: backgroundColor,
             background_image: backgroundImage,
-            background_image_fit: backgroundImageFit as any,
+            background_image_fit: backgroundImageFit,
             background_gradient: backgroundGradient,
             logo_url: logoUrl,
-            logo_position: logoPosition as any,
-            logo_size: logoSize as any,
+            logo_position: logoPosition,
+            logo_size: logoSize,
           })
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
           toast.success(t('toasts.catalogCreated'))
@@ -332,11 +328,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
-          background_image_fit: backgroundImageFit as any,
+          background_image_fit: backgroundImageFit,
           background_gradient: backgroundGradient,
           logo_url: logoUrl,
-          logo_position: logoPosition as any,
-          logo_size: logoSize as any,
+          logo_position: logoPosition,
+          logo_size: logoSize,
         })
 
         // 2. Cache temizle (Slug kullanarak)
@@ -349,7 +345,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         setHasUnpushedChanges(false)
         setIsDirty(false)
         toast.success("Yayındaki katalog güncellendi! 🚀")
-      } catch (error) {
+      } catch {
         toast.error("Güncelleme sırasında bir hata oluştu.")
       }
     })
@@ -386,11 +382,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
-          background_image_fit: backgroundImageFit as any,
+          background_image_fit: backgroundImageFit,
           background_gradient: backgroundGradient,
           logo_url: logoUrl,
-          logo_position: logoPosition as any,
-          logo_size: logoSize as any,
+          logo_position: logoPosition,
+          logo_size: logoSize,
           share_slug: shareSlug,
         })
 
@@ -424,7 +420,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             description: "Mevcut link artık çalışmayacaktır."
           })
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Publish error:", error)
         toast.error("İşlem sırasında bir hata oluştu.")
       }
@@ -526,7 +522,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               img.removeAttribute('srcset')
               img.removeAttribute('loading')
 
-            } catch (e) {
+            } catch {
               console.warn("Image skipped:", img.src)
               img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
               img.style.objectFit = 'contain'
@@ -569,9 +565,9 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
       toast.success(t('builder.pdfDownloaded') + resolutionText, { id: "pdf-process" })
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("PDF Fail:", err)
-      const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err))
+      const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
       toast.error(t('builder.pdfFailed') + ": " + msg, { id: "pdf-process" })
     }
   }
@@ -799,17 +795,17 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               backgroundImage={backgroundImage}
               onBackgroundImageChange={setBackgroundImage}
               backgroundImageFit={backgroundImageFit}
-              onBackgroundImageFitChange={setBackgroundImageFit}
+              onBackgroundImageFitChange={(v) => setBackgroundImageFit(v)}
               backgroundGradient={backgroundGradient}
               onBackgroundGradientChange={setBackgroundGradient}
               logoUrl={logoUrl}
               onLogoUrlChange={setLogoUrl}
               logoPosition={logoPosition}
-              onLogoPositionChange={setLogoPosition}
+              onLogoPositionChange={(v) => setLogoPosition(v)}
               logoSize={logoSize}
-              onLogoSizeChange={setLogoSize}
+              onLogoSizeChange={(v) => setLogoSize(v)}
               titlePosition={titlePosition}
-              onTitlePositionChange={setTitlePosition}
+              onTitlePositionChange={(v) => setTitlePosition(v)}
             />
           </div>
         )}
@@ -829,10 +825,10 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               columnsPerRow={columnsPerRow}
               backgroundColor={backgroundColor}
               backgroundImage={backgroundImage}
-              backgroundImageFit={backgroundImageFit as any}
+              backgroundImageFit={backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
               backgroundGradient={backgroundGradient}
               logoUrl={logoUrl}
-              logoPosition={logoPosition}
+              logoPosition={logoPosition ?? undefined}
               logoSize={logoSize}
               titlePosition={titlePosition}
             />

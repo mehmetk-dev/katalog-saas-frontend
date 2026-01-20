@@ -4,13 +4,14 @@ import * as React from "react"
 import { useState, useCallback } from "react"
 import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ArrowRight, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
+import NextImage from "next/image"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { type Product, updateProduct, bulkUpdateProductImages } from "@/lib/actions/products"
+import { type Product, bulkUpdateProductImages } from "@/lib/actions/products"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
 import { convertToWebP } from "@/lib/image-utils"
 import { cn } from "@/lib/utils"
@@ -53,7 +54,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             })
             uploadTimeout.cancel()
         }
-    }, [open])
+    }, [open, uploadTimeout])
 
     // Ürünleri isimlerine göre alfabetik sırala (A'dan Z'ye)
     const sortedProducts = React.useMemo(() => {
@@ -80,7 +81,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         if (!text) return ''
 
         // Önce toLowerCase yapmadan Türkçe büyük harfleri dönüştür
-        let normalized = text
+        const normalized = text
             // Büyük Türkçe harfler
             .replace(/İ/g, 'i')  // Büyük İ -> i
             .replace(/I/g, 'i')  // I harfi de i'ye (Türkçe'de I = ı ama dosya adlarında genelde i olarak kullanılır)
@@ -102,7 +103,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
     }
 
     // Metni kelimelere ayır - DÜZELTILMIŞ VERSİYON
-    const tokenize = (text: string): string[] => {
+    const tokenize = useCallback((text: string): string[] => {
         const normalized = normalizeText(text)
         if (!normalized) return []
 
@@ -116,7 +117,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 // Tek harflik kelimeler de kabul edilmez
                 return true
             })
-    }
+    }, [])
 
     // İki kelime arasındaki benzerlik skoru (0-1)
     const wordSimilarity = (word1: string, word2: string): number => {
@@ -140,7 +141,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
     }
 
     // İki kelime listesi arasındaki eşleşme puanını hesapla - DÜZELTILMIŞ
-    const calculateMatchScore = (productTokens: string[], fileTokens: string[]): number => {
+    const calculateMatchScore = useCallback((productTokens: string[], fileTokens: string[]): number => {
         if (productTokens.length === 0 || fileTokens.length === 0) return 0
 
         let totalScore = 0
@@ -190,10 +191,10 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
         // Final skor
         return fileMatchRatio * avgSimilarity
-    }
+    }, [])
 
     // En iyi eşleşen ürünü bul - DÜZELTILMIŞ
-    const findBestMatch = (fileName: string): string | null => {
+    const findBestMatch = useCallback((fileName: string): string | null => {
         const normalizedFileName = normalizeText(fileName)
         const fileTokens = tokenize(fileName)
 
@@ -246,7 +247,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         }
 
         return bestMatch?.productId || null
-    }
+    }, [products, calculateMatchScore, tokenize])
 
     const handleFiles = useCallback((files: FileList) => {
         const newImages: ImageFile[] = []
@@ -272,7 +273,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         if (newImages.length > 0) {
             setImages(prev => [...prev, ...newImages])
         }
-    }, [products])
+    }, [findBestMatch])
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault()
@@ -300,6 +301,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
 
             for (const img of imagesToUpload) {
+                if (uploadTimeout.isCancelled) break
 
                 const product = products.find(p => p.id === img.matchedProductId)
                 if (!product) {
@@ -328,9 +330,8 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                     uploadTimeout.setProgress(baseProgress)
 
                     // 1. WebP Conversion (büyük fotoğrafları otomatik küçültür)
-                    console.log(`Converting ${img.file.name}...`)
                     const { blob } = await convertToWebP(img.file)
-                    console.log(`Converted to WebP: ${(blob.size / 1024).toFixed(0)}KB`)
+
 
                     // Progress güncelle - dönüşüm tamamlandı, yükleme başlıyor
                     uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 30))
@@ -358,9 +359,9 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                     // Success state for image
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'success' } : p))
 
-                } catch (error: any) {
+                } catch (error) {
                     console.error('Image upload error:', error)
-                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: error.message || 'Yükleme hatası' } : p))
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: error instanceof Error ? error.message : 'Yükleme hatası' } : p))
                 }
 
                 uploadedCount++
@@ -384,9 +385,9 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
                 toast.success("Tüm fotoğraflar başarıyla yüklendi")
                 onSuccess()
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Batch update error:', error)
-                toast.error("Bazı ürün bilgileri güncellenemedi: " + (error.message || "Bilinmeyen hata"))
+                toast.error("Bazı ürün bilgileri güncellenemedi: " + ((error as Error).message || "Bilinmeyen hata"))
                 // Hata durumunda onSuccess ÇAĞIRMIYORUZ ki kullanıcı düzeltebilsin
             }
         })
@@ -494,8 +495,8 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                                 isOverLimit && !isError && "border-amber-200 bg-amber-50/30"
                                             )}>
                                                 {/* Image Preview */}
-                                                <div className="w-24 h-24 shrink-0 bg-slate-100 rounded-lg overflow-hidden relative border border-slate-200">
-                                                    <img src={img.preview} className="w-full h-full object-cover" alt="Preview" />
+                                                <div className="relative w-24 h-24 shrink-0 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                                                    <NextImage src={img.preview} fill className="object-cover" alt="Preview" unoptimized />
                                                     {img.status === 'uploading' && (
                                                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                                             <Loader2 className="w-6 h-6 text-white animate-spin" />
@@ -553,8 +554,8 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                                     {matchedProduct && (
                                                         <div className="flex gap-1 mt-1 items-center">
                                                             {existingImages.length > 0 && existingImages.slice(0, 3).map((url, i) => (
-                                                                <div key={i} className="w-5 h-5 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
-                                                                    <img src={url} className="w-full h-full object-cover opacity-70" alt={`Mevcut ${i}`} />
+                                                                <div key={i} className="relative w-5 h-5 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                                                                    <NextImage src={url} fill className="object-cover opacity-70" alt={`Mevcut ${i}`} unoptimized />
                                                                 </div>
                                                             ))}
                                                             {existingImages.length > 3 && (

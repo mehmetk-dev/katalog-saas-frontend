@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Industrial - Endüstriyel/teknik katalog
@@ -31,7 +33,7 @@ export function IndustrialTemplate({
             {/* Tek kolon tam genişlik liste */}
             <div className="flex-1 p-4 flex flex-col gap-2 overflow-hidden">
                 {safeProducts.map((product, idx) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -43,7 +45,7 @@ export function IndustrialTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Sıra No */}
                             <div className="w-8 h-8 rounded bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                                 {String(idx + 1 + (pageNumber - 1) * 8).padStart(2, '0')}
@@ -51,7 +53,7 @@ export function IndustrialTemplate({
 
                             {/* Görsel */}
                             <div className="w-14 h-14 shrink-0 bg-white rounded border border-zinc-100 overflow-hidden relative">
-                                <img loading="lazy" src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-500" />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-500" />
                                 {productUrl && (
                                     <div className="absolute top-0 right-0 bg-zinc-900 text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +91,7 @@ export function IndustrialTemplate({
                                 <div className="shrink-0 text-right overflow-hidden ml-2">
                                     <span className="font-black text-sm block leading-none" style={{ color: primaryColor }}>
                                         {(() => {
-                                            const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                            const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                             return `${symbol}${Number(product.price).toFixed(2)}`
                                         })()}
@@ -104,7 +106,7 @@ export function IndustrialTemplate({
             {/* Footer */}
             <div className="h-10 bg-zinc-900 flex items-center justify-between px-6 shrink-0">
                 <span className="text-[9px] text-zinc-500 font-mono font-bold tracking-widest">{catalogName?.toUpperCase().replace(/\s/g, '-')}-{new Date().getFullYear()}</span>
-                <span className="text-zinc-400 text-xs font-black font-mono">{pageNumber} // {totalPages}</span>
+                <span className="text-zinc-400 text-xs font-black font-mono">{pageNumber} {" // "} {totalPages}</span>
             </div>
         </div>
     )

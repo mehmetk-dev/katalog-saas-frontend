@@ -3,7 +3,8 @@
 import type React from "react"
 import { useState, useTransition, useEffect, useRef } from "react"
 import { toast } from "sonner"
-import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, DollarSign, Layers, ChevronDown, ChevronUp, FolderPlus, AlertCircle, RefreshCw } from "lucide-react"
+import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
+import NextImage from "next/image"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -16,12 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTranslation } from "@/lib/i18n-provider"
-import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
-import { Progress } from "@/components/ui/progress"
 import { convertToWebP } from "@/lib/image-utils"
 
 interface ProductModalProps {
@@ -91,22 +89,18 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   )
   const [productUrl, setProductUrl] = useState(product?.product_url || "")
 
-  // Upload State with timeout
-  const uploadTimeout = useAsyncTimeout<string[]>({
-    totalTimeoutMs: 180000, // 3 dakika
-    stuckTimeoutMs: 60000,  // 60 saniye ilerleme yoksa
-    timeoutMessage: t('toasts.uploadTimeout') || 'Yükleme zaman aşımına uğradı. Bağlantınızı kontrol edin.',
-    showToast: true
-  })
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
+  // Upload State
+  const [isUploading, setIsUploading] = useState(false)
+  const [, setUploadedUrl] = useState<string | null>(null)
   const [activeImageUrl, setActiveImageUrl] = useState(product?.image_url || "")
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
+  const blobUrlsRef = useRef<string[]>([])
+
 
   // Reset state when modal opens/closes or product changes
   // Tıklanan resmi kapak yap
   const handleSetCover = (url: string) => {
     setActiveImageUrl(url)
-    toast.success(t('toasts.coverUpdated'))
   }
 
   // Resim sil
@@ -131,7 +125,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Mevcut resim sayısı + yeni seçilenler <= 5 olmalı
     const currentCount = additionalImages.length
     const allowedCount = 5 - currentCount
 
@@ -141,110 +134,181 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     }
 
     const filesToUpload = Array.from(files).slice(0, allowedCount)
-    if (files.length > allowedCount) {
-      toast.info(t('toasts.limitInfo', { count: allowedCount }))
-    }
-
-    // Reset input değeri
     const inputRef = e.target
 
-    await uploadTimeout.execute(async () => {
+    // 1. ANLIK ÖNİZLEME (Blob URL Kullanarak)
+    const previews = filesToUpload.map(file => URL.createObjectURL(file))
+    blobUrlsRef.current.push(...previews)
+
+
+    setAdditionalImages(prev => [...prev, ...previews].slice(0, 5))
+    setActiveImageUrl(curr => curr || previews[0])
+
+    // Yükleme işlemini başlat (direkt, wrapper olmadan)
+    const doUpload = async () => {
+      setIsUploading(true)
+
       const supabase = createClient()
-      const newUrls: string[] = []
       const totalFiles = filesToUpload.length
+      const uploadedUrls: string[] = []
 
-      for (let i = 0; i < filesToUpload.length; i++) {
+      for (let i = 0; i < totalFiles; i++) {
         const file = filesToUpload[i]
+        const previewUrl = previews[i]
+        const step = `${i + 1}/${totalFiles}`
 
-        // İlerleme güncelle
-        uploadTimeout.setProgress(Math.round((i / totalFiles) * 100))
+        try {
 
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error(t('toasts.fileTooLarge', { name: file.name }))
-          continue
-        }
+          toast.loading(`Hazırlanıyor... (${step})`, { id: 'img-upload' })
 
-        // WebP Dönüşümü
-        toast.loading(`${file.name} optimize ediliyor...`, { id: 'webp-process' })
-        const { blob } = await convertToWebP(file)
-        toast.dismiss('webp-process')
+          let blobToUpload: Blob = file
+          let contentType = file.type
 
-        // Upload
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-        const filePath = `${fileName}`
 
-        const { error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(filePath, blob, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: 'image/webp'
+          // 1. OPTİMİZASYON (Hata olsa da devam et - orijinal dosyayı kullan)
+          try {
+
+            const optimized = await convertToWebP(file)
+            blobToUpload = optimized.blob
+            contentType = 'image/webp'
+
+          } catch (e: unknown) {
+            const error = e as { message?: string };
+            console.warn(`[ProductModal] Step ${step}: WebP conversion failed (${error?.message}), using original file`)
+          }
+
+
+          toast.loading(`Yükleniyor... (${step})`, { id: 'img-upload' })
+
+          // 2. SUNUCUYA YÜKLEME (Max 30sn Timeout)
+          const fileExt = contentType === 'image/webp' ? 'webp' : file.name.split('.').pop()
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+
+          // Auth durumunu kontrol et
+          const { data: { session } } = await supabase.auth.getSession()
+          // Auth session checked
+
+          if (!session) {
+            throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.')
+          }
+
+
+
+          const uploadPromise = supabase.storage
+            .from('product-images')
+            .upload(fileName, blobToUpload, { contentType })
+
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 30000)
+          )
+
+          const result = await Promise.race([uploadPromise, timeoutPromise])
+
+          // Supabase upload hatası kontrolü
+          if ('error' in result && result.error) {
+            const errorMsg = result.error.message || 'Bilinmeyen hata'
+            console.error(`[ProductModal] Supabase upload error:`, result.error)
+
+            // Kullanıcıya anlamlı hata mesajı göster
+            if (errorMsg.includes('bucket') || errorMsg.includes('not found')) {
+              throw new Error('Storage bucket bulunamadı. Lütfen yöneticiye başvurun.')
+            } else if (errorMsg.includes('policy') || errorMsg.includes('permission')) {
+              throw new Error('Yükleme izniniz yok. Lütfen giriş yapın.')
+            } else if (errorMsg.includes('size') || errorMsg.includes('large')) {
+              throw new Error('Dosya çok büyük. Maksimum 5MB.')
+            } else {
+              throw new Error(`Yükleme hatası: ${errorMsg}`)
+            }
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(fileName)
+
+          // 3. ARAYÜZÜ GÜNCELLE
+          setAdditionalImages(prev => {
+            const updated = prev.map(url => url === previewUrl ? publicUrl : url)
+            setActiveImageUrl(curr => curr === previewUrl ? publicUrl : curr)
+            return updated
           })
 
-        if (uploadError) {
-          console.error("Upload error details:", uploadError)
-          throw uploadError
+          uploadedUrls.push(publicUrl)
+
+        } catch (error) {
+          console.error(`[ProductModal] Yükleme hatası (${step}):`, error)
+
+          // Blob URL'i kaldır
+          setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
+          setActiveImageUrl(curr => curr === previewUrl ? "" : curr)
+
+          // Kullanıcıya hata göster
+          const errorMessage = (error instanceof Error ? error.message : typeof error === 'string' ? error : "Dosya yüklenemedi.")
+          if (errorMessage === 'UPLOAD_TIMEOUT') {
+            toast.error("Yükleme zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.", { id: 'img-upload' })
+          } else {
+            toast.error(errorMessage, { id: 'img-upload' })
+          }
+
+          // Tek dosya varsa dön, yoksa devam et
+          if (totalFiles === 1) {
+            return []
+          }
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(filePath)
-
-        newUrls.push(publicUrl)
-
-        // Her başarılı yüklemede ilerleme güncelle
-        uploadTimeout.setProgress(Math.round(((i + 1) / totalFiles) * 100))
       }
 
-      const updatedImages = [...additionalImages, ...newUrls]
-      setAdditionalImages(updatedImages)
-
-      // İlk yüklenen resmi otomatik kapak yap (eğer hiç yoksa)
-      if (!activeImageUrl && updatedImages.length > 0) {
-        setActiveImageUrl(updatedImages[0])
+      if (uploadedUrls.length > 0) {
+        toast.success(`${uploadedUrls.length} fotoğraf eklendi.`, { id: 'img-upload' })
+      } else if (totalFiles > 0) {
+        toast.error("Hiçbir fotoğraf yüklenemedi. Lütfen tekrar deneyin.", { id: 'img-upload' })
       }
+      setIsUploading(false)
+    }
 
-      if (newUrls.length > 0) {
-        toast.success(t('toasts.imagesUploaded', { count: newUrls.length }))
-      }
-
-      return newUrls
+    // Yüklemeyi başlat
+    doUpload().catch(err => {
+      console.error("[handleImageUpload] Fatal error:", err)
+      toast.error("Beklenmeyen bir hata oluştu.", { id: 'img-upload' })
+      setIsUploading(false)
     })
 
     inputRef.value = ''
   }
 
-  // Update effect to merge legacy images
+  // Modal açıldığında state'leri başlat - SADECE İLK SEFERDE
   useEffect(() => {
     if (open) {
+      // Formu temizle veya ürün verilerini yükle
       const existingAttrs = product?.custom_attributes?.filter(a => a.name !== "currency" && a.name !== "additional_images") || []
       setCustomAttributes(existingAttrs)
 
-      // Merge logic: product.images OR (product.image_url + additional_images)
       let initialImages: string[] = []
-
       if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
-        initialImages = product.images
-      } else {
-        // Legacy check
+        initialImages = [...product.images]
+      } else if (product?.image_url) {
+        initialImages = [product.image_url]
+        // Legacy images check...
         const legacyAdditional = product?.custom_attributes?.find(a => a.name === "additional_images")?.value
-        let legacyImages: string[] = []
         if (legacyAdditional) {
-          try { legacyImages = JSON.parse(legacyAdditional) } catch { }
-        }
-        if (product?.image_url) {
-          // Avoid duplicates if image_url is already in list
-          if (!legacyImages.includes(product.image_url)) {
-            legacyImages.unshift(product.image_url)
+          try {
+            const parsed = JSON.parse(legacyAdditional)
+            if (Array.isArray(parsed)) {
+              parsed.forEach(img => {
+                if (img && img !== product.image_url && !initialImages.includes(img)) {
+                  initialImages.push(img)
+                }
+              })
+            }
+          } catch {
+            // Ignore errors in image processing
           }
         }
-        initialImages = legacyImages
       }
 
-      setAdditionalImages(initialImages)
-      setActiveImageUrl(product?.image_url || initialImages[0] || "")
+      // SADECE GEÇERLİ STRİNG'LERİ AL
+      const validImages = initialImages.filter((img): img is string => typeof img === 'string' && img.length > 0)
 
-      // ... rest of state init
+      setAdditionalImages(validImages)
+      setActiveImageUrl(product?.image_url || validImages[0] || "")
       setDescription(product?.description || "")
       setName(product?.name || "")
       setSku(product?.sku || "")
@@ -259,8 +323,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       setProductUrl(product?.product_url || "")
       setUploadedUrl(null)
       setActiveTab("basic")
+    } else {
+      // BLOB URL'LERİ TEMİZLE
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+      blobUrlsRef.current = []
     }
-  }, [open, product])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]) // Sadece modal açılışında çalışmalı
 
   // Submit handler update
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -269,6 +338,22 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     if (!name.trim()) {
       toast.error(t('toasts.productNameRequired'))
       setActiveTab("basic")
+      return
+    }
+
+    if (isUploading) {
+      toast.error("Dosyalar yüklenirken kayıt yapılamaz. Lütfen bekleyin.")
+      return
+    }
+
+    if (additionalImages.some(img => img.startsWith('blob:'))) {
+      toast.error("Bazı fotoğraflar henüz yüklenmedi. Lütfen bitmesini bekleyin.")
+      return
+    }
+
+    if (additionalImages.length === 0) {
+      toast.error("Ürünü kaydetmek için en az bir fotoğraf eklemelisiniz.")
+      setActiveTab("images")
       return
     }
 
@@ -328,33 +413,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // UI Render Part (Inside TabsContent value="images")
   /* 
-     Replace the existing tabs content with this:
+     The images tab content is rendered below in the return statement.
   */
-  // ... inside render ... 
-  // <TabsContent value="images" ...>
-  //    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-  //       {additionalImages.map((url, idx) => (
-  //          <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2")}>
-  //              <img src={url} className="w-full h-full object-cover" />
-  //              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-  //                  {activeImageUrl !== url && (
-  //                      <Button size="sm" variant="secondary" onClick={() => handleSetCover(url)}>Kapak Yap</Button>
-  //                  )}
-  //                  <Button size="icon" variant="destructive" onClick={() => handleRemoveImage(idx)}><Trash2 className="w-4 h-4" /></Button>
-  //              </div>
-  //              {activeImageUrl === url && <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-1 rounded">Kapak</div>}
-  //          </div>
-  //       ))}
-  //       {additionalImages.length < 5 && (
-  //          <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-  //              <Upload className="w-8 h-8 text-slate-300 mb-2" />
-  //              <span className="text-xs text-slate-500 font-medium">Fotoğraf Ekle</span>
-  //              <span className="text-[10px] text-slate-400">({5 - additionalImages.length} hak kaldı)</span>
-  //              <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} disabled={isUploading} />
-  //          </label>
-  //       )}
-  //    </div>
-  // </TabsContent>
 
 
   // Helper Functions
@@ -725,7 +785,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {additionalImages.map((url, idx) => (
                       <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900")}>
-                        <img src={url} className="w-full h-full object-cover" alt={`Ürün görseli ${idx + 1}`} />
+                        <NextImage
+                          src={url}
+                          fill
+                          className="object-cover"
+                          alt={`Ürün görseli ${idx + 1}`}
+                          unoptimized
+                        />
                         <div className={cn(
                           "absolute inset-0 bg-black/40 transition-opacity flex flex-col items-center justify-center gap-2",
                           activeImageUrl === url ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
@@ -760,9 +826,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                           accept="image/png, image/jpeg, image/webp"
                           multiple
                           onChange={handleImageUpload}
-                          disabled={uploadTimeout.isLoading}
+                          disabled={isUploading}
                         />
-                        {uploadTimeout.isLoading && (
+                        {isUploading && (
                           <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
                             <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
                           </div>
@@ -800,7 +866,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     {/* Hızlı Ekleme */}
                     <div className="flex flex-wrap gap-2">
                       {quickAttributeKeys.map((attr) => {
-                        const label = t(`products.attributeNames.${attr.key}` as any)
+                        const label = t(`products.attributeNames.${attr.key}` as "products.attributeNames.color" | "products.attributeNames.material" | "products.attributeNames.weight" | "products.attributeNames.size" | "products.attributeNames.origin" | "products.attributeNames.warranty")
                         return (
                           <Button
                             key={attr.key}
@@ -857,7 +923,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                                     <SelectContent>
                                       {unitKeys.map((key) => (
                                         <SelectItem key={key} value={key}>
-                                          {t(`products.units.${key}` as any)}
+                                          {t(`products.units.${key}` as "products.units.none" | "products.units.kg" | "products.units.g" | "products.units.m" | "products.units.cm" | "products.units.mm" | "products.units.L" | "products.units.mL" | "products.units.adet" | "products.units.paket" | "products.units.kutu")}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -886,21 +952,19 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
           {/* Footer */}
           <div className="flex justify-between items-center gap-3 px-6 py-4 border-t bg-muted/30 shrink-0">
-            <div className="text-sm text-muted-foreground">
-              {activeTab === "basic" && "1/3"}
-              {activeTab === "images" && "2/3"}
-              {activeTab === "attributes" && "3/3"}
+            <div className="text-sm text-muted-foreground min-w-[30px] text-center">
+              <span>{activeTab === "basic" ? "1/3" : activeTab === "images" ? "2/3" : "3/3"}</span>
             </div>
             <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={uploadTimeout.isLoading}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || uploadTimeout.isLoading}
+                disabled={isPending || isUploading || additionalImages.length === 0}
                 className="min-w-[120px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               >
-                {uploadTimeout.isLoading ? (
+                {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {t('common.loading')}

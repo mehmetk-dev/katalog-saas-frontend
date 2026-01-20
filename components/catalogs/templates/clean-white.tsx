@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Clean White - Temiz minimalist beyaz
@@ -50,7 +52,7 @@ export function CleanWhiteTemplate({
             {/* Çok temiz Dinamik grid */}
             <div className={`flex-1 px-12 py-6 grid ${getGridCols()} ${getGridRows()} gap-x-8 gap-y-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 112px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -62,13 +64,9 @@ export function CleanWhiteTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="aspect-[3/2] bg-gray-50 rounded-xl overflow-hidden mb-3 relative shrink-0">
-                                <img loading="lazy"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
                                 {productUrl && (
                                     <div className="absolute top-3 right-3 bg-white/60 backdrop-blur-sm p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,7 +82,7 @@ export function CleanWhiteTemplate({
                                         {showPrices && (
                                             <span className="font-bold text-sm shrink-0 leading-tight" style={{ color: primaryColor }}>
                                                 {(() => {
-                                                    const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                     const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                     return `${symbol}${Number(product.price).toFixed(2)}`
                                                 })()}

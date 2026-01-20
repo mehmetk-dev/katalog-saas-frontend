@@ -28,7 +28,7 @@ interface LogActivityParams {
     userId: string
     activityType: ActivityType
     description: string
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
     ipAddress?: string
     userAgent?: string
 }
@@ -75,13 +75,15 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
 /**
  * Helper to extract IP and User Agent from Express Request
  */
-export function getRequestInfo(req: any): { ipAddress?: string; userAgent?: string } {
-    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0] ||
-        req.headers['x-real-ip'] ||
+export function getRequestInfo(req: { headers: Record<string, string | string[] | undefined>; ip?: string; connection?: { remoteAddress?: string } }): { ipAddress?: string; userAgent?: string } {
+    const xForwardedFor = req.headers['x-forwarded-for']
+    const ipAddress = (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor)?.split(',')[0] ||
+        (req.headers['x-real-ip'] as string) ||
         req.ip ||
         req.connection?.remoteAddress
 
-    const userAgent = req.headers['user-agent']
+    const ua = req.headers['user-agent']
+    const userAgent = Array.isArray(ua) ? ua[0] : ua
 
     return { ipAddress, userAgent }
 }

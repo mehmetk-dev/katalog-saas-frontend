@@ -155,9 +155,10 @@ export async function createTemplate(data: {
         revalidatePath('/admin')
 
         return { success: true, message: "Template created successfully" }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to create template'
         console.error("Template creation error:", error)
-        throw new Error(error.message || "Failed to create template")
+        throw new Error(errorMessage)
     }
 }
 
@@ -178,7 +179,7 @@ export async function updateTemplate(id: string, data: Partial<{
 
         const supabase = await createClient()
 
-        const updates: Record<string, any> = {}
+        const updates: Record<string, unknown> = {}
         if (data.name !== undefined) updates.name = data.name
         if (data.description !== undefined) updates.description = data.description
         if (data.isPro !== undefined) updates.is_pro = data.isPro
@@ -200,9 +201,10 @@ export async function updateTemplate(id: string, data: Partial<{
         revalidatePath('/admin')
 
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to update template'
         console.error("Template update error:", error)
-        throw new Error(error.message || "Failed to update template")
+        throw new Error(errorMessage)
     }
 }
 
@@ -226,9 +228,10 @@ export async function updateTemplateImage(id: string, imageUrl: string) {
         revalidatePath('/admin')
 
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to update template image'
         console.error("Template image update error:", error)
-        throw new Error(error.message || "Failed to update template image")
+        throw new Error(errorMessage)
     }
 }
 
@@ -263,9 +266,10 @@ export async function deleteTemplate(id: string) {
         revalidatePath('/admin')
 
         return { success: true }
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Failed to delete template'
         console.error("Template delete error:", error)
-        throw new Error(error.message || "Failed to delete template")
+        throw new Error(errorMessage)
     }
 }
 

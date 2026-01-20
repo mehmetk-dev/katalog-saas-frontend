@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Retail - Mağaza fiyat listesi
@@ -49,7 +51,7 @@ export function RetailTemplate({
             {/* Dinamik Sütunlu Ürün Grid */}
             <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`} style={{ maxHeight: 'calc(100% - 90px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -61,13 +63,9 @@ export function RetailTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="w-24 min-w-[96px] bg-gray-50 overflow-hidden shrink-0 relative">
-                                <img loading="lazy"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-500"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-500" />
                                 {productUrl && (
                                     <div className="absolute top-0 right-0 bg-white/80 p-1 rounded-bl shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-2.5 h-2.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +96,7 @@ export function RetailTemplate({
                                     {showPrices && (
                                         <span className="font-black text-sm leading-none" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

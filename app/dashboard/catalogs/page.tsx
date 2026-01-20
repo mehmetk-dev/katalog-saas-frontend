@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { CatalogsPageClient } from "@/components/catalogs/catalogs-page-client"
 

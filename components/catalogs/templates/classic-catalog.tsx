@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Classic Catalog - Klasik tablo formatı
@@ -45,7 +47,7 @@ export function ClassicCatalogTemplate({
             {/* Ürün Listesi */}
             <div className="flex-1 overflow-hidden">
                 {safeProducts.slice(0, 10).map((product, idx) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -59,12 +61,12 @@ export function ClassicCatalogTemplate({
                     return (
                         <Wrapper
                             key={product.id}
-                            {...(wrapperProps as any)}
+                            {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}
                         >
                             <div className="col-span-1 text-[11px] font-mono text-gray-400 group-hover:text-gray-900 transition-colors">{String(idx + 1).padStart(2, '0')}</div>
                             <div className="col-span-1 flex justify-center">
                                 <div className="w-14 h-14 rounded-lg bg-white border border-gray-100 overflow-hidden relative shrink-0">
-                                    <img loading="lazy" src={product.image_url || "/placeholder.svg"} alt={product.name} className="w-full h-full object-contain p-1" />
+                                    <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1" />
                                     {productUrl && (
                                         <div className="absolute top-0 right-0 bg-white/90 p-0.5 rounded-bl shadow-sm">
                                             <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +101,7 @@ export function ClassicCatalogTemplate({
                                     {showPrices && (
                                         <span className="font-black text-sm block" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

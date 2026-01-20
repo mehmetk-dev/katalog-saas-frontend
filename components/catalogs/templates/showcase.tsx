@@ -1,3 +1,6 @@
+import NextImage from "next/image"
+
+import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 
 // Showcase - Spotlight vitrin, 1 dev ürün odaklı
@@ -36,7 +39,7 @@ export function ShowcaseTemplate({
             <div className="flex-1 flex overflow-hidden">
                 {/* Sol - Dev ürün */}
                 {main && (() => {
-                    const productUrl = (main as any).product_url
+                    const productUrl = main.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -48,12 +51,8 @@ export function ShowcaseTemplate({
                     }
 
                     return (
-                        <Wrapper {...(wrapperProps as any)}>
-                            <img loading="lazy"
-                                src={main.image_url || "/placeholder.svg"}
-                                alt={main.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms] opacity-80 group-hover:opacity-100"
-                            />
+                        <Wrapper {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
+                            <NextImage src={main.image_url || "/placeholder.svg"} alt={main.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms] opacity-80 group-hover:opacity-100" />
                             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent group-hover:from-black/95 transition-all" />
                             {productUrl && (
                                 <div className="absolute top-6 right-6 bg-white/10 backdrop-blur-md p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 border border-white/20">
@@ -85,7 +84,7 @@ export function ShowcaseTemplate({
                                 {showPrices && (
                                     <p className="text-3xl font-light leading-none" style={{ color: primaryColor }}>
                                         {(() => {
-                                            const currency = (main as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                            const currency = main.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                             return `${symbol}${Number(main.price).toFixed(2)}`
                                         })()}
@@ -98,8 +97,8 @@ export function ShowcaseTemplate({
 
                 {/* Sağ - Küçük ürünler grid */}
                 <div className={`w-[45%] grid ${getRightCols()} grid-rows-3 bg-zinc-900 border-l border-white/10 shrink-0`}>
-                    {others.slice(0, columnsPerRow === 2 ? 3 : 6).map((product, idx) => {
-                        const productUrl = (product as any).product_url
+                    {others.slice(0, columnsPerRow === 2 ? 3 : 6).map((product) => {
+                        const productUrl = product.product_url
                         const Wrapper = productUrl ? 'a' : 'div'
                         const wrapperProps = productUrl ? {
                             href: productUrl,
@@ -111,13 +110,9 @@ export function ShowcaseTemplate({
                         }
 
                         return (
-                            <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                                 <div className="absolute inset-0 opacity-40 group-hover:opacity-80 transition-opacity duration-700">
-                                    <img loading="lazy"
-                                        src={product.image_url || "/placeholder.svg"}
-                                        alt={product.name}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                    />
+                                    <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                                 </div>
 
@@ -147,7 +142,7 @@ export function ShowcaseTemplate({
                                     {showPrices && (
                                         <p className="text-sm font-light mt-0.5" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

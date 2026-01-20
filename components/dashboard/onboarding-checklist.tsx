@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CheckCircle2, Circle, ChevronRight, X } from "lucide-react"
+import { CheckCircle2, ChevronRight, X } from "lucide-react"
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

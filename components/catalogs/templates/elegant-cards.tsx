@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Elegant Cards - Lüks kart tasarımı, geniş boşluklar
@@ -51,7 +53,7 @@ export function ElegantCardsTemplate({
             {/* Dinamik Grid - Büyük kartlar */}
             <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 128px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -63,13 +65,9 @@ export function ElegantCardsTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="h-32 min-h-[128px] bg-gradient-to-br from-stone-100 to-stone-50 overflow-hidden shrink-0 relative">
-                                <img loading="lazy"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                                 {productUrl && (
                                     <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-md rounded-full p-2 text-stone-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -102,7 +100,7 @@ export function ElegantCardsTemplate({
                                     {showPrices && (
                                         <p className="text-lg font-light leading-none" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

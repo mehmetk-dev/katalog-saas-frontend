@@ -8,15 +8,15 @@ interface RetryOptions {
     /** Her denemede delay'i çarp (exponential backoff) - varsayılan 2 */
     backoffMultiplier?: number
     /** Hangi hatalarda tekrar denensin (varsayılan: tüm hatalar) */
-    retryCondition?: (error: any) => boolean
+    retryCondition?: (error: unknown) => boolean
     /** Her deneme öncesi callback */
-    onRetry?: (attempt: number, error: any) => void
+    onRetry?: (attempt: number, error: unknown) => void
 }
 
 interface RetryResult<T> {
     success: boolean
     data?: T
-    error?: any
+    error?: unknown
     attempts: number
 }
 
@@ -36,7 +36,7 @@ export async function withRetry<T>(
         onRetry
     } = options
 
-    let lastError: any
+    let lastError: unknown
     let attempts = 0
     let currentDelay = delayMs
 
@@ -46,7 +46,7 @@ export async function withRetry<T>(
         try {
             const result = await fn()
             return { success: true, data: result, attempts }
-        } catch (error: any) {
+        } catch (error: unknown) {
             lastError = error
 
             // Son deneme mi veya retry koşulu sağlanmıyor mu?
@@ -69,7 +69,7 @@ export async function withRetry<T>(
 /**
  * Network hatalarını tespit eder
  */
-export function isNetworkError(error: any): boolean {
+export function isNetworkError(error: unknown): boolean {
     if (!error) return false
 
     const networkErrorMessages = [
@@ -83,33 +83,44 @@ export function isNetworkError(error: any): boolean {
         'Failed to fetch'
     ]
 
-    const errorMessage = (error?.message || error?.toString() || '').toLowerCase()
+    const errorMessage = (
+        (error && typeof error === 'object' && 'message' in error ? String((error as { message: unknown }).message) : '') ||
+        String(error)
+    ).toLowerCase()
     return networkErrorMessages.some(msg => errorMessage.includes(msg.toLowerCase()))
 }
 
 /**
  * Rate limit hatalarını tespit eder
  */
-export function isRateLimitError(error: any): boolean {
+export function isRateLimitError(error: unknown): boolean {
     if (!error) return false
 
     // HTTP 429 Too Many Requests
-    if (error?.status === 429) return true
+    if (error && typeof error === 'object' && 'status' in error && (error as { status: unknown }).status === 429) {
+        return true
+    }
 
-    const errorMessage = (error?.message || error?.toString() || '').toLowerCase()
+    const errorMessage = (
+        (error && typeof error === 'object' && 'message' in error ? String((error as { message: unknown }).message) : '') ||
+        String(error)
+    ).toLowerCase()
     return errorMessage.includes('rate limit') || errorMessage.includes('too many requests')
 }
 
 /**
  * Retry için önerilen bekleme süresini hesaplar
  */
-export function getRetryAfter(error: any): number {
+export function getRetryAfter(error: unknown): number {
     // Retry-After header varsa kullan
-    if (error?.headers?.get) {
-        const retryAfter = error.headers.get('Retry-After')
-        if (retryAfter) {
-            const seconds = parseInt(retryAfter, 10)
-            if (!isNaN(seconds)) return seconds * 1000
+    if (error && typeof error === 'object' && 'headers' in error) {
+        const headers = (error as { headers?: { get?: (name: string) => string | null } }).headers
+        if (headers?.get) {
+            const retryAfter = headers.get('Retry-After')
+            if (retryAfter) {
+                const seconds = parseInt(retryAfter, 10)
+                if (!isNaN(seconds)) return seconds * 1000
+            }
         }
     }
 
@@ -147,7 +158,7 @@ export async function smartRetry<T>(
                 ? getRetryAfter(error)
                 : options.backoffMultiplier ? 1000 * Math.pow(2, attempt - 1) : 1000
 
-            console.log(`Retry attempt ${attempt}, waiting ${delay}ms...`, error?.message)
+            console.warn(`Retry attempt ${attempt}, waiting ${delay}ms...`, error?.message)
             options.onRetry?.(attempt, error)
         }
     })

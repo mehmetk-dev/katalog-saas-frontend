@@ -46,9 +46,9 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
         })
         toast.success(t('toasts.catalogCreated'))
         router.push(`/dashboard/builder?id=${catalog.id}`)
-      } catch (error: any) {
+      } catch (error) {
         console.error("Template create error:", error)
-        toast.error(error?.message || t('toasts.catalogSaveFailed'))
+        toast.error((error instanceof Error ? error.message : typeof error === 'string' ? error : t('toasts.catalogSaveFailed')))
       }
       setLoadingId(null)
     })

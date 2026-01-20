@@ -1,11 +1,33 @@
 import { Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
-import { getCache, setCache, deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
+import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
+// Interface definitions for better type safety
+interface AuthenticatedRequest extends Request {
+    user: {
+        id: string;
+    };
+}
+
+interface ProductUpdatePayload {
+    name?: string;
+    sku?: string;
+    description?: string;
+    price?: number | string;
+    stock?: number | string;
+    category?: string;
+    image_url?: string;
+    images?: string[];
+    product_url?: string;
+    custom_attributes?: Record<string, unknown>[];
+    display_order?: number;
+    is_active?: boolean;
+}
+
 // Helper to get user ID from request (attached by auth middleware)
-const getUserId = (req: Request) => (req as any).user.id;
+const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequest).user.id;
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
@@ -24,8 +46,9 @@ export const getProducts = async (req: Request, res: Response) => {
         });
 
         res.json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -34,8 +57,6 @@ export const getProduct = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const { id } = req.params;
 
-        console.log(`[GET_PRODUCT] User: ${userId}, ID: ${id}`);
-
         const { data, error } = await supabase
             .from('products')
             .select('*')
@@ -43,27 +64,23 @@ export const getProduct = async (req: Request, res: Response) => {
             .eq('user_id', userId)
             .single();
 
-        if (error) {
-            console.error(`[GET_PRODUCT_ERROR] DB Error:`, error);
-            throw error;
-        }
+        if (error) throw error;
 
         if (!data) {
-            console.warn(`[GET_PRODUCT_WARN] Product not found or unauthorized: ${id}`);
             return res.status(404).json({ error: 'Ürün bulunamadı veya yetkiniz yok.' });
         }
 
         res.json(data);
-    } catch (error: any) {
-        console.error(`[GET_PRODUCT_CRITICAL]`, error);
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name, sku, description, price, stock, category, image_url, images, custom_attributes } = req.body;
+        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes }: ProductUpdatePayload = req.body;
 
         // Limit kontrolü
         const [user, productsCountResult] = await Promise.all([
@@ -74,7 +91,7 @@ export const createProduct = async (req: Request, res: Response) => {
             supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
         ]);
 
-        const plan = user?.plan || 'free';
+        const plan = (user as { plan: string })?.plan || 'free';
         const currentCount = productsCountResult.count || 0;
         const maxProducts = plan === 'pro' ? 999999 : (plan === 'plus' ? 1000 : 50);
 
@@ -97,6 +114,7 @@ export const createProduct = async (req: Request, res: Response) => {
                 category,
                 image_url,
                 images: images || [],
+                product_url,
                 custom_attributes
             })
             .select()
@@ -112,15 +130,16 @@ export const createProduct = async (req: Request, res: Response) => {
         await logActivity({
             userId,
             activityType: 'product_created',
-            description: ActivityDescriptions.productCreated(name),
+            description: ActivityDescriptions.productCreated(name || 'Yeni Ürün'),
             metadata: { productId: data.id, productName: name },
             ipAddress,
             userAgent
         });
 
         res.status(201).json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -128,7 +147,20 @@ export const updateProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { name, sku, description, price, stock, category, image_url, images, custom_attributes } = req.body;
+        const {
+            name,
+            sku,
+            description,
+            price,
+            stock,
+            category,
+            image_url,
+            images,
+            product_url,
+            custom_attributes,
+            display_order,
+            is_active
+        }: ProductUpdatePayload = req.body;
 
         const { error } = await supabase
             .from('products')
@@ -136,12 +168,15 @@ export const updateProduct = async (req: Request, res: Response) => {
                 name,
                 sku,
                 description,
-                price,
-                stock,
+                price: Number(price) || 0,
+                stock: Number(stock) || 0,
                 category,
                 image_url,
                 images: images || [],
+                product_url,
                 custom_attributes,
+                display_order,
+                is_active,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
@@ -157,15 +192,16 @@ export const updateProduct = async (req: Request, res: Response) => {
         await logActivity({
             userId,
             activityType: 'product_updated',
-            description: ActivityDescriptions.productUpdated(name),
+            description: ActivityDescriptions.productUpdated(name || 'Ürün'),
             metadata: { productId: id, productName: name },
             ipAddress,
             userAgent
         });
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -197,15 +233,16 @@ export const deleteProduct = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const bulkDeleteProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { ids } = req.body; // Array of IDs
+        const { ids }: { ids: string[] } = req.body;
 
         if (!Array.isArray(ids)) {
             return res.status(400).json({ error: 'ids must be an array' });
@@ -223,23 +260,24 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
         await deleteCache(cacheKeys.products(userId));
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const bulkImportProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { products } = req.body;
+        const { products }: { products: Record<string, unknown>[] } = req.body;
 
         if (!Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: 'products array is required' });
         }
 
         // Add user_id to each product and filter invalid fields if needed
-        const productsToInsert = products.map((p: any) => {
-            const product: any = {
+        const productsToInsert = products.map((p: Record<string, any>) => {
+            const product: Record<string, any> = {
                 user_id: userId,
                 name: p.name,
                 sku: p.sku || null,
@@ -284,23 +322,21 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const reorderProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { order } = req.body; // Array of { id, order }
+        const { order }: { order: { id: string; order: number }[] } = req.body;
 
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
 
-        // Her ürün için display_order güncelle
-        // Not: Eğer products tablosunda display_order kolonu yoksa, 
-        // bu sadece cache'i temizleyip frontend sıralamasını kullanacak
         for (const item of order) {
             await supabase
                 .from('products')
@@ -313,9 +349,8 @@ export const reorderProducts = async (req: Request, res: Response) => {
         await deleteCache(cacheKeys.products(userId));
 
         res.json({ success: true });
-    } catch (error: any) {
+    } catch {
         // Sıralama kaydedilemedi ama UI çalışmaya devam etsin
-        console.error('Reorder error:', error.message);
         res.json({ success: false, message: 'Sıralama veritabanına kaydedilemedi' });
     }
 };
@@ -323,7 +358,7 @@ export const reorderProducts = async (req: Request, res: Response) => {
 export const bulkUpdatePrices = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { productIds, changeType, changeMode, amount } = req.body;
+        const { productIds, changeType, changeMode, amount }: { productIds: string[], changeType: 'increase' | 'decrease', changeMode: 'percentage' | 'fixed', amount: number } = req.body;
 
         if (!Array.isArray(productIds) || productIds.length === 0) {
             return res.status(400).json({ error: 'productIds array is required' });
@@ -387,16 +422,16 @@ export const bulkUpdatePrices = async (req: Request, res: Response) => {
         await deleteCache(cacheKeys.products(userId));
 
         res.json(updatedProducts);
-    } catch (error: any) {
-        console.error('Bulk price update error:', error.message);
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const renameCategory = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { oldName, newName } = req.body;
+        const { oldName, newName }: { oldName: string; newName: string } = req.body;
 
         if (!oldName || !newName) {
             return res.status(400).json({ error: 'oldName and newName are required' });
@@ -439,16 +474,16 @@ export const renameCategory = async (req: Request, res: Response) => {
         await deleteCache(cacheKeys.products(userId));
 
         res.json(updatedProducts);
-    } catch (error: any) {
-        console.error('Rename category error:', error.message);
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const deleteCategoryFromProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { categoryName } = req.body;
+        const { categoryName }: { categoryName: string } = req.body;
 
         if (!categoryName) {
             return res.status(400).json({ error: 'categoryName is required' });
@@ -502,9 +537,9 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
         });
 
         res.json(updatedProducts);
-    } catch (error: any) {
-        console.error('Delete category error:', error.message);
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -528,8 +563,9 @@ export const checkProductInCatalogs = async (req: Request, res: Response) => {
             catalogs: catalogs || [],
             count: catalogs?.length || 0
         });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -537,7 +573,7 @@ export const checkProductInCatalogs = async (req: Request, res: Response) => {
 export const checkProductsInCatalogs = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { productIds } = req.body;
+        const { productIds }: { productIds: string[] } = req.body;
 
         if (!Array.isArray(productIds) || productIds.length === 0) {
             return res.json({ productsInCatalogs: [], catalogs: [] });
@@ -571,27 +607,26 @@ export const checkProductsInCatalogs = async (req: Request, res: Response) => {
             productsInCatalogs,
             hasAnyInCatalogs: productsInCatalogs.length > 0
         });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const bulkUpdateImages = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { updates } = req.body; // { productId: string; images: string[] }[]
+        const { updates }: { updates: { productId: string; images: string[] }[] } = req.body;
 
         if (!Array.isArray(updates)) {
             return res.status(400).json({ error: 'updates must be an array' });
         }
 
-        console.log(`[BULK_IMAGE_UPDATE] User: ${userId}, Count: ${updates.length}`);
-
         const results = [];
         for (const update of updates) {
             const { productId, images } = update;
 
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('products')
                 .update({
                     images: images || [],
@@ -604,7 +639,6 @@ export const bulkUpdateImages = async (req: Request, res: Response) => {
                 .single();
 
             if (error) {
-                console.error(`[BULK_IMAGE_UPDATE_ERROR] Product ${productId}:`, error);
                 results.push({ productId, success: false, error: error.message });
             } else {
                 results.push({ productId, success: true });
@@ -615,9 +649,8 @@ export const bulkUpdateImages = async (req: Request, res: Response) => {
         await deleteCache(cacheKeys.products(userId));
 
         res.json({ success: true, count: updates.length });
-    } catch (error: any) {
-        console.error('[BULK_IMAGE_UPDATE_CRITICAL]', error);
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
-

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+
 const supabase_1 = require("../services/supabase");
 const auth_1 = require("../middlewares/auth");
 const redis_1 = require("../services/redis");

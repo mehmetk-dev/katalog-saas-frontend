@@ -1,4 +1,6 @@
-import { Badge } from "@/components/ui/badge"
+import NextImage from "next/image"
+
+import type { Product } from "@/lib/actions/products"
 
 interface Catalog {
     id: string
@@ -8,12 +10,7 @@ interface Catalog {
     // Add other fields if available in DB, but for now we rely on defaults or what's present
 }
 
-interface Product {
-    id: string
-    name: string
-    image_url: string | null
-    price: number
-}
+// Product interface imported from @/lib/actions/products
 
 interface CatalogThumbnailProps {
     catalog: Catalog
@@ -50,7 +47,7 @@ export function CatalogThumbnail({ catalog, products }: CatalogThumbnailProps) {
                                 {/* Image */}
                                 <div className={`relative overflow-hidden rounded-sm bg-gray-200 ${isList ? 'h-8' : 'aspect-square'}`}>
                                     {product.image_url ? (
-                                        <img src={product.image_url} alt="" className="w-full h-full object-cover" />
+                                        <NextImage src={product.image_url} alt="" fill className="object-cover" unoptimized />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-gray-100 text-[6px] text-gray-400">IMG</div>
                                     )}

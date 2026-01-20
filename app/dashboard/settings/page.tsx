@@ -3,10 +3,10 @@
 import type React from "react"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import Link from "next/link"
+import NextImage from "next/image"
 import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,6 @@ import { useUser } from "@/lib/user-context"
 import { useTranslation } from "@/lib/i18n-provider"
 import { updateProfile, deleteAccount } from "@/lib/actions/auth"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AlertDialog,
@@ -91,10 +90,8 @@ export default function SettingsPage() {
 
     startTransition(async () => {
       try {
-        let avatarPublicUrl = user.avatar_url
-        let logoPublicUrl = user.logo_url
         let dbUpdateNeeded = false
-        const dbUpdates: any = {}
+        const dbUpdates: Record<string, string> = {}
 
         // 1. Upload Avatar if pending
         if (pendingAvatarFile) {
@@ -113,7 +110,6 @@ export default function SettingsPage() {
             .from('avatars')
             .getPublicUrl(filePath)
 
-          avatarPublicUrl = publicUrl
           dbUpdates.avatar_url = publicUrl
           dbUpdateNeeded = true
           setIsUploadingAvatar(false)
@@ -137,7 +133,6 @@ export default function SettingsPage() {
             .from(bucketName)
             .getPublicUrl(filePath)
 
-          logoPublicUrl = publicUrl
           dbUpdates.logo_url = publicUrl
           dbUpdateNeeded = true
           setIsUploadingLogo(false)
@@ -168,10 +163,10 @@ export default function SettingsPage() {
         setPreviewLogoUrl(null)
 
         toast.success(t('toasts.profileUpdated'))
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Save profile error:", error)
         let msg = t('toasts.profileUpdateFailed')
-        if (error?.message) msg += `: ${error.message}`
+        if (error instanceof Error) msg += `: ${error.message}`
         toast.error(msg)
       } finally {
         setIsUploadingAvatar(false)
@@ -302,9 +297,9 @@ export default function SettingsPage() {
                 {/* Company Logo Upload */}
                 <div className="flex items-center gap-6 pb-6 border-b">
                   <div className="relative group">
-                    <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden group-hover:border-primary/50 transition-colors">
-                      {user?.logo_url ? (
-                        <img src={user.logo_url} alt="Company Logo" className="w-full h-full object-contain" />
+                    <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden group-hover:border-primary/50 transition-colors relative">
+                      {displayLogoUrl ? (
+                        <NextImage src={displayLogoUrl} alt="Company Logo" fill className="object-contain" unoptimized />
                       ) : (
                         <Building2 className="w-8 h-8 text-gray-300" />
                       )}

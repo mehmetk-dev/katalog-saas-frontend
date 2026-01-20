@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 export function MagazineTemplate({
@@ -51,7 +53,7 @@ export function MagazineTemplate({
                 {pageNumber === 1 ? (
                     <div className="h-full px-6 flex items-center">
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-5" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-5" />
                         )}
                         {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
                             <div className="flex flex-col justify-center">
@@ -63,26 +65,26 @@ export function MagazineTemplate({
                         )}
                         {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
                             <div className="flex-1 flex justify-center">
-                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </div>
                         )}
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
                             <>
                                 <div className="flex-1" />
-                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </>
                         )}
                     </div>
                 ) : (
                     <div className="h-full px-6 flex items-center justify-between border-b border-gray-100">
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 10 }} className="object-contain mr-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 10} unoptimized style={{ height: getLogoHeight() - 10 }} className="object-contain mr-3" />
                         )}
                         <span className="text-sm font-serif italic text-gray-600">{catalogName}</span>
                         <div className="flex-1" />
                         <span className="text-xs text-gray-400">Sayfa {pageNumber}</span>
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 10 }} className="object-contain ml-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 10} unoptimized style={{ height: getLogoHeight() - 10 }} className="object-contain ml-3" />
                         )}
                     </div>
                 )}
@@ -93,12 +95,7 @@ export function MagazineTemplate({
                 {/* Featured Ürün */}
                 {featured && (
                     <div className="relative h-[260px] overflow-hidden rounded-xl bg-gray-100 shrink-0 group">
-                        <img loading="lazy"
-                            crossOrigin="anonymous"
-                            src={featured.image_url || "/placeholder.svg"}
-                            alt={featured.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+                        <NextImage src={featured.image_url || "/placeholder.svg"} alt={featured.name} fill unoptimized className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                         <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                             <h3 className="text-xl font-serif font-medium">{featured.name}</h3>
@@ -108,7 +105,7 @@ export function MagazineTemplate({
                             {showPrices && (
                                 <p className="font-semibold text-lg mt-2">
                                     {(() => {
-                                        const currency = (featured as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                        const currency = featured.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                         const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                         return `${symbol}${Number(featured.price).toFixed(2)}`
                                     })()}
@@ -135,12 +132,7 @@ export function MagazineTemplate({
                     <div className={`grid ${getGridCols()} grid-rows-2 gap-3 flex-1`}>
                         {others.map((product) => (
                             <div key={product.id} className="relative overflow-hidden rounded-lg bg-gray-100 group h-full">
-                                <img loading="lazy"
-                                    crossOrigin="anonymous"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover absolute inset-0 transition-transform duration-500 group-hover:scale-105"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover absolute inset-0 transition-transform duration-500 group-hover:scale-105" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                 <div className="absolute inset-x-0 bottom-0 p-3 text-white">
                                     <h3 className="text-sm font-serif line-clamp-1">{product.name}</h3>
@@ -150,7 +142,7 @@ export function MagazineTemplate({
                                     {showPrices && (
                                         <p className="text-sm font-medium mt-1">
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

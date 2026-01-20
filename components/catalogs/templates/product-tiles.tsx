@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Product Tiles - Kompakt karo görünümü
@@ -49,13 +51,13 @@ export function ProductTilesTemplate({
             {/* Header */}
             <div className="h-12 bg-white border-b px-5 flex items-center justify-between shrink-0">
                 {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-3" />
+                    <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-3" />
                 )}
                 {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
                     <h1 className="font-bold text-sm text-gray-900 truncate max-w-[200px]">{catalogName || "Ürünler"}</h1>
                 )}
                 {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                    <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                 )}
                 <div className="flex-1" />
                 <div className="flex items-center gap-2">
@@ -63,14 +65,14 @@ export function ProductTilesTemplate({
                     <span className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600">{pageNumber}/{totalPages}</span>
                 </div>
                 {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain ml-3" />
+                    <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain ml-3" />
                 )}
             </div>
 
             {/* Dinamik Grid */}
             <div className={`flex-1 p-3 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`} style={{ maxHeight: 'calc(100% - 80px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -82,13 +84,9 @@ export function ProductTilesTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="aspect-square bg-gray-50 overflow-hidden shrink-0 relative">
-                                <img loading="lazy"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-500"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-500" />
                                 {productUrl && (
                                     <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-sm p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
                                         <svg className="w-2.5 h-2.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,7 +117,7 @@ export function ProductTilesTemplate({
                                     {showPrices && (
                                         <p className="font-black text-xs leading-none" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download } from "lucide-react"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
+import NextImage from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,48 +26,22 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { deleteCatalog } from "@/lib/actions/catalogs"
+import { deleteCatalog, type Catalog } from "@/lib/actions/catalogs"
+import type { Product } from "@/lib/actions/products"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { useTranslation } from "@/lib/i18n-provider"
 
 import { CatalogPreview } from "./catalog-preview"
 
-interface Catalog {
-  id: string
-  user_id: string
-  template_id: string | null
-  name: string
-  description: string | null
-  layout: string
-  primary_color: string
-  show_prices: boolean
-  show_descriptions: boolean
-  show_attributes: boolean
-  is_published: boolean
-  share_slug: string | null
-  product_ids: string[]
-  // Yeni kişiselleştirme alanları
-  columns_per_row: number  // 2, 3, 4
-  background_color: string
-  background_image: string | null
-  background_image_fit?: 'cover' | 'contain' | 'fill'
-  background_gradient: string | null
-  logo_url: string | null
-  logo_position: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | null
-  logo_size: 'small' | 'medium' | 'large'
-  is_disabled?: boolean
-  created_at: string
-  updated_at: string
-}
+
 
 interface CatalogsPageClientProps {
   initialCatalogs: Catalog[]
-  userProducts: any[]
+  userProducts: Product[]
   userPlan?: "free" | "plus" | "pro"
 }
 
@@ -106,7 +81,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       setCatalogs(catalogs.filter((c) => c.id !== deleteId))
       toast.success(t('toasts.catalogDeleted'))
     } else {
-      toast.error((result as any).error || t('catalogs.deleteFailed'))
+      toast.error((result as { error?: string }).error || t('catalogs.deleteFailed'))
     }
     setDeleteId(null)
   }
@@ -228,7 +203,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                         backgroundImageFit={catalog.background_image_fit}
                         backgroundGradient={catalog.background_gradient}
                         logoUrl={catalog.logo_url}
-                        logoPosition={catalog.logo_position || undefined}
+                        logoPosition={catalog.logo_position}
                         logoSize={catalog.logo_size}
                       />
                     </ResponsiveContainer>
@@ -481,11 +456,15 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             {/* QR Code */}
             <div className="bg-white rounded-xl p-4 flex flex-col items-center border">
               {qrCatalog && (
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog.slug}`)}`}
-                  alt="QR Code"
-                  className="w-36 h-36"
-                />
+                <div className="relative w-36 h-36">
+                  <NextImage
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog.slug}`)}`}
+                    alt="QR Code"
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
               )}
             </div>
 

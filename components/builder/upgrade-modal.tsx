@@ -1,12 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Check, Sparkles, Crown, Zap, Star, CreditCard, Shield, Rocket, Gift } from "lucide-react"
+import { Check, Sparkles, Crown, Zap, Star, CreditCard, Shield } from "lucide-react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -198,10 +197,8 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         <div className="p-3 sm:p-4 lg:p-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
             {plans.map((plan) => {
-              const Icon = plan.icon
               const isCurrent = currentPlan === plan.id
               const monthlyPrice = isYearly ? Math.round(plan.price.yearly / 12) : plan.price.monthly
-              const yearlyTotal = plan.price.yearly
 
               return (
                 <div

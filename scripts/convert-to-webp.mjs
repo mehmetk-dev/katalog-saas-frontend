@@ -1,7 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
-const sharp = require('sharp');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const publicDir = path.join(__dirname, '..', 'public');
 
@@ -38,7 +41,7 @@ async function convertToWebP() {
                 console.log(`✅ ${file} → ${path.basename(outputPath)} (${Math.round(saved / 1024)}KB kazanıldı)`);
                 converted++;
             } catch (err) {
-                console.error(`❌ Hata: ${file}`, err.message);
+                console.error(`❌ Hata: ${file}`, err instanceof Error ? err.message : String(err));
             }
         }
     }

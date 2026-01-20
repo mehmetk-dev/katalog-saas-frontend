@@ -107,10 +107,11 @@ export function CatalogPreview(props: CatalogPreviewProps) {
 
   // Sayfa değiştiğinde geçerli aralıkta tut
   useEffect(() => {
-    if (currentPage >= pages.length) {
+    if (pages.length > 0 && currentPage >= pages.length) {
       setCurrentPage(Math.max(0, pages.length - 1))
     }
-  }, [pages.length, currentPage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages.length])
 
   // Arka plan stili hesaplama
   const getBackgroundStyle = (): React.CSSProperties => {
@@ -174,12 +175,25 @@ export function CatalogPreview(props: CatalogPreviewProps) {
 
         {/* Template - Logo bilgisi template'e geçirilir */}
         <TemplateComponent
-          {...props}
+          catalogName={props.catalogName}
           products={pageProducts}
+          primaryColor={props.primaryColor}
+          showPrices={props.showPrices}
+          showDescriptions={props.showDescriptions}
+          showAttributes={props.showAttributes}
+          showSku={props.showSku}
           isFreeUser={isFreeUser}
           pageNumber={pageIndex + 1}
           totalPages={pages.length}
           columnsPerRow={columnsPerRow}
+          backgroundColor={props.backgroundColor}
+          backgroundImage={props.backgroundImage ?? undefined}
+          backgroundImageFit={props.backgroundImageFit}
+          backgroundGradient={props.backgroundGradient ?? undefined}
+          logoUrl={props.logoUrl ?? undefined}
+          logoPosition={props.logoPosition}
+          logoSize={props.logoSize}
+          titlePosition={props.titlePosition as 'left' | 'center' | 'right' | undefined}
         />
       </div>
     )

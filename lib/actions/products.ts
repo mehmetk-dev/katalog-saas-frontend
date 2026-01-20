@@ -70,16 +70,12 @@ export async function createProduct(formData: FormData) {
     custom_attributes: customAttributes,
   }
 
-  try {
-    const data = await apiFetch<Product>("/products", {
-      method: "POST",
-      body: JSON.stringify(productData),
-    })
-    revalidatePath("/dashboard/products")
-    return data
-  } catch (error) {
-    throw error
-  }
+  const data = await apiFetch<Product>("/products", {
+    method: "POST",
+    body: JSON.stringify(productData),
+  })
+  revalidatePath("/dashboard/products")
+  return data
 }
 
 export async function updateProduct(id: string, formData: FormData) {
@@ -94,10 +90,9 @@ export async function updateProduct(id: string, formData: FormData) {
   }
 
   const imagesJson = formData.get("images") as string
-  let images: string[] = []
   try {
     if (imagesJson) {
-      images = JSON.parse(imagesJson)
+      JSON.parse(imagesJson) // Parse to validate, but we'll get images from formData
     }
   } catch {
     // If not provided in update, maybe we shouldn't overwrite? 
@@ -108,21 +103,13 @@ export async function updateProduct(id: string, formData: FormData) {
     // If it is undefined in formData, user might not want to update it.
     // But here we default to [] if parse fails or empty.
     // Ideally we should check if key exists.
-    if (formData.has("images")) {
-      images = []
-    } else {
-      // preserve existing? The backend usually handles PATCH differently.
-      // But here we are sending full object for PUT typically?
-      // apiFetch "/products/${id}" with PUT usually replaces.
-      // Let's assume we need to send it.
-      images = []
-    }
+    // Images are handled separately in the form data
   }
 
   // Refined Logic:
   // We will assume the frontend ALWAYS sends 'images' array as JSON if it's an edit form.
 
-  const updates: any = {
+  const updates: Record<string, unknown> = {
     name: formData.get("name") as string,
     sku: (formData.get("sku") as string) || null,
     description: (formData.get("description") as string) || null,
@@ -142,41 +129,29 @@ export async function updateProduct(id: string, formData: FormData) {
     }
   }
 
-  try {
-    await apiFetch(`/products/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    })
-    revalidatePath("/dashboard/products")
-    return { success: true }
-  } catch (error) {
-    throw error
-  }
+  await apiFetch(`/products/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  })
+  revalidatePath("/dashboard/products")
+  return { success: true }
 }
 
 export async function deleteProduct(id: string) {
-  try {
-    await apiFetch(`/products/${id}`, {
-      method: "DELETE",
-    })
-    revalidatePath("/dashboard/products")
-    return { success: true }
-  } catch (error) {
-    throw error
-  }
+  await apiFetch(`/products/${id}`, {
+    method: "DELETE",
+  })
+  revalidatePath("/dashboard/products")
+  return { success: true }
 }
 
 export async function deleteProducts(ids: string[]) {
-  try {
-    await apiFetch("/products/bulk-delete", {
-      method: "POST",
-      body: JSON.stringify({ ids }),
-    })
+  await apiFetch("/products/bulk-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  })
     revalidatePath("/dashboard/products")
     return { success: true }
-  } catch (error) {
-    throw error
-  }
 }
 
 export interface CatalogReference {
@@ -257,71 +232,53 @@ export async function bulkUpdatePrices(
   changeMode: "percentage" | "fixed",
   amount: number
 ) {
-  try {
-    const updatedProducts = await apiFetch<Product[]>("/products/bulk-price-update", {
-      method: "POST",
-      body: JSON.stringify({
-        productIds,
-        changeType,
-        changeMode,
-        amount
-      }),
-    })
-    revalidatePath("/dashboard/products")
-    return updatedProducts
-  } catch (error) {
-    throw error
-  }
+  const updatedProducts = await apiFetch<Product[]>("/products/bulk-price-update", {
+    method: "POST",
+    body: JSON.stringify({
+      productIds,
+      changeType,
+      changeMode,
+      amount
+    }),
+  })
+  revalidatePath("/dashboard/products")
+  return updatedProducts
 }
 
 export async function bulkUpdateProductImages(updates: { productId: string; images: string[] }[]) {
-  try {
-    // Tek bir API isteği ile tüm ürünleri sunucu tarafında güncelle
-    await apiFetch("/products/bulk-image-update", {
-      method: "POST",
-      body: JSON.stringify({ updates }),
-    })
+  // Tek bir API isteği ile tüm ürünleri sunucu tarafında güncelle
+  await apiFetch("/products/bulk-image-update", {
+    method: "POST",
+    body: JSON.stringify({ updates }),
+  })
 
-    revalidatePath("/dashboard/products")
-    return { success: true }
-  } catch (error: any) {
-    console.error("Bulk image update error:", error)
-    throw error
-  }
+  revalidatePath("/dashboard/products")
+  return { success: true }
 }
 
 export async function renameCategory(oldName: string, newName: string) {
-  try {
-    const updatedProducts = await apiFetch<Product[]>("/products/rename-category", {
-      method: "POST",
-      body: JSON.stringify({ oldName, newName }),
-    })
-    revalidatePath("/dashboard/products")
-    revalidatePath("/dashboard/categories")
-    return updatedProducts
-  } catch (error) {
-    throw error
-  }
+  const updatedProducts = await apiFetch<Product[]>("/products/rename-category", {
+    method: "POST",
+    body: JSON.stringify({ oldName, newName }),
+  })
+  revalidatePath("/dashboard/products")
+  revalidatePath("/dashboard/categories")
+  return updatedProducts
 }
 
 export async function deleteCategory(categoryName: string) {
-  try {
-    const updatedProducts = await apiFetch<Product[]>("/products/delete-category", {
-      method: "POST",
-      body: JSON.stringify({ categoryName }),
-    })
-    revalidatePath("/dashboard/products")
-    revalidatePath("/dashboard/categories")
-    return updatedProducts
-  } catch (error) {
-    throw error
-  }
+  const updatedProducts = await apiFetch<Product[]>("/products/delete-category", {
+    method: "POST",
+    body: JSON.stringify({ categoryName }),
+  })
+  revalidatePath("/dashboard/products")
+  revalidatePath("/dashboard/categories")
+  return updatedProducts
 }
 
 export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
-  try {
-    const timestamp = Date.now();
-    const isEn = language === 'en';
+  const timestamp = Date.now();
+  const isEn = language === 'en';
 
     const dummyProducts = [
       {
@@ -477,7 +434,4 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
     ];
 
     return await bulkImportProducts(dummyProducts);
-  } catch (error) {
-    throw error;
-  }
 }

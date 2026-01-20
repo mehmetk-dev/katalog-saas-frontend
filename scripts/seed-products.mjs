@@ -1,17 +1,10 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 
-
-// Initialize Supabase client
-// Note: In a real scenario, you should use environment variables.
-// Since this is a script to be run once, I'll need the user to ensure 
-// process.env.NEXT_PUBLIC_SUPABASE_URL and process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
-// are available or hardcode them temporarily for this execution if run manually.
-// Because I cannot read the user's .env.local directly into this node process easily without dotenv,
-// I will assume the user runs this with `node scripts/seed-products.js` having the env vars set or I will try to read .env.local via fs.
-
-const fs = require('fs');
-const path = require('path');
-
-const { createClient } = require('@supabase/supabase-js');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function getEnvVars() {
     try {
@@ -26,7 +19,7 @@ function getEnvVars() {
         });
         return params;
     } catch (e) {
-        console.error("Could not read .env.local");
+        console.error("Could not read .env.local", e);
         return {};
     }
 }
@@ -75,39 +68,15 @@ const DUMMY_PRODUCTS = [
 async function seedProducts() {
     console.log("Seeding products for:", DEMO_EMAIL);
 
-    // 1. Get User ID
-    const { data: { users }, error: userError } = await supabase.auth.admin.listUsers();
-
-    // Since listUsers is admin only, and we are using anon key, we might need to query the users table if enabled OR use auth.getUser() if we had the user's token.
-    // BUT, we don't have the user's token or admin key here easily (unless service_role key is used).
-    // Wait, I can only insert if I have the user's ID.
-    // I will try to fetch the user by email if I have service role key, but I only have anon.
-    // Actually, I can't easily get the UUID of a user with just anon key unless I'm logged in as them.
-
-    // ALTERNATIVE: I will create a simple SQL script instead? No, I can't execute SQL directly.
-    // I'll try to use the 'run_command' tool to execute a typescript file that uses the service role key if available?
-    // I created 'lib/supabase/server.ts' but that's for Next.js.
-
-    // Let's assume I need to ask the user to provide the UUID or I can't do it with anon key for a specific email without being that user.
-    // HOWEVER, I am an "Agent" on the user's machine. I might be able to read the session? No.
-
-    // Let's try to find the service role key in .env.local
     const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
     if (!SERVICE_KEY) {
-        console.log("Service role key not found in .env.local. Trying to login...");
-        // I can't login without password.
-
-        // I'll try to check if I can 'fake' it or just output the SQL for the user?
-        // Or I can use the 'products' table RLS... if I'm not authed, I can't insert.
-
-        console.error("Cannot insert products without Service Role Key or User Session.");
+        console.error("Service role key not found in .env.local.");
         console.log("Please add SUPABASE_SERVICE_ROLE_KEY to .env.local temporarily to run this script.");
         process.exit(1);
     }
 
     const adminSupabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // List users to find the ID
     const { data: usersData, error: usersError } = await adminSupabase.auth.admin.listUsers();
 
     if (usersError) {
@@ -129,7 +98,7 @@ async function seedProducts() {
         name: p.name,
         description: p.description,
         price: p.price,
-        currency: 'TRY', // Default currency
+        currency: 'TRY',
         image_url: p.image_url,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -142,7 +111,7 @@ async function seedProducts() {
 
     if (insertError) {
         console.error("Error inserting products:", insertError);
-    } else {
+    } else if (insertData) {
         console.log(`Successfully inserted ${insertData.length} products.`);
     }
 }

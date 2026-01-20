@@ -1,21 +1,20 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, Eye, EyeOff, BookOpen } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
-import { useTranslation } from "@/lib/i18n-provider"
 
 interface AuthFormNewProps {
     isSignUp: boolean
     onSignUpComplete: () => void
 }
 
-export function AuthFormNew({ isSignUp, onSignUpComplete }: AuthFormNewProps) {
+export function AuthFormNew({ isSignUp, onSignUpComplete: _onSignUpComplete }: AuthFormNewProps) {
     const router = useRouter()
-    const { t } = useTranslation()
+    // const { t } = useTranslation() // Unused for now as text is hardcoded in TR
     const searchParams = useSearchParams()
 
     const [isLoading, setIsLoading] = useState(false)

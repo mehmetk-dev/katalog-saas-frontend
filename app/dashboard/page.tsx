@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+
 import { getCurrentUser } from "@/lib/actions/auth"
 import { getCatalogs, getDashboardStats } from "@/lib/actions/catalogs"
 import { getProducts } from "@/lib/actions/products"
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 export default async function DashboardPage() {
-  const [user, catalogs, products, stats] = await Promise.all([
+  const [, catalogs, products, stats] = await Promise.all([
     getCurrentUser(),
     getCatalogs(),
     getProducts(),

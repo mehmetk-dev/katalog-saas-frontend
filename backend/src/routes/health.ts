@@ -1,4 +1,5 @@
 import { Router } from 'express';
+
 import { supabase } from '../services/supabase';
 import { redis } from '../services/redis';
 
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
         // Quick DB check
         const { error } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
         dbStatus = !error;
-    } catch (e) {
+    } catch {
         dbStatus = false;
     }
 
@@ -25,7 +26,7 @@ router.get('/', async (req, res) => {
             const pong = await redis.ping();
             redisStatus = pong === 'PONG';
         }
-    } catch (e) {
+    } catch {
         redisStatus = false;
     }
 
@@ -48,7 +49,7 @@ router.get('/ready', async (req, res) => {
         // Check if app is ready to receive traffic
         // Add your readiness checks here (DB connection, etc.)
         res.status(200).json({ ready: true });
-    } catch (error) {
+    } catch {
         res.status(503).json({ ready: false, error: 'Service not ready' });
     }
 });

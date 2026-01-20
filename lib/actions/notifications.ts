@@ -9,7 +9,7 @@ export interface Notification {
     message: string
     is_read: boolean
     action_url?: string
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
     created_at: string
     read_at?: string
 }
@@ -35,8 +35,9 @@ export async function markNotificationAsRead(id: string) {
     try {
         await apiFetch(`/notifications/${id}/read`, { method: "PATCH" })
         return { success: true }
-    } catch (error: any) {
-        return { error: error.message }
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+        return { error: errorMessage }
     }
 }
 
@@ -44,8 +45,9 @@ export async function markAllNotificationsAsRead() {
     try {
         await apiFetch("/notifications/read-all", { method: "PATCH" })
         return { success: true }
-    } catch (error: any) {
-        return { error: error.message }
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+        return { error: errorMessage }
     }
 }
 
@@ -53,8 +55,9 @@ export async function deleteNotification(id: string) {
     try {
         await apiFetch(`/notifications/${id}`, { method: "DELETE" })
         return { success: true }
-    } catch (error: any) {
-        return { error: error.message }
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+        return { error: errorMessage }
     }
 }
 
@@ -62,8 +65,9 @@ export async function deleteAllNotifications() {
     try {
         await apiFetch("/notifications/delete-all", { method: "DELETE" })
         return { success: true }
-    } catch (error: any) {
-        return { error: error.message }
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+        return { error: errorMessage }
     }
 }
 
@@ -71,7 +75,8 @@ export async function cancelSubscription() {
     try {
         await apiFetch("/notifications/cancel-subscription", { method: "POST" })
         return { success: true }
-    } catch (error: any) {
-        return { error: error.message }
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
+        return { error: errorMessage }
     }
 }

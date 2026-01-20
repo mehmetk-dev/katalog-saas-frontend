@@ -31,6 +31,8 @@ interface UseAsyncTimeoutReturn<T> {
     reset: () => void
     /** İşlemi iptal et */
     cancel: () => void
+    /** İşlem iptal edildi mi */
+    isCancelled: boolean
     /** Hata mesajı */
     error: string | null
 }
@@ -39,8 +41,8 @@ export function useAsyncTimeout<T = void>(
     options: UseAsyncTimeoutOptions = {}
 ): UseAsyncTimeoutReturn<T> {
     const {
-        totalTimeoutMs = 60000, // 60 saniye
-        stuckTimeoutMs = 15000, // 15 saniye
+        totalTimeoutMs = 120000, // 120 saniye
+        stuckTimeoutMs = 30000, // 30 saniye
         onTimeout,
         timeoutMessage = "İşlem zaman aşımına uğradı. Lütfen internet bağlantınızı kontrol edin.",
         showToast = true
@@ -50,6 +52,7 @@ export function useAsyncTimeout<T = void>(
     const [hasTimeout, setHasTimeout] = useState(false)
     const [progress, setProgress] = useState(0)
     const [error, setError] = useState<string | null>(null)
+    const [isCancelled, setIsCancelled] = useState(false)
 
     const startTimeRef = useRef<number | null>(null)
     const lastProgressTimeRef = useRef<number | null>(null)
@@ -93,6 +96,8 @@ export function useAsyncTimeout<T = void>(
             const isTotalExceeded = totalElapsed > totalTimeoutMs
 
             if (isStuck || isTotalExceeded) {
+                cancelledRef.current = true
+                setIsCancelled(true)
                 setHasTimeout(true)
                 setIsLoading(false)
                 setError(timeoutMessage)
@@ -139,7 +144,7 @@ export function useAsyncTimeout<T = void>(
             setIsLoading(false)
             setProgress(100)
             return result
-        } catch (err: any) {
+        } catch (err: unknown) {
             if (cancelledRef.current) {
                 return null
             }
@@ -161,6 +166,7 @@ export function useAsyncTimeout<T = void>(
         setHasTimeout(false)
         setError(null)
         setProgress(0)
+        setIsCancelled(false)
         cancelledRef.current = false
         startTimeRef.current = null
         lastProgressTimeRef.current = null
@@ -169,6 +175,7 @@ export function useAsyncTimeout<T = void>(
 
     const cancel = useCallback(() => {
         cancelledRef.current = true
+        setIsCancelled(true)
         setIsLoading(false)
         if (intervalRef.current) {
             clearInterval(intervalRef.current)
@@ -189,6 +196,7 @@ export function useAsyncTimeout<T = void>(
         progress,
         reset,
         cancel,
+        isCancelled,
         error
     }
 }
@@ -215,7 +223,7 @@ export async function fetchWithTimeout<T>(
         }
 
         return await response.json()
-    } catch (error: any) {
+    } catch (error: unknown) {
         clearTimeout(timeoutId)
 
         if (error.name === 'AbortError') {

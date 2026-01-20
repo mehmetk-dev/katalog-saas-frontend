@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowRight, Check, Zap, Star, Crown, Sparkles } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +13,6 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
-import type { LucideIcon } from "lucide-react"
 
 interface Plan {
   name: string

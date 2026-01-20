@@ -4,9 +4,9 @@ import { supabase } from '../services/supabase';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 // Helper to get user ID from request (attached by auth middleware)
-const getUserId = (req: Request) => (req as any).user.id;
-const getUserEmail = (req: Request) => (req as any).user.email;
-const getUserMeta = (req: Request) => (req as any).user.user_metadata;
+const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
+const getUserEmail = (req: Request) => (req as unknown as { user: { email: string } }).user.email;
+const getUserMeta = (req: Request) => (req as unknown as { user: { user_metadata: any } }).user.user_metadata;
 
 export const getMe = async (req: Request, res: Response) => {
     try {
@@ -15,7 +15,7 @@ export const getMe = async (req: Request, res: Response) => {
         const userMeta = getUserMeta(req);
 
         // Get user profile
-        let { data: profile, error: profileError } = await supabase
+        let { data: profile } = await supabase
             .from('users')
             .select('*')
             .eq('id', userId)
@@ -84,8 +84,9 @@ export const getMe = async (req: Request, res: Response) => {
         };
 
         res.json(result);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -119,21 +120,25 @@ export const sendWelcomeNotification = async (req: Request, res: Response) => {
         );
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
 export const updateMe = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { full_name, company } = req.body;
+        // Sadece full_name, company ve avatar_url alanlarının güncellenmesine izin ver
+        // Plan veya exports_used gibi kritik alanlar buradan güncellenemez
+        const { full_name, company, avatar_url } = req.body;
 
         const { error } = await supabase
             .from('users')
             .update({
                 full_name,
                 company,
+                avatar_url,
                 updated_at: new Date().toISOString()
             })
             .eq('id', userId);
@@ -151,8 +156,9 @@ export const updateMe = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -177,8 +183,9 @@ export const deleteMe = async (req: Request, res: Response) => {
         if (authError) throw authError;
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -242,8 +249,9 @@ export const incrementExportsUsed = async (req: Request, res: Response) => {
 
         res.json({ success: true });
 
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -299,7 +307,8 @@ export const upgradeToPro = async (req: Request, res: Response) => {
         }
 
         res.json({ success: true, plan: targetPlan });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+
 const supabase_1 = require("../services/supabase");
 const redis_1 = require("../services/redis");
 const router = (0, express_1.Router)();

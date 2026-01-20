@@ -48,7 +48,7 @@ const getLoadingMessage = (phase: LoadingPhase, t: (key: string) => string): str
   }
 }
 
-export function AuthForm({ onSignUpComplete }: AuthFormProps) {
+export function AuthForm({ onSignUpComplete: _onSignUpComplete }: AuthFormProps) {
   const router = useRouter()
   const { t, language } = useTranslation()
   const searchParams = useSearchParams()
@@ -57,7 +57,7 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  // const [message, setMessage] = useState<string | null>(null) // Unused
   const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>("idle")
   const [isSlowConnection, setIsSlowConnection] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
@@ -132,10 +132,15 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
 
   // Cleanup timeouts on unmount
   useEffect(() => {
+    // Capture ref values at effect time
+    const timeoutId = timeoutRef.current
+    const slowConnectionId = slowConnectionRef.current
+    const abortController = abortControllerRef.current
+
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      if (slowConnectionRef.current) clearTimeout(slowConnectionRef.current)
-      if (abortControllerRef.current) abortControllerRef.current.abort()
+      if (timeoutId) clearTimeout(timeoutId)
+      if (slowConnectionId) clearTimeout(slowConnectionId)
+      if (abortController) abortController.abort()
     }
   }, [])
 
@@ -501,12 +506,12 @@ export function AuthForm({ onSignUpComplete }: AuthFormProps) {
       )}
 
       {/* Success Message */}
-      {message && (
+      {/* {message && (
         <Alert className="animate-in fade-in slide-in-from-top-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-700 dark:text-green-300">{message}</AlertDescription>
         </Alert>
-      )}
+      )} */}
 
       <Button
         variant="outline"

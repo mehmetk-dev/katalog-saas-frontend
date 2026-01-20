@@ -99,6 +99,7 @@ export const translations = {
             signinDesc: "Kaldığınız yerden devam etmek için giriş yapın.",
             backToHome: "Ana Sayfa",
             fullName: "Ad Soyad",
+            name: "Ad Soyad",
             dontHaveAccount: "Hesabınız yok mu?",
             alreadyHaveAccount: "Zaten hesabınız var mı?",
             signin: "Giriş Yap",
@@ -397,6 +398,8 @@ export const translations = {
             proFeature: "Kategoriler Plus ve Pro planlarında",
             upgradePrompt: "Ürünlerinizi düzenlemek için planınızı yükseltin",
             seePlans: "Planları Gör",
+            namePlaceholder: "Örn: Yaz Koleksiyonu",
+            imageNote: "JPG veya PNG. Maksimum 2MB.",
         },
         importExport: {
             title: "İçe/Dışa Aktar",
@@ -892,6 +895,8 @@ export const translations = {
             profileUpdateFailed: "Profil güncellenemedi",
             accountDeleted: "Hesabınız silindi",
             accountDeleteFailed: "Hesap silinemedi",
+            uploadTimeout: "Yükleme zaman aşımına uğradı. Bağlantınızı kontrol edin.",
+            importTimeout: "İçe aktarma işlemi zaman aşımına uğradı.",
         },
         admin: {
             title: "Admin Paneli",
@@ -1051,6 +1056,7 @@ export const translations = {
             signinDesc: "Sign in to continue from where you left off.",
             backToHome: "Back to Home",
             fullName: "Full Name",
+            name: "Full Name",
             dontHaveAccount: "Don't have an account?",
             alreadyHaveAccount: "Already have an account?",
             signin: "Sign In",
@@ -1353,6 +1359,7 @@ export const translations = {
             categoryUpdated: "Category updated",
             categoryCreated: "Category created",
             categoryDeleted: "Category deleted",
+            namePlaceholder: "e.g. Summer Collection",
         },
         filters: {
             title: "Filter Options",
@@ -1846,6 +1853,8 @@ export const translations = {
             profileUpdateFailed: "Profile could not be updated",
             accountDeleted: "Account deleted",
             accountDeleteFailed: "Account could not be deleted",
+            uploadTimeout: "Upload timed out. Please check your connection.",
+            importTimeout: "Import operation timed out.",
         },
         admin: {
             title: "Admin Panel",

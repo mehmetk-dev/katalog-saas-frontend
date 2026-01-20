@@ -65,7 +65,7 @@ export function BulkActionsModal({
         try {
             for (let i = 0; i < selectedProducts.length; i++) {
                 const product = selectedProducts[i]
-                const updateData: Record<string, any> = {}
+                const updateData: Record<string, string | number | null> = {}
 
                 try {
                     if (actionType === 'price') {

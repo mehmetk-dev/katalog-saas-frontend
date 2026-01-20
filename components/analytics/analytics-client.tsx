@@ -2,21 +2,15 @@
 
 import { useState, useMemo } from "react"
 import {
-    TrendingUp,
-    TrendingDown,
     Users,
     Eye,
-    Clock,
     ArrowUpRight,
     ArrowDownRight,
     BarChart3,
     PieChart,
-    Globe,
     Smartphone,
     Monitor,
     Tablet,
-    Calendar,
-    MousePointerClick,
     FileText,
     Activity,
     Sparkles,
@@ -57,14 +51,9 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
     // Gerçek unique visitors (API'den gelen)
     const uniqueVisitors = stats?.uniqueVisitors || 0
 
-    // Gerçek cihaz verileri (API'den gelen)
-    const realDeviceStats = stats?.deviceStats || []
-
-    // Gerçek günlük görüntülenmeler (API'den gelen)
-    const realDailyViews = stats?.dailyViews || []
-
     // Cihaz verilerini formatla
     const deviceData = useMemo(() => {
+        const realDeviceStats = stats?.deviceStats || []
         if (realDeviceStats.length > 0) {
             return realDeviceStats.map(d => ({
                 name: d.device_type === 'mobile' ? (language === 'tr' ? 'Mobil' : 'Mobile') :
@@ -83,10 +72,12 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
         }
         // Veri yoksa boş dizi
         return []
-    }, [realDeviceStats, language])
+        // Smartphone, Tablet, Monitor are stable icon imports
+    }, [stats?.deviceStats, language])
 
     // Haftalık görüntülenme verileri (son 12 hafta)
     const viewData = useMemo(() => {
+        const realDailyViews = stats?.dailyViews || []
         if (realDailyViews.length > 0) {
             // Günlük verileri haftalık gruplara böl
             const weeklyData: number[] = []
@@ -113,7 +104,7 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
         }
         // Veri yoksa boş dizi
         return []
-    }, [realDailyViews])
+    }, [stats?.dailyViews])
 
     // Trend hesaplama
     const lastWeekViews = viewData.length >= 2 ? viewData[viewData.length - 1] : 0
@@ -121,11 +112,11 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
     const viewsTrend = calculateTrend(lastWeekViews, prevWeekViews)
 
     // Ortalama oturum süresi (tahmini - gerçek veri yok)
-    const avgSessionMinutes = totalViews > 0 ? 2 : 0
-    const avgSessionSeconds = totalViews > 0 ? 30 : 0
+    // const avgSessionMinutes = totalViews > 0 ? 2 : 0
+    // const avgSessionSeconds = totalViews > 0 ? 30 : 0
 
     // Dönüşüm oranı (tahmini)
-    const conversionRate = totalViews > 10 ? ((uniqueVisitors / totalViews) * 10).toFixed(1) : "0.0"
+    // const conversionRate = totalViews > 10 ? ((uniqueVisitors / totalViews) * 10).toFixed(1) : "0.0"
 
     const timeRangeLabel = {
         "7d": t("dashboard.analytics.last7Days"),

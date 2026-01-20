@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 export function MinimalistTemplate({
@@ -50,29 +52,29 @@ export function MinimalistTemplate({
                 {pageNumber === 1 ? (
                     <div className="h-full flex items-center justify-center border-b border-gray-200">
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-4 absolute left-8" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-4 absolute left-8" />
                         )}
                         {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                         ) : (
                             <h1 className="text-xl font-light text-gray-900 uppercase tracking-[0.25em]">
                                 {catalogName || "KATALOG"}
                             </h1>
                         )}
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain ml-4 absolute right-8" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain ml-4 absolute right-8" />
                         )}
                     </div>
                 ) : (
                     <div className="h-full flex items-center justify-between border-b border-gray-200">
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 8} unoptimized style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
                         )}
                         <span className="text-sm font-light uppercase tracking-widest text-gray-500">{catalogName}</span>
                         <div className="flex-1" />
                         <span className="text-xs text-gray-400">Sayfa {pageNumber}</span>
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 8} unoptimized style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
                         )}
                     </div>
                 )}
@@ -81,7 +83,7 @@ export function MinimalistTemplate({
             {/* Dinamik Grid İçerik */}
             <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-5 overflow-hidden`} style={{ maxHeight: 'calc(100% - 92px)' }}>
                 {(products || []).map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -93,15 +95,10 @@ export function MinimalistTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Görsel */}
                             <div className="aspect-square p-3 flex items-center justify-center bg-white relative shrink-0">
-                                <img loading="lazy"
-                                    crossOrigin="anonymous"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500" />
                                 {productUrl && (
                                     <div className="absolute top-2 right-2 text-gray-300 group-hover:text-gray-600 transition-colors">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -140,7 +137,7 @@ export function MinimalistTemplate({
                                     {showPrices && (
                                         <p className="text-base font-light leading-none" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

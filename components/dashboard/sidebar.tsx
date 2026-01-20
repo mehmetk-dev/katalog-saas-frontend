@@ -16,6 +16,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 import { useSidebar } from "@/lib/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
+
 import { FeedbackModal } from "./feedback-modal"
 
 export function DashboardSidebar() {
@@ -40,8 +41,6 @@ export function DashboardSidebar() {
     { href: "/dashboard/admin", label: "Admin Panel", icon: Shield, isAdmin: true },
   ] : []
 
-  const exportPercentage = user ? (user.exportsUsed / user.maxExports) * 100 : 0
-  const isFreeUser = user?.plan === "free"
 
   // Mobilde link tıklandığında sidebar'ı kapat
   const handleNavClick = () => {
@@ -66,7 +65,7 @@ export function DashboardSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky lg:top-0 z-[70] h-screen border-r border-sidebar-border bg-sidebar flex flex-col transition-all duration-300 ease-in-out overflow-y-auto",
+          "fixed lg:sticky lg:top-0 z-[70] lg:z-30 h-screen border-r border-sidebar-border bg-sidebar flex flex-col transition-all duration-300 ease-in-out overflow-y-auto",
           sidebarWidth,
           // Mobilde transform ile aç/kapa
           isMobile && !isOpen && "-translate-x-full",
@@ -138,7 +137,7 @@ export function DashboardSidebar() {
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
-            const isPremiumItem = (item as any).premium
+            const isPremiumItem = 'premium' in item && (item as { premium?: boolean }).premium
             const showPremiumBadge = isPremiumItem && user?.plan === "free"
 
             const navLink = (

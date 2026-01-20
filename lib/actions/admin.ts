@@ -56,7 +56,7 @@ export async function getAdminUsers() {
     }
 
     try {
-        return await apiFetch<any[]>("/admin/users")
+        return await apiFetch<unknown[]>("/admin/users")
     } catch (error) {
         console.error("Failed to fetch admin users:", error)
         return []
@@ -73,7 +73,7 @@ export async function getDeletedUsers() {
     }
 
     try {
-        return await apiFetch<any[]>("/admin/deleted-users")
+        return await apiFetch<unknown[]>("/admin/deleted-users")
     } catch (error) {
         console.error("Failed to fetch deleted users:", error)
         return []
@@ -89,14 +89,10 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'pr
         throw new Error("Unauthorized")
     }
 
-    try {
-        await apiFetch(`/admin/users/${userId}/plan`, {
-            method: "PUT",
-            body: JSON.stringify({ plan })
-        })
-        return { success: true }
-    } catch (error) {
-        throw error
-    }
+    await apiFetch(`/admin/users/${userId}/plan`, {
+        method: "PUT",
+        body: JSON.stringify({ plan })
+    })
+    return { success: true }
 }
 

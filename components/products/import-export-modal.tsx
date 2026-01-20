@@ -13,17 +13,10 @@ import {
     X,
     Loader2,
     Crown,
-    ArrowRight,
-    Link2,
     Unlink2,
     Sparkles,
-    MoreHorizontal,
-    Pencil,
-    Tag,
     Database,
-    FileType,
-    Columns3,
-    RefreshCw
+    Columns3
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -56,16 +49,15 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { UpgradeModal } from '@/components/builder/upgrade-modal'
 import { useTranslation } from '@/lib/i18n-provider'
 import { useAsyncTimeout } from '@/lib/hooks/use-async-timeout'
-import { Progress } from '@/components/ui/progress'
+import type { Product } from '@/lib/actions/products'
 
 interface ImportExportModalProps {
-    onImport: (products: any[]) => Promise<void>
+    onImport: (products: unknown[]) => Promise<void>
     onExport: () => void
     productCount: number
     isLoading?: boolean
@@ -557,7 +549,7 @@ export function ImportExportModal({
 
     const SYSTEM_FIELDS = SYSTEM_FIELDS_KEYS.map(key => ({
         id: key,
-        label: t(`importExport.systemFields.${key === 'image_url' ? 'imageUrl' : key}` as any) + (key === 'name' || key === 'price' ? ' *' : '')
+        label: t(`importExport.systemFields.${key === 'image_url' ? 'imageUrl' : key}` as string) + (key === 'name' || key === 'price' ? ' *' : '')
     }))
 
     // İmport işlemini gerçekleştir
@@ -578,7 +570,7 @@ export function ImportExportModal({
         setImportStatus('loading')
 
         await importTimeout.execute(async () => {
-            const products: any[] = []
+            const products: Array<Record<string, unknown>> = []
             const totalRows = csvData.length
 
             for (let rowIdx = 0; rowIdx < csvData.length; rowIdx++) {
@@ -587,7 +579,7 @@ export function ImportExportModal({
                 // Progress güncelle (veri işleme: %0-50)
                 importTimeout.setProgress(Math.round((rowIdx / totalRows) * 50))
 
-                const product: any = {
+                const product: Partial<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { name: string; price: number; stock: number; custom_attributes: Array<{ name: string; value: string; unit?: string }> } = {
                     name: '',
                     sku: null,
                     description: null,
@@ -595,6 +587,8 @@ export function ImportExportModal({
                     stock: 0,
                     category: null,
                     image_url: null,
+                    images: [],
+                    product_url: null,
                     custom_attributes: []
                 }
 

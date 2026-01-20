@@ -30,7 +30,7 @@ export interface ActivityLog {
     user_name?: string
     activity_type: ActivityType
     description: string
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
     ip_address?: string
     user_agent?: string
     created_at: string
@@ -43,7 +43,7 @@ export async function logActivity(
     userId: string,
     activityType: ActivityType,
     description: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
     request?: Request
 ): Promise<void> {
     try {

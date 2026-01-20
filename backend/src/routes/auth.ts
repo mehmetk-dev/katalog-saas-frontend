@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+
 import { supabase } from '../services/supabase';
 
 const router = Router();
@@ -39,8 +40,9 @@ router.post('/check-provider', async (req: Request, res: Response) => {
             // Don't expose too much info - just what's needed for UX
         });
 
-    } catch (error: any) {
-        console.error('Check provider error:', error.message);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Check provider error:', message);
         res.json({ provider: null, isOAuth: false });
     }
 });

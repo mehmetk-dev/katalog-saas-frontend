@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
@@ -50,7 +50,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
   const [isLoading, setIsLoading] = useState(!initialUser)
   const supabase = createClient()
 
-  const fetchUserProfile = async (authUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
+  const fetchUserProfile = useCallback(async (authUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
     const MAX_RETRIES = 3
     const RETRY_DELAY = 1000 // 1 saniye
 
@@ -128,7 +128,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
       // Tüm denemeler başarısız - mevcut user varsa koru, yoksa null bırak
       return false
     }
-  }
+  }, [supabase])
 
   const refreshUser = async () => {
     const {
@@ -187,7 +187,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [fetchUserProfile, supabase.auth])
 
   const logout = async () => {
     // Önce yönlendir, böylece UI state değişiminden kaynaklı çökmez

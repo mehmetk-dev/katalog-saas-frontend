@@ -1,11 +1,57 @@
+import crypto from 'crypto';
+
 import { Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
-import { getCache, setCache, deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
+import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 import { createNotification } from '../controllers/notifications';
 
-const getUserId = (req: Request) => (req as any).user.id;
+// Interface definitions for better type safety
+interface AuthenticatedRequest extends Request {
+    user: {
+        id: string;
+    };
+}
+
+interface Catalog {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string | null;
+    layout: string;
+    is_published: boolean;
+    share_slug: string | null;
+    view_count: number;
+    updated_at: string;
+    created_at: string;
+    product_ids: string[];
+}
+
+interface CatalogUpdatePayload {
+    name?: string;
+    description?: string;
+    layout?: string;
+    primary_color?: string;
+    is_published?: boolean;
+    share_slug?: string;
+    product_ids?: string[];
+    show_prices?: boolean;
+    show_descriptions?: boolean;
+    show_attributes?: boolean;
+    show_sku?: boolean;
+    columns_per_row?: number;
+    background_color?: string;
+    background_gradient?: string;
+    background_image?: string;
+    background_image_fit?: string;
+    logo_url?: string;
+    logo_position?: string;
+    logo_size?: string;
+    title_position?: string;
+}
+
+const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequest).user.id;
 
 export const getCatalogs = async (req: Request, res: Response) => {
     try {
@@ -29,18 +75,20 @@ export const getCatalogs = async (req: Request, res: Response) => {
             return data;
         });
 
-        const plan = user?.plan || 'free';
+        const plan = (user as { plan: string })?.plan || 'free';
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
         // Mark catalogs beyond the limit as disabled
-        const catalogsWithStatus = data.map((catalog: any, index: number) => ({
+        // Mark catalogs beyond the limit as disabled
+        const catalogsWithStatus = (data as Catalog[]).map((catalog: Catalog, index: number) => ({
             ...catalog,
             is_disabled: index >= maxCatalogs
         }));
 
         res.json(catalogsWithStatus);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -63,7 +111,6 @@ export const getCatalog = async (req: Request, res: Response) => {
         });
 
         // Limit kontrolü: Bu katalog erişilebilir mi?
-        // Tüm kataloglarını çekip sırasına bakalım (getCatalogs'daki mantıkla aynı)
         const allCatalogs = await getOrSetCache(cacheKeys.catalogs(userId), cacheTTL.catalogs, async () => {
             const { data } = await supabase.from('catalogs').select('id').eq('user_id', userId).order('updated_at', { ascending: false });
             return data || [];
@@ -74,10 +121,10 @@ export const getCatalog = async (req: Request, res: Response) => {
             return data;
         });
 
-        const plan = user?.plan || 'free';
+        const plan = (user as { plan: string })?.plan || 'free';
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
-        const catalogIndex = allCatalogs.findIndex((c: any) => c.id === id);
+        const catalogIndex = (allCatalogs as { id: string }[]).findIndex((c: { id: string }) => c.id === id);
         if (catalogIndex >= maxCatalogs) {
             return res.status(403).json({
                 error: 'Limit Reached',
@@ -86,9 +133,10 @@ export const getCatalog = async (req: Request, res: Response) => {
         }
 
         res.json(data);
-    } catch (error: any) {
-        const status = error.message === 'Catalog not found' ? 404 : 500;
-        res.status(status).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const status = errorMessage === 'Catalog not found' ? 404 : 500;
+        res.status(status).json({ error: errorMessage });
     }
 };
 
@@ -116,21 +164,21 @@ const TEMPLATES = [
 
 export const getTemplates = async (req: Request, res: Response) => {
     try {
-        // Templates statik ama gelecekte DB'den gelebilir diye cacheKey hazır
         const cacheKey = cacheKeys.templates();
         const data = await getOrSetCache(cacheKey, cacheTTL.templates, async () => {
             return TEMPLATES;
         });
         res.json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
 export const createCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name, description, template_id, layout } = req.body;
+        const { name, description, layout }: { name: string; description?: string; layout?: string } = req.body;
 
         // Limit kontrolü ve kullanıcı bilgileri
         const [userData, catalogsCountResult] = await Promise.all([
@@ -141,8 +189,9 @@ export const createCatalog = async (req: Request, res: Response) => {
             supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId)
         ]);
 
-        const plan = userData?.plan || 'free';
-        const userName = userData?.company || userData?.full_name || 'user';
+        const typedUserData = userData as { plan: string; full_name?: string; company?: string };
+        const plan = typedUserData?.plan || 'free';
+        const userName = typedUserData?.company || typedUserData?.full_name || 'user';
         const currentCount = catalogsCountResult.count || 0;
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
@@ -164,9 +213,7 @@ export const createCatalog = async (req: Request, res: Response) => {
                 user_id: userId,
                 name,
                 description: description || null,
-                // template_id is UUID type, but we use string identifiers, so skip it
-                // The layout field is sufficient to identify the template
-                layout: layout || template_id || 'grid',
+                layout: layout || 'modern-grid',
                 share_slug: shareSlug,
                 product_ids: [],
                 is_published: false
@@ -181,7 +228,7 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         // Bildirim gönder
         try {
-            const { createNotification, NotificationTemplates } = await import('./notifications');
+            const { NotificationTemplates } = await import('./notifications');
             const template = NotificationTemplates.catalogCreated(name, data.id);
             await createNotification(
                 userId,
@@ -190,9 +237,8 @@ export const createCatalog = async (req: Request, res: Response) => {
                 template.message,
                 template.actionUrl
             );
-        } catch (notifError) {
-            console.error('Notification error:', notifError);
-            // Bildirim hatası ana işlemi etkilemesin
+        } catch {
+            // Bildirim hatası sessizce geçilir
         }
 
         // Log activity
@@ -207,8 +253,9 @@ export const createCatalog = async (req: Request, res: Response) => {
         });
 
         res.status(201).json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -216,7 +263,28 @@ export const updateCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const updates = req.body;
+        const {
+            name,
+            description,
+            layout,
+            primary_color,
+            is_published,
+            share_slug,
+            product_ids,
+            show_prices,
+            show_descriptions,
+            show_attributes,
+            show_sku,
+            columns_per_row,
+            background_color,
+            background_gradient,
+            background_image,
+            background_image_fit,
+            logo_url,
+            logo_position,
+            logo_size,
+            title_position
+        }: CatalogUpdatePayload = req.body;
 
         // Eski slug'ı bul (cache temizlemek için)
         const { data: oldCatalog } = await supabase
@@ -228,7 +296,26 @@ export const updateCatalog = async (req: Request, res: Response) => {
         const { error } = await supabase
             .from('catalogs')
             .update({
-                ...updates,
+                name,
+                description,
+                layout,
+                primary_color,
+                is_published,
+                share_slug,
+                product_ids,
+                show_prices,
+                show_descriptions,
+                show_attributes,
+                show_sku,
+                columns_per_row,
+                background_color,
+                background_gradient,
+                background_image,
+                background_image_fit,
+                logo_url,
+                logo_position,
+                logo_size,
+                title_position,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
@@ -242,8 +329,8 @@ export const updateCatalog = async (req: Request, res: Response) => {
         if (oldCatalog?.share_slug) {
             await deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug));
         }
-        if (updates.share_slug && updates.share_slug !== oldCatalog?.share_slug) {
-            await deleteCache(cacheKeys.publicCatalog(updates.share_slug));
+        if (share_slug && share_slug !== oldCatalog?.share_slug) {
+            await deleteCache(cacheKeys.publicCatalog(share_slug));
         }
 
         // Log activity
@@ -251,16 +338,16 @@ export const updateCatalog = async (req: Request, res: Response) => {
         await logActivity({
             userId,
             activityType: 'catalog_updated',
-            description: ActivityDescriptions.catalogUpdated(updates.name || 'Katalog'),
-            metadata: { catalogId: id, updates: Object.keys(updates) },
+            description: ActivityDescriptions.catalogUpdated(name || 'Katalog'),
+            metadata: { catalogId: id, updates: Object.keys(req.body) },
             ipAddress,
             userAgent
         });
 
         res.json({ success: true });
-    } catch (error: any) {
-        console.error('Update catalog error:', error);
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -293,8 +380,9 @@ export const deleteCatalog = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
@@ -302,9 +390,8 @@ export const publishCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { is_published } = req.body;
+        const { is_published }: { is_published: boolean } = req.body;
 
-        // Önce catalog'u al - share_slug lazım
         const { data: catalog } = await supabase
             .from('catalogs')
             .select('share_slug')
@@ -362,12 +449,12 @@ export const publishCatalog = async (req: Request, res: Response) => {
         }
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 
-// PUBLIC ROUTE HANDLER
 export const getPublicCatalog = async (req: Request, res: Response) => {
     try {
         const { slug } = req.params;
@@ -385,7 +472,6 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             return data;
         });
 
-        // Limit kontrolü: Paylaşılan katalog hala aktif mi?
         const userId = data.user_id;
         const [allCatalogs, user] = await Promise.all([
             getOrSetCache(cacheKeys.catalogs(userId), cacheTTL.catalogs, async () => {
@@ -398,44 +484,40 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             })
         ]);
 
-        const plan = user?.plan || 'free';
+        const plan = (user as { plan: string })?.plan || 'free';
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
-        const catalogIndex = allCatalogs.findIndex((c: any) => c.id === data.id);
+        const catalogIndex = (allCatalogs as { id: string }[]).findIndex((c: { id: string }) => c.id === data.id);
         if (catalogIndex >= maxCatalogs) {
             return res.status(403).json({ error: 'Bu katalog şu an erişime kapalıdır. (Limit aşımı)' });
         }
 
-        // Ürünleri çek (RLS bypass - service role ile backend çalışıyor)
-        let products: any[] = [];
+        let products: Record<string, unknown>[] = [];
         if (data.product_ids && data.product_ids.length > 0) {
             const { data: productData } = await supabase
                 .from('products')
                 .select('*')
                 .in('id', data.product_ids);
 
-            // Ürünleri catalog.product_ids sırasına göre sırala
             if (productData) {
                 products = data.product_ids
-                    .map((id: string) => productData.find((p: any) => p.id === id))
+                    .map((pid: string) => productData.find((p: { id: string }) => p.id === pid))
                     .filter(Boolean);
             }
         }
 
-        // View count artır (akıllı - IP bazlı, sahip hariç)
         const visitorInfo = getVisitorInfo(req);
         const isOwner = req.headers['x-user-id'] === data.user_id;
         await smartIncrementViewCount(data.id, visitorInfo, isOwner);
 
-        // Catalog ve products'ı birlikte döndür
         res.json({ ...data, products });
-    } catch (error: any) {
-        const status = error.message === 'Catalog not found or not published' ? 404 : 500;
-        res.status(status).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const status = errorMessage === 'Catalog not found or not published' ? 404 : 500;
+        res.status(status).json({ error: errorMessage });
     }
 };
 
-// Ziyaretçi bilgilerini al
 const getVisitorInfo = (req: Request) => {
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
         req.headers['x-real-ip']?.toString() ||
@@ -443,61 +525,49 @@ const getVisitorInfo = (req: Request) => {
         'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    // Cihaz tipi algılama
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
 
-    // Visitor hash oluştur (IP + UA kombinasyonu)
-    const crypto = require('crypto');
     const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
 
     return { ip, userAgent, deviceType, visitorHash };
 };
 
-// Akıllı view count (günlük benzersiz, sahip hariç)
 const smartIncrementViewCount = async (
     catalogId: string,
     visitorInfo: { ip: string; userAgent: string; deviceType: string; visitorHash: string },
     isOwner: boolean
 ) => {
     try {
-        // Sahip görüntülemesi sayılmaz
-        if (isOwner) {
-            return;
-        }
+        if (isOwner) return;
 
-        // Akıllı fonksiyon varsa onu kullan, yoksa basit artırma
         const { error } = await supabase.rpc('smart_increment_view_count', {
             p_catalog_id: catalogId,
             p_visitor_hash: visitorInfo.visitorHash,
             p_ip_address: visitorInfo.ip,
-            p_user_agent: visitorInfo.userAgent.substring(0, 500), // Max 500 karakter
+            p_user_agent: visitorInfo.userAgent.substring(0, 500),
             p_device_type: visitorInfo.deviceType,
             p_is_owner: isOwner
         });
 
-        // Eğer fonksiyon yoksa (migration uygulanmamış) eski yönteme fallback
         if (error && error.message.includes('function')) {
             await supabase.rpc('increment_view_count', { catalog_id: catalogId });
         }
-    } catch (error) {
-        // Hata olursa sessizce devam et, basit artırmayı dene
+    } catch {
         try {
             await supabase.rpc('increment_view_count', { catalog_id: catalogId });
         } catch {
-            console.warn('View count increment failed completely');
+            // Silently fail
         }
     }
 };
 
-// Dashboard istatistikleri
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
 
-        // Paralel sorgular
         const [catalogsResult, productsResult] = await Promise.all([
             supabase
                 .from('catalogs')
@@ -525,19 +595,16 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             })),
         };
 
-        // Detaylı analitik verilerini çekmeye çalış (catalog_views tablosu varsa)
-        let detailedStats = {
+        const detailedStats = {
             uniqueVisitors: 0,
             deviceStats: [] as { device_type: string; view_count: number; percentage: number }[],
             dailyViews: [] as { view_date: string; view_count: number }[],
         };
 
         try {
-            // Kullanıcının tüm kataloglarının ID'lerini al
             const catalogIds = catalogs.map(c => c.id);
 
             if (catalogIds.length > 0) {
-                // Benzersiz ziyaretçi sayısı
                 const { data: uniqueData } = await supabase
                     .from('catalog_views')
                     .select('visitor_hash')
@@ -549,7 +616,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                     detailedStats.uniqueVisitors = uniqueHashes.size;
                 }
 
-                // Cihaz dağılımı
                 const { data: deviceData } = await supabase
                     .from('catalog_views')
                     .select('device_type')
@@ -571,7 +637,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                     })).sort((a, b) => b.view_count - a.view_count);
                 }
 
-                // Son 30 günlük görüntülenmeler
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -594,14 +659,13 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                         .sort((a, b) => a.view_date.localeCompare(b.view_date));
                 }
             }
-        } catch (err) {
-            // catalog_views tablosu yoksa sessizce devam et
-            console.log('Detailed analytics not available (table may not exist)');
+        } catch {
+            // Detailed analytics fail silently
         }
 
         res.json({ ...stats, ...detailedStats });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
-

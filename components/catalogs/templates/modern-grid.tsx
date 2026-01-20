@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 export function ModernGridTemplate({
@@ -57,7 +59,15 @@ export function ModernGridTemplate({
         const leftContent = (
             <div className="flex items-center gap-3">
                 {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain shrink-0" />
+                    <NextImage
+                        src={logoUrl}
+                        alt="Logo"
+                        width={120}
+                        height={getLogoHeight()}
+                        unoptimized
+                        className="object-contain shrink-0"
+                        style={{ height: getLogoHeight() }}
+                    />
                 )}
                 {titlePosition === 'left' && (
                     <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
@@ -69,7 +79,15 @@ export function ModernGridTemplate({
         const centerContent = (
             <div className="flex-1 flex items-center justify-center gap-3">
                 {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain shrink-0" />
+                    <NextImage
+                        src={logoUrl}
+                        alt="Logo"
+                        width={120}
+                        height={getLogoHeight()}
+                        unoptimized
+                        className="object-contain shrink-0"
+                        style={{ height: getLogoHeight() }}
+                    />
                 )}
                 {titlePosition === 'center' && (
                     <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
@@ -85,7 +103,15 @@ export function ModernGridTemplate({
                     <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
                 )}
                 {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                    <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain shrink-0" />
+                    <NextImage
+                        src={logoUrl}
+                        alt="Logo"
+                        width={120}
+                        height={getLogoHeight()}
+                        unoptimized
+                        className="object-contain shrink-0"
+                        style={{ height: getLogoHeight() }}
+                    />
                 )}
             </div>
         )
@@ -114,7 +140,7 @@ export function ModernGridTemplate({
             {/* Grid İçerik */}
             <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`}>
                 {(products || []).map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -126,16 +152,15 @@ export function ModernGridTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Görsel */}
                             <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
-                                <img loading="lazy"
-                                    src={product.image_url || (product as any).images?.[0] || "/placeholder.svg"}
+                                <NextImage
+                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
                                     alt={product.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "/placeholder.svg"
-                                    }}
+                                    fill
+                                    unoptimized
+                                    className="object-cover"
                                 />
                                 {productUrl && (
                                     <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
@@ -153,7 +178,7 @@ export function ModernGridTemplate({
                                     {showPrices && (
                                         <span className="font-bold text-sm shrink-0" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

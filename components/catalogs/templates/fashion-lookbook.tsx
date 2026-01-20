@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 // Fashion Lookbook - Moda kataloğu, asimetrik layout
@@ -28,7 +30,7 @@ export function FashionLookbookTemplate({
                 <div className="w-1/2 p-4 pr-2 shrink-0">
                     {hero && (
                         <div className="h-full relative rounded-2xl overflow-hidden group">
-                            <img loading="lazy" src={hero.image_url || "/placeholder.svg"} alt={hero.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                            <NextImage src={hero.image_url || hero.images?.[0] || "/placeholder.svg"} alt={hero.name} fill unoptimized className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent text-white p-8 flex flex-col justify-end">
                                 <h2 className="text-2xl font-light leading-tight mb-2 truncate">{hero.name}</h2>
                                 {showAttributes && hero.custom_attributes && hero.custom_attributes.length > 0 && (
@@ -43,7 +45,7 @@ export function FashionLookbookTemplate({
                                 {showPrices && (
                                     <p className="text-xl font-medium" style={{ color: primaryColor }}>
                                         {(() => {
-                                            const currency = (hero as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                            const currency = hero.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                             return `${symbol}${Number(hero.price).toFixed(2)}`
                                         })()}
@@ -60,7 +62,7 @@ export function FashionLookbookTemplate({
                 {/* Sağ kolon - 3 küçük */}
                 <div className="w-1/2 p-4 pl-2 flex flex-col gap-3 shrink-0">
                     {[second, third, fourth].filter(Boolean).map((product, idx) => {
-                        const productUrl = (product as any).product_url
+                        const productUrl = product.product_url
                         const Wrapper = productUrl ? 'a' : 'div'
                         const wrapperProps = productUrl ? {
                             href: productUrl,
@@ -72,9 +74,9 @@ export function FashionLookbookTemplate({
                         }
 
                         return (
-                            <Wrapper key={product!.id} {...(wrapperProps as any)}>
+                            <Wrapper key={product!.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                                 <div className="w-2/5 relative shrink-0">
-                                    <img loading="lazy" src={product!.image_url || "/placeholder.svg"} alt={product!.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                    <NextImage src={product!.image_url || product!.images?.[0] || "/placeholder.svg"} alt={product!.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 </div>
                                 <div className="w-3/5 p-4 flex flex-col justify-center overflow-hidden">
                                     <div className="text-[8px] uppercase tracking-[0.2em] text-gray-400 mb-1 font-bold">
@@ -98,7 +100,7 @@ export function FashionLookbookTemplate({
                                     {showPrices && (
                                         <p className="font-bold text-sm mt-1" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product!.price).toFixed(2)}`
                                             })()}

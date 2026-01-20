@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 export function BoldTemplate({
@@ -54,7 +56,7 @@ export function BoldTemplate({
                     <div className="h-full bg-black text-white px-5 flex items-center">
                         {/* Logo Sol */}
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-4" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-4" />
                         )}
                         {/* Başlık - Logo ortada değilse göster */}
                         {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
@@ -65,27 +67,27 @@ export function BoldTemplate({
                         {/* Logo Orta */}
                         {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
                             <div className="flex-1 flex justify-center">
-                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </div>
                         )}
                         {/* Logo Sağ */}
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
                             <>
                                 <div className="flex-1" />
-                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </>
                         )}
                     </div>
                 ) : (
                     <div className="h-full bg-black text-white px-5 flex items-center justify-between">
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 8} unoptimized style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
                         )}
                         <span className="font-bold uppercase tracking-tight">{catalogName}</span>
                         <div className="flex-1" />
                         <span className="text-sm font-mono">#{pageNumber}</span>
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 8} unoptimized style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
                         )}
                     </div>
                 )}
@@ -94,7 +96,7 @@ export function BoldTemplate({
             {/* Dinamik Grid İçerik */}
             <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-4 overflow-hidden bg-white`} style={{ maxHeight: 'calc(100% - 88px)' }}>
                 {(products || []).map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -106,15 +108,10 @@ export function BoldTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Görsel */}
                             <div className="aspect-[4/3] border-b-2 border-black overflow-hidden bg-white shrink-0 relative">
-                                <img loading="lazy"
-                                    crossOrigin="anonymous"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
                                 {productUrl && (
                                     <div className="absolute top-1.5 right-1.5 bg-black text-white p-1">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -153,7 +150,7 @@ export function BoldTemplate({
                                     {showPrices && (
                                         <span className="text-sm font-black font-mono">
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}
@@ -171,7 +168,7 @@ export function BoldTemplate({
 
             {/* Footer */}
             <div className="h-8 bg-black text-white flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold font-mono uppercase tracking-widest">{pageNumber} // {totalPages}</span>
+                <span className="text-xs font-bold font-mono uppercase tracking-widest">{pageNumber} {" // "} {totalPages}</span>
             </div>
         </div>
     )

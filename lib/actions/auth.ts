@@ -33,10 +33,9 @@ export async function signOut() {
 
 export async function getCurrentUser() {
   try {
-    const user = await apiFetch<any>("/users/me")
+    const user = await apiFetch<{ id: string; email: string; full_name?: string; company?: string; plan?: string; maxProducts?: number }>("/users/me")
     return user
-  } catch (error) {
-    // console.error("Error fetching current user:", error)
+  } catch {
     return null
   }
 }
@@ -45,36 +44,28 @@ export async function updateProfile(formData: FormData) {
   const fullName = formData.get("fullName") as string
   const company = formData.get("company") as string
 
-  try {
-    await apiFetch("/users/me", {
-      method: "PUT",
-      body: JSON.stringify({
-        full_name: fullName,
-        company: company,
-      }),
-    })
-    revalidatePath("/dashboard/settings")
-    return { success: true }
-  } catch (error) {
-    throw error
-  }
+  await apiFetch("/users/me", {
+    method: "PUT",
+    body: JSON.stringify({
+      full_name: fullName,
+      company: company,
+    }),
+  })
+  revalidatePath("/dashboard/settings")
+  return { success: true }
 }
 
 export async function deleteAccount() {
   const supabase = await createServerSupabaseClient()
 
-  try {
-    // Delete data via API first
-    await apiFetch("/users/me", {
-      method: "DELETE",
-    })
+  // Delete data via API first
+  await apiFetch("/users/me", {
+    method: "DELETE",
+  })
 
-    // Sign out from Supabase Auth
-    await supabase.auth.signOut()
+  // Sign out from Supabase Auth
+  await supabase.auth.signOut()
 
-    redirect("/")
-  } catch (error) {
-    throw error
-  }
+  redirect("/")
 }
 

@@ -28,11 +28,12 @@ export interface Catalog {
   logo_url: string | null
   logo_position: 'header-left' | 'header-center' | 'header-right' | 'footer-left' | 'footer-center' | 'footer-right' | null
   logo_size: 'small' | 'medium' | 'large'
+  is_disabled?: boolean
   title_position: 'left' | 'center' | 'right'  // Başlık konumu
   created_at: string
   updated_at: string
   // Public API'den gelen ürünler (opsiyonel)
-  products?: any[]
+  products?: unknown[]
 }
 
 export interface CatalogTemplate {
@@ -105,58 +106,42 @@ export async function createCatalog(data: {
   template_id?: string
   layout?: string
 }) {
-  try {
-    const newCatalog = await apiFetch<Catalog>("/catalogs", {
-      method: "POST",
-      body: JSON.stringify(data),
-    })
-    revalidatePath("/dashboard")
-    return newCatalog
-  } catch (error) {
-    throw error
-  }
+  const newCatalog = await apiFetch<Catalog>("/catalogs", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+  revalidatePath("/dashboard")
+  return newCatalog
 }
 
 export async function updateCatalog(id: string, updates: Partial<Catalog>) {
-  try {
-    await apiFetch(`/catalogs/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    })
-    revalidatePath("/dashboard")
-    revalidatePath(`/dashboard/builder/${id}`)
-    return { success: true }
-  } catch (error) {
-    throw error
-  }
+  await apiFetch(`/catalogs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  })
+  revalidatePath("/dashboard")
+  revalidatePath(`/dashboard/builder/${id}`)
+  return { success: true }
 }
 
 export async function deleteCatalog(id: string) {
-  try {
-    await apiFetch(`/catalogs/${id}`, {
-      method: "DELETE",
-    })
-    revalidatePath("/dashboard")
-    return { success: true }
-  } catch (error) {
-    throw error
-  }
+  await apiFetch(`/catalogs/${id}`, {
+    method: "DELETE",
+  })
+  revalidatePath("/dashboard")
+  return { success: true }
 }
 
 export async function publishCatalog(id: string, isPublished: boolean, share_slug?: string | null) {
-  try {
-    await apiFetch(`/catalogs/${id}/publish`, {
-      method: "PATCH",
-      body: JSON.stringify({ is_published: isPublished }),
-    })
-    revalidatePath("/dashboard")
-    if (share_slug) {
-      revalidatePath(`/catalog/${share_slug}`)
-    }
-    return { success: true }
-  } catch (error) {
-    throw error
+  await apiFetch(`/catalogs/${id}/publish`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_published: isPublished }),
+  })
+  revalidatePath("/dashboard")
+  if (share_slug) {
+    revalidatePath(`/catalog/${share_slug}`)
   }
+  return { success: true }
 }
 
 export async function revalidateCatalogPublic(slug: string) {
@@ -173,7 +158,7 @@ export async function revalidateCatalogPublic(slug: string) {
 export async function getPublicCatalog(slug: string) {
   try {
     return await apiFetch<Catalog>(`/catalogs/public/${slug}`)
-  } catch (error) {
+  } catch {
     return null
   }
 }

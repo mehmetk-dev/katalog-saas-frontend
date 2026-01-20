@@ -103,7 +103,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
             return response.json();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             clearTimeout(timeoutId);
 
             if (error.name === 'AbortError') {
@@ -152,7 +152,7 @@ function getErrorMessage(status: number, defaultMessage: string): string {
 /**
  * Network hatası mı kontrol et
  */
-function isNetworkError(error: any): boolean {
+function isNetworkError(error: unknown): boolean {
     if (!error) return false;
 
     const networkIndicators = [

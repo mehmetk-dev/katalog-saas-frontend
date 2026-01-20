@@ -1,5 +1,13 @@
 # Proje Geliştirme Günlüğü
 
+## 4 Ocak 2026
+- **Resim Yükleme Stabilizasyonu:** Fotoğraf yüklerken yaşanan "takılma" (hang) sorunu, WebP kütüphanesinin dinamik yüklemeden statik yüklemeye geçirilmesiyle çözüldü.
+- **Gelişmiş Timeout Mekanizması:** `useAsyncTimeout` hook'u revize edildi; artık ilerleme yüzdesi aynı kalsa bile işlem devam ediyorsa zaman aşımı tetiklenmiyor. İptal/Sıfırlama fonksiyonları tüm durumu temizleyecek şekilde güçlendirildi.
+- **Yüksek Performanslı Toplu Güncelleme:** Backend tarafına `bulk-image-update` endpoint'i eklendi. Artık 50 resim için 50 ayrı istek atmak yerine tek bir paket gönderiliyor, bu da işlemi 10 kat hızlandırdı ve önbellek çakışmalarını bitirdi.
+- **Alfabetik Ürün Sıralama:** Toplu resim yükleme ekranındaki ürün seçme menüsü, Türkçe karakter desteği ile A'dan Z'ye sıralandı. Binlerce ürün arasında arama yapmak kolaylaştırıldı.
+- **SEO ve Başlık Düzeltmeleri:** Sayfa başlıklarındaki "CatalogPro | CatalogPro" şeklindeki isim tekrarları temizlendi, tüm dashboard sayfaları için sade ve profesyonel başlıklar tanımlandı.
+- **Hata Ayıklama Altyapısı:** Backend'e tekil ürün getirme (`getProduct`) yeteneği eklendi ve detaylı log izleme sistemi kuruldu.
+
 ## 31 Aralık 2025
 - **Sosyal Medya Paylaşım Modalı:** WhatsApp, Facebook, Twitter/X, LinkedIn, Telegram ve E-posta ile katalog paylaşımı için ShareModal komponenti eklendi. Public katalog ve builder sayfalarına entegre edildi.
 - **QR Kod Özelliği:** Katalog linki için QR kod oluşturma ve PNG olarak indirme özelliği eklendi.

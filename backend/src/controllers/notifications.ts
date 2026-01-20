@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
 
-const getUserId = (req: Request) => (req as any).user.id;
+const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
 
 // Notification types
 export type NotificationType =
@@ -46,8 +46,9 @@ export const getNotifications = async (req: Request, res: Response) => {
             .eq('is_read', false);
 
         res.json({ notifications: data || [], unreadCount: unreadCount || 0 });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -66,8 +67,9 @@ export const markAsRead = async (req: Request, res: Response) => {
         if (error) throw error;
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -85,8 +87,9 @@ export const markAllAsRead = async (req: Request, res: Response) => {
         if (error) throw error;
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -105,8 +108,9 @@ export const deleteNotification = async (req: Request, res: Response) => {
         if (error) throw error;
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -123,8 +127,9 @@ export const deleteAllNotifications = async (req: Request, res: Response) => {
         if (error) throw error;
 
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 
@@ -135,7 +140,7 @@ export const createNotification = async (
     title: string,
     message: string,
     actionUrl?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
 ) => {
     try {
         const { error } = await supabase
@@ -201,8 +206,9 @@ export const cancelSubscription = async (req: Request, res: Response) => {
             success: true,
             message: 'Subscription cancelled. You can continue using premium features until the end date.'
         });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 

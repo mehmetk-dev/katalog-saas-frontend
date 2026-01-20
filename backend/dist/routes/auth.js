@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+
 const supabase_1 = require("../services/supabase");
 const router = (0, express_1.Router)();
 // Check if email is registered with OAuth provider (no auth required)

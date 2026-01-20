@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { MessageSquare, Send, Loader2, AlertCircle, Paperclip, X, Image as ImageIcon, Film } from "lucide-react"
+import { MessageSquare, Send, Loader2, AlertCircle, Paperclip, X, Film } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
+import NextImage from "next/image"
 
+import { createClient } from "@/lib/supabase/client"
 import {
     Dialog,
     DialogContent,
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { sendFeedback } from "@/lib/actions/feedback"
-import { useTranslation } from "@/lib/i18n-provider"
+// import { useTranslation } from "@/lib/i18n-provider"
 
 interface FeedbackModalProps {
     children?: React.ReactNode
@@ -32,10 +33,10 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const [subject, setSubject] = useState("")
     const [message, setMessage] = useState("")
     const [files, setFiles] = useState<{ file: File; preview: string; type: string }[]>([])
-    const [uploading, setUploading] = useState(false)
+    const [, setUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const pathname = usePathname()
-    const { t } = useTranslation()
+    // const { t } = useTranslation()
     const supabase = createClient()
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,9 +105,11 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
             setSubject("")
             setMessage("")
             setFiles([])
-        } catch (error: any) {
+            setFiles([])
+        } catch (error: unknown) {
             console.error(error)
-            toast.error(error.message || "Bir hata oluştu, lütfen tekrar deneyin.")
+            const msg = error instanceof Error ? error.message : "Bir hata oluştu, lütfen tekrar deneyin."
+            toast.error(msg)
         } finally {
             setLoading(false)
             setUploading(false)
@@ -164,7 +167,9 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                 {files.map((file, index) => (
                                     <div key={index} className="relative w-20 h-20 rounded-lg border overflow-hidden group">
                                         {file.type.startsWith('image/') ? (
-                                            <img src={file.preview} alt="" className="w-full h-full object-cover" />
+                                            <div className="relative w-full h-full">
+                                                <NextImage src={file.preview} alt="" fill className="object-cover" unoptimized />
+                                            </div>
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-slate-100">
                                                 <Film className="w-8 h-8 text-slate-400" />

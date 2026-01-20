@@ -1,3 +1,6 @@
+import type { Catalog } from "@/lib/actions/catalogs"
+import type { Product } from "@/lib/actions/products"
+
 import { ModernGridTemplate } from "./templates/modern-grid"
 import { CompactListTemplate } from "./templates/compact-list"
 import { MagazineTemplate } from "./templates/magazine"
@@ -14,12 +17,11 @@ import { IndustrialTemplate } from "./templates/industrial"
 import { LuxuryTemplate } from "./templates/luxury"
 import { CleanWhiteTemplate } from "./templates/clean-white"
 import { ProductTilesTemplate } from "./templates/product-tiles"
-import { cn } from "@/lib/utils"
 
 interface CatalogPreviewProps {
     layout: string
     name: string
-    products: any[]
+    products: Product[]
     primaryColor?: string
     showPrices?: boolean
     showDescriptions?: boolean
@@ -28,11 +30,12 @@ interface CatalogPreviewProps {
     columnsPerRow?: number
     backgroundColor?: string
     backgroundImage?: string | null
-    backgroundImageFit?: 'cover' | 'contain' | 'fill'
+    backgroundImageFit?: Catalog['background_image_fit']
     backgroundGradient?: string | null
     logoUrl?: string | null
-    logoPosition?: string
-    logoSize?: string
+    logoPosition?: Catalog['logo_position']
+    logoSize?: Catalog['logo_size']
+    titlePosition?: Catalog['title_position']
 }
 
 export function CatalogPreview({
@@ -50,8 +53,9 @@ export function CatalogPreview({
     backgroundImageFit = "cover",
     backgroundGradient,
     logoUrl,
-    logoPosition = "top-left",
-    logoSize = "medium"
+    logoPosition = "header-left",
+    logoSize = "medium",
+    titlePosition = "left"
 }: CatalogPreviewProps) {
     // Use appropriate number of products for preview based on template
     const getPreviewCount = () => {
@@ -95,30 +99,6 @@ export function CatalogPreview({
         return style
     }
 
-    // Logo boyut hesaplama
-    const getLogoSizeStyle = () => {
-        switch (logoSize) {
-            case 'small': return { width: '60px', height: 'auto' }
-            case 'medium': return { width: '100px', height: 'auto' }
-            case 'large': return { width: '150px', height: 'auto' }
-            default: return { width: '100px', height: 'auto' }
-        }
-    }
-
-    // Logo pozisyon hesaplama
-    const getLogoPositionStyle = (): React.CSSProperties => {
-        const base: React.CSSProperties = { position: 'absolute', zIndex: 40 }
-        switch (logoPosition) {
-            case 'top-left': return { ...base, top: '20px', left: '20px' }
-            case 'top-center': return { ...base, top: '20px', left: '50%', transform: 'translateX(-50%)' }
-            case 'top-right': return { ...base, top: '20px', right: '20px' }
-            case 'bottom-left': return { ...base, bottom: '20px', left: '20px' }
-            case 'bottom-center': return { ...base, bottom: '20px', left: '50%', transform: 'translateX(-50%)' }
-            case 'bottom-right': return { ...base, bottom: '20px', right: '20px' }
-            default: return { ...base, top: '20px', left: '20px' }
-        }
-    }
-
     // Default props for preview
     const templateProps = {
         catalogName: name,
@@ -134,6 +114,7 @@ export function CatalogPreview({
         logoUrl: logoUrl || undefined,
         logoPosition: logoPosition || undefined,
         logoSize: logoSize || undefined,
+        titlePosition: titlePosition || undefined,
     }
 
     // Map layout string to component

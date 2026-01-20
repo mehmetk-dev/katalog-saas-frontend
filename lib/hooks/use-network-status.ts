@@ -65,7 +65,8 @@ export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetw
             onOffline?.()
         }
 
-        const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection
+        const nav = navigator as { connection?: unknown; mozConnection?: unknown; webkitConnection?: unknown }
+        const connection = nav.connection || nav.mozConnection || nav.webkitConnection
 
         const updateConnectionInfo = () => {
             if (connection) {

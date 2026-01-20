@@ -2,30 +2,28 @@
 
 import { useState, useRef } from "react"
 import {
-  Palette, Grid3X3, GripVertical, Trash2, Package, Image as ImageIcon,
-  Upload, ChevronDown, Tag, CheckSquare, BoxSelect, Maximize2,
-  ChevronRight, Layout, Settings2, Sparkles, Search
+  Palette, GripVertical, Trash2, Package, Image as ImageIcon,
+  Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import NextImage from "next/image"
 import { toast } from "sonner"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import type { Product } from "@/lib/actions/products"
-import { Badge } from "@/components/ui/badge"
+import type { Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "@/lib/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { TEMPLATES } from "@/lib/constants"
+import { ResponsiveContainer } from "@/components/ui/responsive-container"
+
 import { CatalogPreview } from "../catalogs/catalog-preview"
 import { getPreviewProductsByLayout } from "../templates/preview-data"
-import { ResponsiveContainer } from "@/components/ui/responsive-container"
 
 interface CatalogEditorProps {
   products: Product[]
@@ -51,16 +49,16 @@ interface CatalogEditorProps {
   onBackgroundImageChange?: (url: string | null) => void
   backgroundGradient?: string | null
   onBackgroundGradientChange?: (gradient: string | null) => void
-  backgroundImageFit?: string
-  onBackgroundImageFitChange?: (fit: string) => void
+  backgroundImageFit?: Catalog['background_image_fit']
+  onBackgroundImageFitChange?: (fit: NonNullable<Catalog['background_image_fit']>) => void
   logoUrl?: string | null
   onLogoUrlChange?: (url: string | null) => void
-  logoPosition?: string
-  onLogoPositionChange?: (position: string) => void
-  logoSize?: string
-  onLogoSizeChange?: (size: string) => void
-  titlePosition?: string
-  onTitlePositionChange?: (position: string) => void
+  logoPosition?: Catalog['logo_position']
+  onLogoPositionChange?: (position: NonNullable<Catalog['logo_position']>) => void
+  logoSize?: Catalog['logo_size']
+  onLogoSizeChange?: (size: NonNullable<Catalog['logo_size']>) => void
+  titlePosition?: Catalog['title_position']
+  onTitlePositionChange?: (position: NonNullable<Catalog['title_position']>) => void
   showAttributes?: boolean
   onShowAttributesChange?: (show: boolean) => void
   showSku?: boolean
@@ -99,15 +97,14 @@ export function CatalogEditor({
   onLogoPositionChange,
   logoSize = 'medium',
   onLogoSizeChange,
-  titlePosition = 'left',
-  onTitlePositionChange,
+  titlePosition: _titlePosition = 'left',
+  onTitlePositionChange: _onTitlePositionChange,
   showAttributes = false,
   onShowAttributesChange,
   showSku = true,
   onShowSkuChange,
 }: CatalogEditorProps) {
   const { t } = useTranslation()
-  const router = useRouter()
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -168,7 +165,7 @@ export function CatalogEditor({
       if (type === 'logo') onLogoUrlChange?.(publicUrl)
       else onBackgroundImageChange?.(publicUrl)
       toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
-    } catch (err) {
+    } catch {
       toast.error(t('common.error'), { id: toastId })
     }
   }
@@ -286,11 +283,15 @@ export function CatalogEditor({
                       )}
                       onClick={() => toggleProduct(product.id)}
                     >
-                      <img
-                        src={product.image_url || "/placeholder.svg"}
-                        alt=""
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
+                      <div className="relative w-full h-full">
+                        <NextImage
+                          src={product.image_url || "/placeholder.svg"}
+                          alt=""
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
+                          unoptimized
+                        />
+                      </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                       <div className="absolute top-1.5 right-1.5">
@@ -367,8 +368,8 @@ export function CatalogEditor({
                           <div className="cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-500 shrink-0">
                             <GripVertical className="w-3.5 h-3.5" />
                           </div>
-                          <div className="w-8 h-8 rounded shrink-0 border border-slate-100 overflow-hidden">
-                            <img src={product.image_url || "/placeholder.svg"} className="w-full h-full object-cover" />
+                          <div className="w-8 h-8 rounded shrink-0 border border-slate-100 overflow-hidden relative">
+                            <NextImage src={product.image_url || "/placeholder.svg"} alt={product.name} fill className="object-cover" unoptimized />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-bold truncate text-slate-700">{product.name}</p>
@@ -497,12 +498,12 @@ export function CatalogEditor({
                       onClick={() => logoInputRef.current?.click()}
                     >
                       {logoUrl ? (
-                        <>
-                          <img src={logoUrl} alt="Logo" className="max-h-[80%] max-w-[80%] object-contain" />
+                        <div className="relative w-[80%] h-[80%]">
+                          <NextImage src={logoUrl} alt="Logo" fill className="object-contain" unoptimized />
                           <div className="absolute inset-0 bg-black/5 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
                             <p className="text-[10px] font-bold uppercase text-slate-800 bg-white px-2 py-1 rounded shadow-sm">{t('builder.changeLogo')}</p>
                           </div>
-                        </>
+                        </div>
                       ) : (
                         <div className="text-center p-4">
                           <Upload className="w-6 h-6 mx-auto mb-2 text-slate-400" />
@@ -517,7 +518,7 @@ export function CatalogEditor({
                       <div className="flex flex-col sm:flex-row gap-3 animate-in fade-in duration-300">
                         <div className="flex-1 space-y-1.5">
                           <Label className="text-[10px] uppercase font-bold text-slate-400">Boyut</Label>
-                          <Select value={logoSize} onValueChange={onLogoSizeChange}>
+                          <Select value={logoSize} onValueChange={(v) => onLogoSizeChange?.(v as 'small' | 'medium' | 'large')}>
                             <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="small">{t('builder.sizes.small')}</SelectItem>
@@ -528,7 +529,7 @@ export function CatalogEditor({
                         </div>
                         <div className="flex-1 space-y-1.5">
                           <Label className="text-[10px] uppercase font-bold text-slate-400">Konum</Label>
-                          <Select value={logoPosition} onValueChange={onLogoPositionChange}>
+                          <Select value={logoPosition || 'header-left'} onValueChange={(v) => onLogoPositionChange?.(v as 'header-left' | 'header-center' | 'header-right' | 'footer-left' | 'footer-center' | 'footer-right')}>
                             <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="header-left">Sol Üst</SelectItem>
@@ -632,7 +633,9 @@ export function CatalogEditor({
                           onClick={() => bgInputRef.current?.click()}
                         >
                           {backgroundImage ? (
-                            <img src={backgroundImage} className="max-h-[80px] rounded shadow-sm" />
+                            <div className="relative w-full h-[80px]">
+                              <NextImage src={backgroundImage} alt="Background" fill className="object-contain rounded shadow-sm" unoptimized />
+                            </div>
                           ) : (
                             <div className="text-center p-2">
                               <ImageIcon className="w-5 h-5 mx-auto mb-1 text-slate-400" />
@@ -644,7 +647,7 @@ export function CatalogEditor({
 
                         {backgroundImage && (
                           <div className="flex-1 space-y-3 animate-in slide-in-from-right-2 duration-300">
-                            <Select value={backgroundImageFit} onValueChange={onBackgroundImageFitChange}>
+                            <Select value={backgroundImageFit} onValueChange={(v) => onBackgroundImageFitChange?.(v as 'cover' | 'contain' | 'fill')}>
                               <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="cover">Kapla (Cover)</SelectItem>

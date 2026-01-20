@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react"
 import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ImageOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react"
+import NextImage from "next/image"
 import { toast } from "sonner"
 
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { Card } from "@/components/ui/card"
 import { type Product, deleteProduct, createProduct, updateProductOrder, checkProductInCatalogs } from "@/lib/actions/products"
 import {
   AlertDialog,
@@ -28,7 +30,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useTranslation } from "@/lib/i18n-provider"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ export function ProductsTable({
   const { t } = useTranslation()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteCatalogs, setDeleteCatalogs] = useState<{ id: string; name: string }[]>([])
-  const [isCheckingCatalogs, setIsCheckingCatalogs] = useState(false)
+  const [, setIsCheckingCatalogs] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isMobile, setIsMobile] = useState(false)
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
@@ -294,12 +295,12 @@ export function ProductsTable({
                 <Card
                   key={product.id}
                   draggable
-                  onDragStart={(e) => handleDragStart(e, product.id)}
-                  onDragOver={(e) => handleDragOver(e, product.id)}
+                  onDragStart={(e: React.DragEvent<HTMLDivElement>) => handleDragStart(e, product.id)}
+                  onDragOver={(e: React.DragEvent<HTMLDivElement>) => handleDragOver(e, product.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, product.id)}
+                  onDrop={(e: React.DragEvent<HTMLDivElement>) => handleDrop(e, product.id)}
                   onDragEnd={handleDragEnd}
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent<HTMLDivElement>) => {
                     // Mobilde karta tıklayınca önizlemeyi aç
                     if (isMobile && !e.defaultPrevented && (e.target as HTMLElement).tagName !== 'BUTTON' && (e.target as HTMLElement).tagName !== 'INPUT') {
                       setPreviewProduct(product)
@@ -320,11 +321,13 @@ export function ProductsTable({
                     </div>
 
                     {/* Ürün resmi */}
-                    {product.image_url && (
-                      <img
-                        src={product.image_url}
+                    {(product.image_url || (product.images && product.images.length > 0)) && (
+                      <NextImage
+                        src={(product.image_url || product.images?.[0]) as string}
                         alt={product.name}
-                        className="absolute inset-0 w-full h-full object-cover z-[1]"
+                        fill
+                        className="object-cover z-[1]"
+                        unoptimized
                       />
                     )}
 
@@ -428,13 +431,10 @@ export function ProductsTable({
         <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
           <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden">
             {previewProduct && (() => {
-              // Parse additional images
-              const additionalImagesAttr = previewProduct.custom_attributes?.find(a => a.name === "additional_images")
-              let additionalImages: string[] = []
-              if (additionalImagesAttr?.value) {
-                try { additionalImages = JSON.parse(additionalImagesAttr.value) } catch { additionalImages = [] }
-              }
-              const allImages = [previewProduct.image_url, ...additionalImages].filter(Boolean) as string[]
+              // Parse images (Use the new images array or fallback to legacy image_url)
+              const allImages = (previewProduct.images && previewProduct.images.length > 0)
+                ? previewProduct.images
+                : [previewProduct.image_url].filter(Boolean) as string[]
 
               // Custom attributes (excluding system ones)
               const customAttrs = previewProduct.custom_attributes?.filter(
@@ -459,7 +459,7 @@ export function ProductsTable({
                     {allImages.length > 0 ? (
                       <div className="space-y-2">
                         <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                          <img src={allImages[activeImageIndex] || allImages[0]} alt={previewProduct.name} className="w-full h-full object-contain" />
+                          <NextImage src={(allImages[activeImageIndex] || allImages[0]) as string} alt={previewProduct.name} fill className="object-contain" unoptimized />
                           {allImages.length > 1 && (
                             <>
                               <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
@@ -475,8 +475,8 @@ export function ProductsTable({
                         {allImages.length > 1 && (
                           <div className="flex gap-1.5 overflow-x-auto">
                             {allImages.map((img, idx) => (
-                              <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
-                                <img src={img} alt="" className="w-full h-full object-cover" />
+                              <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("relative w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
+                                <NextImage src={img} alt="" fill className="object-cover" unoptimized />
                               </button>
                             ))}
                           </div>
@@ -628,9 +628,15 @@ export function ProductsTable({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Package className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                     </div>
-                    {product.image_url && (
-                      <img src={product.image_url} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
-                    )}
+                    {product.image_url || (product.images && product.images.length > 0) ? (
+                      <NextImage
+                        src={(product.image_url || product.images?.[0]) as string}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : null}
                   </div>
                 </div>
 
@@ -767,134 +773,160 @@ export function ProductsTable({
 
       {/* Preview Dialog */}
       <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden">
-          {previewProduct && (() => {
-            // Parse additional images
-            const additionalImagesAttr = previewProduct.custom_attributes?.find(a => a.name === "additional_images")
-            let additionalImages: string[] = []
-            if (additionalImagesAttr?.value) {
-              try { additionalImages = JSON.parse(additionalImagesAttr.value) } catch { additionalImages = [] }
-            }
-            const allImages = [previewProduct.image_url, ...additionalImages].filter(Boolean) as string[]
-
-            // Custom attributes (excluding system ones)
-            const customAttrs = previewProduct.custom_attributes?.filter(
-              a => a.name !== "currency" && a.name !== "additional_images"
-            ) || []
-
-            const stockStatus = getStockStatus(previewProduct.stock)
-
-            return (
-              <>
-                {/* Header */}
-                <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600">
-                  <DialogHeader>
-                    <DialogTitle className="text-white text-lg font-bold pr-8">{previewProduct.name}</DialogTitle>
-                    {previewProduct.sku && <p className="text-white/70 text-sm font-mono">SKU: {previewProduct.sku}</p>}
-                  </DialogHeader>
-                </div>
-
-                {/* Content */}
-                <div className="overflow-y-auto max-h-[calc(85vh-130px)] p-6 space-y-5">
-                  {/* Images */}
-                  {allImages.length > 0 ? (
-                    <div className="space-y-2">
-                      <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                        <img src={allImages[activeImageIndex] || allImages[0]} alt={previewProduct.name} className="w-full h-full object-contain" />
-                        {allImages.length > 1 && (
-                          <>
-                            <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
-                              <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setActiveImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">{activeImageIndex + 1}/{allImages.length}</div>
-                          </>
-                        )}
-                      </div>
-                      {allImages.length > 1 && (
-                        <div className="flex gap-1.5 overflow-x-auto">
-                          {allImages.map((img, idx) => (
-                            <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
-                              <img src={img} alt="" className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                      <ImageOff className="w-10 h-10 text-gray-400" />
-                    </div>
-                  )}
-
-                  {/* Price & Stock */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
-                      <p className="text-xs text-violet-600 dark:text-violet-400">Fiyat</p>
-                      <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{getCurrencySymbol(previewProduct)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border">
-                      <p className="text-xs text-muted-foreground">Stok</p>
-                      <p className={cn("text-xl font-bold", stockStatus.variant === "destructive" && "text-red-500", stockStatus.variant === "secondary" && "text-amber-500", stockStatus.variant === "default" && "text-emerald-500")}>{previewProduct.stock} adet</p>
-                    </div>
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Kategori</p>
-                    {previewProduct.category ? (
-                      <div className="flex flex-wrap gap-1">{previewProduct.category.split(',').map((cat, idx) => <Badge key={idx} variant="secondary" className="text-xs">{cat.trim()}</Badge>)}</div>
-                    ) : <p className="text-sm text-muted-foreground">—</p>}
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Açıklama</p>
-                    <p className="text-sm">{previewProduct.description || "—"}</p>
-                  </div>
-
-                  {/* Product URL */}
-                  {previewProduct.product_url && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
-                      <a href={previewProduct.product_url} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 hover:underline flex items-center gap-1">
-                        {previewProduct.product_url.slice(0, 50)}{previewProduct.product_url.length > 50 && "..."} <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  )}
-
-                  {/* Custom Attributes */}
-                  {customAttrs.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5">Özellikler</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {customAttrs.map((attr, idx) => (
-                          <div key={idx} className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-800 text-xs">
-                            <span className="text-muted-foreground">{attr.name}</span>
-                            <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-900 flex gap-2">
-                  <Button size="sm" className="flex-1 bg-violet-600 hover:bg-violet-700" onClick={() => { setPreviewProduct(null); onEdit(previewProduct) }}>
-                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Düzenle
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setPreviewProduct(null)}>Kapat</Button>
-                </div>
-              </>
-            )
-          })()}
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {previewProduct && (
+            <ProductPreviewContent
+              product={previewProduct}
+              onEdit={onEdit}
+              onClose={() => setPreviewProduct(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
       {DeleteAlertDialog}
     </TooltipProvider>
+  )
+}
+
+function ProductPreviewContent({
+  product,
+  onEdit,
+  onClose
+}: {
+  product: Product,
+  onEdit: (p: Product) => void,
+  onClose: () => void
+}) {
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+
+  // Parse images
+  const allImages = (product.images && product.images.length > 0)
+    ? product.images
+    : [product.image_url].filter(Boolean) as string[]
+
+  // Custom attributes
+  const customAttrs = product.custom_attributes?.filter(
+    a => a.name !== "currency" && a.name !== "additional_images"
+  ) || []
+
+  const getStockStatus = (stock: number) => {
+    if (stock === 0) return { label: "Stok Yok", variant: "destructive" as const }
+    if (stock < 10) return { label: "Az Stok", variant: "secondary" as const }
+    return { label: "Stokta", variant: "default" as const }
+  }
+
+  const getCurrencySymbol = (p: Product) => {
+    const currency = p.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+    return `${symbol}${Number(p.price).toFixed(2)}`
+  }
+
+  const stockStatus = getStockStatus(product.stock)
+
+  return (
+    <>
+      <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600 shrink-0">
+        <DialogHeader>
+          <DialogTitle className="text-white text-lg font-bold pr-8">{product.name}</DialogTitle>
+          {product.sku && <p className="text-white/70 text-sm font-mono mt-1">SKU: {product.sku}</p>}
+        </DialogHeader>
+      </div>
+
+      <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-5 min-h-0">
+        {allImages.length > 0 ? (
+          <div className="space-y-2 shrink-0">
+            <div className="relative h-64 sm:h-[320px] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border">
+              <NextImage
+                src={(allImages[activeImageIndex] || allImages[0]) as string}
+                alt={product.name}
+                fill
+                className="object-contain bg-neutral-900/5 dark:bg-neutral-50/5"
+                unoptimized
+              />
+              {allImages.length > 1 && (
+                <>
+                  <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 z-10">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setActiveImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 z-10">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded z-10">{activeImageIndex + 1}/{allImages.length}</div>
+                </>
+              )}
+            </div>
+            {allImages.length > 1 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                {allImages.map((img, idx) => (
+                  <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border-2 transition-all", activeImageIndex === idx ? "border-violet-500 ring-2 ring-violet-200 dark:ring-violet-900" : "border-transparent opacity-60 hover:opacity-100")}>
+                    <NextImage src={img} alt="" fill className="object-cover" unoptimized />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <ImageOff className="w-10 h-10 text-gray-400" />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
+            <p className="text-xs text-violet-600 dark:text-violet-400 font-medium">Fiyat</p>
+            <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{getCurrencySymbol(product)}</p>
+          </div>
+          <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border">
+            <p className="text-xs text-muted-foreground font-medium">Stok</p>
+            <p className={cn("text-xl font-bold", stockStatus.variant === "destructive" && "text-red-500", stockStatus.variant === "secondary" && "text-amber-500", stockStatus.variant === "default" && "text-emerald-500")}>{product.stock} adet</p>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">Kategori</p>
+          {product.category ? (
+            <div className="flex flex-wrap gap-1">{product.category.split(',').map((cat, idx) => <Badge key={idx} variant="secondary" className="text-xs">{cat.trim()}</Badge>)}</div>
+          ) : <p className="text-sm text-muted-foreground">—</p>}
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">Açıklama</p>
+          <div className="text-sm text-foreground/90 leading-relaxed">
+            {product.description || "—"}
+          </div>
+        </div>
+
+        {product.product_url && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
+            <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 hover:underline flex items-center gap-1">
+              {product.product_url.slice(0, 50)}{product.product_url.length > 50 && "..."} <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        )}
+
+        {customAttrs.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Özellikler</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {customAttrs.map((attr, idx) => (
+                <div key={idx} className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-800 text-xs text-foreground/90">
+                  <span className="text-muted-foreground">{attr.name}</span>
+                  <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-900 flex gap-2 shrink-0">
+        <Button size="sm" className="flex-1 bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { onClose(); onEdit(product) }}>
+          <Pencil className="w-3.5 h-3.5 mr-1.5" /> Düzenle
+        </Button>
+        <Button size="sm" variant="outline" onClick={onClose}>Kapat</Button>
+      </div>
+    </>
   )
 }

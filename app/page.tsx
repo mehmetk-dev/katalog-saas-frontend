@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowRight,
-  LayoutGrid,
   Zap,
   Share2,
   Sparkles,
@@ -98,11 +98,11 @@ export default function HomePage() {
 
             {/* Laptop Mockup Image */}
             <div className="relative">
-              <img
+              <Image
                 src="/hero-catalog.png"
                 alt="CatalogPro dijital katalog oluşturucu arayüzü - Ürün yönetimi ve katalog tasarım ekranı"
                 className="w-full"
-                loading="eager"
+                priority
                 width={1200}
                 height={675}
               />
@@ -290,11 +290,10 @@ export default function HomePage() {
                 <div className="relative bg-slate-800 rounded-[3rem] p-3 shadow-2xl shadow-black/50 border border-slate-700">
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-800 rounded-b-2xl" />
                   <div className="rounded-[2.2rem] overflow-hidden bg-white aspect-[9/19]">
-                    <img
+                    <Image
                       src="/hero-dashboard.webp"
                       alt="CatalogPro mobil uyumlu katalog görünümü - Akıllı telefon üzerinde ürün kataloğu"
                       className="w-full h-full object-cover"
-                      loading="lazy"
                       width={280}
                       height={592}
                     />

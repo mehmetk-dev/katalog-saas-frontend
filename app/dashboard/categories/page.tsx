@@ -52,15 +52,23 @@ export default async function CategoriesPage() {
         })
     })
 
-    const initialCategories = Array.from(categoryData.entries()).map(([name, data], index) => ({
-        // Deterministik ID: isimden türet (hydration hatası önleme)
-        id: `cat-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
-        name,
-        color: ["#3b82f6", "#22c55e", "#eab308", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"][index % 8],
-        productCount: data.count,
-        images: data.images,
-        productNames: data.productNames
-    }))
+    // Get category metadata from DB
+    const { getCategoryMetadataMap } = await import("@/lib/actions/categories")
+    const metadataMap = await getCategoryMetadataMap()
+
+    const initialCategories = Array.from(categoryData.entries()).map(([name, data], index) => {
+        const metadata = metadataMap.get(name)
+        return {
+            // Deterministik ID: isimden türet (hydration hatası önleme)
+            id: `cat-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+            name,
+            color: metadata?.color || ["#3b82f6", "#22c55e", "#eab308", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"][index % 8],
+            cover_image: metadata?.cover_image || undefined,
+            productCount: data.count,
+            images: data.images,
+            productNames: data.productNames
+        }
+    })
 
     // Kategorisiz ürünleri başa ekle
     if (uncategorizedData.count > 0) {
@@ -70,7 +78,8 @@ export default async function CategoriesPage() {
             color: '#6b7280',
             productCount: uncategorizedData.count,
             images: uncategorizedData.images,
-            productNames: uncategorizedData.productNames
+            productNames: uncategorizedData.productNames,
+            cover_image: undefined
         })
     }
 

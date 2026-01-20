@@ -63,7 +63,7 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
 };
 
 // Cache'e yaz
-export const setCache = async (key: string, data: any, ttlSeconds: number = 300): Promise<void> => {
+export const setCache = async (key: string, data: unknown, ttlSeconds: number = 300): Promise<void> => {
     if (!redis) return;
     try {
         await redis.setex(key, ttlSeconds, JSON.stringify(data));

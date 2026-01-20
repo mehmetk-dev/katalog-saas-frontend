@@ -4,9 +4,7 @@ import { useState, useTransition, useRef } from "react"
 import {
     FolderPlus,
     Folder,
-    MoreVertical,
     Pencil,
-    Trash2,
     Lock,
     Package,
     FolderOpen,
@@ -16,10 +14,11 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { createBrowserClient } from "@supabase/ssr"
+import NextImage from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
     Dialog,
@@ -29,12 +28,6 @@ import {
     DialogTitle,
     DialogFooter
 } from "@/components/ui/dialog"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { useTranslation } from "@/lib/i18n-provider"
 
@@ -163,14 +156,24 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
         startTransition(async () => {
             try {
-                if (editingCategory) {
-                    // Kategori adını güncelle - tüm ürünlerde
-                    const { renameCategory } = await import("@/lib/actions/products")
-                    await renameCategory(editingCategory.name, newCategoryName.trim())
+                // 1. Save metadata (color & cover image)
+                const { updateCategoryMetadata } = await import("@/lib/actions/categories")
+                await updateCategoryMetadata(newCategoryName.trim(), {
+                    color: selectedColor,
+                    cover_image: coverImage
+                })
 
+                if (editingCategory) {
+                    // Kategori adını güncelle - tüm ürünlerde (Eğer isim değiştiyse)
+                    if (editingCategory.name !== newCategoryName.trim()) {
+                        const { renameCategory } = await import("@/lib/actions/products")
+                        await renameCategory(editingCategory.name, newCategoryName.trim())
+                    }
+
+                    // Local state güncelle
                     setCategories(categories.map(c =>
                         c.id === editingCategory.id
-                            ? { ...c, name: newCategoryName, color: selectedColor }
+                            ? { ...c, name: newCategoryName.trim(), color: selectedColor, cover_image: coverImage || undefined }
                             : c
                     ))
                     toast.success(t('toasts.categoryUpdated'))
@@ -179,9 +182,10 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     // (kategori ürüne eklendiğinde otomatik oluşur)
                     const newCategory: Category = {
                         id: `cat-${Date.now()}`,
-                        name: newCategoryName,
+                        name: newCategoryName.trim(),
                         color: selectedColor,
                         productCount: 0,
+                        cover_image: coverImage || undefined
                     }
                     setCategories([...categories, newCategory])
                     toast.success(t('toasts.categoryCreated'))
@@ -194,7 +198,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
         })
     }
 
-    const handleDeleteCategory = (category: Category) => {
+    const _handleDeleteCategory = (category: Category) => {
         if (isFreeUser) {
             setShowUpgradeModal(true)
             return
@@ -280,26 +284,32 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                                 <div className="relative aspect-square bg-gradient-to-br from-muted/30 to-muted overflow-hidden">
                                     {/* Öncelik: 1. cover_image, 2. product images, 3. varsayılan icon */}
                                     {category.cover_image ? (
-                                        <img
+                                        <NextImage
                                             src={category.cover_image}
                                             alt={category.name}
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
                                         />
                                     ) : category.images && category.images.length > 0 ? (
                                         category.images.length === 1 ? (
-                                            <img
+                                            <NextImage
                                                 src={category.images[0]}
                                                 alt={category.name}
-                                                className="w-full h-full object-cover"
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
                                             />
                                         ) : (
                                             <div className="grid grid-cols-2 grid-rows-2 h-full gap-0.5">
                                                 {category.images.slice(0, 4).map((img, idx) => (
-                                                    <div key={idx} className="overflow-hidden">
-                                                        <img
+                                                    <div key={idx} className="relative overflow-hidden">
+                                                        <NextImage
                                                             src={img}
                                                             alt=""
-                                                            className="w-full h-full object-cover"
+                                                            fill
+                                                            className="object-cover"
+                                                            unoptimized
                                                         />
                                                     </div>
                                                 ))}
@@ -418,10 +428,12 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                                 <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
                                     {coverImage ? (
                                         <>
-                                            <img
+                                            <NextImage
                                                 src={coverImage}
                                                 alt="Kapak"
-                                                className="w-full h-full object-cover"
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
                                             />
                                             <button
                                                 onClick={() => setCoverImage(null)}

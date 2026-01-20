@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [isGoogleUser, setIsGoogleUser] = useState(false)
+  const [, setIsGoogleUser] = useState(false)
   const [showGoogleWarning, setShowGoogleWarning] = useState(false)
   const { t } = useTranslation()
 
@@ -42,9 +42,7 @@ export default function ForgotPasswordPage() {
     setShowGoogleWarning(false)
 
     // Check if user is OAuth user
-    console.log('Checking provider for:', email)
     const providerInfo = await checkProvider(email)
-    console.log('Provider info:', providerInfo)
 
     if (providerInfo.isOAuth && providerInfo.provider === 'google') {
       setIsGoogleUser(true)
@@ -56,21 +54,15 @@ export default function ForgotPasswordPage() {
     const supabase = createClient()
 
     try {
-      console.log('Sending reset email to:', email)
-      console.log('Redirect URL:', `${SITE_URL}/auth/reset-password`)
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${SITE_URL}/auth/reset-password`,
       })
 
-      console.log('Reset email result:', error ? error.message : 'Success')
-
       if (error) throw error
 
       setSuccess(true)
-    } catch (err: any) {
-      console.error('Reset password error:', err)
-      setError(err?.message || t("common.error"))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error"))
     } finally {
       setIsLoading(false)
     }

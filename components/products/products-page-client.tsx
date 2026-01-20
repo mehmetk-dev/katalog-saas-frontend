@@ -2,9 +2,8 @@
 
 import type React from "react"
 import { useState, useTransition, useRef, useMemo, useCallback } from "react"
-import { Upload, ChevronDown, Search, Plus, Download, Trash2, FileDown, LayoutGrid, List, SortAsc, SortDesc, Filter, X, ArrowUpDown, Package, Sparkles, TrendingUp, AlertTriangle, Percent, DollarSign, Tag, Check, MoreHorizontal, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react"
+import { Search, Plus, Trash2, FileDown, LayoutGrid, List, SortAsc, SortDesc, Filter, X, Package, Sparkles, TrendingUp, AlertTriangle, Percent, DollarSign, Check, MoreHorizontal, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { ProductsTable } from "@/components/products/products-table"
@@ -16,12 +15,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n-provider"
 import { type Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
-import { Card, CardContent } from "@/components/ui/card"
-import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -52,7 +49,6 @@ const DEFAULT_ITEMS_PER_PAGE = 12
 const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
 export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
-  const router = useRouter()
   const { t, language } = useTranslation()
   const [products, setProducts] = useState(initialProducts)
   const [search, setSearch] = useState("")
@@ -164,7 +160,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     })
 
     return result
-  }, [products, search, selectedCategory, stockFilter, priceRange, sortField, sortOrder])
+  }, [products, search, selectedCategory, stockFilter, priceRange, sortField, sortOrder, t])
 
   // Sayfalama
   const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage)
@@ -289,8 +285,6 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         setShowPriceModal(false)
         setSelectedIds([])
 
-        const changeText = priceChangeType === "increase" ? "zam" : "indirim"
-        const modeText = priceChangeMode === "percentage" ? `%${priceChangeAmount}` : `₺${priceChangeAmount}`
         toast.success(t('toasts.operationComplete'))
       } catch {
         toast.error(t('toasts.priceUpdateFailed'))
@@ -331,11 +325,11 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         }
 
         const headers = lines[0].split(/[,;\t]/).map((h) => h.trim().toLowerCase())
-        const productsToImport: any[] = []
+        const productsToImport: Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>> = []
 
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(/[,;\t]/)
-          const product: any = {
+          const product: Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
             name: "",
             sku: null,
             description: null,
@@ -343,6 +337,8 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             stock: 0,
             category: null,
             image_url: null,
+            images: [],
+            product_url: null,
             custom_attributes: [],
           }
 
@@ -422,7 +418,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     e.target.value = "" // Reset input
   }
 
-  const downloadTemplate = () => {
+  const _downloadTemplate = () => {
     const headers = ["Ad", "SKU", "Açıklama", "Fiyat", "Stok", "Kategori", "Görsel", "Ağırlık", "Renk", "Malzeme"]
     const sampleData = [
       [
@@ -456,7 +452,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     const allCustomAttrNames = new Set<string>()
     products.forEach(p => {
       if (p.custom_attributes && Array.isArray(p.custom_attributes)) {
-        p.custom_attributes.forEach((attr: any) => {
+        p.custom_attributes.forEach((attr) => {
           if (attr.name) allCustomAttrNames.add(attr.name)
         })
       }
@@ -480,7 +476,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
       ...products.map((p) => {
         // Custom attribute değerlerini al
         const customAttrValues = customAttrArray.map(attrName => {
-          const found = p.custom_attributes?.find((a: any) => a.name === attrName)
+          const found = p.custom_attributes?.find((a) => a.name === attrName)
           return found?.value || ""
         })
 
@@ -505,9 +501,6 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     link.click()
     URL.revokeObjectURL(url)
 
-    const customAttrInfo = customAttrArray.length > 0
-      ? ` (${customAttrArray.length} özel özellik dahil)`
-      : ""
     toast.success(t('toasts.productsExported', { count: products.length }))
   }
 
@@ -771,7 +764,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
               hideTrigger
               onImport={async (productsToImport) => {
                 try {
-                  const imported = await bulkImportProducts(productsToImport)
+                  const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>)
                   setProducts([...imported, ...products])
                 } catch (error) {
                   console.error('Bulk import failed:', error)

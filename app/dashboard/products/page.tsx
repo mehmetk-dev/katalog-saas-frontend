@@ -18,7 +18,7 @@ export default async function ProductsPage() {
     <Suspense fallback={<ProductsPageSkeleton />}>
       <ProductsPageClient
         initialProducts={products}
-        userPlan={user?.plan || "free"}
+        userPlan={(user?.plan as "free" | "plus" | "pro") || "free"}
         maxProducts={user?.maxProducts || 50}
       />
     </Suspense>

@@ -4,19 +4,21 @@ import Link from "next/link"
 import { Package, FileText, TrendingUp, Clock, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
+import NextImage from "next/image"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n-provider"
-import { useUser, type User } from "@/lib/user-context"
-import { DashboardStats } from "@/lib/actions/catalogs"
+import { useUser } from "@/lib/user-context"
+import { DashboardStats, type Catalog } from "@/lib/actions/catalogs"
+import { type Product } from "@/lib/actions/products"
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
 import { cn } from "@/lib/utils"
 
 interface DashboardClientProps {
-    initialCatalogs: any[]
-    initialProducts: any[]
+    initialCatalogs: Catalog[]
+    initialProducts: Product[]
     initialStats: DashboardStats | null
 }
 
@@ -243,7 +245,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                         </div>
                     ) : (
                         <div className="divide-y">
-                            {recentCatalogs.map((catalog, index) => (
+                            {recentCatalogs.map((catalog) => (
                                 <div
                                     key={catalog.id}
                                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 hover:bg-muted/50 transition-colors group"
@@ -252,7 +254,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                         {/* Catalog Thumbnail/Preview */}
                                         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center shrink-0 border border-violet-200/50 dark:border-violet-800/50 overflow-hidden relative">
                                             {catalog.logo_url ? (
-                                                <img src={catalog.logo_url} alt="" className="w-full h-full object-cover" />
+                                                <NextImage src={catalog.logo_url} alt="" fill className="object-cover" unoptimized />
                                             ) : (
                                                 (() => {
                                                     const catalogProducts = initialProducts
@@ -265,22 +267,29 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                                     }
 
                                                     if (catalogProducts.length === 1) {
-                                                        return <img src={catalogProducts[0].images?.[0] || catalogProducts[0].image_url} alt="" className="w-full h-full object-cover" />;
+                                                        const imgUrl = (catalogProducts[0].images?.[0] || catalogProducts[0].image_url) as string;
+                                                        return <NextImage src={imgUrl} alt="" fill className="object-cover" unoptimized />;
                                                     }
 
                                                     return (
                                                         <div className="grid grid-cols-2 w-full h-full gap-0.5 bg-violet-100/50">
-                                                            {catalogProducts.map((p, i) => (
-                                                                <img
-                                                                    key={p.id}
-                                                                    src={p.images?.[0] || p.image_url}
-                                                                    alt=""
-                                                                    className={cn(
-                                                                        "w-full h-full object-cover",
+                                                            {catalogProducts.map((p, i) => {
+                                                                const imgUrl = (p.images?.[0] || p.image_url) as string;
+                                                                return (
+                                                                    <div key={p.id} className={cn(
+                                                                        "relative w-full h-full",
                                                                         catalogProducts.length === 3 && i === 2 && "col-span-2"
-                                                                    )}
-                                                                />
-                                                            ))}
+                                                                    )}>
+                                                                        <NextImage
+                                                                            src={imgUrl}
+                                                                            alt=""
+                                                                            fill
+                                                                            className="object-cover"
+                                                                            unoptimized
+                                                                        />
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     );
                                                 })()

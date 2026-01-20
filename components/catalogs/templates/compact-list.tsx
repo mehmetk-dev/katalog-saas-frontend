@@ -1,3 +1,5 @@
+import NextImage from "next/image"
+
 import { TemplateProps } from "./types"
 
 export function CompactListTemplate({
@@ -36,7 +38,7 @@ export function CompactListTemplate({
                 {pageNumber === 1 ? (
                     <div className="h-full px-6 flex items-center border-b-2" style={{ borderColor: primaryColor }}>
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain mr-3" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-3" />
                         )}
                         {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
                             <h1 className="text-base font-bold uppercase tracking-widest" style={{ color: primaryColor }}>
@@ -45,26 +47,26 @@ export function CompactListTemplate({
                         )}
                         {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
                             <div className="flex-1 flex justify-center">
-                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </div>
                         )}
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
                             <>
                                 <div className="flex-1" />
-                                <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </>
                         )}
                     </div>
                 ) : (
                     <div className="h-full px-6 flex items-center justify-between border-b border-gray-200">
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 6 }} className="object-contain mr-2" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 6} unoptimized style={{ height: getLogoHeight() - 6 }} className="object-contain mr-2" />
                         )}
                         <span className="text-sm font-medium" style={{ color: primaryColor }}>{catalogName}</span>
                         <div className="flex-1" />
                         <span className="text-xs text-gray-400">Sayfa {pageNumber}</span>
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <img src={logoUrl} alt="Logo" style={{ height: getLogoHeight() - 6 }} className="object-contain ml-2" />
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 6} unoptimized style={{ height: getLogoHeight() - 6 }} className="object-contain ml-2" />
                         )}
                     </div>
                 )}
@@ -73,7 +75,7 @@ export function CompactListTemplate({
             {/* Liste İçerik */}
             <div className="flex-1 px-6 py-4 flex flex-col gap-2 overflow-hidden">
                 {(products || []).map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -87,16 +89,11 @@ export function CompactListTemplate({
                     return (
                         <Wrapper
                             key={product.id}
-                            {...(wrapperProps as any)}
+                            {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}
                         >
                             {/* Görsel */}
                             <div className="w-12 h-12 shrink-0 bg-white rounded-md border border-gray-200 overflow-hidden relative">
-                                <img loading="lazy"
-                                    crossOrigin="anonymous"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                 {productUrl && (
                                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,7 +130,7 @@ export function CompactListTemplate({
                                         <div className="text-right shrink-0">
                                             <span className="font-bold text-base" style={{ color: primaryColor }}>
                                                 {(() => {
-                                                    const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                     const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                     return `${symbol}${Number(product.price).toFixed(2)}`
                                                 })()}

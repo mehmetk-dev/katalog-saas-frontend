@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import QRCode from "qrcode"
+import NextImage from "next/image"
 import {
     X,
     Copy,
@@ -19,6 +20,7 @@ import {
     Smartphone
 } from "lucide-react"
 import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -229,11 +231,15 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                             {/* QR Code */}
                             <div className="p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-inner mb-4">
                                 {qrCodeUrl ? (
-                                    <img
-                                        src={qrCodeUrl}
-                                        alt="QR Code"
-                                        className="w-64 h-64"
-                                    />
+                                    <div className="relative w-64 h-64">
+                                        <NextImage
+                                            src={qrCodeUrl}
+                                            alt="QR Code"
+                                            fill
+                                            className="object-contain"
+                                            unoptimized
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="w-64 h-64 flex items-center justify-center bg-slate-50 rounded-lg">
                                         <div className="animate-spin w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full" />

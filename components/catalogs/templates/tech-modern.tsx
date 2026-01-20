@@ -1,4 +1,7 @@
+import NextImage from "next/image"
+
 import { useTranslation } from "@/lib/i18n-provider"
+
 import { TemplateProps } from "./types"
 
 // Tech Modern - Teknoloji ürünleri için koyu tema
@@ -50,7 +53,7 @@ export function TechModernTemplate({
             {/* Grid - Dinamik sütunlar */}
             <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-5 overflow-hidden`} style={{ maxHeight: 'calc(100% - 104px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -62,13 +65,9 @@ export function TechModernTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="aspect-video bg-slate-800 rounded-xl overflow-hidden mb-3 relative shrink-0">
-                                <img loading="lazy"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-contain p-2 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-2 opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
                                 {productUrl && (
                                     <div className="absolute top-2 right-2 bg-slate-950/60 backdrop-blur-md p-1.5 rounded-full border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-3 h-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,7 +98,7 @@ export function TechModernTemplate({
                                     {showPrices && (
                                         <span className="font-black text-base leading-none" style={{ color: primaryColor }}>
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

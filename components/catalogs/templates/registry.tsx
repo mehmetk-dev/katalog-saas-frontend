@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic'
+import type { TemplateProps } from './types'
 
 // Loading placeholder that matches the template container
 const LoadingPlaceholder = () => (
@@ -7,7 +8,7 @@ const LoadingPlaceholder = () => (
     </div>
 )
 
-export const ALL_TEMPLATES: Record<string, any> = {
+export const ALL_TEMPLATES: Record<string, React.ComponentType<TemplateProps>> = {
     'modern-grid': dynamic(() => import('./modern-grid').then(m => m.ModernGridTemplate), {
         ssr: false,
         loading: LoadingPlaceholder

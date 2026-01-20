@@ -11,7 +11,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 // Admin authorization middleware - must be used after requireAuth
 const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-    const userEmail = (req as any).user?.email;
+    const userEmail = (req as unknown as { user: { email: string } }).user?.email;
 
     if (!ADMIN_EMAIL) {
         console.error('ADMIN_EMAIL environment variable is not set');
@@ -39,8 +39,9 @@ router.get('/users', async (req: Request, res: Response) => {
 
         if (error) throw error;
         res.json(users);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 
@@ -54,8 +55,9 @@ router.get('/deleted-users', async (req: Request, res: Response) => {
 
         if (error) throw error;
         res.json(users || []);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 
@@ -72,7 +74,7 @@ router.get('/stats', async (req: Request, res: Response) => {
                 supabase.from('deleted_users').select('*', { count: 'exact', head: true })
             ]);
 
-            const totalExports = exportsResult.data?.reduce((acc: number, curr: any) => acc + (curr.exports_used || 0), 0) || 0;
+            const totalExports = exportsResult.data?.reduce((acc: number, curr: { exports_used: number | null }) => acc + (curr.exports_used || 0), 0) || 0;
 
             return {
                 usersCount: usersResult.count || 0,
@@ -84,8 +86,9 @@ router.get('/stats', async (req: Request, res: Response) => {
         });
 
         res.json(stats);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 
@@ -106,8 +109,9 @@ router.put('/users/:id/plan', async (req: Request, res: Response) => {
 
         if (error) throw error;
         res.json({ success: true });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 

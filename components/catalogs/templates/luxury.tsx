@@ -1,11 +1,14 @@
+import NextImage from "next/image"
+
 import { useTranslation } from "@/lib/i18n-provider"
+
 import { TemplateProps } from "./types"
 
 // Luxury - Lüks koleksiyon, altın tema
 export function LuxuryTemplate({
     catalogName,
     products,
-    primaryColor,
+    primaryColor: _primaryColor,
     showPrices,
     showDescriptions,
     showAttributes,
@@ -57,7 +60,7 @@ export function LuxuryTemplate({
             {/* Dinamik Grid - Lüks kartlar */}
             <div className={`flex-1 px-10 pb-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 132px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = (product as any).product_url
+                    const productUrl = product.product_url
                     const Wrapper = productUrl ? 'a' : 'div'
                     const wrapperProps = productUrl ? {
                         href: productUrl,
@@ -69,13 +72,9 @@ export function LuxuryTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="aspect-[4/3] min-h-0 relative overflow-hidden shrink-0">
-                                <img loading="lazy"
-                                    src={product.image_url || "/placeholder.svg"}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
-                                />
+                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                                 {productUrl && (
                                     <div className="absolute top-2 right-2 p-1.5 rounded-full bg-yellow-600/20 backdrop-blur-md border border-yellow-600/30 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -109,7 +108,7 @@ export function LuxuryTemplate({
                                     {showPrices && (
                                         <p className="text-base font-serif text-yellow-500 leading-none">
                                             {(() => {
-                                                const currency = (product as any).custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}

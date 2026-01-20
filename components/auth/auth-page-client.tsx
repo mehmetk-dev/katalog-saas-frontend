@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Loader2, ArrowLeft, Eye, EyeOff, BookOpen, Star, CheckCircle2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import NextImage from "next/image"
+
 import { createClient } from "@/lib/supabase/client"
 import { OnboardingModal } from "@/components/auth/onboarding-modal"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -18,7 +20,7 @@ export function AuthPageClient() {
     const [error, setError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
-    const [isAnimating, setIsAnimating] = useState(false)
+    // const [isAnimating, setIsAnimating] = useState(false) // Unused now but kept isAnimating effect logic for smooth transitions
 
     // Form state
     const [name, setName] = useState("")
@@ -27,9 +29,9 @@ export function AuthPageClient() {
     const [password, setPassword] = useState("")
 
     useEffect(() => {
-        setIsAnimating(true)
-        const timer = setTimeout(() => setIsAnimating(false), 300)
-        return () => clearTimeout(timer)
+        // setIsAnimating(true)
+        // const timer = setTimeout(() => setIsAnimating(false), 300)
+        // return () => clearTimeout(timer)
     }, [isSignUp])
 
     const getSiteUrl = () => {
@@ -75,7 +77,7 @@ export function AuthPageClient() {
                 router.push("/dashboard")
                 router.refresh()
             }
-        } catch (err) {
+        } catch {
             setError(t("auth.errorGeneric") || "Bir hata oluştu. Lütfen tekrar deneyin.")
             setIsLoading(false)
         }
@@ -89,7 +91,7 @@ export function AuthPageClient() {
                 provider: "google",
                 options: { redirectTo: `${getSiteUrl()}/auth/callback` },
             })
-        } catch (err) {
+        } catch {
             setIsGoogleLoading(false)
         }
     }
@@ -113,10 +115,12 @@ export function AuthPageClient() {
             <div className="hidden lg:flex w-1/2 relative overflow-hidden flex-col justify-between p-12 text-white">
                 {/* Real Image Background */}
                 <div className="absolute inset-0 z-0">
-                    <img
+                    <NextImage
                         src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
                         alt="Background"
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        unoptimized
                     />
                     {/* Gradient Overlay for Readability */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
