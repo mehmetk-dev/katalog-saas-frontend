@@ -56,6 +56,7 @@ export const translations = {
             goHome: "Ana Sayfaya Dön",
             change: "Değiştir",
             select: "Seçiniz...",
+            category: "Kategori",
             siteTitle: "FogCatalog - Ürün Katalog Oluşturucu",
             siteDescription: "Dakikalar içinde profesyonel ürün katalogları oluşturun",
         },
@@ -514,6 +515,7 @@ export const translations = {
             premiumProducts: "Premium Ürünler",
             public: {
                 search: "Ürünlerde ara...",
+                searchPlaceholder: "Ürünlerde ara...",
                 noResults: "Aradığınız ürün bulunamadı.",
                 resetFilters: "Filtreleri Temizle",
                 createdWithPrefix: "Ücretsiz",
@@ -1014,6 +1016,7 @@ export const translations = {
             profile: "Profile",
             change: "Change",
             select: "Select...",
+            category: "Category",
             siteTitle: "FogCatalog - Product Catalog Builder",
             siteDescription: "Create professional product catalogs in minutes",
         },
@@ -1522,6 +1525,7 @@ export const translations = {
             premiumProducts: "Premium Products",
             public: {
                 search: "Search products...",
+                searchPlaceholder: "Search products...",
                 noResults: "No products found.",
                 resetFilters: "Clear Filters",
                 createdWithPrefix: "Created for free",

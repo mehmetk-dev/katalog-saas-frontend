@@ -29,6 +29,8 @@ interface CatalogPreviewProps {
   logoPosition?: string
   logoSize?: string
   titlePosition?: string
+  headerTextColor?: string
+  productImageFit?: 'cover' | 'contain' | 'fill'
 }
 
 export function CatalogPreview(props: CatalogPreviewProps) {
@@ -185,6 +187,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
           showAttributes={props.showAttributes}
           showSku={props.showSku}
           showUrls={props.showUrls}
+          productImageFit={props.productImageFit || 'cover'}
           isFreeUser={isFreeUser}
           pageNumber={pageIndex + 1}
           totalPages={pages.length}

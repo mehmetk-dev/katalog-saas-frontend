@@ -98,6 +98,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [logoPosition, setLogoPosition] = useState<Catalog['logo_position']>(catalog?.logo_position || 'header-left')
   const [logoSize, setLogoSize] = useState<Catalog['logo_size']>(catalog?.logo_size || 'medium')
   const [titlePosition, setTitlePosition] = useState<Catalog['title_position']>(catalog?.title_position || 'left')
+  const [productImageFit, setProductImageFit] = useState<NonNullable<Catalog['product_image_fit']>>(catalog?.product_image_fit || 'cover')
   const [showShareModal, setShowShareModal] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false)
@@ -235,7 +236,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize, isPublished])
+  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, productImageFit, headerTextColor, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize, isPublished])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
   const selectedProducts = selectedProductIds
@@ -274,6 +275,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             show_descriptions: showDescriptions,
             show_attributes: showAttributes,
             show_sku: showSku,
+            show_urls: showUrls,
             columns_per_row: columnsPerRow,
             background_color: backgroundColor,
             background_image: backgroundImage,
@@ -282,6 +284,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logo_url: logoUrl,
             logo_position: logoPosition,
             logo_size: logoSize,
+            product_image_fit: productImageFit,
+            header_text_color: headerTextColor,
           })
           toast.success(t('toasts.catalogSaved'))
         } else {
@@ -298,6 +302,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             show_descriptions: showDescriptions,
             show_attributes: showAttributes,
             show_sku: showSku,
+            show_urls: showUrls,
             columns_per_row: columnsPerRow,
             background_color: backgroundColor,
             background_image: backgroundImage,
@@ -306,6 +311,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logo_url: logoUrl,
             logo_position: logoPosition,
             logo_size: logoSize,
+            product_image_fit: productImageFit,
+            header_text_color: headerTextColor,
           })
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
           toast.success(t('toasts.catalogCreated'))
@@ -360,6 +367,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_url: logoUrl,
           logo_position: logoPosition,
           logo_size: logoSize,
+          product_image_fit: productImageFit,
+          header_text_color: headerTextColor,
         })
 
         // 2. Cache temizle (Slug kullanarak)
@@ -415,6 +424,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_url: logoUrl,
           logo_position: logoPosition,
           logo_size: logoSize,
+          product_image_fit: productImageFit,
+          header_text_color: headerTextColor,
           share_slug: shareSlug,
         })
 
@@ -818,6 +829,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onShowSkuChange={setShowSku}
               showUrls={showUrls}
               onShowUrlsChange={setShowUrls}
+              productImageFit={productImageFit}
+              onProductImageFitChange={setProductImageFit}
               userPlan={user?.plan || "free"}
               onUpgrade={() => setShowUpgradeModal(true)}
               columnsPerRow={columnsPerRow}
@@ -856,6 +869,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               showAttributes={showAttributes}
               showSku={showSku}
               showUrls={showUrls}
+              productImageFit={productImageFit}
+              headerTextColor={headerTextColor}
               columnsPerRow={columnsPerRow}
               backgroundColor={backgroundColor}
               backgroundImage={backgroundImage}

@@ -31,6 +31,8 @@ export interface Catalog {
   logo_size: 'small' | 'medium' | 'large'
   is_disabled?: boolean
   title_position: 'left' | 'center' | 'right'  // Başlık konumu
+  product_image_fit?: 'cover' | 'contain' | 'fill'  // Ürün görsel hizalama
+  header_text_color?: string  // Başlık yazı rengi
   created_at: string
   updated_at: string
   // Public API'den gelen ürünler (opsiyonel)

@@ -50,6 +50,8 @@ interface CatalogUpdatePayload {
     logo_position?: string;
     logo_size?: string;
     title_position?: string;
+    product_image_fit?: string;
+    header_text_color?: string;
 }
 
 const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequest).user.id;
@@ -293,7 +295,9 @@ export const updateCatalog = async (req: Request, res: Response) => {
             logo_url,
             logo_position,
             logo_size,
-            title_position
+            title_position,
+            product_image_fit,
+            header_text_color
         }: CatalogUpdatePayload = req.body;
 
         // Eski slug'ı bul (cache temizlemek için)
@@ -303,44 +307,63 @@ export const updateCatalog = async (req: Request, res: Response) => {
             .eq('id', id)
             .single();
 
-        const { error } = await supabase
+        // Sadece tanımlı değerleri güncelle (undefined ve null değerleri atla)
+        const updateData: Record<string, unknown> = {
+            updated_at: new Date().toISOString()
+        };
+
+        if (name !== undefined && name !== null) updateData.name = name;
+        if (description !== undefined && description !== null) updateData.description = description;
+        if (layout !== undefined && layout !== null) updateData.layout = layout;
+        if (primary_color !== undefined && primary_color !== null) updateData.primary_color = primary_color;
+        if (is_published !== undefined && is_published !== null) updateData.is_published = is_published;
+        if (share_slug !== undefined && share_slug !== null) updateData.share_slug = share_slug;
+        if (product_ids !== undefined && product_ids !== null) updateData.product_ids = product_ids;
+        if (show_prices !== undefined && show_prices !== null) updateData.show_prices = show_prices;
+        if (show_descriptions !== undefined && show_descriptions !== null) updateData.show_descriptions = show_descriptions;
+        if (show_attributes !== undefined && show_attributes !== null) updateData.show_attributes = show_attributes;
+        if (show_sku !== undefined && show_sku !== null) updateData.show_sku = show_sku;
+        if (show_urls !== undefined && show_urls !== null) updateData.show_urls = show_urls;
+        if (columns_per_row !== undefined && columns_per_row !== null) updateData.columns_per_row = columns_per_row;
+        if (background_color !== undefined && background_color !== null) updateData.background_color = background_color;
+        if (background_gradient !== undefined && background_gradient !== null) updateData.background_gradient = background_gradient;
+        if (background_image !== undefined) updateData.background_image = background_image; // null olabilir
+        if (background_image_fit !== undefined && background_image_fit !== null) updateData.background_image_fit = background_image_fit;
+        if (logo_url !== undefined) updateData.logo_url = logo_url; // null olabilir
+        if (logo_position !== undefined && logo_position !== null) updateData.logo_position = logo_position;
+        if (logo_size !== undefined && logo_size !== null) updateData.logo_size = logo_size;
+        if (title_position !== undefined && title_position !== null) updateData.title_position = title_position;
+        if (product_image_fit !== undefined && product_image_fit !== null) updateData.product_image_fit = product_image_fit;
+        if (header_text_color !== undefined && header_text_color !== null) updateData.header_text_color = header_text_color;
+
+        console.log('Updating catalog with data:', JSON.stringify(updateData, null, 2));
+        
+        const { error, data } = await supabase
             .from('catalogs')
-            .update({
-                name,
-                description,
-                layout,
-                primary_color,
-                is_published,
-                share_slug,
-                product_ids,
-                show_prices,
-                show_descriptions,
-                show_attributes,
-                show_sku,
-                show_urls,
-                columns_per_row,
-                background_color,
-                background_gradient,
-                background_image,
-                background_image_fit,
-                logo_url,
-                logo_position,
-                logo_size,
-                title_position,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id)
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .select();
 
         if (error) {
+            console.error('Catalog update error:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.details);
             // Unique constraint violation için özel hata mesajı
             if (error.code === '23505' && error.message.includes('share_slug')) {
                 return res.status(409).json({ 
                     error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.' 
                 });
             }
-            throw error;
+            return res.status(500).json({ 
+                error: 'Katalog güncellenirken bir hata oluştu',
+                details: error.message,
+                code: error.code
+            });
         }
+
+        console.log('Catalog updated successfully:', data);
 
         // Cache'leri temizle
         await deleteCache(cacheKeys.catalogs(userId));
@@ -365,8 +388,14 @@ export const updateCatalog = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
+        console.error('Catalog update exception:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error('Error stack:', errorStack);
+        res.status(500).json({ 
+            error: 'Katalog güncellenirken bir hata oluştu',
+            message: errorMessage 
+        });
     }
 };
 

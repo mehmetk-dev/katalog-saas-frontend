@@ -8,7 +8,6 @@ import { SidebarProvider } from "@/lib/sidebar-context"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { ThemeProvider } from "@/components/theme-provider"
-import { I18nProvider } from "@/lib/i18n-provider"
 
 export default async function DashboardLayout({
   children,
@@ -49,20 +48,18 @@ export default async function DashboardLayout({
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <I18nProvider>
-        <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
-          <SidebarProvider>
-            <div className="h-screen flex bg-background overflow-hidden">
-              <DashboardSidebar />
-              <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-                <DashboardHeader />
-                <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden">{children}</main>
-              </div>
+      <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
+        <SidebarProvider>
+          <div className="h-screen flex bg-background overflow-hidden">
+            <DashboardSidebar />
+            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+              <DashboardHeader />
+              <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden">{children}</main>
             </div>
-            <Toaster position="bottom-right" richColors />
-          </SidebarProvider>
-        </UserProvider>
-      </I18nProvider>
+          </div>
+          <Toaster position="bottom-right" richColors />
+        </SidebarProvider>
+      </UserProvider>
     </ThemeProvider>
   )
 }

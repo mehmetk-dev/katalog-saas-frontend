@@ -1,10 +1,8 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import NextImage from "next/image"
 import {
-    ChevronLeft,
-    ChevronRight,
     Download,
     Share2,
     BookOpen,
@@ -13,7 +11,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
-import HTMLFlipBook from 'react-pageflip'
 
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
@@ -39,28 +36,6 @@ import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
 import type { TemplateProps } from "@/components/catalogs/templates/types"
 
-// Tipi bilinmeyen kütüphane bileşeni için temel tip tanımlama
-interface PageFlipInstance {
-    pageFlip(): {
-        flipNext(): void
-        flipPrev(): void
-    }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const FlipBook = HTMLFlipBook as any;
-
-const Page = React.forwardRef<HTMLDivElement, { children: React.ReactNode, number?: number }>((props, ref) => {
-    return (
-        <div className="page" ref={ref} data-density="soft">
-            <div className="page-content">
-                {props.children}
-            </div>
-        </div>
-    )
-})
-Page.displayName = 'Page'
-
 interface PublicCatalogClientProps {
     catalog: Catalog
     products: Product[]
@@ -74,7 +49,6 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
-    const bookRef = useRef<PageFlipInstance>(null)
 
     // Detaylı ekran boyutu kontrolü
     useEffect(() => {
@@ -96,24 +70,17 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
         return matchesSearch && matchesCategory
     })
 
-    // Ürünleri sayfalara böl
-    const productsPerPage = 4 // Her şablona göre değişebilir ama genel bir değer
+    // Ürünleri sayfalara böl - columns_per_row'a göre dinamik hesapla
+    // modern-grid: columnsPerRow * 3 rows = productsPerPage
+    // Örnek: 2 sütun -> 2*3=6, 3 sütun -> 3*3=9, 4 sütun -> 4*3=12
+    const columnsPerRow = catalog.columns_per_row || 2
+    const rowsPerPage = 3 // Her sayfada 3 satır
+    const productsPerPage = columnsPerRow * rowsPerPage
     const pages: Product[][] = []
     for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
         pages.push(filteredProducts.slice(i, i + productsPerPage))
     }
 
-    const handleNextPage = () => {
-        if (bookRef.current) {
-            bookRef.current.pageFlip().flipNext()
-        }
-    }
-
-    const handlePrevPage = () => {
-        if (bookRef.current) {
-            bookRef.current.pageFlip().flipPrev()
-        }
-    }
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
@@ -147,26 +114,6 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
         return { backgroundColor: catalog.background_color || '#ffffff' }
     }
 
-    const getLogoPositionStyle = (): React.CSSProperties => {
-        const pos = catalog.logo_position || 'header-left'
-        const style: React.CSSProperties = { position: 'absolute', zIndex: 40, padding: '1rem' }
-        if (pos.includes('top')) style.top = 0
-        if (pos.includes('bottom')) style.bottom = 0
-        if (pos.includes('left')) style.left = 0
-        if (pos.includes('right')) style.right = 0
-        if (pos.includes('center')) {
-            style.left = '50%'
-            style.transform = 'translateX(-50%)'
-        }
-        return style
-    }
-
-    const getLogoSizeStyle = (): React.CSSProperties => {
-        const size = catalog.logo_size || 'medium'
-        const sizes = { small: '40px', medium: '80px', large: '120px' }
-        return { maxHeight: sizes[size as keyof typeof sizes], width: 'auto' }
-    }
-
     const renderTemplate = (pageProds: Product[], pageNumber: number, totalPages: number) => {
         const props: TemplateProps = {
             products: pageProds,
@@ -178,6 +125,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
             showAttributes: catalog.show_attributes !== false,
             showSku: catalog.show_sku !== false,
             showUrls: catalog.show_urls || false,
+            productImageFit: (catalog.product_image_fit as 'cover' | 'contain' | 'fill') || 'cover',
             isFreeUser: false, // Public viewer shouldn't see ads usually unless we track plan
             pageNumber,
             totalPages,
@@ -289,160 +237,46 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                 </header>
             )}
 
-            {/* Main Content - Responsive */}
+            {/* Main Content - Vertical Scroll */}
             <main className={cn(
-                "flex-1 relative w-full",
-                isFullscreen ? "bg-black" : "",
-                isMobile ? "overflow-y-auto" : "flex flex-col items-center justify-center overflow-hidden"
+                "flex-1 relative w-full overflow-y-auto",
+                isFullscreen ? "bg-black" : ""
             )}>
-                {isMobile ? (
-                    /* Mobile View - Single Column Vertical Scroll */
-                    <div className="w-full min-h-full p-4 flex flex-col gap-4 pb-20">
-                        {pages.length > 0 && pages[0].length > 0 ? (
-                            pages.map((pageProds, index) => (
-                                <div key={index} className="w-full shadow-md rounded-lg overflow-hidden border border-slate-100 relative" style={getBackgroundStyle()}>
-                                    {/* Logo Overlay */}
-                                    {catalog.logo_url && (
-                                        <div style={{ ...getLogoPositionStyle(), transform: catalog.logo_position?.includes('center') ? 'translateX(-50%)' : 'none', scale: '0.8' }}>
-                                            <NextImage
-                                                src={catalog.logo_url}
-                                                alt="Logo"
-                                                width={120}
-                                                height={120}
-                                                unoptimized
-                                                style={getLogoSizeStyle()}
-                                                className="object-contain"
-                                            />
-                                        </div>
-                                    )}
-                                    {/* Sayfa İçeriği */}
-                                    <div className="w-full">
-                                        {renderTemplate(pageProds, index + 1, pages.length)}
-                                    </div>
-                                    <div className="bg-slate-50/80 backdrop-blur-sm py-2 border-t px-4 flex justify-between items-center text-xs text-muted-foreground relative z-30">
-                                        <span>{t("builder.preparingPage", { current: index + 1, total: pages.length }).replace('hazırlanıyor...', '')}</span>
-                                    </div>
+                <div className={cn(
+                    "w-full min-h-full flex flex-col gap-6 pb-20",
+                    isMobile ? "p-4" : "p-6 max-w-5xl mx-auto"
+                )}>
+                    {pages.length > 0 && pages[0].length > 0 ? (
+                        pages.map((pageProds, index) => (
+                            <div 
+                                key={index} 
+                                className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
+                                style={{
+                                    width: isMobile ? '100%' : '794px',
+                                    minHeight: isMobile ? 'auto' : '1123px',
+                                    margin: isMobile ? '0' : '0 auto',
+                                    ...getBackgroundStyle()
+                                }}
+                            >
+                                {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
+                                <div className="w-full h-full" style={{ minHeight: isMobile ? 'auto' : '1123px' }}>
+                                    {renderTemplate(pageProds, index + 1, pages.length)}
                                 </div>
-                            ))
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                                <Search className="w-12 h-12 mb-4 opacity-20" />
-                                <p>{t("catalogs.public.noResults")}</p>
+                                <div className="bg-slate-50/80 backdrop-blur-sm py-2 border-t px-4 flex justify-between items-center text-xs text-muted-foreground relative z-30">
+                                    <span>{t("builder.preparingPage", { current: index + 1, total: pages.length }).replace('hazırlanıyor...', '')}</span>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                ) : (
-                    /* Desktop View - FlipBook */
-                    <>
-                        <div
-                            className="relative w-full flex items-center justify-center mx-auto transition-all duration-300"
-                            style={{
-                                maxWidth: isFullscreen ? '98vw' : '1100px',
-                                height: isFullscreen ? 'calc(100vh - 60px)' : 'calc(100vh - 160px)',
-                                minHeight: '450px',
-                                maxHeight: isFullscreen ? '95vh' : '800px'
-                            }}
-                        >
-                            <div className="relative w-full h-full flex items-center justify-center">
-                                {pages.length > 0 && pages[0].length > 0 ? (
-                                    <FlipBook
-                                        width={595}
-                                        height={842}
-                                        size="stretch"
-                                        minWidth={300}
-                                        maxWidth={1000}
-                                        minHeight={400}
-                                        maxHeight={1414}
-                                        maxShadowOpacity={0.5}
-                                        showCover={false}
-                                        mobileScrollSupport={true}
-                                        onFlip={() => { /* Track page change if needed */ }}
-                                        className="shadow-2xl"
-                                        style={{ margin: '0 auto' }}
-                                        usePortrait={false}
-                                        startZIndex={0}
-                                        autoSize={true}
-                                        clickEventForward={true}
-                                        useMouseEvents={true}
-                                        swipeDistance={30}
-                                        showPageCorners={true}
-                                        disableFlipByClick={false}
-                                        ref={bookRef}
-                                    >
-                                        {/* All Pages rendered consistently */}
-                                        {pages.map((pageProds, index) => (
-                                            <Page key={index} number={index + 1}>
-                                                <div className="w-full h-full shadow-inner relative" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', ...getBackgroundStyle() }}>
-                                                    {/* Paper Texture Overlay */}
-                                                    <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-20 mix-blend-multiply"
-                                                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-                                                    />
-
-                                                    {/* Spine Shadow */}
-                                                    <div className={cn(
-                                                        "absolute top-0 bottom-0 w-8 md:w-12 pointer-events-none z-10",
-                                                        index % 2 === 0
-                                                            ? "left-0 bg-gradient-to-r from-black/10 to-transparent"
-                                                            : "right-0 bg-gradient-to-l from-black/10 to-transparent"
-                                                    )} />
-
-                                                    {/* Glossy Effect for First Page */}
-                                                    {index === 0 && (
-                                                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 pointer-events-none z-20" />
-                                                    )}
-
-                                                    {/* Template Content - Takes full height with flex */}
-                                                    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                                        {renderTemplate(pageProds, index + 1, pages.length)}
-                                                    </div>
-                                                </div>
-                                            </Page>
-                                        ))}
-
-                                        {/* Back Page - treated as regular page for closure */}
-                                        <Page key="end" number={pages.length + 1}>
-                                            <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-slate-400 relative border-l border-slate-200">
-                                                <div className="absolute top-0 bottom-0 w-4 right-0 bg-gradient-to-l from-black/10 to-transparent pointer-events-none" />
-                                                <BookOpen className="w-16 h-16 mb-4 opacity-20" />
-                                                <p className="font-medium tracking-widest text-sm uppercase">{t("catalogs.public.noResults").replace('Aradığınız ürün bulunamadı.', 'Katalog Sonu')}</p>
-                                            </div>
-                                        </Page>
-                                    </FlipBook>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center p-20 text-slate-400">
-                                        <Search className="w-16 h-16 mb-4 opacity-20" />
-                                        <p className="text-xl font-medium">{t("catalogs.public.noResults")}</p>
-                                        <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-2 text-violet-600">
-                                            {t("catalogs.public.resetFilters")}
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
+                        ))
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                            <Search className="w-12 h-12 mb-4 opacity-20" />
+                            <p>{t("catalogs.public.noResults")}</p>
+                            <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-2 text-violet-600">
+                                {t("catalogs.public.resetFilters")}
+                            </Button>
                         </div>
-
-                        {/* Navigation Buttons */}
-                        {pages.length > 1 && (
-                            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-10 px-4 md:px-10">
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onClick={handlePrevPage}
-                                    className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
-                                >
-                                    <ChevronLeft className="h-6 w-6 text-slate-700" />
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onClick={handleNextPage}
-                                    className="h-12 w-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white pointer-events-auto transition-transform hover:scale-110 border border-slate-200"
-                                >
-                                    <ChevronRight className="h-6 w-6 text-slate-700" />
-                                </Button>
-                            </div>
-                        )}
-                    </>
-                )}
+                    )}
+                </div>
             </main>
 
             {/* Modern Footer */}
