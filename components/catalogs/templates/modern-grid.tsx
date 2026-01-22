@@ -21,6 +21,7 @@ export function ModernGridTemplate({
     logoPosition,
     logoSize,
     titlePosition = 'left',
+    headerTextColor = '#ffffff',
     // YENİ ÖZELLİK: productImageFit - Ürün fotoğraflarının hizalanma şeklini kontrol eder
     // 'cover' (varsayılan): Fotoğraf alanı doldurur, kırpılabilir
     // 'contain': Fotoğraf tamamen görünür, boşluklar olabilir
@@ -61,10 +62,7 @@ export function ModernGridTemplate({
 
     // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
     const renderHeaderContent = (isFirstPage: boolean) => {
-        // DEĞİŞİKLİK: Tüm sayfalarda header renkli olduğu için text her zaman beyaz
-        // ÖNCE: İlk sayfada beyaz, diğer sayfalarda gri
-        // ŞİMDİ: Tüm sayfalarda beyaz ve kalın
-        const textColor = 'text-white'
+        // Başlık yazı rengi - headerTextColor prop'undan alınır, yoksa beyaz
         const textSize = 'text-lg font-bold'
 
         // Sol bölge
@@ -82,7 +80,7 @@ export function ModernGridTemplate({
                     />
                 )}
                 {titlePosition === 'left' && (
-                    <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
+                    <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
                 )}
             </div>
         )
@@ -102,7 +100,7 @@ export function ModernGridTemplate({
                     />
                 )}
                 {titlePosition === 'center' && (
-                    <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
+                    <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
                 )}
             </div>
         )
@@ -113,7 +111,7 @@ export function ModernGridTemplate({
                 {/* DEĞİŞİKLİK: Sayfa numarası header'dan kaldırıldı, sadece footer'da gösteriliyor */}
                 {/* ÖNCE: {!isFirstPage && <span className="text-sm text-gray-400">Sayfa {pageNumber}</span>} */}
                 {titlePosition === 'right' && (
-                    <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
+                    <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
                 )}
                 {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
                     <NextImage

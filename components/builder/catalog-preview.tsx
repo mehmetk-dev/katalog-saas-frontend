@@ -18,6 +18,7 @@ interface CatalogPreviewProps {
   showDescriptions: boolean
   showAttributes: boolean
   showSku: boolean
+  showUrls?: boolean
   // Yeni kişiselleştirme props
   columnsPerRow?: number
   backgroundColor?: string
@@ -178,10 +179,12 @@ export function CatalogPreview(props: CatalogPreviewProps) {
           catalogName={props.catalogName}
           products={pageProducts}
           primaryColor={props.primaryColor}
+          headerTextColor={props.headerTextColor}
           showPrices={props.showPrices}
           showDescriptions={props.showDescriptions}
           showAttributes={props.showAttributes}
           showSku={props.showSku}
+          showUrls={props.showUrls}
           isFreeUser={isFreeUser}
           pageNumber={pageIndex + 1}
           totalPages={pages.length}

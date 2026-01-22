@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-provider"
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catalogpro.app"
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fogcatalog.com"
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
 
 export default function ForgotPasswordPage() {
@@ -137,7 +137,7 @@ export default function ForgotPasswordPage() {
             <div className="w-10 h-10 bg-gradient-to-tr from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/30 transition-shadow">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900">CatalogPro</span>
+            <span className="text-xl font-bold text-slate-900">FogCatalog</span>
           </Link>
 
           <Link href="/auth">

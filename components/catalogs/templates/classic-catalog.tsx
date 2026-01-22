@@ -11,6 +11,7 @@ export function ClassicCatalogTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -48,8 +49,8 @@ export function ClassicCatalogTemplate({
             <div className="flex-1 overflow-hidden">
                 {safeProducts.slice(0, 10).map((product, idx) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -67,7 +68,7 @@ export function ClassicCatalogTemplate({
                             <div className="col-span-1 flex justify-center">
                                 <div className="w-14 h-14 rounded-lg bg-white border border-gray-100 overflow-hidden relative shrink-0">
                                     <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1" />
-                                    {productUrl && (
+                                    {(showUrls && productUrl) && (
                                         <div className="absolute top-0 right-0 bg-white/90 p-0.5 rounded-bl shadow-sm">
                                             <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

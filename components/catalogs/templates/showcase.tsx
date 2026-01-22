@@ -12,6 +12,7 @@ export function ShowcaseTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -40,8 +41,8 @@ export function ShowcaseTemplate({
                 {/* Sol - Dev ürün */}
                 {main && (() => {
                     const productUrl = main.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -54,7 +55,7 @@ export function ShowcaseTemplate({
                         <Wrapper {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <NextImage src={main.image_url || "/placeholder.svg"} alt={main.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms] opacity-80 group-hover:opacity-100" />
                             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent group-hover:from-black/95 transition-all" />
-                            {productUrl && (
+                            {(showUrls && productUrl) && (
                                 <div className="absolute top-6 right-6 bg-white/10 backdrop-blur-md p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 border border-white/20">
                                     <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -99,8 +100,8 @@ export function ShowcaseTemplate({
                 <div className={`w-[45%] grid ${getRightCols()} grid-rows-3 bg-zinc-900 border-l border-white/10 shrink-0`}>
                     {others.slice(0, columnsPerRow === 2 ? 3 : 6).map((product) => {
                         const productUrl = product.product_url
-                        const Wrapper = productUrl ? 'a' : 'div'
-                        const wrapperProps = productUrl ? {
+                        const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                        const wrapperProps = (showUrls && productUrl) ? {
                             href: productUrl,
                             target: '_blank',
                             rel: 'noopener noreferrer',

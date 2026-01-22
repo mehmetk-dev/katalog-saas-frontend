@@ -11,6 +11,7 @@ export function IndustrialTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -34,8 +35,8 @@ export function IndustrialTemplate({
             <div className="flex-1 p-4 flex flex-col gap-2 overflow-hidden">
                 {safeProducts.map((product, idx) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -54,7 +55,7 @@ export function IndustrialTemplate({
                             {/* Görsel */}
                             <div className="w-14 h-14 shrink-0 bg-white rounded border border-zinc-100 overflow-hidden relative">
                                 <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-500" />
-                                {productUrl && (
+                                {(showUrls && productUrl) && (
                                     <div className="absolute top-0 right-0 bg-zinc-900 text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

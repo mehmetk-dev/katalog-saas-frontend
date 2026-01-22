@@ -23,10 +23,12 @@ interface CatalogPreviewProps {
     name: string
     products: Product[]
     primaryColor?: string
+    headerTextColor?: string
     showPrices?: boolean
     showDescriptions?: boolean
     showAttributes?: boolean
     showSku?: boolean
+    showUrls?: boolean
     columnsPerRow?: number
     backgroundColor?: string
     backgroundImage?: string | null
@@ -36,6 +38,7 @@ interface CatalogPreviewProps {
     logoPosition?: Catalog['logo_position']
     logoSize?: Catalog['logo_size']
     titlePosition?: Catalog['title_position']
+    catalog?: Catalog
 }
 
 export function CatalogPreview({
@@ -43,10 +46,13 @@ export function CatalogPreview({
     name,
     products,
     primaryColor = "#7c3aed",
+    headerTextColor,
+    catalog,
     showPrices = true,
     showDescriptions = true,
     showAttributes = true,
     showSku = true,
+    showUrls = false,
     columnsPerRow = 3,
     backgroundColor = "#ffffff",
     backgroundImage,
@@ -104,10 +110,12 @@ export function CatalogPreview({
         catalogName: name,
         products: previewProducts,
         primaryColor,
+        headerTextColor: headerTextColor || catalog?.header_text_color || '#ffffff',
         showPrices,
         showDescriptions,
         showAttributes,
         showSku,
+        showUrls,
         columnsPerRow,
         isFreeUser: false,
         // Logo props - template handles rendering

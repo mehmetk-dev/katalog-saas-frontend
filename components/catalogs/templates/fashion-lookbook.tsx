@@ -11,6 +11,7 @@ export function FashionLookbookTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
 }: TemplateProps) {
@@ -63,8 +64,8 @@ export function FashionLookbookTemplate({
                 <div className="w-1/2 p-4 pl-2 flex flex-col gap-3 shrink-0">
                     {[second, third, fourth].filter(Boolean).map((product, idx) => {
                         const productUrl = product.product_url
-                        const Wrapper = productUrl ? 'a' : 'div'
-                        const wrapperProps = productUrl ? {
+                        const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                        const wrapperProps = (showUrls && productUrl) ? {
                             href: productUrl,
                             target: '_blank',
                             rel: 'noopener noreferrer',

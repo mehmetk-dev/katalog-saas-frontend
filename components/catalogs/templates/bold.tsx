@@ -10,6 +10,7 @@ export function BoldTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -97,8 +98,8 @@ export function BoldTemplate({
             <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-4 overflow-hidden bg-white`} style={{ maxHeight: 'calc(100% - 88px)' }}>
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -112,7 +113,7 @@ export function BoldTemplate({
                             {/* Görsel */}
                             <div className="aspect-[4/3] border-b-2 border-black overflow-hidden bg-white shrink-0 relative">
                                 <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
-                                {productUrl && (
+                                {(showUrls && productUrl) && (
                                     <div className="absolute top-1.5 right-1.5 bg-black text-white p-1">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

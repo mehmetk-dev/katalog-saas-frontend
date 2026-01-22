@@ -172,10 +172,12 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
             products: pageProds,
             catalogName: catalog.name,
             primaryColor: catalog.primary_color || '#4F46E5',
+            headerTextColor: catalog.header_text_color || '#ffffff',
             showPrices: catalog.show_prices !== false,
             showDescriptions: catalog.show_descriptions !== false,
             showAttributes: catalog.show_attributes !== false,
             showSku: catalog.show_sku !== false,
+            showUrls: catalog.show_urls || false,
             isFreeUser: false, // Public viewer shouldn't see ads usually unless we track plan
             pageNumber,
             totalPages,
@@ -232,7 +234,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
                                         <BookOpen className="w-4 h-4 text-white" />
                                     </div>
-                                    <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">CatalogPro</span>
+                                    <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">FogCatalog</span>
                                 </Link>
                                 <div className="h-6 w-px bg-slate-200" />
                                 <h1 className="text-sm font-semibold text-slate-600 truncate max-w-[200px]">{catalog.name}</h1>
@@ -456,7 +458,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                     <p className="text-slate-600 text-sm font-medium">
                                         {t("catalogs.public.createdWithPrefix")}{" "}
                                         <Link href="/" className="text-violet-600 hover:text-violet-700 font-bold">
-                                            CatalogPro
+                                            FogCatalog
                                         </Link>{" "}
                                         {t("catalogs.public.createdWithSuffix")}
                                     </p>

@@ -40,6 +40,7 @@ interface CatalogUpdatePayload {
     show_descriptions?: boolean;
     show_attributes?: boolean;
     show_sku?: boolean;
+    show_urls?: boolean;
     columns_per_row?: number;
     background_color?: string;
     background_gradient?: string;
@@ -283,6 +284,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
             show_descriptions,
             show_attributes,
             show_sku,
+            show_urls,
             columns_per_row,
             background_color,
             background_gradient,
@@ -315,6 +317,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
                 show_descriptions,
                 show_attributes,
                 show_sku,
+                show_urls,
                 columns_per_row,
                 background_color,
                 background_gradient,

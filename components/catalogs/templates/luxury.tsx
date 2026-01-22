@@ -13,6 +13,7 @@ export function LuxuryTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -61,8 +62,8 @@ export function LuxuryTemplate({
             <div className={`flex-1 px-10 pb-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 132px)' }}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -76,7 +77,7 @@ export function LuxuryTemplate({
                             <div className="aspect-[4/3] min-h-0 relative overflow-hidden shrink-0">
                                 <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                {productUrl && (
+                                {(showUrls && productUrl) && (
                                     <div className="absolute top-2 right-2 p-1.5 rounded-full bg-yellow-600/20 backdrop-blur-md border border-yellow-600/30 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-3 h-3 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

@@ -56,11 +56,34 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [catalogDescription, setCatalogDescription] = useState(catalog?.description || "")
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(catalog?.product_ids || [])
   const [layout, setLayout] = useState(catalog?.layout || "grid")
-  const [primaryColor, setPrimaryColor] = useState(catalog?.primary_color || "#7c3aed")
+  // Helper: Convert hex to rgba
+  const hexToRgba = (hex: string, alpha: number = 1): string => {
+    if (hex.startsWith('rgba')) return hex
+    if (hex === 'transparent') return 'rgba(0, 0, 0, 0)'
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    if (result) {
+      const r = parseInt(result[1], 16)
+      const g = parseInt(result[2], 16)
+      const b = parseInt(result[3], 16)
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    }
+    return `rgba(124, 58, 237, ${alpha})` // default purple
+  }
+
+  const getInitialPrimaryColor = () => {
+    if (!catalog?.primary_color) return "rgba(124, 58, 237, 1)"
+    if (catalog.primary_color.startsWith('rgba')) return catalog.primary_color
+    if (catalog.primary_color === 'transparent') return 'rgba(0, 0, 0, 0)'
+    return hexToRgba(catalog.primary_color)
+  }
+
+  const [primaryColor, setPrimaryColor] = useState(getInitialPrimaryColor())
+  const [headerTextColor, setHeaderTextColor] = useState(catalog?.header_text_color || "#ffffff")
   const [showPrices, setShowPrices] = useState(catalog?.show_prices ?? true)
   const [showDescriptions, setShowDescriptions] = useState(catalog?.show_descriptions ?? true)
   const [showAttributes, setShowAttributes] = useState(catalog?.show_attributes ?? false)
   const [showSku, setShowSku] = useState(catalog?.show_sku ?? true)
+  const [showUrls, setShowUrls] = useState(catalog?.show_urls ?? false)
   const [view, setView] = useState<"split" | "editor" | "preview">("split")
   const [currentCatalogId, setCurrentCatalogId] = useState(catalog?.id || null)
   const [isPublished, setIsPublished] = useState(catalog?.is_published || false)
@@ -87,11 +110,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     description: catalog?.description || "",
     productIds: catalog?.product_ids || [],
     layout: catalog?.layout || "grid",
-    primaryColor: catalog?.primary_color || "#7c3aed",
+    primaryColor: getInitialPrimaryColor(),
     showPrices: catalog?.show_prices ?? true,
     showDescriptions: catalog?.show_descriptions ?? true,
     showAttributes: catalog?.show_attributes ?? false,
     showSku: catalog?.show_sku ?? true,
+    showUrls: catalog?.show_urls ?? false,
     columnsPerRow: catalog?.columns_per_row || 3,
     backgroundColor: catalog?.background_color || '#ffffff',
   })
@@ -107,6 +131,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     showDescriptions !== lastSavedState.showDescriptions ||
     showAttributes !== lastSavedState.showAttributes ||
     showSku !== lastSavedState.showSku ||
+    showUrls !== lastSavedState.showUrls ||
     columnsPerRow !== lastSavedState.columnsPerRow ||
     backgroundColor !== lastSavedState.backgroundColor
   )
@@ -137,7 +162,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor, catalog?.name, catalog?.description, catalog?.product_ids])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, catalog?.name, catalog?.description, catalog?.product_ids])
 
   // Autosave state
   const [isAutoSaving, setIsAutoSaving] = useState(false)
@@ -167,6 +192,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           show_descriptions: showDescriptions,
           show_attributes: showAttributes,
           show_sku: showSku,
+          show_urls: showUrls,
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
@@ -209,7 +235,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize, isPublished])
+  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize, isPublished])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
   const selectedProducts = selectedProductIds
@@ -325,6 +351,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           show_descriptions: showDescriptions,
           show_attributes: showAttributes,
           show_sku: showSku,
+          show_urls: showUrls,
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
@@ -379,6 +406,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           show_descriptions: showDescriptions,
           show_attributes: showAttributes,
           show_sku: showSku,
+          show_urls: showUrls,
           columns_per_row: columnsPerRow,
           background_color: backgroundColor,
           background_image: backgroundImage,
@@ -778,6 +806,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onLayoutChange={setLayout}
               primaryColor={primaryColor}
               onPrimaryColorChange={setPrimaryColor}
+              headerTextColor={headerTextColor}
+              onHeaderTextColorChange={setHeaderTextColor}
               showPrices={showPrices}
               onShowPricesChange={setShowPrices}
               showDescriptions={showDescriptions}
@@ -786,6 +816,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onShowAttributesChange={setShowAttributes}
               showSku={showSku}
               onShowSkuChange={setShowSku}
+              showUrls={showUrls}
+              onShowUrlsChange={setShowUrls}
               userPlan={user?.plan || "free"}
               onUpgrade={() => setShowUpgradeModal(true)}
               columnsPerRow={columnsPerRow}
@@ -818,10 +850,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               products={selectedProducts}
               layout={layout}
               primaryColor={primaryColor}
+              headerTextColor={headerTextColor}
               showPrices={showPrices}
               showDescriptions={showDescriptions}
               showAttributes={showAttributes}
               showSku={showSku}
+              showUrls={showUrls}
               columnsPerRow={columnsPerRow}
               backgroundColor={backgroundColor}
               backgroundImage={backgroundImage}

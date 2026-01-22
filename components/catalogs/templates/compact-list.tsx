@@ -10,6 +10,7 @@ export function CompactListTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     logoUrl,
@@ -76,8 +77,8 @@ export function CompactListTemplate({
             <div className="flex-1 px-6 py-4 flex flex-col gap-2 overflow-hidden">
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -94,7 +95,7 @@ export function CompactListTemplate({
                             {/* Görsel */}
                             <div className="w-12 h-12 shrink-0 bg-white rounded-md border border-gray-200 overflow-hidden relative">
                                 <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                {productUrl && (
+                                {(showUrls && productUrl) && (
                                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

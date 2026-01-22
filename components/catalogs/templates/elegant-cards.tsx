@@ -11,6 +11,7 @@ export function ElegantCardsTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -54,8 +55,8 @@ export function ElegantCardsTemplate({
             <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 128px)' }}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -68,7 +69,7 @@ export function ElegantCardsTemplate({
                         <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             <div className="h-32 min-h-[128px] bg-gradient-to-br from-stone-100 to-stone-50 overflow-hidden shrink-0 relative">
                                 <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                {productUrl && (
+                                {(showUrls && productUrl) && (
                                     <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-md rounded-full p-2 text-stone-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

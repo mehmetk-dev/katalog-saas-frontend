@@ -71,7 +71,7 @@ export const SEO_CONFIG = {
     }),
     pricing: generateSEO({
         title: 'Fiyatlandırma',
-        description: 'CatalogPro fiyatlandırma planları. Ücretsiz başlayın, işletmeniz büyüdükçe yükseltin.',
+        description: 'FogCatalog fiyatlandırma planları. Ücretsiz başlayın, işletmeniz büyüdükçe yükseltin.',
         url: '/pricing',
     }),
     howItWorks: generateSEO({

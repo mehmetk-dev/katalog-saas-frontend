@@ -17,7 +17,7 @@ export function PublicFooter() {
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center">
                                 <LayoutGrid className="w-4 h-4 text-white" />
                             </div>
-                            <span className="font-bold text-lg">CatalogPro</span>
+                            <span className="font-bold text-lg">FogCatalog</span>
                         </Link>
                         <p className="text-slate-500 leading-relaxed text-sm">
                             {t('footer.description')}

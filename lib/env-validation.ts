@@ -43,7 +43,7 @@ const requiredEnvVars: EnvVar[] = [
     {
         key: 'RESEND_FROM_EMAIL',
         required: false,
-        description: 'From email address for Resend (optional, defaults to "CatalogPro <onboarding@resend.dev>")'
+        description: 'From email address for Resend (optional, defaults to "FogCatalog <onboarding@resend.dev>")'
     },
 ]
 

@@ -87,7 +87,7 @@ export function DashboardSidebar() {
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
             {(!isCollapsed || isMobile) && (
-              <span className="font-semibold text-sidebar-foreground whitespace-nowrap">CatalogPro</span>
+              <span className="font-semibold text-sidebar-foreground whitespace-nowrap">FogCatalog</span>
             )}
           </Link>
 

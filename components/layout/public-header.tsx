@@ -16,7 +16,7 @@ export function PublicHeader() {
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-all duration-300 group-hover:scale-105">
                         <LayoutGrid className="w-4.5 h-4.5 text-white" />
                     </div>
-                    <span className="font-bold text-lg tracking-tight">CatalogPro</span>
+                    <span className="font-bold text-lg tracking-tight">FogCatalog</span>
                 </Link>
 
                 <nav className="hidden md:flex items-center gap-8">

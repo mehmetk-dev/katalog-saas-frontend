@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import {
   Palette, GripVertical, Trash2, Package, Image as ImageIcon,
   Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search
 } from "lucide-react"
 import NextImage from "next/image"
 import { toast } from "sonner"
+import { HexColorPicker } from "react-colorful"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -16,6 +17,7 @@ import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
 import { useTranslation } from "@/lib/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
@@ -63,6 +65,40 @@ interface CatalogEditorProps {
   onShowAttributesChange?: (show: boolean) => void
   showSku?: boolean
   onShowSkuChange?: (show: boolean) => void
+  showUrls?: boolean
+  onShowUrlsChange?: (show: boolean) => void
+  headerTextColor?: string
+  onHeaderTextColorChange?: (color: string) => void
+}
+
+// Helper: Parse color to RGB
+const parseColor = (color: string) => {
+  if (color.startsWith('rgba')) {
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
+    if (match) {
+      return {
+        r: parseInt(match[1]),
+        g: parseInt(match[2]),
+        b: parseInt(match[3]),
+        a: match[4] ? parseFloat(match[4]) : 1
+      }
+    }
+  } else if (color.startsWith('#')) {
+    const hex = color.replace('#', '')
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+    return { r, g, b, a: 1 }
+  }
+  return { r: 124, g: 58, b: 237, a: 1 }
+}
+
+// Helper: RGB to hex
+const rgbToHex = (r: number, g: number, b: number) => {
+  return `#${[r, g, b].map(x => {
+    const hex = x.toString(16)
+    return hex.length === 1 ? '0' + hex : hex
+  }).join('')}`
 }
 
 export function CatalogEditor({
@@ -103,10 +139,46 @@ export function CatalogEditor({
   onShowAttributesChange,
   showSku = true,
   onShowSkuChange,
+  showUrls = false,
+  onShowUrlsChange,
+  headerTextColor = '#ffffff',
+  onHeaderTextColorChange,
 }: CatalogEditorProps) {
   const { t } = useTranslation()
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
+  const [showHeaderTextColorPicker, setShowHeaderTextColorPicker] = useState(false)
+  const primaryColorPickerRef = useRef<HTMLDivElement>(null)
+  const headerTextColorPickerRef = useRef<HTMLDivElement>(null)
+
+  // Optimize: Parse primaryColor once
+  const primaryColorParsed = useMemo(() => {
+    const rgb = parseColor(primaryColor)
+    const hexColor = rgbToHex(rgb.r, rgb.g, rgb.b)
+    const opacity = Math.round(rgb.a * 100)
+    return { rgb, hexColor, opacity }
+  }, [primaryColor])
+
+  // Close color pickers when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      
+      if (showPrimaryColorPicker && primaryColorPickerRef.current && !primaryColorPickerRef.current.contains(target)) {
+        setShowPrimaryColorPicker(false)
+      }
+      
+      if (showHeaderTextColorPicker && headerTextColorPickerRef.current && !headerTextColorPickerRef.current.contains(target)) {
+        setShowHeaderTextColorPicker(false)
+      }
+    }
+
+    if (showPrimaryColorPicker || showHeaderTextColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showPrimaryColorPicker, showHeaderTextColorPicker])
   const logoInputRef = useRef<HTMLInputElement>(null)
   const bgInputRef = useRef<HTMLInputElement>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
@@ -397,49 +469,14 @@ export function CatalogEditor({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="shadow-sm border-slate-200">
                 <CardContent className="p-4 sm:p-6 space-y-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                      <Layout className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-sm font-bold uppercase tracking-wider">{t('builder.accentColor')}</h3>
-                  </div>
-
-                  {/* Colors */}
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { name: "Slate", color: "#0f172a" }, { name: "Royal", color: "#6366f1" },
-                        { name: "Ocean", color: "#0ea5e9" }, { name: "Forest", color: "#22c55e" },
-                        { name: "Gold", color: "#eab308" }, { name: "Sunset", color: "#f97316" },
-                        { name: "Berry", color: "#ec4899" }, { name: "Red", color: "#dc2626" },
-                      ].map((preset) => (
-                        <button
-                          key={preset.name}
-                          onClick={() => onPrimaryColorChange(preset.color)}
-                          className={cn(
-                            "w-8 h-8 rounded-full border border-white shadow-sm transition-all hover:scale-110",
-                            primaryColor === preset.color && "ring-2 ring-primary ring-offset-2 scale-110"
-                          )}
-                          style={{ backgroundColor: preset.color }}
-                        />
-                      ))}
-                      <div className="relative">
-                        <Input
-                          type="color"
-                          value={primaryColor}
-                          onChange={(e) => onPrimaryColorChange(e.target.value)}
-                          className="w-8 h-8 p-0 border-none cursor-pointer rounded-full overflow-hidden"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="space-y-4 pt-4">
                       {/* Premium Toggle Row */}
                       {[
                         { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange },
                         { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
                         { label: t('builder.showAttributes') || "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange },
                         { label: t('builder.showSku') || "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange },
+                        { label: t('builder.showUrls') || "Ürün URL'lerini Etkinleştir", value: showUrls, onChange: onShowUrlsChange },
                       ].map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between group cursor-pointer" onClick={() => item.onChange?.(!item.value)}>
                           <Label className="text-sm font-medium text-slate-700 cursor-pointer group-hover:text-primary transition-colors">{item.label}</Label>
@@ -475,7 +512,6 @@ export function CatalogEditor({
                         </div>
                       </div>
                     </div>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -541,6 +577,125 @@ export function CatalogEditor({
                         </div>
                       </div>
                     )}
+
+                    {/* BAŞLIK RENKLERİ */}
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Başlık Renkleri</h4>
+                      
+                      {/* Başlık Alanı Rengi */}
+                      <div className="space-y-3">
+                        <Label className="text-[10px] uppercase font-bold text-slate-400">Başlık Alanı Rengi</Label>
+                        
+                        <div className="relative" ref={primaryColorPickerRef}>
+                          <div className="flex gap-2 items-center">
+                            <div className="relative flex-1">
+                              <Input
+                                type="text"
+                                value={primaryColorParsed.hexColor}
+                                onChange={(e) => {
+                                  const hex = e.target.value.trim()
+                                  if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) {
+                                    const r = parseInt(hex.substring(1, 3), 16)
+                                    const g = parseInt(hex.substring(3, 5), 16)
+                                    const b = parseInt(hex.substring(5, 7), 16)
+                                    onPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
+                                  }
+                                }}
+                                placeholder="#7c3aed"
+                                className="h-9 text-xs font-mono pr-10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPrimaryColorPicker(!showPrimaryColorPicker)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors"
+                                style={{ backgroundColor: primaryColorParsed.hexColor }}
+                              />
+                            </div>
+                            <div 
+                              className="w-9 h-9 rounded-lg border-2 border-slate-200 shrink-0"
+                              style={{ backgroundColor: primaryColor }}
+                            />
+                          </div>
+                          
+                          {showPrimaryColorPicker && (
+                            <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-slate-200 p-3">
+                              <HexColorPicker
+                                color={primaryColorParsed.hexColor}
+                                onChange={(hex) => {
+                                  const r = parseInt(hex.substring(1, 3), 16)
+                                  const g = parseInt(hex.substring(3, 5), 16)
+                                  const b = parseInt(hex.substring(5, 7), 16)
+                                  onPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
+                                }}
+                                style={{ width: '200px', height: '120px' }}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Opaklık */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] text-slate-500">Opaklık</Label>
+                            <span className="text-[10px] font-mono text-slate-600">{primaryColorParsed.opacity}%</span>
+                          </div>
+                          <Slider
+                            value={[primaryColorParsed.opacity]}
+                            onValueChange={([value]) => {
+                              onPrimaryColorChange(`rgba(${primaryColorParsed.rgb.r}, ${primaryColorParsed.rgb.g}, ${primaryColorParsed.rgb.b}, ${value / 100})`)
+                            }}
+                            min={0}
+                            max={100}
+                            step={1}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Başlık Yazı Rengi */}
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold text-slate-400">Başlık Yazı Rengi</Label>
+                        
+                        <div className="relative" ref={headerTextColorPickerRef}>
+                          <div className="flex gap-2 items-center">
+                            <div className="relative flex-1">
+                              <Input
+                                type="text"
+                                value={headerTextColor || '#ffffff'}
+                                onChange={(e) => {
+                                  const hex = e.target.value.trim()
+                                  if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) {
+                                    onHeaderTextColorChange?.(hex)
+                                  }
+                                }}
+                                placeholder="#ffffff"
+                                className="h-9 text-xs font-mono pr-10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowHeaderTextColorPicker(!showHeaderTextColorPicker)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors"
+                                style={{ backgroundColor: headerTextColor || '#ffffff' }}
+                              />
+                            </div>
+                            <div 
+                              className="w-9 h-9 rounded-lg border-2 border-slate-200 shrink-0"
+                              style={{ backgroundColor: headerTextColor || '#ffffff' }}
+                            />
+                          </div>
+                          
+                          {showHeaderTextColorPicker && (
+                            <div className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-lg shadow-lg border border-slate-200 p-3">
+                              <HexColorPicker
+                                color={headerTextColor || '#ffffff'}
+                                onChange={(hex) => onHeaderTextColorChange?.(hex)}
+                                style={{ width: '200px', height: '120px' }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

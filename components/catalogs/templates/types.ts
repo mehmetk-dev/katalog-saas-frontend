@@ -4,10 +4,12 @@ export interface TemplateProps {
     catalogName: string
     products: Product[]
     primaryColor: string
+    headerTextColor?: string
     showPrices: boolean
     showDescriptions: boolean
     showAttributes: boolean
     showSku: boolean
+    showUrls?: boolean
     isFreeUser: boolean
     pageNumber?: number
     totalPages?: number
@@ -21,6 +23,7 @@ export interface TemplateProps {
     logoPosition?: string
     logoSize?: string
     titlePosition?: 'left' | 'center' | 'right'  // Başlık konumu
+    productImageFit?: 'cover' | 'contain' | 'fill'  // Ürün görsel hizalama
     // Evrensel header/footer kullanıldığında template kendi header/footer'ını gizler
     hideHeader?: boolean
     hideFooter?: boolean

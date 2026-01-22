@@ -45,14 +45,14 @@ export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
         // Daha profesyonel görünen gönderen adresi
         // Not: Eğer RESEND_FROM_EMAIL doğrulanmamış bir domain içeriyorsa,
         // Resend API hatası verecektir. Bu durumda default onboarding@resend.dev kullanılır
-        let fromEmail = from || process.env.RESEND_FROM_EMAIL || "CatalogPro <onboarding@resend.dev>"
+        let fromEmail = from || process.env.RESEND_FROM_EMAIL || "FogCatalog <onboarding@resend.dev>"
         
         // Eğer custom domain kullanılıyorsa ve hata alırsak, default'a geri dön
         // Şimdilik her zaman default kullan (domain doğrulaması gerektirir)
         // Kullanıcı domain doğrulamak isterse, Resend dashboard'dan yapabilir
         if (fromEmail.includes('@') && !fromEmail.includes('@resend.dev') && !fromEmail.includes('onboarding@resend.dev')) {
             console.warn("⚠️ Custom domain detected in RESEND_FROM_EMAIL. Using default to avoid domain verification issues.")
-            fromEmail = "CatalogPro <onboarding@resend.dev>"
+            fromEmail = "FogCatalog <onboarding@resend.dev>"
         }
         
         console.log("📧 Preparing to send email:")

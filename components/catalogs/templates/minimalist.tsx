@@ -10,6 +10,7 @@ export function MinimalistTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -84,8 +85,8 @@ export function MinimalistTemplate({
             <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-5 overflow-hidden`} style={{ maxHeight: 'calc(100% - 92px)' }}>
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -99,7 +100,7 @@ export function MinimalistTemplate({
                             {/* Görsel */}
                             <div className="aspect-square p-3 flex items-center justify-center bg-white relative shrink-0">
                                 <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500" />
-                                {productUrl && (
+                                {(showUrls && productUrl) && (
                                     <div className="absolute top-2 right-2 text-gray-300 group-hover:text-gray-600 transition-colors">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
