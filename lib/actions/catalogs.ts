@@ -175,9 +175,10 @@ export interface DashboardStats {
   dailyViews?: { view_date: string; view_count: number }[]
 }
 
-export async function getDashboardStats() {
+export async function getDashboardStats(timeRange: "7d" | "30d" | "90d" = "30d") {
   try {
-    return await apiFetch<DashboardStats>("/catalogs/stats")
+    const params = new URLSearchParams({ timeRange })
+    return await apiFetch<DashboardStats>(`/catalogs/stats?${params.toString()}`)
   } catch (error) {
     console.error("Error fetching dashboard stats:", error)
     return null

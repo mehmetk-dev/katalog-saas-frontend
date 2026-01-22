@@ -216,7 +216,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
 export const NotificationTemplates = {
     welcome: (userName: string) => ({
         title: 'Hoş Geldiniz! 🎉',
-        message: `Merhaba ${userName}, CatalogPro'ya hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
+        message: `Merhaba ${userName}, FogCatalog'a hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
         actionUrl: '/dashboard/templates'
     }),
 

@@ -137,7 +137,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                         {t("dashboard.welcomeUser", { name: user?.name?.split(" ")[0] ?? t("common.user") })} 👋
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground/80 mt-1">
-                        {t("marketing.heroSubtitle")}
+                        {t("landing.heroSubtitle")}
                     </p>
                 </div>
             </div>

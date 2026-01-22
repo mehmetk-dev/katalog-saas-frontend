@@ -1,15 +1,16 @@
 import { Router, Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
+import { CheckProviderRequest, CheckProviderResponse } from '../types/auth';
 
 const router = Router();
 
 // Check if email is registered with OAuth provider (no auth required)
-router.post('/check-provider', async (req: Request, res: Response) => {
+router.post('/check-provider', async (req: Request<{}, CheckProviderResponse | { error: string }, CheckProviderRequest>, res: Response<CheckProviderResponse | { error: string }>) => {
     try {
-        const { email } = req.body;
+        const { email }: CheckProviderRequest = req.body;
 
-        if (!email) {
+        if (!email || typeof email !== 'string') {
             return res.status(400).json({ error: 'Email is required' });
         }
 
@@ -18,7 +19,12 @@ router.post('/check-provider', async (req: Request, res: Response) => {
 
         if (error) {
             console.error('Error checking provider:', error);
-            return res.json({ provider: null, isOAuth: false });
+            const response: CheckProviderResponse = { 
+                exists: false, 
+                provider: null, 
+                isOAuth: false 
+            };
+            return res.json(response);
         }
 
         // Find user by email
@@ -26,24 +32,35 @@ router.post('/check-provider', async (req: Request, res: Response) => {
 
         if (!user) {
             // User doesn't exist - that's fine, let them try to reset
-            return res.json({ provider: null, isOAuth: false, exists: false });
+            const response: CheckProviderResponse = { 
+                exists: false, 
+                provider: null, 
+                isOAuth: false 
+            };
+            return res.json(response);
         }
 
         // Check if user signed up with OAuth
         const provider = user.app_metadata?.provider || 'email';
         const isOAuth = provider !== 'email';
 
-        res.json({
+        const response: CheckProviderResponse = {
             exists: true,
             provider,
             isOAuth,
-            // Don't expose too much info - just what's needed for UX
-        });
+        };
+        
+        res.json(response);
 
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('Check provider error:', message);
-        res.json({ provider: null, isOAuth: false });
+        const response: CheckProviderResponse = {
+            exists: false,
+            provider: null,
+            isOAuth: false
+        };
+        res.json(response);
     }
 });
 

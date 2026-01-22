@@ -44,6 +44,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         showToast: true
     })
 
+    // cancel fonksiyonunu ref ile sakla (dependency sorununu önlemek için)
+    const cancelRef = React.useRef(uploadTimeout.cancel)
+    React.useEffect(() => {
+        cancelRef.current = uploadTimeout.cancel
+    }, [uploadTimeout.cancel])
+
     // Modal kapandığında state'i temizle - useEffect ile
     React.useEffect(() => {
         if (!open) {
@@ -52,9 +58,9 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                 prev.forEach(img => URL.revokeObjectURL(img.preview))
                 return []
             })
-            uploadTimeout.cancel()
+            cancelRef.current()
         }
-    }, [open, uploadTimeout])
+    }, [open]) // uploadTimeout'u dependency'den çıkardık
 
     // Ürünleri isimlerine göre alfabetik sırala (A'dan Z'ye)
     const sortedProducts = React.useMemo(() => {

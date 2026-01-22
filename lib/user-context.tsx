@@ -55,12 +55,29 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     const RETRY_DELAY = 1000 // 1 saniye
 
     try {
-      // Get user profile
-      const { data: profile, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", authUser.id)
-        .single()
+      // BATCH QUERY OPTIMIZATION: Tüm query'leri paralel olarak çalıştır
+      const [profileResult, productsResult, catalogsResult] = await Promise.all([
+        // 1. User profile (is_admin dahil - ayrı sorgu gereksiz)
+        supabase
+          .from("users")
+          .select("*, is_admin")
+          .eq("id", authUser.id)
+          .single(),
+        // 2. Products count
+        supabase
+          .from("products")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", authUser.id),
+        // 3. Catalogs count
+        supabase
+          .from("catalogs")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", authUser.id)
+      ])
+
+      const { data: profile, error } = profileResult
+      const productsCount = productsResult.count
+      const catalogsCount = catalogsResult.count
 
       // PGRST116 = "Row not found" - bu normal, yeni kullanıcı olabilir
       // Diğer hatalar için retry yap
@@ -79,25 +96,6 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         // PGRST116 ise profil yok ama devam et (yeni kullanıcı)
       }
 
-      // Get products count
-      const { count: productsCount } = await supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", authUser.id)
-
-      // Get catalogs count
-      const { count: catalogsCount } = await supabase
-        .from("catalogs")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", authUser.id)
-
-      // Get admin status from users table
-      const { data: userAdmin } = await supabase
-        .from("users")
-        .select("is_admin")
-        .eq("id", authUser.id)
-        .single()
-
       // Profile varsa plan'ı al, yoksa yeni kullanıcı olabilir
       const plan = profile?.plan ? profile.plan.toLowerCase() : "free"
 
@@ -114,7 +112,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         maxProducts: plan === "pro" ? 999999 : plan === "plus" ? 1000 : 50,
         maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 1,
         exportsUsed: profile?.exports_used || 0,
-        isAdmin: userAdmin?.is_admin || false,
+        isAdmin: profile?.is_admin || false,
       })
       return true
     } catch (error) {

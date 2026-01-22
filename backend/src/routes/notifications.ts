@@ -8,8 +8,12 @@ import {
     deleteAllNotifications,
     cancelSubscription
 } from '../controllers/notifications';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(requireAuth);
 
 // Get user notifications
 router.get('/', getNotifications);

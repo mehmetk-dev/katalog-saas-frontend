@@ -1,6 +1,6 @@
 {
-    "name": "CatalogPro",
-    "short_name": "CatalogPro",
+    "name": "FogCatalog",
+    "short_name": "FogCatalog",
     "description": "Profesyonel ürün katalogları oluşturun",
     "start_url": "/",
     "display": "standalone",

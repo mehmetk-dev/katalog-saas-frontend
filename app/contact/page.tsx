@@ -29,8 +29,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 mb-1">{t('contact.email')}</h3>
-                    <a href="mailto:destek@catalogpro.app" className="text-violet-600 hover:underline">
-                      destek@catalogpro.app
+                    <a href="mailto:destek@fogcatalog.app" className="text-violet-600 hover:underline">
+                      destek@fogcatalog.app
                     </a>
                     <p className="text-sm text-slate-500 mt-1">{t('contact.response')}</p>
                   </div>

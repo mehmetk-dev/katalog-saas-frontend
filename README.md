@@ -177,4 +177,4 @@ MIT License - detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
 ## 📧 İletişim
 
-Sorularınız için: [destek@catalogpro.app](mailto:destek@catalogpro.app)
+Sorularınız için: [destek@fogcatalog.app](mailto:destek@fogcatalog.app)

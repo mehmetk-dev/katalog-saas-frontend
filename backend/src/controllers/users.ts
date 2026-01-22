@@ -115,7 +115,7 @@ export const sendWelcomeNotification = async (req: Request, res: Response) => {
             userId,
             'welcome',
             'Hoş Geldiniz! 🎉',
-            `Merhaba ${userName}, CatalogPro'ya hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
+            `Merhaba ${userName}, FogCatalog'a hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
             '/dashboard/templates'
         );
 

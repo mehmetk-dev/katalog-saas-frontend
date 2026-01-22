@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 type FetchOptions = Omit<RequestInit, "headers"> & {
     headers?: Record<string, string>;
@@ -8,9 +8,27 @@ type FetchOptions = Omit<RequestInit, "headers"> & {
     retries?: number;
     /** Retry delay (ms) - varsayılan 1000 */
     retryDelay?: number;
-    /** Timeout (ms) - varsayılan 60000 (60 saniye) */
+    /** Timeout (ms) - varsayılan endpoint tipine göre otomatik belirlenir */
     timeout?: number;
 };
+
+/**
+ * Endpoint tipine göre uygun timeout süresini belirle
+ */
+function getDefaultTimeout(endpoint: string): number {
+    // Bulk işlemler için daha uzun timeout
+    if (endpoint.includes('/bulk-') || endpoint.includes('/import') || endpoint.includes('/export')) {
+        return 120000; // 120 saniye
+    }
+    
+    // Standart işlemler için orta timeout
+    if (endpoint.includes('/upload') || endpoint.includes('/image')) {
+        return 60000; // 60 saniye
+    }
+    
+    // Normal işlemler için kısa timeout
+    return 30000; // 30 saniye (varsayılan)
+}
 
 interface ApiError extends Error {
     status?: number;
@@ -19,7 +37,9 @@ interface ApiError extends Error {
 }
 
 export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-    const { retries = 0, retryDelay = 1000, timeout = 60000, ...fetchOptions } = options;
+    // Timeout'u endpoint tipine göre otomatik belirle (kullanıcı belirtmemişse)
+    const defaultTimeout = getDefaultTimeout(endpoint);
+    const { retries = 0, retryDelay = 1000, timeout = defaultTimeout, ...fetchOptions } = options;
     const supabase = await createServerSupabaseClient();
 
     // Use getUser() instead of getSession() for security
@@ -41,21 +61,41 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
         }
     }
 
-    // Timeout kontrolü için AbortController kullan
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout); // Parametrik timeout
-
     let lastError: ApiError | null = null;
     let attempts = 0;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let controller: AbortController | null = null;
 
     while (attempts <= retries) {
+        // Önceki timeout ve controller'ı temizle (memory leak önleme)
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+        if (controller) {
+            controller.abort();
+        }
+
+        // Her retry'da yeni AbortController ve timeout oluştur
+        controller = new AbortController();
+        timeoutId = setTimeout(() => {
+            if (controller) {
+                controller.abort();
+            }
+        }, timeout);
+
         try {
             const response = await fetch(`${BASE_URL}${endpoint}`, {
                 ...fetchOptions,
                 headers,
                 signal: controller.signal,
             });
-            clearTimeout(timeoutId);
+            
+            // Başarılı yanıt - timeout'u temizle
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
 
             // Rate Limit kontrolü (429 Too Many Requests)
             if (response.status === 429) {
@@ -104,11 +144,50 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
             return response.json();
 
         } catch (error: unknown) {
-            clearTimeout(timeoutId);
+            // Her durumda timeout'u temizle
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
 
-            if (error.name === 'AbortError') {
-                const timeoutError: ApiError = new Error('İstek zaman aşımına uğradı. Lütfen tekrar deneyin.');
+            // Fetch failed - backend sunucusu çalışmıyor olabilir
+            if (error instanceof Error && (
+                error.message.includes('fetch failed') || 
+                error.message.includes('ECONNREFUSED') ||
+                error.message.includes('ENOTFOUND') ||
+                error.cause?.toString().includes('ECONNREFUSED')
+            )) {
+                const connectionError: ApiError = new Error(
+                    `Backend sunucusuna bağlanılamıyor (${BASE_URL}). Lütfen backend sunucusunun çalıştığından emin olun.`
+                );
+                connectionError.status = 503;
+                
+                // Retry varsa ve son deneme değilse devam et
+                if (attempts < retries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
+                    attempts++;
+                    lastError = connectionError;
+                    continue;
+                }
+                
+                throw connectionError;
+            }
+
+            // AbortError kontrolü - type guard ile
+            if (error instanceof Error && error.name === 'AbortError') {
+                const timeoutError: ApiError = new Error(
+                    `İstek zaman aşımına uğradı (${Math.round(timeout / 1000)}s). Lütfen tekrar deneyin.`
+                );
                 timeoutError.status = 408;
+                
+                // Retry varsa ve son deneme değilse devam et
+                if (attempts < retries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
+                    attempts++;
+                    lastError = timeoutError;
+                    continue;
+                }
+                
                 throw timeoutError;
             }
 
@@ -116,15 +195,28 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
             if (isNetworkError(error) && attempts < retries) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
                 attempts++;
-                lastError = error;
+                lastError = error as ApiError;
                 continue;
             }
 
             throw error;
+        } finally {
+            // Her durumda timeout'u temizle (ekstra güvenlik)
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
         }
     }
 
-    // Tüm retry'lar tükendi
+    // Tüm retry'lar tükendi - son cleanup
+    if (timeoutId) {
+        clearTimeout(timeoutId);
+    }
+    if (controller) {
+        controller.abort();
+    }
+
     throw lastError || new Error('İstek başarısız oldu.');
 }
 
@@ -165,6 +257,6 @@ function isNetworkError(error: unknown): boolean {
         'Failed to fetch'
     ];
 
-    const message = (error?.message || '').toLowerCase();
+    const message = (error instanceof Error ? error.message : '').toLowerCase();
     return networkIndicators.some(indicator => message.includes(indicator.toLowerCase()));
 }

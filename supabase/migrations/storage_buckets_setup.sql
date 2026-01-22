@@ -43,10 +43,12 @@ VALUES (
     'feedback-attachments',
     'feedback-attachments',
     false, -- Private
-    10485760, -- 10MB limit
-    ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+    52428800, -- 50MB limit
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo']
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+    file_size_limit = 52428800,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 
 -- 5. Category covers bucket
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -152,4 +154,20 @@ ON storage.objects FOR INSERT
 WITH CHECK (
     bucket_id = 'feedback-attachments' 
     AND auth.role() = 'authenticated'
+);
+
+-- Feedback Attachments - Admin ve sahibi silebilir
+DROP POLICY IF EXISTS "Users can delete their own feedback attachments" ON storage.objects;
+CREATE POLICY "Users can delete their own feedback attachments"
+ON storage.objects FOR DELETE
+USING (
+    bucket_id = 'feedback-attachments' 
+    AND (
+        auth.uid()::text = (storage.foldername(name))[1]
+        OR EXISTS (
+            SELECT 1 FROM users 
+            WHERE users.id::text = auth.uid()::text 
+            AND users.email = (SELECT value FROM pg_settings WHERE name = 'app.settings.admin_email')
+        )
+    )
 );

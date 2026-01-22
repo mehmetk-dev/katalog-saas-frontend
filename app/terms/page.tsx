@@ -2,8 +2,8 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 
 export const metadata = {
-  title: "Kullanım Şartları | CatalogPro",
-  description: "CatalogPro kullanım şartları ve koşulları.",
+  title: "Kullanım Şartları | FogCatalog",
+  description: "FogCatalog kullanım şartları ve koşulları.",
 }
 
 export default function TermsPage() {
@@ -20,7 +20,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold text-slate-900 mb-4">1. Hizmet Kullanımı</h2>
               <p className="text-slate-600 leading-relaxed mb-4">
-                CatalogPro platformunu kullanarak aşağıdaki şartları kabul etmiş sayılırsınız:
+                FogCatalog platformunu kullanarak aşağıdaki şartları kabul etmiş sayılırsınız:
               </p>
               <ul className="space-y-2 text-slate-600">
                 <li className="flex gap-3"><span className="text-violet-500">•</span>Hizmetleri yalnızca yasal amaçlarla kullanacaksınız</li>
@@ -32,7 +32,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold text-slate-900 mb-4">2. Fikri Mülkiyet</h2>
               <p className="text-slate-600 leading-relaxed">
-                Platform tasarımı ve kodları CatalogPro'ya aittir. Yüklediğiniz içerikler üzerindeki
+                Platform tasarımı ve kodları FogCatalog'a aittir. Yüklediğiniz içerikler üzerindeki
                 haklar size ait olmaya devam eder. Başkalarının fikri mülkiyet haklarını ihlal eden
                 içerik yüklemek yasaktır.
               </p>
@@ -62,7 +62,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold text-slate-900 mb-4">5. Sorumluluk</h2>
               <p className="text-slate-600 leading-relaxed">
-                CatalogPro, hizmet kesintileri veya veri kayıplarından kaynaklanan dolaylı zararlardan
+                FogCatalog, hizmet kesintileri veya veri kayıplarından kaynaklanan dolaylı zararlardan
                 sorumlu tutulamaz. Hizmetler "olduğu gibi" sunulmaktadır. Bu şartlar Türkiye Cumhuriyeti
                 yasalarına tabidir.
               </p>
@@ -72,8 +72,8 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">6. İletişim</h2>
               <p className="text-slate-600 leading-relaxed">
                 Sorularınız için{' '}
-                <a href="mailto:destek@catalogpro.app" className="text-violet-600 hover:underline">
-                  destek@catalogpro.app
+                <a href="mailto:destek@fogcatalog.app" className="text-violet-600 hover:underline">
+                  destek@fogcatalog.app
                 </a>{' '}
                 adresinden bize ulaşabilirsiniz.
               </p>

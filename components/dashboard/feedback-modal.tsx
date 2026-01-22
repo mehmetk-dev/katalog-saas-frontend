@@ -33,11 +33,21 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const [subject, setSubject] = useState("")
     const [message, setMessage] = useState("")
     const [files, setFiles] = useState<{ file: File; preview: string; type: string }[]>([])
-    const [, setUploading] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({})
     const fileInputRef = useRef<HTMLInputElement>(null)
     const pathname = usePathname()
     // const { t } = useTranslation()
     const supabase = createClient()
+    
+    // Kullanıcı ID'sini al (upload için gerekli)
+    const getUserId = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            throw new Error("Oturum açmanız gerekiyor")
+        }
+        return user.id
+    }
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFiles = Array.from(e.target.files || [])
@@ -67,32 +77,158 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
         }
 
         setLoading(true)
+        setUploadProgress({})
+        
         try {
             const attachmentUrls: string[] = []
 
-            // Dosyaları yükle
+            // Dosyaları yükle (timeout ile)
             if (files.length > 0) {
                 setUploading(true)
-                for (const item of files) {
-                    const fileExt = item.file.name.split('.').pop()
-                    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
-                    const filePath = `feedback/${fileName}`
+                
+                // Kullanıcı ID'sini al (storage policy için gerekli)
+                const userId = await getUserId()
+                
+                for (let index = 0; index < files.length; index++) {
+                    const item = files[index]
+                    
+                    // Dosya boyutu kontrolü (50MB limit)
+                    const maxSize = 50 * 1024 * 1024 // 50MB
+                    if (item.file.size > maxSize) {
+                        throw new Error(`Dosya çok büyük (${(item.file.size / 1024 / 1024).toFixed(2)}MB). Maksimum 50MB olmalıdır.`)
+                    }
+                    
+                    // Dosya adı oluştur (uzantıyı doğru al)
+                    const originalName = item.file.name
+                    const lastDotIndex = originalName.lastIndexOf('.')
+                    const fileExt = lastDotIndex > 0 ? originalName.substring(lastDotIndex + 1).toLowerCase() : 'bin'
+                    const baseName = originalName.substring(0, lastDotIndex > 0 ? lastDotIndex : originalName.length)
+                    const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 50)
+                    const fileName = `${sanitizedBaseName}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+                    // Storage policy'ye uygun: ilk klasör kullanıcı ID'si olmalı
+                    const filePath = `${userId}/feedback/${fileName}`
 
-                    const { error: uploadError } = await supabase.storage
-                        .from('feedback-attachments')
-                        .upload(filePath, item.file)
+                    try {
+                        // Progress göster
+                        setUploadProgress(prev => ({ ...prev, [index]: 0 }))
+                        const fileSizeMB = (item.file.size / 1024 / 1024).toFixed(2)
+                        toast.loading(`Dosya yükleniyor... (${index + 1}/${files.length}) - ${fileSizeMB}MB`, { id: `upload-${index}` })
 
-                    if (uploadError) throw uploadError
+                        // Dosya boyutuna göre dinamik timeout (her MB için 10 saniye, minimum 60, maksimum 600 saniye)
+                        const timeoutMs = Math.min(Math.max(item.file.size / 1024 / 1024 * 10000, 60000), 600000)
 
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('feedback-attachments')
-                        .getPublicUrl(filePath)
+                        console.log(`[Feedback Upload] Starting upload for file ${index + 1}/${files.length}:`, {
+                            fileName: item.file.name,
+                            fileSize: fileSizeMB + 'MB',
+                            fileType: item.file.type,
+                            timeout: timeoutMs / 1000 + 's',
+                            filePath
+                        })
 
-                    attachmentUrls.push(publicUrl)
+                        // Timeout ID'yi sakla
+                        let timeoutId: NodeJS.Timeout | null = null
+
+                        // Upload promise'i oluştur
+                        const uploadPromise = supabase.storage
+                            .from('feedback-attachments')
+                            .upload(filePath, item.file, {
+                                cacheControl: '3600',
+                                upsert: false
+                            })
+                            .then((result) => {
+                                // Timeout'u temizle
+                                if (timeoutId) {
+                                    clearTimeout(timeoutId)
+                                    timeoutId = null
+                                }
+                                return result
+                            })
+                            .catch((error) => {
+                                // Timeout'u temizle
+                                if (timeoutId) {
+                                    clearTimeout(timeoutId)
+                                    timeoutId = null
+                                }
+                                throw error
+                            })
+
+                        // Timeout promise'i (dinamik)
+                        const timeoutPromise = new Promise<never>((_, reject) => {
+                            timeoutId = setTimeout(() => {
+                                timeoutId = null
+                                console.error(`[Feedback Upload] Timeout for file ${index + 1}:`, item.file.name)
+                                reject(new Error('UPLOAD_TIMEOUT'))
+                            }, timeoutMs)
+                        })
+
+                        // Race ile timeout kontrolü
+                        const result = await Promise.race([uploadPromise, timeoutPromise])
+
+                        // Timeout'u temizle (eğer hala varsa)
+                        if (timeoutId) {
+                            clearTimeout(timeoutId)
+                            timeoutId = null
+                        }
+
+                        // Upload hatası kontrolü
+                        if (result.error) {
+                            console.error(`[Feedback Upload] Upload error for file ${index + 1}:`, {
+                                fileName: item.file.name,
+                                error: result.error
+                            })
+                            throw new Error(result.error.message || 'Dosya yükleme hatası')
+                        }
+
+                        console.log(`[Feedback Upload] Upload successful for file ${index + 1}:`, {
+                            fileName: item.file.name,
+                            path: result.path
+                        })
+
+                        // Signed URL al (private bucket için)
+                        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                            .from('feedback-attachments')
+                            .createSignedUrl(filePath, 31536000) // 1 yıl geçerli
+
+                        if (signedUrlError) {
+                            console.error(`[Feedback Upload] Signed URL error:`, signedUrlError)
+                            // Fallback: Public URL dene
+                            const { data: { publicUrl } } = supabase.storage
+                                .from('feedback-attachments')
+                                .getPublicUrl(filePath)
+                            attachmentUrls.push(publicUrl)
+                        } else {
+                            attachmentUrls.push(signedUrlData.signedUrl)
+                        }
+
+                        setUploadProgress(prev => ({ ...prev, [index]: 100 }))
+                        toast.success(`Dosya yüklendi (${index + 1}/${files.length})`, { id: `upload-${index}` })
+
+                    } catch (uploadError: unknown) {
+                        let errorMessage = 'Dosya yükleme hatası'
+                        
+                        if (uploadError instanceof Error) {
+                            if (uploadError.message === 'UPLOAD_TIMEOUT') {
+                                const fileSizeMB = (item.file.size / 1024 / 1024).toFixed(2)
+                                errorMessage = `Dosya yükleme zaman aşımına uğradı (${fileSizeMB}MB). Lütfen daha küçük bir dosya deneyin (maksimum 50MB) veya internet bağlantınızı kontrol edin.`
+                            } else if (uploadError.message.includes('çok büyük')) {
+                                errorMessage = uploadError.message
+                            } else {
+                                errorMessage = uploadError.message
+                            }
+                        }
+                        
+                        toast.error(`Dosya yükleme başarısız: ${errorMessage}`, { id: `upload-${index}`, duration: 5000 })
+                        throw new Error(`Dosya yükleme hatası (${item.file.name}): ${errorMessage}`)
+                    }
                 }
+                
                 setUploading(false)
+                setUploadProgress({})
             }
 
+            // Feedback gönder
+            toast.loading("Geri bildirim gönderiliyor...", { id: 'feedback-send' })
+            
             await sendFeedback({
                 subject,
                 message,
@@ -100,19 +236,20 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                 attachments: attachmentUrls
             })
 
-            toast.success("Geri bildiriminiz için teşekkürler! Ekibimiz en kısa sürede inceleyecektir.")
+            toast.success("Geri bildiriminiz için teşekkürler! Ekibimiz en kısa sürede inceleyecektir.", { id: 'feedback-send' })
             setOpen(false)
             setSubject("")
             setMessage("")
             setFiles([])
-            setFiles([])
+            setUploadProgress({})
         } catch (error: unknown) {
-            console.error(error)
+            console.error("Feedback submit error:", error)
             const msg = error instanceof Error ? error.message : "Bir hata oluştu, lütfen tekrar deneyin."
-            toast.error(msg)
+            toast.error(msg, { id: 'feedback-send' })
         } finally {
             setLoading(false)
             setUploading(false)
+            setUploadProgress({})
         }
     }
 
@@ -164,26 +301,39 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                         <div className="space-y-2">
                             <Label>Dosya Ekle (Opsiyonel)</Label>
                             <div className="flex flex-wrap gap-2">
-                                {files.map((file, index) => (
-                                    <div key={index} className="relative w-20 h-20 rounded-lg border overflow-hidden group">
-                                        {file.type.startsWith('image/') ? (
-                                            <div className="relative w-full h-full">
-                                                <NextImage src={file.preview} alt="" fill className="object-cover" unoptimized />
-                                            </div>
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-100">
-                                                <Film className="w-8 h-8 text-slate-400" />
-                                            </div>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => removeFile(index)}
-                                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                ))}
+                                {files.map((file, index) => {
+                                    const progress = uploadProgress[index]
+                                    const isUploading = uploading && progress !== undefined && progress < 100
+                                    
+                                    return (
+                                        <div key={index} className="relative w-20 h-20 rounded-lg border overflow-hidden group">
+                                            {file.type.startsWith('image/') ? (
+                                                <div className="relative w-full h-full">
+                                                    <NextImage src={file.preview} alt="" fill className="object-cover" unoptimized />
+                                                </div>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                                                    <Film className="w-8 h-8 text-slate-400" />
+                                                </div>
+                                            )}
+                                            {isUploading && (
+                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                                </div>
+                                            )}
+                                            {!isUploading && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFile(index)}
+                                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    disabled={loading}
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })}
                                 {files.length < 5 && (
                                     <button
                                         type="button"

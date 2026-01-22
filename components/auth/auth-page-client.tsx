@@ -138,7 +138,7 @@ export function AuthPageClient() {
                 {/* Middle Content */}
                 <div className="relative z-10 max-w-lg">
                     <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-                        {t('marketing.heroTitle') || "Dakikalar içinde harika ürün katalogları oluşturun"}
+                        {t('landing.heroTitle')} {t('landing.heroTitleHighlight')} {t('landing.heroTitleEnd')}
                     </h2>
                     <ul className="space-y-4 mb-8">
                         <li className="flex items-center gap-3 text-white/80">

@@ -205,6 +205,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                         logoUrl={catalog.logo_url}
                         logoPosition={catalog.logo_position}
                         logoSize={catalog.logo_size}
+                        productImageFit={catalog.product_image_fit || 'cover'}
                       />
                     </ResponsiveContainer>
 

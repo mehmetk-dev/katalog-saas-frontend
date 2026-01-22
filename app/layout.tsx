@@ -10,14 +10,13 @@ const inter = Inter({
   display: 'swap',
   preload: true,
 })
-
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://catalogpro.app'
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "CatalogPro - Profesyonel Ürün Katalog Oluşturucu",
-    template: "%s | CatalogPro",
+    default: "FogCatalog - Profesyonel Ürün Katalog Oluşturucu",
+    template: "%s | FogCatalog",
   },
   description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. PDF indirme, QR kod, şablonlar ve daha fazlası. Ücretsiz başlayın!",
   keywords: [
@@ -32,9 +31,9 @@ export const metadata: Metadata = {
     "B2B katalog",
     "toptan katalog"
   ],
-  authors: [{ name: "CatalogPro", url: siteUrl }],
-  creator: "CatalogPro",
-  publisher: "CatalogPro",
+  authors: [{ name: "FogCatalog", url: siteUrl }],
+  creator: "FogCatalog",
+  publisher: "FogCatalog",
   robots: {
     index: true,
     follow: true,
@@ -51,24 +50,24 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     alternateLocale: "en_US",
     url: siteUrl,
-    siteName: "CatalogPro",
-    title: "CatalogPro - Profesyonel Ürün Katalog Oluşturucu",
+    siteName: "FogCatalog",
+    title: "FogCatalog - Profesyonel Ürün Katalog Oluşturucu",
     description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. PDF indirme, QR kod, şablonlar ve daha fazlası.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "CatalogPro - Dijital Katalog Platformu",
+        alt: "FogCatalog - Dijital Katalog Platformu",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CatalogPro - Profesyonel Ürün Katalog Oluşturucu",
+    title: "FogCatalog - Profesyonel Ürün Katalog Oluşturucu",
     description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.",
     images: ["/og-image.png"],
-    creator: "@catalogpro",
+    creator: "@fogcatalog",
   },
   alternates: {
     canonical: siteUrl,
@@ -104,14 +103,14 @@ export const viewport: Viewport = {
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'CatalogPro',
+  name: 'FogCatalog',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description: 'Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.',
   url: siteUrl,
   author: {
     '@type': 'Organization',
-    name: 'CatalogPro',
+    name: 'FogCatalog',
     url: siteUrl,
   },
   offers: {
@@ -146,7 +145,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="CatalogPro" />
+        <meta name="apple-mobile-web-app-title" content="FogCatalog" />
         {/* DNS Prefetch for external resources */}
         <link rel="dns-prefetch" href="//fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

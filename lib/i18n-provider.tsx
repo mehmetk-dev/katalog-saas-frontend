@@ -40,14 +40,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         const keys = path.split(".")
         let current: unknown = translations[language]
 
+        // Navigate through the translation object
         for (const key of keys) {
-            if (current && typeof current === 'object' && key in current) {
+            if (current && typeof current === 'object' && !Array.isArray(current) && key in current) {
                 current = (current as Record<string, unknown>)[key]
             } else {
                 // Fallback to Turkish if key not found in current language
                 let fallback: unknown = translations.tr
                 for (const k of keys) {
-                    if (fallback && typeof fallback === 'object' && k in fallback) {
+                    if (fallback && typeof fallback === 'object' && !Array.isArray(fallback) && k in fallback) {
                         fallback = (fallback as Record<string, unknown>)[k]
                     } else {
                         console.warn(`Translation missing for key: ${path}`)
@@ -57,14 +58,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
                 current = fallback
                 break
             }
-            if (current && typeof current === 'object' && key in current) {
-                current = (current as Record<string, unknown>)[key]
-            } else {
-                break
-            }
         }
 
-        let result = current as string
+        // If current is still an object, it means the path points to an object, not a string
+        // This happens when someone calls t('header') instead of t('header.features')
+        if (current && typeof current === 'object' && !Array.isArray(current)) {
+            console.warn(`Translation key "${path}" points to an object, not a string. Use a more specific key like "${path}.propertyName"`)
+            return path
+        }
+
+        let result = typeof current === 'string' ? current : String(current || path)
 
         if (params && typeof result === 'string') {
             Object.entries(params).forEach(([key, value]) => {

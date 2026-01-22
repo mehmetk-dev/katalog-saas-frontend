@@ -30,6 +30,21 @@ const requiredEnvVars: EnvVar[] = [
         required: false,
         description: 'Backend API URL'
     },
+    {
+        key: 'RESEND_API_KEY',
+        required: false,
+        description: 'Resend API key for sending emails (optional, needed for feedback email notifications)'
+    },
+    {
+        key: 'ADMIN_EMAIL',
+        required: false,
+        description: 'Admin email address for receiving feedback notifications (optional)'
+    },
+    {
+        key: 'RESEND_FROM_EMAIL',
+        required: false,
+        description: 'From email address for Resend (optional, defaults to "CatalogPro <onboarding@resend.dev>")'
+    },
 ]
 
 export function validateEnv(): { valid: boolean; errors: string[] } {

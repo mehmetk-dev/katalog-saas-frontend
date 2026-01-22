@@ -2,8 +2,8 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 
 export const metadata = {
-  title: "Gizlilik Politikası | CatalogPro",
-  description: "CatalogPro gizlilik politikası ve kişisel verilerin korunması.",
+  title: "Gizlilik Politikası | FogCatalog",
+  description: "FogCatalog gizlilik politikası ve kişisel verilerin korunması.",
 }
 
 export default function PrivacyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-semibold text-slate-900 mb-4">1. Toplanan Veriler</h2>
               <p className="text-slate-600 leading-relaxed mb-4">
-                CatalogPro olarak, hizmetlerimizi sunabilmek için bazı kişisel verilerinizi topluyoruz.
+                FogCatalog olarak, hizmetlerimizi sunabilmek için bazı kişisel verilerinizi topluyoruz.
               </p>
               <ul className="space-y-2 text-slate-600">
                 <li className="flex gap-3">
@@ -71,8 +71,8 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-semibold text-slate-900 mb-4">5. İletişim</h2>
               <p className="text-slate-600 leading-relaxed">
                 Gizlilik ile ilgili sorularınız için{' '}
-                <a href="mailto:destek@catalogpro.app" className="text-violet-600 hover:underline">
-                  destek@catalogpro.app
+                <a href="mailto:destek@fogcatalog.app" className="text-violet-600 hover:underline">
+                  destek@fogcatalog.app
                 </a>{' '}
                 adresinden bize ulaşabilirsiniz.
               </p>

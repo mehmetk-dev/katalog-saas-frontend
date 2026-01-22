@@ -10,7 +10,7 @@ interface SEOProps {
     noIndex?: boolean
 }
 
-const DEFAULT_TITLE = 'CatalogPro - Ürün Katalog Oluşturucu'
+const DEFAULT_TITLE = 'FogCatalog - Ürün Katalog Oluşturucu'
 const DEFAULT_DESCRIPTION = 'Dakikalar içinde profesyonel ürün katalogları oluşturun. 15+ şablon, PDF export ve paylaşılabilir linkler.'
 const DEFAULT_IMAGE = '/hero-dashboard.webp'
 
@@ -23,8 +23,8 @@ export function generateSEO({
     type = 'website',
     noIndex = false,
 }: SEOProps): Metadata {
-    const fullTitle = title ? `${title} | CatalogPro` : DEFAULT_TITLE
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://catalogpro.app'
+    const fullTitle = title ? `${title} | FogCatalog` : DEFAULT_TITLE
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.app'
     const fullUrl = url ? `${baseUrl}${url}` : baseUrl
     const fullImage = image.startsWith('http') ? image : `${baseUrl}${image}`
 
@@ -32,13 +32,13 @@ export function generateSEO({
         title: fullTitle,
         description,
         keywords,
-        authors: [{ name: 'CatalogPro' }],
+        authors: [{ name: 'FogCatalog' }],
         robots: noIndex ? 'noindex, nofollow' : 'index, follow',
         openGraph: {
             title: fullTitle,
             description,
             url: fullUrl,
-            siteName: 'CatalogPro',
+            siteName: 'FogCatalog',
             images: [
                 {
                     url: fullImage,
@@ -76,23 +76,23 @@ export const SEO_CONFIG = {
     }),
     howItWorks: generateSEO({
         title: 'Nasıl Çalışır',
-        description: 'CatalogPro ile profesyonel katalog oluşturmanın 4 kolay adımı.',
+        description: 'FogCatalog ile profesyonel katalog oluşturmanın 4 kolay adımı.',
         url: '/how-it-works',
     }),
     contact: generateSEO({
         title: 'İletişim',
-        description: 'CatalogPro destek ekibiyle iletişime geçin.',
+        description: 'FogCatalog destek ekibiyle iletişime geçin.',
         url: '/contact',
     }),
     auth: generateSEO({
         title: 'Giriş Yap',
-        description: 'CatalogPro hesabınıza giriş yapın veya yeni hesap oluşturun.',
+        description: 'FogCatalog hesabınıza giriş yapın veya yeni hesap oluşturun.',
         url: '/auth',
         noIndex: true,
     }),
     dashboard: generateSEO({
         title: 'Dashboard',
-        description: 'CatalogPro kontrol paneli',
+        description: 'FogCatalog kontrol paneli',
         url: '/dashboard',
         noIndex: true,
     }),

@@ -10,6 +10,10 @@ export function ModernGridTemplate({
     showDescriptions,
     showAttributes,
     showSku,
+    // YENİ ÖZELLİK: showUrls - Ürün URL'lerinin tıklanabilir olup olmayacağını kontrol eder
+    // showUrls=true ve product_url varsa -> kart tıklanabilir (a tag)
+    // showUrls=false veya product_url yoksa -> kart tıklanabilir değil (div tag)
+    showUrls = false,
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
@@ -17,6 +21,11 @@ export function ModernGridTemplate({
     logoPosition,
     logoSize,
     titlePosition = 'left',
+    // YENİ ÖZELLİK: productImageFit - Ürün fotoğraflarının hizalanma şeklini kontrol eder
+    // 'cover' (varsayılan): Fotoğraf alanı doldurur, kırpılabilir
+    // 'contain': Fotoğraf tamamen görünür, boşluklar olabilir
+    // 'fill': Fotoğraf alanı doldurur, oran bozulabilir
+    productImageFit = 'cover',
 }: TemplateProps) {
     const HEADER_HEIGHT = "56px"
 
@@ -52,8 +61,11 @@ export function ModernGridTemplate({
 
     // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
     const renderHeaderContent = (isFirstPage: boolean) => {
-        const textColor = isFirstPage ? 'text-white' : 'text-gray-600'
-        const textSize = isFirstPage ? 'text-lg font-bold' : 'text-sm font-medium'
+        // DEĞİŞİKLİK: Tüm sayfalarda header renkli olduğu için text her zaman beyaz
+        // ÖNCE: İlk sayfada beyaz, diğer sayfalarda gri
+        // ŞİMDİ: Tüm sayfalarda beyaz ve kalın
+        const textColor = 'text-white'
+        const textSize = 'text-lg font-bold'
 
         // Sol bölge
         const leftContent = (
@@ -98,7 +110,8 @@ export function ModernGridTemplate({
         // Sağ bölge
         const rightContent = (
             <div className="flex items-center gap-3">
-                {!isFirstPage && <span className="text-sm text-gray-400">Sayfa {pageNumber}</span>}
+                {/* DEĞİŞİKLİK: Sayfa numarası header'dan kaldırıldı, sadece footer'da gösteriliyor */}
+                {/* ÖNCE: {!isFirstPage && <span className="text-sm text-gray-400">Sayfa {pageNumber}</span>} */}
                 {titlePosition === 'right' && (
                     <span className={`${textSize} ${textColor} tracking-tight`}>{catalogName || "Katalog"}</span>
                 )}
@@ -128,21 +141,28 @@ export function ModernGridTemplate({
     return (
         <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
             {/* Header */}
+            {/* DEĞİŞİKLİK: Tüm sayfalarda header renkli (primaryColor) */}
+            {/* ÖNCE: style={{ backgroundColor: pageNumber === 1 ? primaryColor : 'transparent' }} */}
+            {/* ŞİMDİ: Tüm sayfalarda primaryColor */}
             <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
                 <div
                     className={`h-full px-6 flex items-center ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}
-                    style={{ backgroundColor: pageNumber === 1 ? primaryColor : 'transparent' }}
+                    style={{ backgroundColor: primaryColor }}
                 >
                     {renderHeaderContent(pageNumber === 1)}
                 </div>
             </div>
 
             {/* Grid İçerik */}
+            {/* ÖNEMLİ: Kart yapısı değiştirilmedi - aspect-[4/3] fotoğraf ve flex-1 bilgiler alanı korundu */}
             <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`}>
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = productUrl ? 'a' : 'div'
-                    const wrapperProps = productUrl ? {
+                    // YENİ ÖZELLİK: showUrls kontrolü - showUrls=true ve URL varsa tıklanabilir, yoksa değil
+                    // ÖNCE: Her zaman productUrl varsa tıklanabilirdi
+                    // ŞİMDİ: showUrls=true VE productUrl varsa tıklanabilir
+                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
@@ -153,16 +173,20 @@ export function ModernGridTemplate({
 
                     return (
                         <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            {/* Görsel */}
+                            {/* Görsel - KART YAPISI KORUNDU: aspect-[4/3] sabit oran, değiştirilmedi */}
                             <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
+                                {/* YENİ ÖZELLİK: productImageFit - Fotoğraf hizalaması */}
+                                {/* ÖNCE: className="object-cover" (sadece cover) */}
+                                {/* ŞİMDİ: productImageFit'e göre contain/fill/cover */}
                                 <NextImage
                                     src={product.image_url || product.images?.[0] || "/placeholder.svg"}
                                     alt={product.name}
                                     fill
                                     unoptimized
-                                    className="object-cover"
+                                    className={productImageFit === 'contain' ? 'object-contain' : productImageFit === 'fill' ? 'object-fill' : 'object-cover'}
                                 />
-                                {productUrl && (
+                                {/* YENİ ÖZELLİK: showUrls açıksa ve URL varsa link ikonu göster */}
+                                {(showUrls && productUrl) && (
                                     <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
                                         <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -171,7 +195,7 @@ export function ModernGridTemplate({
                                 )}
                             </div>
 
-                            {/* Bilgiler */}
+                            {/* Bilgiler - KART YAPISI KORUNDU: flex-1 flex flex-col, değiştirilmedi */}
                             <div className="p-3 flex-1 flex flex-col">
                                 <div className="flex justify-between items-start gap-2 mb-1">
                                     <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">{product.name}</h3>
@@ -212,8 +236,11 @@ export function ModernGridTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-8 px-8 flex items-center justify-center border-t border-gray-100 shrink-0">
-                <span className="text-[10px] text-gray-400">{catalogName} • Sayfa {pageNumber} / {totalPages}</span>
+            {/* DEĞİŞİKLİK: Footer daha büyük ve kalın yapıldı */}
+            {/* ÖNCE: h-8, text-[10px] text-gray-400 */}
+            {/* ŞİMDİ: h-12, text-sm font-semibold text-gray-600 */}
+            <div className="h-12 px-8 flex items-center justify-center border-t border-gray-100 shrink-0">
+                <span className="text-sm font-semibold text-gray-600">{catalogName} • Sayfa {pageNumber} / {totalPages}</span>
             </div>
         </div>
     )

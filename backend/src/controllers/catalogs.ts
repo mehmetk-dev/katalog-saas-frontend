@@ -221,7 +221,15 @@ export const createCatalog = async (req: Request, res: Response) => {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            // Unique constraint violation için özel hata mesajı
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({ 
+                    error: 'Bu slug zaten kullanılıyor. Lütfen tekrar deneyin.' 
+                });
+            }
+            throw error;
+        }
 
         // Cache'i temizle
         await deleteCache(cacheKeys.catalogs(userId));
@@ -321,7 +329,15 @@ export const updateCatalog = async (req: Request, res: Response) => {
             .eq('id', id)
             .eq('user_id', userId);
 
-        if (error) throw error;
+        if (error) {
+            // Unique constraint violation için özel hata mesajı
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({ 
+                    error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.' 
+                });
+            }
+            throw error;
+        }
 
         // Cache'leri temizle
         await deleteCache(cacheKeys.catalogs(userId));
@@ -567,32 +583,80 @@ const smartIncrementViewCount = async (
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
+        
+        // TimeRange parametresini al (7d, 30d, 90d) - varsayılan 30d
+        const timeRange = (req.query.timeRange as string) || '30d';
+        const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
 
         const [catalogsResult, productsResult] = await Promise.all([
             supabase
                 .from('catalogs')
-                .select('id, name, view_count, is_published, created_at')
-                .eq('user_id', userId)
-                .order('view_count', { ascending: false }),
+                .select('id, name, is_published, created_at')
+                .eq('user_id', userId),
             supabase
                 .from('products')
                 .select('id', { count: 'exact' })
                 .eq('user_id', userId),
         ]);
 
+        if (catalogsResult.error) {
+            console.error('Error fetching catalogs:', catalogsResult.error);
+            throw new Error('Failed to fetch catalogs');
+        }
+
+        if (productsResult.error) {
+            console.error('Error fetching products:', productsResult.error);
+            throw new Error('Failed to fetch products');
+        }
+
         const catalogs = catalogsResult.data || [];
         const productCount = productsResult.count || 0;
+
+        // catalog_views tablosundan gerçek view sayılarını al
+        const catalogIds = catalogs.map(c => c.id);
+        let verifiedTotalViews = 0;
+        const viewCountMap = new Map<string, number>();
+
+        if (catalogIds.length > 0) {
+            try {
+                // Her katalog için catalog_views tablosundan gerçek sayıyı al
+                const { data: viewCounts, error: viewCountError } = await supabase
+                    .from('catalog_views')
+                    .select('catalog_id')
+                    .in('catalog_id', catalogIds)
+                    .eq('is_owner', false);
+
+                if (!viewCountError && viewCounts) {
+                    // Her katalog için view sayısını hesapla
+                    viewCounts.forEach(v => {
+                        const count = viewCountMap.get(v.catalog_id) || 0;
+                        viewCountMap.set(v.catalog_id, count + 1);
+                    });
+                    verifiedTotalViews = viewCounts.length;
+                } else {
+                    console.warn('Could not fetch view counts from catalog_views table:', viewCountError);
+                }
+            } catch (error) {
+                console.error('Error fetching view counts:', error);
+            }
+        }
+
+        // Top catalogs için gerçek view sayılarını kullan
+        const topCatalogs = catalogs
+            .map(c => ({
+                id: c.id,
+                name: c.name,
+                views: viewCountMap.get(c.id) || 0,
+            }))
+            .sort((a, b) => b.views - a.views)
+            .slice(0, 5);
 
         const stats = {
             totalCatalogs: catalogs.length,
             publishedCatalogs: catalogs.filter(c => c.is_published).length,
-            totalViews: catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0),
+            totalViews: verifiedTotalViews, // Doğrulanmış view sayısı
             totalProducts: productCount,
-            topCatalogs: catalogs.slice(0, 5).map(c => ({
-                id: c.id,
-                name: c.name,
-                views: c.view_count || 0,
-            })),
+            topCatalogs,
         };
 
         const detailedStats = {
@@ -601,28 +665,37 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             dailyViews: [] as { view_date: string; view_count: number }[],
         };
 
-        try {
-            const catalogIds = catalogs.map(c => c.id);
+        // Detaylı analitik verilerini çek
+        if (catalogIds.length > 0) {
+            try {
+                const dateThreshold = new Date();
+                dateThreshold.setDate(dateThreshold.getDate() - days);
+                const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
 
-            if (catalogIds.length > 0) {
-                const { data: uniqueData } = await supabase
+                // Unique visitors (belirtilen zaman aralığında)
+                const { data: uniqueData, error: uniqueError } = await supabase
                     .from('catalog_views')
                     .select('visitor_hash')
                     .in('catalog_id', catalogIds)
-                    .eq('is_owner', false);
+                    .eq('is_owner', false)
+                    .gte('view_date', dateThresholdStr);
 
-                if (uniqueData) {
+                if (!uniqueError && uniqueData) {
                     const uniqueHashes = new Set(uniqueData.map(d => d.visitor_hash));
                     detailedStats.uniqueVisitors = uniqueHashes.size;
+                } else if (uniqueError) {
+                    console.error('Error fetching unique visitors:', uniqueError);
                 }
 
-                const { data: deviceData } = await supabase
+                // Device stats (belirtilen zaman aralığında)
+                const { data: deviceData, error: deviceError } = await supabase
                     .from('catalog_views')
                     .select('device_type')
                     .in('catalog_id', catalogIds)
-                    .eq('is_owner', false);
+                    .eq('is_owner', false)
+                    .gte('view_date', dateThresholdStr);
 
-                if (deviceData && deviceData.length > 0) {
+                if (!deviceError && deviceData && deviceData.length > 0) {
                     const deviceCounts: Record<string, number> = {};
                     deviceData.forEach(d => {
                         const type = d.device_type || 'unknown';
@@ -635,19 +708,19 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                         view_count: count,
                         percentage: Math.round((count / total) * 100)
                     })).sort((a, b) => b.view_count - a.view_count);
+                } else if (deviceError) {
+                    console.error('Error fetching device stats:', deviceError);
                 }
 
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-                const { data: dailyData } = await supabase
+                // Daily views (belirtilen zaman aralığında)
+                const { data: dailyData, error: dailyError } = await supabase
                     .from('catalog_views')
                     .select('view_date')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
-                    .gte('view_date', thirtyDaysAgo.toISOString().split('T')[0]);
+                    .gte('view_date', dateThresholdStr);
 
-                if (dailyData && dailyData.length > 0) {
+                if (!dailyError && dailyData && dailyData.length > 0) {
                     const dailyCounts: Record<string, number> = {};
                     dailyData.forEach(d => {
                         const date = d.view_date;
@@ -657,15 +730,19 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                     detailedStats.dailyViews = Object.entries(dailyCounts)
                         .map(([date, count]) => ({ view_date: date, view_count: count }))
                         .sort((a, b) => a.view_date.localeCompare(b.view_date));
+                } else if (dailyError) {
+                    console.error('Error fetching daily views:', dailyError);
                 }
+            } catch (error) {
+                // Detaylı analitik hatalarını logla ama işlemi durdurma
+                console.error('Error fetching detailed analytics:', error);
             }
-        } catch {
-            // Detailed analytics fail silently
         }
 
         res.json({ ...stats, ...detailedStats });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error in getDashboardStats:', error);
         res.status(500).json({ error: errorMessage });
     }
 };

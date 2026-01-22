@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
     Users,
     Eye,
@@ -21,7 +21,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-provider"
-import { DashboardStats, Catalog } from "@/lib/actions/catalogs"
+import { DashboardStats, Catalog, getDashboardStats } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
 
 interface AnalyticsClientProps {
@@ -38,22 +38,72 @@ function calculateTrend(currentValue: number, previousValue: number): { value: n
     return { value: Math.abs(Math.round(percentChange * 10) / 10), isPositive: percentChange >= 0 }
 }
 
-export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
+export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClientProps) {
     const { t, language } = useTranslation()
     const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d")
+    const [stats, setStats] = useState<DashboardStats | null>(initialStats)
+    const [isLoading, setIsLoading] = useState(false)
 
-    // Gerçek veriler
-    const totalViews = stats?.totalViews || 0
-    const publishedCatalogs = stats?.publishedCatalogs || catalogs.filter(c => c.is_published).length
-    const totalCatalogs = stats?.totalCatalogs || catalogs.length
-    const topCatalogs = stats?.topCatalogs || []
+    // TimeRange değiştiğinde veriyi yeniden çek
+    useEffect(() => {
+        const fetchStats = async () => {
+            setIsLoading(true)
+            try {
+                const newStats = await getDashboardStats(timeRange)
+                if (newStats) {
+                    setStats(newStats)
+                }
+            } catch (error) {
+                console.error("Error fetching stats for timeRange:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
 
-    // Gerçek unique visitors (API'den gelen)
-    const uniqueVisitors = stats?.uniqueVisitors || 0
+        // TimeRange değiştiğinde her zaman API'den çek
+        // İlk render'da initialStats zaten set edilmiş (useState ile)
+        fetchStats()
+    }, [timeRange]) // initialStats'ı dependency'den çıkardık çünkü sadece ilk render'da kullanılıyor
 
-    // Cihaz verilerini formatla
+    // Veri validasyonu: stats null veya geçersizse fallback kullan
+    const validatedStats = stats || {
+        totalViews: 0,
+        publishedCatalogs: 0,
+        totalCatalogs: 0,
+        totalProducts: 0,
+        topCatalogs: [],
+        uniqueVisitors: 0,
+        deviceStats: [],
+        dailyViews: []
+    }
+
+    // Gerçek veriler (validated stats kullan)
+    const totalViews = validatedStats.totalViews || 0
+    const publishedCatalogs = validatedStats.publishedCatalogs ?? catalogs.filter(c => c.is_published).length
+    const totalCatalogs = validatedStats.totalCatalogs ?? catalogs.length
+    
+    // Top catalogs - validated stats kullan
+    const topCatalogs = useMemo(() => {
+        if (validatedStats.topCatalogs && validatedStats.topCatalogs.length > 0) {
+            return validatedStats.topCatalogs
+        }
+        // API'den gelmediyse, mevcut katalogları görüntülenme sayısına göre sırala
+        return catalogs
+            .map(catalog => ({
+                id: catalog.id,
+                name: catalog.name,
+                views: catalog.view_count || 0
+            }))
+            .sort((a, b) => b.views - a.views)
+            .slice(0, 5) // En fazla 5 katalog göster
+    }, [validatedStats.topCatalogs, catalogs])
+
+    // Gerçek unique visitors (validated stats kullan)
+    const uniqueVisitors = validatedStats.uniqueVisitors || 0
+
+    // Cihaz verilerini formatla (validated stats kullan)
     const deviceData = useMemo(() => {
-        const realDeviceStats = stats?.deviceStats || []
+        const realDeviceStats = validatedStats.deviceStats || []
         if (realDeviceStats.length > 0) {
             return realDeviceStats.map(d => ({
                 name: d.device_type === 'mobile' ? (language === 'tr' ? 'Mobil' : 'Mobile') :
@@ -75,9 +125,9 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
         // Smartphone, Tablet, Monitor are stable icon imports
     }, [stats?.deviceStats, language])
 
-    // Haftalık görüntülenme verileri (son 12 hafta)
+    // Haftalık görüntülenme verileri (son 12 hafta) - validated stats kullan
     const viewData = useMemo(() => {
-        const realDailyViews = stats?.dailyViews || []
+        const realDailyViews = validatedStats.dailyViews || []
         if (realDailyViews.length > 0) {
             // Günlük verileri haftalık gruplara böl
             const weeklyData: number[] = []
@@ -104,7 +154,7 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
         }
         // Veri yoksa boş dizi
         return []
-    }, [stats?.dailyViews])
+    }, [validatedStats.dailyViews])
 
     // Trend hesaplama
     const lastWeekViews = viewData.length >= 2 ? viewData[viewData.length - 1] : 0
@@ -141,6 +191,11 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
                             <BarChart3 className="w-6 h-6 text-white" />
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t("dashboard.analytics.title")}</h1>
+                        {isLoading && (
+                            <div className="ml-2 text-sm text-muted-foreground animate-pulse">
+                                {language === 'tr' ? 'Yükleniyor...' : 'Loading...'}
+                            </div>
+                        )}
                     </div>
                     <p className="text-muted-foreground">
                         {t("dashboard.analytics.subtitle")}
@@ -153,11 +208,13 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
+                            disabled={isLoading}
                             className={cn(
                                 "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                                 timeRange === range
                                     ? "bg-background text-foreground shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground"
+                                    : "text-muted-foreground hover:text-foreground",
+                                isLoading && "opacity-50 cursor-not-allowed"
                             )}
                         >
                             {range === "7d" ? (language === 'tr' ? "7 Gün" : "7 Days") :
@@ -280,7 +337,7 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{stats?.totalProducts || 0}</div>
+                        <div className="text-3xl font-bold">{validatedStats.totalProducts || 0}</div>
                         <div className="flex items-center gap-1 mt-2">
                             <span className="text-xs text-muted-foreground">
                                 {language === 'tr' ? 'Envanterinizdeki ürünler' : 'Products in your inventory'}
@@ -418,7 +475,7 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
-                        {topCatalogs.length === 0 ? (
+                        {topCatalogs.length === 0 && catalogs.length === 0 ? (
                             <div className="p-8 text-center">
                                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                                     <BarChart3 className="w-8 h-8 text-muted-foreground/50" />
@@ -434,31 +491,33 @@ export function AnalyticsClient({ stats, catalogs }: AnalyticsClientProps) {
                         ) : (
                             <div className="divide-y">
                                 {topCatalogs.map((catalog, i) => {
-                                    const maxViews = topCatalogs[0]?.views || 1
-                                    const percentage = (catalog.views / maxViews) * 100
+                                    const maxViews = Math.max(...topCatalogs.map(c => c.views), 1)
+                                    const percentage = maxViews > 0 ? (catalog.views / maxViews) * 100 : 0
                                     return (
                                         <div key={catalog.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group">
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-4 flex-1 min-w-0">
                                                 <div className={cn(
-                                                    "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
-                                                    i === 0 ? "bg-amber-100 text-amber-700" :
-                                                        i === 1 ? "bg-slate-100 text-slate-700" :
-                                                            i === 2 ? "bg-orange-100 text-orange-700" :
+                                                    "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0",
+                                                    i === 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                                        i === 1 ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" :
+                                                            i === 2 ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
                                                                 "bg-muted text-muted-foreground"
                                                 )}>
                                                     #{i + 1}
                                                 </div>
-                                                <div>
-                                                    <p className="font-semibold group-hover:text-violet-600 transition-colors">{catalog.name}</p>
-                                                    <p className="text-xs text-muted-foreground">ID: {catalog.id.slice(0, 8)}...</p>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-semibold group-hover:text-violet-600 transition-colors truncate">{catalog.name}</p>
+                                                    <p className="text-xs text-muted-foreground truncate">
+                                                        {language === 'tr' ? 'Görüntülenme' : 'Views'}: {catalog.views.toLocaleString()}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="text-right shrink-0 ml-4">
                                                 <p className="font-bold text-lg">{catalog.views.toLocaleString()}</p>
                                                 <div className="w-24 h-2 bg-muted rounded-full mt-1 overflow-hidden">
                                                     <div
                                                         className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all"
-                                                        style={{ width: `${percentage}%` }}
+                                                        style={{ width: `${Math.max(percentage, 2)}%` }}
                                                     />
                                                 </div>
                                             </div>

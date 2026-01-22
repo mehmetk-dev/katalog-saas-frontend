@@ -1745,9 +1745,9 @@ export const translations = {
         },
         landing: {
             badge: "Digital Catalog Platform",
-            heroTitle: "Create Product Catalogs That Wow Your Customers",
-            heroTitleHighlight: "In Minutes",
-            heroTitleEnd: "",
+            heroTitle: "Create Product Catalogs",
+            heroTitleHighlight: "That Wow Your Customers",
+            heroTitleEnd: "In Minutes",
             heroSubtitle: "Pull products from Excel, choose a template, and share without needing a designer. Start increasing your sales immediately.",
             startNow: "Start Now",
             seeExamples: "See Examples",
