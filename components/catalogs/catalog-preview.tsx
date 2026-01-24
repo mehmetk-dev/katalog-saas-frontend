@@ -38,6 +38,7 @@ interface CatalogPreviewProps {
     logoPosition?: Catalog['logo_position']
     logoSize?: Catalog['logo_size']
     titlePosition?: Catalog['title_position']
+    productImageFit?: Catalog['product_image_fit']
     catalog?: Catalog
 }
 
@@ -61,7 +62,8 @@ export function CatalogPreview({
     logoUrl,
     logoPosition = "header-left",
     logoSize = "medium",
-    titlePosition = "left"
+    titlePosition = "left",
+    productImageFit = "cover"
 }: CatalogPreviewProps) {
     // Use appropriate number of products for preview based on template
     const getPreviewCount = () => {
@@ -70,11 +72,11 @@ export function CatalogPreview({
             case 'showcase': return columnsPerRow === 2 ? 4 : 7
             case 'fashion-lookbook': return 4
             case 'industrial': return columnsPerRow * 4
-            case 'compact-list': return 12
+            case 'compact-list': return 10
             case 'classic-catalog': return 10
             case 'retail': return columnsPerRow * 5
             case 'catalog-pro': return columnsPerRow * 3
-            case 'product-tiles': return columnsPerRow === 2 ? 8 : columnsPerRow * 3
+            case 'product-tiles': return columnsPerRow === 2 ? 4 : 9
             default:
                 if (columnsPerRow === 2) return 6
                 if (columnsPerRow === 3) return 9
@@ -86,23 +88,34 @@ export function CatalogPreview({
     const previewProducts = products.length > 0 ? products.slice(0, getPreviewCount()) : []
 
     // Arka plan stili hesaplama
+    // Arka plan stili hesaplama (Öncelik: Görsel > Gradyan > Renk)
     const getBackgroundStyle = (): React.CSSProperties => {
-        const style: React.CSSProperties = {
+        // Temel stil (Her zaman bir background color olsun)
+        const baseStyle: React.CSSProperties = {
             backgroundColor: backgroundColor,
         }
 
-        if (backgroundGradient && backgroundGradient !== 'none') {
-            style.background = backgroundGradient
-        }
-
+        // 1. Öncelik: Görsel varsa onu kullan (Gradyanı ez)
         if (backgroundImage) {
-            style.backgroundImage = `url(${backgroundImage})`
-            style.backgroundSize = backgroundImageFit === 'fill' ? '100% 100%' : backgroundImageFit
-            style.backgroundPosition = 'center'
-            style.backgroundRepeat = 'no-repeat'
+            return {
+                ...baseStyle,
+                backgroundImage: `url(${backgroundImage})`,
+                backgroundSize: backgroundImageFit === 'fill' ? '100% 100%' : backgroundImageFit,
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+            }
         }
 
-        return style
+        // 2. Öncelik: Görsel yoksa ve Gradyan varsa onu kullan
+        if (backgroundGradient && backgroundGradient !== 'none') {
+            return {
+                ...baseStyle,
+                backgroundImage: backgroundGradient
+            }
+        }
+
+        // 3. Öncelik: Hiçbiri yoksa sadece renk (baseStyle)
+        return baseStyle
     }
 
     // Default props for preview

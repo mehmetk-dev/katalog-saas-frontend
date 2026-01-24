@@ -1,12 +1,15 @@
 import NextImage from "next/image"
-
 import { TemplateProps } from "./types"
 
-// Classic Catalog - Klasik tablo formatı
+/**
+ * Classic Catalog Template - "The Vertical Editorial"
+ * A bold, structural design that emphasizes vertical lines and high-fashion editorial layouts.
+ * Features: Tall product pillars, large index numbers, and generous whitespace.
+ */
 export function ClassicCatalogTemplate({
     catalogName,
     products,
-    primaryColor,
+    primaryColor = "#000000",
     showPrices,
     showDescriptions,
     showAttributes,
@@ -14,111 +17,167 @@ export function ClassicCatalogTemplate({
     showUrls = false,
     pageNumber = 1,
     totalPages = 1,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const safeProducts = products || []
 
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 28
+            case 'large': return 48
+            default: return 36
+        }
+    }
+
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
     return (
-        <div className="bg-transparent h-full flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="shrink-0" style={{ backgroundColor: primaryColor }}>
-                {pageNumber === 1 ? (
-                    <div className="px-8 py-4 text-white">
-                        <h1 className="text-xl font-bold leading-tight">{catalogName || "Ürün Kataloğu"}</h1>
-                        <p className="text-white/70 text-[10px] mt-0.5 uppercase tracking-wider">Güncel Fiyat Listesi - 2024</p>
-                    </div>
-                ) : (
-                    <div className="px-8 py-2 text-white flex justify-between items-center shrink-0 h-10">
-                        <span className="font-medium text-sm truncate max-w-[70%]">{catalogName}</span>
-                        <span className="text-[10px] text-white/70">Sayfa {pageNumber}</span>
-                    </div>
-                )}
+        <div className="h-full bg-white flex flex-col relative overflow-hidden selection:bg-black selection:text-white">
+            {/* Background Structural Lines */}
+            <div className="absolute inset-0 flex justify-between px-12 pointer-events-none opacity-[0.03]">
+                <div className="w-[1px] h-full bg-black" />
+                <div className="w-[1px] h-full bg-black" />
+                <div className="w-[1px] h-full bg-black" />
+                <div className="w-[1px] h-full bg-black" />
             </div>
 
-            {/* Tablo Header */}
-            <div className="grid grid-cols-12 gap-2 px-8 py-2 bg-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b shrink-0">
-                <div className="col-span-1">No</div>
-                <div className="col-span-1 text-center">Resim</div>
-                <div className="col-span-10 grid grid-cols-10 gap-2 items-center">
-                    <div className="col-span-4 pl-4">Ürün Adı</div>
-                    <div className="col-span-4 text-center">{showAttributes ? "Özellikler" : (showDescriptions ? "Açıklama" : "")}</div>
-                    <div className="col-span-2 text-right">{showPrices ? "Fiyat" : ""}</div>
+            {/* Header - Minimalist & Elegant */}
+            <div className="h-40 px-12 flex items-center justify-between shrink-0 bg-white z-10 border-b border-zinc-100">
+                <div className="flex items-center gap-12">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                        <div className="pr-12 border-r border-zinc-200">
+                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                        </div>
+                    )}
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-[0.6em] text-zinc-300 mb-2">Editorial Series</span>
+                        <h1 className="text-4xl font-serif italic text-black leading-none tracking-tight">
+                            {catalogName || "Summer Archive"}
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="flex flex-col items-end">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                        <div className="mb-4">
+                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                        </div>
+                    )}
+                    <div className="flex items-center gap-4">
+                        <span className="text-[11px] font-bold text-black border-b-2 border-black pb-1">VOL_{pageNumber.toString().padStart(2, '0')}</span>
+                        <span className="text-[11px] font-bold text-zinc-300 uppercase">Collection</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Ürün Listesi */}
-            <div className="flex-1 overflow-hidden">
-                {safeProducts.slice(0, 10).map((product, idx) => {
+            {/* Vertical Pillars - 3 Large Items */}
+            <div className="flex-1 flex px-12 z-10">
+                {safeProducts.map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: `grid grid-cols-12 gap-2 px-8 h-[82px] items-center border-b hover:bg-gray-50 transition-colors cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} block text-inherit no-underline shrink-0 overflow-hidden`
+                        className: 'flex-1 group flex flex-col border-r border-zinc-100 last:border-r-0 hover:bg-zinc-50 transition-all duration-700 cursor-pointer overflow-hidden p-8'
                     } : {
-                        className: `grid grid-cols-12 gap-2 px-8 h-[82px] items-center border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} shrink-0 overflow-hidden`
+                        className: 'flex-1 flex flex-col border-r border-zinc-100 last:border-r-0 overflow-hidden p-8'
                     }
 
                     return (
-                        <Wrapper
-                            key={product.id}
-                            {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}
-                        >
-                            <div className="col-span-1 text-[11px] font-mono text-gray-400 group-hover:text-gray-900 transition-colors">{String(idx + 1).padStart(2, '0')}</div>
-                            <div className="col-span-1 flex justify-center">
-                                <div className="w-14 h-14 rounded-lg bg-white border border-gray-100 overflow-hidden relative shrink-0">
-                                    <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1" />
-                                    {(showUrls && productUrl) && (
-                                        <div className="absolute top-0 right-0 bg-white/90 p-0.5 rounded-bl shadow-sm">
-                                            <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            {/* Vertical Index & SKU */}
+                            <div className="flex justify-between items-start mb-8">
+                                <span className="text-6xl font-serif italic text-zinc-100 group-hover:text-zinc-200 transition-colors leading-none">
+                                    {(idx + 1 + (pageNumber - 1) * 3).toString().padStart(2, '0')}
+                                </span>
+                                {showSku && product.sku && (
+                                    <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase tracking-widest vertical-text transform rotate-180" style={{ writingMode: 'vertical-rl' }}>
+                                        ITEM_ID_{product.sku}
+                                    </span>
+                                )}
                             </div>
-                            <div className="col-span-10 grid grid-cols-10 gap-2 items-center">
-                                <div className="col-span-4 pl-4 overflow-hidden">
-                                    <p className="font-bold text-sm text-gray-900 truncate leading-tight">{product.name}</p>
-                                    {showSku && product.sku && <p className="text-[9px] text-gray-400 font-mono mt-0.5 truncate tracking-tighter">SKU: {product.sku}</p>}
-                                </div>
-                                <div className="col-span-4 px-2 overflow-hidden">
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 ? (
-                                        <div className="space-y-0.5">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
-                                                <div key={aidx} className="flex justify-between items-center bg-white/40 px-1.5 py-0.5 rounded border border-gray-100">
-                                                    <span className="text-[8px] text-gray-400 font-medium truncate flex-1">{attr.name}</span>
-                                                    <span className="text-[8px] text-gray-600 font-bold ml-1 truncate">{attr.value}{attr.unit}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        showDescriptions && product.description && (
-                                            <p className="text-[10px] text-gray-500 line-clamp-2 italic leading-tight">{product.description}</p>
-                                        )
-                                    )}
-                                </div>
-                                <div className="col-span-2 text-right overflow-hidden">
-                                    {showPrices && (
-                                        <span className="font-black text-sm block" style={{ color: primaryColor }}>
+
+                            {/* Large Vertical Image */}
+                            <div className="relative flex-1 mb-8 overflow-hidden bg-white shadow-sm border border-zinc-50">
+                                <NextImage
+                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                    alt={product.name}
+                                    fill
+                                    unoptimized
+                                    className="object-contain p-6 group-hover:scale-110 transition-transform duration-[2s] ease-out"
+                                />
+                                {(showUrls && productUrl) && (
+                                    <div className="absolute top-4 right-4 bg-black text-white p-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Pillar Info */}
+                            <div className="shrink-0 flex flex-col gap-4">
+                                <h3 className="text-xl font-bold uppercase tracking-tighter text-black leading-tight line-clamp-2">
+                                    {product.name}
+                                </h3>
+
+                                {showDescriptions && product.description && (
+                                    <p className="text-xs text-zinc-400 font-medium italic leading-relaxed line-clamp-3">
+                                        {product.description}
+                                    </p>
+                                )}
+
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="grid grid-cols-2 gap-4 mt-2">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
+                                            <div key={aidx} className="flex flex-col border-l-2 border-zinc-100 pl-3">
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-zinc-300 mb-1">{attr.name}</span>
+                                                <span className="text-xs font-bold text-black">{attr.value}{attr.unit}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {showPrices && (
+                                    <div className="mt-4 pt-6 border-t border-zinc-100 flex items-center justify-between">
+                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-300">Reference Price</span>
+                                        <span className="text-2xl font-black tracking-tighter" style={{ color: primaryColor }}>
                                             {(() => {
                                                 const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}
                                         </span>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         </Wrapper>
                     )
                 })}
             </div>
 
-            {/* Footer */}
-            <div className="h-10 px-8 flex items-center justify-between border-t bg-gray-50 shrink-0">
-                <span className="text-[8px] text-gray-400 uppercase tracking-widest font-bold">Resmi Fiyat Listesi © 2024</span>
-                <span className="text-[10px] font-black font-mono px-2 py-0.5 rounded bg-white border border-gray-100 shadow-sm" style={{ color: primaryColor }}>{pageNumber} / {totalPages}</span>
+            {/* Footer - Cinematic & Minimal */}
+            <div className="h-20 px-12 flex items-center justify-between shrink-0 bg-white border-t border-zinc-100 relative z-20">
+                <div className="flex items-center gap-10">
+                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-black">
+                        {catalogName?.toUpperCase() || "ARCHIVE"}
+                    </span>
+                    <div className="h-1 w-12 bg-black" />
+                </div>
+
+                <div className="flex items-center gap-6">
+                    <span className="text-[10px] font-mono text-zinc-400">INDEX::{pageNumber.toString().padStart(2, '0')}</span>
+                    <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                            <div key={i} className={`h-1 w-4 transition-all duration-700 ${i + 1 === pageNumber ? 'bg-black' : 'bg-zinc-100'}`} />
+                        ))}
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-400">OF::{totalPages.toString().padStart(2, '0')}</span>
+                </div>
             </div>
         </div>
     )

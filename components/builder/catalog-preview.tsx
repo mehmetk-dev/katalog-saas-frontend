@@ -75,24 +75,25 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   const getItemsPerPage = () => {
     switch (props.layout) {
       case 'magazine':
-        return 1 + (columnsPerRow * 2);
-      case 'showcase':
-        return columnsPerRow === 2 ? 4 : 7;
+        return columnsPerRow === 2 ? 5 : 7;
       case 'fashion-lookbook':
         return 4;
       case 'industrial':
         return 8;
       case 'compact-list':
-        return 12;
+        return 10; // Kullanıcı isteği üzerine 10'a çekildi
       case 'classic-catalog':
         return 10;
-      case 'catalog-pro':
+      case 'minimalist':
+        return 6; // Public ile aynı
       case 'retail':
+        return 12; // Public ile aynı
       case 'product-tiles':
+        return columnsPerRow === 2 ? 4 : columnsPerRow * 3;
+      case 'catalog-pro':
       case 'modern-grid':
       case 'bold':
       case 'luxury':
-      case 'minimalist':
       case 'tech-modern':
       case 'clean-white':
       case 'elegant-cards':

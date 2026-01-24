@@ -1,12 +1,17 @@
 import NextImage from "next/image"
-
+import { ExternalLink } from "lucide-react"
 import { TemplateProps } from "./types"
+import { cn } from "@/lib/utils"
 
-// Product Tiles - Kompakt karo görünümü
+/**
+ * Product Tiles Template - Art Gallery / Lookbook Style
+ * Klasik kart yapısından uzak, modern ve ferah bir karo dizilimi.
+ */
 export function ProductTilesTemplate({
     catalogName,
     products,
     primaryColor,
+    headerTextColor = '#ffffff',
     showPrices,
     showDescriptions,
     showAttributes,
@@ -18,124 +23,213 @@ export function ProductTilesTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
+    productImageFit = 'cover'
 }: TemplateProps) {
     const safeProducts = products || []
 
     const getGridCols = () => {
         switch (columnsPerRow) {
             case 2: return "grid-cols-2"
-            case 3: return "grid-cols-3"
-            case 4: return "grid-cols-4"
+            case 3:
             default: return "grid-cols-3"
         }
     }
 
-    const getGridRows = () => {
-        return "grid-rows-3"
-    }
-
-    // Logo boyutu
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 22
-            case 'large': return 34
-            default: return 28
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'cover': return 'object-cover'
+            case 'fill': return 'object-fill'
+            case 'contain':
+            default: return 'object-contain'
         }
     }
 
-    // Header'da logo var mı?
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
-
     return (
-        <div className="bg-gray-100 h-full flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="h-12 bg-white border-b px-5 flex items-center justify-between shrink-0">
-                {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                    <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-3" />
-                )}
-                {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
-                    <h1 className="font-bold text-sm text-gray-900 truncate max-w-[200px]">{catalogName || "Ürünler"}</h1>
-                )}
-                {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                    <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                )}
-                <div className="flex-1" />
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400 font-medium">{safeProducts.length} ÜRÜN</span>
-                    <span className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-600">{pageNumber}/{totalPages}</span>
+        <div className="h-full flex flex-col overflow-hidden relative font-sans text-slate-900">
+            {/* Minimalist Artist Header */}
+            <header
+                className="shrink-0 flex items-center px-10 relative z-20"
+                style={{
+                    height: '100px',
+                    backgroundColor: 'transparent' // Arkadaki ana rengin görünmesi için
+                }}
+            >
+                <div className={cn(
+                    "w-full flex items-center gap-8",
+                    titlePosition === 'center' ? "justify-center" : titlePosition === 'right' ? "justify-end" : "justify-between"
+                )}>
+                    {/* Catalog Branding */}
+                    <div className={cn(
+                        "flex items-center gap-6",
+                        titlePosition === 'right' && "flex-row-reverse"
+                    )}>
+                        {logoUrl && logoPosition?.startsWith('header') && (
+                            <div className="bg-white p-2 shadow-xl rounded-sm rotate-[-2deg]">
+                                <NextImage
+                                    src={logoUrl}
+                                    alt="Logo"
+                                    width={140}
+                                    height={40}
+                                    unoptimized
+                                    style={{ height: '40px' }}
+                                    className="object-contain"
+                                />
+                            </div>
+                        )}
+                        <div className={cn(
+                            "flex flex-col",
+                            titlePosition === 'center' ? "items-center" : titlePosition === 'right' ? "items-end" : "items-start"
+                        )}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-[2px]" style={{ backgroundColor: primaryColor }} />
+                                <h1
+                                    className="text-3xl font-black uppercase tracking-tighter leading-none italic"
+                                    style={{ color: headerTextColor }}
+                                >
+                                    {catalogName || "COLLECTION"}
+                                </h1>
+                            </div>
+                            <span className="text-[10px] font-bold tracking-[0.4em] mt-1 opacity-60 uppercase" style={{ color: headerTextColor }}>
+                                Edition {new Date().getFullYear()} / {pageNumber}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                    <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain ml-3" />
-                )}
-            </div>
+            </header>
 
-            {/* Dinamik Grid */}
-            <div className={`flex-1 p-3 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`} style={{ maxHeight: 'calc(100% - 80px)' }}>
-                {safeProducts.map((product) => {
+            {/* Lookbook Style Tile Grid */}
+            <main
+                className={cn(
+                    "flex-1 px-8 py-2 grid overflow-hidden",
+                    getGridCols(),
+                    columnsPerRow === 2 ? "grid-rows-2 gap-x-12 gap-y-6" : "grid-rows-3 gap-x-10 gap-y-6",
+                )}
+                style={{
+                    gridTemplateRows: columnsPerRow === 2 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'
+                }}
+            >
+                {safeProducts.map((product, index) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
-                        href: productUrl,
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                        className: 'bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all h-full group cursor-pointer border border-transparent hover:border-gray-200 flex flex-col shrink-0'
-                    } : {
-                        className: 'bg-white rounded-xl overflow-hidden shadow-sm h-full flex flex-col border border-transparent shrink-0'
-                    }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            <div className="aspect-square bg-gray-50 overflow-hidden shrink-0 relative">
-                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-500" />
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-sm p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                                        <svg className="w-2.5 h-2.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
+                        <Wrapper
+                            key={product.id}
+                            href={productUrl || undefined}
+                            target={productUrl ? "_blank" : undefined}
+                            className="group relative flex flex-col h-full overflow-hidden transition-transform duration-500 hover:scale-[1.02]"
+                        >
+                            {/* The Tile Image - STRICT FIXED HEIGHTS FOR PERFECT ALIGNMENT */}
+                            <div
+                                className="relative shrink-0 overflow-hidden bg-white shadow-2xl"
+                                style={{
+                                    height: columnsPerRow === 2 ? '320px' : '220px'
+                                }}
+                            >
+                                <NextImage
+                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                    alt={product.name}
+                                    fill
+                                    unoptimized
+                                    className={cn(
+                                        "w-full h-full transition-transform duration-1000 group-hover:scale-110",
+                                        getImageFitClass()
+                                    )}
+                                />
+
+                                {/* Geometric Accent */}
+                                <div
+                                    className="absolute top-0 right-0 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-white font-black text-[10px]"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    {(index + 1 + (pageNumber - 1) * 9).toString().padStart(2, '0')}
+                                </div>
+
+                                {/* Floating Price Tag */}
+                                {showPrices && (
+                                    <div className={cn(
+                                        "absolute bottom-4 right-[-5px] bg-slate-900 text-white font-black shadow-xl translate-x-0 group-hover:translate-x-[-10px] transition-transform italic",
+                                        columnsPerRow === 2 ? "px-3 py-1.5 text-base" : "px-2 py-1 text-xs"
+                                    )}>
+                                        {(() => {
+                                            const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                            return `${symbol}${Number(product.price).toLocaleString('tr-TR')}`
+                                        })()}
+                                    </div>
+                                )}
+
+                                {/* URL / External Link Indicator */}
+                                {showUrls && product.product_url && (
+                                    <div className="absolute bottom-4 left-4 z-30">
+                                        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg border border-slate-200 text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all transform group-hover:scale-110">
+                                            <ExternalLink className={cn(
+                                                columnsPerRow === 2 ? "w-4 h-4" : "w-3 h-3"
+                                            )} />
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                            <div className="p-2.5 flex-1 flex flex-col justify-between overflow-hidden">
-                                <div className="space-y-0.5">
-                                    <h3 className="font-bold text-[11px] text-gray-900 line-clamp-1 leading-tight">{product.name}</h3>
-                                    {showDescriptions && product.description && (
-                                        <p className="text-[9px] text-gray-400 line-clamp-1 leading-none">{product.description}</p>
-                                    )}
 
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-1.5 flex flex-wrap gap-1">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
-                                                <div key={aidx} className="bg-gray-50 px-1 py-0.2 rounded text-[8px] border border-gray-100 flex items-center gap-0.5 shrink-0">
-                                                    <span className="text-gray-400 font-medium truncate">{attr.name}:</span>
-                                                    <span className="text-gray-700 font-bold truncate">{attr.value}{attr.unit}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                            {/* Minimalist Info Overlay-ish Bottom - LOCKED HEIGHTS */}
+                            <div
+                                className="mt-3 flex flex-col gap-0.5 overflow-hidden"
+                                style={{ height: columnsPerRow === 2 ? '130px' : '85px' }}
+                            >
+                                <div className="flex items-baseline justify-between gap-2 shrink-0">
+                                    <h3 className={cn(
+                                        "font-black uppercase tracking-tight text-slate-950 line-clamp-1 border-b-2 border-transparent group-hover:border-slate-900 transition-all inline-block",
+                                        columnsPerRow === 2 ? "text-sm" : "text-[11px]"
+                                    )}>
+                                        {product.name}
+                                    </h3>
+                                    {showSku && product.sku && (
+                                        <span className="text-[9px] font-bold font-mono text-slate-600 shrink-0">Ref.{product.sku.slice(-4)}</span>
                                     )}
                                 </div>
-                                <div className="mt-auto pt-1.5 flex items-center justify-between border-t border-gray-50">
-                                    {showPrices && (
-                                        <p className="font-black text-xs leading-none" style={{ color: primaryColor }}>
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
-                                        </p>
-                                    )}
-                                    {showSku && product.sku && <span className="text-[8px] text-gray-300 font-mono">#{product.sku}</span>}
-                                </div>
+
+                                {showDescriptions && product.description && (
+                                    <p className={cn(
+                                        "text-slate-800 font-bold leading-tight mt-0.5",
+                                        columnsPerRow === 2 ? "text-[11px] line-clamp-3" : "text-[9px] line-clamp-1"
+                                    )}>
+                                        {product.description}
+                                    </p>
+                                )}
+
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-auto pt-1 pb-1">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, columnsPerRow === 2 ? 3 : 2).map((attr, aidx) => (
+                                            <div key={aidx} className="flex flex-col border-l-2 border-slate-300 pl-1.5">
+                                                <span className="text-[8px] uppercase text-slate-600 font-black truncate max-w-[50px]">{attr.name}</span>
+                                                <span className="text-[9px] font-black text-slate-900 uppercase leading-none mt-0.5">{attr.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </Wrapper>
                     )
                 })}
-            </div>
+            </main>
 
-            {/* Footer */}
-            <div className="h-8 bg-white border-t flex items-center justify-center shrink-0">
-                <span className="text-[9px] text-gray-300 font-bold uppercase tracking-widest">{catalogName}</span>
-            </div>
+            {/* Contemporary Footer */}
+            <footer className="h-16 px-10 flex items-center justify-between z-20">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-[2px] bg-slate-900" />
+                    <p className="text-[10px] font-black tracking-[0.3em] uppercase text-slate-900 opacity-60">
+                        {catalogName} • Lookbook Collection
+                    </p>
+                </div>
+
+                <div
+                    className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-slate-900 text-[11px] font-black"
+                    style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                    {pageNumber}
+                </div>
+            </footer>
         </div>
     )
 }

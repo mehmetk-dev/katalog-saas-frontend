@@ -1,13 +1,16 @@
 import NextImage from "next/image"
-
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 
-// Showcase - Spotlight vitrin, 1 dev ürün odaklı
+/**
+ * Showcase Template - "The Spotlight Noir"
+ * A high-end, cinematic layout designed to highlight a main feature product with a spotlight effect.
+ * Features: Dark mode by default, large hero imagery, and a sophisticated monochromatic sidebar.
+ */
 export function ShowcaseTemplate({
     catalogName,
     products,
-    primaryColor,
+    primaryColor = "#3b82f6",
     showPrices,
     showDescriptions,
     showAttributes,
@@ -16,6 +19,9 @@ export function ShowcaseTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const safeProducts = products || []
     const [main, ...others] = safeProducts
@@ -25,20 +31,48 @@ export function ShowcaseTemplate({
         return "grid-cols-2"
     }
 
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 24
+            case 'large': return 44
+            default: return 32
+        }
+    }
+
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+
     return (
-        <div className="bg-black h-full flex flex-col overflow-hidden text-white">
-            {/* Minimal Header */}
-            <div className="h-14 px-8 flex items-center justify-between border-b border-white/10 shrink-0">
-                <h1 className="text-sm font-light tracking-[0.4em] uppercase truncate max-w-[400px]">{catalogName || "Vitrin"}</h1>
-                <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-white/20 font-mono tracking-widest uppercase">{columnsPerRow} COL LAYOUT</span>
-                    <span className="text-xs text-white/40">{pageNumber}/{totalPages}</span>
+        <div className="bg-[#0a0a0a] h-full flex flex-col overflow-hidden text-white selection:bg-blue-500/30">
+            {/* Minimal High-End Header */}
+            <div className="h-20 px-10 flex items-center justify-between border-b border-white/5 shrink-0 bg-[#0a0a0a] z-50">
+                <div className="flex items-center gap-10">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain filter brightness-110" />
+                    )}
+                    <div className="flex flex-col">
+                        <h1 className="text-xl font-black tracking-[0.3em] uppercase truncate max-w-[400px]">
+                            {catalogName || "FEATURE_SHOW"}
+                        </h1>
+                        <span className="text-[9px] font-bold text-white/20 tracking-[0.5em] mt-1">CURATED EDITION</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-8">
+                    {logoUrl && isHeaderLogo && (logoAlignment === 'right' || logoAlignment === 'center') && (
+                        <NextImage src={logoUrl} alt="Logo" width={110} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain filter brightness-110" />
+                    )}
+                    <div className="h-10 w-[1px] bg-white/10" />
+                    <div className="text-right">
+                        <span className="text-[11px] font-mono font-bold text-white/40 block leading-none">PV_{pageNumber}</span>
+                        <span className="text-[9px] text-white/20 mt-1 block">T_VOL: {totalPages}</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Ana İçerik */}
+            {/* Main Cinematic Content */}
             <div className="flex-1 flex overflow-hidden">
-                {/* Sol - Dev ürün */}
+                {/* Hero Feature - Left */}
                 {main && (() => {
                     const productUrl = main.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
@@ -46,109 +80,128 @@ export function ShowcaseTemplate({
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'w-[55%] h-full relative block cursor-pointer group shrink-0'
+                        className: 'w-[60%] h-full relative block cursor-pointer group shrink-0 overflow-hidden'
                     } : {
-                        className: 'w-[55%] h-full relative shrink-0'
+                        className: 'w-[60%] h-full relative shrink-0'
                     }
 
                     return (
-                        <Wrapper {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            <NextImage src={main.image_url || "/placeholder.svg"} alt={main.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms] opacity-80 group-hover:opacity-100" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/20 to-transparent group-hover:from-black/95 transition-all" />
+                        <Wrapper {...(wrapperProps as any)}>
+                            {/* Spotlight Effect Background */}
+                            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+
+                            <NextImage
+                                src={main.image_url || "/placeholder.svg"}
+                                alt={main.name}
+                                fill
+                                unoptimized
+                                className="w-full h-full object-contain p-20 group-hover:scale-105 transition-transform duration-[3000ms] opacity-80 group-hover:opacity-100"
+                            />
+
+                            {/* Cinematic Overlays */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
+                            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black to-transparent pointer-events-none" />
+
+                            <div className="absolute bottom-0 left-0 p-16 max-w-xl z-20">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="h-[2px] w-12" style={{ backgroundColor: primaryColor }} />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Master Piece</span>
+                                </div>
+
+                                <h2 className="text-6xl font-[900] mb-6 tracking-tighter leading-[0.9] uppercase">
+                                    {main.name}
+                                </h2>
+
+                                {showDescriptions && main.description && (
+                                    <p className="text-white/40 text-base line-clamp-2 mb-8 leading-relaxed font-medium italic">
+                                        {main.description}
+                                    </p>
+                                )}
+
+                                <div className="flex items-end gap-12">
+                                    {showPrices && (
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase font-black tracking-widest text-white/20 mb-2">Value Reference</span>
+                                            <p className="text-4xl font-black leading-none tracking-tighter" style={{ color: primaryColor }}>
+                                                {(() => {
+                                                    const currency = main.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(main.price).toFixed(2)}`
+                                                })()}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {showSku && main.sku && (
+                                        <div className="pb-1 border-b border-white/10">
+                                            <span className="text-[11px] font-mono text-white/40">REF::{main.sku}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Link Indicator */}
                             {(showUrls && productUrl) && (
-                                <div className="absolute top-6 right-6 bg-white/10 backdrop-blur-md p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100 border border-white/20">
+                                <div className="absolute top-10 right-10 w-14 h-14 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-700">
                                     <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                     </svg>
                                 </div>
                             )}
-                            <div className="absolute bottom-0 left-0 p-10 max-w-lg z-20">
-                                {showSku && (
-                                    <span className="text-[10px] text-blue-500 font-bold tracking-[0.3em] uppercase mb-2 block">{main.sku || "FEATURED"}</span>
-                                )}
-                                <h2 className="text-4xl font-light mb-4 group-hover:text-blue-200 transition-colors leading-tight">{main.name}</h2>
-                                {showDescriptions && main.description && (
-                                    <p className="text-white/50 text-sm line-clamp-3 mb-6 leading-relaxed font-light">{main.description}</p>
-                                )}
-
-                                {showAttributes && main.custom_attributes && main.custom_attributes.length > 0 && (
-                                    <div className="flex flex-wrap gap-4 mb-6 border-l border-white/20 pl-4 py-1">
-                                        {main.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
-                                            <div key={aidx} className="flex flex-col">
-                                                <span className="text-[10px] text-white/30 uppercase tracking-widest">{attr.name}</span>
-                                                <span className="text-sm font-light text-white/90">{attr.value}{attr.unit}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {showPrices && (
-                                    <p className="text-3xl font-light leading-none" style={{ color: primaryColor }}>
-                                        {(() => {
-                                            const currency = main.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                            return `${symbol}${Number(main.price).toFixed(2)}`
-                                        })()}
-                                    </p>
-                                )}
-                            </div>
                         </Wrapper>
                     )
                 })()}
 
-                {/* Sağ - Küçük ürünler grid */}
-                <div className={`w-[45%] grid ${getRightCols()} grid-rows-3 bg-zinc-900 border-l border-white/10 shrink-0`}>
-                    {others.slice(0, columnsPerRow === 2 ? 3 : 6).map((product) => {
+                {/* Vertical Sidebar - Right */}
+                <div className={`w-[40%] grid ${getRightCols()} grid-rows-3 bg-[#0d0d0d] border-l border-white/5 shrink-0`}>
+                    {others.slice(0, columnsPerRow === 2 ? 3 : 6).map((product, idx) => {
                         const productUrl = product.product_url
                         const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                         const wrapperProps = (showUrls && productUrl) ? {
                             href: productUrl,
                             target: '_blank',
                             rel: 'noopener noreferrer',
-                            className: 'relative cursor-pointer group overflow-hidden border-b border-r border-white/5 flex flex-col h-full'
+                            className: 'relative group overflow-hidden border-b border-white/5 flex flex-col h-full cursor-pointer'
                         } : {
-                            className: 'relative overflow-hidden border-b border-r border-white/5 flex flex-col h-full'
+                            className: 'relative overflow-hidden border-b border-white/5 flex flex-col h-full'
                         }
 
                         return (
-                            <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                                <div className="absolute inset-0 opacity-40 group-hover:opacity-80 transition-opacity duration-700">
-                                    <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                            <Wrapper key={product.id} {...(wrapperProps as any)}>
+                                <div className="absolute inset-0 opacity-20 group-hover:opacity-50 transition-all duration-[1.5s]">
+                                    <NextImage
+                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                        alt={product.name}
+                                        fill
+                                        unoptimized
+                                        className="object-contain p-12 group-hover:scale-110 transition-all duration-[2s]"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                                 </div>
 
-                                {productUrl && (
-                                    <div className="absolute top-3 right-3 bg-black/40 backdrop-blur-sm p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 z-10">
-                                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
+                                <div className="mt-auto p-8 relative z-10 transition-transform duration-700 group-hover:-translate-y-2">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <span className="text-[10px] font-black italic text-white/20">{(idx + 2).toString().padStart(2, '0')}</span>
+                                        <div className="h-[1px] flex-1 bg-white/5" />
                                     </div>
-                                )}
+                                    <h3 className="text-sm font-black uppercase tracking-tight group-hover:text-blue-400 transition-colors line-clamp-1">
+                                        {product.name}
+                                    </h3>
 
-                                <div className="mt-auto p-4 relative z-10">
-                                    <h3 className="text-sm font-light group-hover:text-blue-100 transition-colors line-clamp-1">{product.name}</h3>
-
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-1 mb-1">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 1).map((attr, aidx) => (
-                                                <span key={aidx} className="text-[8px] text-white/30 border border-white/10 px-1.5 py-0.5 rounded uppercase">
-                                                    {attr.name}: {attr.value}{attr.unit}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {showSku && product.sku && (
-                                        <span className="text-[8px] text-gray-400 font-mono bg-gray-100 px-1 py-0.2 rounded">#{product.sku}</span>
-                                    )}
-                                    {showPrices && (
-                                        <p className="text-sm font-light mt-0.5" style={{ color: primaryColor }}>
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
-                                        </p>
-                                    )}
+                                    <div className="flex items-end justify-between mt-3">
+                                        {showPrices && (
+                                            <p className="text-sm font-bold tracking-tighter" style={{ color: primaryColor }}>
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </p>
+                                        )}
+                                        {showSku && product.sku && (
+                                            <span className="text-[9px] font-mono text-white/20">#{product.sku}</span>
+                                        )}
+                                    </div>
                                 </div>
                             </Wrapper>
                         )

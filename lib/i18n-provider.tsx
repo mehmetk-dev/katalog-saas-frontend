@@ -97,7 +97,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useTranslation() {
     const context = useContext(I18nContext)
     if (context === undefined) {
-        throw new Error("useTranslation must be used within a I18nProvider")
+        // SSR sırasında veya provider'ın bir şekilde bulunamadığı durumlarda 
+        // uygulamanın patlamasını engellemek için sessizce fallback dönüyoruz.
+        return {
+            language: "tr" as Language,
+            setLanguage: () => { },
+            t: (key: string) => key
+        }
     }
     return context
 }

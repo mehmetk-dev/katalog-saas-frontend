@@ -1,14 +1,16 @@
 import NextImage from "next/image"
-
 import { useTranslation } from "@/lib/i18n-provider"
-
 import { TemplateProps } from "./types"
 
-// Luxury - Lüks koleksiyon, altın tema
+/**
+ * Luxury Template - "The Royal Essence"
+ * A high-end, premium design optimized for luxury brands, perfumes, jewelry, or high-end real estate.
+ * Features: Dark mode by default, gold accents, serif typography, and sophisticated spacing.
+ */
 export function LuxuryTemplate({
     catalogName,
     products,
-    primaryColor: _primaryColor,
+    primaryColor: _primaryColor, // We use a set luxury palette but could integrate primaryColor
     showPrices,
     showDescriptions,
     showAttributes,
@@ -17,6 +19,9 @@ export function LuxuryTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const { t } = useTranslation()
     const safeProducts = products || []
@@ -30,36 +35,65 @@ export function LuxuryTemplate({
         }
     }
 
-    const getGridRows = () => {
-        // 2 sütun -> 6 ürün (3 satır)
-        // 3 sütun -> 9 ürün (3 satır)
-        // 4 sütun -> 12 ürün (3 satır)
-        return "grid-rows-3"
+    const getGridRows = () => "grid-rows-3"
+
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 28
+            case 'large': return 48
+            default: return 36
+        }
     }
 
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'center'
+
     return (
-        <div className="h-full flex flex-col overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%)' }}>
-            {/* Altın border */}
-            <div className="h-1 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 shrink-0" />
+        <div className="h-full flex flex-col overflow-hidden bg-[#0a0a0a] text-[#d4af37] relative selection:bg-[#d4af37] selection:text-black">
+            {/* Subtle Texture Overlay */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] grayscale transition-opacity"
+                style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/dark-leather.png")` }} />
+
+            {/* Top Ornate Border */}
+            <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#d4af37] to-transparent shrink-0 opacity-70" />
 
             {/* Header */}
-            <div className="h-20 px-10 flex items-center justify-center shrink-0">
-                {pageNumber === 1 ? (
-                    <div className="text-center">
-                        <div className="text-[10px] text-yellow-600 tracking-[0.4em] uppercase mb-1">{t('catalogs.premiumCollection')}</div>
-                        <h1 className="text-xl font-serif text-white tracking-wide truncate max-w-[400px]">{catalogName || t('catalogs.luxury')}</h1>
+            <div className="h-24 px-12 flex flex-col justify-center shrink-0 z-10">
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex-1 flex items-center gap-4">
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/30" />
                     </div>
-                ) : (
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-px bg-gradient-to-r from-transparent to-yellow-600" />
-                        <span className="text-yellow-600 font-serif text-sm px-2">{pageNumber}</span>
-                        <div className="w-12 h-px bg-gradient-to-l from-transparent to-yellow-600" />
+
+                    <div className="px-8 text-center flex flex-col items-center">
+                        {logoUrl && isHeaderLogo && (
+                            <div className="mb-2">
+                                <NextImage
+                                    src={logoUrl}
+                                    alt="Logo"
+                                    width={140}
+                                    height={getLogoHeight()}
+                                    unoptimized
+                                    className="object-contain filter brightness-125 transition-all"
+                                    style={{ height: getLogoHeight() }}
+                                />
+                            </div>
+                        )}
+                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase text-[#f3eacb] drop-shadow-sm">
+                            {catalogName || t('catalogs.luxury')}
+                        </h1>
+                        <div className="text-[9px] uppercase tracking-[0.5em] text-[#d4af37]/60 mt-1">
+                            {t('catalogs.premiumCollection') || "ESTABLISHED QUALITY"}
+                        </div>
                     </div>
-                )}
+
+                    <div className="flex-1 flex items-center gap-4">
+                        <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/30" />
+                    </div>
+                </div>
             </div>
 
-            {/* Dinamik Grid - Lüks kartlar */}
-            <div className={`flex-1 px-10 pb-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 132px)' }}>
+            {/* Grid - Products */}
+            <div className={`flex-1 px-12 pb-8 grid ${getGridCols()} ${getGridRows()} gap-8 overflow-hidden z-10`}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
@@ -67,58 +101,78 @@ export function LuxuryTemplate({
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'bg-zinc-900/50 h-full rounded-lg overflow-hidden border border-yellow-900/30 group cursor-pointer transition-all hover:border-yellow-600/50 hover:bg-zinc-900 flex flex-col shrink-0'
+                        className: 'group h-full flex flex-col relative focus:outline-none'
                     } : {
-                        className: 'bg-zinc-900/50 h-full rounded-lg overflow-hidden border border-yellow-900/30 flex flex-col shrink-0'
+                        className: 'h-full flex flex-col relative'
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            <div className="aspect-[4/3] min-h-0 relative overflow-hidden shrink-0">
-                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            {/* Product Frame */}
+                            <div className="relative aspect-[10/12] bg-[#111] border border-[#d4af37]/20 group-hover:border-[#d4af37]/50 transition-all duration-700 overflow-hidden shadow-2xl">
+                                {/* Image */}
+                                <NextImage
+                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                    alt={product.name}
+                                    fill
+                                    unoptimized
+                                    className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[1.5s] ease-out"
+                                />
+
+                                {/* Overlay Shadow */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
+
+                                {/* Link Icon */}
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-2 right-2 p-1.5 rounded-full bg-yellow-600/20 backdrop-blur-md border border-yellow-600/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <svg className="w-3 h-3 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-md border border-[#d4af37]/30 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                                        <svg className="w-3 h-3 text-[#d4af37]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>
                                     </div>
                                 )}
-                            </div>
-                            <div className="p-4 flex-1 flex flex-col justify-between overflow-hidden">
-                                <div className="space-y-1">
-                                    <h3 className="font-serif text-white text-sm line-clamp-1 leading-tight">{product.name}</h3>
-                                    {showDescriptions && product.description && (
-                                        <p className="text-[10px] text-zinc-500 line-clamp-1 italic italic">{product.description}</p>
-                                    )}
 
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-2 space-y-0.5 border-t border-yellow-900/20 pt-2">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
-                                                <div key={aidx} className="flex justify-between items-center text-[9px] gap-2">
-                                                    <span className="text-zinc-600 font-serif italic truncate flex-1">{attr.name}</span>
-                                                    <span className="text-yellow-600/80 font-medium shrink-0 truncate max-w-[50%]">
-                                                        {attr.value}{attr.unit}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="mt-auto pt-2 flex items-center justify-between border-t border-yellow-900/10">
-                                    {showPrices && (
-                                        <p className="text-base font-serif text-yellow-500 leading-none">
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
-                                        </p>
-                                    )}
-                                    {showSku && product.sku && (
-                                        <span className="text-[8px] text-zinc-700 font-serif tracking-[0.2em]">#{product.sku}</span>
-                                    )}
-                                </div>
+                                {/* SKU Overlay */}
+                                {showSku && product.sku && (
+                                    <div className="absolute top-3 left-3">
+                                        <span className="text-[8px] font-serif tracking-widest text-[#d4af37]/40 uppercase">NO. {product.sku}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Product Info */}
+                            <div className="mt-3 flex flex-col items-center text-center px-2">
+                                <h3 className="font-serif text-sm tracking-widest text-[#f3eacb] uppercase line-clamp-1 mb-1 group-hover:text-[#d4af37] transition-colors">
+                                    {product.name}
+                                </h3>
+
+                                {showDescriptions && product.description && (
+                                    <p className="text-[10px] text-[#ffffff]/40 italic line-clamp-1 mb-2 font-serif font-light">
+                                        {product.description}
+                                    </p>
+                                )}
+
+                                <div className="w-8 h-[1px] bg-[#d4af37]/20 mb-2 group-hover:w-16 transition-all duration-500" />
+
+                                {showPrices && (
+                                    <div className="text-sm font-serif text-[#d4af37] font-medium tracking-widest">
+                                        {(() => {
+                                            const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                            return `${symbol}${Number(product.price).toFixed(2)}`
+                                        })()}
+                                    </div>
+                                )}
+
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
+                                            <div key={aidx} className="flex items-center text-[8px] tracking-widest uppercase">
+                                                <span className="text-[#d4af37]/50 mr-1">{attr.name}:</span>
+                                                <span className="text-[#f3eacb]">{attr.value}{attr.unit}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </Wrapper>
                     )
@@ -126,14 +180,21 @@ export function LuxuryTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-12 flex items-center justify-center border-t border-yellow-900/20 shrink-0">
-                <span className="text-[10px] text-yellow-700/50 tracking-[0.3em] uppercase font-serif">
-                    {catalogName} • {pageNumber} / {totalPages}
-                </span>
+            <div className="h-16 flex flex-col items-center justify-center shrink-0 z-10">
+                <div className="w-1/3 h-[1px] bg-gradient-to-r from-transparent via-[#d4af37]/20 to-transparent mb-2" />
+                <div className="flex items-center gap-6">
+                    <span className="text-[9px] uppercase tracking-[0.6em] text-[#d4af37]/40 font-serif">
+                        PAGE {pageNumber} OF {totalPages}
+                    </span>
+                    <div className="h-4 w-[1px] bg-[#d4af37]/20" />
+                    <span className="text-[9px] uppercase tracking-[0.4em] text-[#d4af37]/40 font-serif">
+                        {catalogName}
+                    </span>
+                </div>
             </div>
 
-            {/* Alt altın border */}
-            <div className="h-1 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 shrink-0" />
+            {/* Bottom Accent */}
+            <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#8a6d3b] via-[#f3eacb] to-[#8a6d3b] shrink-0" />
         </div>
     )
 }

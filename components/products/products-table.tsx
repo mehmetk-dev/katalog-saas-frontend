@@ -172,6 +172,7 @@ export function ProductsTable({
   }
 
   const handleDragStart = (e: React.DragEvent, productId: string) => {
+    e.stopPropagation()
     e.dataTransfer.effectAllowed = "move"
     e.dataTransfer.setData("text/plain", productId)
     setDraggingId(productId)
@@ -179,6 +180,7 @@ export function ProductsTable({
 
   const handleDragOver = (e: React.DragEvent, productId: string) => {
     e.preventDefault()
+    e.stopPropagation()
     e.dataTransfer.dropEffect = "move"
     if (productId !== draggingId) {
       setDragOverId(productId)
@@ -191,6 +193,7 @@ export function ProductsTable({
 
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault()
+    e.stopPropagation()
     const sourceId = e.dataTransfer.getData("text/plain")
 
     if (sourceId === targetId || !onProductsReorder) {

@@ -50,17 +50,16 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         cancelRef.current = uploadTimeout.cancel
     }, [uploadTimeout.cancel])
 
-    // Modal kapandığında state'i temizle - useEffect ile
+    // Modal kapandığında state'i temizle
     React.useEffect(() => {
-        if (!open) {
-            // Modal kapandığında temizle
+        if (!open && !uploadTimeout.isLoading) {
             setImages(prev => {
                 prev.forEach(img => URL.revokeObjectURL(img.preview))
                 return []
             })
             cancelRef.current()
         }
-    }, [open]) // uploadTimeout'u dependency'den çıkardık
+    }, [open, uploadTimeout.isLoading])
 
     // Ürünleri isimlerine göre alfabetik sırala (A'dan Z'ye)
     const sortedProducts = React.useMemo(() => {
@@ -293,70 +292,101 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
     const handleUpload = async () => {
         if (images.length === 0) return
 
+        console.log(`[BulkUpload] Starting upload for ${images.length} images...`)
+
         await uploadTimeout.execute(async () => {
             const supabase = createClient()
+
+            // Get session for UID (RLS requirement)
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                toast.error("Oturum bulunamadı. Lütfen tekrar giriş yapın.")
+                return
+            }
+            const userId = session.user.id
+
             const imagesToUpload = images.filter(img => img.status === 'pending' && img.matchedProductId)
             const totalImages = imagesToUpload.length
+
+            console.log(`[BulkUpload] Found ${totalImages} pending images with matches.`)
 
             if (totalImages === 0) {
                 toast.error("Yüklenecek uygun fotoğraf bulunamadı. Lütfen ürünlerle eşleştiğinden emin olun.")
                 return
             }
 
-            let uploadedCount = 0
+            let completedCount = 0
+            let successCount = 0
             const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
 
             for (const img of imagesToUpload) {
-                if (uploadTimeout.isCancelled) break
+                // IMPORTANT: Use checkCancelled() to avoid stale state issues in async loop
+                if (uploadTimeout.checkCancelled()) {
+                    console.log("[BulkUpload] Process stopped: Cancellation detected.")
+                    break
+                }
 
                 const product = products.find(p => p.id === img.matchedProductId)
                 if (!product) {
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "Ürün bulunamadı" } : p))
-                    uploadedCount++
-                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                    completedCount++
                     continue
                 }
 
-                // Calculate limit - count existing images + already uploaded in this session
+                // Calculate limit
                 const currentImages = product.images || (product.image_url ? [product.image_url] : []);
                 const alreadyUploadedForThis = productUpdates.get(product.id)?.length || 0;
 
                 if (currentImages.length + alreadyUploadedForThis >= 5) {
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "5 resim limiti dolu" } : p))
-                    uploadedCount++
-                    uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                    completedCount++
                     continue
                 }
 
                 setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'uploading' } : p))
 
                 try {
-                    // Progress güncelle - dönüşüm başlıyor
-                    const baseProgress = Math.round((uploadedCount / totalImages) * 100)
+                    const baseProgress = Math.round((completedCount / totalImages) * 100)
                     uploadTimeout.setProgress(baseProgress)
 
-                    // 1. WebP Conversion (büyük fotoğrafları otomatik küçültür)
+                    // 1. WebP Conversion
+                    console.log(`[BulkUpload] Step 1/3: Converting ${img.file.name}...`)
                     const { blob } = await convertToWebP(img.file)
+                    uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 20))
 
+                    if (uploadTimeout.checkCancelled()) break
 
-                    // Progress güncelle - dönüşüm tamamlandı, yükleme başlıyor
-                    uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 30))
-
-                    // 2. Upload
+                    // 2. Upload - MUST INCLUDE USER ID FOR RLS POLICY
                     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-                    const filePath = `${fileName}`
+                    const filePath = `${userId}/${fileName}`
 
-                    const { error: uploadError } = await supabase.storage
+                    console.log(`[BulkUpload] Step 2/3: Uploading ${img.file.name} to ${filePath}...`)
+
+                    // Individual upload with 30s timeout (matching ProductModal pattern)
+                    const uploadPromise = supabase.storage
                         .from('product-images')
                         .upload(filePath, blob, {
-                            contentType: 'image/webp'
+                            contentType: 'image/webp',
+                            cacheControl: '3600',
+                            upsert: false
                         })
 
-                    if (uploadError) throw uploadError
+                    const timeoutPromise = new Promise<{ error: Error | null; data: any }>((_, reject) =>
+                        setTimeout(() => reject(new Error('Dosya yükleme zaman aşımına uğradı (30s)')), 30000)
+                    )
+
+                    const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise])
+
+                    if (uploadError) {
+                        console.error(`[BulkUpload] Supabase error for ${img.file.name}:`, uploadError.message, uploadError)
+                        throw uploadError
+                    }
 
                     const { data: { publicUrl } } = supabase.storage
                         .from('product-images')
                         .getPublicUrl(filePath)
+
+                    console.log(`[BulkUpload] Step 3/3: Success! Public URL for ${img.file.name}: ${publicUrl}`)
 
                     // Queue for update
                     const existing = productUpdates.get(product.id) || []
@@ -364,37 +394,50 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
                     // Success state for image
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'success' } : p))
+                    successCount++
 
-                } catch (error) {
-                    console.error('Image upload error:', error)
-                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: error instanceof Error ? error.message : 'Yükleme hatası' } : p))
+                } catch (error: any) {
+                    console.error(`[BulkUpload] Fatal error for ${img.file.name}:`, error)
+                    const errorMsg = error instanceof Error ? error.message : 'Yükleme hatası'
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: errorMsg } : p))
                 }
 
-                uploadedCount++
-                uploadTimeout.setProgress(Math.round((uploadedCount / totalImages) * 100))
+                completedCount++
+                uploadTimeout.setProgress(Math.round((completedCount / totalImages) * 100))
             }
 
-            // Batch update products via Server Action (ensures cache clearing)
+            // Batch update products
             try {
-                const updatesArray = Array.from(productUpdates.entries()).map(([productId, newUrls]) => {
-                    const product = products.find(p => p.id === productId)
-                    const currentImages = product?.images || (product?.image_url ? [product.image_url] : [])
-                    return {
-                        productId,
-                        images: [...currentImages, ...newUrls].slice(0, 5)
-                    }
-                })
+                if (productUpdates.size > 0) {
+                    console.log(`[BulkUpload] Batch updating ${productUpdates.size} products...`)
+                    const updatesArray = Array.from(productUpdates.entries()).map(([productId, newUrls]) => {
+                        const product = products.find(p => p.id === productId)
+                        const currentImages = product?.images || (product?.image_url ? [product.image_url] : [])
+                        return {
+                            productId,
+                            images: [...currentImages, ...newUrls].slice(0, 5)
+                        }
+                    })
 
-                if (updatesArray.length > 0) {
                     await bulkUpdateProductImages(updatesArray)
-                }
 
-                toast.success("Tüm fotoğraflar başarıyla yüklendi")
-                onSuccess()
+                    if (successCount === totalImages) {
+                        toast.success("Tüm fotoğraflar başarıyla yüklendi.")
+                        onSuccess()
+                    } else if (successCount > 0) {
+                        toast.warning(`${successCount} fotoğraf yüklendi, ${totalImages - successCount} hata oluştu.`)
+                        // Halen başarı var mı diye kontrol edilebilir ama partial success genelde onSuccess çağırır
+                        onSuccess()
+                    } else {
+                        toast.error("Hiçbir fotoğraf yüklenemedi. Detaylar için tekil hataları kontrol edin.")
+                    }
+                } else if (totalImages > 0 && successCount === 0) {
+                    console.warn("[BulkUpload] Completed with 0 successes.")
+                    toast.error("Fotoğraflar yüklenemedi. Lütfen dosya isimlerini ve 5 resim limitini kontrol edin.")
+                }
             } catch (error) {
-                console.error('Batch update error:', error)
-                toast.error("Bazı ürün bilgileri güncellenemedi: " + ((error as Error).message || "Bilinmeyen hata"))
-                // Hata durumunda onSuccess ÇAĞIRMIYORUZ ki kullanıcı düzeltebilsin
+                console.error('[BulkUpload] Final update failed:', error)
+                toast.error("Fotoğraflar yüklendi ancak ürün bilgileri güncellenemedi.")
             }
         })
     }

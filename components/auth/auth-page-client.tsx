@@ -270,6 +270,7 @@ export function AuthPageClient() {
                                             className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                             placeholder={t("auth.placeholderName")}
                                             required={isSignUp}
+                                            suppressHydrationWarning
                                         />
                                     </div>
                                     <div className="space-y-1.5">
@@ -280,6 +281,7 @@ export function AuthPageClient() {
                                             onChange={(e) => setCompanyName(e.target.value)}
                                             className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                             placeholder={t("auth.placeholderCompany")}
+                                            suppressHydrationWarning
                                         />
                                     </div>
                                 </div>
@@ -294,6 +296,7 @@ export function AuthPageClient() {
                                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                     placeholder={t("auth.placeholderEmail")}
                                     required
+                                    suppressHydrationWarning
                                 />
                             </div>
 
@@ -314,6 +317,7 @@ export function AuthPageClient() {
                                         className="w-full h-12 px-4 pr-12 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                         placeholder={t("auth.placeholderPassword")}
                                         required
+                                        suppressHydrationWarning
                                     />
                                     <button
                                         type="button"

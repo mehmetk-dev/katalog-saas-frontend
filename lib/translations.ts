@@ -59,6 +59,7 @@ export const translations = {
             category: "Kategori",
             siteTitle: "FogCatalog - Ürün Katalog Oluşturucu",
             siteDescription: "Dakikalar içinde profesyonel ürün katalogları oluşturun",
+            wait: "Lütfen bekleyin...",
         },
         plans: {
             unlimited: "Sınırsız",
@@ -318,6 +319,7 @@ export const translations = {
             selectAll: "Tümünü Seç",
             selectPage: "Sayfayı Seç",
             clearSelection: "Seçimi Temizle",
+            clear: "Temizle",
             selected: "Seçili",
             sortBy: "Sıralama",
             filterBy: "Filtrele",
@@ -1019,6 +1021,7 @@ export const translations = {
             category: "Category",
             siteTitle: "FogCatalog - Product Catalog Builder",
             siteDescription: "Create professional product catalogs in minutes",
+            wait: "Please wait...",
         },
         plans: {
             unlimited: "Unlimited",
@@ -1278,6 +1281,7 @@ export const translations = {
             selectAll: "Select All",
             selectPage: "Select Page",
             clearSelection: "Clear Selection",
+            clear: "Clear",
             selected: "Selected",
             sortBy: "Sort By",
             filterBy: "Filter",

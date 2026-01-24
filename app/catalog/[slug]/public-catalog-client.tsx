@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect } from "react"
 import NextImage from "next/image"
+import { jsPDF } from "jspdf"
+import { toPng } from "html-to-image"
 import {
     Download,
     Share2,
     BookOpen,
     Sparkles,
-    Search
+    Search,
+    X
 } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
@@ -71,12 +74,24 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
         return matchesSearch && matchesCategory
     })
 
-    // Ürünleri sayfalara böl - columns_per_row'a göre dinamik hesapla
-    // modern-grid: columnsPerRow * 3 rows = productsPerPage
-    // Örnek: 2 sütun -> 2*3=6, 3 sütun -> 3*3=9, 4 sütun -> 4*3=12
-    const columnsPerRow = catalog.columns_per_row || 2
-    const rowsPerPage = 3 // Her sayfada 3 satır
-    const productsPerPage = columnsPerRow * rowsPerPage
+    // Ürünleri sayfalara böl - layout'a ve columns_per_row'a göre dinamik hesapla
+    const columnsPerRow = catalog.columns_per_row || 3
+
+    const getPageSize = (layout: string, columns: number) => {
+        if (layout === 'classic-catalog') return 3 // Vertical Editorial uses 3 pillars
+        if (layout === 'compact-list') return 10
+        if (layout === 'retail') return 12
+        if (layout === 'minimalist') return 4 // Requested 4 products per page (2x2)
+        if (layout === 'magazine') return columns === 2 ? 5 : 7
+        if (layout === 'fashion-lookbook') return 4
+
+        if (layout === 'product-tiles' && columns === 2) return 4
+
+        return columns * 3
+    }
+
+    const productsPerPage = getPageSize(catalog.layout, columnsPerRow)
+
     const pages: Product[][] = []
     for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
         pages.push(filteredProducts.slice(i, i + productsPerPage))
@@ -95,36 +110,96 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
         }
     }
 
-    const zoomIn = () => setZoom((prev) => Math.min(1.2, Number((prev + 0.1).toFixed(2))))
-    const zoomOut = () => setZoom((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))
-    const resetZoom = () => setZoom(1)
+    // İndirme işlemi: İstemci tarafında PDF oluşturma (API bağımlılığı kaldırıldı)
+    const handleDownload = async () => {
+        try {
+            toast.loading("PDF oluşturuluyor, lütfen bekleyin... (Sayfa sayısına göre biraz sürebilir)", { id: "pdf-download", duration: 10000 })
 
-    const handleDownload = () => {
-        toast.info(t("catalogs.public.downloadStarted"))
-        const pdfUrl = `/api/catalogs/${catalog.id}/download`
-        window.open(pdfUrl, '_blank')
+            // A4 Boyutu (mm cinsinden)
+            const content = document.querySelectorAll('[data-pdf-page="true"]')
+            if (!content || content.length === 0) {
+                toast.error("PDF oluşturulacak içerik bulunamadı.", { id: "pdf-download" })
+                return
+            }
+
+            const pdf = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: "a4"
+            })
+
+            const imgWidth = 210 // A4 width in mm
+            const pageHeight = 297 // A4 height in mm
+
+            for (let i = 0; i < content.length; i++) {
+                const page = content[i] as HTMLElement
+
+                // html-to-image için ayarlar
+                // Margin, Shadow vb. özellikler PDF çıktısında kaymalara yol açabilir, bunları sıfırlıyoruz.
+                const dataUrl = await toPng(page, {
+                    quality: 1.0,
+                    pixelRatio: 2, // Yüksek çözünürlük
+                    width: 794,   // A4 @ 96 DPI Width
+                    height: 1123, // A4 @ 96 DPI Height
+                    cacheBust: true,
+                    style: {
+                        margin: '0',
+                        transform: 'none',
+                        boxShadow: 'none',
+                        border: 'none',
+                        borderRadius: '0',
+                        display: 'block' // Flex/Grid etkilerini izole et
+                    }
+                })
+
+                // const imgProps = pdf.getImageProperties(dataUrl)
+
+                if (i > 0) {
+                    pdf.addPage()
+                }
+
+                pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, pageHeight)
+            }
+
+            const fileName = `${catalog.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`
+            pdf.save(fileName)
+            toast.success("İndirme işlemi tamamlandı!", { id: "pdf-download" })
+
+        } catch (error) {
+            console.error("PDF Generation Error:", error)
+            toast.error("PDF oluşturulamadı. Lütfen tekrar deneyin.", { id: "pdf-download" })
+        }
     }
 
     const getBackgroundStyle = () => {
+        const baseStyle: React.CSSProperties = {
+            backgroundColor: catalog.background_color || '#ffffff'
+        }
+
         if (catalog.background_image) {
             return {
+                ...baseStyle,
                 backgroundImage: `url(${catalog.background_image})`,
                 backgroundSize: catalog.background_image_fit || 'cover',
                 backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
             }
         }
-        if (catalog.background_gradient) {
-            return { background: catalog.background_gradient }
+        if (catalog.background_gradient && catalog.background_gradient !== 'none') {
+            return {
+                ...baseStyle,
+                background: catalog.background_gradient
+            }
         }
-        return { backgroundColor: catalog.background_color || '#ffffff' }
+        return baseStyle
     }
 
     const renderTemplate = (pageProds: Product[], pageNumber: number, totalPages: number) => {
         const props: TemplateProps = {
             products: pageProds,
             catalogName: catalog.name,
-            primaryColor: catalog.primary_color || '#4F46E5',
-            headerTextColor: catalog.header_text_color || '#ffffff',
+            primaryColor: catalog.primary_color || 'rgba(124, 58, 237, 1)',
+            headerTextColor: catalog.header_text_color || undefined,
             showPrices: catalog.show_prices !== false,
             showDescriptions: catalog.show_descriptions !== false,
             showAttributes: catalog.show_attributes !== false,
@@ -134,9 +209,9 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
             isFreeUser: false, // Public viewer shouldn't see ads usually unless we track plan
             pageNumber,
             totalPages,
-            columnsPerRow: catalog.columns_per_row || 2,
+            columnsPerRow: catalog.columns_per_row || 3,
             logoUrl: catalog.logo_url,
-            logoPosition: catalog.logo_position || undefined,
+            logoPosition: catalog.logo_position || 'header-left',
             logoSize: catalog.logo_size,
             titlePosition: catalog.title_position || 'left'
         }
@@ -170,12 +245,24 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
             <Toaster position="top-center" expand={true} richColors />
 
             <ShareModal
-                isOpen={isShareModalOpen}
-                onClose={() => setIsShareModalOpen(false)}
+                open={isShareModalOpen}
+                onOpenChange={setIsShareModalOpen}
                 shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                catalogName={catalog.name}
-                catalogDescription={catalog.description}
+                catalog={catalog}
+                isPublished={true} // Public view is always published
+                onDownloadPdf={async () => handleDownload()}
             />
+
+            {/* Fullscreen Exit Button (Floating) */}
+            {isFullscreen && (
+                <button
+                    onClick={toggleFullscreen}
+                    className="fixed top-6 right-6 z-[100] bg-white/10 backdrop-blur-md border border-white/20 text-white p-3 rounded-full hover:bg-white/20 transition-all shadow-xl group"
+                >
+                    <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <span className="sr-only">Exit Fullscreen</span>
+                </button>
+            )}
 
             {/* Premium Glass Header */}
             {!isFullscreen && (
@@ -212,17 +299,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                     <Button variant="ghost" size="icon" onClick={handleDownload} className="rounded-full hover:bg-violet-50 hover:text-violet-600">
                                         <Download className="w-4 h-4" />
                                     </Button>
-                                    <div className="hidden sm:flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" onClick={zoomOut} className="rounded-full hover:bg-slate-100" aria-label="Zoom out">
-                                            -
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={resetZoom} className="rounded-full hover:bg-slate-100 text-xs px-2" aria-label="Reset zoom">
-                                            {Math.round(zoom * 100)}%
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={zoomIn} className="rounded-full hover:bg-slate-100" aria-label="Zoom in">
-                                            +
-                                        </Button>
-                                    </div>
+
                                     {!isMobile && (
                                         <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full hover:bg-slate-100">
                                             <Sparkles className="w-4 h-4" />
@@ -260,11 +337,12 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                 "flex-1 relative w-full overflow-y-auto",
                 isFullscreen ? "bg-black" : ""
             )}>
-                <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6">
+                <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
                     {pages.length > 0 && pages[0].length > 0 ? (
                         pages.map((pageProds, index) => (
-                            <div 
-                                key={index} 
+                            <div
+                                key={index}
+                                data-pdf-page="true"
                                 className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
                                 style={{
                                     width: '794px',
@@ -275,11 +353,10 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                             >
                                 {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
                                 <div className="w-full h-full" style={{ height: '1123px' }}>
-                                    <div style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', width: '100%', height: '100%' }}>
+                                    <div style={{ width: '100%', height: '100%' }}>
                                         {renderTemplate(pageProds, index + 1, pages.length)}
                                     </div>
                                 </div>
-                                {/* Footer status bar removed to match builder page height */}
                             </div>
                         ))
                     ) : (

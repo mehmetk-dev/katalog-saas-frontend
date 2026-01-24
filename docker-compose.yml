@@ -1,44 +1,53 @@
 version: '3.8'
 
 services:
-  # Frontend - Next.js App
+  # --- Cloudflare Tunnel (Yeni Eklenen) ---
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    # Token'ı env dosyasından alır
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - default
+
+  # --- Frontend ---
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    # ports: "3000:3000"  <-- SİLDİM (Artık Tunnel taşıyor, dışarı kapalı)
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
+      # Buraya Cloudflare domain adresini yazacaksın (.env dosyasında)
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     depends_on:
       - backend
     restart: unless-stopped
     healthcheck:
-      # "/" yerine "/api/health" - daha hızlı ve hatasız
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - default
 
-  # Backend - Express API
+  # --- Backend ---
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "4000:4000"
+    # ports: "4000:4000" <-- SİLDİM (Güvenlik için kapalı)
     environment:
       - NODE_ENV=production
       - PORT=4000
       - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
-      # Hem sunucu IP'sine HEM DE localhost'a izin veriyoruz
-      - ALLOWED_ORIGINS=http://localhost:3000,http://34.122.56.172:3000,http://34.122.56.172
+      # DİKKAT: Typonu düzelttim (fogistanul -> fogistanbul) ve HTTPS ekledim
+      - ALLOWED_ORIGINS=http://localhost:3000,https://katalog.fogistanbul.com
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
     depends_on:
       - redis
@@ -48,12 +57,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - default
 
-  # Redis - Caching (Optional)
+  # --- Redis ---
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # ports: "6379:6379" <-- SİLDİM (Sadece backend erişsin, dışarı kapalı)
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -62,6 +72,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - default
 
 volumes:
   redis_data:
@@ -69,4 +81,7 @@ volumes:
 # Network configuration
 networks:
   default:
-    name: katalog-network
+    # Senin mevcut ağın
+    name: couldflare-nw
+    # Eğer bu ağı elle (manual) oluşturduysan alt satırı aç:
+    # external: true

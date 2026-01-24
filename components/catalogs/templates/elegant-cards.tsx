@@ -1,12 +1,15 @@
 import NextImage from "next/image"
-
 import { TemplateProps } from "./types"
 
-// Elegant Cards - Lüks kart tasarımı, geniş boşluklar
+/**
+ * Elegant Cards Template - "The Floating Glass"
+ * A sophisticated design using glassmorphism and soft depth.
+ * Features: Background gradients, backdrop filters, floating cards, and serif typography.
+ */
 export function ElegantCardsTemplate({
     catalogName,
     products,
-    primaryColor,
+    primaryColor = "#7c3aed", // Default violet/soft purple
     showPrices,
     showDescriptions,
     showAttributes,
@@ -15,6 +18,9 @@ export function ElegantCardsTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const safeProducts = products || []
 
@@ -27,90 +33,128 @@ export function ElegantCardsTemplate({
         }
     }
 
-    const getGridRows = () => {
-        return "grid-rows-3"
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 28
+            case 'large': return 48
+            default: return 36
+        }
     }
 
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'center'
+
     return (
-        <div className="bg-transparent h-full flex flex-col overflow-hidden">
-            {/* Header - Sayfanın üst kısmı */}
-            <div className="h-20 px-10 flex items-end pb-4 border-b border-stone-200 shrink-0">
-                {pageNumber === 1 ? (
-                    <div className="w-full flex justify-between items-end">
-                        <div>
-                            <div className="text-[10px] uppercase tracking-[0.3em] text-stone-400 mb-1">Koleksiyon</div>
-                            <h1 className="text-2xl font-serif text-stone-800">{catalogName || "Katalog"}</h1>
-                        </div>
-                        <div className="h-1 w-24 rounded-full" style={{ backgroundColor: primaryColor }} />
-                    </div>
-                ) : (
-                    <div className="w-full flex justify-between items-center">
-                        <span className="font-serif text-stone-600">{catalogName}</span>
-                        <span className="text-sm text-stone-400">{pageNumber}</span>
-                    </div>
-                )}
+        <div className="h-full bg-[#fdfaf6] flex flex-col relative overflow-hidden selection:bg-stone-200">
+            {/* Background Orbs for Depth */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-20" style={{ backgroundColor: primaryColor }} />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-[0.15]" style={{ backgroundColor: primaryColor }} />
+
+            {/* Header */}
+            <div className="h-32 px-12 flex items-center justify-between shrink-0 relative z-10">
+                <div className="flex-1">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                    )}
+                    {logoAlignment !== 'left' && (
+                        <div className="text-[10px] uppercase tracking-[0.4em] text-stone-400 font-medium whitespace-nowrap">SERIES COLLECTION // {String(pageNumber).padStart(2, '0')}</div>
+                    )}
+                </div>
+
+                <div className="flex-1 flex flex-col items-center">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
+                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                    ) : (
+                        <h1 className="text-3xl font-serif text-stone-900 italic tracking-tight">
+                            {catalogName || "Elegance"}
+                        </h1>
+                    )}
+                </div>
+
+                <div className="flex-1 flex justify-end">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                    )}
+                    {logoAlignment !== 'right' && (
+                        <div className="w-12 h-[1px] bg-stone-300" />
+                    )}
+                </div>
             </div>
 
-            {/* Dinamik Grid - Büyük kartlar */}
-            <div className={`flex-1 p-6 grid ${getGridCols()} ${getGridRows()} gap-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 128px)' }}>
-                {safeProducts.map((product) => {
+            {/* Grid - The Cards (Optimized for 4 items: 2x2) */}
+            <div className="flex-1 px-14 pb-12 grid grid-cols-2 grid-rows-2 gap-12 overflow-hidden relative z-10">
+                {safeProducts.slice(0, 4).map((product) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'bg-white rounded-3xl shadow-lg border border-stone-100 overflow-hidden flex flex-col group h-full cursor-pointer shrink-0'
+                        className: 'group h-full flex flex-col bg-white/40 backdrop-blur-xl rounded-[48px] border border-white/60 shadow-[0_30px_60px_rgba(0,0,0,0.02)] hover:shadow-[0_45px_90px_rgba(0,0,0,0.06)] hover:bg-white/60 hover:-translate-y-2 transition-all duration-1000 cursor-pointer overflow-hidden p-4'
                     } : {
-                        className: 'bg-white rounded-3xl shadow-lg border border-stone-100 overflow-hidden flex flex-col h-full shrink-0'
+                        className: 'h-full flex flex-col bg-white/40 backdrop-blur-xl rounded-[48px] border border-white/60 shadow-[0_30px_60px_rgba(0,0,0,0.02)] overflow-hidden p-4'
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            <div className="h-32 min-h-[128px] bg-gradient-to-br from-stone-100 to-stone-50 overflow-hidden shrink-0 relative">
-                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            {/* Product Image Capsule - MAXIMIZED IMAGE AREA */}
+                            <div className="relative flex-1 bg-white rounded-[40px] overflow-hidden shadow-inner flex items-center justify-center p-2 shrink-0">
+                                <NextImage
+                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                    alt={product.name}
+                                    fill
+                                    unoptimized
+                                    className="object-contain p-2 group-hover:scale-105 transition-all duration-[1.5s]"
+                                />
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-md rounded-full p-2 text-stone-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-stone-400 opacity-0 group-hover:opacity-100 transition-all shadow-sm">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>
                                     </div>
                                 )}
                             </div>
-                            <div className="p-4 flex-1 flex flex-col justify-between overflow-hidden">
-                                <div className="space-y-1">
-                                    <h3 className="font-serif text-base text-stone-800 line-clamp-1 leading-tight">{product.name}</h3>
-                                    {showDescriptions && product.description && (
-                                        <p className="text-[10px] text-stone-500 line-clamp-2 leading-tight italic">{product.description}</p>
-                                    )}
 
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-2 space-y-0.5 border-t border-stone-100 pt-2">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
-                                                <div key={idx} className="flex justify-between items-center text-[9px] gap-2">
-                                                    <span className="text-stone-400 font-serif italic truncate flex-1">{attr.name}</span>
-                                                    <span className="text-stone-600 font-medium shrink-0 truncate max-w-[50%]">
-                                                        {attr.value}{attr.unit}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="mt-auto pt-2 flex items-center justify-between">
+                            {/* Info Block - Refined & Compact to save space for image */}
+                            <div className="py-6 px-8 text-center flex flex-col justify-center shrink-0">
+                                <h3 className="font-serif text-xl text-stone-800 line-clamp-1 mb-1 group-hover:text-stone-900 transition-colors tracking-tight">
+                                    {product.name}
+                                </h3>
+
+                                {showDescriptions && product.description && (
+                                    <p className="text-[10px] text-stone-400 font-serif italic line-clamp-1 mb-2">
+                                        {product.description}
+                                    </p>
+                                )}
+
+                                <div className="flex items-center justify-center gap-3 mb-4">
+                                    <div className="w-1.5 h-[1px] bg-stone-300" />
                                     {showPrices && (
-                                        <p className="text-lg font-light leading-none" style={{ color: primaryColor }}>
+                                        <span className="text-base font-light text-stone-500 tracking-[0.1em]">
                                             {(() => {
                                                 const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}
-                                        </p>
+                                        </span>
                                     )}
-                                    {showSku && product.sku && (
-                                        <span className="text-[8px] text-stone-300 font-serif tracking-widest">{product.sku}</span>
-                                    )}
+                                    <div className="w-1.5 h-[1px] bg-stone-300" />
                                 </div>
+
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="flex items-center justify-center gap-8 border-t border-stone-100 pt-4">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
+                                            <div key={aidx} className="flex flex-col gap-1">
+                                                <span className="text-[8px] uppercase tracking-[0.2em] text-stone-300 font-bold">{attr.name}</span>
+                                                <span className="text-xs text-stone-600 font-serif italic">{attr.value}{attr.unit}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {showSku && product.sku && (
+                                    <span className="mt-4 text-[8px] text-stone-200 tracking-[0.4em] uppercase font-medium">REF_ID_{product.sku}</span>
+                                )}
                             </div>
                         </Wrapper>
                     )
@@ -118,11 +162,19 @@ export function ElegantCardsTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-12 px-10 flex items-center justify-center border-t border-stone-200 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-px bg-stone-300" />
-                    <span className="text-xs text-stone-400 font-serif">{pageNumber} / {totalPages}</span>
-                    <div className="w-8 h-px bg-stone-300" />
+            <div className="h-20 px-12 flex items-center justify-center shrink-0 border-t border-stone-100 bg-white/30 backdrop-blur-md relative z-10">
+                <div className="flex items-center gap-16">
+                    <span className="text-[10px] uppercase tracking-[0.5em] text-stone-400 font-serif whitespace-nowrap">
+                        ESTABLISHED CURATION
+                    </span>
+                    <div className="flex gap-3">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                            <div key={i} className={`h-[2px] w-8 transition-all duration-1000 ${i + 1 === pageNumber ? 'bg-stone-800' : 'bg-stone-200'}`} />
+                        ))}
+                    </div>
+                    <span className="text-[10px] font-serif italic text-stone-400">
+                        {pageNumber} of {totalPages}
+                    </span>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
+import * as Sentry from "@sentry/nextjs"
 
 type UserPlan = "free" | "plus" | "pro"
 
@@ -136,6 +137,21 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
       await fetchUserProfile(authUser)
     }
   }
+
+  useEffect(() => {
+    // Sentry User Identification
+    if (user) {
+      Sentry.setUser({
+        id: user.id,
+        email: user.email,
+        username: user.name,
+        company: user.company,
+        plan: user.plan
+      })
+    } else {
+      Sentry.setUser(null)
+    }
+  }, [user])
 
   useEffect(() => {
     // Get initial session

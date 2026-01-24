@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { useUser } from "@/lib/user-context"
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
+import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,18 +170,64 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [hasUnsavedChanges])
 
+  // Sync state when catalog prop changes (prevents state leaking between catalogs)
+  useEffect(() => {
+    if (catalog) {
+      setCatalogName(catalog.name || "")
+      setCatalogDescription(catalog.description || "")
+      setSelectedProductIds(catalog.product_ids || [])
+      setLayout(catalog.layout || "grid")
+      setPrimaryColor(getInitialPrimaryColor())
+      setHeaderTextColor(catalog.header_text_color || "#ffffff")
+      setShowPrices(catalog.show_prices ?? true)
+      setShowDescriptions(catalog.show_descriptions ?? true)
+      setShowAttributes(catalog.show_attributes ?? false)
+      setShowSku(catalog.show_sku ?? true)
+      setShowUrls(catalog.show_urls ?? false)
+      setColumnsPerRow(catalog.columns_per_row || 3)
+      setBackgroundColor(catalog.background_color || '#ffffff')
+      setBackgroundImage(catalog.background_image || null)
+      setBackgroundImageFit(catalog.background_image_fit || 'cover')
+      setBackgroundGradient(catalog.background_gradient || null)
+      setLogoUrl(catalog.logo_url || user?.logo_url || null)
+      setLogoPosition(catalog.logo_position || 'header-left')
+      setLogoSize(catalog.logo_size || 'medium')
+      setTitlePosition(catalog.title_position || 'left')
+      setProductImageFit(catalog.product_image_fit || 'cover')
+      setIsPublished(catalog.is_published || false)
+      setCurrentCatalogId(catalog.id || null)
+
+      setLastSavedState({
+        name: catalog.name || "",
+        description: catalog.description || "",
+        productIds: catalog.product_ids || [],
+        layout: catalog.layout || "grid",
+        primaryColor: getInitialPrimaryColor(),
+        showPrices: catalog.show_prices ?? true,
+        showDescriptions: catalog.show_descriptions ?? true,
+        showAttributes: catalog.show_attributes ?? false,
+        showSku: catalog.show_sku ?? true,
+        showUrls: catalog.show_urls ?? false,
+        columnsPerRow: catalog.columns_per_row || 3,
+        backgroundColor: catalog.background_color || '#ffffff',
+      })
+      setIsDirty(false)
+    }
+  }, [catalog?.id]) // catalog.id değiştiğinde tetiklenir
+
   // Herhangi bir değişiklikte isDirty'i true yap
   useEffect(() => {
     // İlk render'da değil, sonraki değişikliklerde dirty yap
     const isInitialRender =
       catalogName === (catalog?.name || "") &&
       catalogDescription === (catalog?.description || "") &&
-      JSON.stringify(selectedProductIds) === JSON.stringify(catalog?.product_ids || [])
+      JSON.stringify(selectedProductIds) === JSON.stringify(catalog?.product_ids || []) &&
+      backgroundGradient === (catalog?.background_gradient || null)
 
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, catalog?.name, catalog?.description, catalog?.product_ids])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundGradient])
 
   // Autosave state
   const [isAutoSaving, setIsAutoSaving] = useState(false)
@@ -219,6 +266,9 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_url: logoUrl,
           logo_position: logoPosition,
           logo_size: logoSize,
+          title_position: titlePosition,
+          product_image_fit: productImageFit,
+          header_text_color: headerTextColor,
         })
 
         // Başarılı - state'leri güncelle
@@ -254,7 +304,32 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [currentCatalogId, isDirty, catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, productImageFit, headerTextColor, columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient, logoUrl, logoPosition, logoSize, isPublished])
+  }, [
+    currentCatalogId,
+    isDirty,
+    catalogName,
+    catalogDescription,
+    selectedProductIds,
+    layout,
+    primaryColor,
+    showPrices,
+    showDescriptions,
+    showAttributes,
+    showSku,
+    showUrls,
+    productImageFit,
+    headerTextColor,
+    columnsPerRow,
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    logoUrl,
+    logoPosition,
+    logoSize,
+    titlePosition,
+    isPublished
+  ])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
   const selectedProducts = selectedProductIds
@@ -302,6 +377,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logo_url: logoUrl,
             logo_position: logoPosition,
             logo_size: logoSize,
+            title_position: titlePosition,
             product_image_fit: productImageFit,
             header_text_color: headerTextColor,
           })
@@ -329,6 +405,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logo_url: logoUrl,
             logo_position: logoPosition,
             logo_size: logoSize,
+            title_position: titlePosition,
             product_image_fit: productImageFit,
             header_text_color: headerTextColor,
           })
@@ -386,6 +463,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_url: logoUrl,
           logo_position: logoPosition,
           logo_size: logoSize,
+          title_position: titlePosition,
           product_image_fit: productImageFit,
           header_text_color: headerTextColor,
         })
@@ -481,6 +559,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           logo_url: logoUrl,
           logo_position: logoPosition,
           logo_size: logoSize,
+          title_position: titlePosition,
           product_image_fit: productImageFit,
           header_text_color: headerTextColor,
           share_slug: shareSlug,
@@ -537,11 +616,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         return
       }
 
-      // 1. Export Modunu Aktif Et (Tüm sayfaları render etmeye zorlar)
+      // 1. Export Modunu Aktif Et (Hayalet konteynırı render eder)
       setIsExporting(true)
 
-      // Bekle ki React 'CatalogPreview'u list modunda render etsin
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Bekle ki React hayalet konteynırı tüm sayfalarla birlikte render etsin
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
       const isPro = user?.plan === "pro"
       const resolutionText = isPro ? " (Yüksek Çözünürlük)" : ""
@@ -550,24 +629,21 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       const { toJpeg } = await import("html-to-image")
       const { jsPDF } = await import("jspdf")
 
-      let container = document.getElementById('catalog-preview-container')
+      // HAYALET KONTEYNIRI HEDEFLE
+      const container = document.getElementById('catalog-export-container')
+
       if (!container) {
-        setView('preview')
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        container = document.getElementById('catalog-preview-container')
+        setIsExporting(false)
+        throw new Error("Export hazırlığı tamamlanamadı. Lütfen tekrar deneyin.")
       }
 
-      if (!container) throw new Error("Önizleme alanı bulunamadı.")
-
-      // Find Pages
-      let pages = container.querySelectorAll('.catalog-page-wrapper')
+      // Sayfaları Bul (Hayalet konteynır içindeki tüm .catalog-page-wrapper'lar)
+      const pages = container.querySelectorAll('.catalog-page-wrapper')
 
       if (pages.length === 0) {
-        // Fallback for older structure
-        pages = container.querySelectorAll('.catalog-page')
+        setIsExporting(false)
+        throw new Error("Sayfa yapısı oluşturulamadı. Lütfen tekrar deneyin.")
       }
-
-      if (pages.length === 0) throw new Error("Sayfa yapısı bulunamadı. Lütfen sayfayı yenileyin.")
 
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -661,25 +737,24 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         }
       }
 
+      // İndirme işlemini başlat
       pdf.save(`${slugify(catalogName || "katalog")}.pdf`)
 
-      // PDF başarıyla indirildikten SONRA export hakkını kullan
-      const { incrementUserExports } = await import("@/lib/actions/user")
-      const result = await incrementUserExports(catalogName)
-
-      if (!result.error) {
-        // Kullanıcı limitini güncelle
-        await refreshUser()
-      }
-
-      // Export modundan çık
+      // UI'ı hemen güncelle (Hayaleti kapat ve başarı mesajı ver)
       setIsExporting(false)
-
       toast.success(t('builder.pdfDownloaded') + resolutionText, { id: "pdf-process" })
+
+      // Arka planda kota/limit işlemlerini yap (Kullanıcıyı bekletme)
+      import("@/lib/actions/user").then(async ({ incrementUserExports }) => {
+        const result = await incrementUserExports(catalogName)
+        if (!result.error) {
+          refreshUser()
+        }
+      }).catch(err => console.error("Export limit update failed:", err))
 
     } catch (err) {
       console.error("PDF Fail:", err)
-      setIsExporting(false) // Hata olsa bile çık
+      setIsExporting(false)
       const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
       toast.error(t('builder.pdfFailed') + ": " + msg, { id: "pdf-process" })
     }
@@ -726,6 +801,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
                 className="h-9 font-bold text-lg min-w-[120px] w-[200px] sm:w-[240px] border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-input transition-all px-2 rounded-md"
                 placeholder={t('builder.catalogNamePlaceholder')}
               />
+
+
             </div>
 
             {!isMobile && (
@@ -733,87 +810,111 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
                 <div className="h-6 w-px bg-border/60" />
 
                 {/* Status & Live Bar */}
-                <div className="flex items-center">
+                <div className="flex items-center gap-4">
+
+
+
                   {isPublished && catalog?.share_slug ? (
-                    <div className="flex items-center gap-1 pl-1 pr-1.5 py-1 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-full transition-all hover:border-emerald-200 dark:hover:border-emerald-800">
-                      <div className="flex items-center gap-1.5 px-2">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Yayında</span>
-                      </div>
+                    <>
+                      <div className="flex items-center gap-1 pl-1 pr-1.5 py-1 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-full transition-all hover:border-emerald-200 dark:hover:border-emerald-800">
+                        <div className="flex items-center gap-1.5 px-2">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Yayında</span>
+                        </div>
 
-                      <div className="h-4 w-px bg-emerald-200/50 dark:bg-emerald-800/50 mx-1" />
+                        <div className="h-4 w-px bg-emerald-200/50 dark:bg-emerald-800/50 mx-1" />
 
-                      <div className="flex items-center gap-1 group">
+                        <div className="flex items-center gap-1 group">
 
-                        {/* URL Güncelleme Uyarısı (Buton Şeklinde) */}
-                        {isUrlOutdated && (
-                          <div className="flex items-center animate-in fade-in zoom-in duration-300 mr-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={handleUpdateSlug}
-                              className="h-6 px-2 text-[10px] font-medium gap-1.5 rounded-full bg-amber-100/80 hover:bg-amber-200 text-amber-700 border border-amber-200/50 shadow-sm"
-                              title="URL güncel bilgilerinizle eşleşmiyor."
-                            >
-                              <AlertTriangle className="w-3 h-3" />
-                              Link Yenile
-                            </Button>
-                          </div>
-                        )}
 
-                        {/* Aksiyonlar: Kopyala & Görüntüle */}
-                        <div className="flex items-center">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600"
-                            onClick={() => {
-                              const url = `${window.location.origin}/catalog/${catalog?.share_slug}`
-                              navigator.clipboard.writeText(url)
-                              toast.success("Link kopyalandı!")
-                            }}
-                            title="Linki Kopyala"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                          <a
-                            href={`/catalog/${catalog.share_slug}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
+
+
+                          {/* URL Güncelleme Uyarısı (Buton Şeklinde) */}
+                          {isUrlOutdated && (
+                            <div className="flex items-center animate-in fade-in zoom-in duration-300 mr-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleUpdateSlug}
+                                className="h-6 px-2 text-[10px] font-medium gap-1.5 rounded-full bg-amber-100/80 hover:bg-amber-200 text-amber-700 border border-amber-200/50 shadow-sm"
+                                title="URL güncel bilgilerinizle eşleşmiyor."
+                              >
+                                <AlertTriangle className="w-3 h-3" />
+                                Link Yenile
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Aksiyonlar: Kopyala & Görüntüle */}
+                          <div className="flex items-center">
                             <Button
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600"
-                              title="Kataloğu Görüntüle"
+                              onClick={() => {
+                                const url = `${window.location.origin}/catalog/${catalog?.share_slug}`
+                                navigator.clipboard.writeText(url)
+                                toast.success("Link kopyalandı!")
+                              }}
+                              title="Linki Kopyala"
                             >
-                              <ExternalLink className="w-3 h-3" />
+                              <Copy className="w-3 h-3" />
                             </Button>
-                          </a>
+                            <a
+                              href={`/catalog/${catalog.share_slug}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600"
+                                title="Kataloğu Görüntüle"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </Button>
+                            </a>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {isAutoSaving ? (
-                        <span className="text-xs text-muted-foreground animate-pulse flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                          Kaydediliyor...
-                        </span>
-                      ) : hasUnsavedChanges ? (
-                        <span className="text-xs text-amber-600 flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                          Kaydedilmedi
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
-                          Taslak
-                        </span>
+
+                      {/* Yayını Güncelle Butonu (Amber - Sarı) */}
+                      {isPublished && hasUnpushedChanges && (
+                        <div className="ml-2 animate-in fade-in zoom-in slide-in-from-left-2 duration-300 flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={handlePushUpdates}
+                            disabled={isPending}
+                            className="h-8 px-4 text-xs font-bold gap-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-200 border border-amber-600/20 hover:scale-105 transition-all"
+                            title="Yaptığınız değişiklikler sadece taslak olarak kaydedildi. Kullanıcıların görmesi için tıklayın."
+                          >
+                            <RefreshCw className={cn("w-3.5 h-3.5", isPending && "animate-spin")} />
+                            YAYINI GÜNCELLE
+                          </Button>
+                        </div>
                       )}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
+                      {/* Status: Yayında Değil */}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/80 rounded-full border border-slate-200/60">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                        <span className="text-xs text-slate-500 font-medium">Yayında Değil</span>
+                      </div>
+
+                      {/* Yayınla Butonu */}
+                      <Button
+                        size="sm"
+                        onClick={handlePublish}
+                        disabled={isPending}
+                        className="h-7 px-3 text-xs font-bold gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow transition-all"
+                      >
+                        <Globe className="w-3 h-3" />
+                        Yayınla
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -879,7 +980,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             {hasUnsavedChanges && !isPending && (
               <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100 animate-in fade-in slide-in-from-right-2 duration-300">
                 <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                Kaydedilmemiş değişikler
+                Kaydedilmemiş değişiklikler
               </span>
             )}
 
@@ -899,6 +1000,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               </span>
             </Button>
 
+
+
             <Button
               variant="default" // Primary
               size="sm"
@@ -911,7 +1014,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Daha fazla seçenek">
                   <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -1107,6 +1210,47 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* GHOST CONTAINER (PDF Export için Gizli Alan) */}
+      {isExporting && (
+        <div
+          id="catalog-export-container"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: '-9999px',
+            width: '1000px', // Yeterince geniş
+            zIndex: -100,
+            opacity: 0, // Görünmez ama render olur
+            pointerEvents: 'none',
+            overflow: 'visible' // Taşmaları engelleme
+          }}
+        >
+          <CatalogPreview
+            catalogName={catalogName}
+            products={selectedProducts}
+            layout={layout}
+            primaryColor={primaryColor}
+            headerTextColor={headerTextColor}
+            showPrices={showPrices}
+            showDescriptions={showDescriptions}
+            showAttributes={showAttributes}
+            showSku={showSku}
+            showUrls={showUrls}
+            productImageFit={productImageFit}
+            columnsPerRow={columnsPerRow}
+            backgroundColor={backgroundColor}
+            backgroundImage={backgroundImage}
+            backgroundImageFit={backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
+            backgroundGradient={backgroundGradient}
+            logoUrl={logoUrl}
+            logoPosition={logoPosition ?? undefined}
+            logoSize={logoSize}
+            titlePosition={titlePosition}
+            isExporting={true} // Her zaman tüm sayfalar
+          />
+        </div>
+      )}
     </div>
   )
 }

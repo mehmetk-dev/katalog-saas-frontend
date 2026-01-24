@@ -61,4 +61,8 @@ export const ALL_TEMPLATES: Record<string, React.ComponentType<TemplateProps>> =
         ssr: false,
         loading: LoadingPlaceholder
     }),
+    'tech-modern': dynamic(() => import('./tech-modern').then(m => m.TechModernTemplate), {
+        ssr: false,
+        loading: LoadingPlaceholder
+    }),
 }

@@ -33,6 +33,8 @@ interface UseAsyncTimeoutReturn<T> {
     cancel: () => void
     /** İşlem iptal edildi mi */
     isCancelled: boolean
+    /** İşlem iptal edildi mi (Ref check - stale proof) */
+    checkCancelled: () => boolean
     /** Hata mesajı */
     error: string | null
 }
@@ -129,6 +131,7 @@ export function useAsyncTimeout<T = void>(
         setHasTimeout(false)
         setError(null)
         setProgress(0)
+        setIsCancelled(false) // Added this line
         cancelledRef.current = false
         startTimeRef.current = Date.now()
         lastProgressTimeRef.current = Date.now()
@@ -188,6 +191,8 @@ export function useAsyncTimeout<T = void>(
         lastProgressTimeRef.current = Date.now()
     }, [])
 
+    const checkCancelled = useCallback(() => cancelledRef.current, [])
+
     return {
         execute,
         isLoading,
@@ -197,6 +202,7 @@ export function useAsyncTimeout<T = void>(
         reset,
         cancel,
         isCancelled,
+        checkCancelled,
         error
     }
 }

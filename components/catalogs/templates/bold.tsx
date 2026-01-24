@@ -1,11 +1,15 @@
 import NextImage from "next/image"
-
 import { TemplateProps } from "./types"
 
+/**
+ * Bold Template - "The Neo-Brutalist"
+ * A high-impact, raw design inspired by modern streetwear and radical architecture.
+ * Features: Chunky borders, massive headers, and a "Zine" aesthetic.
+ */
 export function BoldTemplate({
     catalogName,
     products,
-    primaryColor,
+    primaryColor = "#000000",
     showPrices,
     showDescriptions,
     showAttributes,
@@ -18,7 +22,7 @@ export function BoldTemplate({
     logoPosition,
     logoSize,
 }: TemplateProps) {
-    const HEADER_HEIGHT = "56px"
+    const HEADER_HEIGHT = "80px"
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -29,73 +33,54 @@ export function BoldTemplate({
         }
     }
 
-    const getGridRows = () => {
-        // 2 sütun -> 6 ürün (3 satır)
-        // 3 sütun -> 9 ürün (3 satır)
-        // 4 sütun -> 12 ürün (3 satır)
-        return "grid-rows-3"
-    }
-
-    // Logo boyutu
     const getLogoHeight = () => {
         switch (logoSize) {
-            case 'small': return 28
-            case 'large': return 44
-            default: return 36
+            case 'small': return 32
+            case 'large': return 60
+            default: return 44
         }
     }
 
-    // Header'da logo var mı?
     const isHeaderLogo = logoPosition?.startsWith('header')
     const logoAlignment = logoPosition?.split('-')[1] || 'left'
 
     return (
-        <div className="bg-transparent h-full border-[10px] flex flex-col overflow-hidden" style={{ borderColor: primaryColor }}>
-            {/* Header Alanı - Tüm sayfalarda aynı yükseklik */}
-            <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
-                {pageNumber === 1 ? (
-                    <div className="h-full bg-black text-white px-5 flex items-center">
-                        {/* Logo Sol */}
-                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain mr-4" />
-                        )}
-                        {/* Başlık - Logo ortada değilse göster */}
-                        {!(logoUrl && isHeaderLogo && logoAlignment === 'center') && (
-                            <h1 className="text-2xl font-black uppercase tracking-tighter">
-                                {catalogName || "KATALOG"}
-                            </h1>
-                        )}
-                        {/* Logo Orta */}
-                        {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                            <div className="flex-1 flex justify-center">
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                            </div>
-                        )}
-                        {/* Logo Sağ */}
-                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <>
-                                <div className="flex-1" />
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                            </>
-                        )}
-                    </div>
-                ) : (
-                    <div className="h-full bg-black text-white px-5 flex items-center justify-between">
-                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 8} unoptimized style={{ height: getLogoHeight() - 8 }} className="object-contain mr-3" />
-                        )}
-                        <span className="font-bold uppercase tracking-tight">{catalogName}</span>
-                        <div className="flex-1" />
-                        <span className="text-sm font-mono">#{pageNumber}</span>
-                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight() - 8} unoptimized style={{ height: getLogoHeight() - 8 }} className="object-contain ml-3" />
-                        )}
-                    </div>
-                )}
+        <div className="h-full flex flex-col bg-white overflow-hidden selection:bg-black selection:text-white" style={{ border: `8px solid ${primaryColor}` }}>
+            {/* Header - Huge and Loud */}
+            <div className="shrink-0 flex items-stretch border-b-8" style={{ height: HEADER_HEIGHT, borderColor: primaryColor }}>
+                <div className="flex-1 px-6 flex items-center bg-white text-black">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                        <div className="mr-6 border-r-8 pr-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                        </div>
+                    )}
+
+                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic">
+                        {catalogName || "KATALOG"}
+                    </h1>
+
+                    {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                        <div className="flex-1 flex justify-center">
+                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                        </div>
+                    )}
+
+                    <div className="flex-1" />
+
+                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                        <div className="ml-6 border-l-8 pl-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-[120px] shrink-0 flex items-center justify-center border-l-8 text-white font-black italic text-2xl" style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
+                    {pageNumber.toString().padStart(2, '0')}
+                </div>
             </div>
 
-            {/* Dinamik Grid İçerik */}
-            <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-4 overflow-hidden bg-white`} style={{ maxHeight: 'calc(100% - 88px)' }}>
+            {/* Grid - The "Chaos" Grid */}
+            <div className={`flex-1 p-6 grid ${getGridCols()} grid-rows-3 gap-6 overflow-hidden bg-[#f0f0f0]`}>
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
@@ -103,73 +88,82 @@ export function BoldTemplate({
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'border-2 border-black h-full bg-white hover:bg-yellow-300 transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col overflow-hidden cursor-pointer group shrink-0'
+                        className: 'group h-full flex flex-col bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer overflow-hidden'
                     } : {
-                        className: 'border-2 border-black h-full bg-white flex flex-col overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] shrink-0'
+                        className: 'h-full flex flex-col bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden'
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            {/* Görsel */}
-                            <div className="aspect-[4/3] border-b-2 border-black overflow-hidden bg-white shrink-0 relative">
-                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300" />
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            {/* Huge Image Area */}
+                            <div className="relative aspect-[16/10] bg-gray-200 border-b-4 border-black overflow-hidden group">
+                                <NextImage
+                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                    alt={product.name}
+                                    fill
+                                    unoptimized
+                                    className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                                />
+                                {/* Label Ribbon */}
+                                {showSku && product.sku && (
+                                    <div className="absolute top-2 left-2 bg-black text-white text-[10px] font-bold px-2 py-0.5 uppercase tracking-tighter">
+                                        ID: {product.sku}
+                                    </div>
+                                )}
+                                {/* URL Icon */}
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-1.5 right-1.5 bg-black text-white p-1">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="absolute top-2 right-2 bg-white border-2 border-black p-1 group-hover:bg-yellow-400 transition-colors">
+                                        <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Bilgiler */}
-                            <div className="p-2 flex-1 flex flex-col justify-between overflow-hidden">
-                                <div>
-                                    <h3 className="text-[11px] font-black uppercase line-clamp-1 italic">{product.name}</h3>
-
-                                    {showDescriptions && product.description && (
-                                        <p className="text-[9px] text-gray-700 line-clamp-2 mt-0.5 leading-tight font-medium">
-                                            {product.description}
-                                        </p>
-                                    )}
-
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-1 space-y-0.5 border-t border-black/10 pt-1">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, idx) => (
-                                                <div key={idx} className="flex justify-between items-center text-[8px] gap-1 font-bold">
-                                                    <span className="bg-black text-white px-0.5 uppercase truncate flex-1">{attr.name}</span>
-                                                    <span className="text-black shrink-0 truncate max-w-[50%]">
-                                                        {attr.value}{attr.unit}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-auto pt-1 flex items-center justify-between border-t-2 border-black/5">
+                            {/* Content Block */}
+                            <div className="p-3 flex-1 flex flex-col">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="text-lg font-black uppercase leading-tight tracking-tighter italic flex-1 mr-4">
+                                        {product.name}
+                                    </h3>
                                     {showPrices && (
-                                        <span className="text-sm font-black font-mono">
+                                        <div className="bg-black text-white px-2 py-1 text-sm font-black italic shrink-0 shadow-[4px_4px_0px_0px_#fbbf24]">
                                             {(() => {
                                                 const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                 return `${symbol}${Number(product.price).toFixed(2)}`
                                             })()}
-                                        </span>
-                                    )}
-                                    {showSku && product.sku && (
-                                        <span className="text-[8px] font-mono font-bold bg-gray-100 px-0.5">{product.sku}</span>
+                                        </div>
                                     )}
                                 </div>
+
+                                {showDescriptions && product.description && (
+                                    <p className="text-[11px] font-bold text-gray-800 line-clamp-2 leading-tight uppercase mb-2 border-l-4 border-black pl-2">
+                                        {product.description}
+                                    </p>
+                                )}
+
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="mt-auto pt-2 grid grid-cols-2 gap-1 border-t-2 border-black/10">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 4).map((attr, idx) => (
+                                            <div key={idx} className="flex flex-col text-[9px] font-black uppercase tracking-tighter">
+                                                <span className="text-gray-400">{attr.name}</span>
+                                                <span className="truncate">{attr.value}{attr.unit}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </Wrapper>
                     )
                 })}
             </div>
 
-            {/* Footer */}
-            <div className="h-8 bg-black text-white flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold font-mono uppercase tracking-widest">{pageNumber} {" // "} {totalPages}</span>
+            {/* Footer - Solid Block */}
+            <div className="h-10 text-white flex items-center px-6 font-black italic uppercase tracking-widest text-sm" style={{ backgroundColor: primaryColor }}>
+                <div className="flex-1">{catalogName}</div>
+                <div className="h-full w-[1px] bg-white opacity-20 mx-4" />
+                <div>PAGE {pageNumber} / {totalPages}</div>
             </div>
         </div>
     )

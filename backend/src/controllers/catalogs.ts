@@ -227,8 +227,8 @@ export const createCatalog = async (req: Request, res: Response) => {
         if (error) {
             // Unique constraint violation için özel hata mesajı
             if (error.code === '23505' && error.message.includes('share_slug')) {
-                return res.status(409).json({ 
-                    error: 'Bu slug zaten kullanılıyor. Lütfen tekrar deneyin.' 
+                return res.status(409).json({
+                    error: 'Bu slug zaten kullanılıyor. Lütfen tekrar deneyin.'
                 });
             }
             throw error;
@@ -313,7 +313,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
         };
 
         if (name !== undefined && name !== null) updateData.name = name;
-        if (description !== undefined && description !== null) updateData.description = description;
+        if (description !== undefined) updateData.description = description;
         if (layout !== undefined && layout !== null) updateData.layout = layout;
         if (primary_color !== undefined && primary_color !== null) updateData.primary_color = primary_color;
         if (is_published !== undefined && is_published !== null) updateData.is_published = is_published;
@@ -326,18 +326,18 @@ export const updateCatalog = async (req: Request, res: Response) => {
         if (show_urls !== undefined && show_urls !== null) updateData.show_urls = show_urls;
         if (columns_per_row !== undefined && columns_per_row !== null) updateData.columns_per_row = columns_per_row;
         if (background_color !== undefined && background_color !== null) updateData.background_color = background_color;
-        if (background_gradient !== undefined && background_gradient !== null) updateData.background_gradient = background_gradient;
-        if (background_image !== undefined) updateData.background_image = background_image; // null olabilir
+        if (background_gradient !== undefined) updateData.background_gradient = background_gradient;
+        if (background_image !== undefined) updateData.background_image = background_image;
         if (background_image_fit !== undefined && background_image_fit !== null) updateData.background_image_fit = background_image_fit;
-        if (logo_url !== undefined) updateData.logo_url = logo_url; // null olabilir
-        if (logo_position !== undefined && logo_position !== null) updateData.logo_position = logo_position;
+        if (logo_url !== undefined) updateData.logo_url = logo_url;
+        if (logo_position !== undefined) updateData.logo_position = logo_position;
         if (logo_size !== undefined && logo_size !== null) updateData.logo_size = logo_size;
         if (title_position !== undefined && title_position !== null) updateData.title_position = title_position;
         if (product_image_fit !== undefined && product_image_fit !== null) updateData.product_image_fit = product_image_fit;
         if (header_text_color !== undefined && header_text_color !== null) updateData.header_text_color = header_text_color;
 
         console.log('Updating catalog with data:', JSON.stringify(updateData, null, 2));
-        
+
         const { error, data } = await supabase
             .from('catalogs')
             .update(updateData)
@@ -352,11 +352,11 @@ export const updateCatalog = async (req: Request, res: Response) => {
             console.error('Error details:', error.details);
             // Unique constraint violation için özel hata mesajı
             if (error.code === '23505' && error.message.includes('share_slug')) {
-                return res.status(409).json({ 
-                    error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.' 
+                return res.status(409).json({
+                    error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.'
                 });
             }
-            return res.status(500).json({ 
+            return res.status(500).json({
                 error: 'Katalog güncellenirken bir hata oluştu',
                 details: error.message,
                 code: error.code
@@ -392,9 +392,9 @@ export const updateCatalog = async (req: Request, res: Response) => {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const errorStack = error instanceof Error ? error.stack : undefined;
         console.error('Error stack:', errorStack);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Katalog güncellenirken bir hata oluştu',
-            message: errorMessage 
+            message: errorMessage
         });
     }
 };
@@ -615,7 +615,7 @@ const smartIncrementViewCount = async (
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        
+
         // TimeRange parametresini al (7d, 30d, 90d) - varsayılan 30d
         const timeRange = (req.query.timeRange as string) || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;

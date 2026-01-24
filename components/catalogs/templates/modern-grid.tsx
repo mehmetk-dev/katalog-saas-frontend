@@ -143,7 +143,7 @@ export function ModernGridTemplate({
             </div>
 
             {/* Grid İçerik */}
-            {/* ÖNEMLİ: Kart yapısı değiştirilmedi - aspect-[4/3] fotoğraf ve flex-1 bilgiler alanı korundu */}
+            {/* ÖNEMLİ: Kart yapısı değiştirilmedi - aspect-[4/3] fotoğraf and flex-1 bilgiler alanı korundu */}
             <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`}>
                 {(products || []).map((product) => {
                     const productUrl = product.product_url

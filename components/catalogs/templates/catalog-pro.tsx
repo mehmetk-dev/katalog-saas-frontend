@@ -1,12 +1,15 @@
 import NextImage from "next/image"
-
 import { TemplateProps } from "./types"
 
-// Catalog Pro - Profesyonel 3 sütun grid
+/**
+ * Catalog Pro Template - "The Bauhaus Vanguard"
+ * A high-end designer layout inspired by Swiss and Bauhaus movements.
+ * Features: Offset frames, high-contrast typography, and a sophisticated brutalist grid.
+ */
 export function CatalogProTemplate({
     catalogName,
     products,
-    primaryColor,
+    primaryColor = "#000000",
     showPrices,
     showDescriptions,
     showAttributes,
@@ -15,6 +18,9 @@ export function CatalogProTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 3,
+    logoUrl,
+    logoPosition,
+    logoSize,
 }: TemplateProps) {
     const safeProducts = products || []
 
@@ -27,94 +33,156 @@ export function CatalogProTemplate({
         }
     }
 
-    const getGridRows = () => {
-        return "grid-rows-3"
+    const getLogoHeight = () => {
+        switch (logoSize) {
+            case 'small': return 24
+            case 'large': return 48
+            default: return 32
+        }
     }
 
-    return (
-        <div className="bg-transparent h-full flex flex-col overflow-hidden">
-            {/* Kalın renkli header bar */}
-            <div className="h-2 shrink-0" style={{ backgroundColor: primaryColor }} />
+    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoAlignment = logoPosition?.split('-')[1] || 'left'
 
-            {/* Header */}
-            <div className="h-14 px-6 flex items-center justify-between border-b shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: primaryColor }}>
-                        {(catalogName || "K")[0]}
+    return (
+        <div className="h-full bg-white flex flex-col relative overflow-hidden selection:bg-black selection:text-white">
+            {/* Bauhaus Side Stripe */}
+            <div className="absolute top-0 right-0 w-2 h-full z-50" style={{ backgroundColor: primaryColor }} />
+
+            {/* Header - Designer Impact */}
+            <div className="h-32 px-12 flex items-end pb-8 border-b-8 border-black shrink-0 relative z-10">
+                <div className="flex-1 flex items-end gap-10">
+                    <div>
+                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                            <div className="mb-4">
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                            </div>
+                        )}
+                        <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8]">
+                            {catalogName || "VANGUARD"}
+                        </h1>
                     </div>
-                    <span className="font-bold text-gray-900 text-sm truncate max-w-[200px]">{catalogName}</span>
+                    <div className="flex-1 h-[2px] bg-black mb-1 hidden md:block" />
+                    <div className="text-right flex flex-col items-end">
+                        {logoUrl && isHeaderLogo && (logoAlignment === 'right' || logoAlignment === 'center') && (
+                            <div className="mb-4">
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                            </div>
+                        )}
+                        <span className="text-[10px] font-bold tracking-[0.5em] text-black">
+                            PRO_EDITION // {new Date().getFullYear()}
+                        </span>
+                    </div>
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">SAYFA {pageNumber}</span>
             </div>
 
-            {/* Dinamik Grid */}
-            <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-4 overflow-hidden`} style={{ maxHeight: 'calc(100% - 100px)' }}>
-                {safeProducts.map((product) => {
+            {/* Brutalist Grid */}
+            <div className={`flex-1 p-12 grid ${getGridCols()} grid-rows-3 gap-16 overflow-hidden relative z-10`}>
+                {safeProducts.map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'flex flex-col h-full bg-gray-50/50 rounded-lg overflow-hidden cursor-pointer group hover:shadow-md hover:bg-white transition-all border border-transparent hover:border-gray-200 shrink-0'
+                        className: 'group h-full flex flex-col relative cursor-pointer'
                     } : {
-                        className: 'flex flex-col h-full bg-gray-50/50 rounded-lg overflow-hidden border border-transparent shrink-0'
+                        className: 'h-full flex flex-col relative'
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            <div className="aspect-square bg-white overflow-hidden relative shrink-0">
-                                <NextImage src={product.image_url || product.images?.[0] || "/placeholder.svg"} alt={product.name} fill unoptimized className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
+                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            {/* Product Frame with Bauhaus Tint Background */}
+                            <div className="relative aspect-square mb-6 group-hover:-translate-y-2 transition-transform duration-500">
+                                {/* The Offset Accent - Only shows on hover or subtlely */}
+                                <div className="absolute -inset-2 border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 translate-y-1" />
+
+                                <div className="absolute inset-0 bg-[#f0f0f0] border-2 border-black overflow-hidden flex items-center justify-center p-4">
+                                    <NextImage
+                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                        alt={product.name}
+                                        fill
+                                        unoptimized
+                                        className="object-contain p-4 mix-blend-multiply transition-all duration-700 group-hover:scale-110"
+                                    />
+                                </div>
+
+                                {/* Corner Number Badge */}
+                                <div className="absolute -top-3 -left-3 w-8 h-8 bg-black text-white flex items-center justify-center text-[10px] font-black italic">
+                                    {(idx + 1 + (pageNumber - 1) * 9).toString().padStart(2, '0')}
+                                </div>
+
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                                        <svg className="w-3 h-3 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    <div className="absolute bottom-2 right-2 p-1 bg-black text-white hover:bg-black/80">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                         </svg>
                                     </div>
                                 )}
                             </div>
-                            <div className="p-3 flex-1 flex flex-col justify-between overflow-hidden">
-                                <div className="space-y-1">
-                                    <h3 className="font-bold text-xs text-gray-900 line-clamp-1 group-hover:text-violet-700 transition-colors leading-tight">{product.name}</h3>
-                                    {showDescriptions && product.description && (
-                                        <p className="text-[10px] text-gray-500 line-clamp-1 leading-tight">{product.description}</p>
-                                    )}
 
-                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-2 space-y-0.5 border-t border-gray-100 pt-1.5">
-                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
-                                                <div key={aidx} className="flex justify-between items-center text-[9px] gap-1">
-                                                    <span className="text-gray-400 font-medium truncate flex-1 uppercase tracking-tighter">{attr.name}</span>
-                                                    <span className="text-gray-700 font-bold shrink-0 truncate max-w-[60%]">
-                                                        {attr.value}{attr.unit}
-                                                    </span>
-                                                </div>
-                                            ))}
+                            {/* Typography Info */}
+                            <div className="flex flex-col">
+                                <div className="flex justify-between items-start gap-4 border-b border-black pb-2 mb-2">
+                                    <h3 className="text-sm font-black uppercase tracking-tight line-clamp-1 flex-1">
+                                        {product.name}
+                                    </h3>
+                                    {showPrices && (
+                                        <div className="text-right">
+                                            <span className="text-sm font-black font-mono underline decoration-4" style={{ textDecorationColor: primaryColor }}>
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-auto pt-2 flex items-center justify-between border-t border-gray-100/50">
-                                    {showPrices && (
-                                        <p className="font-bold text-sm leading-none" style={{ color: primaryColor }}>
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
-                                        </p>
-                                    )}
-                                    {showSku && product.sku && <span className="text-[8px] text-gray-400 font-mono">#{product.sku}</span>}
-                                </div>
+
+                                {showDescriptions && product.description && (
+                                    <p className="text-[10px] text-black/60 font-medium line-clamp-1 italic mb-3">
+                                        {product.description}
+                                    </p>
+                                )}
+
+                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
+                                            <div key={aidx} className="flex flex-col">
+                                                <span className="text-[6px] font-black uppercase tracking-widest text-black/30">{attr.name}</span>
+                                                <span className="text-[9px] font-bold text-black uppercase leading-none">{attr.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {showSku && product.sku && (
+                                    <span className="text-[7px] font-mono text-black/20 mt-2">UID__{product.sku}</span>
+                                )}
                             </div>
                         </Wrapper>
                     )
                 })}
             </div>
 
-            {/* Footer */}
-            <div className="h-10 px-6 flex items-center justify-between bg-gray-50 border-t shrink-0">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{catalogName}</span>
-                <span className="text-xs font-black font-mono" style={{ color: primaryColor }}>{pageNumber} / {totalPages}</span>
+            {/* Footer - Bauhaus Geometry */}
+            <div className="h-16 px-12 border-t-8 border-black bg-white flex items-center justify-between shrink-0 relative z-10">
+                <div className="flex items-center gap-6">
+                    <div className="w-10 h-10 border-2 border-black flex items-center justify-center font-black text-xs italic">
+                        {pageNumber}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">
+                        {catalogName} // ARCHIVE_V1
+                    </span>
+                </div>
+                <div className="flex gap-1 h-3">
+                    {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
+                        <div key={i} className={`w-3 h-full border-2 border-black ${i + 1 === pageNumber ? 'bg-black' : ''}`}
+                            style={{ backgroundColor: i + 1 === pageNumber ? primaryColor : undefined }} />
+                    ))}
+                    {totalPages > 10 && <span className="text-[8px] font-bold leading-none self-end ml-1">...</span>}
+                </div>
             </div>
         </div>
     )

@@ -298,10 +298,10 @@ export function CatalogEditor({
       case 'minimalist':
       case 'clean-white':
       case 'elegant-cards':
+      case 'product-tiles':
         return [2, 3]
       case 'catalog-pro':
       case 'retail':
-      case 'product-tiles':
       case 'tech-modern':
         return [2, 3, 4]
       case 'compact-list':
@@ -501,10 +501,19 @@ export function CatalogEditor({
                         <div
                           key={id}
                           draggable
-                          onDragStart={(e) => { e.dataTransfer.setData("text", index.toString()); setDraggingIndex(index) }}
-                          onDragOver={(e) => { e.preventDefault(); setDropIndex(index) }}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            e.dataTransfer.setData("text", index.toString());
+                            setDraggingIndex(index)
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDropIndex(index)
+                          }}
                           onDrop={(e) => {
                             e.preventDefault()
+                            e.stopPropagation()
                             const from = Number(e.dataTransfer.getData("text"))
                             const newList = [...selectedProductIds]
                             const [moved] = newList.splice(from, 1)
@@ -677,9 +686,15 @@ export function CatalogEditor({
                               <SelectItem value="header-left">Sol Üst</SelectItem>
                               <SelectItem value="header-center">Orta Üst</SelectItem>
                               <SelectItem value="header-right">Sağ Üst</SelectItem>
-                              <SelectItem value="footer-left">Sol Alt</SelectItem>
-                              <SelectItem value="footer-center">Orta Alt</SelectItem>
-                              <SelectItem value="footer-right">Sağ Alt</SelectItem>
+                              <SelectItem value="footer-left" disabled={layout === 'compact-list'}>
+                                Sol Alt {layout === 'compact-list' && "(Desteklenmiyor)"}
+                              </SelectItem>
+                              <SelectItem value="footer-center" disabled={layout === 'compact-list'}>
+                                Orta Alt {layout === 'compact-list' && "(Desteklenmiyor)"}
+                              </SelectItem>
+                              <SelectItem value="footer-right" disabled={layout === 'compact-list'}>
+                                Sağ Alt {layout === 'compact-list' && "(Desteklenmiyor)"}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -891,7 +906,17 @@ export function CatalogEditor({
                       <div className="space-y-3">
                         <Label className="text-xs font-bold uppercase text-slate-400">Gradyan (Geçiş)</Label>
                         <div className="flex flex-col gap-3">
-                          <Select value={backgroundGradient?.includes('linear-gradient') ? 'custom' : (backgroundGradient || 'none')} onValueChange={(v) => {
+                          <Select value={(() => {
+                            if (!backgroundGradient || backgroundGradient === 'none') return 'none'
+                            const presets = [
+                              "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              "linear-gradient(135deg, #667eea 0%, #5AB9EA 100%)",
+                              "linear-gradient(135deg, #f5af19 0%, #f12711 100%)"
+                            ]
+                            if (presets.includes(backgroundGradient)) return backgroundGradient
+                            if (backgroundGradient.includes('linear-gradient')) return 'custom'
+                            return 'none'
+                          })()} onValueChange={(v) => {
                             if (v === 'none') onBackgroundGradientChange?.(null)
                             else if (v === 'custom') onBackgroundGradientChange?.(`linear-gradient(135deg, ${backgroundColor}, ${primaryColor})`)
                             else onBackgroundGradientChange?.(v)
