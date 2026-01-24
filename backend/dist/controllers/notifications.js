@@ -29,7 +29,8 @@ const getNotifications = async (req, res) => {
         res.json({ notifications: data || [], unreadCount: unreadCount || 0 });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.getNotifications = getNotifications;
@@ -48,7 +49,8 @@ const markAsRead = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.markAsRead = markAsRead;
@@ -66,7 +68,8 @@ const markAllAsRead = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.markAllAsRead = markAllAsRead;
@@ -85,7 +88,8 @@ const deleteNotification = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.deleteNotification = deleteNotification;
@@ -102,7 +106,8 @@ const deleteAllNotifications = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.deleteAllNotifications = deleteAllNotifications;
@@ -163,7 +168,8 @@ const cancelSubscription = async (req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.cancelSubscription = cancelSubscription;
@@ -171,7 +177,7 @@ exports.cancelSubscription = cancelSubscription;
 exports.NotificationTemplates = {
     welcome: (userName) => ({
         title: 'Hoş Geldiniz! 🎉',
-        message: `Merhaba ${userName}, CatalogPro'ya hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
+        message: `Merhaba ${userName}, FogCatalog'a hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`,
         actionUrl: '/dashboard/templates'
     }),
     subscriptionStarted: (planName, endDate) => ({

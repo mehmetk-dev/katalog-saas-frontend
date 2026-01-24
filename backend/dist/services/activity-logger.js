@@ -46,11 +46,13 @@ async function logActivity(params) {
  * Helper to extract IP and User Agent from Express Request
  */
 function getRequestInfo(req) {
-    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0] ||
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    const ipAddress = (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor)?.split(',')[0] ||
         req.headers['x-real-ip'] ||
         req.ip ||
         req.connection?.remoteAddress;
-    const userAgent = req.headers['user-agent'];
+    const ua = req.headers['user-agent'];
+    const userAgent = Array.isArray(ua) ? ua[0] : ua;
     return { ipAddress, userAgent };
 }
 // Activity descriptions for common actions

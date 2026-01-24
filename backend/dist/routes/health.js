@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-
 const supabase_1 = require("../services/supabase");
 const redis_1 = require("../services/redis");
 const router = (0, express_1.Router)();
@@ -15,7 +14,7 @@ router.get('/', async (req, res) => {
         const { error } = await supabase_1.supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
         dbStatus = !error;
     }
-    catch (e) {
+    catch {
         dbStatus = false;
     }
     try {
@@ -25,7 +24,7 @@ router.get('/', async (req, res) => {
             redisStatus = pong === 'PONG';
         }
     }
-    catch (e) {
+    catch {
         redisStatus = false;
     }
     const health = {
@@ -46,7 +45,7 @@ router.get('/ready', async (req, res) => {
         // Add your readiness checks here (DB connection, etc.)
         res.status(200).json({ ready: true });
     }
-    catch (error) {
+    catch {
         res.status(503).json({ ready: false, error: 'Service not ready' });
     }
 });

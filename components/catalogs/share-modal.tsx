@@ -124,29 +124,39 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div
+                className={cn(
+                    "relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 transition-[max-height] duration-500 ease-in-out will-change-[max-height]",
+                    activeTab === "qr" ? "max-h-[860px]" : "max-h-[700px]"
+                )}
+            >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                <div className="bg-emerald-600 px-6 py-5 flex items-center justify-between">
                     <div className="flex items-center gap-3 text-white">
-                        <Share2 className="w-5 h-5" />
-                        <h2 className="font-semibold text-lg">Kataloğu Paylaş</h2>
+                        <div className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center">
+                            <Share2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-lg">Kataloğu Paylaş</h2>
+                            <p className="text-xs text-white/80">Linki paylaş, QR kod indir</p>
+                        </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-white/80 hover:text-white transition-colors"
+                        className="text-white/80 hover:text-white transition-colors rounded-full p-1 hover:bg-white/10"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-200">
+                <div className="flex items-center gap-2 px-6 py-3 border-b border-slate-100 bg-slate-50/60">
                     <button
                         onClick={() => setActiveTab("social")}
                         className={cn(
-                            "flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors",
+                            "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-all rounded-full",
                             activeTab === "social"
-                                ? "text-violet-600 border-b-2 border-violet-600"
+                                ? "bg-white text-violet-600 shadow-sm"
                                 : "text-slate-500 hover:text-slate-700"
                         )}
                     >
@@ -156,9 +166,9 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                     <button
                         onClick={() => setActiveTab("qr")}
                         className={cn(
-                            "flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors",
+                            "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-all rounded-full",
                             activeTab === "qr"
-                                ? "text-violet-600 border-b-2 border-violet-600"
+                                ? "bg-white text-violet-600 shadow-sm"
                                 : "text-slate-500 hover:text-slate-700"
                         )}
                     >
@@ -168,19 +178,37 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
-                    {activeTab === "social" ? (
-                        <>
+                <div className="p-6 transition-all duration-300 ease-out">
+                    <div
+                        key={activeTab}
+                        className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                    >
+                        {activeTab === "social" ? (
+                        <div className="transition-all duration-300 ease-out">
                             {/* Catalog Info */}
-                            <div className="mb-6 p-4 bg-slate-50 rounded-xl">
-                                <h3 className="font-semibold text-slate-900 mb-1">{catalogName}</h3>
+                            <div className="mb-6 p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border border-slate-200/60">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                                        <Link2 className="w-5 h-5 text-violet-600" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-semibold text-slate-900 mb-0.5 truncate">{catalogName}</h3>
+                                        {catalogDescription && (
+                                            <p className="text-sm text-slate-500 line-clamp-2">{catalogDescription}</p>
+                                        )}
+                                    </div>
+                                </div>
                                 {catalogDescription && (
-                                    <p className="text-sm text-slate-500 line-clamp-2">{catalogDescription}</p>
+                                    <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-white/70 border border-slate-200">
+                                            {shareUrl.replace(/^https?:\/\//, "")}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
 
                             {/* Social Buttons Grid */}
-                            <div className="grid grid-cols-3 gap-3 mb-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
                                 {socialLinks.map((social) => (
                                     <a
                                         key={social.name}
@@ -188,7 +216,7 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className={cn(
-                                            "flex flex-col items-center justify-center gap-2 p-4 rounded-xl text-white transition-all hover:scale-105 hover:shadow-lg",
+                                            "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl text-white transition-all hover:scale-[1.03] hover:shadow-lg active:scale-95",
                                             social.color
                                         )}
                                     >
@@ -199,14 +227,14 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                             </div>
 
                             <div className="flex gap-2 items-center">
-                                <div className="flex-1 flex items-center bg-slate-100 rounded-lg px-3 py-2.5 min-w-0">
+                                <div className="flex-1 flex items-center bg-slate-100 rounded-xl px-3 py-2.5 min-w-0 border border-slate-200/60">
                                     <Link2 className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                                     <span className="text-sm text-slate-600 truncate select-all">{shareUrl}</span>
                                 </div>
                                 <Button
                                     onClick={handleCopyLink}
                                     className={cn(
-                                        "shrink-0 transition-all",
+                                        "shrink-0 transition-all rounded-xl",
                                         copied
                                             ? "bg-green-600 hover:bg-green-700"
                                             : "bg-violet-600 hover:bg-violet-700"
@@ -225,11 +253,11 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                                     )}
                                 </Button>
                             </div>
-                        </>
+                        </div>
                     ) : (
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center transition-all duration-300 ease-out">
                             {/* QR Code */}
-                            <div className="p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-inner mb-4">
+                            <div className="p-4 bg-white border-2 border-slate-200 rounded-3xl shadow-inner mb-4">
                                 {qrCodeUrl ? (
                                     <div className="relative w-64 h-64">
                                         <NextImage
@@ -258,7 +286,7 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                             <div className="flex gap-3 w-full">
                                 <Button
                                     onClick={handleDownloadQR}
-                                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl"
                                     disabled={!qrCodeUrl}
                                 >
                                     <Download className="w-4 h-4 mr-2" />
@@ -267,7 +295,7 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                                 <Button
                                     variant="outline"
                                     onClick={handleCopyLink}
-                                    className="shrink-0"
+                                    className="shrink-0 rounded-xl"
                                 >
                                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                 </Button>
@@ -281,6 +309,7 @@ export function ShareModal({ isOpen, onClose, catalogName, catalogDescription, s
                             </p>
                         </div>
                     )}
+                    </div>
                 </div>
             </div>
         </div>

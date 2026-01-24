@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import client from 'prom-client';
 
 import { initRedis } from './services/redis';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
@@ -15,6 +16,10 @@ dotenv.config();
 
 const app: Express = express();
 const PORT = process.env.PORT || 4000;
+
+// Varsayılan metrikleri (CPU, RAM vb.) toplamaya başla
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics({ register: client.register });
 
 // Allowed origins for CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -59,6 +64,16 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Prometheus'un verileri okuyacağı endpoint
+app.get('/metrics', async (req: Request, res: Response) => {
+    try {
+        res.set('Content-Type', client.register.contentType);
+        res.end(await client.register.metrics());
+    } catch (err) {
+        res.status(500).end(err);
+    }
+});
 
 // Apply rate limiting to API routes
 app.use('/api/', apiLimiter);

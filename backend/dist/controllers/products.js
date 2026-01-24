@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProducts = void 0;
+exports.bulkUpdateImages = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProduct = exports.getProducts = void 0;
 const supabase_1 = require("../services/supabase");
 const redis_1 = require("../services/redis");
 const activity_logger_1 = require("../services/activity-logger");
@@ -23,14 +23,38 @@ const getProducts = async (req, res) => {
         res.json(data);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.getProducts = getProducts;
+const getProduct = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const { id } = req.params;
+        const { data, error } = await supabase_1.supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+        if (error)
+            throw error;
+        if (!data) {
+            return res.status(404).json({ error: 'Ürün bulunamadı veya yetkiniz yok.' });
+        }
+        res.json(data);
+    }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
+    }
+};
+exports.getProduct = getProduct;
 const createProduct = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { name, sku, description, price, stock, category, image_url, custom_attributes } = req.body;
+        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes } = req.body;
         // Limit kontrolü
         const [user, productsCountResult] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
@@ -59,6 +83,8 @@ const createProduct = async (req, res) => {
             stock,
             category,
             image_url,
+            images: images || [],
+            product_url,
             custom_attributes
         })
             .select()
@@ -72,7 +98,7 @@ const createProduct = async (req, res) => {
         await (0, activity_logger_1.logActivity)({
             userId,
             activityType: 'product_created',
-            description: activity_logger_1.ActivityDescriptions.productCreated(name),
+            description: activity_logger_1.ActivityDescriptions.productCreated(name || 'Yeni Ürün'),
             metadata: { productId: data.id, productName: name },
             ipAddress,
             userAgent
@@ -80,7 +106,8 @@ const createProduct = async (req, res) => {
         res.status(201).json(data);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.createProduct = createProduct;
@@ -88,18 +115,22 @@ const updateProduct = async (req, res) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { name, sku, description, price, stock, category, image_url, custom_attributes } = req.body;
+        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes, display_order, is_active } = req.body;
         const { error } = await supabase_1.supabase
             .from('products')
             .update({
             name,
             sku,
             description,
-            price,
-            stock,
+            price: Number(price) || 0,
+            stock: Number(stock) || 0,
             category,
             image_url,
+            images: images || [],
+            product_url,
             custom_attributes,
+            display_order,
+            is_active,
             updated_at: new Date().toISOString()
         })
             .eq('id', id)
@@ -113,7 +144,7 @@ const updateProduct = async (req, res) => {
         await (0, activity_logger_1.logActivity)({
             userId,
             activityType: 'product_updated',
-            description: activity_logger_1.ActivityDescriptions.productUpdated(name),
+            description: activity_logger_1.ActivityDescriptions.productUpdated(name || 'Ürün'),
             metadata: { productId: id, productName: name },
             ipAddress,
             userAgent
@@ -121,7 +152,8 @@ const updateProduct = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.updateProduct = updateProduct;
@@ -151,14 +183,15 @@ const deleteProduct = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.deleteProduct = deleteProduct;
 const bulkDeleteProducts = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { ids } = req.body; // Array of IDs
+        const { ids } = req.body;
         if (!Array.isArray(ids)) {
             return res.status(400).json({ error: 'ids must be an array' });
         }
@@ -174,7 +207,8 @@ const bulkDeleteProducts = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.bulkDeleteProducts = bulkDeleteProducts;
@@ -228,34 +262,35 @@ const bulkImportProducts = async (req, res) => {
         res.status(201).json(data);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.bulkImportProducts = bulkImportProducts;
 const reorderProducts = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { order } = req.body; // Array of { id, order }
+        const { order } = req.body;
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
-        // Her ürün için display_order güncelle
-        // Not: Eğer products tablosunda display_order kolonu yoksa, 
-        // bu sadece cache'i temizleyip frontend sıralamasını kullanacak
-        for (const item of order) {
-            await supabase_1.supabase
-                .from('products')
-                .update({ display_order: item.order })
-                .eq('id', item.id)
-                .eq('user_id', userId);
-        }
+        // N+1 FIX: RPC function ile tek seferde batch update
+        // Supabase otomatik olarak JavaScript array'i JSONB'ye serialize eder
+        const ordersArray = order.map(item => ({ id: item.id, order: item.order }));
+        const { data, error } = await supabase_1.supabase.rpc('batch_update_product_orders', {
+            p_user_id: userId,
+            p_orders: ordersArray
+        });
+        if (error)
+            throw error;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
-        res.json({ success: true });
+        res.json({ success: true, updated: data?.length || 0 });
     }
     catch (error) {
         // Sıralama kaydedilemedi ama UI çalışmaya devam etsin
-        console.error('Reorder error:', error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Reorder products error:', errorMessage);
         res.json({ success: false, message: 'Sıralama veritabanına kaydedilemedi' });
     }
 };
@@ -287,9 +322,8 @@ const bulkUpdatePrices = async (req, res) => {
         if (!products || products.length === 0) {
             return res.status(404).json({ error: 'No products found' });
         }
-        // Her ürün için yeni fiyatı hesapla ve güncelle
-        const updatedProducts = [];
-        for (const product of products) {
+        // N+1 FIX: Önce tüm yeni fiyatları hesapla
+        const priceUpdates = products.map(product => {
             let newPrice = Number(product.price) || 0;
             if (changeMode === 'percentage') {
                 const changeAmount = (newPrice * amount) / 100;
@@ -302,25 +336,29 @@ const bulkUpdatePrices = async (req, res) => {
             newPrice = Math.max(0, newPrice);
             // 2 ondalık basamağa yuvarla
             newPrice = Math.round(newPrice * 100) / 100;
-            const { data, error } = await supabase_1.supabase
-                .from('products')
-                .update({ price: newPrice })
-                .eq('id', product.id)
-                .eq('user_id', userId)
-                .select()
-                .single();
-            if (error)
-                throw error;
-            if (data)
-                updatedProducts.push(data);
-        }
+            return { id: product.id, price: newPrice };
+        });
+        // N+1 FIX: RPC function ile tek seferde batch update
+        // Supabase otomatik olarak JavaScript array'i JSONB'ye serialize eder
+        const { data, error: rpcError } = await supabase_1.supabase.rpc('batch_update_product_prices', {
+            p_user_id: userId,
+            p_updates: priceUpdates
+        });
+        if (rpcError)
+            throw rpcError;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        // RPC'den dönen data formatını uyumlu hale getir
+        const updatedProducts = (data || []).map((item) => ({
+            id: item.id,
+            price: item.price,
+            ...products.find(p => p.id === item.id)
+        }));
         res.json(updatedProducts);
     }
     catch (error) {
-        console.error('Bulk price update error:', error.message);
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.bulkUpdatePrices = bulkUpdatePrices;
@@ -331,41 +369,21 @@ const renameCategory = async (req, res) => {
         if (!oldName || !newName) {
             return res.status(400).json({ error: 'oldName and newName are required' });
         }
-        // Bu kategoriye sahip tüm ürünleri bul ve güncelle
-        const { data: products, error: fetchError } = await supabase_1.supabase
-            .from('products')
-            .select('*')
-            .eq('user_id', userId)
-            .ilike('category', `%${oldName}%`);
-        if (fetchError)
-            throw fetchError;
-        if (!products || products.length === 0) {
-            return res.json([]);
-        }
-        const updatedProducts = [];
-        for (const product of products) {
-            // Kategori virgülle ayrılmış olabilir, her birini kontrol et
-            const categories = (product.category || '').split(',').map((c) => c.trim());
-            const updatedCategories = categories.map((c) => c === oldName ? newName : c);
-            const { data, error } = await supabase_1.supabase
-                .from('products')
-                .update({ category: updatedCategories.join(', ') })
-                .eq('id', product.id)
-                .eq('user_id', userId)
-                .select()
-                .single();
-            if (error)
-                throw error;
-            if (data)
-                updatedProducts.push(data);
-        }
+        // N+1 FIX: RPC function ile tek seferde batch category rename
+        const { data, error: rpcError } = await supabase_1.supabase.rpc('batch_rename_category', {
+            p_user_id: userId,
+            p_old_name: oldName,
+            p_new_name: newName
+        });
+        if (rpcError)
+            throw rpcError;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
-        res.json(updatedProducts);
+        res.json(data || []);
     }
     catch (error) {
-        console.error('Rename category error:', error.message);
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.renameCategory = renameCategory;
@@ -387,24 +405,26 @@ const deleteCategoryFromProducts = async (req, res) => {
         if (!products || products.length === 0) {
             return res.json([]);
         }
-        const updatedProducts = [];
-        for (const product of products) {
+        // N+1 FIX: Önce tüm kategori güncellemelerini hesapla
+        const categoryUpdates = products.map(product => {
             // Kategori virgülle ayrılmış olabilir, silinen kategoriyi çıkar
             const categories = (product.category || '').split(',').map((c) => c.trim());
             const updatedCategories = categories.filter((c) => c !== categoryName);
             const newCategory = updatedCategories.length > 0 ? updatedCategories.join(', ') : null;
-            const { data, error } = await supabase_1.supabase
-                .from('products')
-                .update({ category: newCategory })
-                .eq('id', product.id)
-                .eq('user_id', userId)
-                .select()
-                .single();
-            if (error)
-                throw error;
-            if (data)
-                updatedProducts.push(data);
-        }
+            return { id: product.id, newCategory };
+        });
+        // N+1 FIX: Tüm update'leri paralel olarak çalıştır
+        const updatePromises = categoryUpdates.map(({ id, newCategory }) => supabase_1.supabase
+            .from('products')
+            .update({ category: newCategory })
+            .eq('id', id)
+            .eq('user_id', userId)
+            .select()
+            .single());
+        const results = await Promise.all(updatePromises);
+        const updatedProducts = results
+            .filter(r => !r.error && r.data)
+            .map(r => r.data);
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
         // Log activity
@@ -420,8 +440,8 @@ const deleteCategoryFromProducts = async (req, res) => {
         res.json(updatedProducts);
     }
     catch (error) {
-        console.error('Delete category error:', error.message);
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.deleteCategoryFromProducts = deleteCategoryFromProducts;
@@ -445,7 +465,8 @@ const checkProductInCatalogs = async (req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.checkProductInCatalogs = checkProductInCatalogs;
@@ -481,7 +502,43 @@ const checkProductsInCatalogs = async (req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.checkProductsInCatalogs = checkProductsInCatalogs;
+const bulkUpdateImages = async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        const { updates } = req.body;
+        if (!Array.isArray(updates)) {
+            return res.status(400).json({ error: 'updates must be an array' });
+        }
+        // N+1 FIX: Tüm update'leri paralel olarak çalıştır
+        const updatePromises = updates.map(({ productId, images }) => supabase_1.supabase
+            .from('products')
+            .update({
+            images: images || [],
+            image_url: (images && images.length > 0) ? images[0] : null,
+            updated_at: new Date().toISOString()
+        })
+            .eq('id', productId)
+            .eq('user_id', userId)
+            .select()
+            .single()
+            .then(result => ({
+            productId,
+            success: !result.error,
+            error: result.error?.message
+        })));
+        const results = await Promise.all(updatePromises);
+        // Cache'i sadece bir kez temizle!
+        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        res.json({ success: true, count: updates.length, results });
+    }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
+    }
+};
+exports.bulkUpdateImages = bulkUpdateImages;

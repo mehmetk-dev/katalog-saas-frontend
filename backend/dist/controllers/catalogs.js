@@ -1,7 +1,7 @@
 "use strict";
-const __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    let desc = Object.getOwnPropertyDescriptor(m, k);
+    var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
       desc = { enumerable: true, get: function() { return m[k]; } };
     }
@@ -10,30 +10,34 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
 }) : function(o, v) {
     o["default"] = v;
 });
-const __importStar = (this && this.__importStar) || (function () {
-    let ownKeys = function(o) {
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
-            const ar = [];
-            for (const k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
             return ar;
         };
         return ownKeys(o);
     };
     return function (mod) {
         if (mod && mod.__esModule) return mod;
-        const result = {};
-        if (mod != null) for (let k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
         __setModuleDefault(result, mod);
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDashboardStats = exports.getPublicCatalog = exports.publishCatalog = exports.deleteCatalog = exports.updateCatalog = exports.createCatalog = exports.getTemplates = exports.getCatalog = exports.getCatalogs = void 0;
+const crypto_1 = __importDefault(require("crypto"));
 const supabase_1 = require("../services/supabase");
 const redis_1 = require("../services/redis");
 const activity_logger_1 = require("../services/activity-logger");
@@ -61,6 +65,7 @@ const getCatalogs = async (req, res) => {
         const plan = user?.plan || 'free';
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
         // Mark catalogs beyond the limit as disabled
+        // Mark catalogs beyond the limit as disabled
         const catalogsWithStatus = data.map((catalog, index) => ({
             ...catalog,
             is_disabled: index >= maxCatalogs
@@ -68,7 +73,8 @@ const getCatalogs = async (req, res) => {
         res.json(catalogsWithStatus);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.getCatalogs = getCatalogs;
@@ -89,7 +95,6 @@ const getCatalog = async (req, res) => {
             return data;
         });
         // Limit kontrolü: Bu katalog erişilebilir mi?
-        // Tüm kataloglarını çekip sırasına bakalım (getCatalogs'daki mantıkla aynı)
         const allCatalogs = await (0, redis_1.getOrSetCache)(redis_1.cacheKeys.catalogs(userId), redis_1.cacheTTL.catalogs, async () => {
             const { data } = await supabase_1.supabase.from('catalogs').select('id').eq('user_id', userId).order('updated_at', { ascending: false });
             return data || [];
@@ -110,8 +115,9 @@ const getCatalog = async (req, res) => {
         res.json(data);
     }
     catch (error) {
-        const status = error.message === 'Catalog not found' ? 404 : 500;
-        res.status(status).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const status = errorMessage === 'Catalog not found' ? 404 : 500;
+        res.status(status).json({ error: errorMessage });
     }
 };
 exports.getCatalog = getCatalog;
@@ -138,7 +144,6 @@ const TEMPLATES = [
 ];
 const getTemplates = async (req, res) => {
     try {
-        // Templates statik ama gelecekte DB'den gelebilir diye cacheKey hazır
         const cacheKey = redis_1.cacheKeys.templates();
         const data = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.templates, async () => {
             return TEMPLATES;
@@ -146,14 +151,15 @@ const getTemplates = async (req, res) => {
         res.json(data);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.getTemplates = getTemplates;
 const createCatalog = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { name, description, template_id, layout } = req.body;
+        const { name, description, layout } = req.body;
         // Limit kontrolü ve kullanıcı bilgileri
         const [userData, catalogsCountResult] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
@@ -162,8 +168,9 @@ const createCatalog = async (req, res) => {
             }),
             supabase_1.supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId)
         ]);
-        const plan = userData?.plan || 'free';
-        const userName = userData?.company || userData?.full_name || 'user';
+        const typedUserData = userData;
+        const plan = typedUserData?.plan || 'free';
+        const userName = typedUserData?.company || typedUserData?.full_name || 'user';
         const currentCount = catalogsCountResult.count || 0;
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
         if (currentCount >= maxCatalogs) {
@@ -182,28 +189,32 @@ const createCatalog = async (req, res) => {
             user_id: userId,
             name,
             description: description || null,
-            // template_id is UUID type, but we use string identifiers, so skip it
-            // The layout field is sufficient to identify the template
-            layout: layout || template_id || 'grid',
+            layout: layout || 'modern-grid',
             share_slug: shareSlug,
             product_ids: [],
             is_published: false
         })
             .select()
             .single();
-        if (error)
+        if (error) {
+            // Unique constraint violation için özel hata mesajı
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({
+                    error: 'Bu slug zaten kullanılıyor. Lütfen tekrar deneyin.'
+                });
+            }
             throw error;
+        }
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
         // Bildirim gönder
         try {
-            const { createNotification, NotificationTemplates } = await Promise.resolve().then(() => __importStar(require('./notifications')));
+            const { NotificationTemplates } = await Promise.resolve().then(() => __importStar(require('./notifications')));
             const template = NotificationTemplates.catalogCreated(name, data.id);
-            await createNotification(userId, 'catalog_created', template.title, template.message, template.actionUrl);
+            await (0, notifications_1.createNotification)(userId, 'catalog_created', template.title, template.message, template.actionUrl);
         }
-        catch (notifError) {
-            console.error('Notification error:', notifError);
-            // Bildirim hatası ana işlemi etkilemesin
+        catch {
+            // Bildirim hatası sessizce geçilir
         }
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
@@ -218,7 +229,8 @@ const createCatalog = async (req, res) => {
         res.status(201).json(data);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.createCatalog = createCatalog;
@@ -226,46 +238,118 @@ const updateCatalog = async (req, res) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const updates = req.body;
+        const { name, description, layout, primary_color, is_published, share_slug, product_ids, show_prices, show_descriptions, show_attributes, show_sku, show_urls, columns_per_row, background_color, background_gradient, background_image, background_image_fit, logo_url, logo_position, logo_size, title_position, product_image_fit, header_text_color } = req.body;
         // Eski slug'ı bul (cache temizlemek için)
         const { data: oldCatalog } = await supabase_1.supabase
             .from('catalogs')
             .select('share_slug')
             .eq('id', id)
             .single();
-        const { error } = await supabase_1.supabase
-            .from('catalogs')
-            .update({
-            ...updates,
+        // Sadece tanımlı değerleri güncelle (undefined ve null değerleri atla)
+        const updateData = {
             updated_at: new Date().toISOString()
-        })
+        };
+        if (name !== undefined && name !== null)
+            updateData.name = name;
+        if (description !== undefined && description !== null)
+            updateData.description = description;
+        if (layout !== undefined && layout !== null)
+            updateData.layout = layout;
+        if (primary_color !== undefined && primary_color !== null)
+            updateData.primary_color = primary_color;
+        if (is_published !== undefined && is_published !== null)
+            updateData.is_published = is_published;
+        if (share_slug !== undefined && share_slug !== null)
+            updateData.share_slug = share_slug;
+        if (product_ids !== undefined && product_ids !== null)
+            updateData.product_ids = product_ids;
+        if (show_prices !== undefined && show_prices !== null)
+            updateData.show_prices = show_prices;
+        if (show_descriptions !== undefined && show_descriptions !== null)
+            updateData.show_descriptions = show_descriptions;
+        if (show_attributes !== undefined && show_attributes !== null)
+            updateData.show_attributes = show_attributes;
+        if (show_sku !== undefined && show_sku !== null)
+            updateData.show_sku = show_sku;
+        if (show_urls !== undefined && show_urls !== null)
+            updateData.show_urls = show_urls;
+        if (columns_per_row !== undefined && columns_per_row !== null)
+            updateData.columns_per_row = columns_per_row;
+        if (background_color !== undefined && background_color !== null)
+            updateData.background_color = background_color;
+        if (background_gradient !== undefined && background_gradient !== null)
+            updateData.background_gradient = background_gradient;
+        if (background_image !== undefined)
+            updateData.background_image = background_image; // null olabilir
+        if (background_image_fit !== undefined && background_image_fit !== null)
+            updateData.background_image_fit = background_image_fit;
+        if (logo_url !== undefined)
+            updateData.logo_url = logo_url; // null olabilir
+        if (logo_position !== undefined && logo_position !== null)
+            updateData.logo_position = logo_position;
+        if (logo_size !== undefined && logo_size !== null)
+            updateData.logo_size = logo_size;
+        if (title_position !== undefined && title_position !== null)
+            updateData.title_position = title_position;
+        if (product_image_fit !== undefined && product_image_fit !== null)
+            updateData.product_image_fit = product_image_fit;
+        if (header_text_color !== undefined && header_text_color !== null)
+            updateData.header_text_color = header_text_color;
+        console.log('Updating catalog with data:', JSON.stringify(updateData, null, 2));
+        const { error, data } = await supabase_1.supabase
+            .from('catalogs')
+            .update(updateData)
             .eq('id', id)
-            .eq('user_id', userId);
-        if (error)
-            throw error;
+            .eq('user_id', userId)
+            .select();
+        if (error) {
+            console.error('Catalog update error:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.details);
+            // Unique constraint violation için özel hata mesajı
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({
+                    error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.'
+                });
+            }
+            return res.status(500).json({
+                error: 'Katalog güncellenirken bir hata oluştu',
+                details: error.message,
+                code: error.code
+            });
+        }
+        console.log('Catalog updated successfully:', data);
         // Cache'leri temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id));
         if (oldCatalog?.share_slug) {
             await (0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(oldCatalog.share_slug));
         }
-        if (updates.share_slug && updates.share_slug !== oldCatalog?.share_slug) {
-            await (0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(updates.share_slug));
+        if (share_slug && share_slug !== oldCatalog?.share_slug) {
+            await (0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(share_slug));
         }
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
             userId,
             activityType: 'catalog_updated',
-            description: activity_logger_1.ActivityDescriptions.catalogUpdated(updates.name || 'Katalog'),
-            metadata: { catalogId: id, updates: Object.keys(updates) },
+            description: activity_logger_1.ActivityDescriptions.catalogUpdated(name || 'Katalog'),
+            metadata: { catalogId: id, updates: Object.keys(req.body) },
             ipAddress,
             userAgent
         });
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Catalog update exception:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error('Error stack:', errorStack);
+        res.status(500).json({
+            error: 'Katalog güncellenirken bir hata oluştu',
+            message: errorMessage
+        });
     }
 };
 exports.updateCatalog = updateCatalog;
@@ -296,7 +380,8 @@ const deleteCatalog = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.deleteCatalog = deleteCatalog;
@@ -305,7 +390,6 @@ const publishCatalog = async (req, res) => {
         const userId = getUserId(req);
         const { id } = req.params;
         const { is_published } = req.body;
-        // Önce catalog'u al - share_slug lazım
         const { data: catalog } = await supabase_1.supabase
             .from('catalogs')
             .select('share_slug')
@@ -351,11 +435,11 @@ const publishCatalog = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.publishCatalog = publishCatalog;
-// PUBLIC ROUTE HANDLER
 const getPublicCatalog = async (req, res) => {
     try {
         const { slug } = req.params;
@@ -371,7 +455,6 @@ const getPublicCatalog = async (req, res) => {
                 throw new Error('Catalog not found or not published');
             return data;
         });
-        // Limit kontrolü: Paylaşılan katalog hala aktif mi?
         const userId = data.user_id;
         const [allCatalogs, user] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.catalogs(userId), redis_1.cacheTTL.catalogs, async () => {
@@ -389,137 +472,171 @@ const getPublicCatalog = async (req, res) => {
         if (catalogIndex >= maxCatalogs) {
             return res.status(403).json({ error: 'Bu katalog şu an erişime kapalıdır. (Limit aşımı)' });
         }
-        // Ürünleri çek (RLS bypass - service role ile backend çalışıyor)
         let products = [];
         if (data.product_ids && data.product_ids.length > 0) {
             const { data: productData } = await supabase_1.supabase
                 .from('products')
                 .select('*')
                 .in('id', data.product_ids);
-            // Ürünleri catalog.product_ids sırasına göre sırala
             if (productData) {
                 products = data.product_ids
-                    .map((id) => productData.find((p) => p.id === id))
+                    .map((pid) => productData.find((p) => p.id === pid))
                     .filter(Boolean);
             }
         }
-        // View count artır (akıllı - IP bazlı, sahip hariç)
         const visitorInfo = getVisitorInfo(req);
         const isOwner = req.headers['x-user-id'] === data.user_id;
         await smartIncrementViewCount(data.id, visitorInfo, isOwner);
-        // Catalog ve products'ı birlikte döndür
         res.json({ ...data, products });
     }
     catch (error) {
-        const status = error.message === 'Catalog not found or not published' ? 404 : 500;
-        res.status(status).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const status = errorMessage === 'Catalog not found or not published' ? 404 : 500;
+        res.status(status).json({ error: errorMessage });
     }
 };
 exports.getPublicCatalog = getPublicCatalog;
-// Ziyaretçi bilgilerini al
 const getVisitorInfo = (req) => {
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
         req.headers['x-real-ip']?.toString() ||
         req.socket?.remoteAddress ||
         'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
-    // Cihaz tipi algılama
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
-    // Visitor hash oluştur (IP + UA kombinasyonu)
-    const crypto = require('crypto');
-    const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
+    const visitorHash = crypto_1.default.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
     return { ip, userAgent, deviceType, visitorHash };
 };
-// Akıllı view count (günlük benzersiz, sahip hariç)
 const smartIncrementViewCount = async (catalogId, visitorInfo, isOwner) => {
     try {
-        // Sahip görüntülemesi sayılmaz
-        if (isOwner) {
+        if (isOwner)
             return;
-        }
-        // Akıllı fonksiyon varsa onu kullan, yoksa basit artırma
         const { error } = await supabase_1.supabase.rpc('smart_increment_view_count', {
             p_catalog_id: catalogId,
             p_visitor_hash: visitorInfo.visitorHash,
             p_ip_address: visitorInfo.ip,
-            p_user_agent: visitorInfo.userAgent.substring(0, 500), // Max 500 karakter
+            p_user_agent: visitorInfo.userAgent.substring(0, 500),
             p_device_type: visitorInfo.deviceType,
             p_is_owner: isOwner
         });
-        // Eğer fonksiyon yoksa (migration uygulanmamış) eski yönteme fallback
         if (error && error.message.includes('function')) {
             await supabase_1.supabase.rpc('increment_view_count', { catalog_id: catalogId });
         }
     }
-    catch (error) {
-        // Hata olursa sessizce devam et, basit artırmayı dene
+    catch {
         try {
             await supabase_1.supabase.rpc('increment_view_count', { catalog_id: catalogId });
         }
         catch {
-            console.warn('View count increment failed completely');
+            // Silently fail
         }
     }
 };
-// Dashboard istatistikleri
 const getDashboardStats = async (req, res) => {
     try {
         const userId = getUserId(req);
-        // Paralel sorgular
+        // TimeRange parametresini al (7d, 30d, 90d) - varsayılan 30d
+        const timeRange = req.query.timeRange || '30d';
+        const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
         const [catalogsResult, productsResult] = await Promise.all([
             supabase_1.supabase
                 .from('catalogs')
-                .select('id, name, view_count, is_published, created_at')
-                .eq('user_id', userId)
-                .order('view_count', { ascending: false }),
+                .select('id, name, is_published, created_at')
+                .eq('user_id', userId),
             supabase_1.supabase
                 .from('products')
                 .select('id', { count: 'exact' })
                 .eq('user_id', userId),
         ]);
+        if (catalogsResult.error) {
+            console.error('Error fetching catalogs:', catalogsResult.error);
+            throw new Error('Failed to fetch catalogs');
+        }
+        if (productsResult.error) {
+            console.error('Error fetching products:', productsResult.error);
+            throw new Error('Failed to fetch products');
+        }
         const catalogs = catalogsResult.data || [];
         const productCount = productsResult.count || 0;
+        // catalog_views tablosundan gerçek view sayılarını al
+        const catalogIds = catalogs.map(c => c.id);
+        let verifiedTotalViews = 0;
+        const viewCountMap = new Map();
+        if (catalogIds.length > 0) {
+            try {
+                // Her katalog için catalog_views tablosundan gerçek sayıyı al
+                const { data: viewCounts, error: viewCountError } = await supabase_1.supabase
+                    .from('catalog_views')
+                    .select('catalog_id')
+                    .in('catalog_id', catalogIds)
+                    .eq('is_owner', false);
+                if (!viewCountError && viewCounts) {
+                    // Her katalog için view sayısını hesapla
+                    viewCounts.forEach(v => {
+                        const count = viewCountMap.get(v.catalog_id) || 0;
+                        viewCountMap.set(v.catalog_id, count + 1);
+                    });
+                    verifiedTotalViews = viewCounts.length;
+                }
+                else {
+                    console.warn('Could not fetch view counts from catalog_views table:', viewCountError);
+                }
+            }
+            catch (error) {
+                console.error('Error fetching view counts:', error);
+            }
+        }
+        // Top catalogs için gerçek view sayılarını kullan
+        const topCatalogs = catalogs
+            .map(c => ({
+            id: c.id,
+            name: c.name,
+            views: viewCountMap.get(c.id) || 0,
+        }))
+            .sort((a, b) => b.views - a.views)
+            .slice(0, 5);
         const stats = {
             totalCatalogs: catalogs.length,
             publishedCatalogs: catalogs.filter(c => c.is_published).length,
-            totalViews: catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0),
+            totalViews: verifiedTotalViews, // Doğrulanmış view sayısı
             totalProducts: productCount,
-            topCatalogs: catalogs.slice(0, 5).map(c => ({
-                id: c.id,
-                name: c.name,
-                views: c.view_count || 0,
-            })),
+            topCatalogs,
         };
-        // Detaylı analitik verilerini çekmeye çalış (catalog_views tablosu varsa)
         const detailedStats = {
             uniqueVisitors: 0,
             deviceStats: [],
             dailyViews: [],
         };
-        try {
-            // Kullanıcının tüm kataloglarının ID'lerini al
-            const catalogIds = catalogs.map(c => c.id);
-            if (catalogIds.length > 0) {
-                // Benzersiz ziyaretçi sayısı
-                const { data: uniqueData } = await supabase_1.supabase
+        // Detaylı analitik verilerini çek
+        if (catalogIds.length > 0) {
+            try {
+                const dateThreshold = new Date();
+                dateThreshold.setDate(dateThreshold.getDate() - days);
+                const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
+                // Unique visitors (belirtilen zaman aralığında)
+                const { data: uniqueData, error: uniqueError } = await supabase_1.supabase
                     .from('catalog_views')
                     .select('visitor_hash')
                     .in('catalog_id', catalogIds)
-                    .eq('is_owner', false);
-                if (uniqueData) {
+                    .eq('is_owner', false)
+                    .gte('view_date', dateThresholdStr);
+                if (!uniqueError && uniqueData) {
                     const uniqueHashes = new Set(uniqueData.map(d => d.visitor_hash));
                     detailedStats.uniqueVisitors = uniqueHashes.size;
                 }
-                // Cihaz dağılımı
-                const { data: deviceData } = await supabase_1.supabase
+                else if (uniqueError) {
+                    console.error('Error fetching unique visitors:', uniqueError);
+                }
+                // Device stats (belirtilen zaman aralığında)
+                const { data: deviceData, error: deviceError } = await supabase_1.supabase
                     .from('catalog_views')
                     .select('device_type')
                     .in('catalog_id', catalogIds)
-                    .eq('is_owner', false);
-                if (deviceData && deviceData.length > 0) {
+                    .eq('is_owner', false)
+                    .gte('view_date', dateThresholdStr);
+                if (!deviceError && deviceData && deviceData.length > 0) {
                     const deviceCounts = {};
                     deviceData.forEach(d => {
                         const type = d.device_type || 'unknown';
@@ -532,16 +649,17 @@ const getDashboardStats = async (req, res) => {
                         percentage: Math.round((count / total) * 100)
                     })).sort((a, b) => b.view_count - a.view_count);
                 }
-                // Son 30 günlük görüntülenmeler
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                const { data: dailyData } = await supabase_1.supabase
+                else if (deviceError) {
+                    console.error('Error fetching device stats:', deviceError);
+                }
+                // Daily views (belirtilen zaman aralığında)
+                const { data: dailyData, error: dailyError } = await supabase_1.supabase
                     .from('catalog_views')
                     .select('view_date')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
-                    .gte('view_date', thirtyDaysAgo.toISOString().split('T')[0]);
-                if (dailyData && dailyData.length > 0) {
+                    .gte('view_date', dateThresholdStr);
+                if (!dailyError && dailyData && dailyData.length > 0) {
                     const dailyCounts = {};
                     dailyData.forEach(d => {
                         const date = d.view_date;
@@ -551,16 +669,21 @@ const getDashboardStats = async (req, res) => {
                         .map(([date, count]) => ({ view_date: date, view_count: count }))
                         .sort((a, b) => a.view_date.localeCompare(b.view_date));
                 }
+                else if (dailyError) {
+                    console.error('Error fetching daily views:', dailyError);
+                }
             }
-        }
-        catch (err) {
-            // catalog_views tablosu yoksa sessizce devam et
-            console.log('Detailed analytics not available (table may not exist)');
+            catch (error) {
+                // Detaylı analitik hatalarını logla ama işlemi durdurma
+                console.error('Error fetching detailed analytics:', error);
+            }
         }
         res.json({ ...stats, ...detailedStats });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error in getDashboardStats:', error);
+        res.status(500).json({ error: errorMessage });
     }
 };
 exports.getDashboardStats = getDashboardStats;

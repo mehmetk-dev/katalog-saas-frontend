@@ -49,6 +49,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
+    const [zoom, setZoom] = useState(1)
 
     // Detaylı ekran boyutu kontrolü
     useEffect(() => {
@@ -93,6 +94,10 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
             }
         }
     }
+
+    const zoomIn = () => setZoom((prev) => Math.min(1.2, Number((prev + 0.1).toFixed(2))))
+    const zoomOut = () => setZoom((prev) => Math.max(0.6, Number((prev - 0.1).toFixed(2))))
+    const resetZoom = () => setZoom(1)
 
     const handleDownload = () => {
         toast.info(t("catalogs.public.downloadStarted"))
@@ -207,22 +212,35 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                     <Button variant="ghost" size="icon" onClick={handleDownload} className="rounded-full hover:bg-violet-50 hover:text-violet-600">
                                         <Download className="w-4 h-4" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full hover:bg-slate-100">
-                                        <Sparkles className="w-4 h-4" />
-                                    </Button>
+                                    <div className="hidden sm:flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" onClick={zoomOut} className="rounded-full hover:bg-slate-100" aria-label="Zoom out">
+                                            -
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={resetZoom} className="rounded-full hover:bg-slate-100 text-xs px-2" aria-label="Reset zoom">
+                                            {Math.round(zoom * 100)}%
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={zoomIn} className="rounded-full hover:bg-slate-100" aria-label="Zoom in">
+                                            +
+                                        </Button>
+                                    </div>
+                                    {!isMobile && (
+                                        <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full hover:bg-slate-100">
+                                            <Sparkles className="w-4 h-4" />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
                         {/* Category Pills */}
                         {categories.length > 2 && (
-                            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+                            <div className="mt-3 flex flex-wrap items-center gap-2 pb-2 sm:flex-nowrap sm:overflow-x-auto sm:no-scrollbar">
                                 {categories.map(cat => (
                                     <button
                                         key={cat}
                                         onClick={() => setSelectedCategory(cat)}
                                         className={cn(
-                                            "px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                                            "px-3 py-1 rounded-full text-xs font-medium transition-all sm:px-4 sm:py-1.5 sm:whitespace-nowrap",
                                             selectedCategory === cat
                                                 ? "bg-violet-600 text-white shadow-md shadow-violet-200"
                                                 : "bg-white text-slate-600 border border-slate-200 hover:border-violet-300 hover:text-violet-600"
@@ -242,29 +260,26 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                 "flex-1 relative w-full overflow-y-auto",
                 isFullscreen ? "bg-black" : ""
             )}>
-                <div className={cn(
-                    "w-full min-h-full flex flex-col gap-6 pb-20",
-                    isMobile ? "p-4" : "p-6 max-w-5xl mx-auto"
-                )}>
+                <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6">
                     {pages.length > 0 && pages[0].length > 0 ? (
                         pages.map((pageProds, index) => (
                             <div 
                                 key={index} 
                                 className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
                                 style={{
-                                    width: isMobile ? '100%' : '794px',
-                                    minHeight: isMobile ? 'auto' : '1123px',
-                                    margin: isMobile ? '0' : '0 auto',
+                                    width: '794px',
+                                    height: '1123px',
+                                    margin: '0 auto',
                                     ...getBackgroundStyle()
                                 }}
                             >
                                 {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
-                                <div className="w-full h-full" style={{ minHeight: isMobile ? 'auto' : '1123px' }}>
-                                    {renderTemplate(pageProds, index + 1, pages.length)}
+                                <div className="w-full h-full" style={{ height: '1123px' }}>
+                                    <div style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', width: '100%', height: '100%' }}>
+                                        {renderTemplate(pageProds, index + 1, pages.length)}
+                                    </div>
                                 </div>
-                                <div className="bg-slate-50/80 backdrop-blur-sm py-2 border-t px-4 flex justify-between items-center text-xs text-muted-foreground relative z-30">
-                                    <span>{t("builder.preparingPage", { current: index + 1, total: pages.length }).replace('hazırlanıyor...', '')}</span>
-                                </div>
+                                {/* Footer status bar removed to match builder page height */}
                             </div>
                         ))
                     ) : (

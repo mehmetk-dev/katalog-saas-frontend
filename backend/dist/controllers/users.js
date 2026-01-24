@@ -1,7 +1,7 @@
 "use strict";
-const __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    let desc = Object.getOwnPropertyDescriptor(m, k);
+    var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
       desc = { enumerable: true, get: function() { return m[k]; } };
     }
@@ -10,24 +10,24 @@ const __createBinding = (this && this.__createBinding) || (Object.create ? (func
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-const __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
     Object.defineProperty(o, "default", { enumerable: true, value: v });
 }) : function(o, v) {
     o["default"] = v;
 });
-const __importStar = (this && this.__importStar) || (function () {
-    let ownKeys = function(o) {
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
-            const ar = [];
-            for (const k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
             return ar;
         };
         return ownKeys(o);
     };
     return function (mod) {
         if (mod && mod.__esModule) return mod;
-        const result = {};
-        if (mod != null) for (let k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
         __setModuleDefault(result, mod);
         return result;
     };
@@ -46,7 +46,7 @@ const getMe = async (req, res) => {
         const userEmail = getUserEmail(req);
         const userMeta = getUserMeta(req);
         // Get user profile
-        let { data: profile, error: profileError } = await supabase_1.supabase
+        let { data: profile } = await supabase_1.supabase
             .from('users')
             .select('*')
             .eq('id', userId)
@@ -105,7 +105,8 @@ const getMe = async (req, res) => {
         res.json(result);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.getMe = getMe;
@@ -127,23 +128,27 @@ const sendWelcomeNotification = async (req, res) => {
         }
         // Send welcome notification
         const { createNotification } = await Promise.resolve().then(() => __importStar(require('./notifications')));
-        await createNotification(userId, 'welcome', 'Hoş Geldiniz! 🎉', `Merhaba ${userName}, CatalogPro'ya hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`, '/dashboard/templates');
+        await createNotification(userId, 'welcome', 'Hoş Geldiniz! 🎉', `Merhaba ${userName}, FogCatalog'a hoş geldiniz! İlk kataloğunuzu oluşturmak için şablonlar sayfasını ziyaret edin.`, '/dashboard/templates');
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.sendWelcomeNotification = sendWelcomeNotification;
 const updateMe = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { full_name, company } = req.body;
+        // Sadece full_name, company ve avatar_url alanlarının güncellenmesine izin ver
+        // Plan veya exports_used gibi kritik alanlar buradan güncellenemez
+        const { full_name, company, avatar_url } = req.body;
         const { error } = await supabase_1.supabase
             .from('users')
             .update({
             full_name,
             company,
+            avatar_url,
             updated_at: new Date().toISOString()
         })
             .eq('id', userId);
@@ -161,7 +166,8 @@ const updateMe = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.updateMe = updateMe;
@@ -185,7 +191,8 @@ const deleteMe = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.deleteMe = deleteMe;
@@ -239,7 +246,8 @@ const incrementExportsUsed = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.incrementExportsUsed = incrementExportsUsed;
@@ -286,7 +294,8 @@ const upgradeToPro = async (req, res) => {
         res.json({ success: true, plan: targetPlan });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 };
 exports.upgradeToPro = upgradeToPro;

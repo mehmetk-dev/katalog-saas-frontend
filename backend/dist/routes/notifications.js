@@ -1,9 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-
 const notifications_1 = require("../controllers/notifications");
+const auth_1 = require("../middlewares/auth");
 const router = (0, express_1.Router)();
+// Apply authentication middleware to all routes
+router.use(auth_1.requireAuth);
 // Get user notifications
 router.get('/', notifications_1.getNotifications);
 // Mark single notification as read

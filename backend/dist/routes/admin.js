@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-
 const supabase_1 = require("../services/supabase");
 const auth_1 = require("../middlewares/auth");
 const redis_1 = require("../services/redis");
@@ -35,7 +34,8 @@ router.get('/users', async (req, res) => {
         res.json(users);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 // GET /admin/deleted-users - Silinen kullanıcıları getir
@@ -50,7 +50,8 @@ router.get('/deleted-users', async (req, res) => {
         res.json(users || []);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 // GET /admin/stats - Admin istatistikleri
@@ -77,7 +78,8 @@ router.get('/stats', async (req, res) => {
         res.json(stats);
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 // PUT /admin/users/:id/plan - Kullanıcı planını güncelle
@@ -97,7 +99,8 @@ router.put('/users/:id/plan', async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: message });
     }
 });
 exports.default = router;

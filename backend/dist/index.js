@@ -1,5 +1,6 @@
 "use strict";
-const __importDefault = (this && this.__importDefault) || function (mod) {
+// path import removed as it was unused
+var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -9,11 +10,16 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const prom_client_1 = __importDefault(require("prom-client"));
 const redis_1 = require("./services/redis");
+const errorHandler_1 = require("./middlewares/errorHandler");
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
+// Varsayılan metrikleri (CPU, RAM vb.) toplamaya başla
+const collectDefaultMetrics = prom_client_1.default.collectDefaultMetrics;
+collectDefaultMetrics({ register: prom_client_1.default.register });
 // Allowed origins for CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
     'http://localhost:3000',
@@ -28,14 +34,7 @@ const apiLimiter = (0, express_rate_limit_1.default)({
     standardHeaders: true,
     legacyHeaders: false,
 });
-// Stricter rate limit for auth endpoints
-const authLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 auth requests per windowMs
-    message: { error: 'Too many authentication attempts, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// authLimiter removed as it was unused
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
@@ -61,6 +60,16 @@ app.use((0, helmet_1.default)());
 app.use((0, morgan_1.default)('dev'));
 app.use(express_1.default.json({ limit: '10mb' })); // Limit body size
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+// Prometheus'un verileri okuyacağı endpoint
+app.get('/metrics', async (req, res) => {
+    try {
+        res.set('Content-Type', prom_client_1.default.register.contentType);
+        res.end(await prom_client_1.default.register.metrics());
+    }
+    catch (err) {
+        res.status(500).end(err);
+    }
+});
 // Apply rate limiting to API routes
 app.use('/api/', apiLimiter);
 // Basic Route
@@ -86,7 +95,12 @@ app.use('/api/v1/admin', admin_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
 // Initialize Redis (optional - works without it)
 (0, redis_1.initRedis)();
+// 404 handler for undefined routes
+app.use(errorHandler_1.notFoundHandler);
+// Global error handler (must be last middleware)
+app.use(errorHandler_1.errorHandler);
 // Start Server
 app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
     console.log(`Server is running on port ${PORT} 🚀`);
 });

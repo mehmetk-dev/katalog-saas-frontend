@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Download, Share2, Save, ArrowLeft, Eye, Pencil, Globe, MoreVertical, ExternalLink } from "lucide-react"
+import { Download, Share2, Save, ArrowLeft, Eye, EyeOff, Pencil, Globe, MoreVertical, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
 import { CatalogEditor } from "@/components/builder/catalog-editor"
@@ -215,6 +215,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           showDescriptions,
           showAttributes,
           showSku,
+          showUrls,
           columnsPerRow,
           backgroundColor,
         })
@@ -251,7 +252,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       // Mobilde varsayılan olarak editor görünümü
       if (mobile && view === "split") {
         setView("editor")
-      } else if (!mobile && view !== "split") {
+      } else if (!mobile && view === "editor") {
         setView("split")
       }
     }
@@ -329,6 +330,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           showDescriptions,
           showAttributes,
           showSku,
+          showUrls,
           columnsPerRow,
           backgroundColor,
         })
@@ -619,12 +621,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     setShowShareModal(true)
   }
 
+
   // Görünüm modunu mobil için kontrol et
   const effectiveView = isMobile ? (view === "split" ? "editor" : view) : view
 
   return (
     <div className="h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
       {/* Header - Clean Single Row */}
+      {view !== "preview" && (
       <div className="h-12 sm:h-14 border-b bg-background/95 backdrop-blur-sm flex items-center justify-between px-2 sm:px-4 shrink-0">
 
         {/* Left: Back + Name + Status */}
@@ -675,15 +679,16 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           ) : null}
         </div>
 
-        {/* Center: View Mode Segmented Control (Desktop only) */}
+        {/* Center: Preview Toggle (Desktop only) */}
         <div className="hidden md:flex items-center">
           <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
             <button
               onClick={() => setView("split")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${view === "split"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                view === "split"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -691,20 +696,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               </svg>
             </button>
             <button
-              onClick={() => setView("editor")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${view === "editor"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
               onClick={() => setView("preview")}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${view === "preview"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                effectiveView === "preview"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               <Eye className="w-3.5 h-3.5" />
             </button>
@@ -742,7 +739,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             size="sm"
             onClick={handleSave}
             disabled={isPending}
-            className="h-8 gap-1.5 px-3 bg-primary hover:bg-primary/90"
+            variant={hasUnsavedChanges ? "default" : "outline"}
+            className={`h-8 gap-1.5 px-3 ${hasUnsavedChanges ? "bg-primary hover:bg-primary/90" : "text-muted-foreground"}`}
           >
             <Save className="w-3.5 h-3.5" />
             <span className="hidden sm:inline text-xs">{isPending ? t('builder.saving') : t('builder.save')}</span>
@@ -773,34 +771,35 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             <span className="hidden sm:inline text-xs">PDF</span>
           </Button>
 
-          {/* More Actions Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="w-4 h-4" />
+          {/* View Catalog - Direct Access (Desktop) */}
+          {isPublished && catalog?.share_slug && (
+            <a href={`/catalog/${catalog.share_slug}`} target="_blank" rel="noreferrer">
+              <Button variant="default" size="sm" className="h-8 gap-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-xs">Canlı Sitede Gör</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={handleShare}>
-                <Share2 className="w-4 h-4 mr-2" />
-                {t('builder.share')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handlePublish} disabled={isPending || !currentCatalogId}>
-                <Globe className="w-4 h-4 mr-2" />
-                {isPublished ? t('builder.unpublish') : t('builder.publish')}
-              </DropdownMenuItem>
-              {isPublished && catalog?.share_slug && (
-                <DropdownMenuItem asChild>
-                  <a href={`/catalog/${catalog.share_slug}`} target="_blank">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    {t('builder.viewCatalog')}
-                  </a>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </a>
+          )}
+
+          {/* Direct Actions (Desktop) */}
+          <Button variant="ghost" size="sm" onClick={handleShare} className="h-8 gap-1.5 px-3 hidden md:flex">
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="text-xs">{t('builder.share')}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handlePublish}
+            disabled={isPending || !currentCatalogId}
+            className="h-8 gap-1.5 px-3 hidden md:flex"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span className="text-xs">{isPublished ? t('builder.unpublish') : t('builder.publish')}</span>
+          </Button>
         </div>
       </div>
+      )}
+
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
@@ -857,7 +856,10 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
         {/* Preview */}
         {(effectiveView === "split" || effectiveView === "preview") && (
-          <div id="catalog-preview-container" className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-muted/30 overflow-auto`}>
+          <div
+            id="catalog-preview-container"
+            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} ${view === "preview" ? "bg-background" : "bg-muted/30"} overflow-auto`}
+          >
             <CatalogPreview
               catalogName={catalogName}
               products={selectedProducts}
@@ -870,7 +872,6 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               showSku={showSku}
               showUrls={showUrls}
               productImageFit={productImageFit}
-              headerTextColor={headerTextColor}
               columnsPerRow={columnsPerRow}
               backgroundColor={backgroundColor}
               backgroundImage={backgroundImage}
@@ -884,6 +885,20 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           </div>
         )}
       </div>
+
+      {/* Preview Exit Button */}
+      {view === "preview" && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button
+            variant="secondary"
+            className="h-9 px-4 gap-2 shadow-lg"
+            onClick={() => setView("split")}
+          >
+            <EyeOff className="w-4 h-4" />
+            Bu görünümden çık
+          </Button>
+        </div>
+      )}
 
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
 
