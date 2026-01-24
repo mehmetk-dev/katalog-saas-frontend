@@ -1,27 +1,37 @@
-FROM node:20-alpine AS base
+# --- 1. BUILD AŞAMASI (Derleme) ---
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Paket dosyalarını kopyala
+COPY package*.json ./
+
+# KRİTİK NOKTA: Sadece 'npm install' diyoruz. 
+# Böylece TypeScript (devDependencies) yükleniyor.
+RUN npm install
+
+# Kaynak kodları kopyala
+COPY . .
+
+# Şimdi tsc komutu çalışacak çünkü yukarıda yüklendi
+RUN npm run build
+
+# --- 2. PRODUCTION AŞAMASI (Çalıştırma) ---
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Sadece production için gerekenleri al (Gereksiz dosyalar gelmesin)
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Build
-COPY . .
-RUN npm run build
+# Yukarıdaki 'builder' aşamasından derlenmiş dosyaları (dist) al
+COPY --from=builder /app/dist ./dist
 
-# Production
-FROM node:20-alpine AS production
-
-WORKDIR /app
-
-COPY --from=base /app/dist ./dist
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/package*.json ./
-
-# Add curl for health checks
+# Sağlık kontrolü
 RUN apk add --no-cache curl
 
+ENV NODE_ENV=production
 EXPOSE 4000
 
 CMD ["node", "dist/index.js"]
