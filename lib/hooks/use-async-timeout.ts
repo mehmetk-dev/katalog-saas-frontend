@@ -152,7 +152,7 @@ export function useAsyncTimeout<T = void>(
                 return null
             }
 
-            const errorMessage = err?.message || 'Bir hata oluştu'
+            const errorMessage = err instanceof Error ? err.message : 'Bir hata oluştu'
             setError(errorMessage)
             setIsLoading(false)
 
@@ -232,7 +232,7 @@ export async function fetchWithTimeout<T>(
     } catch (error: unknown) {
         clearTimeout(timeoutId)
 
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
             throw new Error('İstek zaman aşımına uğradı')
         }
 

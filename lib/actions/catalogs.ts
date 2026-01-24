@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { apiFetch } from "@/lib/api"
+import type { Product } from "@/lib/actions/products"
 
 export interface Catalog {
   id: string
@@ -36,7 +37,7 @@ export interface Catalog {
   created_at: string
   updated_at: string
   // Public API'den gelen ürünler (opsiyonel)
-  products?: unknown[]
+  products?: Product[]
 }
 
 export interface CatalogTemplate {
