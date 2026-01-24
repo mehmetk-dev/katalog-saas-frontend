@@ -153,8 +153,10 @@ export function CatalogEditor({
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
   const [showHeaderTextColorPicker, setShowHeaderTextColorPicker] = useState(false)
+  const [showBackgroundColorPicker, setShowBackgroundColorPicker] = useState(false)
   const primaryColorPickerRef = useRef<HTMLDivElement>(null)
   const headerTextColorPickerRef = useRef<HTMLDivElement>(null)
+  const backgroundColorPickerRef = useRef<HTMLDivElement>(null)
 
   // Optimize: Parse primaryColor once
   const primaryColorParsed = useMemo(() => {
@@ -168,21 +170,25 @@ export function CatalogEditor({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
-      
+
       if (showPrimaryColorPicker && primaryColorPickerRef.current && !primaryColorPickerRef.current.contains(target)) {
         setShowPrimaryColorPicker(false)
       }
-      
+
       if (showHeaderTextColorPicker && headerTextColorPickerRef.current && !headerTextColorPickerRef.current.contains(target)) {
         setShowHeaderTextColorPicker(false)
       }
+
+      if (showBackgroundColorPicker && backgroundColorPickerRef.current && !backgroundColorPickerRef.current.contains(target)) {
+        setShowBackgroundColorPicker(false)
+      }
     }
 
-    if (showPrimaryColorPicker || showHeaderTextColorPicker) {
+    if (showPrimaryColorPicker || showHeaderTextColorPicker || showBackgroundColorPicker) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showPrimaryColorPicker, showHeaderTextColorPicker])
+  }, [showPrimaryColorPicker, showHeaderTextColorPicker, showBackgroundColorPicker])
   const logoInputRef = useRef<HTMLInputElement>(null)
   const bgInputRef = useRef<HTMLInputElement>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
@@ -227,24 +233,95 @@ export function CatalogEditor({
     }
 
     const toastId = toast.loading(`${type === 'logo' ? 'Logo' : 'Arka plan'} yükleniyor...`)
+
+    // 20 saniyelik timeout oluştur
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Upload timed out')), 20000)
+    })
+
     try {
       const { createClient } = await import("@/lib/supabase/client")
       const { convertToWebP } = await import("@/lib/image-utils")
       const supabase = createClient()
-      const { blob } = await convertToWebP(file)
 
-      const fileName = `${type}-${Date.now()}.webp`
-      const { error } = await supabase.storage.from('product-images').upload(fileName, blob, { contentType: 'image/webp' })
-      if (error) throw error
+      // İşlemi timeout ile yarıştır
+      const uploadProcess = async () => {
+        const { blob } = await convertToWebP(file)
+        const fileName = `${type}-${Date.now()}.webp`
+        const { error } = await supabase.storage.from('product-images').upload(fileName, blob, {
+          contentType: 'image/webp',
+          upsert: true
+        })
 
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName)
+        if (error) throw error
+
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName)
+        return publicUrl
+      }
+
+      // @ts-ignore
+      const publicUrl = await Promise.race([uploadProcess(), timeoutPromise]) as string
+
       if (type === 'logo') onLogoUrlChange?.(publicUrl)
       else onBackgroundImageChange?.(publicUrl)
+
       toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
-    } catch {
-      toast.error(t('common.error'), { id: toastId })
+    } catch (error: any) { // Explicitly typed as any to access message safely
+      console.error("Upload warning:", error) // Log as warning instead of error to reduce noise
+
+      // Hata mesajını ayrıştır ve kullanıcı dostu bir mesaj göster
+      let errorMessage = "Yükleme başarısız oldu."
+
+      if (error?.message === 'Upload timed out') {
+        errorMessage = "İşlem zaman aşımına uğradı. İnternet bağlantınızı kontrol edip tekrar deneyin."
+      } else if (error?.message) {
+        // Diğer teknik hatalar için de kısa bir bilgi
+        errorMessage = `Hata: ${error.message.substring(0, 50)}...`
+      }
+
+      toast.error(errorMessage, {
+        id: toastId,
+        duration: 5000 // Hata mesajı biraz daha uzun kalsın
+      })
+    } finally {
+      // Dosya inputunu temizle ki aynı dosyayı tekrar seçebilsin
+      e.target.value = ''
     }
   }
+
+  // Sütun kısıtlamaları
+  const getAvailableColumns = (layout: string) => {
+    switch (layout) {
+      case 'modern-grid':
+      case 'bold':
+      case 'luxury':
+      case 'minimalist':
+      case 'clean-white':
+      case 'elegant-cards':
+        return [2, 3]
+      case 'catalog-pro':
+      case 'retail':
+      case 'product-tiles':
+      case 'tech-modern':
+        return [2, 3, 4]
+      case 'compact-list':
+        return [1] // Liste görünümleri genelde tek sütun
+      case 'industrial':
+      case 'classic-catalog':
+      default:
+        return [2, 3, 4]
+    }
+  }
+
+  const availableColumns = getAvailableColumns(layout)
+
+  // Otomatik sütun düzeltme
+  useEffect(() => {
+    if (availableColumns.length > 0 && !availableColumns.includes(columnsPerRow!) && onColumnsPerRowChange) {
+      onColumnsPerRowChange(availableColumns[0])
+    }
+  }, [layout, availableColumns, columnsPerRow, onColumnsPerRowChange])
+
 
   return (
     <div className="flex flex-col h-full bg-slate-50/50 dark:bg-slate-900/50 overflow-hidden">
@@ -474,73 +551,73 @@ export function CatalogEditor({
               <Card className="shadow-sm border-slate-200">
                 <CardContent className="p-4 sm:p-6 space-y-6">
                   <div className="space-y-4 pt-4">
-                      {/* Premium Toggle Row */}
-                      {[
-                        { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange },
-                        { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
-                        { label: t('builder.showAttributes') || "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange },
-                        { label: t('builder.showSku') || "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange },
-                        { label: t('builder.showUrls') || "Ürün URL'lerini Etkinleştir", value: showUrls, onChange: onShowUrlsChange },
-                      ].map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between group cursor-pointer" onClick={() => item.onChange?.(!item.value)}>
-                          <Label className="text-sm font-medium text-slate-700 cursor-pointer group-hover:text-primary transition-colors">{item.label}</Label>
+                    {/* Premium Toggle Row */}
+                    {[
+                      { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange },
+                      { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
+                      { label: t('builder.showAttributes') || "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange },
+                      { label: t('builder.showSku') || "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange },
+                      { label: t('builder.showUrls') || "Ürün URL'lerini Etkinleştir", value: showUrls, onChange: onShowUrlsChange },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between group cursor-pointer" onClick={() => item.onChange?.(!item.value)}>
+                        <Label className="text-sm font-medium text-slate-700 cursor-pointer group-hover:text-primary transition-colors">{item.label}</Label>
+                        <div className={cn(
+                          "w-10 h-5 rounded-full relative transition-all duration-300 shadow-inner",
+                          item.value ? "bg-primary" : "bg-slate-200"
+                        )}>
                           <div className={cn(
-                            "w-10 h-5 rounded-full relative transition-all duration-300 shadow-inner",
-                            item.value ? "bg-primary" : "bg-slate-200"
-                          )}>
-                            <div className={cn(
-                              "absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300",
-                              item.value && "translate-x-5"
-                            )} />
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Fotoğraf Hizalama */}
-                      <div className="space-y-2 pt-4 border-t border-slate-100">
-                        <Label className="text-xs font-bold uppercase text-slate-400">Fotoğraf Hizalama</Label>
-                        <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                          {[
-                            { value: 'cover' as const, label: 'Kırp' },
-                            { value: 'contain' as const, label: 'Sığdır' },
-                            { value: 'fill' as const, label: 'Doldur' }
-                          ].map((option) => (
-                            <button
-                              key={option.value}
-                              onClick={() => onProductImageFitChange?.(option.value)}
-                              className={cn(
-                                "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                                productImageFit === option.value
-                                  ? "bg-white text-primary shadow-sm"
-                                  : "text-slate-500 hover:text-slate-700"
-                              )}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
+                            "absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300",
+                            item.value && "translate-x-5"
+                          )} />
                         </div>
                       </div>
+                    ))}
 
-                      <div className="space-y-2 pt-2">
-                        <Label className="text-xs font-bold uppercase text-slate-400">Sütun Sayısı (Web)</Label>
-                        <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                          {[2, 3, 4].map((num) => (
-                            <button
-                              key={num}
-                              onClick={() => onColumnsPerRowChange?.(num)}
-                              className={cn(
-                                "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                                columnsPerRow === num
-                                  ? "bg-white text-primary shadow-sm"
-                                  : "text-slate-500 hover:text-slate-700"
-                              )}
-                            >
-                              {num} Sütun
-                            </button>
-                          ))}
-                        </div>
+                    {/* Fotoğraf Hizalama */}
+                    <div className="space-y-2 pt-4 border-t border-slate-100">
+                      <Label className="text-xs font-bold uppercase text-slate-400">Fotoğraf Hizalama</Label>
+                      <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                        {[
+                          { value: 'cover' as const, label: 'Kırp' },
+                          { value: 'contain' as const, label: 'Sığdır' },
+                          { value: 'fill' as const, label: 'Doldur' }
+                        ].map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => onProductImageFitChange?.(option.value)}
+                            className={cn(
+                              "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                              productImageFit === option.value
+                                ? "bg-white text-primary shadow-sm"
+                                : "text-slate-500 hover:text-slate-700"
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
+
+                    <div className="space-y-2 pt-2">
+                      <Label className="text-xs font-bold uppercase text-slate-400">Sütun Sayısı (Web)</Label>
+                      <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                        {availableColumns.map((num) => (
+                          <button
+                            key={num}
+                            onClick={() => onColumnsPerRowChange?.(num)}
+                            className={cn(
+                              "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                              columnsPerRow === num
+                                ? "bg-white text-primary shadow-sm"
+                                : "text-slate-500 hover:text-slate-700"
+                            )}
+                          >
+                            {num} Sütun
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -601,20 +678,48 @@ export function CatalogEditor({
                               <SelectItem value="header-center">Orta Üst</SelectItem>
                               <SelectItem value="header-right">Sağ Üst</SelectItem>
                               <SelectItem value="footer-left">Sol Alt</SelectItem>
+                              <SelectItem value="footer-center">Orta Alt</SelectItem>
+                              <SelectItem value="footer-right">Sağ Alt</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <Label className="text-[10px] uppercase font-bold text-slate-400">Başlık Konumu</Label>
+                          <Select value={_titlePosition || 'left'} onValueChange={(v) => _onTitlePositionChange?.(v as 'left' | 'center' | 'right')}>
+                            <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="left">Sol</SelectItem>
+                              <SelectItem value="center">Orta</SelectItem>
+                              <SelectItem value="right">Sağ</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
                     )}
 
+                    {/* Logo yoksa bile başlık konumu ayarlanabilsin */}
+                    {!logoUrl && (
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                        <Label className="text-[10px] uppercase font-bold text-slate-400">Başlık Konumu</Label>
+                        <Select value={_titlePosition || 'left'} onValueChange={(v) => _onTitlePositionChange?.(v as 'left' | 'center' | 'right')}>
+                          <SelectTrigger className="h-8 text-xs bg-white"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="left">Sol</SelectItem>
+                            <SelectItem value="center">Orta</SelectItem>
+                            <SelectItem value="right">Sağ</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
                     {/* BAŞLIK RENKLERİ */}
                     <div className="pt-4 border-t border-slate-100 space-y-4">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Başlık Renkleri</h4>
-                      
+
                       {/* Başlık Alanı Rengi */}
                       <div className="space-y-3">
                         <Label className="text-[10px] uppercase font-bold text-slate-400">Başlık Alanı Rengi</Label>
-                        
+
                         <div className="relative" ref={primaryColorPickerRef}>
                           <div className="flex gap-2 items-center">
                             <div className="relative flex-1">
@@ -640,12 +745,12 @@ export function CatalogEditor({
                                 style={{ backgroundColor: primaryColorParsed.hexColor }}
                               />
                             </div>
-                            <div 
+                            <div
                               className="w-9 h-9 rounded-lg border-2 border-slate-200 shrink-0"
                               style={{ backgroundColor: primaryColor }}
                             />
                           </div>
-                          
+
                           {showPrimaryColorPicker && (
                             <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-slate-200 p-3">
                               <HexColorPicker
@@ -684,7 +789,7 @@ export function CatalogEditor({
                       {/* Başlık Yazı Rengi */}
                       <div className="space-y-2">
                         <Label className="text-[10px] uppercase font-bold text-slate-400">Başlık Yazı Rengi</Label>
-                        
+
                         <div className="relative" ref={headerTextColorPickerRef}>
                           <div className="flex gap-2 items-center">
                             <div className="relative flex-1">
@@ -707,12 +812,12 @@ export function CatalogEditor({
                                 style={{ backgroundColor: headerTextColor || '#ffffff' }}
                               />
                             </div>
-                            <div 
+                            <div
                               className="w-9 h-9 rounded-lg border-2 border-slate-200 shrink-0"
                               style={{ backgroundColor: headerTextColor || '#ffffff' }}
                             />
                           </div>
-                          
+
                           {showHeaderTextColorPicker && (
                             <div className="absolute bottom-full left-0 mb-2 z-50 bg-white rounded-lg shadow-lg border border-slate-200 p-3">
                               <HexColorPicker
@@ -743,9 +848,44 @@ export function CatalogEditor({
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-xs font-bold uppercase text-slate-400">Arka Plan Rengi</Label>
-                        <div className="flex gap-2">
-                          <Input type="color" value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="w-10 h-10 p-0 border-none cursor-pointer rounded-lg" />
-                          <Input value={backgroundColor} onChange={(e) => onBackgroundColorChange?.(e.target.value)} className="h-10 font-mono text-sm" />
+
+                        <div className="relative" ref={backgroundColorPickerRef}>
+                          <div className="flex gap-2 items-center">
+                            <div className="relative flex-1">
+                              <Input
+                                type="text"
+                                value={backgroundColor || '#ffffff'}
+                                onChange={(e) => {
+                                  const hex = e.target.value.trim()
+                                  if (/^#[0-9A-Fa-f]{6}$/i.test(hex)) {
+                                    onBackgroundColorChange?.(hex)
+                                  }
+                                }}
+                                placeholder="#ffffff"
+                                className="h-9 text-xs font-mono pr-10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowBackgroundColorPicker(!showBackgroundColorPicker)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors"
+                                style={{ backgroundColor: backgroundColor || '#ffffff' }}
+                              />
+                            </div>
+                            <div
+                              className="w-9 h-9 rounded-lg border-2 border-slate-200 shrink-0"
+                              style={{ backgroundColor: backgroundColor || '#ffffff' }}
+                            />
+                          </div>
+
+                          {showBackgroundColorPicker && (
+                            <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-lg border border-slate-200 p-3">
+                              <HexColorPicker
+                                color={backgroundColor || '#ffffff'}
+                                onChange={(hex) => onBackgroundColorChange?.(hex)}
+                                style={{ width: '200px', height: '120px' }}
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-3">

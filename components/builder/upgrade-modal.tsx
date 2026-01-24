@@ -13,6 +13,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 interface UpgradeModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  plan?: string
 }
 
 export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {

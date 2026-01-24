@@ -65,74 +65,65 @@ export function ModernGridTemplate({
         // Başlık yazı rengi - headerTextColor prop'undan alınır, yoksa beyaz
         const textSize = 'text-lg font-bold'
 
-        // Sol bölge
-        const leftContent = (
-            <div className="flex items-center gap-3">
-                {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                    <NextImage
-                        src={logoUrl}
-                        alt="Logo"
-                        width={120}
-                        height={getLogoHeight()}
-                        unoptimized
-                        className="object-contain shrink-0"
-                        style={{ height: getLogoHeight() }}
-                    />
-                )}
-                {titlePosition === 'left' && (
-                    <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
-                )}
-            </div>
-        )
-
-        // Orta bölge
-        const centerContent = (
-            <div className="flex-1 flex items-center justify-center gap-3">
-                {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                    <NextImage
-                        src={logoUrl}
-                        alt="Logo"
-                        width={120}
-                        height={getLogoHeight()}
-                        unoptimized
-                        className="object-contain shrink-0"
-                        style={{ height: getLogoHeight() }}
-                    />
-                )}
-                {titlePosition === 'center' && (
-                    <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
-                )}
-            </div>
-        )
-
-        // Sağ bölge
-        const rightContent = (
-            <div className="flex items-center gap-3">
-                {/* DEĞİŞİKLİK: Sayfa numarası header'dan kaldırıldı, sadece footer'da gösteriliyor */}
-                {/* ÖNCE: {!isFirstPage && <span className="text-sm text-gray-400">Sayfa {pageNumber}</span>} */}
-                {titlePosition === 'right' && (
-                    <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
-                )}
-                {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                    <NextImage
-                        src={logoUrl}
-                        alt="Logo"
-                        width={120}
-                        height={getLogoHeight()}
-                        unoptimized
-                        className="object-contain shrink-0"
-                        style={{ height: getLogoHeight() }}
-                    />
-                )}
-            </div>
-        )
-
+        // Grid Yapısı: Sol - Orta - Sağ (3 sütun)
+        // Bu sayede orta kısım her zaman tam ortada kalır, sol veya sağdaki içerik onu itmez.
         return (
-            <>
-                {leftContent}
-                {centerContent}
-                {rightContent}
-            </>
+            <div className="grid grid-cols-3 w-full items-center">
+
+                {/* SOL SÜTUN */}
+                <div className="flex items-center justify-start gap-3">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                        <NextImage
+                            src={logoUrl}
+                            alt="Logo"
+                            width={120}
+                            height={getLogoHeight()}
+                            unoptimized
+                            className="object-contain shrink-0"
+                            style={{ height: getLogoHeight() }}
+                        />
+                    )}
+                    {titlePosition === 'left' && (
+                        <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
+                    )}
+                </div>
+
+                {/* ORTA SÜTUN (Tamamen Bağımsız ve Ortada) */}
+                <div className="flex items-center justify-center gap-3">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
+                        <NextImage
+                            src={logoUrl}
+                            alt="Logo"
+                            width={120}
+                            height={getLogoHeight()}
+                            unoptimized
+                            className="object-contain shrink-0"
+                            style={{ height: getLogoHeight() }}
+                        />
+                    )}
+                    {titlePosition === 'center' && (
+                        <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
+                    )}
+                </div>
+
+                {/* SAĞ SÜTUN */}
+                <div className="flex items-center justify-end gap-3">
+                    {titlePosition === 'right' && (
+                        <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
+                    )}
+                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                        <NextImage
+                            src={logoUrl}
+                            alt="Logo"
+                            width={120}
+                            height={getLogoHeight()}
+                            unoptimized
+                            className="object-contain shrink-0"
+                            style={{ height: getLogoHeight() }}
+                        />
+                    )}
+                </div>
+            </div>
         )
     }
 
@@ -234,11 +225,67 @@ export function ModernGridTemplate({
             </div>
 
             {/* Footer */}
-            {/* DEĞİŞİKLİK: Footer daha büyük ve kalın yapıldı */}
-            {/* ÖNCE: h-8, text-[10px] text-gray-400 */}
-            {/* ŞİMDİ: h-12, text-sm font-semibold text-gray-600 */}
-            <div className="h-12 px-8 flex items-center justify-center border-t border-gray-100 shrink-0">
-                <span className="text-sm font-semibold text-gray-600">{catalogName} • Sayfa {pageNumber} / {totalPages}</span>
+            {/* DEĞİŞİKLİK: Footer tasarımı header ile aynı yapıldı */}
+            {/* Arka plan: primaryColor, Yazı Rengi: headerTextColor */}
+            {/* Footer */}
+            {/* 3 Sütunlu Grid - Header ile Aynı Yapı (Logo Desteği Eklendi) */}
+            <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
+                <div
+                    className="h-full px-6 grid grid-cols-3 items-center"
+                    style={{ backgroundColor: primaryColor }}
+                >
+                    {/* SOL SÜTUN */}
+                    <div className="flex items-center justify-start gap-3">
+                        {logoUrl && logoPosition?.startsWith('footer') && logoAlignment === 'left' && (
+                            <NextImage
+                                src={logoUrl}
+                                alt="Logo"
+                                width={120}
+                                height={getLogoHeight()}
+                                unoptimized
+                                className="object-contain shrink-0"
+                                style={{ height: getLogoHeight() }}
+                            />
+                        )}
+                    </div>
+
+                    {/* ORTA SÜTUN */}
+                    <div className="flex items-center justify-center gap-3">
+                        {logoUrl && logoPosition?.startsWith('footer') && logoAlignment === 'center' && (
+                            <NextImage
+                                src={logoUrl}
+                                alt="Logo"
+                                width={120}
+                                height={getLogoHeight()}
+                                unoptimized
+                                className="object-contain shrink-0"
+                                style={{ height: getLogoHeight() }}
+                            />
+                        )}
+                        {/* Sayfa bilgisi her zaman ortada veya logo ortadaysa yanında */}
+                        <span
+                            className="text-sm font-bold tracking-tight"
+                            style={{ color: headerTextColor }}
+                        >
+                            {catalogName} • Sayfa {pageNumber} / {totalPages}
+                        </span>
+                    </div>
+
+                    {/* SAĞ SÜTUN */}
+                    <div className="flex items-center justify-end gap-3">
+                        {logoUrl && logoPosition?.startsWith('footer') && logoAlignment === 'right' && (
+                            <NextImage
+                                src={logoUrl}
+                                alt="Logo"
+                                width={120}
+                                height={getLogoHeight()}
+                                unoptimized
+                                className="object-contain shrink-0"
+                                style={{ height: getLogoHeight() }}
+                            />
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     )

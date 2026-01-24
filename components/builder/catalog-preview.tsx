@@ -31,6 +31,7 @@ interface CatalogPreviewProps {
   titlePosition?: string
   headerTextColor?: string
   productImageFit?: 'cover' | 'contain' | 'fill'
+  isExporting?: boolean
 }
 
 export function CatalogPreview(props: CatalogPreviewProps) {
@@ -40,6 +41,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   const [scale, setScale] = useState(1)
   const [currentPage, setCurrentPage] = useState(0)
   const [viewMode, setViewMode] = useState<"single" | "all">("single")
+  const { isExporting = false } = props
 
   // A4 boyutları (pixel - 96 DPI)
   const A4_WIDTH = 794
@@ -123,10 +125,14 @@ export function CatalogPreview(props: CatalogPreviewProps) {
     }
 
     if (backgroundGradient && backgroundGradient !== 'none') {
-      style.background = backgroundGradient
+      // Shorthand 'background' yerine 'backgroundImage' kullanarak çakışmayı önle
+      style.backgroundImage = backgroundGradient
     }
 
     if (backgroundImage) {
+      // Eğer hem gradient hem image varsa, ikisini birden ( virgülle ayırarak) destekleyebiliriz
+      // Ancak şimdilik sadece görsel varsa görseli önceliklendir veya üstüne yaz
+      // React'te 'background' shorthand'i ile 'backgroundColor' karıştırmak hata verir.
       style.backgroundImage = `url(${backgroundImage})`
       style.backgroundSize = backgroundImageFit === 'fill' ? '100% 100%' : backgroundImageFit
       style.backgroundPosition = 'center'
@@ -279,8 +285,12 @@ export function CatalogPreview(props: CatalogPreviewProps) {
       </div>
 
       {/* Önizleme Alanı */}
-      <div className="flex-1 overflow-auto p-6">
-        {viewMode === "single" ? (
+      {/* Önizleme Alanı */}
+      <div
+        id="catalog-preview-container"
+        className="flex-1 overflow-auto p-6"
+      >
+        {viewMode === "single" && !isExporting ? (
           /* Tek Sayfa Görünümü */
           <div
             className="flex justify-center"
@@ -288,12 +298,19 @@ export function CatalogPreview(props: CatalogPreviewProps) {
               minHeight: A4_HEIGHT * scale + 32
             }}
           >
-            {renderPage(pages[currentPage], currentPage, false)}
+            {/* Tek sayfa modunda wrapper'a gerek var mı? PDF için yok ama tutarlılık için ekleyelim */}
+            <div className="catalog-page-wrapper">
+              {renderPage(pages[currentPage], currentPage, false)}
+            </div>
           </div>
         ) : (
-          /* Tüm Sayfalar Görünümü */
+          /* Tüm Sayfalar Görünümü (veya Export Modu) */
           <div className="flex flex-col items-center gap-8">
-            {pages.map((pageProducts, index) => renderPage(pageProducts, index, true))}
+            {pages.map((pageProducts, index) => (
+              <div key={index} className="catalog-page-wrapper">
+                {renderPage(pageProducts, index, !isExporting)}
+              </div>
+            ))}
           </div>
         )}
       </div>
