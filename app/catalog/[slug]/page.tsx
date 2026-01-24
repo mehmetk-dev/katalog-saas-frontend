@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { Metadata } from "next"
 
 import { getPublicCatalog } from "@/lib/actions/catalogs"
+import type { Product } from "@/lib/actions/products"
 
 import { PublicCatalogClient } from "./public-catalog-client"
 
@@ -41,8 +42,8 @@ export default async function PublicCatalogPage({ params }: PublicCatalogPagePro
     notFound()
   }
 
-  // Ürünler artık API'den geliyor (catalog.products), RLS sorunu yok
-  const products = catalog.products || []
+  // Tipi burada kesinleştirerek derleyiciyi rahatlatalım (Explicit casting)
+  const products = (catalog.products as Product[]) || []
 
   return (
     <PublicCatalogClient
