@@ -18,7 +18,7 @@ jobs:
           port: 22
           script: |
             # 1. Proje klasörüne git
-            cd /root/katalog-app
+            cd /opt/www/fogcatalog/katalog-saas-frontend/
             
             # 2. Kodu Güncelle
             git fetch --all
