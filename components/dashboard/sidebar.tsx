@@ -80,14 +80,16 @@ export function DashboardSidebar() {
           isCollapsed && !isMobile ? "justify-center px-2" : "justify-between px-4"
         )}>
           <Link href="/dashboard" className={cn(
-            "flex items-center gap-3 overflow-hidden",
+            "flex items-center overflow-hidden",
             isCollapsed && !isMobile && "justify-center"
           )}>
-            <div className="p-1.5 bg-primary rounded-lg shrink-0">
-              <BookOpen className="w-5 h-5 text-primary-foreground" />
-            </div>
-            {(!isCollapsed || isMobile) && (
-              <span className="font-semibold text-sidebar-foreground whitespace-nowrap">FogCatalog</span>
+            {isCollapsed && !isMobile ? (
+              <span className="font-montserrat font-black text-[#cf1414] text-xl">F</span>
+            ) : (
+              <span className="font-montserrat text-xl tracking-tighter flex items-center">
+                <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                <span className="font-light text-sidebar-foreground">Catalog</span>
+              </span>
             )}
           </Link>
 
@@ -245,12 +247,12 @@ export function DashboardSidebar() {
                     <HelpCircle className="w-5 h-5 shrink-0" />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right">Sorun Bildir / Geri Bildirim</TooltipContent>
+                <TooltipContent side="right">{t('feedback.trigger')}</TooltipContent>
               </Tooltip>
             ) : (
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors">
                 <HelpCircle className="w-5 h-5 shrink-0" />
-                <span className="truncate flex-1">Sorun Bildir</span>
+                <span className="truncate flex-1">{t('feedback.trigger')}</span>
               </div>
             )}
           </FeedbackModal>

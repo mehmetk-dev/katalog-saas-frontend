@@ -4,7 +4,16 @@ import { ModernGridTemplate } from '@/components/catalogs/templates/modern-grid'
 
 // Mock NextImage since it doesn't work well in jsdom/vitest without setup
 vi.mock('next/image', () => ({
-    default: ({ src, alt, ...props }: any) => <img src={src} alt={alt} {...props} />
+    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
+        const imgProps: any = { src, alt, ...props }
+        if (fill) {
+            imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+        }
+        if (unoptimized !== undefined) {
+            imgProps.unoptimized = String(unoptimized)
+        }
+        return <img {...imgProps} />
+    },
 }))
 
 describe('ModernGridTemplate', () => {

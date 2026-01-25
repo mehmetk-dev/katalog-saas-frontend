@@ -11,13 +11,13 @@ export function PublicFooter() {
     return (
         <footer className="border-t border-slate-200 bg-white pt-16 pb-8">
             <div className="max-w-7xl mx-auto px-6">
-                <div className="grid md:grid-cols-3 gap-12 mb-12">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
                     <div className="space-y-4">
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center">
-                                <LayoutGrid className="w-4 h-4 text-white" />
-                            </div>
-                            <span className="font-bold text-lg">FogCatalog</span>
+                        <Link href="/" className="flex items-center gap-1 group">
+                            <span className="font-montserrat text-xl tracking-tighter flex items-center gap-0.5">
+                                <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                                <span className="font-light text-slate-900">Catalog</span>
+                            </span>
                         </Link>
                         <p className="text-slate-500 leading-relaxed text-sm">
                             {t('footer.description')}
@@ -36,6 +36,18 @@ export function PublicFooter() {
                         <h4 className="font-bold text-slate-900 mb-5">{t('footer.support')}</h4>
                         <ul className="space-y-3 text-sm text-slate-500">
                             <li><Link href="/contact" className="hover:text-violet-600 transition-colors">{t('footer.contact')}</Link></li>
+                            <li><Link href="/faq" className="hover:text-violet-600 transition-colors">Sıkça Sorulan Sorular</Link></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 className="font-bold text-slate-900 mb-5">{t('footer.legal')}</h4>
+                        <ul className="space-y-3 text-sm text-slate-500">
+                            <li><Link href="/legal/distance-sales-agreement" className="hover:text-violet-600 transition-colors">{t('footer.distanceSales')}</Link></li>
+                            <li><Link href="/legal/cancellation-policy" className="hover:text-violet-600 transition-colors">{t('footer.cancellation')}</Link></li>
+                            <li><Link href="/legal/kvkk" className="hover:text-violet-600 transition-colors">{t('footer.kvkk')}</Link></li>
+                            <li><Link href="/legal/cookie-policy" className="hover:text-violet-600 transition-colors">{t('footer.cookies')}</Link></li>
+                            <li><Link href="/legal/explicit-consent" className="hover:text-violet-600 transition-colors">{t('footer.consent')}</Link></li>
                         </ul>
                     </div>
                 </div>

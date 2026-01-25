@@ -20,52 +20,86 @@ export async function convertToWebP(
     }
 
     return new Promise((resolve, reject) => {
-        // 15 saniyelik güvenlik sınırı
+        // 20 saniyelik güvenlik sınırı (FileReader + Image load + Canvas işlemleri için)
         const timeout = setTimeout(() => {
             console.error(`[convertToWebP] Zaman aşımı: ${file.name}`)
             reject(new Error('TIMEOUT'))
-        }, 15000)
+        }, 20000)
+
+        let isResolved = false
+        const cleanup = () => {
+            if (!isResolved) {
+                clearTimeout(timeout)
+                isResolved = true
+            }
+        }
 
         const reader = new FileReader();
+        
+        // FileReader timeout kontrolü
+        const readerTimeout = setTimeout(() => {
+            if (!isResolved) {
+                cleanup()
+                reject(new Error('FileReader timeout'))
+            }
+        }, 10000) // 10 saniye FileReader için
+
         reader.readAsDataURL(file);
 
         reader.onload = (event) => {
+            clearTimeout(readerTimeout)
+            if (isResolved) return
+
             const img = new Image();
+            
+            // Image load timeout kontrolü
+            const imgTimeout = setTimeout(() => {
+                if (!isResolved) {
+                    return
+                }
+                cleanup()
+                reject(new Error('Image load timeout'))
+            }, 8000) // 8 saniye image load için
+
             img.src = event.target?.result as string;
 
             img.onload = () => {
-                // ... Boyutlandırma hesapla (mevcut mantık) ...
-                let width = img.width;
-                let height = img.height;
-                if (width > maxDimension || height > maxDimension) {
-                    if (width > height) {
-                        height = Math.round((height * maxDimension) / width);
-                        width = maxDimension;
-                    } else {
-                        width = Math.round((width * maxDimension) / height);
-                        height = maxDimension;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-
-                if (!ctx) {
-                    clearTimeout(timeout)
-                    reject(new Error('Canvas context not available'));
-                    return;
-                }
-
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(img, 0, 0, width, height);
+                clearTimeout(imgTimeout)
+                if (isResolved) return
 
                 try {
+                    // ... Boyutlandırma hesapla (mevcut mantık) ...
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width > height) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+
+                    if (!ctx) {
+                        cleanup()
+                        reject(new Error('Canvas context not available'));
+                        return;
+                    }
+
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+
                     canvas.toBlob(
                         (blob) => {
-                            clearTimeout(timeout)
+                            if (isResolved) return
+                            cleanup()
                             if (blob) {
                                 resolve({ blob, fileName: `${file.name.split('.')[0]}.webp` });
                             } else {
@@ -76,20 +110,24 @@ export async function convertToWebP(
                         quality
                     );
                 } catch (e) {
-                    clearTimeout(timeout)
-                    reject(e);
+                    cleanup()
+                    reject(e instanceof Error ? e : new Error('Canvas processing error'));
                 }
             };
 
             img.onerror = () => {
-                clearTimeout(timeout)
-                reject(new Error('IMG_LOAD_ERR'))
+                clearTimeout(imgTimeout)
+                if (isResolved) return
+                cleanup()
+                reject(new Error('Image load failed'))
             }
         };
 
         reader.onerror = () => {
-            clearTimeout(timeout)
-            reject(new Error('READ_ERR'))
+            clearTimeout(readerTimeout)
+            if (isResolved) return
+            cleanup()
+            reject(new Error('File read failed'))
         }
     });
 }

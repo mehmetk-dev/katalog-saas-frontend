@@ -308,136 +308,142 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             const imagesToUpload = images.filter(img => img.status === 'pending' && img.matchedProductId)
             const totalImages = imagesToUpload.length
 
-            console.log(`[BulkUpload] Found ${totalImages} pending images with matches.`)
-
             if (totalImages === 0) {
                 toast.error("Yüklenecek uygun fotoğraf bulunamadı. Lütfen ürünlerle eşleştiğinden emin olun.")
                 return
             }
 
-            let completedCount = 0
+            console.log(`[BulkUpload] Found ${totalImages} pending images with matches. Starting parallel upload...`)
+
             let successCount = 0
+            let completedCount = 0
             const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
 
-            for (const img of imagesToUpload) {
-                // IMPORTANT: Use checkCancelled() to avoid stale state issues in async loop
-                if (uploadTimeout.checkCancelled()) {
-                    console.log("[BulkUpload] Process stopped: Cancellation detected.")
-                    break
-                }
+            // Helper function for individual upload attempt
+            const uploadFile = async (img: ImageFile) => {
+                if (uploadTimeout.checkCancelled()) return
 
                 const product = products.find(p => p.id === img.matchedProductId)
                 if (!product) {
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "Ürün bulunamadı" } : p))
                     completedCount++
-                    continue
+                    return
                 }
 
-                // Calculate limit
+                // Limit kontrolü (Batch içinde yarışı önlemek için anlık map kontrolü yapıyoruz)
                 const currentImages = product.images || (product.image_url ? [product.image_url] : []);
-                const alreadyUploadedForThis = productUpdates.get(product.id)?.length || 0;
+                const alreadyQueued = productUpdates.get(product.id)?.length || 0;
 
-                if (currentImages.length + alreadyUploadedForThis >= 5) {
+                if (currentImages.length + alreadyQueued >= 5) {
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: "5 resim limiti dolu" } : p))
                     completedCount++
-                    continue
+                    return
                 }
 
                 setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'uploading' } : p))
 
                 try {
-                    const baseProgress = Math.round((completedCount / totalImages) * 100)
-                    uploadTimeout.setProgress(baseProgress)
+                    if (uploadTimeout.checkCancelled()) return
 
-                    // 1. WebP Conversion
-                    console.log(`[BulkUpload] Step 1/3: Converting ${img.file.name}...`)
-                    const { blob } = await convertToWebP(img.file)
-                    uploadTimeout.setProgress(baseProgress + Math.round((1 / totalImages) * 20))
+                    // 1. WebP Optimizasyonu (timeout ve hata yönetimi ile)
+                    let blob: Blob
+                    let fileName: string
+                    try {
+                        const converted = await convertToWebP(img.file)
+                        blob = converted.blob
+                        fileName = converted.fileName
+                    } catch (convertError: any) {
+                        console.error(`[BulkUpload] Convert error for ${img.file.name}:`, convertError)
+                        // Eğer convert başarısız olursa, orijinal dosyayı kullan
+                        blob = img.file
+                        fileName = img.file.name
+                        // Ama hata mesajını kaydet
+                        if (convertError.message === 'TIMEOUT' || convertError.message.includes('timeout')) {
+                            throw new Error('Fotoğraf işleme zaman aşımı (20s)')
+                        }
+                        // Diğer convert hatalarında orijinal dosyayı kullanmaya devam et
+                    }
 
-                    if (uploadTimeout.checkCancelled()) break
+                    if (uploadTimeout.checkCancelled()) return
 
-                    // 2. Upload - MUST INCLUDE USER ID FOR RLS POLICY
-                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-                    const filePath = `${userId}/${fileName}`
+                    // 2. Supabase Upload (30s Timeout)
+                    const uploadFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
+                    const filePath = `${userId}/${uploadFileName}`
 
-                    console.log(`[BulkUpload] Step 2/3: Uploading ${img.file.name} to ${filePath}...`)
-
-                    // Individual upload with 30s timeout (matching ProductModal pattern)
                     const uploadPromise = supabase.storage
                         .from('product-images')
-                        .upload(filePath, blob, {
-                            contentType: 'image/webp',
-                            cacheControl: '3600',
-                            upsert: false
+                        .upload(filePath, blob, { 
+                            contentType: blob.type || 'image/webp', 
+                            upsert: false,
+                            cacheControl: '3600'
                         })
 
-                    const timeoutPromise = new Promise<{ error: Error | null; data: any }>((_, reject) =>
-                        setTimeout(() => reject(new Error('Dosya yükleme zaman aşımına uğradı (30s)')), 30000)
+                    const individualTimeout = new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 30000)
                     )
 
-                    const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise])
+                    const result: any = await Promise.race([uploadPromise, individualTimeout])
+                    if (result.error) throw result.error
 
-                    if (uploadError) {
-                        console.error(`[BulkUpload] Supabase error for ${img.file.name}:`, uploadError.message, uploadError)
-                        throw uploadError
-                    }
+                    if (uploadTimeout.checkCancelled()) return
 
                     const { data: { publicUrl } } = supabase.storage
                         .from('product-images')
                         .getPublicUrl(filePath)
 
-                    console.log(`[BulkUpload] Step 3/3: Success! Public URL for ${img.file.name}: ${publicUrl}`)
-
-                    // Queue for update
+                    // 3. Başarılı Kuyruğa Ekle
                     const existing = productUpdates.get(product.id) || []
                     productUpdates.set(product.id, [...existing, publicUrl])
 
-                    // Success state for image
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'success' } : p))
                     successCount++
-
                 } catch (error: any) {
-                    console.error(`[BulkUpload] Fatal error for ${img.file.name}:`, error)
-                    const errorMsg = error instanceof Error ? error.message : 'Yükleme hatası'
-                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: errorMsg } : p))
+                    console.error(`[BulkUpload] Error for ${img.file.name}:`, error)
+                    let msg = 'Yükleme hatası'
+                    if (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT') {
+                        msg = 'Zaman aşımı (30s)'
+                    } else if (error.message?.includes('timeout')) {
+                        msg = error.message
+                    } else if (error.message) {
+                        msg = error.message.length > 50 ? error.message.substring(0, 50) + '...' : error.message
+                    }
+                    setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: msg } : p))
+                } finally {
+                    completedCount++
+                    uploadTimeout.setProgress(Math.round((completedCount / totalImages) * 100))
                 }
-
-                completedCount++
-                uploadTimeout.setProgress(Math.round((completedCount / totalImages) * 100))
             }
 
-            // Batch update products
-            try {
-                if (productUpdates.size > 0) {
-                    console.log(`[BulkUpload] Batch updating ${productUpdates.size} products...`)
-                    const updatesArray = Array.from(productUpdates.entries()).map(([productId, newUrls]) => {
-                        const product = products.find(p => p.id === productId)
-                        const currentImages = product?.images || (product?.image_url ? [product.image_url] : [])
-                        return {
-                            productId,
-                            images: [...currentImages, ...newUrls].slice(0, 5)
-                        }
-                    })
+            // Concurrency Control: Aynı anda en fazla 3 dosya yükle (Browser limitlerine takılmamak ve kilitlenmemek için)
+            const CONCURRENCY_LIMIT = 3
+            for (let i = 0; i < imagesToUpload.length; i += CONCURRENCY_LIMIT) {
+                if (uploadTimeout.checkCancelled()) break
+                const chunk = imagesToUpload.slice(i, i + CONCURRENCY_LIMIT)
+                await Promise.all(chunk.map(img => uploadFile(img)))
+            }
 
-                    await bulkUpdateProductImages(updatesArray)
-
-                    if (successCount === totalImages) {
-                        toast.success("Tüm fotoğraflar başarıyla yüklendi.")
-                        onSuccess()
-                    } else if (successCount > 0) {
-                        toast.warning(`${successCount} fotoğraf yüklendi, ${totalImages - successCount} hata oluştu.`)
-                        // Halen başarı var mı diye kontrol edilebilir ama partial success genelde onSuccess çağırır
-                        onSuccess()
-                    } else {
-                        toast.error("Hiçbir fotoğraf yüklenemedi. Detaylar için tekil hataları kontrol edin.")
+            // 4. Final: Ürün İmajlarını Toplu Güncelle (DB Sync)
+            if (productUpdates.size > 0 && !uploadTimeout.checkCancelled()) {
+                const updatesArray = Array.from(productUpdates.entries()).map(([productId, newUrls]) => {
+                    const product = products.find(p => p.id === productId)
+                    const currentImages = product?.images || (product?.image_url ? [product.image_url] : [])
+                    return {
+                        productId,
+                        images: [...currentImages, ...newUrls].slice(0, 5)
                     }
-                } else if (totalImages > 0 && successCount === 0) {
-                    console.warn("[BulkUpload] Completed with 0 successes.")
-                    toast.error("Fotoğraflar yüklenemedi. Lütfen dosya isimlerini ve 5 resim limitini kontrol edin.")
+                })
+
+                await bulkUpdateProductImages(updatesArray)
+
+                if (successCount === totalImages) {
+                    toast.success("Tüm fotoğraflar başarıyla yüklendi.")
+                    onSuccess()
+                } else if (successCount > 0) {
+                    toast.warning(`${successCount} fotoğraf yüklendi, ${totalImages - successCount} hata oluştu.`)
+                    onSuccess()
                 }
-            } catch (error) {
-                console.error('[BulkUpload] Final update failed:', error)
-                toast.error("Fotoğraflar yüklendi ancak ürün bilgileri güncellenemedi.")
+            } else if (totalImages > 0 && successCount === 0) {
+                toast.error("Fotoğraflar yüklenemedi. Lütfen isimleri ve 5 resim limitini kontrol edin.")
             }
         })
     }

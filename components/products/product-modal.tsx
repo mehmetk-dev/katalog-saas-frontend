@@ -121,157 +121,130 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   }
 
   // Refactored Upload Logic for 5 images limit with timeout support
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
+    // Limit kontrolü
+    const maxFiles = 5
     const currentCount = additionalImages.length
-    const allowedCount = 5 - currentCount
+    const allowedCount = maxFiles - currentCount
 
     if (allowedCount <= 0) {
-      toast.error(t('toasts.maxPhotos'))
+      toast.error(t('toasts.maxPhotosReached'))
       return
     }
 
     const filesToUpload = Array.from(files).slice(0, allowedCount)
-    const inputRef = e.target
-
-    // 1. ANLIK ÖNİZLEME (Blob URL Kullanarak)
     const previews = filesToUpload.map(file => URL.createObjectURL(file))
     blobUrlsRef.current.push(...previews)
 
-
+    // Önce önizlemeleri ekle
     setAdditionalImages(prev => [...prev, ...previews].slice(0, 5))
-    setActiveImageUrl(curr => curr || previews[0])
+    if (!activeImageUrl) setActiveImageUrl(previews[0])
 
-    // Yükleme işlemini başlat (direkt, wrapper olmadan)
     const doUpload = async () => {
+      // Aynı anda birden fazla yükleme başlamasını engelle (isteğe bağlı ama güvenli)
+      // Ancak sequential yükleme yerine paralel yüklemeyi desteklediğimizden sadece state set ediyoruz
       setIsUploading(true)
-
       const supabase = createClient()
       const totalFiles = filesToUpload.length
-      const uploadedUrls: string[] = []
+      let localSuccessCount = 0
 
-      for (let i = 0; i < totalFiles; i++) {
-        const file = filesToUpload[i]
-        const previewUrl = previews[i]
-        const step = `${i + 1}/${totalFiles}`
+      const toastId = 'img-upload-' + Date.now()
+      toast.loading(`Fotoğraflar hazırlanıyor (0/${totalFiles})...`, { id: toastId })
 
-        try {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.')
 
-          toast.loading(`Hazırlanıyor... (${step})`, { id: 'img-upload' })
-
-          let blobToUpload: Blob = file
-          let contentType = file.type
-
-
-          // 1. OPTİMİZASYON (Hata olsa da devam et - orijinal dosyayı kullan)
+        const uploadPromises = filesToUpload.map(async (file, i) => {
+          const previewUrl = previews[i]
           try {
+            // 1. Optimize et
+            let blobToUpload: Blob = file
+            let contentType = file.type
 
-            const optimized = await convertToWebP(file)
-            blobToUpload = optimized.blob
-            contentType = 'image/webp'
-
-          } catch (e: unknown) {
-            const error = e as { message?: string };
-            console.warn(`[ProductModal] Step ${step}: WebP conversion failed (${error?.message}), using original file`)
-          }
-
-
-          toast.loading(`Yükleniyor... (${step})`, { id: 'img-upload' })
-
-          // 2. SUNUCUYA YÜKLEME (Max 30sn Timeout)
-          const fileExt = contentType === 'image/webp' ? 'webp' : file.name.split('.').pop()
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-
-          // Auth durumunu kontrol et
-          const { data: { session } } = await supabase.auth.getSession()
-          // Auth session checked
-
-          if (!session) {
-            throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.')
-          }
-
-
-
-          const uploadPromise = supabase.storage
-            .from('product-images')
-            .upload(fileName, blobToUpload, { contentType })
-
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 30000)
-          )
-
-          const result = await Promise.race([uploadPromise, timeoutPromise])
-
-          // Supabase upload hatası kontrolü
-          if ('error' in result && result.error) {
-            const errorMsg = result.error.message || 'Bilinmeyen hata'
-            console.error(`[ProductModal] Supabase upload error:`, result.error)
-
-            // Kullanıcıya anlamlı hata mesajı göster
-            if (errorMsg.includes('bucket') || errorMsg.includes('not found')) {
-              throw new Error('Storage bucket bulunamadı. Lütfen yöneticiye başvurun.')
-            } else if (errorMsg.includes('policy') || errorMsg.includes('permission')) {
-              throw new Error('Yükleme izniniz yok. Lütfen giriş yapın.')
-            } else if (errorMsg.includes('size') || errorMsg.includes('large')) {
-              throw new Error('Dosya çok büyük. Maksimum 5MB.')
-            } else {
-              throw new Error(`Yükleme hatası: ${errorMsg}`)
+            try {
+              const optimized = await convertToWebP(file)
+              blobToUpload = optimized.blob
+              contentType = 'image/webp'
+            } catch (e: any) {
+              console.warn(`[ProductModal] Optimize edilemedi, orijinal kullanılıyor: ${file.name}`, e)
+              // Timeout veya ciddi hata durumunda kullanıcıyı bilgilendir
+              if (e.message === 'TIMEOUT' || e.message?.includes('timeout')) {
+                toast.warning(`${file.name} işlenirken zaman aşımı oluştu, orijinal dosya yükleniyor.`, { duration: 3000 })
+              }
+              // Orijinal dosyayı kullanmaya devam et
+              blobToUpload = file
+              contentType = file.type || 'image/jpeg'
             }
-          }
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(fileName)
+            // 2. Yükle
+            const fileExt = contentType === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg')
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
 
-          // 3. ARAYÜZÜ GÜNCELLE
-          setAdditionalImages(prev => {
-            const updated = prev.map(url => url === previewUrl ? publicUrl : url)
+            const uploadPromise = supabase.storage
+              .from('product-images')
+              .upload(fileName, blobToUpload, { contentType, cacheControl: '3600' })
+            
+            const timeoutPromise = new Promise<any>((_, reject) => 
+              setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 40000)
+            )
+
+            const { data, error } = await Promise.race([uploadPromise, timeoutPromise])
+
+            if (error) throw error
+
+            const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName)
+
+            // 3. State güncelle
+            setAdditionalImages(prev => {
+              const updated = prev.map(url => url === previewUrl ? publicUrl : url)
+              return updated
+            })
             setActiveImageUrl(curr => curr === previewUrl ? publicUrl : curr)
-            return updated
-          })
 
-          uploadedUrls.push(publicUrl)
+            localSuccessCount++
+            toast.loading(`Yükleniyor (${localSuccessCount}/${totalFiles})...`, { id: toastId })
+            return publicUrl
 
-        } catch (error) {
-          console.error(`[ProductModal] Yükleme hatası (${step}):`, error)
-
-          // Blob URL'i kaldır
-          setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
-          setActiveImageUrl(curr => curr === previewUrl ? "" : curr)
-
-          // Kullanıcıya hata göster
-          const errorMessage = (error instanceof Error ? error.message : typeof error === 'string' ? error : "Dosya yüklenemedi.")
-          if (errorMessage === 'UPLOAD_TIMEOUT') {
-            toast.error("Yükleme zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.", { id: 'img-upload' })
-          } else {
-            toast.error(errorMessage, { id: 'img-upload' })
+          } catch (error: any) {
+            console.error(`[ProductModal] Yükleme hatası:`, error)
+            // Hatalı preview'ı kaldır
+            setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
+            setActiveImageUrl(curr => (curr === previewUrl ? "" : curr) || "")
+            
+            // Daha açıklayıcı hata mesajı
+            let errorMsg = `${file.name} yüklenemedi.`
+            if (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT') {
+              errorMsg = `${file.name} yükleme zaman aşımına uğradı (40s). Lütfen tekrar deneyin.`
+            } else if (error.message) {
+              errorMsg = `${file.name}: ${error.message.substring(0, 60)}`
+            }
+            toast.error(errorMsg, { duration: 4000 })
+            throw error
           }
+        })
 
-          // Tek dosya varsa dön, yoksa devam et
-          if (totalFiles === 1) {
-            return []
-          }
+        await Promise.allSettled(uploadPromises)
+
+        if (localSuccessCount > 0) {
+          toast.success(`${localSuccessCount} fotoğraf başarıyla eklendi.`, { id: toastId })
+        } else {
+          toast.dismiss(toastId)
         }
+      } catch (err: any) {
+        console.error("[ProductModal] Yükleme işlemi başarısız:", err)
+        toast.error(err.message || "Fotoğraflar yüklenirken bir hata oluştu.", { id: toastId })
+      } finally {
+        setIsUploading(false)
       }
-
-      if (uploadedUrls.length > 0) {
-        toast.success(`${uploadedUrls.length} fotoğraf eklendi.`, { id: 'img-upload' })
-      } else if (totalFiles > 0) {
-        toast.error("Hiçbir fotoğraf yüklenemedi. Lütfen tekrar deneyin.", { id: 'img-upload' })
-      }
-      setIsUploading(false)
     }
 
-    // Yüklemeyi başlat
-    doUpload().catch(err => {
-      console.error("[handleImageUpload] Fatal error:", err)
-      toast.error("Beklenmeyen bir hata oluştu.", { id: 'img-upload' })
-      setIsUploading(false)
-    })
-
-    inputRef.value = ''
+    doUpload()
+    // Input'u temizle ki aynı dosya tekrar seçilebilsin
+    if (e.target) e.target.value = ''
   }
 
   // Modal açıldığında state'leri başlat - SADECE İLK SEFERDE
@@ -348,12 +321,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     if (additionalImages.some(img => img.startsWith('blob:'))) {
       toast.error("Bazı fotoğraflar henüz yüklenmedi. Lütfen bitmesini bekleyin.")
-      return
-    }
-
-    if (additionalImages.length === 0) {
-      toast.error("Ürünü kaydetmek için en az bir fotoğraf eklemelisiniz.")
-      setActiveTab("images")
       return
     }
 
@@ -474,6 +441,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                 </TabsTrigger>
                 <TabsTrigger
                   value="images"
+                  data-testid="tab-images"
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <ImagePlus className="w-4 h-4" />
@@ -726,10 +694,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       </Label>
                       <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
                         <Select value={currency} onValueChange={setCurrency}>
-                          <SelectTrigger className="w-20 h-10 border-0 bg-transparent text-lg font-bold">
+                          <SelectTrigger className="w-24 h-11 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-lg font-bold shadow-sm hover:border-violet-400 transition-colors">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="z-[100]">
                             <SelectItem value="TRY">₺</SelectItem>
                             <SelectItem value="USD">$</SelectItem>
                             <SelectItem value="EUR">€</SelectItem>
@@ -801,7 +769,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                               <Sparkles className="w-3.5 h-3.5 mr-1" /> {t('products.makeCover')}
                             </Button>
                           )}
-                          <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleRemoveImage(idx)}>
+                          <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleRemoveImage(idx)} aria-label="Fotoğrafı sil">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -822,6 +790,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         <span className="text-[10px] text-slate-400 mt-0.5">{t('products.remainingUploads', { count: 5 - additionalImages.length })}</span>
                         <input
                           type="file"
+                          data-testid="file-upload"
                           className="hidden"
                           accept="image/png, image/jpeg, image/webp"
                           multiple
@@ -961,7 +930,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || isUploading || additionalImages.length === 0}
+                disabled={isPending || isUploading}
                 className="min-w-[120px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               >
                 {isUploading ? (

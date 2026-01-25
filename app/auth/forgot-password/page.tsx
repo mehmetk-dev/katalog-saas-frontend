@@ -9,7 +9,15 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-provider"
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fogcatalog.com"
+// Site URL'i al - client-side'da window.location kullan, server-side'da env variable
+// Supabase dashboard'da Authentication > URL Configuration > Site URL ile eşleşmeli
+// ÖNEMLİ: Production'da NEXT_PUBLIC_APP_URL mutlaka ayarlanmalı
+const getSiteUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
+  return process.env.NEXT_PUBLIC_APP_URL || "https://fogcatalog.com"
+}
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
 
 export default function ForgotPasswordPage() {
@@ -54,15 +62,39 @@ export default function ForgotPasswordPage() {
     const supabase = createClient()
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/reset-password`,
+      // Site URL'i dinamik olarak al (client-side'da window.location kullan)
+      const SITE_URL = getSiteUrl()
+      const redirectUrl = `${SITE_URL}/auth/reset-password`
+      
+      console.log('[ForgotPassword] Sending reset email:', {
+        email,
+        redirectTo: redirectUrl,
+        siteUrl: SITE_URL
       })
 
-      if (error) throw error
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      })
 
+      if (error) {
+        console.error('[ForgotPassword] Supabase error:', error)
+        throw error
+      }
+
+      console.log('[ForgotPassword] Reset email sent successfully:', data)
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"))
+      console.error('[ForgotPassword] Error:', err)
+      const errorMessage = err instanceof Error ? err.message : t("common.error")
+      
+      // Daha açıklayıcı hata mesajları
+      if (errorMessage.includes('email') || errorMessage.includes('user not found')) {
+        setError("Bu email adresi ile kayıtlı kullanıcı bulunamadı. Lütfen email adresinizi kontrol edin.")
+      } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+        setError("Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin.")
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -75,15 +107,36 @@ export default function ForgotPasswordPage() {
     const supabase = createClient()
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth/reset-password`,
+      const SITE_URL = getSiteUrl()
+      const redirectUrl = `${SITE_URL}/auth/reset-password`
+      
+      console.log('[ForgotPassword] Sending reset email (continue anyway):', {
+        email,
+        redirectTo: redirectUrl
       })
 
-      if (error) throw error
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      })
 
+      if (error) {
+        console.error('[ForgotPassword] Supabase error (continue anyway):', error)
+        throw error
+      }
+
+      console.log('[ForgotPassword] Reset email sent successfully (continue anyway):', data)
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"))
+      console.error('[ForgotPassword] Error (continue anyway):', err)
+      const errorMessage = err instanceof Error ? err.message : t("common.error")
+      
+      if (errorMessage.includes('email') || errorMessage.includes('user not found')) {
+        setError("Bu email adresi ile kayıtlı kullanıcı bulunamadı. Lütfen email adresinizi kontrol edin.")
+      } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+        setError("Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin.")
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -91,6 +144,7 @@ export default function ForgotPasswordPage() {
 
   const handleGoogleSignIn = async () => {
     const supabase = createClient()
+    const SITE_URL = getSiteUrl()
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${SITE_URL}/auth/callback` },
@@ -161,9 +215,14 @@ export default function ForgotPasswordPage() {
               <h1 className="text-2xl font-bold text-slate-900 mb-2">
                 {t("auth.emailSentTitle")}
               </h1>
-              <p className="text-slate-500 mb-6">
-                {t("auth.emailSentText", { email })}
+              <p className="text-slate-500 mb-4">
+                {t("auth.emailSentText", { email }) || `Şifre sıfırlama linki ${email} adresine gönderildi.`}
               </p>
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900/50 mb-6">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  💡 Email gelmediyse spam klasörünü kontrol edin. Email birkaç dakika içinde gelmelidir.
+                </p>
+              </div>
               <Link href="/auth">
                 <Button className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl h-12">
                   <ArrowLeft className="w-4 h-4 mr-2" />

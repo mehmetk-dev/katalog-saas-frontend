@@ -411,6 +411,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           })
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
           toast.success(t('toasts.catalogCreated'))
+          refreshUser()
         }
 
         // Kayıt başarılı - lastSavedState güncelle
@@ -495,6 +496,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     return parts.filter(p => p && p.length > 0).join('-')
   }, [user, catalogName, currentCatalogId])
 
+  // URL güncelleme butonu sadece katalog şu anda yayınlanmışsa ve slug değişmişse gösterilmeli
+  // Hiç yayınlanmamış katalog için yeni slug otomatik oluşturulur, "Link Yenile" göstermeye gerek yok
   const isUrlOutdated = isPublished && catalog?.share_slug && catalog.share_slug !== expectedSlug
 
   const handleUpdateSlug = () => {
@@ -531,13 +534,19 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
     startTransition(async () => {
       try {
-        // 1. Slug belirle (Varsa eskisini koru, yoksa yenisini oluştur)
+        // 1. Slug belirle
+        // Eğer katalog hiç yayınlanmamışsa (isPublished === false), her zaman yeni slug oluştur
+        // Eğer daha önce yayınlanmışsa, mevcut slug'ı koru (kullanıcı manuel güncellemek isterse handleUpdateSlug kullanır)
         let shareSlug = catalog?.share_slug
 
-        // Eğer hiç slug yoksa oluştur
-        if (!shareSlug) {
+        // Hiç yayınlanmamışsa, yeni slug oluştur (kullanıcı isim değiştirdiyse yeni slug ile yayınlanmalı)
+        if (!isPublished) {
+          shareSlug = expectedSlug
+        } else if (!shareSlug) {
+          // Yayınlanmış ama slug yoksa (edge case), yeni slug oluştur
           shareSlug = expectedSlug
         }
+        // Eğer yayınlanmışsa ve slug varsa, mevcut slug'ı koru
 
         // updateCatalog çağrısında slug'ı değiştirmeden (veya ilk kez ekleyerek) gönder
         await updateCatalog(currentCatalogId, {
@@ -833,7 +842,9 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
 
                           {/* URL Güncelleme Uyarısı (Buton Şeklinde) */}
-                          {isUrlOutdated && (
+                          {/* Sadece katalog gerçekten yayınlanmışsa (catalog.is_published === true) ve slug değişmişse göster */}
+                          {/* Hiç yayınlanmamış katalog için bu buton gösterilmez - yayınlarken otomatik yeni slug oluşturulur */}
+                          {isUrlOutdated && catalog?.is_published === true && (
                             <div className="flex items-center animate-in fade-in zoom-in duration-300 mr-1">
                               <Button
                                 size="sm"

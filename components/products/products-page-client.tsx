@@ -21,6 +21,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 import { type Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/lib/user-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
@@ -50,6 +51,7 @@ const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
 export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
+  const { refreshUser } = useUser()
   const [products, setProducts] = useState(initialProducts)
   const [search, setSearch] = useState("")
   const [showLimitModal, setShowLimitModal] = useState(false)
@@ -214,6 +216,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
       setProducts(products.map((p) => (p.id === savedProduct.id ? savedProduct : p)))
     } else {
       setProducts([savedProduct, ...products])
+      refreshUser()
     }
     setShowProductModal(false)
     setEditingProduct(null)
@@ -222,6 +225,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const handleProductDeleted = (id: string) => {
     setProducts(products.filter((p) => p.id !== id))
     setSelectedIds(selectedIds.filter((i) => i !== id))
+    refreshUser()
   }
 
   const handleBulkDelete = () => {
@@ -237,6 +241,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         setSelectedIds([])
         toast.success(t('toasts.productsDeleted', { count: selectedIds.length }))
         setShowDeleteAlert(false)
+        refreshUser()
       } catch {
         toast.error(t('toasts.errorOccurred'))
       }
@@ -303,6 +308,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         const addedProducts = await addDummyProducts(language as 'tr' | 'en')
         setProducts([...addedProducts, ...products])
         toast.success(t('toasts.testProductsAdded'))
+        refreshUser()
       } catch {
         toast.error(t('toasts.testProductsFailed'))
       }
@@ -405,6 +411,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             const imported = await bulkImportProducts(productsToImport)
             setProducts([...imported, ...products])
             toast.success(t('toasts.productsImported', { count: imported.length }))
+            refreshUser()
           } catch {
             toast.error(t('toasts.importFailed'))
           }

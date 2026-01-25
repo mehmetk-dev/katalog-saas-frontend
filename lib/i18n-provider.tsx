@@ -7,7 +7,7 @@ import { translations, Language } from "./translations"
 interface I18nContextType {
     language: Language
     setLanguage: (lang: Language) => void
-    t: (key: string, params?: Record<string, string | number>) => string
+    t: (key: string, params?: Record<string, any>) => any
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
@@ -36,9 +36,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("language", lang)
     }
 
-    const t = (path: string, params?: Record<string, string | number>): string => {
+    const t = (path: string, params?: Record<string, any>): any => {
         const keys = path.split(".")
-        let current: unknown = translations[language]
+        let current: any = translations[language]
 
         // Navigate through the translation object
         for (const key of keys) {
@@ -46,7 +46,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
                 current = (current as Record<string, unknown>)[key]
             } else {
                 // Fallback to Turkish if key not found in current language
-                let fallback: unknown = translations.tr
+                let fallback: any = translations.tr
                 for (const k of keys) {
                     if (fallback && typeof fallback === 'object' && !Array.isArray(fallback) && k in fallback) {
                         fallback = (fallback as Record<string, unknown>)[k]
@@ -60,18 +60,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
             }
         }
 
-        // If current is still an object, it means the path points to an object, not a string
-        // This happens when someone calls t('header') instead of t('header.features')
-        if (current && typeof current === 'object' && !Array.isArray(current)) {
-            console.warn(`Translation key "${path}" points to an object, not a string. Use a more specific key like "${path}.propertyName"`)
-            return path
+        // Return the value directly if it's not a string (e.g. array or object)
+        if (typeof current !== 'string') {
+            return current
         }
 
-        let result = typeof current === 'string' ? current : String(current || path)
+        let result = current
 
-        if (params && typeof result === 'string') {
+        if (params) {
             Object.entries(params).forEach(([key, value]) => {
-                result = result.replace(`{${key}}`, String(value))
+                // Only replace if value is string or number
+                if (typeof value === 'string' || typeof value === 'number') {
+                    result = result.replace(`{${key}}`, String(value))
+                }
             })
         }
 

@@ -98,6 +98,7 @@
 
 @theme inline {
   --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
+  --font-montserrat: "Montserrat", "Montserrat Fallback", sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -277,7 +278,7 @@
 }
 
 /* Ensure all child content fits within page bounds */
-.page-content > * {
+.page-content>* {
   max-height: 100%;
   overflow: hidden;
 }
@@ -308,11 +309,12 @@
 .flipbook-wrapper {
   width: 100%;
   height: 0;
-  padding-bottom: 141.4%; /* A4 aspect ratio */
+  padding-bottom: 141.4%;
+  /* A4 aspect ratio */
   position: relative;
 }
 
-.flipbook-wrapper > div {
+.flipbook-wrapper>div {
   position: absolute;
   top: 0;
   left: 0;
@@ -325,11 +327,14 @@
    ======================================== */
 
 @keyframes float {
-  0%, 100% { 
-    transform: translateY(0px); 
+
+  0%,
+  100% {
+    transform: translateY(0px);
   }
-  50% { 
-    transform: translateY(-10px); 
+
+  50% {
+    transform: translateY(-10px);
   }
 }
 
@@ -346,12 +351,16 @@
 }
 
 @keyframes blob {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   33% {
     transform: translate(30px, -30px) scale(1.1);
   }
+
   66% {
     transform: translate(-20px, 20px) scale(0.9);
   }
@@ -366,9 +375,12 @@
 }
 
 @keyframes text-gradient {
-  0%, 100% {
+
+  0%,
+  100% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }

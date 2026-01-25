@@ -234,9 +234,9 @@ export function CatalogEditor({
 
     const toastId = toast.loading(`${type === 'logo' ? 'Logo' : 'Arka plan'} yükleniyor...`)
 
-    // 20 saniyelik timeout oluştur
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Upload timed out')), 20000)
+    // 45 saniyelik timeout oluştur (convert + upload için)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 45000)
     })
 
     try {
@@ -246,11 +246,30 @@ export function CatalogEditor({
 
       // İşlemi timeout ile yarıştır
       const uploadProcess = async () => {
-        const { blob } = await convertToWebP(file)
-        const fileName = `${type}-${Date.now()}.webp`
+        // 1. WebP dönüşümü (hata yönetimi ile)
+        let blob: Blob
+        let fileName: string
+        try {
+          const converted = await convertToWebP(file)
+          blob = converted.blob
+          fileName = `${type}-${Date.now()}.webp`
+        } catch (convertError: any) {
+          console.warn(`[CatalogEditor] Convert error for ${type}:`, convertError)
+          // Convert başarısız olursa orijinal dosyayı kullan
+          blob = file
+          const ext = file.name.split('.').pop() || 'jpg'
+          fileName = `${type}-${Date.now()}.${ext}`
+          // Timeout hatası ise kullanıcıyı bilgilendir
+          if (convertError.message === 'TIMEOUT' || convertError.message?.includes('timeout')) {
+            toast.warning('Fotoğraf işleme zaman aşımı, orijinal dosya yükleniyor.', { duration: 3000, id: toastId })
+          }
+        }
+
+        // 2. Supabase upload
         const { error } = await supabase.storage.from('product-images').upload(fileName, blob, {
-          contentType: 'image/webp',
-          upsert: true
+          contentType: blob.type || 'image/webp',
+          upsert: true,
+          cacheControl: '3600'
         })
 
         if (error) throw error
@@ -267,16 +286,17 @@ export function CatalogEditor({
 
       toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
     } catch (error: any) { // Explicitly typed as any to access message safely
-      console.error("Upload warning:", error) // Log as warning instead of error to reduce noise
+      console.error("Upload error:", error)
 
       // Hata mesajını ayrıştır ve kullanıcı dostu bir mesaj göster
       let errorMessage = "Yükleme başarısız oldu."
 
-      if (error?.message === 'Upload timed out') {
-        errorMessage = "İşlem zaman aşımına uğradı. İnternet bağlantınızı kontrol edip tekrar deneyin."
+      if (error?.message === 'UPLOAD_TIMEOUT' || error?.message === 'TIMEOUT' || error?.message?.includes('timeout')) {
+        errorMessage = "İşlem zaman aşımına uğradı (45s). İnternet bağlantınızı kontrol edip tekrar deneyin."
       } else if (error?.message) {
         // Diğer teknik hatalar için de kısa bir bilgi
-        errorMessage = `Hata: ${error.message.substring(0, 50)}...`
+        const msg = error.message.length > 60 ? error.message.substring(0, 60) + '...' : error.message
+        errorMessage = `Hata: ${msg}`
       }
 
       toast.error(errorMessage, {
@@ -285,7 +305,7 @@ export function CatalogEditor({
       })
     } finally {
       // Dosya inputunu temizle ki aynı dosyayı tekrar seçebilsin
-      e.target.value = ''
+      if (e.target) e.target.value = ''
     }
   }
 
@@ -299,11 +319,13 @@ export function CatalogEditor({
       case 'clean-white':
       case 'elegant-cards':
       case 'product-tiles':
-        return [2, 3]
+      case 'magazine':
+      case 'fashion-lookbook':
+        return [2]
       case 'catalog-pro':
       case 'retail':
       case 'tech-modern':
-        return [2, 3, 4]
+        return [2, 3]
       case 'compact-list':
         return [1] // Liste görünümleri genelde tek sütun
       case 'industrial':
@@ -562,21 +584,36 @@ export function CatalogEditor({
                   <div className="space-y-4 pt-4">
                     {/* Premium Toggle Row */}
                     {[
-                      { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange },
-                      { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
-                      { label: t('builder.showAttributes') || "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange },
-                      { label: t('builder.showSku') || "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange },
-                      { label: t('builder.showUrls') || "Ürün URL'lerini Etkinleştir", value: showUrls, onChange: onShowUrlsChange },
+                      { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange, disabled: false },
+                      { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange, disabled: false },
+                      { label: t('builder.showAttributes') || "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange, disabled: layout === 'magazine' },
+                      { label: t('builder.showSku') || "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange, disabled: layout === 'magazine' },
+                      { label: t('builder.showUrls') || "Ürün URL'lerini Etkinleştir", value: showUrls, onChange: onShowUrlsChange, disabled: false },
                     ].map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between group cursor-pointer" onClick={() => item.onChange?.(!item.value)}>
-                        <Label className="text-sm font-medium text-slate-700 cursor-pointer group-hover:text-primary transition-colors">{item.label}</Label>
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex items-center justify-between group",
+                          item.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+                        )}
+                        onClick={() => !item.disabled && item.onChange?.(!item.value)}
+                      >
+                        <Label
+                          className={cn(
+                            "text-sm font-medium transition-colors",
+                            item.disabled ? "text-slate-400" : "text-slate-700 cursor-pointer group-hover:text-primary"
+                          )}
+                        >
+                          {item.label}
+                          {item.disabled && <span className="text-[9px] ml-2 font-bold text-slate-400 italic">(Dergide Desteklenmez)</span>}
+                        </Label>
                         <div className={cn(
                           "w-10 h-5 rounded-full relative transition-all duration-300 shadow-inner",
-                          item.value ? "bg-primary" : "bg-slate-200"
+                          item.value && !item.disabled ? "bg-primary" : "bg-slate-200"
                         )}>
                           <div className={cn(
                             "absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300",
-                            item.value && "translate-x-5"
+                            item.value && !item.disabled && "translate-x-5"
                           )} />
                         </div>
                       </div>

@@ -28,12 +28,7 @@ export interface Product {
 }
 
 export async function getProducts() {
-  try {
-    return await apiFetch<Product[]>("/products")
-  } catch (error) {
-    console.error("Error fetching products:", error)
-    return []
-  }
+  return await apiFetch<Product[]>("/products")
 }
 
 export async function createProduct(formData: FormData) {
@@ -150,8 +145,8 @@ export async function deleteProducts(ids: string[]) {
     method: "POST",
     body: JSON.stringify({ ids }),
   })
-    revalidatePath("/dashboard/products")
-    return { success: true }
+  revalidatePath("/dashboard/products")
+  return { success: true }
 }
 
 export interface CatalogReference {
@@ -280,158 +275,158 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
   const timestamp = Date.now();
   const isEn = language === 'en';
 
-    const dummyProducts = [
-      {
-        name: isEn ? "Wooden Desk Lamp" : "Ahşap Masa Lambası",
-        description: isEn ? "Handmade wooden body, linen fabric shade modern desk lamp. Made from natural oak." : "El yapımı ahşap gövdeli, keten kumaş abajurlu modern masa lambası. Doğal meşe ağacından üretilmiştir.",
-        price: 450,
-        stock: 15,
-        category: isEn ? "Lighting" : "Aydınlatma",
-        sku: `LAMP-${timestamp}-1`,
-        image_url: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Oak Wood" : "Meşe Ağacı", unit: "" },
-          { name: isEn ? "Height" : "Yükseklik", value: "45", unit: "cm" }
-        ]
-      },
-      {
-        name: isEn ? "Leather Sofa Set" : "Deri Koltuk Takımı",
-        description: isEn ? "Premium Italian leather 3+2+1 sofa set. Ergonomic design and high seating comfort." : "Premium İtalyan derisinden üretilmiş 3+2+1 koltuk takımı. Ergonomik tasarım ve yüksek oturma konforu.",
-        price: 28500,
-        stock: 3,
-        category: isEn ? "Furniture" : "Mobilya",
-        sku: `SOFA-${timestamp}-2`,
-        image_url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Italian Leather" : "İtalyan Deri", unit: "" },
-          { name: isEn ? "Color" : "Renk", value: isEn ? "Brown" : "Kahverengi", unit: "" }
-        ]
-      },
-      {
-        name: isEn ? "Bluetooth Headphones" : "Bluetooth Kulaklık",
-        description: isEn ? "Wireless headphones with active noise cancelling. 30 hours battery life." : "Aktif gürültü engelleme özellikli kablosuz kulaklık. 30 saat pil ömrü.",
-        price: 1299,
-        stock: 50,
-        category: isEn ? "Electronics" : "Elektronik",
-        sku: `AUDIO-${timestamp}-3`,
-        image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Battery Life" : "Pil Ömrü", value: "30", unit: isEn ? "hours" : "saat" },
-          { name: isEn ? "Color" : "Renk", value: isEn ? "Black" : "Siyah", unit: "" }
-        ]
-      },
-      {
-        name: isEn ? "Minimalist Wall Clock" : "Minimalist Duvar Saati",
-        description: isEn ? "Silent mechanism, Scandinavian style wall clock. Natural beech wood and matte black frame." : "Sessiz mekanizmalı, Skandinav tarzı duvar saati. Doğal kayın ağacı ve mat siyah çerçeve.",
-        price: 320,
-        stock: 25,
-        category: isEn ? "Decoration" : "Dekorasyon",
-        sku: `CLOCK-${timestamp}-4`,
-        image_url: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Diameter" : "Çap", value: "30", unit: "cm" },
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Beech Wood" : "Kayın Ağacı", unit: "" }
-        ]
-      },
-      {
-        name: isEn ? "Ceramic Vase Set" : "Seramik Vazo Set",
-        description: isEn ? "Hand-painted 3-piece ceramic vase set. Geometric pattern, matte white and gold details." : "El boyaması 3'lü seramik vazo seti. Geometrik desenli, mat beyaz ve altın detaylı.",
-        price: 590,
-        stock: 12,
-        category: isEn ? "Decoration" : "Dekorasyon",
-        sku: `VASE-${timestamp}-5`,
-        image_url: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Pieces" : "Adet", value: "3", unit: isEn ? "pcs" : "parça" },
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Ceramic" : "Seramik", unit: "" }
-        ]
-      },
-      {
-        name: isEn ? "Smart Watch Pro" : "Akıllı Saat Pro",
-        description: isEn ? "Premium smart watch with health tracking, GPS and NFC. AMOLED screen, 5 days battery life." : "Sağlık takibi, GPS ve NFC özellikli premium akıllı saat. AMOLED ekran, 5 gün pil ömrü.",
-        price: 4999,
-        stock: 30,
-        category: isEn ? "Electronics" : "Elektronik",
-        sku: `WATCH-${timestamp}-6`,
-        image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Screen" : "Ekran", value: "AMOLED", unit: "" },
-          { name: isEn ? "Water Resistant" : "Su Geçirmezlik", value: "5", unit: "ATM" }
-        ]
-      },
-      {
-        name: isEn ? "Organic Cotton Bedding" : "Organik Pamuk Nevresim",
-        description: isEn ? "100% organic cotton double bedding set with 300 thread count. Oeko-Tex certified." : "300 iplik sayılı %100 organik pamuklu çift kişilik nevresim seti. Oeko-Tex sertifikalı.",
-        price: 1150,
-        stock: 40,
-        category: isEn ? "Home Textiles" : "Ev Tekstili",
-        sku: `BED-${timestamp}-7`,
-        image_url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Organic Cotton" : "Organik Pamuk", unit: "" },
-          { name: isEn ? "Thread Count" : "İplik Sayısı", value: "300", unit: "" }
-        ]
-      },
-      {
-        name: isEn ? "Bamboo Kitchen Set" : "Bambu Mutfak Seti",
-        description: isEn ? "5-piece bamboo kitchen utensil set. Includes spoon, spatula, tongs and holder." : "5 parça bambu mutfak gereçleri seti. Kaşık, spatula, maşa ve tutucu dahil.",
-        price: 189,
-        stock: 80,
-        category: isEn ? "Kitchen" : "Mutfak",
-        sku: `KITCHEN-${timestamp}-8`,
-        image_url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Pieces" : "Adet", value: "5", unit: isEn ? "pcs" : "parça" },
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Bamboo" : "Bambu", unit: "" }
-        ]
-      },
-      {
-        name: isEn ? "Vintage Leather Bag" : "Vintage Deri Çanta",
-        description: isEn ? "Handmade genuine leather messenger bag. Laptop compartment and adjustable strap." : "El yapımı hakiki deri messenger çanta. Laptop bölmesi ve ayarlanabilir askı.",
-        price: 2450,
-        stock: 8,
-        category: isEn ? "Accessories" : "Aksesuar",
-        sku: `BAG-${timestamp}-9`,
-        image_url: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Material" : "Malzeme", value: isEn ? "Genuine Leather" : "Hakiki Deri", unit: "" },
-          { name: "Laptop", value: "15", unit: isEn ? "inch" : "inç" }
-        ]
-      },
-      {
-        name: isEn ? "Aromatic Candle Set" : "Aromatik Mum Koleksiyonu",
-        description: isEn ? "Soy-based 4-piece aromatic candle set. Lavender, vanilla, sandalwood and sea breeze scents." : "Soya bazlı 4'lü aromatik mum seti. Lavanta, vanilya, sandal ağacı ve deniz esintisi kokuları.",
-        price: 280,
-        stock: 60,
-        category: isEn ? "Decoration" : "Dekorasyon",
-        sku: `CANDLE-${timestamp}-10`,
-        image_url: "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80",
-        images: ["https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80"],
-        product_url: null,
-        custom_attributes: [
-          { name: isEn ? "Pieces" : "Adet", value: "4", unit: isEn ? "pcs" : "parça" },
-          { name: isEn ? "Burn Time" : "Yanma Süresi", value: "40", unit: isEn ? "hours" : "saat" }
-        ]
-      }
-    ];
+  const dummyProducts = [
+    {
+      name: isEn ? "Wooden Desk Lamp" : "Ahşap Masa Lambası",
+      description: isEn ? "Handmade wooden body, linen fabric shade modern desk lamp. Made from natural oak." : "El yapımı ahşap gövdeli, keten kumaş abajurlu modern masa lambası. Doğal meşe ağacından üretilmiştir.",
+      price: 450,
+      stock: 15,
+      category: isEn ? "Lighting" : "Aydınlatma",
+      sku: `LAMP-${timestamp}-1`,
+      image_url: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Oak Wood" : "Meşe Ağacı", unit: "" },
+        { name: isEn ? "Height" : "Yükseklik", value: "45", unit: "cm" }
+      ]
+    },
+    {
+      name: isEn ? "Leather Sofa Set" : "Deri Koltuk Takımı",
+      description: isEn ? "Premium Italian leather 3+2+1 sofa set. Ergonomic design and high seating comfort." : "Premium İtalyan derisinden üretilmiş 3+2+1 koltuk takımı. Ergonomik tasarım ve yüksek oturma konforu.",
+      price: 28500,
+      stock: 3,
+      category: isEn ? "Furniture" : "Mobilya",
+      sku: `SOFA-${timestamp}-2`,
+      image_url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Italian Leather" : "İtalyan Deri", unit: "" },
+        { name: isEn ? "Color" : "Renk", value: isEn ? "Brown" : "Kahverengi", unit: "" }
+      ]
+    },
+    {
+      name: isEn ? "Bluetooth Headphones" : "Bluetooth Kulaklık",
+      description: isEn ? "Wireless headphones with active noise cancelling. 30 hours battery life." : "Aktif gürültü engelleme özellikli kablosuz kulaklık. 30 saat pil ömrü.",
+      price: 1299,
+      stock: 50,
+      category: isEn ? "Electronics" : "Elektronik",
+      sku: `AUDIO-${timestamp}-3`,
+      image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Battery Life" : "Pil Ömrü", value: "30", unit: isEn ? "hours" : "saat" },
+        { name: isEn ? "Color" : "Renk", value: isEn ? "Black" : "Siyah", unit: "" }
+      ]
+    },
+    {
+      name: isEn ? "Minimalist Wall Clock" : "Minimalist Duvar Saati",
+      description: isEn ? "Silent mechanism, Scandinavian style wall clock. Natural beech wood and matte black frame." : "Sessiz mekanizmalı, Skandinav tarzı duvar saati. Doğal kayın ağacı ve mat siyah çerçeve.",
+      price: 320,
+      stock: 25,
+      category: isEn ? "Decoration" : "Dekorasyon",
+      sku: `CLOCK-${timestamp}-4`,
+      image_url: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Diameter" : "Çap", value: "30", unit: "cm" },
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Beech Wood" : "Kayın Ağacı", unit: "" }
+      ]
+    },
+    {
+      name: isEn ? "Ceramic Vase Set" : "Seramik Vazo Set",
+      description: isEn ? "Hand-painted 3-piece ceramic vase set. Geometric pattern, matte white and gold details." : "El boyaması 3'lü seramik vazo seti. Geometrik desenli, mat beyaz ve altın detaylı.",
+      price: 590,
+      stock: 12,
+      category: isEn ? "Decoration" : "Dekorasyon",
+      sku: `VASE-${timestamp}-5`,
+      image_url: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Pieces" : "Adet", value: "3", unit: isEn ? "pcs" : "parça" },
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Ceramic" : "Seramik", unit: "" }
+      ]
+    },
+    {
+      name: isEn ? "Smart Watch Pro" : "Akıllı Saat Pro",
+      description: isEn ? "Premium smart watch with health tracking, GPS and NFC. AMOLED screen, 5 days battery life." : "Sağlık takibi, GPS ve NFC özellikli premium akıllı saat. AMOLED ekran, 5 gün pil ömrü.",
+      price: 4999,
+      stock: 30,
+      category: isEn ? "Electronics" : "Elektronik",
+      sku: `WATCH-${timestamp}-6`,
+      image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Screen" : "Ekran", value: "AMOLED", unit: "" },
+        { name: isEn ? "Water Resistant" : "Su Geçirmezlik", value: "5", unit: "ATM" }
+      ]
+    },
+    {
+      name: isEn ? "Organic Cotton Bedding" : "Organik Pamuk Nevresim",
+      description: isEn ? "100% organic cotton double bedding set with 300 thread count. Oeko-Tex certified." : "300 iplik sayılı %100 organik pamuklu çift kişilik nevresim seti. Oeko-Tex sertifikalı.",
+      price: 1150,
+      stock: 40,
+      category: isEn ? "Home Textiles" : "Ev Tekstili",
+      sku: `BED-${timestamp}-7`,
+      image_url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Organic Cotton" : "Organik Pamuk", unit: "" },
+        { name: isEn ? "Thread Count" : "İplik Sayısı", value: "300", unit: "" }
+      ]
+    },
+    {
+      name: isEn ? "Bamboo Kitchen Set" : "Bambu Mutfak Seti",
+      description: isEn ? "5-piece bamboo kitchen utensil set. Includes spoon, spatula, tongs and holder." : "5 parça bambu mutfak gereçleri seti. Kaşık, spatula, maşa ve tutucu dahil.",
+      price: 189,
+      stock: 80,
+      category: isEn ? "Kitchen" : "Mutfak",
+      sku: `KITCHEN-${timestamp}-8`,
+      image_url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Pieces" : "Adet", value: "5", unit: isEn ? "pcs" : "parça" },
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Bamboo" : "Bambu", unit: "" }
+      ]
+    },
+    {
+      name: isEn ? "Vintage Leather Bag" : "Vintage Deri Çanta",
+      description: isEn ? "Handmade genuine leather messenger bag. Laptop compartment and adjustable strap." : "El yapımı hakiki deri messenger çanta. Laptop bölmesi ve ayarlanabilir askı.",
+      price: 2450,
+      stock: 8,
+      category: isEn ? "Accessories" : "Aksesuar",
+      sku: `BAG-${timestamp}-9`,
+      image_url: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Material" : "Malzeme", value: isEn ? "Genuine Leather" : "Hakiki Deri", unit: "" },
+        { name: "Laptop", value: "15", unit: isEn ? "inch" : "inç" }
+      ]
+    },
+    {
+      name: isEn ? "Aromatic Candle Set" : "Aromatik Mum Koleksiyonu",
+      description: isEn ? "Soy-based 4-piece aromatic candle set. Lavender, vanilla, sandalwood and sea breeze scents." : "Soya bazlı 4'lü aromatik mum seti. Lavanta, vanilya, sandal ağacı ve deniz esintisi kokuları.",
+      price: 280,
+      stock: 60,
+      category: isEn ? "Decoration" : "Dekorasyon",
+      sku: `CANDLE-${timestamp}-10`,
+      image_url: "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80",
+      images: ["https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80"],
+      product_url: null,
+      custom_attributes: [
+        { name: isEn ? "Pieces" : "Adet", value: "4", unit: isEn ? "pcs" : "parça" },
+        { name: isEn ? "Burn Time" : "Yanma Süresi", value: "40", unit: isEn ? "hours" : "saat" }
+      ]
+    }
+  ];
 
-    return await bulkImportProducts(dummyProducts);
+  return await bulkImportProducts(dummyProducts);
 }

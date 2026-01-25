@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
+import * as VisuallyHiddenPrimitive from '@radix-ui/react-visually-hidden'
 import { XIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -130,6 +131,12 @@ function DialogDescription({
   )
 }
 
+function VisuallyHidden({
+  ...props
+}: React.ComponentProps<typeof VisuallyHiddenPrimitive.Root>) {
+  return <VisuallyHiddenPrimitive.Root {...props} />
+}
+
 export {
   Dialog,
   DialogClose,
@@ -141,4 +148,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  VisuallyHidden,
 }

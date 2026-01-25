@@ -521,6 +521,8 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
         });
 
         const userId = data.user_id;
+
+        // Perform basic limit check via cache if possible
         const [allCatalogs, user] = await Promise.all([
             getOrSetCache(cacheKeys.catalogs(userId), cacheTTL.catalogs, async () => {
                 const { data: list } = await supabase.from('catalogs').select('id').eq('user_id', userId).order('updated_at', { ascending: false });
@@ -554,9 +556,35 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             }
         }
 
+        // --- OWNERSHIP & VIEW TRACKING ---
         const visitorInfo = getVisitorInfo(req);
-        const isOwner = req.headers['x-user-id'] === data.user_id;
-        await smartIncrementViewCount(data.id, visitorInfo, isOwner);
+
+        // Try to identify if the current visitor is the owner
+        let isOwner = false;
+
+        // 1. Check x-user-id header (passed by apiFetch in frontend)
+        const headerUserId = req.headers['x-user-id'];
+        if (headerUserId && headerUserId === data.user_id) {
+            isOwner = true;
+        }
+
+        // 2. If no header, try to verify JWT (fallback for security)
+        if (!isOwner && req.headers.authorization) {
+            try {
+                const token = req.headers.authorization.replace('Bearer ', '');
+                const { data: { user: authUser } } = await supabase.auth.getUser(token);
+                if (authUser && authUser.id === data.user_id) {
+                    isOwner = true;
+                }
+            } catch (e) {
+                // Ignore auth error in public route
+            }
+        }
+
+        // Increment view count asynchronously to not block the request
+        smartIncrementViewCount(data.id, visitorInfo, isOwner).catch(err => {
+            console.error('[PublicCatalog] View tracking failed:', err);
+        });
 
         res.json({ ...data, products });
     } catch (error: unknown) {
@@ -567,10 +595,13 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
 };
 
 const getVisitorInfo = (req: Request) => {
+    // Forwarded IP takes precedence
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
         req.headers['x-real-ip']?.toString() ||
         req.socket?.remoteAddress ||
         'unknown';
+
+    // User Agent
     const userAgent = req.headers['user-agent'] || 'unknown';
 
     let deviceType = 'desktop';
@@ -578,6 +609,7 @@ const getVisitorInfo = (req: Request) => {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
 
+    // Creating a truly unique identifier per day for this visitor
     const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
 
     return { ip, userAgent, deviceType, visitorHash };
@@ -589,7 +621,11 @@ const smartIncrementViewCount = async (
     isOwner: boolean
 ) => {
     try {
-        if (isOwner) return;
+        // Log skip reason for debugging if needed
+        if (isOwner) {
+            console.log(`[Analytics] Skipping view for owner of catalog ${catalogId}`);
+            return;
+        }
 
         const { error } = await supabase.rpc('smart_increment_view_count', {
             p_catalog_id: catalogId,
@@ -600,95 +636,40 @@ const smartIncrementViewCount = async (
             p_is_owner: isOwner
         });
 
-        if (error && error.message.includes('function')) {
+        if (error) {
+            console.warn('[Analytics] RPC Error:', error.message);
+            // Basic fallback
             await supabase.rpc('increment_view_count', { catalog_id: catalogId });
         }
-    } catch {
-        try {
-            await supabase.rpc('increment_view_count', { catalog_id: catalogId });
-        } catch {
-            // Silently fail
-        }
+    } catch (err) {
+        console.error('[Analytics] Critical error:', err);
     }
 };
 
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-
-        // TimeRange parametresini al (7d, 30d, 90d) - varsayılan 30d
         const timeRange = (req.query.timeRange as string) || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
 
-        const [catalogsResult, productsResult] = await Promise.all([
-            supabase
-                .from('catalogs')
-                .select('id, name, is_published, created_at')
-                .eq('user_id', userId),
-            supabase
-                .from('products')
-                .select('id', { count: 'exact' })
-                .eq('user_id', userId),
-        ]);
+        // 1. Fetch Summary Stats from user_dashboard_stats view
+        const { data: summaryData, error: summaryError } = await supabase
+            .from('user_dashboard_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
 
-        if (catalogsResult.error) {
-            console.error('Error fetching catalogs:', catalogsResult.error);
-            throw new Error('Failed to fetch catalogs');
+        if (summaryError) {
+            console.error('[Stats] Error fetching summary view:', summaryError);
+            // Fallback will happen below if needed, but summary is preferred
         }
-
-        if (productsResult.error) {
-            console.error('Error fetching products:', productsResult.error);
-            throw new Error('Failed to fetch products');
-        }
-
-        const catalogs = catalogsResult.data || [];
-        const productCount = productsResult.count || 0;
-
-        // catalog_views tablosundan gerçek view sayılarını al
-        const catalogIds = catalogs.map(c => c.id);
-        let verifiedTotalViews = 0;
-        const viewCountMap = new Map<string, number>();
-
-        if (catalogIds.length > 0) {
-            try {
-                // Her katalog için catalog_views tablosundan gerçek sayıyı al
-                const { data: viewCounts, error: viewCountError } = await supabase
-                    .from('catalog_views')
-                    .select('catalog_id')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false);
-
-                if (!viewCountError && viewCounts) {
-                    // Her katalog için view sayısını hesapla
-                    viewCounts.forEach(v => {
-                        const count = viewCountMap.get(v.catalog_id) || 0;
-                        viewCountMap.set(v.catalog_id, count + 1);
-                    });
-                    verifiedTotalViews = viewCounts.length;
-                } else {
-                    console.warn('Could not fetch view counts from catalog_views table:', viewCountError);
-                }
-            } catch (error) {
-                console.error('Error fetching view counts:', error);
-            }
-        }
-
-        // Top catalogs için gerçek view sayılarını kullan
-        const topCatalogs = catalogs
-            .map(c => ({
-                id: c.id,
-                name: c.name,
-                views: viewCountMap.get(c.id) || 0,
-            }))
-            .sort((a, b) => b.views - a.views)
-            .slice(0, 5);
 
         const stats = {
-            totalCatalogs: catalogs.length,
-            publishedCatalogs: catalogs.filter(c => c.is_published).length,
-            totalViews: verifiedTotalViews, // Doğrulanmış view sayısı
-            totalProducts: productCount,
-            topCatalogs,
+            totalCatalogs: summaryData?.total_catalogs || 0,
+            publishedCatalogs: summaryData?.published_catalogs || 0,
+            totalViews: summaryData?.total_views || 0,
+            totalProducts: summaryData?.total_products || 0,
+            topCatalogs: summaryData?.top_catalogs || [],
         };
 
         const detailedStats = {
@@ -697,84 +678,74 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             dailyViews: [] as { view_date: string; view_count: number }[],
         };
 
-        // Detaylı analitik verilerini çek
+        const { data: catalogs } = await supabase.from('catalogs').select('id').eq('user_id', userId);
+        const catalogIds = catalogs?.map(c => c.id) || [];
+
+        // 2. Fetch Detailed Analytics (Zaman aralığına duyarlı)
         if (catalogIds.length > 0) {
             try {
                 const dateThreshold = new Date();
                 dateThreshold.setDate(dateThreshold.getDate() - days);
                 const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
 
-                // Unique visitors (belirtilen zaman aralığında)
-                const { data: uniqueData, error: uniqueError } = await supabase
-                    .from('catalog_views')
-                    .select('visitor_hash')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false)
-                    .gte('view_date', dateThresholdStr);
+                // a. Unique Visitors
+                const { data: vCount, error: vError } = await supabase
+                    .rpc('get_unique_visitors_multi', {
+                        p_catalog_ids: catalogIds,
+                        p_days: days
+                    });
 
-                if (!uniqueError && uniqueData) {
-                    const uniqueHashes = new Set(uniqueData.map(d => d.visitor_hash));
-                    detailedStats.uniqueVisitors = uniqueHashes.size;
-                } else if (uniqueError) {
-                    console.error('Error fetching unique visitors:', uniqueError);
+                if (!vError) {
+                    detailedStats.uniqueVisitors = Number(vCount);
                 }
 
-                // Device stats (belirtilen zaman aralığında)
-                const { data: deviceData, error: deviceError } = await supabase
+                // b. Device Stats (Using query directly for multi-catalog)
+                const { data: deviceData } = await supabase
                     .from('catalog_views')
                     .select('device_type')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
                     .gte('view_date', dateThresholdStr);
 
-                if (!deviceError && deviceData && deviceData.length > 0) {
-                    const deviceCounts: Record<string, number> = {};
+                if (deviceData && deviceData.length > 0) {
+                    const counts: Record<string, number> = {};
                     deviceData.forEach(d => {
-                        const type = d.device_type || 'unknown';
-                        deviceCounts[type] = (deviceCounts[type] || 0) + 1;
+                        const t = d.device_type || 'unkn';
+                        counts[t] = (counts[t] || 0) + 1;
                     });
-
                     const total = deviceData.length;
-                    detailedStats.deviceStats = Object.entries(deviceCounts).map(([type, count]) => ({
+                    detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
                         device_type: type,
                         view_count: count,
                         percentage: Math.round((count / total) * 100)
                     })).sort((a, b) => b.view_count - a.view_count);
-                } else if (deviceError) {
-                    console.error('Error fetching device stats:', deviceError);
                 }
 
-                // Daily views (belirtilen zaman aralığında)
-                const { data: dailyData, error: dailyError } = await supabase
+                // c. Daily Views
+                const { data: dailyData } = await supabase
                     .from('catalog_views')
                     .select('view_date')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
                     .gte('view_date', dateThresholdStr);
 
-                if (!dailyError && dailyData && dailyData.length > 0) {
-                    const dailyCounts: Record<string, number> = {};
+                if (dailyData) {
+                    const dCounts: Record<string, number> = {};
                     dailyData.forEach(d => {
-                        const date = d.view_date;
-                        dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+                        dCounts[d.view_date] = (dCounts[d.view_date] || 0) + 1;
                     });
-
-                    detailedStats.dailyViews = Object.entries(dailyCounts)
+                    detailedStats.dailyViews = Object.entries(dCounts)
                         .map(([date, count]) => ({ view_date: date, view_count: count }))
                         .sort((a, b) => a.view_date.localeCompare(b.view_date));
-                } else if (dailyError) {
-                    console.error('Error fetching daily views:', dailyError);
                 }
-            } catch (error) {
-                // Detaylı analitik hatalarını logla ama işlemi durdurma
-                console.error('Error fetching detailed analytics:', error);
+            } catch (err) {
+                console.error('[Stats] Detailed error:', err);
             }
         }
 
         res.json({ ...stats, ...detailedStats });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Error in getDashboardStats:', error);
-        res.status(500).json({ error: errorMessage });
+        console.error('[Stats] Critical Error:', error);
+        res.status(500).json({ error: 'İstatistikler alınamadı' });
     }
 };

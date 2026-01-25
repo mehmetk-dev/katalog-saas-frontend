@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
@@ -20,12 +21,12 @@ function getDefaultTimeout(endpoint: string): number {
     if (endpoint.includes('/bulk-') || endpoint.includes('/import') || endpoint.includes('/export')) {
         return 120000; // 120 saniye
     }
-    
+
     // Standart işlemler için orta timeout
     if (endpoint.includes('/upload') || endpoint.includes('/image')) {
         return 60000; // 60 saniye
     }
-    
+
     // Normal işlemler için kısa timeout
     return 30000; // 30 saniye (varsayılan)
 }
@@ -42,27 +43,40 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     const { retries = 0, retryDelay = 1000, timeout = defaultTimeout, ...fetchOptions } = options;
     const supabase = await createServerSupabaseClient();
 
+    // Geçerli isteğin header'larını al (IP ve User-Agent iletmek için)
+    const clientHeaders = await headers();
+    const forwardedFor = clientHeaders.get("x-forwarded-for");
+    const realIp = clientHeaders.get("x-real-ip");
+    const userAgent = clientHeaders.get("user-agent");
+
     // Use getUser() instead of getSession() for security
-    // getUser() validates the token server-side, getSession() only reads from cookie
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
-    const headers: Record<string, string> = {
+    const headersList: Record<string, string> = {
         "Content-Type": "application/json",
         ...fetchOptions.headers,
     };
+
+    // Forward client info for analytics and rate limiting
+    if (forwardedFor) headersList["x-forwarded-for"] = forwardedFor;
+    if (realIp) headersList["x-real-ip"] = realIp;
+    if (userAgent) headersList["user-agent"] = userAgent;
 
     // Get session for access token after user is validated
     if (user) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-            headers["Authorization"] = `Bearer ${session.access_token}`;
+            headersList["Authorization"] = `Bearer ${session.access_token}`;
+            headersList["x-user-id"] = user.id;
         }
     }
 
+    const fetchHeaders = headersList;
     let lastError: ApiError | null = null;
     let attempts = 0;
+    // ... rest of the logic remains the same
     let timeoutId: NodeJS.Timeout | null = null;
     let controller: AbortController | null = null;
 
@@ -87,10 +101,10 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
         try {
             const response = await fetch(`${BASE_URL}${endpoint}`, {
                 ...fetchOptions,
-                headers,
+                headers: fetchHeaders,
                 signal: controller.signal,
             });
-            
+
             // Başarılı yanıt - timeout'u temizle
             if (timeoutId) {
                 clearTimeout(timeoutId);
@@ -152,7 +166,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
             // Fetch failed - backend sunucusu çalışmıyor olabilir
             if (error instanceof Error && (
-                error.message.includes('fetch failed') || 
+                error.message.includes('fetch failed') ||
                 error.message.includes('ECONNREFUSED') ||
                 error.message.includes('ENOTFOUND') ||
                 error.cause?.toString().includes('ECONNREFUSED')
@@ -161,7 +175,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                     `Backend sunucusuna bağlanılamıyor (${BASE_URL}). Lütfen backend sunucusunun çalıştığından emin olun.`
                 );
                 connectionError.status = 503;
-                
+
                 // Retry varsa ve son deneme değilse devam et
                 if (attempts < retries) {
                     await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
@@ -169,7 +183,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                     lastError = connectionError;
                     continue;
                 }
-                
+
                 throw connectionError;
             }
 
@@ -179,7 +193,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                     `İstek zaman aşımına uğradı (${Math.round(timeout / 1000)}s). Lütfen tekrar deneyin.`
                 );
                 timeoutError.status = 408;
-                
+
                 // Retry varsa ve son deneme değilse devam et
                 if (attempts < retries) {
                     await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
@@ -187,7 +201,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                     lastError = timeoutError;
                     continue;
                 }
-                
+
                 throw timeoutError;
             }
 

@@ -433,7 +433,7 @@ export function ProductsTable({
         {/* Preview Dialog */}
         <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
           <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden">
-            {previewProduct && (() => {
+            {previewProduct ? (() => {
               // Parse images (Use the new images array or fallback to legacy image_url)
               const allImages = (previewProduct.images && previewProduct.images.length > 0)
                 ? previewProduct.images
@@ -451,7 +451,7 @@ export function ProductsTable({
                   {/* Header */}
                   <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600">
                     <DialogHeader>
-                      <DialogTitle className="text-white text-lg font-bold pr-8">{previewProduct.name}</DialogTitle>
+                      <DialogTitle className="text-white text-lg font-bold pr-8">{previewProduct.name || "Ürün Önizleme"}</DialogTitle>
                       {previewProduct.sku && <p className="text-white/70 text-sm font-mono">SKU: {previewProduct.sku}</p>}
                     </DialogHeader>
                   </div>
@@ -552,7 +552,11 @@ export function ProductsTable({
                   </div>
                 </>
               )
-            })()}
+            })() : (
+              <DialogHeader>
+                <DialogTitle>Ürün Önizleme</DialogTitle>
+              </DialogHeader>
+            )}
           </DialogContent>
         </Dialog>
 

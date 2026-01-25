@@ -336,15 +336,17 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400/20 rounded-full blur-2xl" />
 
-            <div className="relative flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
-                <Lock className="w-8 h-8 text-white" />
+            <DialogHeader className="relative">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
+                  <Lock className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-white">{t("catalogs.limitReached")}</DialogTitle>
+                  <DialogDescription className="text-white/80 text-sm mt-1">{t("catalogs.limitModalDesc")}</DialogDescription>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold">{t("catalogs.limitReached")}</h2>
-                <p className="text-white/80 text-sm mt-1">{t("catalogs.limitModalDesc")}</p>
-              </div>
-            </div>
+            </DialogHeader>
           </div>
 
           {/* Plans Comparison */}

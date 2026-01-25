@@ -1,15 +1,25 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Montserrat } from "next/font/google"
 
 import "./globals.css"
 import { I18nProvider } from "@/lib/i18n-provider"
 
 const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
   display: 'swap',
   preload: true,
 })
+
+const montserrat = Montserrat({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-montserrat",
+  display: "swap",
+  preload: true,
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
+
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.com'
 
 export const metadata: Metadata = {
@@ -74,9 +84,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon.png' },
     ],
     apple: [
       { url: '/apple-icon.png' },
@@ -152,7 +160,7 @@ export default function RootLayout({
         {/* Preconnect to Supabase */}
         <link rel="preconnect" href="https://supabase.co" />
       </head>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
         <I18nProvider>
           {children}
         </I18nProvider>

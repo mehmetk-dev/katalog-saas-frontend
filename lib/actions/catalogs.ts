@@ -53,21 +53,11 @@ export interface CatalogTemplate {
 }
 
 export async function getCatalogs() {
-  try {
-    return await apiFetch<Catalog[]>("/catalogs")
-  } catch (error) {
-    console.error("Error fetching catalogs:", error)
-    return []
-  }
+  return await apiFetch<Catalog[]>("/catalogs")
 }
 
 export async function getCatalog(id: string) {
-  try {
-    return await apiFetch<Catalog>(`/catalogs/${id}`)
-  } catch (error) {
-    console.error("Error fetching catalog:", error)
-    return null
-  }
+  return await apiFetch<Catalog>(`/catalogs/${id}`)
 }
 
 export async function getTemplatesFromAPI() {
@@ -180,11 +170,6 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(timeRange: "7d" | "30d" | "90d" = "30d") {
-  try {
-    const params = new URLSearchParams({ timeRange })
-    return await apiFetch<DashboardStats>(`/catalogs/stats?${params.toString()}`)
-  } catch (error) {
-    console.error("Error fetching dashboard stats:", error)
-    return null
-  }
+  const params = new URLSearchParams({ timeRange })
+  return await apiFetch<DashboardStats>(`/catalogs/stats?${params.toString()}`)
 }

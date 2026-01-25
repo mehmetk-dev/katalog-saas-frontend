@@ -96,46 +96,132 @@ export default function SettingsPage() {
         // 1. Upload Avatar if pending
         if (pendingAvatarFile) {
           setIsUploadingAvatar(true)
-          const fileExt = pendingAvatarFile.name.split('.').pop()
-          const fileName = `${user.id}-${Date.now()}.${fileExt}`
-          const filePath = `avatars/${fileName}`
+          try {
+            // WebP dönüşümü (hata yönetimi ile)
+            let blobToUpload: Blob = pendingAvatarFile
+            let contentType = pendingAvatarFile.type
+            let fileName = `${user.id}-${Date.now()}.webp`
 
-          const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, pendingAvatarFile, { upsert: true })
+            try {
+              const { convertToWebP } = await import("@/lib/image-utils")
+              const converted = await convertToWebP(pendingAvatarFile)
+              blobToUpload = converted.blob
+              contentType = 'image/webp'
+            } catch (convertError: any) {
+              console.warn(`[Settings] Avatar convert error:`, convertError)
+              // Convert başarısız olursa orijinal dosyayı kullan
+              const fileExt = pendingAvatarFile.name.split('.').pop() || 'jpg'
+              fileName = `${user.id}-${Date.now()}.${fileExt}`
+              blobToUpload = pendingAvatarFile
+              contentType = pendingAvatarFile.type
+              if (convertError.message === 'TIMEOUT' || convertError.message?.includes('timeout')) {
+                toast.warning('Avatar işleme zaman aşımı, orijinal dosya yükleniyor.', { duration: 3000 })
+              }
+            }
 
-          if (uploadError) throw uploadError
+            const filePath = `avatars/${fileName}`
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(filePath)
+            // Upload with timeout
+            const uploadPromise = supabase.storage
+              .from('avatars')
+              .upload(filePath, blobToUpload, { 
+                upsert: true,
+                contentType: contentType,
+                cacheControl: '3600'
+              })
 
-          dbUpdates.avatar_url = publicUrl
-          dbUpdateNeeded = true
-          setIsUploadingAvatar(false)
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 45000)
+            )
+
+            const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(filePath)
+
+            dbUpdates.avatar_url = publicUrl
+            dbUpdateNeeded = true
+          } catch (error: any) {
+            console.error("Avatar upload error:", error)
+            let msg = t('toasts.imageUploadFailed')
+            if (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT') {
+              msg = 'Avatar yükleme zaman aşımına uğradı (45s). Lütfen tekrar deneyin.'
+            } else if (error.message) {
+              msg = `Avatar yükleme hatası: ${error.message.substring(0, 50)}`
+            }
+            toast.error(msg)
+            throw error
+          } finally {
+            setIsUploadingAvatar(false)
+          }
         }
 
         // 2. Upload Logo if pending
         if (pendingLogoFile) {
           setIsUploadingLogo(true)
-          const fileExt = pendingLogoFile.name.split('.').pop()
-          const fileName = `logo-${user.id}-${Date.now()}.${fileExt}`
-          const filePath = `company-logos/${fileName}`
-          const bucketName = 'product-images'
+          try {
+            // WebP dönüşümü (hata yönetimi ile)
+            let blobToUpload: Blob = pendingLogoFile
+            let contentType = pendingLogoFile.type
+            let fileName = `logo-${user.id}-${Date.now()}.webp`
 
-          const { error: uploadError } = await supabase.storage
-            .from(bucketName)
-            .upload(filePath, pendingLogoFile, { upsert: true })
+            try {
+              const { convertToWebP } = await import("@/lib/image-utils")
+              const converted = await convertToWebP(pendingLogoFile)
+              blobToUpload = converted.blob
+              contentType = 'image/webp'
+            } catch (convertError: any) {
+              console.warn(`[Settings] Logo convert error:`, convertError)
+              // Convert başarısız olursa orijinal dosyayı kullan
+              const fileExt = pendingLogoFile.name.split('.').pop() || 'jpg'
+              fileName = `logo-${user.id}-${Date.now()}.${fileExt}`
+              blobToUpload = pendingLogoFile
+              contentType = pendingLogoFile.type
+              if (convertError.message === 'TIMEOUT' || convertError.message?.includes('timeout')) {
+                toast.warning('Logo işleme zaman aşımı, orijinal dosya yükleniyor.', { duration: 3000 })
+              }
+            }
 
-          if (uploadError) throw uploadError
+            const filePath = `company-logos/${fileName}`
+            const bucketName = 'product-images'
 
-          const { data: { publicUrl } } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(filePath)
+            // Upload with timeout
+            const uploadPromise = supabase.storage
+              .from(bucketName)
+              .upload(filePath, blobToUpload, { 
+                upsert: true,
+                contentType: contentType,
+                cacheControl: '3600'
+              })
 
-          dbUpdates.logo_url = publicUrl
-          dbUpdateNeeded = true
-          setIsUploadingLogo(false)
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 45000)
+            )
+
+            const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+              .from(bucketName)
+              .getPublicUrl(filePath)
+
+            dbUpdates.logo_url = publicUrl
+            dbUpdateNeeded = true
+          } catch (error: any) {
+            console.error("Logo upload error:", error)
+            let msg = t('toasts.imageUploadFailed')
+            if (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT') {
+              msg = 'Logo yükleme zaman aşımına uğradı (45s). Lütfen tekrar deneyin.'
+            } else if (error.message) {
+              msg = `Logo yükleme hatası: ${error.message.substring(0, 50)}`
+            }
+            toast.error(msg)
+            throw error
+          } finally {
+            setIsUploadingLogo(false)
+          }
         }
 
         // 3. Update DB for images if needed

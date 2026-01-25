@@ -12,11 +12,11 @@ export function PublicHeader() {
     return (
         <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/70 border-b border-slate-200/50">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2.5 group">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-all duration-300 group-hover:scale-105">
-                        <LayoutGrid className="w-4.5 h-4.5 text-white" />
-                    </div>
-                    <span className="font-bold text-lg tracking-tight">FogCatalog</span>
+                <Link href="/" className="flex items-center group">
+                    <span className="font-montserrat text-3xl tracking-tighter flex items-center">
+                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                        <span className="font-light text-slate-900">Catalog</span>
+                    </span>
                 </Link>
 
                 <nav className="hidden md:flex items-center gap-8">

@@ -1,6 +1,7 @@
 import NextImage from "next/image"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
+import { cn } from "@/lib/utils"
 
 /**
  * Minimalist Template - "The Essence"
@@ -22,9 +23,19 @@ export function MinimalistTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'contain',
 }: TemplateProps) {
     const HEADER_HEIGHT = "70px"
     const FOOTER_HEIGHT = "48px"
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'cover': return 'object-cover'
+            case 'fill': return 'object-fill'
+            case 'contain':
+            default: return 'object-contain'
+        }
+    }
 
     const getLogoHeight = () => {
         switch (logoSize) {
@@ -96,7 +107,10 @@ export function MinimalistTemplate({
                                         alt={product.name}
                                         fill
                                         unoptimized
-                                        className="object-contain mix-blend-multiply opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-[1.5s]"
+                                        className={cn(
+                                            "mix-blend-multiply opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-[1.5s]",
+                                            getImageFitClass()
+                                        )}
                                     />
                                 </div>
 
