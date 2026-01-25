@@ -7,6 +7,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code")
   const error = searchParams.get("error")
   const errorDescription = searchParams.get("error_description")
+  const next = searchParams.get("next") || "/dashboard"
+  const type = searchParams.get("type")
 
   // Handle OAuth errors
   if (error) {
@@ -54,15 +56,20 @@ export async function GET(request: Request) {
         }
       }
 
-      // Successful authentication - redirect to dashboard
+      // 1. Şifre Yenileme Kontrolü (Type recovery ise direkt reset-password'e)
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/auth/reset-password`)
+      }
+
+      // 2. 'next' parametresi varsa oraya, yoksa dashboard'a
       const forwardedHost = request.headers.get("x-forwarded-host")
       const isLocal = request.url.includes("localhost")
 
       if (forwardedHost && !isLocal) {
-        return NextResponse.redirect(`https://${forwardedHost}/dashboard`)
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
       }
 
-      return NextResponse.redirect(`${origin}/dashboard`)
+      return NextResponse.redirect(`${origin}${next}`)
     } catch (err) {
       console.error("Auth callback unexpected error:", err)
       return NextResponse.redirect(`${origin}/auth?error=unexpected_error`)

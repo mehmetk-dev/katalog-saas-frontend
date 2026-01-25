@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   Zap,
@@ -27,11 +28,34 @@ import { useTranslation } from "@/lib/i18n-provider"
 
 export default function HomePage() {
   const { t, language } = useTranslation()
+  const router = useRouter()
 
   // Update document title when language changes
   useEffect(() => {
     document.title = t('common.siteTitle')
   }, [language, t])
+
+  // Auth Error Handling (Supabase redirects to home on expired links)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const url = new URL(window.location.href)
+    // Hem query params (?) hem de hash (#) kısımlarını kontrol et
+    const error = url.searchParams.get('error') || new URLSearchParams(url.hash.substring(1)).get('error')
+    const errorCode = url.searchParams.get('error_code') || new URLSearchParams(url.hash.substring(1)).get('error_code')
+    const errorDesc = url.searchParams.get('error_description') || new URLSearchParams(url.hash.substring(1)).get('error_description')
+
+    if (error || errorCode || errorDesc) {
+      console.log('[AuthError] Detected in URL, redirecting to login:', { error, errorCode, errorDesc })
+
+      const authUrl = new URL(`${window.location.origin}/auth`)
+      if (error) authUrl.searchParams.set('error', error)
+      if (errorCode) authUrl.searchParams.set('error_code', errorCode)
+      if (errorDesc) authUrl.searchParams.set('error_description', errorDesc)
+
+      router.replace(authUrl.pathname + authUrl.search)
+    }
+  }, [router])
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">

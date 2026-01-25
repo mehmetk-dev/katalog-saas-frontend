@@ -64,8 +64,8 @@ export default function ForgotPasswordPage() {
     try {
       // Site URL'i dinamik olarak al (client-side'da window.location kullan)
       const SITE_URL = getSiteUrl()
-      const redirectUrl = `${SITE_URL}/auth/reset-password`
-      
+      const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
+
       console.log('[ForgotPassword] Sending reset email:', {
         email,
         redirectTo: redirectUrl,
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
     } catch (err) {
       console.error('[ForgotPassword] Error:', err)
       const errorMessage = err instanceof Error ? err.message : t("common.error")
-      
+
       // Daha açıklayıcı hata mesajları
       if (errorMessage.includes('email') || errorMessage.includes('user not found')) {
         setError("Bu email adresi ile kayıtlı kullanıcı bulunamadı. Lütfen email adresinizi kontrol edin.")
@@ -108,8 +108,8 @@ export default function ForgotPasswordPage() {
 
     try {
       const SITE_URL = getSiteUrl()
-      const redirectUrl = `${SITE_URL}/auth/reset-password`
-      
+      const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
+
       console.log('[ForgotPassword] Sending reset email (continue anyway):', {
         email,
         redirectTo: redirectUrl
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
     } catch (err) {
       console.error('[ForgotPassword] Error (continue anyway):', err)
       const errorMessage = err instanceof Error ? err.message : t("common.error")
-      
+
       if (errorMessage.includes('email') || errorMessage.includes('user not found')) {
         setError("Bu email adresi ile kayıtlı kullanıcı bulunamadı. Lütfen email adresinizi kontrol edin.")
       } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
