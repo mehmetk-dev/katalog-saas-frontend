@@ -306,7 +306,15 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                                 <span className="text-muted-foreground/30">•</span>
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
-                                                    {formatDistanceToNow(new Date(catalog.updated_at), { addSuffix: true, locale: tr })}
+                                                    {(() => {
+                                                        try {
+                                                            const date = new Date(catalog.updated_at)
+                                                            if (isNaN(date.getTime())) return t("common.updateError") || "Bilinmiyor"
+                                                            return formatDistanceToNow(date, { addSuffix: true, locale: tr })
+                                                        } catch (e) {
+                                                            return t("common.updateError") || "Bilinmiyor"
+                                                        }
+                                                    })()}
                                                 </span>
                                             </div>
                                         </div>

@@ -211,10 +211,18 @@ export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsCl
                                                 </p>
                                                 <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                                     <span>
-                                                        {formatDistanceToNow(new Date(log.created_at), {
-                                                            addSuffix: true,
-                                                            locale: language === "tr" ? tr : enUS
-                                                        })}
+                                                        {(() => {
+                                                            try {
+                                                                const date = new Date(log.created_at)
+                                                                if (isNaN(date.getTime())) return "Bilinmiyor"
+                                                                return formatDistanceToNow(date, {
+                                                                    addSuffix: true,
+                                                                    locale: language === "tr" ? tr : enUS
+                                                                })
+                                                            } catch (e) {
+                                                                return "Bilinmiyor"
+                                                            }
+                                                        })()}
                                                     </span>
                                                     {log.ip_address && (
                                                         <span className="hidden sm:inline">
@@ -231,9 +239,17 @@ export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsCl
                                                 )}
                                             </div>
                                             <div className="text-xs text-muted-foreground shrink-0 hidden md:block">
-                                                {format(new Date(log.created_at), "dd MMM yyyy HH:mm", {
-                                                    locale: language === "tr" ? tr : enUS
-                                                })}
+                                                {(() => {
+                                                    try {
+                                                        const date = new Date(log.created_at)
+                                                        if (isNaN(date.getTime())) return "Bilinmiyor"
+                                                        return format(date, "dd MMM yyyy HH:mm", {
+                                                            locale: language === "tr" ? tr : enUS
+                                                        })
+                                                    } catch (e) {
+                                                        return "Bilinmiyor"
+                                                    }
+                                                })()}
                                             </div>
                                         </div>
                                     )

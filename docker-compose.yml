@@ -82,6 +82,6 @@ volumes:
 networks:
   default:
     # Senin mevcut ağın
-    name: couldflare-nw
+    name: katalog-nw
     # Eğer bu ağı elle (manual) oluşturduysan alt satırı aç:
     # external: true
