@@ -5,7 +5,6 @@ import { CheckProviderRequest, CheckProviderResponse } from '../types/auth';
 
 const router = Router();
 
-// Check if email is registered with OAuth provider (no auth required)
 router.post('/check-provider', async (req: Request<{}, CheckProviderResponse | { error: string }, CheckProviderRequest>, res: Response<CheckProviderResponse | { error: string }>) => {
     try {
         const { email }: CheckProviderRequest = req.body;
@@ -14,34 +13,35 @@ router.post('/check-provider', async (req: Request<{}, CheckProviderResponse | {
             return res.status(400).json({ error: 'Email is required' });
         }
 
-        // Query auth.users table with service role to check provider
-        const { data, error } = await supabase.auth.admin.listUsers();
+        const cleanEmail = email.trim().toLowerCase();
 
-        if (error) {
-            console.error('Error checking provider:', error);
-            const response: CheckProviderResponse = { 
-                exists: false, 
-                provider: null, 
-                isOAuth: false 
-            };
-            return res.json(response);
+        // 1. Önce public.users tablosundan kontrol et
+        const { data: publicUser } = await supabase
+            .from('users')
+            .select('id, email')
+            .ilike('email', cleanEmail)
+            .single();
+
+        // 2. Auth listesinden detayları al
+        const { data: authData } = await supabase.auth.admin.listUsers();
+
+        // Auth listesinde ara (Case-insensitive)
+        const authUser = authData?.users.find(u =>
+            u.email?.toLowerCase() === cleanEmail ||
+            u.email === email.trim()
+        );
+
+        // Kullanıcı var mı?
+        const exists = !!publicUser || !!authUser;
+
+        console.log(`[CheckProvider] ${cleanEmail} -> DB:${!!publicUser}, Auth:${!!authUser}, Result:${exists}`);
+
+        if (!exists) {
+            return res.json({ exists: false, provider: null, isOAuth: false });
         }
 
-        // Find user by email
-        const user = data.users.find(u => u.email === email);
-
-        if (!user) {
-            // User doesn't exist - that's fine, let them try to reset
-            const response: CheckProviderResponse = { 
-                exists: false, 
-                provider: null, 
-                isOAuth: false 
-            };
-            return res.json(response);
-        }
-
-        // Check if user signed up with OAuth
-        const provider = user.app_metadata?.provider || 'email';
+        // Provider bilgisini belirle (authUser'dan al, yoksa email varsay)
+        const provider = authUser?.app_metadata?.provider || 'email';
         const isOAuth = provider !== 'email';
 
         const response: CheckProviderResponse = {
@@ -49,18 +49,13 @@ router.post('/check-provider', async (req: Request<{}, CheckProviderResponse | {
             provider,
             isOAuth,
         };
-        
+
         res.json(response);
 
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error('Check provider error:', message);
-        const response: CheckProviderResponse = {
-            exists: false,
-            provider: null,
-            isOAuth: false
-        };
-        res.json(response);
+        res.json({ exists: false, provider: null, isOAuth: false });
     }
 });
 
