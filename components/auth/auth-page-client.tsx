@@ -313,7 +313,7 @@ export function AuthPageClient() {
                                     <button
                                         type="button"
                                         onClick={() => { setMode('signin'); setSuccess(false); }}
-                                        className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                                        className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg transition-all active:scale-[0.98]"
                                     >
                                         {t("auth.backToLogin") || "Giriş Yapmaya Dön"}
                                     </button>
@@ -424,7 +424,7 @@ export function AuthPageClient() {
                                     <button
                                         type="submit"
                                         disabled={isLoading || isGoogleLoading}
-                                        className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-70 flex items-center justify-center gap-2 mt-4"
+                                        className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg shadow-[#B01E2E]/20 hover:shadow-[#B01E2E]/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-70 flex items-center justify-center gap-2 mt-4"
                                     >
                                         {isLoading ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
