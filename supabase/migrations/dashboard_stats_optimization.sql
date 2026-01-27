@@ -26,7 +26,7 @@ SELECT
                 SELECT 
                     c.id, 
                     c.name, 
-                    COALESCE((SELECT COUNT(*) FROM catalog_views cv WHERE cv.catalog_id = c.id AND cv.is_owner = false), 0)::integer as views
+                    COALESCE(c.view_count, 0)::integer as views
                 FROM catalogs c
                 WHERE c.user_id = u.id
                 ORDER BY views DESC
@@ -53,11 +53,10 @@ LEFT JOIN (
 ) product_stats ON product_stats.user_id = u.id
 LEFT JOIN (
     SELECT 
-        c.user_id,
-        COUNT(cv.id) as total_views
-    FROM catalogs c
-    LEFT JOIN catalog_views cv ON cv.catalog_id = c.id AND cv.is_owner = false
-    GROUP BY c.user_id
+        user_id,
+        SUM(COALESCE(view_count, 0)) as total_views
+    FROM catalogs
+    GROUP BY user_id
 ) view_stats ON view_stats.user_id = u.id;
 
 -- Grant permissions

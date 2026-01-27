@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { cn } from "@/lib/utils"
 
 /**
  * Bold Template - "The Neo-Brutalist"
@@ -21,8 +22,18 @@ export function BoldTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const HEADER_HEIGHT = "80px"
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'cover': return 'object-cover'
+            case 'fill': return 'object-fill'
+            case 'contain':
+            default: return 'object-contain'
+        }
+    }
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -102,7 +113,10 @@ export function BoldTemplate({
                                     alt={product.name}
                                     fill
                                     unoptimized
-                                    className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                                    className={cn(
+                                        "grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500",
+                                        getImageFitClass()
+                                    )}
                                 />
                                 {/* Label Ribbon */}
                                 {showSku && product.sku && (
@@ -112,9 +126,9 @@ export function BoldTemplate({
                                 )}
                                 {/* URL Icon */}
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-2 right-2 bg-white border-2 border-black p-1 group-hover:bg-yellow-400 transition-colors">
+                                    <div className="absolute top-2 right-2 bg-white border-2 border-black p-1 group-hover:bg-yellow-400 transition-colors z-10">
                                         <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                         </svg>
                                     </div>
                                 )}

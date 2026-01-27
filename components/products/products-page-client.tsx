@@ -2,13 +2,13 @@
 
 import type React from "react"
 import { useState, useTransition, useRef, useMemo, useCallback } from "react"
-import { Search, Plus, Trash2, FileDown, LayoutGrid, List, SortAsc, SortDesc, Filter, X, Package, Sparkles, TrendingUp, AlertTriangle, Percent, DollarSign, Check, MoreHorizontal, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react"
+import { FileDown, Plus, Sparkles, Filter, LayoutGrid, List, Search, X, Package, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, Image as ImageIcon, Percent, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SortAsc, SortDesc, DollarSign } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
-import { ProductsTable } from "@/components/products/products-table"
-import { ProductModal } from "@/components/products/product-modal"
-import { ImportExportModal } from "@/components/products/import-export-modal"
+import { ProductsTable } from "./products-table"
+import { ProductModal } from "./product-modal"
+import { ImportExportModal } from "./import-export-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
@@ -18,10 +18,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n-provider"
-import { type Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
+import { Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { useUser } from "@/lib/user-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
@@ -34,6 +33,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { BulkImageUploadModal } from "@/components/products/bulk-image-upload-modal"
+import { useUser } from "@/lib/user-context"
+
+// Atomic Components
+import { ProductStatsCards } from "./stats-cards"
+import { ProductsToolbar } from "./toolbar"
+import { ProductsFilterSheet } from "./filter-sheet"
+import { ProductsPagination } from "./pagination"
+import { ProductsBulkPriceModal } from "./bulk-price-modal"
+import { ProductsBulkActionsBar } from "./bulk-actions-bar"
 
 interface ProductsPageClientProps {
   initialProducts: Product[]
@@ -52,7 +60,7 @@ const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
-  const [products, setProducts] = useState(initialProducts)
+  const [products, setProducts] = useState<Product[]>(initialProducts)
   const [search, setSearch] = useState("")
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [showProductModal, setShowProductModal] = useState(false)
@@ -61,11 +69,14 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Bulk Image Upload State
+  // Modallar State
   const [showBulkImageModal, setShowBulkImageModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [showPriceModal, setShowPriceModal] = useState(false)
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
-  // Yeni state'ler
+  // Filtreleme State
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const [sortField, setSortField] = useState<SortField>("created_at")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
@@ -73,13 +84,12 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
   const [currentPage, setCurrentPage] = useState(1)
-  const [showFilters, setShowFilters] = useState(false)
-  const [showPriceModal, setShowPriceModal] = useState(false)
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
+
+  // Fiyat Güncelleme State
   const [priceChangeType, setPriceChangeType] = useState<"increase" | "decrease">("increase")
   const [priceChangeMode, setPriceChangeMode] = useState<"percentage" | "fixed">("percentage")
   const [priceChangeAmount, setPriceChangeAmount] = useState<number>(10)
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
-  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
 
   const isFreeUser = userPlan === "free"
   const isAtLimit = isFreeUser && products.length >= maxProducts
@@ -98,7 +108,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     }
   }, [products])
 
-  // Filtreleme ve sıralama
+  // Filtreleme ve sıralama mantığı
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products]
 
@@ -115,7 +125,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
     // Kategori filtresi
     if (selectedCategory !== "all") {
-      if (selectedCategory === "Kategorisiz") {
+      if (selectedCategory === "Kategorisiz" || selectedCategory === t("products.uncategorized")) {
         result = result.filter(p => !p.category || p.category === "Kategorisiz" || p.category === t("products.uncategorized"))
       } else {
         result = result.filter(p => p.category === selectedCategory)
@@ -164,6 +174,8 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     return result
   }, [products, search, selectedCategory, stockFilter, priceRange, sortField, sortOrder, t])
 
+  const hasActiveFilters = search !== "" || selectedCategory !== "all" || stockFilter !== "all" || priceRange[0] !== 0 || priceRange[1] !== priceStats.max
+
   // Sayfalama
   const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage)
   const paginatedProducts = useMemo(() => {
@@ -182,17 +194,16 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
   // Kategori bazlı istatistikler
   const categoryStats = useMemo(() => {
-    const stats: Record<string, { count: number; totalValue: number }> = {}
+    const statsMap: Record<string, { count: number; totalValue: number }> = {}
     products.forEach(p => {
       const cat = p.category || t("products.uncategorized")
-      if (!stats[cat]) stats[cat] = { count: 0, totalValue: 0 }
-      stats[cat].count++
-      stats[cat].totalValue += (Number(p.price) || 0) * p.stock
+      if (!statsMap[cat]) statsMap[cat] = { count: 0, totalValue: 0 }
+      statsMap[cat].count++
+      statsMap[cat].totalValue += (Number(p.price) || 0) * p.stock
     })
-    return Object.entries(stats).sort((a, b) => b[1].count - a[1].count)
+    return Object.entries(statsMap).sort((a, b) => b[1].count - a[1].count)
   }, [products, t])
 
-  // Sayfa değiştiğinde scroll YAPMA - kullanıcı yerinde kalsın
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page)
   }, [])
@@ -248,26 +259,6 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     })
   }
 
-  // Sadece mevcut sayfadaki ürünleri seç
-  const selectCurrentPage = () => {
-    setSelectedIds(paginatedProducts.map(p => p.id))
-    toast.success(t("products.selected", { count: paginatedProducts.length }))
-  }
-
-  // Tüm ürünleri seç (sayfalamadan bağımsız)
-  const selectAllProducts = () => {
-    setSelectedIds(products.map(p => p.id))
-    toast.success(t("products.selected", { count: products.length }))
-  }
-
-  // Kategori bazlı seçim
-  const selectByCategory = (category: string) => {
-    const categoryProducts = products.filter(p => (p.category || t("products.uncategorized")) === category)
-    setSelectedIds(categoryProducts.map(p => p.id))
-    toast.success(t("products.selected", { count: categoryProducts.length }))
-  }
-
-  // Toplu fiyat güncelleme
   const handleBulkPriceUpdate = () => {
     if (selectedIds.length === 0) {
       toast.error(t('toasts.selectProductFirst'))
@@ -284,7 +275,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         )
 
         // Ürünleri güncelle
-        const updatedMap = new Map(updatedProducts.map(p => [p.id, p]))
+        const updatedMap = new Map(updatedProducts.map((p: Product) => [p.id, p]))
         setProducts(products.map(p => updatedMap.get(p.id) || p))
 
         setShowPriceModal(false)
@@ -305,7 +296,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
     startTransition(async () => {
       try {
-        const addedProducts = await addDummyProducts(language as 'tr' | 'en')
+        const addedProducts = await addDummyProducts(language as 'tr' | 'en', userPlan)
         setProducts([...addedProducts, ...products])
         toast.success(t('toasts.testProductsAdded'))
         refreshUser()
@@ -315,668 +306,133 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     })
   }
 
-  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string
-        const lines = text.split("\n").filter((line) => line.trim())
-
-        if (lines.length < 2) {
-          toast.error(t('toasts.fileEmptyOrInvalid'))
-          return
-        }
-
-        const headers = lines[0].split(/[,;\t]/).map((h) => h.trim().toLowerCase())
-        const productsToImport: Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>> = []
-
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(/[,;\t]/)
-          const product: Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
-            name: "",
-            sku: null,
-            description: null,
-            price: 0,
-            stock: 0,
-            category: null,
-            image_url: null,
-            images: [],
-            product_url: null,
-            custom_attributes: [],
-          }
-
-          headers.forEach((header, index) => {
-            const value = values[index]?.trim() || ""
-
-            switch (header) {
-              case "ad":
-              case "ürün adı":
-              case "name":
-              case "ürün":
-                product.name = value
-                break
-              case "sku":
-              case "stok kodu":
-              case "kod":
-                product.sku = value || null
-                break
-              case "açıklama":
-              case "description":
-                product.description = value || null
-                break
-              case "fiyat":
-              case "price":
-                product.price = Number.parseFloat(value.replace(",", ".")) || 0
-                break
-              case "stok":
-              case "stock":
-              case "adet":
-                product.stock = Number.parseInt(value) || 0
-                break
-              case "kategori":
-              case "category":
-                product.category = value || null
-                break
-              case "görsel":
-              case "image":
-              case "resim":
-                product.image_url = value || null
-                break
-              default:
-                if (value) {
-                  product.custom_attributes.push({
-                    name: header,
-                    value: value,
-                    unit: "",
-                  })
-                }
-            }
-          })
-
-          if (product.name) {
-            productsToImport.push(product)
-          }
-        }
-
-        if (productsToImport.length === 0) {
-          toast.error(t('toasts.noValidProducts'))
-          return
-        }
-
-        startTransition(async () => {
-          try {
-            const imported = await bulkImportProducts(productsToImport)
-            setProducts([...imported, ...products])
-            toast.success(t('toasts.productsImported', { count: imported.length }))
-            refreshUser()
-          } catch {
-            toast.error(t('toasts.importFailed'))
-          }
-        })
-      } catch {
-        toast.error(t('toasts.processingError'))
-      }
-    }
-
-    reader.readAsText(file)
-    e.target.value = "" // Reset input
-  }
-
-  const _downloadTemplate = () => {
-    const headers = ["Ad", "SKU", "Açıklama", "Fiyat", "Stok", "Kategori", "Görsel", "Ağırlık", "Renk", "Malzeme"]
-    const sampleData = [
-      [
-        "Örnek Ürün 1",
-        "URN-001",
-        "Bu bir örnek üründür",
-        "199.99",
-        "50",
-        "Mobilya",
-        "",
-        "2.5 kg",
-        "Kahverengi",
-        "Ahşap",
-      ],
-      ["Örnek Ürün 2", "URN-002", "Başka bir örnek", "89.50", "100", "Aksesuar", "", "0.5 kg", "Siyah", "Metal"],
-    ]
-
-    const csvContent = [headers.join(";"), ...sampleData.map((row) => row.join(";"))].join("\n")
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "urun-sablonu.csv"
-    link.click()
-    URL.revokeObjectURL(url)
-    toast.success(t("products.success") || "Şablon indirildi")
-  }
-
-  const downloadAllProducts = () => {
-    // Tüm ürünlerdeki benzersiz custom attribute isimlerini topla
-    const allCustomAttrNames = new Set<string>()
-    products.forEach(p => {
-      if (p.custom_attributes && Array.isArray(p.custom_attributes)) {
-        p.custom_attributes.forEach((attr) => {
-          if (attr.name) allCustomAttrNames.add(attr.name)
-        })
-      }
-    })
-    const customAttrArray = Array.from(allCustomAttrNames)
-
-    // Header'ları oluştur - sabit alanlar + dinamik custom attribute'lar
-    const headers = [
-      t('importExport.systemFields.name'),
-      t('importExport.systemFields.sku'),
-      t('importExport.systemFields.description'),
-      t('importExport.systemFields.price'),
-      t('importExport.systemFields.stock'),
-      t('importExport.systemFields.category'),
-      t('importExport.systemFields.imageUrl'),
-      ...customAttrArray // Dinamik özel özellik kolonları
-    ]
-
-    const csvContent = [
-      headers.join(";"),
-      ...products.map((p) => {
-        // Custom attribute değerlerini al
-        const customAttrValues = customAttrArray.map(attrName => {
-          const found = p.custom_attributes?.find((a) => a.name === attrName)
-          return found?.value || ""
-        })
-
-        return [
-          p.name,
-          p.sku || "",
-          p.description?.replace(/(\r\n|\n|\r)/gm, " ") || "", // Yeni satırları temizle
-          p.price.toString(),
-          p.stock.toString(),
-          p.category || "",
-          p.image_url || "",
-          ...customAttrValues // Dinamik özel özellik değerleri
-        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(";") // CSV escape
-      })
-    ].join("\n")
-
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `tum-urunler-${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-
-    toast.success(t('toasts.productsExported', { count: products.length }))
-  }
-
   const clearAllFilters = () => {
     setSearch("")
     setSelectedCategory("all")
     setStockFilter("all")
-    setPriceRange([priceStats.min, priceStats.max])
+    setPriceRange([0, priceStats.max])
     setCurrentPage(1)
   }
 
-  const hasActiveFilters = search || selectedCategory !== "all" || stockFilter !== "all" || priceRange[0] > priceStats.min || priceRange[1] < priceStats.max
+  const selectCurrentPage = () => {
+    const pageIds = paginatedProducts.map(p => p.id)
+    const newSelectedIds = Array.from(new Set([...selectedIds, ...pageIds]))
+    setSelectedIds(newSelectedIds)
+  }
+
+  const selectAllProducts = () => {
+    setSelectedIds(products.map(p => p.id))
+  }
+
+  const selectByCategory = (category: string) => {
+    const categoryIds = products
+      .filter(p => (p.category || t("products.uncategorized")) === category)
+      .map(p => p.id)
+    const newSelectedIds = Array.from(new Set([...selectedIds, ...categoryIds]))
+    setSelectedIds(newSelectedIds)
+  }
+
+  const downloadAllProducts = () => {
+    const headers = ["Name", "SKU", "Description", "Price", "Stock", "Category", "Image URL"]
+    const rows = products.map(p => [
+      p.name,
+      p.sku || "",
+      p.description || "",
+      p.price,
+      p.stock,
+      p.category || "",
+      p.image_url || ""
+    ])
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `products_export_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   return (
     <TooltipProvider>
       <div className="flex flex-col min-h-[calc(100vh-200px)] -m-4 sm:-m-6 p-4 sm:p-6 bg-gray-50 dark:bg-gray-950">
         <div className="space-y-3">
+          {/* KPI Kartları */}
+          <ProductStatsCards stats={stats} />
 
-          {/* KPI Kartları - Mobile Optimized */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            {/* Toplam Ürün */}
-            <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-md">
-              <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
-                <div className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-100 dark:bg-violet-900/40 items-center justify-center shrink-0">
-                  <Package className="w-5 h-5 sm:w-6 sm:h-6 text-violet-600 dark:text-violet-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-2xl md:text-3xl font-bold text-violet-600 dark:text-violet-400">{stats.total}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("sidebar.products")}</p>
-                </div>
-              </div>
-            </div>
+          {/* Toolbar */}
+          <ProductsToolbar
+            selectedCount={selectedIds.length}
+            totalFilteredCount={filteredAndSortedProducts.length}
+            onSelectAll={(checked) => {
+              if (checked) {
+                setSelectedIds(filteredAndSortedProducts.map(p => p.id))
+              } else {
+                setSelectedIds([])
+              }
+            }}
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value)
+              setCurrentPage(1)
+            }}
+            onOpenFilters={() => setShowFilters(true)}
+            hasActiveFilters={hasActiveFilters}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={(size) => {
+              setItemsPerPage(size)
+              setCurrentPage(1)
+            }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onOpenImportExport={() => setShowImportModal(true)}
+            onOpenBulkImageUpload={() => setShowBulkImageModal(true)}
+            onOpenBulkPriceUpdate={() => setShowPriceModal(true)}
+            onBulkDelete={handleBulkDelete}
+            onAddTestProducts={handleTestImport}
+            onAddProduct={handleAddProduct}
+          />
 
-            {/* Aktif Stok */}
-            <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-md">
-              <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
-                <div className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 items-center justify-center shrink-0">
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.inStock}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("products.inStock")}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Kritik Stok */}
-            <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-md">
-              <div className="flex flex-col sm:flex-row items-center sm:gap-3 text-center sm:text-left">
-                <div className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400">{stats.lowStock + stats.outOfStock}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("products.critical")}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Toolbar - Yüzer Tasarım */}
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-2 shadow-sm">
-            {/* Tümünü Seç Checkbox - Mobilde daha küçük */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center justify-center h-7 w-7 sm:h-9 sm:w-9 shrink-0">
-                  <Checkbox
-                    checked={selectedIds.length > 0 && selectedIds.length === filteredAndSortedProducts.length}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedIds(filteredAndSortedProducts.map(p => p.id))
-                      } else {
-                        setSelectedIds([])
-                      }
-                    }}
-                    className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {selectedIds.length > 0 ? `${t("products.selected", { count: selectedIds.length })} - ${t("products.clear")}` : t("products.selectAll")}
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Arama */}
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t("products.searchPlaceholder")}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="pl-9 pr-9 h-9 border-0 bg-gray-50 dark:bg-gray-800"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Filtre Butonu */}
-            <Button
-              variant={showFilters ? "secondary" : "ghost"}
-              size="sm"
-              className="gap-1.5 shrink-0 h-9"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="w-4 h-4" />
-              <span className="hidden md:inline">{t("products.filterBy")}</span>
-              {hasActiveFilters && (
-                <Badge variant="destructive" className="ml-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                  !
-                </Badge>
-              )}
-            </Button>
-
-            {/* Görünüm Seçici - mobilde de göster */}
-            <div className="flex items-center border rounded-lg p-0.5 shrink-0">
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-
-            {/* Sayfa Boyutu */}
-            <div className="hidden lg:flex items-center gap-1 shrink-0">
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={(value) => {
-                  setItemsPerPage(parseInt(value))
-                  setCurrentPage(1)
-                }}
-              >
-                <SelectTrigger className="h-9 w-[70px] px-2 text-xs justify-between bg-white dark:bg-gray-900 border-0 shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-gray-800">
-                  <span className="truncate">{itemsPerPage}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <SelectItem key={size} value={size.toString()}>
-                      {size} {t("products.perPage")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Mobil: Menü */}
-            <div className="sm:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem className="gap-2" onClick={() => setShowImportModal(true)}>
-                    <FileDown className="w-4 h-4 text-violet-600" />
-                    {t("importExport.title")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2" onClick={() => setShowBulkImageModal(true)}>
-                    <ImageIcon className="w-4 h-4" />
-                    {t("products.bulkImageUpload")}
-                  </DropdownMenuItem>
-                  {selectedIds.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">
-                        {t("products.productsSelected", { count: selectedIds.length })}
-                      </DropdownMenuLabel>
-                      <DropdownMenuItem className="gap-2" onClick={() => setShowPriceModal(true)}>
-                        <Percent className="w-4 h-4 text-blue-600" />
-                        {t("products.bulkPriceUpdate")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive" onClick={handleBulkDelete}>
-                        <Trash2 className="w-4 h-4" />
-                        {t("products.deleteSelected")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {/* Örnek Veri Yükle - Her zaman görünür */}
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="gap-2" onClick={handleTestImport}>
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      {t("products.addTestProducts")}
-                    </DropdownMenuItem>
-                  </>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Masaüstü: Menü */}
-            <div className="hidden sm:block">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem className="gap-2" onClick={() => setShowImportModal(true)}>
-                    <FileDown className="w-4 h-4 text-violet-600" />
-                    {t("importExport.title")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2" onClick={() => setShowBulkImageModal(true)}>
-                    <ImageIcon className="w-4 h-4" />
-                    {t("products.bulkImageUpload")}
-                  </DropdownMenuItem>
-                  {selectedIds.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel className="text-xs text-muted-foreground">
-                        {t("products.productsSelected", { count: selectedIds.length })}
-                      </DropdownMenuLabel>
-                      <DropdownMenuItem className="gap-2" onClick={() => setShowPriceModal(true)}>
-                        <Percent className="w-4 h-4 text-blue-600" />
-                        {t("products.bulkPriceUpdate")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive" onClick={handleBulkDelete}>
-                        <Trash2 className="w-4 h-4" />
-                        {t("products.deleteSelected")}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {/* Örnek Veri Yükle - Her zaman görünür */}
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="gap-2" onClick={handleTestImport}>
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      {t("products.addTestProducts")}
-                    </DropdownMenuItem>
-                  </>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Import/Export Modal - State ile kontrol */}
-            <ImportExportModal
-              open={showImportModal}
-              onOpenChange={setShowImportModal}
-              hideTrigger
-              onImport={async (productsToImport) => {
-                try {
-                  const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>)
-                  setProducts([...imported, ...products])
-                } catch (error) {
-                  console.error('Bulk import failed:', error)
-                  throw error // Re-throw so the modal can catch it and show error state
-                }
-              }}
-              onExport={downloadAllProducts}
-              productCount={products.length}
-              isLoading={isPending}
-              userPlan={userPlan === 'pro' ? 'pro' : userPlan === 'free' ? 'free' : 'plus'}
-            />
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.txt,.xls,.xlsx"
-              onChange={handleFileImport}
-              className="hidden"
-            />
-
-            {/* + Ürün Ekle Butonu - En sağda belirgin */}
-            <Button
-              onClick={handleAddProduct}
-              size="sm"
-              className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white border-0 shadow-lg shadow-indigo-500/20 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("products.addProduct")}</span>
-            </Button>
-          </div>
-
-          {/* Filtre & Sıralama Drawer - Sağdan Açılır */}
-          <Sheet open={showFilters} onOpenChange={setShowFilters}>
-            <SheetContent side="right" className="w-[320px] sm:w-[380px] overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <Filter className="w-5 h-5" />
-                  Filtre & Sıralama
-                </SheetTitle>
-              </SheetHeader>
-              <div className="space-y-6 mt-6">
-                {/* Sıralama */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Sıralama</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "created_at", label: "Yeni" },
-                      { value: "name", label: "İsim" },
-                      { value: "price", label: "Fiyat" },
-                      { value: "stock", label: "Stok" },
-                    ].map((opt) => (
-                      <Button
-                        key={opt.value}
-                        variant={sortField === opt.value ? "default" : "outline"}
-                        size="sm"
-                        className={cn(
-                          "justify-between",
-                          sortField === opt.value && "bg-violet-600 hover:bg-violet-700"
-                        )}
-                        onClick={() => {
-                          if (sortField === opt.value) {
-                            setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                          } else {
-                            setSortField(opt.value as SortField)
-                            setSortOrder("desc")
-                          }
-                        }}
-                      >
-                        {opt.label}
-                        {sortField === opt.value && (
-                          sortOrder === "asc" ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />
-                        )}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4" />
-
-                {/* Kategori */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t("filters.category")}</Label>
-                  <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setCurrentPage(1) }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("filters.allCategories")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Stok Durumu */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">{t("filters.stockStatus")}</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "all", label: t("filters.all") },
-                      { value: "in_stock", label: t("filters.inStock") },
-                      { value: "low_stock", label: t("filters.lowStock") },
-                      { value: "out_of_stock", label: t("filters.outOfStock") },
-                    ].map((opt) => (
-                      <Button
-                        key={opt.value}
-                        variant={stockFilter === opt.value ? "default" : "outline"}
-                        size="sm"
-                        className={stockFilter === opt.value ? "bg-violet-600 hover:bg-violet-700" : ""}
-                        onClick={() => { setStockFilter(opt.value as StockFilter); setCurrentPage(1) }}
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Fiyat Aralığı - Modern Input */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">{t("filters.priceRange")}</Label>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₺</span>
-                      <Input
-                        type="number"
-                        placeholder={t("filters.min")}
-                        value={priceRange[0] || ""}
-                        onChange={(e) => setPriceRange([Number(e.target.value) || 0, priceRange[1]])}
-                        className="pl-7 h-9"
-                      />
-                    </div>
-                    <span className="text-muted-foreground">-</span>
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₺</span>
-                      <Input
-                        type="number"
-                        placeholder={t("filters.max")}
-                        value={priceRange[1] || ""}
-                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || priceStats.max])}
-                        className="pl-7 h-9"
-                      />
-                    </div>
-                  </div>
-                  {/* Hızlı Fiyat Seçenekleri */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { label: "Tümü", min: 0, max: priceStats.max },
-                      { label: "₺0-100", min: 0, max: 100 },
-                      { label: "₺100-500", min: 100, max: 500 },
-                      { label: "₺500-1000", min: 500, max: 1000 },
-                      { label: "₺1000+", min: 1000, max: priceStats.max },
-                    ].map((opt) => (
-                      <Button
-                        key={opt.label}
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => setPriceRange([opt.min, opt.max])}
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Alt Butonlar */}
-                <div className="pt-4 border-t space-y-2">
-                  <div className="flex gap-2 pt-2">
-                    {hasActiveFilters && (
-                      <Button variant="outline" className="flex-1 gap-2" onClick={clearAllFilters}>
-                        <X className="w-4 h-4" />
-                        {t("filters.clear")}
-                      </Button>
-                    )}
-                    <Button
-                      className={cn("flex-1 gap-2 bg-violet-600 hover:bg-violet-700", !hasActiveFilters && "w-full")}
-                      onClick={() => setShowFilters(false)}
-                    >
-                      <Check className="w-4 h-4" />
-                      {t("filters.apply")} ({filteredAndSortedProducts.length} {t("products.product")})
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+          {/* Filtre ve Sıralama Drawer */}
+          <ProductsFilterSheet
+            open={showFilters}
+            onOpenChange={setShowFilters}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSortFieldChange={(field) => setSortField(field)}
+            onSortOrderChange={setSortOrder}
+            selectedCategory={selectedCategory}
+            onCategoryChange={(cat) => { setSelectedCategory(cat); setCurrentPage(1) }}
+            categories={categories}
+            stockFilter={stockFilter}
+            onStockFilterChange={(filter) => { setStockFilter(filter); setCurrentPage(1) }}
+            priceRange={priceRange}
+            onPriceRangeChange={setPriceRange}
+            maxPrice={priceStats.max}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearAllFilters}
+            filteredCount={filteredAndSortedProducts.length}
+          />
         </div>
 
-        {/* Products Table/Grid */}
+        {/* Ürün Listesi */}
         <div className="mt-2">
-          {/* Delete Alert Dialog */}
           <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                <AlertDialogTitle>{t("products.deleteConfirmTitle") || "Emin misiniz?"}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Seçili {selectedIds.length} ürünü silmek üzeresiniz. Bu işlem geri alınamaz.
+                  {t("products.deleteConfirmDesc", { count: selectedIds.length }) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz. Bu işlem geri alınamaz.`}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>İptal</AlertDialogCancel>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={executeBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Sil
+                  {t("common.delete")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -995,210 +451,21 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           />
         </div>
 
-        {/* Sayfalama - Modern ve Premium - Her zaman altta */}
-        {totalPages > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t bg-gradient-to-r from-muted/30 via-transparent to-muted/30 rounded-xl px-4 mt-6">
-            {/* Sol: Sayfa bilgisi ve sayfa boyutu */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{filteredAndSortedProducts.length}</span> ürün içinden{' '}
-                <span className="font-medium text-foreground">
-                  {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length)}
-                </span> gösteriliyor
-              </span>
+        {/* Sayfalama */}
+        <ProductsPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredAndSortedProducts.length}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={(size) => {
+            setItemsPerPage(size)
+            setCurrentPage(1)
+          }}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+        />
 
-              {/* Sayfa boyutu seçici */}
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Sayfa başına:</span>
-                <Select
-                  value={itemsPerPage.toString()}
-                  onValueChange={(value) => {
-                    setItemsPerPage(parseInt(value))
-                    setCurrentPage(1)
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-[70px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZE_OPTIONS.map((size) => (
-                      <SelectItem key={size} value={size.toString()}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Sağ: Pagination kontrolleri */}
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                {/* İlk Sayfa */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(1)}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>İlk sayfa</TooltipContent>
-                </Tooltip>
-
-                {/* Önceki Sayfa */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Önceki sayfa</TooltipContent>
-                </Tooltip>
-
-                {/* Sayfa numaraları */}
-                <div className="flex items-center gap-1 mx-1">
-                  {/* İlk sayfa (uzaksa) */}
-                  {currentPage > 3 && totalPages > 5 && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 text-xs"
-                        onClick={() => handlePageChange(1)}
-                      >
-                        1
-                      </Button>
-                      {currentPage > 4 && (
-                        <span className="text-muted-foreground text-xs px-1">...</span>
-                      )}
-                    </>
-                  )}
-
-                  {/* Orta sayfa numaraları */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-
-                    // İlk ve son sayfayı atlayalım (ayrı gösteriliyorlarsa)
-                    if (
-                      (pageNum === 1 && currentPage > 3 && totalPages > 5) ||
-                      (pageNum === totalPages && currentPage < totalPages - 2 && totalPages > 5)
-                    ) {
-                      return null
-                    }
-
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "ghost"}
-                        size="sm"
-                        className={cn(
-                          "h-8 w-8 text-xs font-medium transition-all",
-                          currentPage === pageNum && "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25"
-                        )}
-                        onClick={() => handlePageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  }).filter(Boolean)}
-
-                  {/* Son sayfa (uzaksa) */}
-                  {currentPage < totalPages - 2 && totalPages > 5 && (
-                    <>
-                      {currentPage < totalPages - 3 && (
-                        <span className="text-muted-foreground text-xs px-1">...</span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 text-xs"
-                        onClick={() => handlePageChange(totalPages)}
-                      >
-                        {totalPages}
-                      </Button>
-                    </>
-                  )}
-                </div>
-
-                {/* Sonraki Sayfa */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Sonraki sayfa</TooltipContent>
-                </Tooltip>
-
-                {/* Son Sayfa */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Son sayfa</TooltipContent>
-                </Tooltip>
-
-                {/* Sayfa numarasına git - masaüstü için */}
-                <div className="hidden md:flex items-center gap-2 ml-3 pl-3 border-l">
-                  <span className="text-xs text-muted-foreground">Git:</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={totalPages}
-                    placeholder={currentPage.toString()}
-                    className="h-8 w-14 text-xs text-center"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const target = e.target as HTMLInputElement
-                        const page = parseInt(target.value)
-                        if (page >= 1 && page <= totalPages) {
-                          handlePageChange(page)
-                          target.value = ''
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Product Modal */}
+        {/* Modallar */}
         <ProductModal
           open={showProductModal}
           onOpenChange={setShowProductModal}
@@ -1208,7 +475,6 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           userPlan={userPlan === 'pro' ? 'pro' : userPlan === 'plus' ? 'plus' : 'free'}
         />
 
-        {/* Product Limit Modal */}
         <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
           <DialogContent>
             <DialogHeader>
@@ -1228,156 +494,53 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           </DialogContent>
         </Dialog>
 
-        {/* Toplu Fiyat Güncelleme Modal */}
-        <Dialog open={showPriceModal} onOpenChange={setShowPriceModal}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Percent className="w-5 h-5" />
-                Toplu Fiyat Güncelleme
-              </DialogTitle>
-              <DialogDescription>
-                Ürün seçin ve fiyatları toplu olarak güncelleyin.
-              </DialogDescription>
-            </DialogHeader>
+        <ImportExportModal
+          open={showImportModal}
+          onOpenChange={setShowImportModal}
+          hideTrigger
+          onImport={async (productsToImport) => {
+            try {
+              const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>)
+              setProducts([...imported, ...products])
+              refreshUser()
+            } catch (error) {
+              console.error('Bulk import failed:', error)
+              throw error
+            }
+          }}
+          onExport={downloadAllProducts}
+          productCount={products.length}
+          isLoading={isPending}
+          userPlan={userPlan === 'pro' ? 'pro' : userPlan === 'free' ? 'free' : 'plus'}
+        />
 
-            <div className="space-y-4 py-4">
-              {/* Ürün Seçimi */}
-              <div className="space-y-2">
-                <Label className="flex items-center justify-between">
-                  <span>Ürün Seçimi</span>
-                  {selectedIds.length > 0 && (
-                    <Badge variant="secondary" className="gap-1">
-                      <Package className="w-3 h-3" />
-                      {selectedIds.length} ürün seçili
-                    </Badge>
-                  )}
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={selectCurrentPage} className="gap-1">
-                    <LayoutGrid className="w-3 h-3" />
-                    Sayfayı Seç ({paginatedProducts.length})
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={selectAllProducts} className="gap-1">
-                    <Package className="w-3 h-3" />
-                    Tümünü Seç ({products.length})
-                  </Button>
-                  {selectedIds.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])} className="gap-1 text-muted-foreground">
-                      <X className="w-3 h-3" />
-                      Temizle
-                    </Button>
-                  )}
-                </div>
-                {categories.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-2 border-t mt-2">
-                    <span className="text-xs text-muted-foreground w-full mb-1">Kategori bazlı seç:</span>
-                    {categoryStats.map(([cat, stat]) => (
-                      <Button key={cat} variant="outline" size="sm" onClick={() => selectByCategory(cat)} className="h-7 text-xs gap-1 px-2">
-                        {cat} <Badge variant="secondary" className="h-4 px-1 text-[10px]">{stat.count}</Badge>
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
+        <ProductsBulkPriceModal
+          open={showPriceModal}
+          onOpenChange={setShowPriceModal}
+          selectedIds={selectedIds}
+          onSelectedIdsChange={setSelectedIds}
+          paginatedProducts={paginatedProducts}
+          allProducts={products}
+          categories={categories}
+          categoryStats={categoryStats}
+          priceChangeType={priceChangeType}
+          onPriceChangeTypeChange={setPriceChangeType}
+          priceChangeMode={priceChangeMode}
+          onPriceChangeModeChange={setPriceChangeMode}
+          priceChangeAmount={priceChangeAmount}
+          onPriceChangeAmountChange={setPriceChangeAmount}
+          onUpdate={handleBulkPriceUpdate}
+          isPending={isPending}
+          onSelectCurrentPage={selectCurrentPage}
+          onSelectAllProducts={selectAllProducts}
+          onSelectByCategory={selectByCategory}
+        />
 
-              {selectedIds.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground bg-muted/50 rounded-lg">
-                  <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Önce ürün seçin</p>
-                </div>
-              ) : (
-                <>
-                  {/* İşlem Tipi */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant={priceChangeType === "increase" ? "default" : "outline"}
-                      className={cn("gap-2", priceChangeType === "increase" && "bg-emerald-600 hover:bg-emerald-700")}
-                      onClick={() => setPriceChangeType("increase")}
-                    >
-                      <TrendingUp className="w-4 h-4" />
-                      Zam Yap
-                    </Button>
-                    <Button
-                      variant={priceChangeType === "decrease" ? "default" : "outline"}
-                      className={cn("gap-2", priceChangeType === "decrease" && "bg-red-600 hover:bg-red-700")}
-                      onClick={() => setPriceChangeType("decrease")}
-                    >
-                      <TrendingUp className="w-4 h-4 rotate-180" />
-                      İndirim Yap
-                    </Button>
-                  </div>
-
-                  {/* Değişiklik Modu */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant={priceChangeMode === "percentage" ? "secondary" : "outline"}
-                      className="gap-2"
-                      onClick={() => setPriceChangeMode("percentage")}
-                    >
-                      <Percent className="w-4 h-4" />
-                      Yüzde (%)
-                    </Button>
-                    <Button
-                      variant={priceChangeMode === "fixed" ? "secondary" : "outline"}
-                      className="gap-2"
-                      onClick={() => setPriceChangeMode("fixed")}
-                    >
-                      <DollarSign className="w-4 h-4" />
-                      Sabit (₺)
-                    </Button>
-                  </div>
-
-                  {/* Miktar */}
-                  <div className="space-y-2">
-                    <Label>{priceChangeMode === "percentage" ? "Yüzde (%)" : "Tutar (₺)"}</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step={priceChangeMode === "percentage" ? "1" : "0.01"}
-                      value={priceChangeAmount}
-                      onChange={(e) => setPriceChangeAmount(Number(e.target.value))}
-                    />
-                  </div>
-
-                  {/* Önizleme */}
-                  <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                    <span className="text-muted-foreground">Örnek: </span>
-                    ₺100 → <span className="font-bold">
-                      ₺{priceChangeMode === "percentage"
-                        ? (priceChangeType === "increase"
-                          ? (100 + (100 * priceChangeAmount / 100)).toFixed(2)
-                          : Math.max(0, 100 - (100 * priceChangeAmount / 100)).toFixed(2))
-                        : (priceChangeType === "increase"
-                          ? (100 + priceChangeAmount).toFixed(2)
-                          : Math.max(0, 100 - priceChangeAmount).toFixed(2))
-                      }
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowPriceModal(false)}>İptal</Button>
-              <Button
-                onClick={handleBulkPriceUpdate}
-                disabled={isPending || selectedIds.length === 0 || priceChangeAmount <= 0}
-                className={cn(
-                  priceChangeType === "increase" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"
-                )}
-              >
-                {isPending ? "Güncelleniyor..." : `${selectedIds.length} Ürüne ${priceChangeType === "increase" ? "Zam" : "İndirim"} Uygula`}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
         <BulkImageUploadModal
           open={showBulkImageModal}
           onOpenChange={setShowBulkImageModal}
           products={products}
           onSuccess={async () => {
-            // Güncellenmiş ürünleri çek
             const { getProducts } = await import('@/lib/actions/products')
             const updatedProducts = await getProducts()
             setProducts(updatedProducts)
@@ -1386,57 +549,13 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           }}
         />
 
-        {/* FLOATING BULK ACTIONS BAR */}
-        {selectedIds.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 dark:bg-gray-800 rounded-full shadow-2xl border border-gray-700">
-              <span className="text-white font-medium text-sm">
-                {selectedIds.length} seçili
-              </span>
-              <div className="w-px h-5 bg-gray-600" />
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-3 text-white hover:bg-gray-700 hover:text-white"
-                      onClick={() => setShowPriceModal(true)}
-                    >
-                      <Percent className="w-4 h-4" />
-                      <span className="hidden md:inline ml-2">Fiyat</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Fiyat Güncelle</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 px-3 text-red-400 hover:bg-red-900/50 hover:text-red-300"
-                      onClick={handleBulkDelete}
-                      disabled={isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="hidden md:inline ml-2">Sil</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Seçilenleri Sil</TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="w-px h-5 bg-gray-600" />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 w-9 p-0 text-gray-400 hover:bg-gray-700 hover:text-white rounded-full"
-                onClick={() => setSelectedIds([])}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <ProductsBulkActionsBar
+          selectedCount={selectedIds.length}
+          onClearSelection={() => setSelectedIds([])}
+          onBulkPriceUpdate={() => setShowPriceModal(true)}
+          onBulkDelete={handleBulkDelete}
+          isPending={isPending}
+        />
       </div>
     </TooltipProvider>
   )

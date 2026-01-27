@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download, Shield, Zap, Sparkles } from "lucide-react"
 import { toast } from "sonner"
-import { useSearchParams } from "next/navigation"
 import NextImage from "next/image"
 
 import { Button } from "@/components/ui/button"
@@ -55,12 +55,22 @@ const CATALOG_LIMITS = {
 
 export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "free" }: CatalogsPageClientProps) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [catalogs, setCatalogs] = useState(initialCatalogs)
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [showLimitModal, setShowLimitModal] = useState(searchParams.get("limit_reached") === "true")
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [qrCatalog, setQrCatalog] = useState<{ name: string; slug: string } | null>(null)
+
+  // URL'deki "limit_reached=true" parametresini modal açıldıktan sonra temizle
+  useEffect(() => {
+    if (searchParams.get("limit_reached") === "true") {
+      const newPath = window.location.pathname
+      // window.history.replaceState Next.js router'ı tetiklemeden URL'i sessizce temizler
+      window.history.replaceState({}, "", newPath)
+    }
+  }, [searchParams])
 
   const maxCatalogs = CATALOG_LIMITS[userPlan]
   const isAtLimit = catalogs.length >= maxCatalogs
@@ -137,8 +147,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <Lock className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">{t("catalogs.limitReached")}</p>
-                <p className="text-sm text-gray-500">{t("catalogs.limitDesc")}</p>
+                <p className="font-semibold text-foreground">{t("catalogs.limitReached")}</p>
+                <p className="text-sm text-muted-foreground">{t("catalogs.limitDesc")}</p>
               </div>
             </div>
             <Button
@@ -184,8 +194,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             const catalogProducts = Array.isArray(userProducts) ? userProducts.filter((p) => catalog.product_ids?.includes(p.id)) : []
 
             return (
-              <Card key={catalog.id} className="group overflow-hidden bg-white hover:shadow-md transition-shadow border-0 shadow-sm ring-1 ring-gray-200">
-                <CardContent className="p-0 relative bg-gray-50/50">
+              <Card key={catalog.id} className="group overflow-hidden bg-card hover:shadow-md transition-shadow border-0 shadow-sm ring-1 ring-border">
+                <CardContent className="p-0 relative bg-muted/30 dark:bg-muted/50">
                   {/* Preview Container using ResponsiveContainer */}
                   <div className="relative group-hover:opacity-95 transition-opacity border-b">
                     <ResponsiveContainer>
@@ -238,23 +248,23 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                   </div>
 
                   {/* Footer Info */}
-                  <div className="p-3 sm:p-4 border-t bg-white relative z-20">
+                  <div className="p-3 sm:p-4 border-t bg-card relative z-20">
                     <div className="flex items-start justify-between mb-2 gap-2">
                       <div className="flex-1 min-w-0">
                         {catalog.is_disabled ? (
                           <div className="cursor-not-allowed">
-                            <h3 className="font-semibold truncate text-sm sm:text-base text-gray-400">{catalog.name}</h3>
+                            <h3 className="font-semibold truncate text-sm sm:text-base text-muted-foreground">{catalog.name}</h3>
                           </div>
                         ) : (
                           <Link href={`/dashboard/builder?id=${catalog.id}`} className="hover:underline">
-                            <h3 className="font-semibold truncate text-sm sm:text-base text-gray-900">{catalog.name}</h3>
+                            <h3 className="font-semibold truncate text-sm sm:text-base text-foreground">{catalog.name}</h3>
                           </Link>
                         )}
-                        <p className="text-xs sm:text-sm text-gray-500 truncate">{catalog.description || t("catalogs.noDescription")}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{catalog.description || t("catalogs.noDescription")}</p>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="shrink-0 -mr-2 text-gray-500 hover:text-gray-900 h-8 w-8">
+                          <Button variant="ghost" size="icon" className="shrink-0 -mr-2 text-muted-foreground hover:text-foreground h-8 w-8">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -327,100 +337,93 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Limit Info Modal - Modern Design */}
+      {/* Limit Info Modal - Premium Redesign */}
       <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-0 shadow-2xl">
-          {/* Gradient Header */}
-          <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-6 text-white relative overflow-hidden">
-            {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400/20 rounded-full blur-2xl" />
+        <DialogContent className="sm:max-w-md max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl flex flex-col bg-background">
+          <DialogTitle className="sr-only">{t("catalogs.limitReached")}</DialogTitle>
 
-            <DialogHeader className="relative">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
-                  <Lock className="w-8 h-8 text-white" />
+          {/* Compact Minimalist Header */}
+          <div className="relative border-b border-border bg-gradient-to-b from-background to-muted/20 pb-1">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-full bg-primary/5 blur-[80px] pointer-events-none" />
+
+            <div className="relative px-6 pt-8 pb-4">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-200/50">
+                  <Lock className="w-6 h-6 text-amber-600" />
                 </div>
-                <div>
-                  <DialogTitle className="text-xl font-bold text-white">{t("catalogs.limitReached")}</DialogTitle>
-                  <DialogDescription className="text-white/80 text-sm mt-1">{t("catalogs.limitModalDesc")}</DialogDescription>
+                <div className="text-center space-y-0.5">
+                  <h2 className="text-xl font-bold tracking-tight text-foreground">{t("catalogs.limitReached")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("catalogs.limitModalDesc")}</p>
                 </div>
               </div>
-            </DialogHeader>
+            </div>
           </div>
 
-          {/* Plans Comparison */}
-          <div className="p-5 space-y-3">
-            {/* Current Plan - Free */}
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border-2 border-gray-200 relative">
-              <div className="absolute -top-2 right-3 px-2 py-0.5 bg-gray-500 text-white text-[10px] font-bold rounded-full">
-                {t("catalogs.current")}
-              </div>
-              <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center text-xl">
-                📦
+          {/* Plans Summary List */}
+          <div className="p-5 space-y-3 bg-slate-50/30 dark:bg-background/20 flex-1">
+            {/* Free Plan */}
+            <div className="relative group p-4 rounded-2xl border border-border bg-background flex items-center gap-4 opacity-70">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-slate-500" />
               </div>
               <div className="flex-1">
-                <span className="font-semibold text-gray-900">Free</span>
-                <p className="text-xs text-gray-500">{t("catalogs.startPlan")}</p>
+                <h4 className="text-sm font-bold text-foreground">Başlangıç</h4>
+                <p className="text-[10px] text-muted-foreground">Mevcut planınız</p>
               </div>
               <div className="text-right">
-                <span className="text-lg font-bold text-gray-700">1</span>
-                <p className="text-xs text-gray-400">{t("catalogs.catalog")}</p>
+                <span className="text-sm font-black text-foreground">1</span>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">{t("catalogs.catalog")}</p>
               </div>
             </div>
 
-            {/* Plus Plan */}
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border-2 border-violet-300 relative group hover:shadow-lg hover:shadow-violet-500/10 transition-all cursor-pointer"
+            {/* Plus Plan (Recommended) */}
+            <div className="relative group p-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/20 dark:to-card flex items-center gap-4 shadow-sm ring-1 ring-blue-500/10 hover:shadow-md transition-all cursor-pointer"
               onClick={() => {
                 setShowLimitModal(false)
                 setShowUpgradeModal(true)
               }}>
-              <div className="absolute -top-2 left-3 px-2 py-0.5 bg-violet-600 text-white text-[10px] font-bold rounded-full flex items-center gap-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                </span>
+              <div className="absolute -top-2 left-6 px-2 py-0.5 bg-blue-600 text-white text-[9px] font-black rounded-full shadow-sm uppercase tracking-tighter">
                 {t("catalogs.recommended")}
               </div>
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-violet-500/30">
-                ⚡
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 text-blue-600" />
               </div>
               <div className="flex-1">
-                <span className="font-bold text-violet-700">Plus</span>
-                <p className="text-xs text-violet-500">{t("plans.pricePlus")}</p>
+                <h4 className="text-sm font-bold text-foreground">Profesyonel</h4>
+                <p className="text-[10px] text-blue-600/70 font-medium">Büyüyen işletmeler için</p>
               </div>
               <div className="text-right">
-                <span className="text-lg font-bold text-violet-700">10</span>
-                <p className="text-xs text-violet-400">{t("catalogs.catalog")}</p>
+                <span className="text-sm font-black text-blue-700 dark:text-blue-400">10</span>
+                <p className="text-[9px] font-bold text-blue-500/50 uppercase">{t("catalogs.catalog")}</p>
               </div>
             </div>
 
             {/* Pro Plan */}
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-2 border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 transition-all cursor-pointer"
+            <div className="relative group p-4 rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-card flex items-center gap-4 hover:shadow-md transition-all cursor-pointer"
               onClick={() => {
                 setShowLimitModal(false)
                 setShowUpgradeModal(true)
               }}>
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xl shadow-lg shadow-amber-500/30">
-                👑
+              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-purple-600" />
               </div>
               <div className="flex-1">
-                <span className="font-bold text-amber-700">Pro</span>
-                <p className="text-xs text-amber-500">{t("plans.pricePro")}</p>
+                <h4 className="text-sm font-bold text-foreground">Business</h4>
+                <p className="text-[10px] text-purple-600/70 font-medium">Sınırsız operasyon</p>
               </div>
               <div className="text-right">
-                <span className="text-lg font-bold text-amber-700">∞</span>
-                <p className="text-xs text-amber-400">{t("catalogs.unlimited")}</p>
+                <span className="text-sm font-black text-purple-700 dark:text-purple-400">∞</span>
+                <p className="text-[9px] font-bold text-purple-500/50 uppercase whitespace-nowrap">{t("catalogs.unlimited")}</p>
               </div>
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="px-5 pb-5 flex gap-3">
+          <div className="p-4 border-t border-border flex gap-3 bg-background">
             <Button
               variant="ghost"
               onClick={() => setShowLimitModal(false)}
-              className="flex-1 text-gray-500 hover:text-gray-700"
+              className="flex-1 text-[11px] font-bold h-9 hover:bg-muted"
             >
               {t("catalogs.laterButton")}
             </Button>
@@ -429,7 +432,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 setShowLimitModal(false)
                 setShowUpgradeModal(true)
               }}
-              className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/25"
+              className="flex-1 h-9 rounded-xl font-bold transition-all text-[11px] bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
             >
               {t("catalogs.viewPlans")}
             </Button>
@@ -457,7 +460,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
 
           <div className="px-4 pb-4 space-y-4">
             {/* QR Code */}
-            <div className="bg-white rounded-xl p-4 flex flex-col items-center border">
+            <div className="bg-card rounded-xl p-4 flex flex-col items-center border border-border">
               {qrCatalog && (
                 <div className="relative w-36 h-36">
                   <NextImage

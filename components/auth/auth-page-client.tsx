@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Loader2, ArrowLeft, Eye, EyeOff, BookOpen, Star, CheckCircle2, ShieldCheck, Mail, AlertCircle } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import NextImage from "next/image"
 
 import { createClient } from "@/lib/supabase/client"
@@ -16,6 +16,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1
 
 export function AuthPageClient() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { t } = useTranslation()
     const [mode, setMode] = useState<AuthMode>('signin')
     const [showOnboarding, setShowOnboarding] = useState(false)
@@ -32,6 +33,109 @@ export function AuthPageClient() {
     const [companyName, setCompanyName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+
+    // Handle URL error parameters from callback (e.g., expired password reset link)
+    useEffect(() => {
+        if (typeof window === "undefined") return
+
+        // Hem query params (?) hem de hash (#) kısımlarını kontrol et
+        const url = new URL(window.location.href)
+
+        // Önce window.location'dan direkt oku (daha güvenilir, production'da da çalışır)
+        const urlError = url.searchParams.get("error") || new URLSearchParams(url.hash.substring(1)).get("error") || searchParams.get("error")
+        const errorCode = url.searchParams.get("error_code") || new URLSearchParams(url.hash.substring(1)).get("error_code") || searchParams.get("error_code")
+        const errorDescription = url.searchParams.get("error_description") || new URLSearchParams(url.hash.substring(1)).get("error_description") || searchParams.get("error_description")
+
+        // Debug: window objesine her zaman ekle (production'da kontrol için)
+        if (typeof window !== "undefined") {
+            (window as any).__authErrorCheck = {
+                urlError,
+                errorCode,
+                errorDescription,
+                fullUrl: window.location.href,
+                search: url.search,
+                hash: url.hash,
+                timestamp: Date.now()
+            }
+        }
+
+        // Production'da console.log kaldırıldığı için window'a debug bilgisi ekle
+        if (urlError || errorCode) {
+            // Debug için window objesine ekle (production'da da çalışır)
+            if (typeof window !== "undefined") {
+                (window as any).__authError = { urlError, errorCode, errorDescription, timestamp: Date.now() }
+            }
+
+            // Özel hata mesajları
+            let errorMessage: string | null = null
+
+            if (errorCode === "otp_expired" || (urlError === "access_denied" && errorCode === "otp_expired")) {
+                // Şifre sıfırlama linki süresi dolmuş
+                errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
+                // Otomatik olarak forgot-password moduna geç
+                setMode('forgot-password')
+            } else if (urlError === "access_denied" && errorDescription && (errorDescription.includes("expired") || errorDescription.includes("invalid"))) {
+                // Access denied + expired/invalid description = şifre sıfırlama linki süresi dolmuş
+                errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
+                setMode('forgot-password')
+            } else if (errorCode === "code_expired" || urlError === "code_expired") {
+                errorMessage = t("auth.sessionExpired") || "Oturum süreniz dolmuş. Lütfen tekrar giriş yapın."
+            } else if (urlError === "auth_failed") {
+                errorMessage = t("auth.authFailed") || "Kimlik doğrulama başarısız oldu."
+            } else if (urlError === "invalid_code") {
+                errorMessage = t("auth.invalidCode") || "Geçersiz kod."
+            } else if (urlError === "network_error") {
+                errorMessage = t("auth.networkError") || "Ağ hatası oluştu."
+            } else if (urlError === "missing_code") {
+                errorMessage = t("auth.missingCode") || "Kod bulunamadı."
+            } else if (urlError === "access_denied") {
+                // Eğer error_description varsa onu kullan, yoksa genel mesaj
+                if (errorDescription && errorDescription.includes("expired")) {
+                    errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
+                    setMode('forgot-password')
+                } else {
+                    errorMessage = t("auth.accessDenied") || "Erişim reddedildi."
+                }
+            } else if (errorDescription) {
+                // Eğer özel bir açıklama varsa onu kullan
+                errorMessage = decodeURIComponent(errorDescription)
+                // Eğer "expired" içeriyorsa forgot-password moduna geç
+                if (errorDescription.toLowerCase().includes("expired") || errorDescription.toLowerCase().includes("invalid")) {
+                    setMode('forgot-password')
+                }
+            } else if (urlError) {
+                errorMessage = `${t("auth.errorPrefix") || "Hata"} ${urlError}`
+            }
+
+            if (errorMessage) {
+                // Production'da console.log kaldırıldığı için direkt setError yapıyoruz
+                setError(errorMessage)
+
+                // Debug için window objesine ekle
+                if (typeof window !== "undefined") {
+                    (window as any).__authErrorMessage = errorMessage
+                }
+            }
+
+            // URL'den hata parametrelerini temizle (sayfa yenilenmeden)
+            const newUrl = new URL(window.location.href)
+            newUrl.searchParams.delete("error")
+            newUrl.searchParams.delete("error_code")
+            newUrl.searchParams.delete("error_description")
+
+            // Hash'ten de temizle
+            if (newUrl.hash) {
+                const hashParams = new URLSearchParams(newUrl.hash.substring(1))
+                hashParams.delete("error")
+                hashParams.delete("error_code")
+                hashParams.delete("error_description")
+                const newHash = hashParams.toString()
+                newUrl.hash = newHash ? `#${newHash}` : ""
+            }
+
+            window.history.replaceState({}, "", newUrl.toString())
+        }
+    }, [searchParams, t])
 
     const getSiteUrl = () => {
         if (typeof window !== "undefined") {
@@ -79,12 +183,41 @@ export function AuthPageClient() {
         const supabase = createClient()
         try {
             const SITE_URL = getSiteUrl()
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${SITE_URL}/auth/confirm-recovery`,
+            const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
+
+            console.log("[AuthPageClient] Attempting to send reset email:", {
+                email,
+                redirectUrl,
+                siteUrl: SITE_URL
             })
-            if (error) throw error
+
+            const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectUrl,
+            })
+
+            console.log("[AuthPageClient] Response:", { data, error })
+
+            if (error) {
+                console.error("[AuthPageClient] Supabase error:", error)
+
+                // Daha açıklayıcı hata mesajları
+                let errorMessage = error.message || t("auth.errorGeneric")
+
+                if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+                    errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
+                } else if (error.message?.includes('email')) {
+                    errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
+                } else if (error.message?.includes('redirect')) {
+                    errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
+                }
+
+                throw new Error(errorMessage)
+            }
+
+            console.log("[AuthPageClient] Email sent successfully")
             setSuccess(true)
         } catch (err) {
+            console.error("[AuthPageClient] Error:", err)
             setError(err instanceof Error ? err.message : t("auth.errorGeneric"))
         } finally {
             setIsLoading(false)
@@ -197,11 +330,13 @@ export function AuthPageClient() {
                     <div className="absolute inset-0 bg-violet-900/20 mix-blend-overlay" />
                 </div>
 
-                <div className="relative z-10 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl flex items-center justify-center">
-                        <BookOpen className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="text-xl font-bold tracking-tight">FogCatalog</span>
+                <div className="relative z-10">
+                    <Link href="/" className="flex items-center group">
+                        <span className="font-montserrat text-3xl tracking-tighter flex items-center">
+                            <span className="font-black text-white uppercase">Fog</span>
+                            <span className="font-light text-white/80">Catalog</span>
+                        </span>
+                    </Link>
                 </div>
 
                 <div className="relative z-10 max-w-lg">
@@ -286,8 +421,13 @@ export function AuthPageClient() {
                         className="animate-in fade-in slide-in-from-right-4 duration-500 ease-out"
                     >
                         <div className="mb-8 lg:mb-10 text-center lg:text-left">
-                            <div className="lg:hidden w-12 h-12 bg-gradient-to-tr from-violet-600 to-fuchsia-600 rounded-xl mx-auto mb-6 shadow-xl shadow-violet-500/20 flex items-center justify-center">
-                                <BookOpen className="w-6 h-6 text-white" />
+                            <div className="lg:hidden mb-6">
+                                <Link href="/" className="flex items-center justify-center">
+                                    <span className="font-montserrat text-4xl tracking-tighter flex items-center">
+                                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                                        <span className="font-light text-slate-900">Catalog</span>
+                                    </span>
+                                </Link>
                             </div>
                             <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
                                 {mode === 'signup' ? t("auth.signup") : mode === 'forgot-password' ? t("auth.forgotPasswordTitle") : t("auth.welcomeBack")}
@@ -299,8 +439,36 @@ export function AuthPageClient() {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {error && (
-                                <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg animate-in shake">
-                                    {error}
+                                <div className={`p-4 rounded-xl text-sm font-medium animate-in shake border-2 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
+                                        ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
+                                        : "bg-red-50 text-red-600 border-red-300 shadow-lg"
+                                    }`}>
+                                    <div className="flex items-start gap-2">
+                                        <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
+                                                ? "text-amber-600"
+                                                : "text-red-500"
+                                            }`} />
+                                        <div className="flex-1">
+                                            <p className="font-bold mb-2 text-base">
+                                                {error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
+                                                    ? "⚠️ Link Süresi Dolmuş"
+                                                    : "❌ Hata"}
+                                            </p>
+                                            <p className="mb-3">{error}</p>
+                                            {(error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setError(null)
+                                                        setMode('forgot-password')
+                                                    }}
+                                                    className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                                >
+                                                    Yeni şifre sıfırlama linki iste →
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

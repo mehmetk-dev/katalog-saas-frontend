@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { createBrowserClient } from "@supabase/ssr"
 import NextImage from "next/image"
 
+import { storage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -69,8 +70,121 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     const [isPending, startTransition] = useTransition()
     const fileInputRef = useRef<HTMLInputElement>(null)
 
+    // Upload işlemlerini iptal etmek için ref'ler
+    const uploadAbortController = useRef<AbortController | null>(null)
+    const uploadTimeoutId = useRef<NodeJS.Timeout | null>(null)
+
     const isFreeUser = userPlan === "free"
     const { t } = useTranslation()
+
+    // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
+    const uploadCategoryImageWithRetry = async (file: File, signal?: AbortSignal): Promise<string> => {
+        const MAX_RETRIES = 3
+        const TIMEOUT_MS = 30000 // 30 Saniye
+
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            // İptal kontrolü
+            if (signal?.aborted) {
+                console.log(`[Categories] 🛑 Upload cancelled for ${file.name}`)
+                throw new Error('Upload cancelled')
+            }
+
+            let timeoutId: NodeJS.Timeout | null = null
+
+            try {
+                // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+                if (attempt > 0) {
+                    const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+                    console.log(`[Categories] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${file.name}. Waiting ${waitTime}ms`)
+                    toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+                    
+                    // Bekleme sırasında da iptal kontrolü
+                    await new Promise<void>((resolve, reject) => {
+                        const checkInterval = setInterval(() => {
+                            if (signal?.aborted) {
+                                clearInterval(checkInterval)
+                                reject(new Error('Upload cancelled'))
+                            }
+                        }, 100)
+                        
+                        setTimeout(() => {
+                            clearInterval(checkInterval)
+                            resolve()
+                        }, waitTime)
+                    })
+                }
+
+                // İptal kontrolü (bekleme sonrası)
+                if (signal?.aborted) {
+                    console.log(`[Categories] 🛑 Upload cancelled for ${file.name} after wait`)
+                    throw new Error('Upload cancelled')
+                }
+
+                // 2. Dosya adı oluştur
+                const fileExtension = file.name.split('.').pop() || 'jpg'
+                const fileName = `category-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+                // 3. YARIŞ BAŞLASIN: Upload vs Timeout
+                // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
+                const uploadPromise = storage.upload(file, {
+                    path: 'categories', // Yeni klasör yapısı: categories klasörü
+                    contentType: file.type || 'image/jpeg',
+                    cacheControl: '3600',
+                    fileName,
+                })
+
+                // Timeout promise'i (temizlenebilir)
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    timeoutId = setTimeout(() => {
+                        console.error(`[Categories] ⏱️ Upload timeout for ${file.name} after ${TIMEOUT_MS/1000} seconds`)
+                        reject(new Error('UPLOAD_TIMEOUT'))
+                    }, TIMEOUT_MS)
+                    
+                    // Timeout ID'yi kaydet (temizlemek için)
+                    uploadTimeoutId.current = timeoutId
+                })
+
+                const result: any = await Promise.race([uploadPromise, timeoutPromise])
+
+                // Timeout'u temizle (başarılı olduysa)
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                    uploadTimeoutId.current = null
+                    timeoutId = null
+                }
+
+                // 4. Sonuç Kontrolü
+                if (result && result.url) {
+                    return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
+                } else {
+                    throw new Error('Upload successful but URL is missing')
+                }
+
+            } catch (error: any) {
+                // Timeout'u temizle (hata durumunda)
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                    uploadTimeoutId.current = null
+                    timeoutId = null
+                }
+
+                // İptal hatası ise direkt fırlat
+                if (error.message === 'Upload cancelled' || signal?.aborted) {
+                    console.log(`[Categories] 🛑 Upload cancelled for ${file.name}`)
+                    throw error
+                }
+
+                console.error(`[Categories] ❌ Attempt ${attempt + 1} failed:`, error.message)
+                
+                // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
+                if (attempt === MAX_RETRIES - 1) {
+                    throw error
+                }
+                // Değilse döngü başa döner ve tekrar dener
+            }
+        }
+        throw new Error('Unexpected retry loop exit')
+    }
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -86,39 +200,49 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
             return
         }
 
+        // Önceki upload'ı iptal et
+        if (uploadAbortController.current) {
+            uploadAbortController.current.abort()
+        }
+        if (uploadTimeoutId.current) {
+            clearTimeout(uploadTimeoutId.current)
+            uploadTimeoutId.current = null
+        }
+
+        // Yeni AbortController oluştur
+        const abortController = new AbortController()
+        uploadAbortController.current = abortController
+
         setIsUploadingImage(true)
 
         try {
-            const supabase = createBrowserClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            )
-
-            // 1. WebP Conversion
-            const { convertToWebP } = await import("@/lib/image-utils")
-            const { blob } = await convertToWebP(file)
-
-            const fileName = `category-${Date.now()}.webp`
-            const filePath = `categories/${fileName}`
-
-            const { error: uploadError } = await supabase.storage
-                .from('product-images')
-                .upload(filePath, blob, {
-                    contentType: 'image/webp'
-                })
-
-            if (uploadError) throw uploadError
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('product-images')
-                .getPublicUrl(filePath)
+            // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
+            const publicUrl = await uploadCategoryImageWithRetry(file, abortController.signal)
 
             setCoverImage(publicUrl)
             toast.success(t('toasts.imageUploaded'))
-        } catch (error) {
+        } catch (error: any) {
+            // İptal hatası ise sessizce geç
+            if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
+                console.log(`[Categories] 🛑 Upload cancelled, silently ignoring`)
+                return
+            }
+
             console.error('Upload error:', error)
-            toast.error(t('toasts.imageUploadFailed'))
+            
+            const errorMessage = error.message?.includes('UPLOAD_TIMEOUT') || error.message?.includes('timeout')
+                ? t('auth.timeout')
+                : t('toasts.imageUploadFailed')
+            
+            toast.error(errorMessage)
         } finally {
+            // Cleanup
+            uploadAbortController.current = null
+            if (uploadTimeoutId.current) {
+                clearTimeout(uploadTimeoutId.current)
+                uploadTimeoutId.current = null
+            }
+            
             setIsUploadingImage(false)
             if (e.target) e.target.value = ''
         }

@@ -15,12 +15,12 @@ import { type Product, type CustomAttribute, createProduct, updateProduct } from
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClient } from "@/lib/supabase/client"
+import { storage } from "@/lib/storage"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useTranslation } from "@/lib/i18n-provider"
-import { convertToWebP } from "@/lib/image-utils"
 
 interface ProductModalProps {
   open: boolean
@@ -89,12 +89,24 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   )
   const [productUrl, setProductUrl] = useState(product?.product_url || "")
 
-  // Upload State
+  // Upload State - UPLOAD ON SAVE: Fotoğraflar sadece "Kaydet" butonuna basıldığında yüklenecek
   const [isUploading, setIsUploading] = useState(false)
   const [, setUploadedUrl] = useState<string | null>(null)
   const [activeImageUrl, setActiveImageUrl] = useState(product?.image_url || "")
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const blobUrlsRef = useRef<string[]>([])
+  
+  // Upload işlemlerini iptal etmek için ref'ler
+  const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
+  const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  
+  // Pending images: Seçilmiş ama henüz Cloudinary'ye yüklenmemiş fotoğraflar
+  interface PendingImage {
+    file: File
+    previewUrl: string
+    uploadId: string
+  }
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
 
 
   // Reset state when modal opens/closes or product changes
@@ -103,209 +115,487 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     setActiveImageUrl(url)
   }
 
-  // Resim sil
+  // Resim sil - YENİ: Pending ve kaydedilmiş fotoğrafları destekler
   const handleRemoveImage = (index: number) => {
-    const newImages = [...additionalImages]
-    const removedUrl = newImages[index]
-    newImages.splice(index, 1)
-    setAdditionalImages(newImages)
-
-    // Eğer silinen resim kapak fotoğrafıysa ve başka resim varsa, ilkini kapak yap
-    if (removedUrl === activeImageUrl) {
-      if (newImages.length > 0) {
-        setActiveImageUrl(newImages[0])
-      } else {
-        setActiveImageUrl("")
+    const urlToRemove = additionalImages[index]
+    
+    // Eğer blob URL ise (pending image), pending images'den kaldır
+    if (urlToRemove.startsWith('blob:')) {
+      const pendingImage = pendingImages.find(p => p.previewUrl === urlToRemove)
+      if (pendingImage) {
+        removePendingImage(pendingImage.uploadId)
+        return
       }
+    }
+    
+    // Kaydedilmiş fotoğraf ise state'ten kaldır
+    const newImages = additionalImages.filter((_, i) => i !== index)
+    setAdditionalImages(newImages)
+    
+    // Active image güncelle
+    if (activeImageUrl === urlToRemove) {
+      setActiveImageUrl(newImages[0] || "")
     }
   }
 
-  // Refactored Upload Logic for 5 images limit with timeout support
+  // UPLOAD ON SAVE: Fotoğraf seçilince sadece preview oluştur, Cloudinary'ye yükleme
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Limit kontrolü
+    // Limit kontrolü (mevcut + pending)
     const maxFiles = 5
-    const currentCount = additionalImages.length
-    const allowedCount = maxFiles - currentCount
+    const currentSavedCount = additionalImages.filter(url => !url.startsWith('blob:')).length
+    const currentPendingCount = pendingImages.length
+    const totalCount = currentSavedCount + currentPendingCount
+    const allowedCount = maxFiles - totalCount
 
     if (allowedCount <= 0) {
       toast.error(t('toasts.maxPhotosReached'))
       return
     }
 
-    const filesToUpload = Array.from(files).slice(0, allowedCount)
-    const previews = filesToUpload.map(file => URL.createObjectURL(file))
-    blobUrlsRef.current.push(...previews)
+    const filesToAdd = Array.from(files).slice(0, allowedCount)
+    
+    // Her dosya için preview oluştur (Cloudinary'ye YÜKLEME)
+    const newPendingImages: PendingImage[] = filesToAdd.map(file => {
+      const uploadId = `pending-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      const previewUrl = URL.createObjectURL(file)
+      blobUrlsRef.current.push(previewUrl)
+      
+      return { file, previewUrl, uploadId }
+    })
 
-    // Önce önizlemeleri ekle
-    setAdditionalImages(prev => [...prev, ...previews].slice(0, 5))
-    if (!activeImageUrl) setActiveImageUrl(previews[0])
-
-    const doUpload = async () => {
-      // Aynı anda birden fazla yükleme başlamasını engelle (isteğe bağlı ama güvenli)
-      // Ancak sequential yükleme yerine paralel yüklemeyi desteklediğimizden sadece state set ediyoruz
-      setIsUploading(true)
-      const supabase = createClient()
-      const totalFiles = filesToUpload.length
-      let localSuccessCount = 0
-
-      const toastId = 'img-upload-' + Date.now()
-      toast.loading(`Fotoğraflar hazırlanıyor (0/${totalFiles})...`, { id: toastId })
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.')
-
-        const uploadPromises = filesToUpload.map(async (file, i) => {
-          const previewUrl = previews[i]
-          try {
-            // 1. Optimize et
-            let blobToUpload: Blob = file
-            let contentType = file.type
-
-            try {
-              const optimized = await convertToWebP(file)
-              blobToUpload = optimized.blob
-              contentType = 'image/webp'
-            } catch (e: any) {
-              console.warn(`[ProductModal] Optimize edilemedi, orijinal kullanılıyor: ${file.name}`, e)
-              // Timeout veya ciddi hata durumunda kullanıcıyı bilgilendir
-              if (e.message === 'TIMEOUT' || e.message?.includes('timeout')) {
-                toast.warning(`${file.name} işlenirken zaman aşımı oluştu, orijinal dosya yükleniyor.`, { duration: 3000 })
-              }
-              // Orijinal dosyayı kullanmaya devam et
-              blobToUpload = file
-              contentType = file.type || 'image/jpeg'
-            }
-
-            // 2. Yükle
-            const fileExt = contentType === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg')
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
-
-            const uploadPromise = supabase.storage
-              .from('product-images')
-              .upload(fileName, blobToUpload, { contentType, cacheControl: '3600' })
-            
-            const timeoutPromise = new Promise<any>((_, reject) => 
-              setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 40000)
-            )
-
-            const { data, error } = await Promise.race([uploadPromise, timeoutPromise])
-
-            if (error) throw error
-
-            const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName)
-
-            // 3. State güncelle
-            setAdditionalImages(prev => {
-              const updated = prev.map(url => url === previewUrl ? publicUrl : url)
-              return updated
-            })
-            setActiveImageUrl(curr => curr === previewUrl ? publicUrl : curr)
-
-            localSuccessCount++
-            toast.loading(`Yükleniyor (${localSuccessCount}/${totalFiles})...`, { id: toastId })
-            return publicUrl
-
-          } catch (error: any) {
-            console.error(`[ProductModal] Yükleme hatası:`, error)
-            // Hatalı preview'ı kaldır
-            setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
-            setActiveImageUrl(curr => (curr === previewUrl ? "" : curr) || "")
-            
-            // Daha açıklayıcı hata mesajı
-            let errorMsg = `${file.name} yüklenemedi.`
-            if (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT') {
-              errorMsg = `${file.name} yükleme zaman aşımına uğradı (40s). Lütfen tekrar deneyin.`
-            } else if (error.message) {
-              errorMsg = `${file.name}: ${error.message.substring(0, 60)}`
-            }
-            toast.error(errorMsg, { duration: 4000 })
-            throw error
-          }
-        })
-
-        await Promise.allSettled(uploadPromises)
-
-        if (localSuccessCount > 0) {
-          toast.success(`${localSuccessCount} fotoğraf başarıyla eklendi.`, { id: toastId })
-        } else {
-          toast.dismiss(toastId)
-        }
-      } catch (err: any) {
-        console.error("[ProductModal] Yükleme işlemi başarısız:", err)
-        toast.error(err.message || "Fotoğraflar yüklenirken bir hata oluştu.", { id: toastId })
-      } finally {
-        setIsUploading(false)
-      }
+    // Pending images'e ekle
+    setPendingImages(prev => [...prev, ...newPendingImages])
+    
+    // Preview'ları state'e ekle (görüntüleme için)
+    setAdditionalImages(prev => {
+      const newPreviews = newPendingImages.map(item => item.previewUrl)
+      const updated = [...prev, ...newPreviews].slice(0, 5)
+      console.log('[ProductModal] 📸 Preview added (not uploaded yet):', newPreviews.length)
+      return updated
+    })
+    
+    if (!activeImageUrl && newPendingImages.length > 0) {
+      setActiveImageUrl(newPendingImages[0].previewUrl)
     }
 
-    doUpload()
-    // Input'u temizle ki aynı dosya tekrar seçilebilsin
+    // Input'u temizle
     if (e.target) e.target.value = ''
   }
 
-  // Modal açıldığında state'leri başlat - SADECE İLK SEFERDE
-  useEffect(() => {
-    if (open) {
-      // Formu temizle veya ürün verilerini yükle
-      const existingAttrs = product?.custom_attributes?.filter(a => a.name !== "currency" && a.name !== "additional_images") || []
-      setCustomAttributes(existingAttrs)
+  // Pending fotoğrafları Cloudinary'ye yükle (sadece "Kaydet" butonunda çağrılacak)
+  // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
+  const uploadSingleImageWithRetry = async (file: File, uploadId: string, signal?: AbortSignal): Promise<string> => {
+    const MAX_RETRIES = 3
+    const TIMEOUT_MS = 30000 // 30 Saniye
 
-      let initialImages: string[] = []
-      if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
-        initialImages = [...product.images]
-      } else if (product?.image_url) {
-        initialImages = [product.image_url]
-        // Legacy images check...
-        const legacyAdditional = product?.custom_attributes?.find(a => a.name === "additional_images")?.value
-        if (legacyAdditional) {
-          try {
-            const parsed = JSON.parse(legacyAdditional)
-            if (Array.isArray(parsed)) {
-              parsed.forEach(img => {
-                if (img && img !== product.image_url && !initialImages.includes(img)) {
-                  initialImages.push(img)
-                }
-              })
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      // İptal kontrolü
+      if (signal?.aborted) {
+        console.log(`[ProductModal] 🛑 Upload cancelled for ${uploadId}`)
+        throw new Error('Upload cancelled')
+      }
+
+      let timeoutId: NodeJS.Timeout | null = null
+
+      try {
+        // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+        if (attempt > 0) {
+          const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+          console.log(`[ProductModal] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${uploadId}. Waiting ${waitTime}ms`)
+          toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+          
+          // Bekleme sırasında da iptal kontrolü
+          await new Promise<void>((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+              if (signal?.aborted) {
+                clearInterval(checkInterval)
+                reject(new Error('Upload cancelled'))
+              }
+            }, 100)
+            
+            setTimeout(() => {
+              clearInterval(checkInterval)
+              resolve()
+            }, waitTime)
+          })
+        }
+
+        // İptal kontrolü (bekleme sonrası)
+        if (signal?.aborted) {
+          console.log(`[ProductModal] 🛑 Upload cancelled for ${uploadId} after wait`)
+          throw new Error('Upload cancelled')
+        }
+
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+
+        // 2. YARIŞ BAŞLASIN: Upload vs Timeout
+        // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
+        const uploadPromise = storage.upload(file, {
+          path: 'products',
+          contentType: file.type || 'image/jpeg',
+          cacheControl: '3600',
+          fileName,
+        })
+
+        // Timeout promise'i (temizlenebilir)
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            console.error(`[ProductModal] ⏱️ Upload timeout for ${uploadId} after ${TIMEOUT_MS/1000} seconds`)
+            reject(new Error('UPLOAD_TIMEOUT'))
+          }, TIMEOUT_MS)
+          
+          // Timeout ID'yi kaydet (temizlemek için)
+          uploadTimeoutIds.current.set(uploadId, timeoutId)
+        })
+
+        const result: any = await Promise.race([uploadPromise, timeoutPromise])
+
+        // Timeout'u temizle (başarılı olduysa)
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          uploadTimeoutIds.current.delete(uploadId)
+          timeoutId = null
+        }
+
+        // 3. Sonuç Kontrolü
+        if (result && result.url) {
+          return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
+        } else {
+          throw new Error('Upload successful but URL is missing')
+        }
+
+      } catch (error: any) {
+        // Timeout'u temizle (hata durumunda)
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          uploadTimeoutIds.current.delete(uploadId)
+          timeoutId = null
+        }
+
+        // İptal hatası ise direkt fırlat
+        if (error.message === 'Upload cancelled' || signal?.aborted) {
+          console.log(`[ProductModal] 🛑 Upload cancelled for ${uploadId}`)
+          throw error
+        }
+
+        console.error(`[ProductModal] ❌ Attempt ${attempt + 1} failed:`, error.message)
+        
+        // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
+        if (attempt === MAX_RETRIES - 1) {
+          throw error
+        }
+        // Değilse döngü başa döner ve tekrar dener
+      }
+    }
+    throw new Error('Unexpected retry loop exit')
+  }
+
+  // --- ANA UPLOAD FONKSİYONU ---
+  const uploadPendingImages = async (): Promise<string[]> => {
+    const currentPendingImages = [...pendingImages]
+    const currentAdditionalImages = [...additionalImages]
+    
+    if (currentPendingImages.length === 0) {
+      return currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
+    }
+
+    setIsUploading(true)
+    const toastId = 'img-upload-' + Date.now()
+    toast.loading(`Fotoğraflar yükleniyor (0/${currentPendingImages.length})...`, { id: toastId })
+
+    // GLOBAL SİGORTA: 60 saniye sonra her şeyi iptal et (UI donmasını önler)
+    const safetyTimer = setTimeout(() => {
+        setIsUploading(false)
+        toast.dismiss(toastId)
+        toast.error("İşlem zaman aşımına uğradı, lütfen sayfayı yenileyin.")
+    }, 60000)
+
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Oturum bulunamadı.')
+
+      const uploadedUrls: string[] = []
+      const successfulPreviewUrls: string[] = []
+
+      // Ana AbortController oluştur (tüm upload'lar için)
+      const mainAbortController = new AbortController()
+      uploadAbortControllers.current.set('main-upload', mainAbortController)
+
+      // Her resim için döngü
+      for (let i = 0; i < currentPendingImages.length; i++) {
+        const { file, previewUrl, uploadId } = currentPendingImages[i]
+        
+        // İptal kontrolü
+        if (mainAbortController.signal.aborted) {
+          console.log(`[ProductModal] 🛑 Upload cancelled, stopping at image ${i + 1}`)
+          break
+        }
+        
+        try {
+            // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
+            const publicUrl = await uploadSingleImageWithRetry(file, uploadId, mainAbortController.signal)
+            
+            uploadedUrls.push(publicUrl)
+            successfulPreviewUrls.push(previewUrl)
+
+            // State'te preview'ı gerçek URL ile değiştir
+            setAdditionalImages(prev => {
+              const previewIndex = prev.findIndex(url => url === previewUrl)
+              if (previewIndex >= 0) {
+                const updated = [...prev]
+                updated[previewIndex] = publicUrl
+                return updated
+              }
+              // Preview bulunamadı, ekle
+              if (!prev.includes(publicUrl)) {
+                return [...prev, publicUrl].slice(0, 5)
+              }
+              return prev
+            })
+
+            // Active image güncelle
+            setActiveImageUrl(curr => {
+              if (curr === previewUrl) {
+                return publicUrl
+              }
+              return curr
+            })
+
+            // Progress güncelle
+            toast.loading(`Yükleniyor (${i + 1}/${currentPendingImages.length})...`, { id: toastId })
+
+        } catch (itemError: any) {
+            // İptal hatası ise sessizce geç
+            if (itemError.message === 'Upload cancelled' || mainAbortController.signal.aborted) {
+              console.log(`[ProductModal] 🛑 Upload cancelled for ${file.name}, silently ignoring`)
+              continue
             }
-          } catch {
-            // Ignore errors in image processing
-          }
+
+            console.error(`❌ ${file.name} tamamen başarısız oldu:`, itemError)
+            
+            // Hatalı preview'ı state'ten kaldır ve blob URL'i revoke et
+            try {
+              URL.revokeObjectURL(previewUrl)
+              blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== previewUrl)
+              
+              setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
+              setPendingImages(prev => prev.filter(p => p.uploadId !== uploadId))
+            } catch (cleanupError) {
+              console.error("[ProductModal] Cleanup error:", cleanupError)
+            }
+            
+            const errorMessage = itemError.message?.includes('UPLOAD_TIMEOUT') || itemError.message?.includes('zaman aşımı')
+              ? 'Yükleme zaman aşımına uğradı (tüm denemeler başarısız)'
+              : itemError.message?.substring(0, 50) || 'Bilinmeyen hata'
+            
+            toast.error(`${file.name} yüklenemedi: ${errorMessage}`, { duration: 3000 })
+            // Bir dosya patlasa bile diğerlerine devam etsin diye throw yapmıyoruz
         }
       }
 
-      // SADECE GEÇERLİ STRİNG'LERİ AL
-      const validImages = initialImages.filter((img): img is string => typeof img === 'string' && img.length > 0)
+      // Temizlik ve State Güncelleme
+      clearTimeout(safetyTimer) // Sigortayı kapat
 
-      setAdditionalImages(validImages)
-      setActiveImageUrl(product?.image_url || validImages[0] || "")
-      setDescription(product?.description || "")
-      setName(product?.name || "")
-      setSku(product?.sku || "")
-      setPrice(product?.price?.toString() || "")
-      setStock(product?.stock?.toString() || "")
-      setCategory(() => {
-        if (!product?.category) return []
-        return product.category.split(',').map(c => c.trim()).filter(Boolean)
+      // Başarılı olanların blob URL'lerini temizle
+      successfulPreviewUrls.forEach(url => {
+        URL.revokeObjectURL(url)
+        blobUrlsRef.current = blobUrlsRef.current.filter(blobUrl => blobUrl !== url)
       })
-      setCategoryInput("")
-      setCurrency(product?.custom_attributes?.find(a => a.name === "currency")?.value || "TRY")
-      setProductUrl(product?.product_url || "")
-      setUploadedUrl(null)
-      setActiveTab("basic")
+      
+      // Sadece yüklenenleri listeden düşür
+      setPendingImages(prev => prev.filter(p => !successfulPreviewUrls.includes(p.previewUrl)))
+
+      // Sonuçları birleştir
+      const existingUrls = currentAdditionalImages.filter(url => !url.startsWith('blob:'))
+      const finalAllUrls = [...existingUrls, ...uploadedUrls].slice(0, 5)
+
+      // State güncelle
+      setAdditionalImages(finalAllUrls)
+
+      // Kapak fotoğrafı blob ise ve yüklendiyse güncelle
+      if (activeImageUrl.startsWith('blob:') && uploadedUrls.length > 0) {
+           // Basit mantık: İlk yükleneni kapak yap. Daha gelişmişi için previewUrl eşleştirmesi yapılabilir.
+           setActiveImageUrl(finalAllUrls[0])
+      }
+
+      if (uploadedUrls.length > 0) {
+        toast.success(`${uploadedUrls.length} fotoğraf yüklendi.`, { id: toastId })
+      } else {
+        toast.error("Hiçbir fotoğraf yüklenemedi.", { id: toastId })
+      }
+      
+      return finalAllUrls
+
+    } catch (err: any) {
+      console.error("Critical Upload Error:", err)
+      toast.error("Yükleme sırasında genel hata oluştu.", { id: toastId })
+      return currentAdditionalImages.filter(u => !u.startsWith('blob:'))
+    } finally {
+      clearTimeout(safetyTimer)
+      
+      // Cleanup: AbortController ve timeout'ları temizle
+      const mainController = uploadAbortControllers.current.get('main-upload')
+      if (mainController) {
+        mainController.abort()
+        uploadAbortControllers.current.delete('main-upload')
+      }
+      
+      // Tüm timeout'ları temizle
+      uploadTimeoutIds.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId)
+      })
+      uploadTimeoutIds.current.clear()
+      
+      setIsUploading(false)
+      toast.dismiss(toastId)
+    }
+  }
+  
+  // Pending fotoğrafı kaldır
+  const removePendingImage = (uploadId: string) => {
+    // Devam eden upload'ı iptal et
+    const controller = uploadAbortControllers.current.get(uploadId)
+    if (controller) {
+      controller.abort()
+      uploadAbortControllers.current.delete(uploadId)
+    }
+    
+    // Timeout'u temizle
+    const timeoutId = uploadTimeoutIds.current.get(uploadId)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      uploadTimeoutIds.current.delete(uploadId)
+    }
+    
+    setPendingImages(prev => {
+      const removed = prev.find(p => p.uploadId === uploadId)
+      if (removed) {
+        // Blob URL'i temizle
+        URL.revokeObjectURL(removed.previewUrl)
+        blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== removed.previewUrl)
+        
+        // State'ten de kaldır
+        setAdditionalImages(prevImages => prevImages.filter(url => url !== removed.previewUrl))
+        
+        // Active image güncelle
+        setActiveImageUrl(curr => {
+          if (curr === removed.previewUrl) {
+            const remaining = additionalImages.filter(url => url !== removed.previewUrl && !url.startsWith('blob:'))
+            return remaining[0] || ""
+          }
+          return curr
+        })
+      }
+      return prev.filter(p => p.uploadId !== uploadId)
+    })
+  }
+
+  // Modal açıldığında state'leri başlat - SADECE MODAL AÇILDIĞINDA
+  // ÖNEMLİ: product prop'u değişse bile state'i sıfırlama (fotoğraf yükleme sırasında kaybolmasın)
+  const lastProductIdRef = useRef<string | null>(null)
+  
+  useEffect(() => {
+    if (open) {
+      const currentProductId = product?.id || null
+      
+      // Sadece modal ilk açıldığında veya farklı bir ürün seçildiğinde state'i sıfırla
+      // Aynı ürün için modal açıkken product prop'u değişse bile state'i koru (fotoğraf yükleme sırasında kaybolmasın)
+      if (lastProductIdRef.current !== currentProductId) {
+        // Formu temizle veya ürün verilerini yükle
+        const existingAttrs = product?.custom_attributes?.filter(a => a.name !== "currency" && a.name !== "additional_images") || []
+        setCustomAttributes(existingAttrs)
+
+        let initialImages: string[] = []
+        if (product?.images && Array.isArray(product.images) && product.images.length > 0) {
+          initialImages = [...product.images]
+        } else if (product?.image_url) {
+          initialImages = [product.image_url]
+          // Legacy images check...
+          const legacyAdditional = product?.custom_attributes?.find(a => a.name === "additional_images")?.value
+          if (legacyAdditional) {
+            try {
+              const parsed = JSON.parse(legacyAdditional)
+              if (Array.isArray(parsed)) {
+                parsed.forEach(img => {
+                  if (img && img !== product.image_url && !initialImages.includes(img)) {
+                    initialImages.push(img)
+                  }
+                })
+              }
+            } catch {
+              // Ignore errors in image processing
+            }
+          }
+        }
+
+        // SADECE GEÇERLİ STRİNG'LERİ AL
+        const validImages = initialImages.filter((img): img is string => typeof img === 'string' && img.length > 0)
+
+        setAdditionalImages(validImages)
+        setActiveImageUrl(product?.image_url || validImages[0] || "")
+        setDescription(product?.description || "")
+        setName(product?.name || "")
+        setSku(product?.sku || "")
+        setPrice(product?.price?.toString() || "")
+        setStock(product?.stock?.toString() || "")
+        setCategory(() => {
+          if (!product?.category) return []
+          return product.category.split(',').map(c => c.trim()).filter(Boolean)
+        })
+        setCategoryInput("")
+        setCurrency(product?.custom_attributes?.find(a => a.name === "currency")?.value || "TRY")
+        setProductUrl(product?.product_url || "")
+        setUploadedUrl(null)
+        setActiveTab("basic")
+        
+        // Modal açıldığında pending images'i temizle
+        setPendingImages([])
+        
+        lastProductIdRef.current = currentProductId
+      }
     } else {
-      // BLOB URL'LERİ TEMİZLE
+      // Modal kapandığında (iptal edildiğinde veya normal kapanışta):
+      // 1. DEVAM EDEN UPLOAD'LARI İPTAL ET
+      uploadAbortControllers.current.forEach((controller) => {
+        controller.abort()
+      })
+      uploadAbortControllers.current.clear()
+      
+      // 2. TÜM TIMEOUT'LARI TEMİZLE
+      uploadTimeoutIds.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId)
+      })
+      uploadTimeoutIds.current.clear()
+      
+      // 3. BLOB URL'LERİ TEMİZLE
       blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
       blobUrlsRef.current = []
+      
+      // 4. Pending images'deki blob URL'leri temizle
+      pendingImages.forEach(({ previewUrl }) => {
+        URL.revokeObjectURL(previewUrl)
+      })
+      setPendingImages([])
+      
+      // 5. State'i TAMAMEN SIFIRLA (product'tan yüklenecek, şimdilik boş)
+      setAdditionalImages([])
+      setActiveImageUrl("")
+      
+      // 6. Upload state'ini sıfırla
+      setIsUploading(false)
+      
+      // 7. Modal kapandığında flag'leri sıfırla
+      lastProductIdRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]) // Sadece modal açılışında çalışmalı
+  }, [open]) // SADECE modal açılıp kapandığında çalışmalı - product prop'u değişse bile state'i sıfırlama!
 
-  // Submit handler update
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // Submit handler - YENİ: Önce pending fotoğrafları yükle, sonra kaydet
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (!name.trim()) {
@@ -315,13 +605,25 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     }
 
     if (isUploading) {
-      toast.error("Dosyalar yüklenirken kayıt yapılamaz. Lütfen bekleyin.")
+      toast.error("Fotoğraflar yüklenirken kayıt yapılamaz. Lütfen bekleyin.")
       return
     }
 
-    if (additionalImages.some(img => img.startsWith('blob:'))) {
-      toast.error("Bazı fotoğraflar henüz yüklenmedi. Lütfen bitmesini bekleyin.")
-      return
+    // ÖNCE: Pending fotoğrafları Cloudinary'ye yükle
+    let finalImageUrls: string[] = []
+    try {
+      finalImageUrls = await uploadPendingImages()
+    } catch (uploadError: any) {
+      console.error("[ProductModal] Upload error in handleSubmit:", uploadError)
+      // Upload hatası olsa bile devam et (mevcut fotoğraflarla)
+      finalImageUrls = additionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
+      toast.error("Fotoğraf yükleme hatası. Mevcut fotoğraflarla devam ediliyor.")
+    }
+
+    // State'i güncelle (yüklenen URL'lerle)
+    setAdditionalImages(finalImageUrls)
+    if (finalImageUrls.length > 0 && !finalImageUrls.includes(activeImageUrl)) {
+      setActiveImageUrl(finalImageUrls[0])
     }
 
     const formData = new FormData()
@@ -333,10 +635,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     formData.append("category", category.join(", "))
 
     // activeImageUrl is the cover
-    formData.append("image_url", activeImageUrl || "")
+    const finalActiveImageUrl = finalImageUrls[0] || activeImageUrl || ""
+    formData.append("image_url", finalActiveImageUrl)
 
-    // additionalImages now contains ALL images including cover
-    formData.append("images", JSON.stringify(additionalImages))
+    // finalImageUrls contains ALL images
+    formData.append("images", JSON.stringify(finalImageUrls))
 
     formData.append("product_url", productUrl)
 
@@ -360,8 +663,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
             price: Number.parseFloat(price) || 0,
             stock: Number.parseInt(stock) || 0,
             category: category.join(", "),
-            image_url: activeImageUrl,
-            images: additionalImages, // Optimistic update
+            image_url: finalActiveImageUrl,
+            images: finalImageUrls,
             product_url: productUrl || null,
             custom_attributes: attributesToSave,
           })
@@ -371,6 +674,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           onSaved(newProduct)
           toast.success(t('toasts.productCreated'))
         }
+        
+        // Kayıt başarılı - pending images zaten temizlendi
+        setPendingImages([])
+        
         onOpenChange(false)
       } catch {
         toast.error(isEditing ? t('toasts.productUpdateFailed') : t('toasts.productCreateFailed'))
@@ -509,9 +816,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     </div>
                   </div>
 
-                  {/* Kategoriler - Sadece Plus/Pro için */}
-                  {!isFreeUser ? (
-                    <div className="space-y-2 pt-2">
+                  {/* Kategoriler */}
+                  <div className="space-y-2 pt-2">
                       <button
                         type="button"
                         onClick={() => setShowCategorySection(!showCategorySection)}
@@ -637,7 +943,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         </div>
                       )}
                     </div>
-                  ) : null}
 
                   {/* Ürün Linki */}
                   <div className="space-y-2 pt-2">
@@ -751,37 +1056,41 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                 {/* Görseller */}
                 <TabsContent value="images" className="m-0 focus-visible:ring-0 p-1">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {additionalImages.map((url, idx) => (
-                      <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900")}>
-                        <NextImage
-                          src={url}
-                          fill
-                          className="object-cover"
-                          alt={`Ürün görseli ${idx + 1}`}
-                          unoptimized
-                        />
-                        <div className={cn(
-                          "absolute inset-0 bg-black/40 transition-opacity flex flex-col items-center justify-center gap-2",
-                          activeImageUrl === url ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
-                        )}>
-                          {activeImageUrl !== url && (
-                            <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-white/90 hover:bg-white" onClick={() => handleSetCover(url)}>
-                              <Sparkles className="w-3.5 h-3.5 mr-1" /> {t('products.makeCover')}
+                    {additionalImages.map((url, idx) => {
+                      const isPending = url.startsWith('blob:')
+                      
+                      return (
+                        <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900")}>
+                          <NextImage
+                            src={url}
+                            fill
+                            className="object-cover"
+                            alt={`Ürün görseli ${idx + 1}`}
+                            unoptimized
+                          />
+                          <div className={cn(
+                            "absolute inset-0 bg-black/40 transition-opacity flex flex-col items-center justify-center gap-2",
+                            activeImageUrl === url ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}>
+                            {activeImageUrl !== url && !isPending && (
+                              <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-white/90 hover:bg-white" onClick={() => handleSetCover(url)}>
+                                <Sparkles className="w-3.5 h-3.5 mr-1" /> {t('products.makeCover')}
+                              </Button>
+                            )}
+                            <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleRemoveImage(idx)} aria-label="Fotoğrafı sil">
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleRemoveImage(idx)} aria-label="Fotoğrafı sil">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        {activeImageUrl === url && (
-                          <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
-                            <Sparkles className="w-3 h-3 mr-1" /> {t('products.cover')}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {activeImageUrl === url && (
+                            <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
+                              <Sparkles className="w-3 h-3 mr-1" /> {t('products.cover')}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
 
-                    {additionalImages.length < 5 && (
+                    {(additionalImages.length + pendingImages.length) < 5 && (
                       <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-900/20 dark:hover:border-violet-700 transition-all group bg-slate-50/50 dark:bg-slate-900/20">
                         <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm mb-2 group-hover:scale-110 transition-transform">
                           <Upload className="w-6 h-6 text-violet-500" />
@@ -925,7 +1234,34 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               <span>{activeTab === "basic" ? "1/3" : activeTab === "images" ? "2/3" : "3/3"}</span>
             </div>
             <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  // İptal edildiğinde: Pending fotoğrafları temizle (Cloudinary'de yok, sadece blob URL'ler)
+                  console.log('[ProductModal] 🗑️ İptal: Clearing pending images', {
+                    pendingCount: pendingImages.length,
+                    blobUrlsCount: blobUrlsRef.current.length
+                  })
+                  
+                  // Pending images'deki blob URL'leri temizle
+                  pendingImages.forEach(({ previewUrl }) => {
+                    URL.revokeObjectURL(previewUrl)
+                  })
+                  
+                  // State'ten blob URL'leri kaldır (sadece kaydedilmiş fotoğraflar kalır)
+                  setAdditionalImages(prev => prev.filter(url => !url.startsWith('blob:')))
+                  
+                  // Pending images'i temizle
+                  setPendingImages([])
+                  
+                  // Blob URL ref'ini temizle
+                  blobUrlsRef.current = []
+                  
+                  // Modal'ı kapat - useEffect state'i product'tan yeniden yükleyecek
+                  onOpenChange(false)
+                }}
+              >
                 {t('common.cancel')}
               </Button>
               <Button

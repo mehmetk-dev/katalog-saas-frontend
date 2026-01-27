@@ -20,8 +20,18 @@ export function IndustrialTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
+    }
 
     const getLogoHeight = () => {
         switch (logoSize) {
@@ -76,87 +86,103 @@ export function IndustrialTemplate({
                 </div>
             </div>
 
-            {/* Content List - Heavy Technical List */}
-            <div className="flex-1 p-8 flex flex-col gap-4 overflow-hidden z-10">
-                {safeProducts.map((product, idx) => {
+            {/* Content List - Heavy Machinery Rows (6 Items - Expanded) */}
+            <div className="flex-1 px-8 py-6 flex flex-col justify-between overflow-hidden z-10 w-full bg-zinc-100/50">
+                {safeProducts.slice(0, 6).map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'group flex items-center gap-6 bg-white p-4 border-2 border-black hover:bg-zinc-50 transition-all cursor-pointer relative shrink-0'
+                        className: 'group flex w-full bg-white border-2 border-black hover:border-yellow-500 transition-all cursor-pointer relative shrink-0 overflow-hidden h-[145px] shadow-md'
                     } : {
-                        className: 'flex items-center gap-6 bg-white p-4 border-2 border-black relative shrink-0'
+                        className: 'flex w-full bg-white border-2 border-black relative shrink-0 overflow-hidden h-[145px] shadow-md'
                     }
 
                     return (
                         <Wrapper key={product.id} {...(wrapperProps as any)}>
-                            {/* Sequence & Status */}
-                            <div className="flex flex-col items-center gap-2 shrink-0 border-r-2 border-black/5 pr-6">
-                                <span className="text-sm font-black font-mono">#{idx + 1 + (pageNumber - 1) * 8}</span>
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            {/* Left: Index & Stripe */}
+                            <div className="w-10 bg-black flex flex-col items-center justify-center gap-1 shrink-0 text-white z-20">
+                                <span className="text-[10px] font-mono font-bold -rotate-90 whitespace-nowrap tracking-widest opacity-50">NO</span>
+                                <span className="text-sm font-mono font-bold">{(idx + 1 + (pageNumber - 1) * 6).toString().padStart(2, '0')}</span>
                             </div>
 
-                            {/* Product Photo - Like a technical detail */}
-                            <div className="w-20 h-20 bg-[#fafafa] border-2 border-dashed border-black/20 shrink-0 relative p-1 overflow-hidden">
+                            {/* Image Section */}
+                            <div className="w-36 relative border-r-2 border-black shrink-0 bg-white group-hover:bg-yellow-50 transition-colors">
+                                <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-black z-10 opacity-30" />
+                                <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-black z-10 opacity-30" />
                                 <NextImage
                                     src={product.image_url || product.images?.[0] || "/placeholder.svg"}
                                     alt={product.name}
                                     fill
                                     unoptimized
-                                    className="object-contain p-2 mix-blend-multiply group-hover:scale-110 transition-all duration-700"
+                                    className={`p-3 mix-blend-multiply group-hover:scale-105 transition-all duration-500 ${getImageFitClass()}`}
                                 />
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-0 right-0 bg-black text-white p-1">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </div>
-                                )}
                             </div>
 
-                            {/* Info Callout */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-1">
-                                    <h3 className="font-black text-sm uppercase tracking-tight text-black truncate">{product.name}</h3>
+                            {/* Middle: Technical Specs */}
+                            <div className="flex-1 flex flex-col min-w-0 border-r-2 border-dashed border-black/20">
+                                {/* Header */}
+                                <div className="h-8 bg-black/5 border-b border-black flex items-center justify-between px-4">
+                                    <h3 className="font-black text-sm uppercase tracking-tight text-black truncate pr-4">
+                                        {product.name}
+                                    </h3>
                                     {showSku && product.sku && (
-                                        <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-500 px-2 border border-zinc-200">
-                                            MODEL_{product.sku}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 bg-white px-2 border border-black h-5">
+                                            <span className="text-[9px] font-bold text-black/50">KOD:</span>
+                                            <span className="text-[10px] font-bold font-mono">{product.sku}</span>
+                                        </div>
                                     )}
                                 </div>
-                                {showDescriptions && product.description && (
-                                    <p className="text-[10px] text-black/40 font-mono italic truncate leading-none">
-                                        {`// ${product.description}`}
-                                    </p>
+
+                                {/* Details Grid */}
+                                <div className="flex-1 p-2 flex flex-col gap-1">
+                                    {showDescriptions && product.description && (
+                                        <div className="text-[10px] font-mono leading-tight text-black/80 line-clamp-2 relative pl-3 border-l-2 border-yellow-400 mb-1">
+                                            {product.description}
+                                        </div>
+                                    )}
+
+                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-auto pt-2 border-t border-black/5">
+                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 4).map((attr, aidx) => (
+                                                <div key={aidx} className="flex items-center gap-1">
+                                                    <span className="text-[9px] font-bold text-black/40 uppercase">{attr.name}:</span>
+                                                    <span className="text-[9px] font-mono font-bold text-black">{attr.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right: Data Display */}
+                            <div className="w-32 bg-zinc-50 flex flex-col items-center justify-center gap-1 shrink-0 px-2 relative overflow-hidden">
+                                {/* Background diagonal lines */}
+                                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 10px)" }} />
+
+                                {showPrices && (
+                                    <div className="relative z-10 flex flex-col items-center w-full">
+                                        <div className="w-full text-center border-b border-black/10 pb-1 mb-1">
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-black/40">FİYAT</span>
+                                        </div>
+                                        <div className="text-xl font-[900] font-mono leading-none tracking-tighter text-black">
+                                            {(() => {
+                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                return `${symbol}${Number(product.price).toFixed(2)}`
+                                            })()}
+                                        </div>
+                                    </div>
                                 )}
 
-                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
-                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 4).map((attr, aidx) => (
-                                            <div key={aidx} className="flex flex-col text-[9px] font-mono leading-none border-l-2 border-yellow-400 pl-2">
-                                                <span className="text-black/30 uppercase text-[7px] mb-1 font-bold">{attr.name}</span>
-                                                <span className="text-black font-black uppercase">{attr.value}{attr.unit}</span>
-                                            </div>
-                                        ))}
+                                {(showUrls && productUrl) && (
+                                    <div className="mt-1 w-full text-center text-[9px] font-bold border-2 border-black py-1 hover:bg-yellow-400 hover:border-yellow-400 hover:text-white transition-colors z-10 shadow-[2px_2px_0px_#000]">
+                                        İNCELE
                                     </div>
                                 )}
                             </div>
-
-                            {/* Pricing - Massive label */}
-                            {showPrices && (
-                                <div className="ml-4 pl-6 border-l-2 border-black/5 text-right">
-                                    <span className="text-xs font-mono font-bold text-black/40 block leading-tight">MSRP_VAL</span>
-                                    <span className="text-xl font-[900] font-mono leading-none tracking-tighter" style={{ color: primaryColor }}>
-                                        {(() => {
-                                            const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                            return `${symbol}${Number(product.price).toFixed(2)}`
-                                        })()}
-                                    </span>
-                                </div>
-                            )}
                         </Wrapper>
                     )
                 })}

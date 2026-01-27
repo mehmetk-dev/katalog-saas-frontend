@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { MessageSquare, Send, Loader2, AlertCircle, Paperclip, X, Film } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { sendFeedback } from "@/lib/actions/feedback"
 import { useTranslation } from "@/lib/i18n-provider"
+import { storage } from "@/lib/storage"
 
 interface FeedbackModalProps {
     children?: React.ReactNode
@@ -40,13 +41,119 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const { t } = useTranslation()
     const supabase = createClient()
 
-    // Kullanıcı ID'sini al (upload için gerekli)
-    const getUserId = async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-            throw new Error(t('auth.sessionExpired'))
+    // Upload işlemlerini iptal etmek için ref'ler
+    const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
+    const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+    // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
+    const uploadSingleFileWithRetry = async (file: File, fileIndex: number, signal?: AbortSignal): Promise<string> => {
+        const MAX_RETRIES = 3
+        const TIMEOUT_MS = 30000 // 30 Saniye
+        const uploadKey = `file-${fileIndex}`
+
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            // İptal kontrolü
+            if (signal?.aborted) {
+                console.log(`[FeedbackModal] 🛑 Upload cancelled for ${file.name}`)
+                throw new Error('Upload cancelled')
+            }
+
+            let timeoutId: NodeJS.Timeout | null = null
+
+            try {
+                // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+                if (attempt > 0) {
+                    const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+                    console.log(`[FeedbackModal] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${file.name}. Waiting ${waitTime}ms`)
+                    
+                    // Bekleme sırasında da iptal kontrolü
+                    await new Promise<void>((resolve, reject) => {
+                        const checkInterval = setInterval(() => {
+                            if (signal?.aborted) {
+                                clearInterval(checkInterval)
+                                reject(new Error('Upload cancelled'))
+                            }
+                        }, 100)
+                        
+                        setTimeout(() => {
+                            clearInterval(checkInterval)
+                            resolve()
+                        }, waitTime)
+                    })
+                }
+
+                // İptal kontrolü (bekleme sonrası)
+                if (signal?.aborted) {
+                    console.log(`[FeedbackModal] 🛑 Upload cancelled for ${file.name} after wait`)
+                    throw new Error('Upload cancelled')
+                }
+
+                // 2. Dosya adı oluştur
+                const fileExtension = file.name.split('.').pop() || 'bin'
+                const baseName = file.name.substring(0, file.name.lastIndexOf('.') || file.name.length)
+                const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 50)
+                const fileName = `${sanitizedBaseName}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+                // 3. YARIŞ BAŞLASIN: Upload vs Timeout
+                // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
+                const uploadPromise = storage.upload(file, {
+                    path: 'feedback', // Yeni klasör yapısı: feedback klasörü
+                    contentType: file.type || 'application/octet-stream',
+                    cacheControl: '3600',
+                    fileName,
+                })
+
+                // Timeout promise'i (temizlenebilir)
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    timeoutId = setTimeout(() => {
+                        console.error(`[FeedbackModal] ⏱️ Upload timeout for ${file.name} after ${TIMEOUT_MS/1000} seconds`)
+                        reject(new Error('UPLOAD_TIMEOUT'))
+                    }, TIMEOUT_MS)
+                    
+                    // Timeout ID'yi kaydet (temizlemek için)
+                    uploadTimeoutIds.current.set(uploadKey, timeoutId)
+                })
+
+                const result: any = await Promise.race([uploadPromise, timeoutPromise])
+
+                // Timeout'u temizle (başarılı olduysa)
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                    uploadTimeoutIds.current.delete(uploadKey)
+                    timeoutId = null
+                }
+
+                // 4. Sonuç Kontrolü
+                if (result && result.url) {
+                    return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
+                } else {
+                    throw new Error('Upload successful but URL is missing')
+                }
+
+            } catch (error: any) {
+                // Timeout'u temizle (hata durumunda)
+                if (timeoutId) {
+                    clearTimeout(timeoutId)
+                    uploadTimeoutIds.current.delete(uploadKey)
+                    timeoutId = null
+                }
+
+                // İptal hatası ise direkt fırlat
+                if (error.message === 'Upload cancelled' || signal?.aborted) {
+                    console.log(`[FeedbackModal] 🛑 Upload cancelled for ${file.name}`)
+                    throw error
+                }
+
+                console.error(`[FeedbackModal] ❌ Attempt ${attempt + 1} failed:`, error.message)
+                
+                // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
+                if (attempt === MAX_RETRIES - 1) {
+                    throw error
+                }
+                // Değilse döngü başa döner ve tekrar dener
+            }
         }
-        return user.id
+        throw new Error('Unexpected retry loop exit')
     }
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +168,21 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     }
 
     const removeFile = (index: number) => {
+        // Devam eden upload'ı iptal et
+        const uploadKey = `file-${index}`
+        const controller = uploadAbortControllers.current.get(uploadKey)
+        if (controller) {
+            controller.abort()
+            uploadAbortControllers.current.delete(uploadKey)
+        }
+        
+        // Timeout'u temizle
+        const timeoutId = uploadTimeoutIds.current.get(uploadKey)
+        if (timeoutId) {
+            clearTimeout(timeoutId)
+            uploadTimeoutIds.current.delete(uploadKey)
+        }
+        
         setFiles(prev => {
             const newFiles = [...prev]
             URL.revokeObjectURL(newFiles[index].preview)
@@ -68,6 +190,23 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
             return newFiles
         })
     }
+
+    // Modal kapatıldığında devam eden upload'ları iptal et
+    useEffect(() => {
+        if (!open) {
+            // Devam eden upload'ları iptal et
+            uploadAbortControllers.current.forEach((controller) => {
+                controller.abort()
+            })
+            uploadAbortControllers.current.clear()
+            
+            // Tüm timeout'ları temizle
+            uploadTimeoutIds.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId)
+            })
+            uploadTimeoutIds.current.clear()
+        }
+    }, [open])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -82,15 +221,22 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
         try {
             const attachmentUrls: string[] = []
 
-            // Dosyaları yükle (timeout ile)
+            // Dosyaları yükle (retry logic ile)
             if (files.length > 0) {
                 setUploading(true)
 
-                // Kullanıcı ID'sini al (storage policy için gerekli)
-                const userId = await getUserId()
+                // Ana AbortController oluştur (tüm upload'lar için)
+                const mainAbortController = new AbortController()
+                uploadAbortControllers.current.set('main-upload', mainAbortController)
 
                 for (let index = 0; index < files.length; index++) {
                     const item = files[index]
+
+                    // İptal kontrolü
+                    if (mainAbortController.signal.aborted) {
+                        console.log(`[FeedbackModal] 🛑 Upload cancelled, stopping at file ${index + 1}`)
+                        break
+                    }
 
                     // Dosya boyutu kontrolü (50MB limit)
                     const maxSize = 50 * 1024 * 1024 // 50MB
@@ -98,125 +244,31 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                         throw new Error(t('feedback.fileTooLarge'))
                     }
 
-                    // Storage policy'ye uygun: ilk klasör kullanıcı ID'si olmalı
-                    // Dosya adı daha sonra belirlenecek (convert sonrası)
-                    let filePath = `${userId}/feedback/temp`
-
                     try {
                         // Progress göster
                         setUploadProgress(prev => ({ ...prev, [index]: 0 }))
                         const fileSizeMB = (item.file.size / 1024 / 1024).toFixed(2)
                         toast.loading(`${t('feedback.uploading')} (${index + 1}/${files.length}) - ${fileSizeMB}MB`, { id: `upload-${index}` })
 
-                        // 1. Eğer resim ise WebP'ye çevir (hata yönetimi ile)
-                        let blobToUpload: Blob = item.file
-                        let contentType = item.file.type
+                        // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
+                        const publicUrl = await uploadSingleFileWithRetry(item.file, index, mainAbortController.signal)
 
-                        if (item.file.type.startsWith('image/')) {
-                            try {
-                                const { convertToWebP } = await import("@/lib/image-utils")
-                                const converted = await convertToWebP(item.file)
-                                blobToUpload = converted.blob
-                                contentType = 'image/webp'
-                            } catch (convertError: any) {
-                                console.warn(`[FeedbackModal] Convert error for ${item.file.name}:`, convertError)
-                                // Convert başarısız olursa orijinal dosyayı kullan
-                                blobToUpload = item.file
-                                contentType = item.file.type
-                                // Timeout hatası ise kullanıcıyı bilgilendir
-                                if (convertError.message === 'TIMEOUT' || convertError.message?.includes('timeout')) {
-                                    toast.warning('Fotoğraf işleme zaman aşımı, orijinal dosya yükleniyor.', { duration: 3000, id: `upload-${index}` })
-                                }
-                            }
-                        }
-
-                        // Dosya adını oluştur (convert sonrası)
-                        const originalName = item.file.name
-                        const lastDotIndex = originalName.lastIndexOf('.')
-                        const fileExt = contentType === 'image/webp' ? 'webp' : (lastDotIndex > 0 ? originalName.substring(lastDotIndex + 1).toLowerCase() : 'bin')
-                        const baseName = originalName.substring(0, lastDotIndex > 0 ? lastDotIndex : originalName.length)
-                        const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 50)
-                        const fileName = `${sanitizedBaseName}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-                        const filePath = `${userId}/feedback/${fileName}`
-
-                        // Dosya boyutuna göre dinamik timeout (her MB için 10 saniye, minimum 60, maksimum 600 saniye)
-                        // Convert işlemi için ekstra 20 saniye ekle
-                        const baseTimeout = Math.min(Math.max(blobToUpload.size / 1024 / 1024 * 10000, 60000), 600000)
-                        const timeoutMs = baseTimeout + 20000 // Convert için ekstra süre
-
-                        // Timeout ID'yi sakla
-                        let timeoutId: NodeJS.Timeout | null = null
-
-                        // Upload promise'i oluştur
-                        const uploadPromise = supabase.storage
-                            .from('feedback-attachments')
-                            .upload(filePath, blobToUpload, {
-                                cacheControl: '3600',
-                                upsert: false,
-                                contentType: contentType
-                            })
-                            .then((result) => {
-                                // Timeout'u temizle
-                                if (timeoutId) {
-                                    clearTimeout(timeoutId)
-                                    timeoutId = null
-                                }
-                                return result
-                            })
-                            .catch((error) => {
-                                // Timeout'u temizle
-                                if (timeoutId) {
-                                    clearTimeout(timeoutId)
-                                    timeoutId = null
-                                }
-                                throw error
-                            })
-
-                        // Timeout promise'i (dinamik)
-                        const timeoutPromise = new Promise<never>((_, reject) => {
-                            timeoutId = setTimeout(() => {
-                                timeoutId = null
-                                reject(new Error('UPLOAD_TIMEOUT'))
-                            }, timeoutMs)
-                        })
-
-                        // Race ile timeout kontrolü
-                        const result = await Promise.race([uploadPromise, timeoutPromise])
-
-                        // Timeout'u temizle (eğer hala varsa)
-                        if (timeoutId) {
-                            clearTimeout(timeoutId)
-                            timeoutId = null
-                        }
-
-                        // Upload hatası kontrolü
-                        if (result.error) {
-                            throw new Error(result.error.message || t('feedback.errorUpload'))
-                        }
-
-                        // Signed URL al (private bucket için)
-                        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-                            .from('feedback-attachments')
-                            .createSignedUrl(filePath, 31536000) // 1 yıl geçerli
-
-                        if (signedUrlError) {
-                            // Fallback: Public URL dene
-                            const { data: { publicUrl } } = supabase.storage
-                                .from('feedback-attachments')
-                                .getPublicUrl(filePath)
-                            attachmentUrls.push(publicUrl)
-                        } else {
-                            attachmentUrls.push(signedUrlData.signedUrl)
-                        }
+                        attachmentUrls.push(publicUrl)
 
                         setUploadProgress(prev => ({ ...prev, [index]: 100 }))
                         toast.success(t('feedback.uploadSuccess', { current: index + 1, total: files.length }), { id: `upload-${index}` })
 
                     } catch (uploadError: unknown) {
+                        // İptal hatası ise sessizce geç
+                        if (uploadError instanceof Error && (uploadError.message === 'Upload cancelled' || mainAbortController.signal.aborted)) {
+                            console.log(`[FeedbackModal] 🛑 Upload cancelled for ${item.file.name}, silently ignoring`)
+                            continue
+                        }
+
                         let errorMessage = t('feedback.uploadFailed')
 
                         if (uploadError instanceof Error) {
-                            if (uploadError.message === 'UPLOAD_TIMEOUT') {
+                            if (uploadError.message === 'UPLOAD_TIMEOUT' || uploadError.message?.includes('timeout')) {
                                 errorMessage = t('auth.timeout')
                             } else {
                                 errorMessage = uploadError.message
@@ -227,6 +279,14 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                         throw new Error(errorMessage)
                     }
                 }
+
+                // Cleanup: AbortController ve timeout'ları temizle
+                mainAbortController.abort()
+                uploadAbortControllers.current.delete('main-upload')
+                uploadTimeoutIds.current.forEach((timeoutId) => {
+                    clearTimeout(timeoutId)
+                })
+                uploadTimeoutIds.current.clear()
 
                 setUploading(false)
                 setUploadProgress({})

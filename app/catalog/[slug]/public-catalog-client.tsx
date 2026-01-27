@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n-provider"
 import NextImage from "next/image"
 import { jsPDF } from "jspdf"
 import { toPng } from "html-to-image"
@@ -35,8 +37,7 @@ import { CleanWhiteTemplate } from "@/components/catalogs/templates/clean-white"
 import { ProductTilesTemplate } from "@/components/catalogs/templates/product-tiles"
 import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { useTranslation } from "@/lib/i18n-provider"
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import type { TemplateProps } from "@/components/catalogs/templates/types"
 
 interface PublicCatalogClientProps {
@@ -83,7 +84,10 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
         if (layout === 'retail') return 12
         if (layout === 'minimalist') return 4 // Requested 4 products per page (2x2)
         if (layout === 'magazine') return columns === 2 ? 5 : 7
-        if (layout === 'fashion-lookbook') return 4
+        if (layout === 'fashion-lookbook') return 5 // 1 Hero + 4 Grid
+        if (layout === 'industrial') return 8 // 8 items per page (List View)
+        if (layout === 'showcase') return 5 // 1 Hero + 4 Sidebar
+        if (layout === 'luxury') return 6 // 2x3 Grid
 
         if (layout === 'product-tiles' && columns === 2) return 4
 
@@ -270,11 +274,11 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <Link href="/" className="flex items-center gap-2 group">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                                        <BookOpen className="w-4 h-4 text-white" />
-                                    </div>
-                                    <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">FogCatalog</span>
+                                <Link href="/" className="flex items-center group">
+                                    <span className="font-montserrat text-xl tracking-tighter flex items-center">
+                                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                                        <span className="font-light text-slate-900">Catalog</span>
+                                    </span>
                                 </Link>
                                 <div className="h-6 w-px bg-slate-200" />
                                 <h1 className="text-sm font-semibold text-slate-600 truncate max-w-[200px]">{catalog.name}</h1>
@@ -332,43 +336,95 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                 </header>
             )}
 
-            {/* Main Content - Vertical Scroll */}
+            {/* Main Content - Vertical Scroll with Pinch Zoom for Mobile */}
             <main className={cn(
-                "flex-1 relative w-full overflow-y-auto",
-                isFullscreen ? "bg-black" : ""
+                "flex-1 relative w-full",
+                isFullscreen ? "bg-black" : "bg-slate-50",
+                // Masaüstünde dikey kaydırma, mobilde ZoomWrapper kontrolünde
+                !isMobile && "overflow-y-auto"
             )}>
-                <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
-                    {pages.length > 0 && pages[0].length > 0 ? (
-                        pages.map((pageProds, index) => (
-                            <div
-                                key={index}
-                                data-pdf-page="true"
-                                className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
-                                style={{
-                                    width: '794px',
-                                    height: '1123px',
-                                    margin: '0 auto',
-                                    ...getBackgroundStyle()
-                                }}
-                            >
-                                {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
-                                <div className="w-full h-full" style={{ height: '1123px' }}>
-                                    <div style={{ width: '100%', height: '100%' }}>
-                                        {renderTemplate(pageProds, index + 1, pages.length)}
+                {isMobile ? (
+                    <TransformWrapper
+                        initialScale={Math.min(1, (typeof window !== 'undefined' ? window.innerWidth : 390) / 820)}
+                        minScale={0.2}
+                        maxScale={3}
+                        centerOnInit={false}
+                        initialPositionX={0}
+                        initialPositionY={0}
+                        wheel={{ disabled: true }}
+                        panning={{ velocityDisabled: true }}
+                    >
+                        <TransformComponent
+                            wrapperStyle={{
+                                width: "100%",
+                                height: "calc(100vh - 80px)", // Footer alanını hesaba kat
+                                overflow: "hidden"
+                            }}
+                            contentStyle={{
+                                width: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "12px",
+                                padding: "12px 0 60px 0", // Alt tarafa scroll payı
+                                alignItems: "center"
+                            }}
+                        >
+                            <div className="w-full flex flex-col gap-6 items-center">
+                                {pages.map((pageProds, index) => (
+                                    <div
+                                        key={index}
+                                        data-pdf-page="true"
+                                        className="shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white shrink-0"
+                                        style={{
+                                            width: '794px',
+                                            height: '1123px',
+                                            ...getBackgroundStyle()
+                                        }}
+                                    >
+                                        <div className="w-full h-full" style={{ height: '1123px' }}>
+                                            <div style={{ width: '100%', height: '100%' }}>
+                                                {renderTemplate(pageProds, index + 1, pages.length)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </TransformComponent>
+                    </TransformWrapper>
+                ) : (
+                    <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
+                        {pages.length > 0 && pages[0].length > 0 ? (
+                            pages.map((pageProds, index) => (
+                                <div
+                                    key={index}
+                                    data-pdf-page="true"
+                                    className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
+                                    style={{
+                                        width: '794px',
+                                        height: '1123px',
+                                        margin: '0 auto',
+                                        ...getBackgroundStyle()
+                                    }}
+                                >
+                                    {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
+                                    <div className="w-full h-full" style={{ height: '1123px' }}>
+                                        <div style={{ width: '100%', height: '100%' }}>
+                                            {renderTemplate(pageProds, index + 1, pages.length)}
+                                        </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                                <Search className="w-12 h-12 mb-4 opacity-20" />
+                                <p>{t("catalogs.public.noResults")}</p>
+                                <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-2 text-violet-600">
+                                    {t("catalogs.public.resetFilters")}
+                                </Button>
                             </div>
-                        ))
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                            <Search className="w-12 h-12 mb-4 opacity-20" />
-                            <p>{t("catalogs.public.noResults")}</p>
-                            <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-2 text-violet-600">
-                                {t("catalogs.public.resetFilters")}
-                            </Button>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
             </main>
 
             {/* Modern Footer */}
@@ -377,18 +433,17 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                                    <BookOpen className="w-4 h-4 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-slate-600 text-sm font-medium">
-                                        {t("catalogs.public.createdWithPrefix")}{" "}
-                                        <Link href="/" className="text-violet-600 hover:text-violet-700 font-bold">
-                                            FogCatalog
-                                        </Link>{" "}
-                                        {t("catalogs.public.createdWithSuffix")}
-                                    </p>
-                                </div>
+                                <Link href="/" className="flex items-center group">
+                                    <span className="font-montserrat text-lg tracking-tighter flex items-center">
+                                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                                        <span className="font-light text-slate-900">Catalog</span>
+                                    </span>
+                                </Link>
+                                <div className="h-4 w-px bg-slate-200" />
+                                <p className="text-slate-500 text-xs font-medium">
+                                    {t("catalogs.public.createdWithPrefix")}{" "}
+                                    {t("catalogs.public.createdWithSuffix")}
+                                </p>
                             </div>
 
                             <div className="flex items-center gap-4">

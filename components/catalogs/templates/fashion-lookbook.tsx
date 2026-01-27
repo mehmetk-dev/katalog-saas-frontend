@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 
 /**
@@ -20,9 +21,19 @@ export function FashionLookbookTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
-    const [hero, second, third, fourth] = safeProducts
+    const [hero, ...others] = safeProducts
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
+    }
 
     const getLogoHeight = () => {
         switch (logoSize) {
@@ -54,7 +65,7 @@ export function FashionLookbookTemplate({
                             </div>
                         )}
                         <h1 className="text-4xl font-serif italic tracking-tighter leading-none text-black">
-                            {catalogName || "Summer Collection"}
+                            {catalogName || "The Look"}
                         </h1>
                         <p className="text-[10px] tracking-[0.4em] uppercase text-black/40 mt-2 font-bold">
                             Editorial Lookbook / Series {pageNumber}
@@ -85,7 +96,7 @@ export function FashionLookbookTemplate({
                                         alt={hero.name}
                                         fill
                                         unoptimized
-                                        className="object-cover group-hover:scale-105 transition-all duration-[2s]"
+                                        className={`group-hover:scale-105 transition-all duration-[2s] ${getImageFitClass()}`}
                                     />
                                     {/* Overlay label */}
                                     <div className="absolute top-6 right-[-20px] rotate-90 origin-center bg-black text-white px-4 py-1 text-[10px] font-bold tracking-[0.3em] uppercase">
@@ -127,51 +138,49 @@ export function FashionLookbookTemplate({
                     </div>
 
                     {/* Right: Detailed Minimal Grid */}
-                    <div className="w-[45%] flex flex-col gap-8 overflow-hidden shrink-0">
-                        {[second, third, fourth].filter(Boolean).map((product, idx) => {
-                            const productUrl = product!.product_url
+                    <div className="w-[40%] flex flex-col justify-between overflow-hidden shrink-0 h-full py-2">
+                        {others.slice(0, 4).map((product, idx) => {
+                            const productUrl = product.product_url
                             const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
 
                             return (
                                 <Wrapper
-                                    key={product!.id}
+                                    key={product.id}
                                     {...(showUrls && productUrl ? { href: productUrl, target: '_blank', rel: 'noopener noreferrer' } : {})}
-                                    className="flex gap-6 group cursor-pointer"
+                                    className="flex gap-4 group cursor-pointer flex-1 items-center border-b border-black/5 last:border-0"
                                 >
-                                    <div className="w-[120px] h-[150px] relative bg-[#f5f5f5] shrink-0 overflow-hidden">
+                                    <div className="w-[80px] h-[100px] relative bg-[#f5f5f5] shrink-0 overflow-hidden">
                                         <NextImage
-                                            src={product!.image_url || product!.images?.[0] || "/placeholder.svg"}
-                                            alt={product!.name}
+                                            src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                            alt={product.name}
                                             fill
                                             unoptimized
-                                            className="object-cover group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0"
+                                            className={`group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0 ${getImageFitClass()}`}
                                         />
                                     </div>
-                                    <div className="flex flex-col justify-center border-b border-black/5 pb-4 flex-1">
-                                        <div className="text-[9px] font-bold tracking-[0.2em] text-black/40 mb-2 uppercase">
-                                            {idx === 0 ? 'THE ESSENTIAL' : idx === 1 ? 'SEASONAL SELECTION' : 'DETAILS MATTER'}
+                                    <div className="flex flex-col justify-center flex-1 min-w-0">
+                                        <div className="text-[8px] font-bold tracking-[0.2em] text-black/40 mb-1 uppercase truncate">
+                                            {idx === 0 ? '01' : idx === 1 ? '02' : idx === 2 ? '03' : '04'}
                                         </div>
-                                        <h3 className="text-base font-serif italic text-black mb-2 group-hover:text-black/60 transition-colors">
-                                            {product!.name}
+                                        <h3 className="text-sm font-serif italic text-black mb-1 group-hover:text-black/60 transition-colors truncate">
+                                            {product.name}
                                         </h3>
-                                        <div className="flex items-center gap-4">
+
+                                        {showDescriptions && product.description && (
+                                            <p className="text-[9px] text-black/50 font-serif leading-tight line-clamp-2 mb-2 pr-2">
+                                                {product.description}
+                                            </p>
+                                        )}
+
+                                        <div className="flex items-center gap-2 mt-auto">
                                             {showPrices && (
-                                                <span className="text-sm font-light text-black">
+                                                <span className="text-xs font-light text-black">
                                                     {(() => {
-                                                        const currency = product!.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                        const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
                                                         const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                        return `${symbol}${Number(product!.price).toFixed(2)}`
+                                                        return `${symbol}${Number(product.price).toFixed(2)}`
                                                     })()}
                                                 </span>
-                                            )}
-                                            {showAttributes && product!.custom_attributes && product!.custom_attributes.length > 0 && (
-                                                <div className="flex gap-2">
-                                                    {product!.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 1).map((attr, aidx) => (
-                                                        <span key={aidx} className="text-[9px] text-black/30 uppercase tracking-widest italic">
-                                                            {attr.value}{attr.unit}
-                                                        </span>
-                                                    ))}
-                                                </div>
                                             )}
                                         </div>
                                     </div>

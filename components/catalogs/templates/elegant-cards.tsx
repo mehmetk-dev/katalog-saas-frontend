@@ -21,8 +21,18 @@ export function ElegantCardsTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
+    }
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -104,7 +114,7 @@ export function ElegantCardsTemplate({
                                     alt={product.name}
                                     fill
                                     unoptimized
-                                    className="object-contain p-2 group-hover:scale-105 transition-all duration-[1.5s]"
+                                    className={`p-2 group-hover:scale-105 transition-all duration-[1.5s] ${getImageFitClass()}`}
                                 />
                                 {(showUrls && productUrl) && (
                                     <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-stone-400 opacity-0 group-hover:opacity-100 transition-all shadow-sm">

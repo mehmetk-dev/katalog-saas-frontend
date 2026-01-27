@@ -2,9 +2,9 @@ import NextImage from "next/image"
 import { TemplateProps } from "./types"
 
 /**
- * Classic Catalog Template - "The Vertical Editorial"
- * A bold, structural design that emphasizes vertical lines and high-fashion editorial layouts.
- * Features: Tall product pillars, large index numbers, and generous whitespace.
+ * Classic Catalog Template - "The Archive Editorial"
+ * A timeless, sophisticated design inspired by archival fashion magazines and art galleries.
+ * Features: Minimalist structure, serif typography, heavy use of negative space, and a documentary feel.
  */
 export function ClassicCatalogTemplate({
     catalogName,
@@ -20,164 +20,164 @@ export function ClassicCatalogTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
 
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
+    }
+
     const getLogoHeight = () => {
         switch (logoSize) {
-            case 'small': return 28
-            case 'large': return 48
-            default: return 36
+            case 'small': return 32
+            case 'large': return 64
+            default: return 48
         }
     }
 
     const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoAlignment = logoPosition?.split('-')[1] || 'center'
 
     return (
-        <div className="h-full bg-white flex flex-col relative overflow-hidden selection:bg-black selection:text-white">
-            {/* Background Structural Lines */}
-            <div className="absolute inset-0 flex justify-between px-12 pointer-events-none opacity-[0.03]">
-                <div className="w-[1px] h-full bg-black" />
-                <div className="w-[1px] h-full bg-black" />
-                <div className="w-[1px] h-full bg-black" />
-                <div className="w-[1px] h-full bg-black" />
-            </div>
-
-            {/* Header - Minimalist & Elegant */}
-            <div className="h-40 px-12 flex items-center justify-between shrink-0 bg-white z-10 border-b border-zinc-100">
-                <div className="flex items-center gap-12">
+        <div className="h-full bg-[#fdfdfd] flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12">
+            {/* Header - Classic & Time-Honored */}
+            <div className="h-32 px-16 flex items-center justify-between shrink-0 border-b border-black/5 relative z-10">
+                <div className="flex-1">
                     {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <div className="pr-12 border-r border-zinc-200">
-                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                        </div>
+                        <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                     )}
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.6em] text-zinc-300 mb-2">Editorial Series</span>
-                        <h1 className="text-4xl font-serif italic text-black leading-none tracking-tight">
-                            {catalogName || "Summer Archive"}
-                        </h1>
-                    </div>
+                    {logoAlignment !== 'left' && (
+                        <span className="text-xs font-serif tracking-[0.2em] uppercase text-black/40">Vol. {pageNumber}</span>
+                    )}
                 </div>
 
-                <div className="flex flex-col items-end">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                        <div className="mb-4">
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                        </div>
+                <div className="flex-1 flex flex-col items-center justify-center">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
+                        <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                    ) : (
+                        <h1 className="text-4xl font-serif italic tracking-tight text-black text-center">
+                            {catalogName || "The Collection"}
+                        </h1>
                     )}
-                    <div className="flex items-center gap-4">
-                        <span className="text-[11px] font-bold text-black border-b-2 border-black pb-1">VOL_{pageNumber.toString().padStart(2, '0')}</span>
-                        <span className="text-[11px] font-bold text-zinc-300 uppercase">Collection</span>
-                    </div>
+                    <div className="w-12 h-[1px] bg-black mt-4" />
+                </div>
+
+                <div className="flex-1 flex justify-end">
+                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                        <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                    )}
+                    {logoAlignment !== 'right' && (
+                        <span className="text-xs font-serif tracking-[0.2em] uppercase text-black/40 text-right">
+                            {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* Vertical Pillars - 3 Large Items */}
-            <div className="flex-1 flex px-12 z-10">
-                {safeProducts.map((product, idx) => {
+            {/* Content - Vertical Flow (Max 3 Items Per Page usually appropriate for this style) */}
+            <div className="flex-1 px-16 py-12 flex flex-col gap-12 overflow-hidden items-center">
+                {safeProducts.slice(0, 3).map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',
-                        className: 'flex-1 group flex flex-col border-r border-zinc-100 last:border-r-0 hover:bg-zinc-50 transition-all duration-700 cursor-pointer overflow-hidden p-8'
+                        className: 'group w-full flex items-stretch gap-12 cursor-pointer relative py-4 border-b border-black/5 last:border-0'
                     } : {
-                        className: 'flex-1 flex flex-col border-r border-zinc-100 last:border-r-0 overflow-hidden p-8'
+                        className: 'w-full flex items-stretch gap-12 relative py-4 border-b border-black/5 last:border-0'
                     }
 
+                    // Zig-zag layout
+                    const isEven = idx % 2 === 0
+                    const orderClass = isEven ? '' : 'flex-row-reverse'
+                    const alignClass = isEven ? 'items-start text-left' : 'items-end text-right'
+
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
-                            {/* Vertical Index & SKU */}
-                            <div className="flex justify-between items-start mb-8">
-                                <span className="text-6xl font-serif italic text-zinc-100 group-hover:text-zinc-200 transition-colors leading-none">
-                                    {(idx + 1 + (pageNumber - 1) * 3).toString().padStart(2, '0')}
-                                </span>
-                                {showSku && product.sku && (
-                                    <span className="text-[9px] font-mono font-bold text-zinc-300 uppercase tracking-widest vertical-text transform rotate-180" style={{ writingMode: 'vertical-rl' }}>
-                                        ITEM_ID_{product.sku}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Large Vertical Image */}
-                            <div className="relative flex-1 mb-8 overflow-hidden bg-white shadow-sm border border-zinc-50">
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className="object-contain p-6 group-hover:scale-110 transition-transform duration-[2s] ease-out"
-                                />
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-4 right-4 bg-black text-white p-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                        </svg>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Pillar Info */}
-                            <div className="shrink-0 flex flex-col gap-4">
-                                <h3 className="text-xl font-bold uppercase tracking-tighter text-black leading-tight line-clamp-2">
-                                    {product.name}
-                                </h3>
-
-                                {showDescriptions && product.description && (
-                                    <p className="text-xs text-zinc-400 font-medium italic leading-relaxed line-clamp-3">
-                                        {product.description}
-                                    </p>
-                                )}
-
-                                {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-4 mt-2">
-                                        {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
-                                            <div key={aidx} className="flex flex-col border-l-2 border-zinc-100 pl-3">
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-zinc-300 mb-1">{attr.name}</span>
-                                                <span className="text-xs font-bold text-black">{attr.value}{attr.unit}</span>
+                        <div key={product.id} className="flex-1 min-h-0 w-full">
+                            <Wrapper {...(wrapperProps as any)} className={`group w-full h-full flex items-center gap-12 cursor-pointer relative ${orderClass}`}>
+                                {/* Image Section */}
+                                <div className="w-[45%] h-full relative bg-zinc-50 border border-black/5 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.03)] shrink-0">
+                                    <NextImage
+                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
+                                        alt={product.name}
+                                        fill
+                                        unoptimized
+                                        className={`p-4 mix-blend-multiply group-hover:scale-105 transition-all duration-[1.5s] ease-out ${getImageFitClass()}`}
+                                    />
+                                    {(showUrls && productUrl) && (
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5">
+                                            <div className="w-12 h-12 rounded-full border border-black flex items-center justify-center bg-white">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                </svg>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                        </div>
+                                    )}
+                                </div>
 
-                                {showPrices && (
-                                    <div className="mt-4 pt-6 border-t border-zinc-100 flex items-center justify-between">
-                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-300">Reference Price</span>
-                                        <span className="text-2xl font-black tracking-tighter" style={{ color: primaryColor }}>
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
+                                {/* Details Section */}
+                                <div className={`flex-1 flex flex-col justify-center ${alignClass}`}>
+                                    <span className="text-4xl font-serif italic text-black/10 absolute -z-10 select-none">
+                                        {(idx + 1 + (pageNumber - 1) * 3).toString().padStart(2, '0')}
+                                    </span>
+
+                                    <h2 className="text-2xl font-serif text-black mb-4 tracking-tight group-hover:underline decoration-1 underline-offset-4 decoration-black/30">
+                                        {product.name}
+                                    </h2>
+
+                                    {showDescriptions && product.description && (
+                                        <p className="text-xs text-black/60 font-serif leading-relaxed max-w-sm mb-6 line-clamp-4">
+                                            {product.description}
+                                        </p>
+                                    )}
+
+                                    {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                        <div className={`flex flex-wrap gap-4 mb-6 ${isEven ? 'justify-start' : 'justify-end'}`}>
+                                            {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
+                                                <div key={aidx} className="flex flex-col">
+                                                    <span className="text-[9px] uppercase tracking-widest text-black/40 pb-1 border-b border-black/10 mb-1">{attr.name}</span>
+                                                    <span className="text-xs font-serif text-black">{attr.value}{attr.unit}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {showPrices && (
+                                        <div className="mt-auto pt-6 border-t border-black/10 w-32">
+                                            <span className="text-xl font-serif italic block" style={{ color: primaryColor }}>
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {showSku && product.sku && (
+                                        <span className="text-[9px] font-mono mt-2 text-black/30 tracking-widest uppercase">
+                                            Item No. {product.sku}
                                         </span>
-                                    </div>
-                                )}
-                            </div>
-                        </Wrapper>
+                                    )}
+                                </div>
+                            </Wrapper>
+                        </div>
                     )
                 })}
             </div>
 
-            {/* Footer - Cinematic & Minimal */}
-            <div className="h-20 px-12 flex items-center justify-between shrink-0 bg-white border-t border-zinc-100 relative z-20">
-                <div className="flex items-center gap-10">
-                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-black">
-                        {catalogName?.toUpperCase() || "ARCHIVE"}
-                    </span>
-                    <div className="h-1 w-12 bg-black" />
-                </div>
-
-                <div className="flex items-center gap-6">
-                    <span className="text-[10px] font-mono text-zinc-400">INDEX::{pageNumber.toString().padStart(2, '0')}</span>
-                    <div className="flex gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => (
-                            <div key={i} className={`h-1 w-4 transition-all duration-700 ${i + 1 === pageNumber ? 'bg-black' : 'bg-zinc-100'}`} />
-                        ))}
-                    </div>
-                    <span className="text-[10px] font-mono text-zinc-400">OF::{totalPages.toString().padStart(2, '0')}</span>
-                </div>
+            {/* Footer - Minimalist Page Number */}
+            <div className="absolute bottom-6 w-full text-center">
+                <span className="text-[10px] font-serif tracking-[0.3em] text-black/40">
+                    — {pageNumber} —
+                </span>
             </div>
         </div>
     )

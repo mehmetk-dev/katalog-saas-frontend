@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Check, Sparkles, Crown, Zap, Star, CreditCard, Shield } from "lucide-react"
+import { Check, Sparkles, CreditCard, MousePointer2, Link2, ShieldCheck, CalendarPlus, BadgeCheck } from "lucide-react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -25,66 +25,97 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 
   const currentPlan = user?.plan || "free"
 
+  // Custom Minimalist Tech Icons
+  const PlanIcons = {
+    free: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4.5 16.5L12 3L19.5 16.5" className="stroke-emerald-500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 3V12M12 21V19M8 21H16" className="stroke-emerald-500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9 13L12 11L15 13" className="stroke-emerald-400" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    plus: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#plus-grad)" className="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+        <defs>
+          <linearGradient id="plus-grad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#3B82F6" />
+            <stop offset="1" stopColor="#8B5CF6" />
+          </linearGradient>
+        </defs>
+      </svg>
+    ),
+    pro: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 19L3 6L9 11L12 3L15 11L21 6L18 19H6Z" fill="url(#pro-grad)" className="drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
+        <path d="M6 21C6 21.55 6.45 22 7 22H17C17.55 22 18 21.55 18 21V19H6V21Z" fill="url(#pro-grad)" />
+        <defs>
+          <linearGradient id="pro-grad" x1="3" y1="3" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#9333EA" />
+            <stop offset="1" stopColor="#E879F9" />
+          </linearGradient>
+        </defs>
+      </svg>
+    )
+  }
+
   const plans = useMemo(() => [
     {
       id: "free",
-      name: t("upgradeModal.plans.free.name"),
-      description: t("upgradeModal.plans.free.desc"),
-      icon: Star,
-      emoji: "📦",
+      name: "Başlangıç",
+      description: "Kataloğunu oluştur, linkle ve hemen paylaş.",
+      icon: PlanIcons.free,
       price: { monthly: 0, yearly: 0 },
-      color: "from-slate-400 to-slate-500",
-      bgColor: "bg-gray-50",
-      borderColor: "border-gray-200",
+      color: "from-emerald-500/10 to-transparent",
+      accentColor: "emerald",
+      bgColor: "bg-white dark:bg-card/40",
+      borderColor: "border-emerald-100 dark:border-emerald-950/50",
       features: [
-        { text: t("upgradeModal.features.catalogLimit", { count: 1 }), included: true },
-        { text: t("upgradeModal.features.productLimit", { count: 50 }), included: true },
-        { text: t("upgradeModal.features.pdfLimit", { count: 1 }), included: true },
-        { text: t("upgradeModal.features.standardPdf"), included: true },
-        { text: t("upgradeModal.features.watermark"), included: false },
-        { text: t("upgradeModal.features.premiumTemplates"), included: false },
-        { text: t("upgradeModal.features.prioritySupport"), included: false },
+        { text: "1 Adet Katalog Hakkı", included: true },
+        { text: "4 Temel Tasarım Şablonu", included: true },
+        { text: "50 Ürün Ekleme", included: true },
+        { text: "Tıkla & Git Özelliği (Link Yönlendirme)", included: true },
+        { text: "Yüksek Kalite PDF İndir", included: true },
+        { text: "Görsellerde Filigran Bulunur", included: "warning" },
       ],
     },
     {
       id: "plus",
-      name: t("upgradeModal.plans.plus.name"),
-      description: t("upgradeModal.plans.plus.desc"),
-      icon: Zap,
-      emoji: "⚡",
+      name: "Profesyonel",
+      description: "Büyüyen işler ve geniş ürün gamı için.",
+      icon: PlanIcons.plus,
       price: { monthly: 500, yearly: 5000 },
-      color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-gradient-to-br from-blue-50 to-cyan-50",
-      borderColor: "border-blue-300",
+      popular: true,
+      color: "from-blue-500/10 to-transparent",
+      accentColor: "blue",
+      bgColor: "bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/10 dark:to-card/40",
+      borderColor: "border-blue-200 dark:border-blue-900/40",
       features: [
-        { text: t("upgradeModal.features.catalogLimit", { count: 10 }), included: true },
-        { text: t("upgradeModal.features.productLimit", { count: 1000 }), included: true },
-        { text: t("upgradeModal.features.pdfLimit", { count: 50 }), included: true },
-        { text: t("upgradeModal.features.standardPdf"), included: true },
-        { text: t("upgradeModal.features.noWatermark"), included: true },
-        { text: t("upgradeModal.features.premiumTemplates"), included: true },
-        { text: t("upgradeModal.features.prioritySupport"), included: false },
+        { text: "10 Adet Katalog", included: true },
+        { text: "Tüm Premium Şablonlara Erişim", included: true },
+        { text: "1000 Ürün Kapasitesi", included: true },
+        { text: "Tıkla & Git Özelliği (Link Yönlendirme)", included: "highlight", icon: <MousePointer2 className="w-3 h-3" /> },
+        { text: "Filigransız / Kendi Markan", included: true },
+        { text: "Yüksek Kalite PDF İndir", included: true },
       ],
     },
     {
       id: "pro",
-      name: t("upgradeModal.plans.pro.name"),
-      description: t("upgradeModal.plans.pro.desc"),
-      icon: Crown,
-      emoji: "👑",
+      name: "Business",
+      description: "Sınırsız operasyon ve öncelikli hizmet.",
+      icon: PlanIcons.pro,
       price: { monthly: 1000, yearly: 10000 },
-      popular: true,
-      color: "from-violet-600 to-purple-600",
-      bgColor: "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50",
-      borderColor: "border-violet-400",
+      color: "from-purple-500/10 to-transparent",
+      accentColor: "purple",
+      bgColor: "bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/10 dark:to-card/40",
+      borderColor: "border-purple-200 dark:border-purple-900/40",
       features: [
-        { text: t("upgradeModal.features.unlimitedCatalogs"), included: true },
-        { text: t("upgradeModal.features.unlimitedProducts"), included: true },
-        { text: t("upgradeModal.features.unlimitedPdf"), included: true },
-        { text: t("upgradeModal.features.highResPdf"), included: true },
-        { text: t("upgradeModal.features.noWatermark"), included: true },
-        { text: t("upgradeModal.features.allTemplates"), included: true },
-        { text: t("upgradeModal.features.support247"), included: true },
+        { text: "Sınırsız Katalog Oluşturma", included: true },
+        { text: "Tüm Premium Şablonlara Erişim", included: true },
+        { text: "Sınırsız Ürün Ekleme", included: true },
+        { text: "Tıkla & Git Özelliği (Link Yönlendirme)", included: "highlight", icon: <Link2 className="w-3 h-3" /> },
+        { text: "Filigransız / Kendi Markan", included: true },
+        { text: "7/24 Öncelikli VIP Destek", included: true },
       ],
     },
   ], [t])
@@ -113,237 +144,151 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-0 shadow-2xl">
+      <DialogContent className="sm:max-w-4xl max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl max-h-[90vh] flex flex-col bg-background">
         <DialogTitle className="sr-only">{t("upgradeModal.title")}</DialogTitle>
 
-        {/* Clean Modern Header with Plan Info */}
-        <div className="relative bg-white border-b overflow-hidden">
-          {/* Mesh gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-100 via-white to-cyan-100 opacity-60" />
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-violet-400/30 to-transparent rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-cyan-400/30 to-transparent rounded-full blur-3xl" />
+        {/* Compact Minimalist Header */}
+        <div className="relative border-b border-border bg-gradient-to-b from-background to-muted/20 pb-1">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-full bg-primary/5 blur-[80px] pointer-events-none" />
 
-          <div className="relative p-5">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left - Current Plan Info */}
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
-                  currentPlan === "pro" ? "bg-gradient-to-br from-violet-500 to-purple-600 shadow-violet-500/30" :
-                    currentPlan === "plus" ? "bg-gradient-to-br from-blue-500 to-cyan-500 shadow-blue-500/30" :
-                      "bg-gradient-to-br from-gray-400 to-gray-500 shadow-gray-500/30"
-                )}>
-                  {currentPlan === "pro" ? <Crown className="w-5 h-5 text-white" /> :
-                    currentPlan === "plus" ? <Zap className="w-5 h-5 text-white" /> :
-                      <Star className="w-5 h-5 text-white" />}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold text-gray-900">
-                      {currentPlan === "pro" ? t("upgradeModal.plans.pro.name") : currentPlan === "plus" ? t("upgradeModal.plans.plus.name") : t("upgradeModal.plans.free.name")}
-                    </h2>
-                    <span className={cn(
-                      "text-[9px] px-1.5 py-0.5 rounded font-medium",
-                      currentPlan === "pro" ? "bg-violet-100 text-violet-700" :
-                        currentPlan === "plus" ? "bg-blue-100 text-blue-700" :
-                          "bg-gray-100 text-gray-600"
-                    )}>
-                      {t("upgradeModal.current")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-[10px] text-gray-500">
-                      📦 {t("upgradeModal.catalogsCount", { count: user?.catalogsCount || 0, limit: currentPlan === "pro" ? "∞" : currentPlan === "plus" ? "10" : "1" })}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      📋 {t("upgradeModal.productsCount", { count: user?.productsCount || 0, limit: currentPlan === "pro" ? "∞" : currentPlan === "plus" ? "1000" : "50" })}
-                    </span>
-                  </div>
-                </div>
+          <div className="relative px-6 pt-5 pb-3">
+            <div className="flex flex-col items-center gap-4">
+              <div className="text-center space-y-0.5">
+                <h2 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">{t("upgradeModal.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("upgradeModal.subtitle") || "İşletmeniz için en iyi planı seçin."}</p>
               </div>
 
-              {/* Right - Toggle */}
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
-                <button
-                  onClick={() => setIsYearly(false)}
+              {/* Tight Pill Toggle */}
+              <div className="relative flex items-center p-1 bg-muted/50 rounded-full border border-border shadow-inner w-full max-w-[300px]">
+                <div
                   className={cn(
-                    "text-xs px-3 py-1.5 rounded-md transition-all font-medium",
-                    !isYearly
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                    "absolute h-[calc(100%-8px)] rounded-full bg-background shadow-sm border border-border/10 transition-all duration-300 ease-in-out",
+                    isYearly ? "left-[calc(50%+4px)] w-[calc(50%-8px)]" : "left-1 w-[calc(50%-8px)]"
                   )}
-                >
+                />
+                <button onClick={() => setIsYearly(false)} className={cn("relative flex-1 py-1.5 text-[11px] font-bold z-10 transition-colors", !isYearly ? "text-foreground" : "text-muted-foreground")}>
                   {t("upgradeModal.monthly")}
                 </button>
-                <button
-                  onClick={() => setIsYearly(true)}
-                  className={cn(
-                    "text-xs px-3 py-1.5 rounded-md transition-all font-medium flex items-center gap-1.5",
-                    isYearly
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
-                >
+                <button onClick={() => setIsYearly(true)} className={cn("relative flex-1 py-1.5 text-[11px] font-bold z-10 flex items-center justify-center gap-1.5 transition-colors", isYearly ? "text-foreground" : "text-muted-foreground")}>
                   {t("upgradeModal.yearly")}
-                  <span className="text-[9px] bg-gradient-to-r from-emerald-500 to-green-500 text-white px-1.5 py-0.5 rounded-full font-bold">
-                    -17%
-                  </span>
+                  <span className="text-[8px] sm:text-[9px] text-emerald-600 font-black px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 rounded-full whitespace-nowrap">2 Ay Bizden!</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Plans Grid */}
-        <div className="p-3 sm:p-4 lg:p-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
+        {/* Compact Plans Grid */}
+        <div className="pt-4 pb-6 px-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-slate-50/30 dark:bg-background/20">
+          <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto md:overflow-x-visible pt-5 pb-4 md:pb-0 md:pt-0 snap-x snap-mandatory scrollbar-none">
             {plans.map((plan) => {
               const isCurrent = currentPlan === plan.id
-              const monthlyPrice = isYearly ? Math.round(plan.price.yearly / 12) : plan.price.monthly
+              const monthlyPrice = isYearly ? (plan.id === "plus" ? 417 : plan.id === "pro" ? 833 : 0) : plan.price.monthly
 
               return (
                 <div
                   key={plan.id}
                   className={cn(
-                    "relative rounded-xl border-2 p-4 transition-all hover:shadow-lg",
+                    "relative rounded-2xl border p-5 transition-all duration-300 shrink-0 w-[280px] md:w-full snap-center flex flex-col",
                     plan.bgColor,
                     plan.borderColor,
-                    plan.popular && "shadow-lg shadow-violet-500/20 md:scale-105",
-                    isCurrent && "ring-2 ring-green-500 ring-offset-1"
+                    plan.popular && "ring-1 ring-blue-500/30 shadow-lg bg-white dark:bg-card z-10",
+                    isCurrent && "opacity-90"
                   )}
                 >
-                  {/* Popular Badge */}
                   {plan.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0 px-4 py-1 text-xs shadow-lg">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      {t("upgradeModal.mostPopular")}
-                    </Badge>
-                  )}
-
-                  {/* Current Plan Badge */}
-                  {isCurrent && (
-                    <Badge className="absolute -top-3 right-4 bg-green-500 text-white border-0 px-3 py-1 text-xs">
-                      <Check className="w-3 h-3 mr-1" />
-                      {t("upgradeModal.current")}
-                    </Badge>
-                  )}
-
-                  {/* Icon & Name */}
-                  <div className="text-center mb-3">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl mx-auto mb-2 flex items-center justify-center bg-gradient-to-br text-white shadow-md",
-                      plan.color
-                    )}>
-                      <span className="text-2xl">{plan.emoji}</span>
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 py-0.5 px-3 rounded-full shadow-sm">
+                      <span className="text-[9px] font-black text-white uppercase tracking-tighter">EN POPÜLER</span>
                     </div>
-                    <h3 className="font-bold text-base">{plan.name}</h3>
-                    <p className="text-[10px] text-muted-foreground">{plan.description}</p>
+                  )}
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-border/50 shrink-0">
+                      {plan.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground leading-none">{plan.name}</h3>
+                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{plan.description}</p>
+                    </div>
                   </div>
 
-                  {/* Price - Fixed height */}
-                  <div className="text-center mb-3 h-16 flex flex-col justify-center">
+                  <div className="mb-4 text-left border-b border-border/10 pb-4 h-[44px] flex items-end">
                     {monthlyPrice === 0 ? (
-                      <div>
-                        <span className="text-2xl font-bold text-gray-900">{t("upgradeModal.free")}</span>
-                      </div>
+                      <span className="text-xl font-black text-foreground">Ücretsiz</span>
                     ) : (
-                      <div>
-                        <div className="h-4">
-                          {isYearly && (
-                            <span className="text-xs text-muted-foreground line-through">
-                              ₺{plan.price.monthly}/{t("upgradeModal.monthly").toLowerCase()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-end justify-center gap-0.5">
-                          <span className="text-2xl font-bold text-gray-900">₺{monthlyPrice}</span>
-                          <span className="text-xs text-muted-foreground mb-0.5">/{t("upgradeModal.monthly").toLowerCase()}</span>
-                        </div>
-                        <div className="h-4">
-                          {isYearly && (
-                            <span className="text-[10px] text-green-600 font-medium">
-                              {t("upgradeModal.saveYearly", { amount: plan.price.monthly * 12 - plan.price.yearly })}
-                            </span>
-                          )}
+                      <div className="flex flex-col animate-in fade-in zoom-in-95 duration-300" key={isYearly ? "yearly" : "monthly"}>
+                        {isYearly && (
+                          <span className="text-[10px] text-muted-foreground/60 line-through font-medium leading-none mb-0.5">
+                            ₺{plan.price.monthly}
+                          </span>
+                        )}
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-foreground leading-none">₺{monthlyPrice}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium">/ay</span>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Features */}
-                  <ul className="space-y-1.5 mb-3">
-                    {plan.features.slice(0, 4).map((feature, i) => (
-                      <li key={i} className="flex items-center gap-1.5 text-xs">
-                        {feature.included ? (
-                          <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                  <ul className="space-y-2 mb-6 flex-1 text-left">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 text-[11px]">
+                        {feature.included === true || feature.included === "highlight" ? (
+                          <Check className={cn("w-3 h-3 shrink-0", plan.id === "free" ? "text-emerald-500" : plan.id === "plus" ? "text-blue-500" : "text-purple-500")} />
+                        ) : feature.included === "warning" ? (
+                          <span className="text-amber-500 font-bold shrink-0 text-xs px-1">!</span>
                         ) : (
-                          <span className="w-3 h-3 flex items-center justify-center flex-shrink-0">
-                            <span className="w-1.5 h-0.5 bg-gray-300 rounded" />
-                          </span>
+                          <div className="w-1 h-1 rounded-full bg-slate-300 shrink-0 mx-1" />
                         )}
                         <span className={cn(
-                          feature.included ? "text-gray-700" : "text-gray-400"
+                          "line-clamp-1 truncate",
+                          feature.included === "highlight"
+                            ? `font-bold ${plan.id === "plus" ? "text-blue-600" : "text-purple-600"} flex items-center gap-1`
+                            : feature.included === "warning" ? "text-amber-600 font-medium" : "text-muted-foreground"
                         )}>
                           {feature.text}
+                          {(feature as any).icon && (feature as any).icon}
                         </span>
                       </li>
                     ))}
                   </ul>
 
-                  {/* CTA Button */}
-                  {isCurrent ? (
-                    <Button
-                      variant="outline"
-                      className="w-full h-9 text-xs font-medium"
-                      disabled
-                    >
-                      {t("upgradeModal.current")}
-                    </Button>
-                  ) : plan.id === "free" ? (
-                    <Button
-                      variant="outline"
-                      className="w-full h-9 text-xs font-medium"
-                      disabled
-                    >
-                      {t("upgradeModal.basic")}
-                    </Button>
-                  ) : (
-                    <Button
-                      className={cn(
-                        "w-full h-9 text-xs font-medium transition-all",
-                        plan.popular
-                          ? "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
-                          : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-                      )}
-                      onClick={() => handleUpgrade(plan.id)}
-                      disabled={isLoading}
-                    >
-                      {isLoading && selectedPlan === plan.id ? (
-                        <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <CreditCard className="w-3 h-3 mr-1" />
-                          {t("upgradeModal.select")}
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => plan.id !== "free" && !isCurrent && handleUpgrade(plan.id)}
+                    className={cn(
+                      "w-full h-9 rounded-xl font-bold transition-all text-[11px]",
+                      isCurrent
+                        ? "bg-muted text-muted-foreground cursor-default"
+                        : plan.id === "pro"
+                          ? "bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
+                          : plan.id === "plus"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                            : "bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20"
+                    )}
+                    disabled={isLoading && selectedPlan === plan.id}
+                  >
+                    {isLoading && selectedPlan === plan.id ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (isCurrent ? "MEVCUT" : "Seç")}
+                  </Button>
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* Footer - Trust Badges */}
-        <div className="px-4 pb-4 pt-1">
-          <div className="flex items-center justify-center gap-6 text-[10px] text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Shield className="w-3 h-3 text-green-500" />
-              <span>{t("upgradeModal.securePayment")}</span>
+        {/* Mini Trust Badges Footer */}
+        <div className="px-6 py-3 border-t border-border bg-muted/10">
+          <div className="flex items-center justify-around text-[10px] font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Güvenli Ödeme</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Check className="w-3 h-3 text-green-500" />
-              <span>{t("upgradeModal.cancelAnytime")}</span>
+            <div className="flex items-center gap-1.5 border-x border-border/50 px-8">
+              <CalendarPlus className="w-3.5 h-3.5 text-blue-500" />
+              <span>İptal Edilebilir</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <BadgeCheck className="w-3.5 h-3.5 text-indigo-500" />
+              <span>7/24 Destek</span>
             </div>
           </div>
         </div>

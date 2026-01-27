@@ -22,9 +22,19 @@ export function LuxuryTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const { t } = useTranslation()
     const safeProducts = products || []
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
+    }
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -116,7 +126,7 @@ export function LuxuryTemplate({
                                     alt={product.name}
                                     fill
                                     unoptimized
-                                    className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[1.5s] ease-out"
+                                    className={`opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[1.5s] ease-out ${getImageFitClass()}`}
                                 />
 
                                 {/* Overlay Shadow */}

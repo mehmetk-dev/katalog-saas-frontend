@@ -34,6 +34,7 @@ export interface Catalog {
   title_position: 'left' | 'center' | 'right'  // Başlık konumu
   product_image_fit?: 'cover' | 'contain' | 'fill'  // Ürün görsel hizalama
   header_text_color?: string  // Başlık yazı rengi
+  view_count?: number
   created_at: string
   updated_at: string
   // Public API'den gelen ürünler (opsiyonel)

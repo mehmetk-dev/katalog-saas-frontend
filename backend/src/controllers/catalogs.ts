@@ -181,7 +181,10 @@ export const getTemplates = async (req: Request, res: Response) => {
 export const createCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name, description, layout }: { name: string; description?: string; layout?: string } = req.body;
+        const { name: rawName, description, layout }: { name: string; description?: string; layout?: string } = req.body;
+
+        // Varsayılan isim ataması: Eğer isim belirtilmemişse 'Yeni Katalog' veya 'Katalog-[zamandamgası]' kullan
+        const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
 
         // Limit kontrolü ve kullanıcı bilgileri
         const [userData, catalogsCountResult] = await Promise.all([
@@ -207,8 +210,20 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         // Generate unique dynamic share slug: [username]-[catalogname]-[random]
         const cleanUserName = userName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-        const cleanCatalogName = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-        const shareSlug = `${cleanUserName}-${cleanCatalogName}-${Date.now().toString(36)}`;
+        const cleanCatalogName = name.toLowerCase()
+            .replace(/[ıİ]/g, 'i')
+            .replace(/[ğĞ]/g, 'g')
+            .replace(/[üÜ]/g, 'u')
+            .replace(/[şŞ]/g, 's')
+            .replace(/[öÖ]/g, 'o')
+            .replace(/[çÇ]/g, 'c')
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+
+        // Eğer kullanıcı adı "fogcatalog" ise slug'a ekleme (URL tekrarını önlemek için)
+        const slugPrefix = cleanUserName === 'fogcatalog' ? '' : `${cleanUserName}-`;
+
+        const shareSlug = `${slugPrefix}${cleanCatalogName || 'katalog'}-${Date.now().toString(36)}`;
 
         const { data, error } = await supabase
             .from('catalogs')
@@ -558,13 +573,14 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
 
         // --- OWNERSHIP & VIEW TRACKING ---
         const visitorInfo = getVisitorInfo(req);
+        const ownerId = data.user_id;
 
         // Try to identify if the current visitor is the owner
         let isOwner = false;
 
         // 1. Check x-user-id header (passed by apiFetch in frontend)
         const headerUserId = req.headers['x-user-id'];
-        if (headerUserId && headerUserId === data.user_id) {
+        if (headerUserId && headerUserId === ownerId) {
             isOwner = true;
         }
 
@@ -573,7 +589,7 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             try {
                 const token = req.headers.authorization.replace('Bearer ', '');
                 const { data: { user: authUser } } = await supabase.auth.getUser(token);
-                if (authUser && authUser.id === data.user_id) {
+                if (authUser && authUser.id === ownerId) {
                     isOwner = true;
                 }
             } catch (e) {
@@ -581,8 +597,11 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             }
         }
 
+        // DEBUG: Analytics tracking info
+        console.log(`[Analytics] View Attempt: Catalog=${data.id}, IP=${visitorInfo.ip}, isOwner=${isOwner}, Slug=${slug}`);
+
         // Increment view count asynchronously to not block the request
-        smartIncrementViewCount(data.id, visitorInfo, isOwner).catch(err => {
+        smartIncrementViewCount(data.id, ownerId, visitorInfo, isOwner).catch(err => {
             console.error('[PublicCatalog] View tracking failed:', err);
         });
 
@@ -599,10 +618,10 @@ const getVisitorInfo = (req: Request) => {
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
         req.headers['x-real-ip']?.toString() ||
         req.socket?.remoteAddress ||
-        'unknown';
+        '0.0.0.0';
 
     // User Agent
-    const userAgent = req.headers['user-agent'] || 'unknown';
+    const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 500);
 
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
@@ -612,34 +631,47 @@ const getVisitorInfo = (req: Request) => {
     // Creating a truly unique identifier per day for this visitor
     const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
 
+    // DEBUG LOG
+    console.log('--- [DEBUG Analytics] ---');
+    console.log(`IP: ${ip}`);
+    console.log(`UA: ${userAgent.substring(0, 100)}...`);
+    console.log(`Hash: ${visitorHash}`);
+    console.log('-------------------------');
+
     return { ip, userAgent, deviceType, visitorHash };
 };
 
 const smartIncrementViewCount = async (
     catalogId: string,
+    ownerId: string,
     visitorInfo: { ip: string; userAgent: string; deviceType: string; visitorHash: string },
     isOwner: boolean
 ) => {
     try {
-        // Log skip reason for debugging if needed
         if (isOwner) {
-            console.log(`[Analytics] Skipping view for owner of catalog ${catalogId}`);
+            console.log(`[Analytics] Skip: Owner view for ${catalogId}`);
             return;
         }
 
-        const { error } = await supabase.rpc('smart_increment_view_count', {
+        const { data: inserted, error } = await supabase.rpc('smart_increment_view_count', {
             p_catalog_id: catalogId,
             p_visitor_hash: visitorInfo.visitorHash,
             p_ip_address: visitorInfo.ip,
-            p_user_agent: visitorInfo.userAgent.substring(0, 500),
+            p_user_agent: visitorInfo.userAgent,
             p_device_type: visitorInfo.deviceType,
             p_is_owner: isOwner
         });
 
         if (error) {
-            console.warn('[Analytics] RPC Error:', error.message);
-            // Basic fallback
+            console.error('[Analytics] RPC Error:', error.message);
+            // Fallback: Just increment the counter if complex tracking fails
             await supabase.rpc('increment_view_count', { catalog_id: catalogId });
+        }
+
+        // If a new view was recorded, clear the catalogs list cache for this user
+        if (inserted || !error) {
+            console.log(`[Analytics] Success: View recorded for ${catalogId}`);
+            await deleteCache(cacheKeys.catalogs(ownerId));
         }
     } catch (err) {
         console.error('[Analytics] Critical error:', err);

@@ -271,9 +271,10 @@ export async function deleteCategory(categoryName: string) {
   return updatedProducts
 }
 
-export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
+export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: 'free' | 'plus' | 'pro' = 'free') {
   const timestamp = Date.now();
   const isEn = language === 'en';
+  const isFreeUser = userPlan === 'free';
 
   const dummyProducts = [
     {
@@ -281,7 +282,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Handmade wooden body, linen fabric shade modern desk lamp. Made from natural oak." : "El yapımı ahşap gövdeli, keten kumaş abajurlu modern masa lambası. Doğal meşe ağacından üretilmiştir.",
       price: 450,
       stock: 15,
-      category: isEn ? "Lighting" : "Aydınlatma",
+      category: isFreeUser ? null : (isEn ? "Lighting" : "Aydınlatma"),
       sku: `LAMP-${timestamp}-1`,
       image_url: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&q=80"],
@@ -296,7 +297,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Premium Italian leather 3+2+1 sofa set. Ergonomic design and high seating comfort." : "Premium İtalyan derisinden üretilmiş 3+2+1 koltuk takımı. Ergonomik tasarım ve yüksek oturma konforu.",
       price: 28500,
       stock: 3,
-      category: isEn ? "Furniture" : "Mobilya",
+      category: isFreeUser ? null : (isEn ? "Furniture" : "Mobilya"),
       sku: `SOFA-${timestamp}-2`,
       image_url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80"],
@@ -311,7 +312,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Wireless headphones with active noise cancelling. 30 hours battery life." : "Aktif gürültü engelleme özellikli kablosuz kulaklık. 30 saat pil ömrü.",
       price: 1299,
       stock: 50,
-      category: isEn ? "Electronics" : "Elektronik",
+      category: isFreeUser ? null : (isEn ? "Electronics" : "Elektronik"),
       sku: `AUDIO-${timestamp}-3`,
       image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80"],
@@ -326,7 +327,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Silent mechanism, Scandinavian style wall clock. Natural beech wood and matte black frame." : "Sessiz mekanizmalı, Skandinav tarzı duvar saati. Doğal kayın ağacı ve mat siyah çerçeve.",
       price: 320,
       stock: 25,
-      category: isEn ? "Decoration" : "Dekorasyon",
+      category: isFreeUser ? null : (isEn ? "Decoration" : "Dekorasyon"),
       sku: `CLOCK-${timestamp}-4`,
       image_url: "https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?w=500&q=80"],
@@ -341,7 +342,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Hand-painted 3-piece ceramic vase set. Geometric pattern, matte white and gold details." : "El boyaması 3'lü seramik vazo seti. Geometrik desenli, mat beyaz ve altın detaylı.",
       price: 590,
       stock: 12,
-      category: isEn ? "Decoration" : "Dekorasyon",
+      category: isFreeUser ? null : (isEn ? "Decoration" : "Dekorasyon"),
       sku: `VASE-${timestamp}-5`,
       image_url: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=500&q=80"],
@@ -356,7 +357,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Premium smart watch with health tracking, GPS and NFC. AMOLED screen, 5 days battery life." : "Sağlık takibi, GPS ve NFC özellikli premium akıllı saat. AMOLED ekran, 5 gün pil ömrü.",
       price: 4999,
       stock: 30,
-      category: isEn ? "Electronics" : "Elektronik",
+      category: isFreeUser ? null : (isEn ? "Electronics" : "Elektronik"),
       sku: `WATCH-${timestamp}-6`,
       image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80"],
@@ -371,7 +372,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "100% organic cotton double bedding set with 300 thread count. Oeko-Tex certified." : "300 iplik sayılı %100 organik pamuklu çift kişilik nevresim seti. Oeko-Tex sertifikalı.",
       price: 1150,
       stock: 40,
-      category: isEn ? "Home Textiles" : "Ev Tekstili",
+      category: isFreeUser ? null : (isEn ? "Home Textiles" : "Ev Tekstili"),
       sku: `BED-${timestamp}-7`,
       image_url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=80"],
@@ -386,7 +387,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "5-piece bamboo kitchen utensil set. Includes spoon, spatula, tongs and holder." : "5 parça bambu mutfak gereçleri seti. Kaşık, spatula, maşa ve tutucu dahil.",
       price: 189,
       stock: 80,
-      category: isEn ? "Kitchen" : "Mutfak",
+      category: isFreeUser ? null : (isEn ? "Kitchen" : "Mutfak"),
       sku: `KITCHEN-${timestamp}-8`,
       image_url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80"],
@@ -401,7 +402,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Handmade genuine leather messenger bag. Laptop compartment and adjustable strap." : "El yapımı hakiki deri messenger çanta. Laptop bölmesi ve ayarlanabilir askı.",
       price: 2450,
       stock: 8,
-      category: isEn ? "Accessories" : "Aksesuar",
+      category: isFreeUser ? null : (isEn ? "Accessories" : "Aksesuar"),
       sku: `BAG-${timestamp}-9`,
       image_url: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80"],
@@ -416,7 +417,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr') {
       description: isEn ? "Soy-based 4-piece aromatic candle set. Lavender, vanilla, sandalwood and sea breeze scents." : "Soya bazlı 4'lü aromatik mum seti. Lavanta, vanilya, sandal ağacı ve deniz esintisi kokuları.",
       price: 280,
       stock: 60,
-      category: isEn ? "Decoration" : "Dekorasyon",
+      category: isFreeUser ? null : (isEn ? "Decoration" : "Dekorasyon"),
       sku: `CANDLE-${timestamp}-10`,
       image_url: "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80",
       images: ["https://images.unsplash.com/photo-1603006905003-be475563bc59?w=500&q=80"],

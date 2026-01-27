@@ -22,14 +22,22 @@ export function ShowcaseTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
     const [main, ...others] = safeProducts
 
-    const getRightCols = () => {
-        if (columnsPerRow === 2) return "grid-cols-1"
-        return "grid-cols-2"
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
     }
+
+    // Kullanıcı isteği: Vitrin (Showcase) sağ taraf tek sütun
+    const getRightCols = () => "grid-cols-1"
 
     const getLogoHeight = () => {
         switch (logoSize) {
@@ -95,7 +103,7 @@ export function ShowcaseTemplate({
                                 alt={main.name}
                                 fill
                                 unoptimized
-                                className="w-full h-full object-contain p-20 group-hover:scale-105 transition-transform duration-[3000ms] opacity-80 group-hover:opacity-100"
+                                className={`w-full h-full p-20 group-hover:scale-105 transition-transform duration-[3000ms] opacity-80 group-hover:opacity-100 ${getImageFitClass()}`}
                             />
 
                             {/* Cinematic Overlays */}
@@ -152,9 +160,9 @@ export function ShowcaseTemplate({
                     )
                 })()}
 
-                {/* Vertical Sidebar - Right */}
-                <div className={`w-[40%] grid ${getRightCols()} grid-rows-3 bg-[#0d0d0d] border-l border-white/5 shrink-0`}>
-                    {others.slice(0, columnsPerRow === 2 ? 3 : 6).map((product, idx) => {
+                {/* Vertical Sidebar - Right (1 Column, 4 Rows) */}
+                <div className={`w-[40%] grid ${getRightCols()} grid-rows-4 bg-[#0d0d0d] border-l border-white/5 shrink-0`}>
+                    {others.slice(0, 4).map((product, idx) => {
                         const productUrl = product.product_url
                         const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                         const wrapperProps = (showUrls && productUrl) ? {
@@ -174,7 +182,7 @@ export function ShowcaseTemplate({
                                         alt={product.name}
                                         fill
                                         unoptimized
-                                        className="object-contain p-12 group-hover:scale-110 transition-all duration-[2s]"
+                                        className={`p-12 group-hover:scale-110 transition-all duration-[2s] ${getImageFitClass()}`}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                                 </div>

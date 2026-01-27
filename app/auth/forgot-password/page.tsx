@@ -58,11 +58,36 @@ export default function ForgotPasswordPage() {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      console.log("[ForgotPassword] Attempting to send reset email:", {
+        email,
+        redirectUrl,
+        siteUrl: SITE_URL
+      })
+
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       })
 
-      if (error) throw error
+      console.log("[ForgotPassword] Response:", { data, error })
+
+      if (error) {
+        console.error("[ForgotPassword] Supabase error:", error)
+        
+        // Daha açıklayıcı hata mesajları
+        let errorMessage = error.message || t("auth.errorGeneric")
+        
+        if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+          errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
+        } else if (error.message?.includes('email')) {
+          errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
+        } else if (error.message?.includes('redirect')) {
+          errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      console.log("[ForgotPassword] Email sent successfully")
       setSuccess(true)
     } catch (err) {
       console.error("[ForgotPassword] Error:", err)
@@ -79,12 +104,40 @@ export default function ForgotPasswordPage() {
     try {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      
+      console.log("[ForgotPassword] Continue anyway - Attempting to send reset email:", {
+        email,
+        redirectUrl,
+        siteUrl: SITE_URL
+      })
+
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       })
-      if (error) throw error
+
+      console.log("[ForgotPassword] Continue anyway - Response:", { data, error })
+
+      if (error) {
+        console.error("[ForgotPassword] Continue anyway - Supabase error:", error)
+        
+        // Daha açıklayıcı hata mesajları
+        let errorMessage = error.message || t("auth.errorGeneric")
+        
+        if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+          errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
+        } else if (error.message?.includes('email')) {
+          errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
+        } else if (error.message?.includes('redirect')) {
+          errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      console.log("[ForgotPassword] Continue anyway - Email sent successfully")
       setSuccess(true)
     } catch (err) {
+      console.error("[ForgotPassword] Continue anyway - Error:", err)
       setError(err instanceof Error ? err.message : t("auth.errorGeneric"))
     } finally {
       setIsLoading(false)
@@ -152,9 +205,14 @@ export default function ForgotPasswordPage() {
 
         {success ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="w-full h-12 bg-green-50 text-green-700 rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-green-100">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>E-posta başarıyla gönderildi</span>
+            <div className="w-full bg-green-50 text-green-700 rounded-xl p-4 text-sm font-medium border border-green-100 space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>E-posta başarıyla gönderildi</span>
+              </div>
+              <p className="text-xs text-green-600 mt-2 pl-7">
+                E-postanızı kontrol edin. Eğer gelen kutunuzda göremiyorsanız, <strong>spam klasörünü</strong> de kontrol etmeyi unutmayın.
+              </p>
             </div>
             <Link href="/auth" className="block w-full">
               <button className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg shadow-violet-600/20 transition-all">

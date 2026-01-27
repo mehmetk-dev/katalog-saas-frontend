@@ -13,8 +13,8 @@ import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type Product, bulkUpdateProductImages } from "@/lib/actions/products"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
-import { convertToWebP } from "@/lib/image-utils"
 import { cn } from "@/lib/utils"
+import { storage } from "@/lib/storage"
 
 interface BulkImageUploadModalProps {
     open: boolean
@@ -44,6 +44,10 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         showToast: true
     })
 
+    // Upload işlemlerini iptal etmek için ref'ler
+    const uploadAbortControllers = React.useRef<Map<string, AbortController>>(new Map())
+    const uploadTimeoutIds = React.useRef<Map<string, NodeJS.Timeout>>(new Map())
+
     // cancel fonksiyonunu ref ile sakla (dependency sorununu önlemek için)
     const cancelRef = React.useRef(uploadTimeout.cancel)
     React.useEffect(() => {
@@ -53,6 +57,18 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
     // Modal kapandığında state'i temizle
     React.useEffect(() => {
         if (!open && !uploadTimeout.isLoading) {
+            // Devam eden upload'ları iptal et
+            uploadAbortControllers.current.forEach((controller) => {
+                controller.abort()
+            })
+            uploadAbortControllers.current.clear()
+            
+            // Tüm timeout'ları temizle
+            uploadTimeoutIds.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId)
+            })
+            uploadTimeoutIds.current.clear()
+            
             setImages(prev => {
                 prev.forEach(img => URL.revokeObjectURL(img.preview))
                 return []
@@ -319,6 +335,119 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             let completedCount = 0
             const productUpdates = new Map<string, string[]>() // productId -> newImageUrls
 
+            // Ana AbortController oluştur (tüm upload'lar için)
+            const mainAbortController = new AbortController()
+            uploadAbortControllers.current.set('main-upload', mainAbortController)
+
+            // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
+            const uploadSingleImageWithRetry = async (img: ImageFile, signal?: AbortSignal): Promise<string> => {
+                const MAX_RETRIES = 3
+                const TIMEOUT_MS = 30000 // 30 Saniye
+                const uploadKey = img.id
+
+                for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                    // İptal kontrolü
+                    if (signal?.aborted || uploadTimeout.checkCancelled()) {
+                        console.log(`[BulkUpload] 🛑 Upload cancelled for ${img.file.name}`)
+                        throw new Error('Upload cancelled')
+                    }
+
+                    let timeoutId: NodeJS.Timeout | null = null
+
+                    try {
+                        // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+                        if (attempt > 0) {
+                            const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+                            console.log(`[BulkUpload] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${img.file.name}. Waiting ${waitTime}ms`)
+                            
+                            // Bekleme sırasında da iptal kontrolü
+                            await new Promise<void>((resolve, reject) => {
+                                const checkInterval = setInterval(() => {
+                                    if (signal?.aborted || uploadTimeout.checkCancelled()) {
+                                        clearInterval(checkInterval)
+                                        reject(new Error('Upload cancelled'))
+                                    }
+                                }, 100)
+                                
+                                setTimeout(() => {
+                                    clearInterval(checkInterval)
+                                    resolve()
+                                }, waitTime)
+                            })
+                        }
+
+                        // İptal kontrolü (bekleme sonrası)
+                        if (signal?.aborted || uploadTimeout.checkCancelled()) {
+                            console.log(`[BulkUpload] 🛑 Upload cancelled for ${img.file.name} after wait`)
+                            throw new Error('Upload cancelled')
+                        }
+
+                        // 2. Dosya adı oluştur
+                        const fileExtension = img.file.name.split('.').pop() || 'jpg'
+                        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+                        // 3. YARIŞ BAŞLASIN: Upload vs Timeout
+                        // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
+                        const uploadPromise = storage.upload(img.file, {
+                            path: 'products',
+                            contentType: img.file.type || 'image/jpeg',
+                            cacheControl: '3600',
+                            fileName,
+                        })
+
+                        // Timeout promise'i (temizlenebilir)
+                        const timeoutPromise = new Promise<never>((_, reject) => {
+                            timeoutId = setTimeout(() => {
+                                console.error(`[BulkUpload] ⏱️ Upload timeout for ${img.file.name} after ${TIMEOUT_MS/1000} seconds`)
+                                reject(new Error('UPLOAD_TIMEOUT'))
+                            }, TIMEOUT_MS)
+                            
+                            // Timeout ID'yi kaydet (temizlemek için)
+                            uploadTimeoutIds.current.set(uploadKey, timeoutId)
+                        })
+
+                        const result: any = await Promise.race([uploadPromise, timeoutPromise])
+
+                        // Timeout'u temizle (başarılı olduysa)
+                        if (timeoutId) {
+                            clearTimeout(timeoutId)
+                            uploadTimeoutIds.current.delete(uploadKey)
+                            timeoutId = null
+                        }
+
+                        // 4. Sonuç Kontrolü
+                        if (result && result.url) {
+                            return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
+                        } else {
+                            throw new Error('Upload successful but URL is missing')
+                        }
+
+                    } catch (error: any) {
+                        // Timeout'u temizle (hata durumunda)
+                        if (timeoutId) {
+                            clearTimeout(timeoutId)
+                            uploadTimeoutIds.current.delete(uploadKey)
+                            timeoutId = null
+                        }
+
+                        // İptal hatası ise direkt fırlat
+                        if (error.message === 'Upload cancelled' || signal?.aborted || uploadTimeout.checkCancelled()) {
+                            console.log(`[BulkUpload] 🛑 Upload cancelled for ${img.file.name}`)
+                            throw error
+                        }
+
+                        console.error(`[BulkUpload] ❌ Attempt ${attempt + 1} failed:`, error.message)
+                        
+                        // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
+                        if (attempt === MAX_RETRIES - 1) {
+                            throw error
+                        }
+                        // Değilse döngü başa döner ve tekrar dener
+                    }
+                }
+                throw new Error('Unexpected retry loop exit')
+            }
+
             // Helper function for individual upload attempt
             const uploadFile = async (img: ImageFile) => {
                 if (uploadTimeout.checkCancelled()) return
@@ -342,73 +471,52 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
                 setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'uploading' } : p))
 
+                // İptal kontrolü
+                if (mainAbortController.signal.aborted || uploadTimeout.checkCancelled()) {
+                    console.log(`[BulkUpload] 🛑 Upload cancelled, stopping at image ${img.file.name}`)
+                    return
+                }
+
                 try {
-                    if (uploadTimeout.checkCancelled()) return
+                    // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
+                    const publicUrl = await uploadSingleImageWithRetry(img, mainAbortController.signal)
 
-                    // 1. WebP Optimizasyonu (timeout ve hata yönetimi ile)
-                    let blob: Blob
-                    let fileName: string
-                    try {
-                        const converted = await convertToWebP(img.file)
-                        blob = converted.blob
-                        fileName = converted.fileName
-                    } catch (convertError: any) {
-                        console.error(`[BulkUpload] Convert error for ${img.file.name}:`, convertError)
-                        // Eğer convert başarısız olursa, orijinal dosyayı kullan
-                        blob = img.file
-                        fileName = img.file.name
-                        // Ama hata mesajını kaydet
-                        if (convertError.message === 'TIMEOUT' || convertError.message.includes('timeout')) {
-                            throw new Error('Fotoğraf işleme zaman aşımı (20s)')
-                        }
-                        // Diğer convert hatalarında orijinal dosyayı kullanmaya devam et
-                    }
-
-                    if (uploadTimeout.checkCancelled()) return
-
-                    // 2. Supabase Upload (30s Timeout)
-                    const uploadFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
-                    const filePath = `${userId}/${uploadFileName}`
-
-                    const uploadPromise = supabase.storage
-                        .from('product-images')
-                        .upload(filePath, blob, { 
-                            contentType: blob.type || 'image/webp', 
-                            upsert: false,
-                            cacheControl: '3600'
-                        })
-
-                    const individualTimeout = new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 30000)
-                    )
-
-                    const result: any = await Promise.race([uploadPromise, individualTimeout])
-                    if (result.error) throw result.error
-
-                    if (uploadTimeout.checkCancelled()) return
-
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('product-images')
-                        .getPublicUrl(filePath)
-
-                    // 3. Başarılı Kuyruğa Ekle
+                    // Başarılı Kuyruğa Ekle
                     const existing = productUpdates.get(product.id) || []
                     productUpdates.set(product.id, [...existing, publicUrl])
 
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'success' } : p))
                     successCount++
-                } catch (error: any) {
-                    console.error(`[BulkUpload] Error for ${img.file.name}:`, error)
+                    
+                    console.log(`[BulkUpload] ✅ Upload successful for ${img.file.name}, URL:`, publicUrl)
+
+                } catch (itemError: any) {
+                    // İptal hatası ise sessizce geç
+                    if (itemError.message === 'Upload cancelled' || mainAbortController.signal.aborted || uploadTimeout.checkCancelled()) {
+                        console.log(`[BulkUpload] 🛑 Upload cancelled for ${img.file.name}, silently ignoring`)
+                        // Timeout'u temizle
+                        const timeoutId = uploadTimeoutIds.current.get(img.id)
+                        if (timeoutId) {
+                            clearTimeout(timeoutId)
+                            uploadTimeoutIds.current.delete(img.id)
+                        }
+                        return
+                    }
+
+                    console.error(`[BulkUpload] ❌ ${img.file.name} tamamen başarısız oldu:`, itemError)
+                    
                     let msg = 'Yükleme hatası'
-                    if (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT') {
-                        msg = 'Zaman aşımı (30s)'
-                    } else if (error.message?.includes('timeout')) {
-                        msg = error.message
-                    } else if (error.message) {
-                        msg = error.message.length > 50 ? error.message.substring(0, 50) + '...' : error.message
+                    if (itemError.message === 'UPLOAD_TIMEOUT' || itemError.message === 'TIMEOUT') {
+                        msg = 'Zaman aşımı (tüm denemeler başarısız)'
+                    } else if (itemError.message?.includes('timeout')) {
+                        msg = itemError.message
+                    } else if (itemError.message) {
+                        msg = itemError.message.length > 50 ? itemError.message.substring(0, 50) + '...' : itemError.message
                     }
                     setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: msg } : p))
+                    // Bir dosya patlasa bile diğerlerine devam etsin diye throw yapmıyoruz
                 } finally {
+                    // Progress güncelle
                     completedCount++
                     uploadTimeout.setProgress(Math.round((completedCount / totalImages) * 100))
                 }
@@ -417,13 +525,24 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             // Concurrency Control: Aynı anda en fazla 3 dosya yükle (Browser limitlerine takılmamak ve kilitlenmemek için)
             const CONCURRENCY_LIMIT = 3
             for (let i = 0; i < imagesToUpload.length; i += CONCURRENCY_LIMIT) {
-                if (uploadTimeout.checkCancelled()) break
+                if (uploadTimeout.checkCancelled() || mainAbortController.signal.aborted) {
+                    console.log(`[BulkUpload] 🛑 Upload cancelled, stopping at chunk ${i / CONCURRENCY_LIMIT + 1}`)
+                    break
+                }
                 const chunk = imagesToUpload.slice(i, i + CONCURRENCY_LIMIT)
                 await Promise.all(chunk.map(img => uploadFile(img)))
             }
 
+            // Cleanup: AbortController ve timeout'ları temizle
+            mainAbortController.abort()
+            uploadAbortControllers.current.delete('main-upload')
+            uploadTimeoutIds.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId)
+            })
+            uploadTimeoutIds.current.clear()
+
             // 4. Final: Ürün İmajlarını Toplu Güncelle (DB Sync)
-            if (productUpdates.size > 0 && !uploadTimeout.checkCancelled()) {
+            if (productUpdates.size > 0 && !uploadTimeout.checkCancelled() && !mainAbortController.signal.aborted) {
                 const updatesArray = Array.from(productUpdates.entries()).map(([productId, newUrls]) => {
                     const product = products.find(p => p.id === productId)
                     const currentImages = product?.images || (product?.image_url ? [product.image_url] : [])

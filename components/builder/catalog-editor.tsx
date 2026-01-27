@@ -26,6 +26,7 @@ import { ResponsiveContainer } from "@/components/ui/responsive-container"
 
 import { CatalogPreview } from "../catalogs/catalog-preview"
 import { getPreviewProductsByLayout } from "../templates/preview-data"
+import { storage } from "@/lib/storage"
 
 interface CatalogEditorProps {
   products: Product[]
@@ -222,6 +223,129 @@ export function CatalogEditor({
     onLayoutChange(templateId)
   }
 
+  // Upload işlemlerini iptal etmek için ref'ler
+  const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
+  const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+  // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
+  const uploadFileWithRetry = async (file: File, type: 'logo' | 'bg', signal?: AbortSignal): Promise<string> => {
+    const MAX_RETRIES = 3
+    const TIMEOUT_MS = 20000 // 20 Saniye (daha hızlı timeout)
+    const uploadKey = `${type}-${Date.now()}`
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      // İptal kontrolü
+      if (signal?.aborted) {
+        console.log(`[CatalogEditor] 🛑 Upload cancelled for ${type}`)
+        throw new Error('Upload cancelled')
+      }
+
+      let timeoutId: NodeJS.Timeout | null = null
+
+      try {
+        // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+        if (attempt > 0) {
+          const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+          console.log(`[CatalogEditor] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${type}. Waiting ${waitTime}ms`)
+          toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+
+          // Bekleme sırasında da iptal kontrolü
+          await new Promise<void>((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+              if (signal?.aborted) {
+                clearInterval(checkInterval)
+                reject(new Error('Upload cancelled'))
+              }
+            }, 100)
+
+            setTimeout(() => {
+              clearInterval(checkInterval)
+              resolve()
+            }, waitTime)
+          })
+        } else {
+          console.log(`[CatalogEditor] 📤 Starting upload for ${type}:`, { fileName: file.name, fileSize: file.size, fileType: file.type })
+        }
+
+        // İptal kontrolü (bekleme sonrası)
+        if (signal?.aborted) {
+          console.log(`[CatalogEditor] 🛑 Upload cancelled for ${type} after wait`)
+          throw new Error('Upload cancelled')
+        }
+
+        // 2. Dosya adı oluştur
+        const fileExtension = file.name.split('.').pop() || 'jpg'
+        const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+        // 3. Klasör belirleme
+        const folder = type === 'logo' ? 'company-logos' : 'catalog-backgrounds'
+
+        // 4. YARIŞ BAŞLASIN: Upload vs Timeout
+        // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
+        console.log(`[CatalogEditor] 🏁 Starting Promise.race for ${type} (attempt ${attempt + 1})`)
+
+        const uploadPromise = storage.upload(file, {
+          path: folder, // Logo için company-logos, background için catalog-backgrounds
+          contentType: file.type || 'image/jpeg',
+          cacheControl: '3600',
+          fileName,
+        })
+
+        // Timeout promise'i (temizlenebilir)
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            console.error(`[CatalogEditor] ⏱️ Upload timeout for ${type} after ${TIMEOUT_MS / 1000} seconds`)
+            reject(new Error('UPLOAD_TIMEOUT'))
+          }, TIMEOUT_MS)
+
+          // Timeout ID'yi kaydet (temizlemek için)
+          uploadTimeoutIds.current.set(uploadKey, timeoutId)
+        })
+
+        const result: any = await Promise.race([uploadPromise, timeoutPromise])
+
+        // Timeout'u temizle (başarılı olduysa)
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          uploadTimeoutIds.current.delete(uploadKey)
+          timeoutId = null
+        }
+
+        // 5. Sonuç Kontrolü
+        console.log(`[CatalogEditor] 🎯 Promise.race completed for ${type}:`, result)
+        if (result && result.url) {
+          console.log(`[CatalogEditor] ✅ Upload successful for ${type}, URL:`, result.url)
+          return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
+        } else {
+          throw new Error('Upload successful but URL is missing')
+        }
+
+      } catch (error: any) {
+        // Timeout'u temizle (hata durumunda)
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          uploadTimeoutIds.current.delete(uploadKey)
+          timeoutId = null
+        }
+
+        // İptal hatası ise direkt fırlat
+        if (error.message === 'Upload cancelled' || signal?.aborted) {
+          console.log(`[CatalogEditor] 🛑 Upload cancelled for ${type}`)
+          throw error
+        }
+
+        console.error(`[CatalogEditor] ❌ Attempt ${attempt + 1}/${MAX_RETRIES} failed for ${type}:`, error.message)
+
+        // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
+        if (attempt === MAX_RETRIES - 1) {
+          throw error
+        }
+        // Değilse döngü başa döner ve tekrar dener
+      }
+    }
+    throw new Error('Unexpected retry loop exit')
+  }
+
   // Logo/BG Upload Logic
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg') => {
     const file = e.target.files?.[0]
@@ -232,67 +356,59 @@ export function CatalogEditor({
       return
     }
 
+    // Önceki upload işlemlerini iptal et (aynı type için)
+    const uploadKey = `${type}-upload`
+    const existingController = uploadAbortControllers.current.get(uploadKey)
+    if (existingController) {
+      existingController.abort()
+      console.log(`[CatalogEditor] 🛑 Cancelled previous upload for ${type}`)
+    }
+
+    // Yeni AbortController oluştur
+    const abortController = new AbortController()
+    uploadAbortControllers.current.set(uploadKey, abortController)
+
+    // Önceki timeout'ları temizle
+    const existingTimeout = uploadTimeoutIds.current.get(uploadKey)
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+      uploadTimeoutIds.current.delete(uploadKey)
+    }
+
     const toastId = toast.loading(`${type === 'logo' ? 'Logo' : 'Arka plan'} yükleniyor...`)
 
-    // 45 saniyelik timeout oluştur (convert + upload için)
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 45000)
-    })
-
     try {
-      const { createClient } = await import("@/lib/supabase/client")
-      const { convertToWebP } = await import("@/lib/image-utils")
-      const supabase = createClient()
+      // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
+      console.log(`[CatalogEditor] 🚀 Starting upload process for ${type}`)
+      const publicUrl = await uploadFileWithRetry(file, type, abortController.signal)
 
-      // İşlemi timeout ile yarıştır
-      const uploadProcess = async () => {
-        // 1. WebP dönüşümü (hata yönetimi ile)
-        let blob: Blob
-        let fileName: string
-        try {
-          const converted = await convertToWebP(file)
-          blob = converted.blob
-          fileName = `${type}-${Date.now()}.webp`
-        } catch (convertError: any) {
-          console.warn(`[CatalogEditor] Convert error for ${type}:`, convertError)
-          // Convert başarısız olursa orijinal dosyayı kullan
-          blob = file
-          const ext = file.name.split('.').pop() || 'jpg'
-          fileName = `${type}-${Date.now()}.${ext}`
-          // Timeout hatası ise kullanıcıyı bilgilendir
-          if (convertError.message === 'TIMEOUT' || convertError.message?.includes('timeout')) {
-            toast.warning('Fotoğraf işleme zaman aşımı, orijinal dosya yükleniyor.', { duration: 3000, id: toastId })
-          }
-        }
+      console.log(`[CatalogEditor] ✅ Upload completed, updating state for ${type}:`, publicUrl)
 
-        // 2. Supabase upload
-        const { error } = await supabase.storage.from('product-images').upload(fileName, blob, {
-          contentType: blob.type || 'image/webp',
-          upsert: true,
-          cacheControl: '3600'
-        })
-
-        if (error) throw error
-
-        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName)
-        return publicUrl
+      // State'i güncelle (veritabanına kaydetmeye gerek yok, sadece state)
+      if (type === 'logo') {
+        onLogoUrlChange?.(publicUrl)
+        console.log(`[CatalogEditor] ✅ Logo state updated`)
+      } else {
+        onBackgroundImageChange?.(publicUrl)
+        console.log(`[CatalogEditor] ✅ Background image state updated`)
       }
 
-      // @ts-ignore
-      const publicUrl = await Promise.race([uploadProcess(), timeoutPromise]) as string
-
-      if (type === 'logo') onLogoUrlChange?.(publicUrl)
-      else onBackgroundImageChange?.(publicUrl)
-
       toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
-    } catch (error: any) { // Explicitly typed as any to access message safely
+    } catch (error: any) {
+      // İptal hatası ise sessizce geç
+      if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
+        console.log(`[CatalogEditor] 🛑 Upload cancelled for ${type}, silently ignoring`)
+        toast.dismiss(toastId)
+        return
+      }
+
       console.error("Upload error:", error)
 
       // Hata mesajını ayrıştır ve kullanıcı dostu bir mesaj göster
       let errorMessage = "Yükleme başarısız oldu."
 
       if (error?.message === 'UPLOAD_TIMEOUT' || error?.message === 'TIMEOUT' || error?.message?.includes('timeout')) {
-        errorMessage = "İşlem zaman aşımına uğradı (45s). İnternet bağlantınızı kontrol edip tekrar deneyin."
+        errorMessage = "İşlem zaman aşımına uğradı (tüm denemeler başarısız). İnternet bağlantınızı kontrol edip tekrar deneyin."
       } else if (error?.message) {
         // Diğer teknik hatalar için de kısa bir bilgi
         const msg = error.message.length > 60 ? error.message.substring(0, 60) + '...' : error.message
@@ -304,24 +420,47 @@ export function CatalogEditor({
         duration: 5000 // Hata mesajı biraz daha uzun kalsın
       })
     } finally {
+      // Cleanup: AbortController'ı temizle
+      uploadAbortControllers.current.delete(uploadKey)
+
       // Dosya inputunu temizle ki aynı dosyayı tekrar seçebilsin
       if (e.target) e.target.value = ''
     }
   }
 
+  // Arka plan resmi kaldırıldığında devam eden upload'ları iptal et
+  useEffect(() => {
+    if (backgroundImage === null) {
+      const bgUploadKey = 'bg-upload'
+      const controller = uploadAbortControllers.current.get(bgUploadKey)
+      if (controller) {
+        controller.abort()
+        console.log(`[CatalogEditor] 🛑 Background image removed, cancelling upload`)
+        uploadAbortControllers.current.delete(bgUploadKey)
+      }
+
+      // Timeout'ları da temizle
+      const timeout = uploadTimeoutIds.current.get(bgUploadKey)
+      if (timeout) {
+        clearTimeout(timeout)
+        uploadTimeoutIds.current.delete(bgUploadKey)
+      }
+    }
+  }, [backgroundImage])
+
   // Sütun kısıtlamaları
   const getAvailableColumns = (layout: string) => {
     switch (layout) {
-      case 'modern-grid':
       case 'bold':
       case 'luxury':
       case 'minimalist':
       case 'clean-white':
       case 'elegant-cards':
-      case 'product-tiles':
       case 'magazine':
       case 'fashion-lookbook':
         return [2]
+      case 'modern-grid':
+      case 'product-tiles':
       case 'catalog-pro':
       case 'retail':
       case 'tech-modern':
@@ -353,14 +492,14 @@ export function CatalogEditor({
           <TabsList className="flex w-full max-w-[500px] mx-auto h-11 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50">
             <TabsTrigger
               value="content"
-              className="flex-1 rounded-lg text-[11px] sm:text-xs uppercase tracking-wider font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all gap-2"
+              className="flex-1 rounded-lg text-[11px] sm:text-xs uppercase tracking-wider font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all gap-2"
             >
               <Package className="w-3.5 h-3.5" />
               {t('builder.productSelection')}
             </TabsTrigger>
             <TabsTrigger
               value="design"
-              className="flex-1 rounded-lg text-[11px] sm:text-xs uppercase tracking-wider font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all gap-2"
+              className="flex-1 rounded-lg text-[11px] sm:text-xs uppercase tracking-wider font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all gap-2"
             >
               <Palette className="w-3.5 h-3.5" />
               {t('builder.designSettings')}
@@ -371,20 +510,20 @@ export function CatalogEditor({
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 custom-scrollbar">
           <TabsContent value="content" className="m-0 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* CATALOG DETAILS */}
-            <Card className="bg-white shadow-sm border-slate-200 overflow-hidden">
-              <div className="bg-slate-50/50 px-4 py-2 border-b">
+            <Card className="bg-card shadow-sm border-border overflow-hidden">
+              <div className="bg-muted/30 dark:bg-muted/50 px-4 py-2 border-b border-border">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-primary">
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">{t('builder.catalogDetails')}</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-foreground">{t('builder.catalogDetails')}</h3>
                 </div>
               </div>
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase">{t('builder.description')}</Label>
+                  <Label className="text-[10px] font-bold text-muted-foreground uppercase">{t('builder.description')}</Label>
                   <textarea
-                    className="w-full min-h-[80px] p-3 text-sm bg-slate-50 border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none placeholder:text-slate-400 font-medium"
+                    className="w-full min-h-[80px] p-3 text-sm bg-background border-input rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none placeholder:text-muted-foreground font-medium text-foreground"
                     placeholder={t('builder.descriptionPlaceholder')}
                     value={description}
                     onChange={(e) => onDescriptionChange(e.target.value)}
@@ -396,10 +535,10 @@ export function CatalogEditor({
             {/* SEARCH & FILTERS SECTION HEADER */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center text-blue-500">
+                <div className="w-6 h-6 rounded bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 dark:text-blue-400">
                   <Package className="w-3.5 h-3.5" />
                 </div>
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-700">{t('builder.productSelection')}</h3>
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-foreground">{t('builder.productSelection')}</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
@@ -414,7 +553,7 @@ export function CatalogEditor({
                 </div>
                 <div className="md:col-span-4">
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-full h-11 bg-white shadow-sm border-slate-200 rounded-xl font-medium">
+                    <SelectTrigger className="w-full h-11 bg-background shadow-sm border-input rounded-xl font-medium">
                       <SelectValue placeholder={t('common.category')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -444,17 +583,17 @@ export function CatalogEditor({
             </div>
 
             {/* PRODUCTS LIST SCROLLABLE */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
               <div className="max-h-[400px] overflow-y-auto p-3 custom-scrollbar">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {visibleProducts.map(product => (
                     <div
                       key={product.id}
                       className={cn(
-                        "relative aspect-square rounded-lg border-2 transition-all cursor-pointer overflow-hidden group bg-white",
+                        "relative aspect-square rounded-lg border-2 transition-all cursor-pointer overflow-hidden group bg-card",
                         selectedProductIds.includes(product.id)
                           ? "border-primary ring-2 ring-primary/10 scale-[0.98]"
-                          : "border-transparent hover:border-slate-100"
+                          : "border-transparent hover:border-border"
                       )}
                       onClick={() => toggleProduct(product.id)}
                     >
@@ -488,7 +627,7 @@ export function CatalogEditor({
 
                 {visibleCount < filteredProducts.length && (
                   <div className="flex justify-center pt-4 pb-2">
-                    <Button variant="ghost" size="sm" onClick={() => setVisibleCount(v => v + 20)} className="rounded-full h-8 text-xs font-bold text-slate-500 hover:text-primary">
+                    <Button variant="ghost" size="sm" onClick={() => setVisibleCount(v => v + 20)} className="rounded-full h-8 text-xs font-bold text-muted-foreground hover:text-primary">
                       {t('builder.loadMore', { count: filteredProducts.length - visibleCount })}
                       <ChevronDown className="w-4 h-4 ml-1" />
                     </Button>
@@ -544,28 +683,28 @@ export function CatalogEditor({
                             setDraggingIndex(null); setDropIndex(null)
                           }}
                           className={cn(
-                            "flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-200 shadow-sm transition-all group",
+                            "flex items-center gap-3 p-2 bg-card rounded-lg border border-border shadow-sm transition-all group",
                             draggingIndex === index && "opacity-50 scale-95 border-dashed border-primary pre-drag",
                             dropIndex === index && draggingIndex !== index && "border-primary ring-2 ring-primary/10"
                           )}
                         >
-                          <div className="cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-500 shrink-0">
+                          <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 group-hover:text-muted-foreground shrink-0">
                             <GripVertical className="w-3.5 h-3.5" />
                           </div>
-                          <div className="w-8 h-8 rounded shrink-0 border border-slate-100 overflow-hidden relative">
+                          <div className="w-8 h-8 rounded shrink-0 border border-border overflow-hidden relative">
                             <NextImage src={product.image_url || "/placeholder.svg"} alt={product.name} fill className="object-cover" unoptimized />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-bold truncate text-slate-700">{product.name}</p>
+                            <p className="text-[11px] font-bold truncate text-foreground">{product.name}</p>
                           </div>
-                          <Button variant="ghost" size="icon" onClick={() => onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))} className="h-7 w-7 text-slate-400 hover:text-destructive transition-colors">
+                          <Button variant="ghost" size="icon" onClick={() => onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))} className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       )
                     })}
                     {selectedProductIds.length === 0 && (
-                      <div className="col-span-full py-10 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-white">
+                      <div className="col-span-full py-10 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl bg-card">
                         <Package className="w-8 h-8 mb-2 opacity-20" />
                         <p className="text-xs font-medium">Henüz ürün seçilmedi</p>
                       </div>
@@ -579,7 +718,7 @@ export function CatalogEditor({
           <TabsContent value="design" className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
             {/* APPEARANCE BASICS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="shadow-sm border-slate-200">
+              <Card className="shadow-sm border-border bg-card">
                 <CardContent className="p-4 sm:p-6 space-y-6">
                   <div className="space-y-4 pt-4">
                     {/* Premium Toggle Row */}
@@ -605,11 +744,11 @@ export function CatalogEditor({
                           )}
                         >
                           {item.label}
-                          {item.disabled && <span className="text-[9px] ml-2 font-bold text-slate-400 italic">(Dergide Desteklenmez)</span>}
+                          {item.disabled && <span className="text-[9px] ml-2 font-bold text-muted-foreground italic">(Dergide Desteklenmez)</span>}
                         </Label>
                         <div className={cn(
                           "w-10 h-5 rounded-full relative transition-all duration-300 shadow-inner",
-                          item.value && !item.disabled ? "bg-primary" : "bg-slate-200"
+                          item.value && !item.disabled ? "bg-primary" : "bg-muted"
                         )}>
                           <div className={cn(
                             "absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300",
@@ -634,8 +773,8 @@ export function CatalogEditor({
                             className={cn(
                               "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
                               productImageFit === option.value
-                                ? "bg-white text-primary shadow-sm"
-                                : "text-slate-500 hover:text-slate-700"
+                                ? "bg-background text-primary shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             )}
                           >
                             {option.label}
@@ -643,32 +782,36 @@ export function CatalogEditor({
                         ))}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="space-y-2 pt-2">
-                      <Label className="text-xs font-bold uppercase text-slate-400">Sütun Sayısı (Web)</Label>
-                      <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                        {availableColumns.map((num) => (
-                          <button
-                            key={num}
-                            onClick={() => onColumnsPerRowChange?.(num)}
-                            className={cn(
-                              "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                              columnsPerRow === num
-                                ? "bg-white text-primary shadow-sm"
-                                : "text-slate-500 hover:text-slate-700"
-                            )}
-                          >
-                            {num} Sütun
-                          </button>
-                        ))}
+                  {/* Sadece esnek grid yapısına sahip şablonlar için Sütun Sayısı seçimi göster */}
+                  {['modern-grid', 'product-tiles', 'catalog-pro', 'bold', 'tech-modern', 'clean-white', 'elegant-cards', 'retail'].includes(layout) && (
+                    <div className="pt-4 border-t border-border">
+                      <div className="bg-muted/50 p-1 rounded-xl">
+                        <div className="flex">
+                          {[2, 3, 4].map((num) => (
+                            <button
+                              key={num}
+                              onClick={() => onColumnsPerRowChange?.(num)}
+                              className={cn(
+                                "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                columnsPerRow === num
+                                  ? "bg-background text-primary shadow-sm"
+                                  : "text-muted-foreground hover:text-foreground"
+                              )}
+                            >
+                              {num} Sütun
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
               {/* LOGO & BRANDING */}
-              <Card className="shadow-sm border-slate-200 overflow-hidden">
+              <Card className="shadow-sm border-border overflow-hidden bg-card">
                 <CardContent className="p-4 sm:p-6 space-y-6">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
@@ -765,7 +908,7 @@ export function CatalogEditor({
                     )}
 
                     {/* BAŞLIK RENKLERİ */}
-                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                    <div className="pt-4 border-t border-border space-y-4">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Başlık Renkleri</h4>
 
                       {/* Başlık Alanı Rengi */}
@@ -822,8 +965,8 @@ export function CatalogEditor({
                         {/* Opaklık */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <Label className="text-[10px] text-slate-500">Opaklık</Label>
-                            <span className="text-[10px] font-mono text-slate-600">{primaryColorParsed.opacity}%</span>
+                            <Label className="text-[10px] text-muted-foreground">Opaklık</Label>
+                            <span className="text-[10px] font-mono text-foreground">{primaryColorParsed.opacity}%</span>
                           </div>
                           <Slider
                             value={[primaryColorParsed.opacity]}
@@ -983,11 +1126,11 @@ export function CatalogEditor({
                                       }}
                                       className="w-7 h-7 p-0 border-none cursor-pointer rounded-full"
                                     />
-                                    <span className="text-[10px] font-mono text-slate-500 uppercase">{backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[0] || backgroundColor}</span>
+                                    <span className="text-[10px] font-mono text-muted-foreground uppercase">{backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[0] || backgroundColor}</span>
                                   </div>
                                 </div>
                                 <div className="flex-1 space-y-1">
-                                  <Label className="text-[10px] uppercase font-bold text-slate-400">Bitiş</Label>
+                                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Bitiş</Label>
                                   <div className="flex gap-1.5 items-center">
                                     <Input
                                       type="color"
@@ -998,7 +1141,7 @@ export function CatalogEditor({
                                       }}
                                       className="w-7 h-7 p-0 border-none cursor-pointer rounded-full"
                                     />
-                                    <span className="text-[10px] font-mono text-slate-500 uppercase">{backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[1] || primaryColor}</span>
+                                    <span className="text-[10px] font-mono text-muted-foreground uppercase">{backgroundGradient?.match(/#([A-Fa-f0-9]{3,6})/g)?.[1] || primaryColor}</span>
                                   </div>
                                 </div>
                               </div>

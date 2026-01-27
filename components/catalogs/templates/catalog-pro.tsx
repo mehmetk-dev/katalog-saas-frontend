@@ -21,8 +21,18 @@ export function CatalogProTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
+
+    const getImageFitClass = () => {
+        switch (productImageFit) {
+            case 'contain': return 'object-contain'
+            case 'fill': return 'object-fill'
+            case 'cover':
+            default: return 'object-cover'
+        }
+    }
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -77,8 +87,8 @@ export function CatalogProTemplate({
             </div>
 
             {/* Brutalist Grid */}
-            <div className={`flex-1 p-12 grid ${getGridCols()} grid-rows-3 gap-16 overflow-hidden relative z-10`}>
-                {safeProducts.map((product, idx) => {
+            <div className={`flex-1 p-8 grid ${getGridCols()} grid-rows-3 gap-8 overflow-hidden relative z-10`}>
+                {safeProducts.slice(0, 9).map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
@@ -93,7 +103,7 @@ export function CatalogProTemplate({
                     return (
                         <Wrapper key={product.id} {...(wrapperProps as any)}>
                             {/* Product Frame with Bauhaus Tint Background */}
-                            <div className="relative aspect-square mb-6 group-hover:-translate-y-2 transition-transform duration-500">
+                            <div className="relative flex-1 mb-3 group-hover:-translate-y-2 transition-transform duration-500 min-h-0">
                                 {/* The Offset Accent - Only shows on hover or subtlely */}
                                 <div className="absolute -inset-2 border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 translate-y-1" />
 
@@ -103,7 +113,7 @@ export function CatalogProTemplate({
                                         alt={product.name}
                                         fill
                                         unoptimized
-                                        className="object-contain p-4 mix-blend-multiply transition-all duration-700 group-hover:scale-110"
+                                        className={`p-4 mix-blend-multiply transition-all duration-700 group-hover:scale-110 ${getImageFitClass()}`}
                                     />
                                 </div>
 

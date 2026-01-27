@@ -173,7 +173,7 @@ export function MagazineTemplate({
                         getGridCols()
                     )}>
                         {gridProducts.map((product) => (
-                            <div key={product.id} className="relative group flex flex-col overflow-hidden max-h-[300px]">
+                            <div key={product.id} className="relative group flex flex-col h-[260px] overflow-hidden">
                                 {/* Secondary Image - FIXED HEIGHT */}
                                 <div className="relative h-[180px] bg-slate-50 border border-slate-100 overflow-hidden shadow-lg transition-transform duration-500 hover:translate-y-[-4px]">
                                     <NextImage

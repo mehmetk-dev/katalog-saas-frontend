@@ -53,19 +53,19 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
     if (completedCount === steps.length) return null // Hepsi bittiyse gösterme
 
     return (
-        <Card className="bg-gradient-to-r from-violet-50 to-indigo-50 border-violet-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 border-violet-100 dark:border-violet-800/50 shadow-sm relative overflow-hidden">
             {/* Dekoratif arka plan */}
-            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                <svg width="200" height="200" viewBox="0 0 100 100" fill="currentColor" className="text-violet-600">
+            <div className="absolute top-0 right-0 p-8 opacity-5 dark:opacity-10 pointer-events-none">
+                <svg width="200" height="200" viewBox="0 0 100 100" fill="currentColor" className="text-violet-600 dark:text-violet-400">
                     <circle cx="50" cy="50" r="40" />
                 </svg>
             </div>
 
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div className="space-y-1">
-                    <CardTitle className="text-lg text-violet-900">Başlangıç Rehberi</CardTitle>
+                    <CardTitle className="text-lg text-violet-900 dark:text-violet-200">Başlangıç Rehberi</CardTitle>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Progress value={progress} className="w-24 h-2 bg-violet-200" />
+                        <Progress value={progress} className="w-24 h-2 bg-violet-200 dark:bg-violet-900/50" />
                         <span>%{Math.round(progress)} tamamlandı</span>
                     </div>
                 </div>
@@ -80,21 +80,26 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
                         className={cn(
                             "flex flex-col gap-3 p-4 rounded-lg border transition-all duration-200",
                             step.completed
-                                ? "bg-white/50 border-transparent opacity-60"
-                                : "bg-white border-violet-100 shadow-sm hover:shadow-md hover:border-violet-300"
+                                ? "bg-white/50 dark:bg-card/50 border-transparent opacity-60"
+                                : "bg-white dark:bg-card border-violet-100 dark:border-violet-800/50 shadow-sm hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700"
                         )}
                     >
                         <div className="flex items-center justify-between">
-                            <div className={cn("p-2 rounded-full", step.completed ? "bg-green-100 text-green-600" : "bg-violet-100 text-violet-600")}>
-                                {step.completed ? <CheckCircle2 className="w-5 h-5" /> : <div className="w-5 h-5 flex items-center justify-center font-bold">{index + 1}</div>}
+                            <div className={cn(
+                                "p-2 rounded-full",
+                                step.completed 
+                                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" 
+                                    : "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400"
+                            )}>
+                                {step.completed ? <CheckCircle2 className="w-5 h-5" /> : <div className="w-5 h-5 flex items-center justify-center font-bold text-foreground">{index + 1}</div>}
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <h3 className={cn("font-medium", step.completed && "line-through text-muted-foreground")}>{step.title}</h3>
+                            <h3 className={cn("font-medium text-foreground", step.completed && "line-through text-muted-foreground")}>{step.title}</h3>
                             <p className="text-xs text-muted-foreground line-clamp-2">{step.description}</p>
                         </div>
                         {!step.completed && (
-                            <Button size="sm" variant="outline" className="mt-auto w-full group border-violet-200 hover:bg-violet-50 hover:text-violet-700" asChild>
+                            <Button size="sm" variant="outline" className="mt-auto w-full group border-violet-200 dark:border-violet-800/50 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:text-violet-700 dark:hover:text-violet-300" asChild>
                                 <Link href={step.href}>
                                     {step.cta}
                                     <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />

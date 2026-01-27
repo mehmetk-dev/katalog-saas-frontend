@@ -1,5 +1,6 @@
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
+import { cn } from "@/lib/utils"
 
 import { ModernGridTemplate } from "./templates/modern-grid"
 import { CompactListTemplate } from "./templates/compact-list"
@@ -40,6 +41,7 @@ interface CatalogPreviewProps {
     titlePosition?: Catalog['title_position']
     productImageFit?: Catalog['product_image_fit']
     catalog?: Catalog
+    isExporting?: boolean
 }
 
 export function CatalogPreview({
@@ -63,17 +65,25 @@ export function CatalogPreview({
     logoPosition = "header-left",
     logoSize = "medium",
     titlePosition = "left",
-    productImageFit = "cover"
+    productImageFit = "cover",
+    isExporting = false
 }: CatalogPreviewProps) {
+    // Layout normalization
+    const normalizedLayout = layout?.toLowerCase().trim() || 'modern-grid'
+
     // Use appropriate number of products for preview based on template
     const getPreviewCount = () => {
-        switch (layout) {
+        // PDF export sırasında veya Minimalist şablonda tüm ürünleri göster
+        if (isExporting || normalizedLayout === 'minimalist') return products?.length || 0;
+
+        switch (normalizedLayout) {
             case 'magazine': return 1 + (columnsPerRow * 2)
-            case 'showcase': return columnsPerRow === 2 ? 4 : 7
-            case 'fashion-lookbook': return 4
-            case 'industrial': return columnsPerRow * 4
+            case 'showcase': return 5
+            case 'fashion-lookbook': return 5
+            case 'industrial': return 8
+            case 'luxury': return 6
             case 'compact-list': return 10
-            case 'classic-catalog': return 10
+            case 'classic-catalog': return 3
             case 'retail': return columnsPerRow * 5
             case 'catalog-pro': return columnsPerRow * 3
             case 'product-tiles': return columnsPerRow === 2 ? 4 : 9
@@ -85,7 +95,12 @@ export function CatalogPreview({
         }
     }
 
-    const previewProducts = products.length > 0 ? products.slice(0, getPreviewCount()) : []
+    // Minimalist için tüm ürünleri gönder, diğerleri için sınırlı
+    // Minimalist için tüm ürünleri gönder, diğerleri için sınırlı
+    const safeProducts = products || []
+    const previewProducts = (isExporting || normalizedLayout === 'minimalist')
+        ? safeProducts
+        : (safeProducts.length > 0 ? safeProducts.slice(0, getPreviewCount()) : [])
 
     // Arka plan stili hesaplama
     // Arka plan stili hesaplama (Öncelik: Görsel > Gradyan > Renk)
@@ -136,11 +151,12 @@ export function CatalogPreview({
         logoPosition: logoPosition || undefined,
         logoSize: logoSize || undefined,
         titlePosition: titlePosition || undefined,
+        productImageFit
     }
 
     // Map layout string to component
     const getTemplate = () => {
-        switch (layout) {
+        switch (normalizedLayout) {
             case "modern-grid":
                 return <ModernGridTemplate {...templateProps} />
             case "compact-list":
@@ -179,12 +195,18 @@ export function CatalogPreview({
         }
     }
 
+    // Minimalist şablonu veya Export modu için dinamik yükseklik
+    const isMultiPage = normalizedLayout === 'minimalist' || isExporting;
+
     return (
         <div
-            className="w-[794px] h-[1123px] overflow-hidden shadow-sm relative shrink-0"
-            style={getBackgroundStyle()}
+            className={cn(
+                "w-[794px] shadow-sm relative shrink-0 transition-all duration-300",
+                isMultiPage ? "h-auto overflow-visible flex flex-col gap-8" : "h-[1123px] overflow-hidden"
+            )}
+            style={isMultiPage ? { ...getBackgroundStyle(), height: 'auto', minHeight: '1123px' } : getBackgroundStyle()}
         >
-            <div className="pointer-events-none select-none h-full">
+            <div className={cn("pointer-events-none select-none", isMultiPage ? "" : "h-full")}>
                 {getTemplate()}
             </div>
         </div>

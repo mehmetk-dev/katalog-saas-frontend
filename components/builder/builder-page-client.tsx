@@ -34,6 +34,11 @@ import { useTranslation } from "@/lib/i18n-provider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
+// Atomic Components
+import { BuilderToolbar } from "./builder-toolbar"
+import { ExitDialog } from "./exit-dialog"
+import { PreviewFloatingHeader } from "./preview-floating-header"
+
 function slugify(text: string) {
   const trMap: Record<string, string> = {
     'ç': 'c', 'Ç': 'c',
@@ -388,6 +393,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             description: catalogDescription,
             layout,
           })
+          // Katalog oluşturulduğu anda kullanıcı bilgilerini güncelle
+          await refreshUser()
           setCurrentCatalogId(newCatalog.id)
           await updateCatalog(newCatalog.id, {
             product_ids: selectedProductIds,
@@ -411,7 +418,6 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           })
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
           toast.success(t('toasts.catalogCreated'))
-          refreshUser()
         }
 
         // Kayıt başarılı - lastSavedState güncelle
@@ -488,17 +494,19 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   // Slug hesaplama (Sürekli güncel olması gereken slug)
   const expectedSlug = useMemo(() => {
     if (!currentCatalogId) return ""
-    const companyPart = user?.company || user?.name || "user"
+    const companyPart = (user?.company || user?.name || "user")
+    // Eğer şirket ismi "FogCatalog" ise URL'de tekrar etmemesi için slug'a ekleme
+    const cleanCompany = companyPart.toLowerCase().replace(/[^a-z0-9]/g, "") === "fogcatalog" ? "" : companyPart
     const namePart = catalogName && catalogName.trim().length > 0 ? catalogName : "katalog"
     const idPart = currentCatalogId.slice(0, 4)
 
-    const parts = [slugify(companyPart), slugify(namePart), idPart]
+    const parts = [slugify(cleanCompany), slugify(namePart), idPart]
     return parts.filter(p => p && p.length > 0).join('-')
   }, [user, catalogName, currentCatalogId])
 
   // URL güncelleme butonu sadece katalog şu anda yayınlanmışsa ve slug değişmişse gösterilmeli
   // Hiç yayınlanmamış katalog için yeni slug otomatik oluşturulur, "Link Yenile" göstermeye gerek yok
-  const isUrlOutdated = isPublished && catalog?.share_slug && catalog.share_slug !== expectedSlug
+  const isUrlOutdated = !!(isPublished && catalog?.share_slug && catalog.share_slug !== expectedSlug)
 
   const handleUpdateSlug = () => {
     if (!currentCatalogId) return
@@ -785,263 +793,32 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     <div className="h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
       {/* Header - Clean Single Row */}
       {view !== "preview" && (
-        <div className="h-16 border-b bg-background/95 backdrop-blur-sm flex items-center justify-between px-3 sm:px-6 shrink-0 gap-4">
-
-          {/* Left: Back + Name + Live Bar */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  if (hasUnsavedChanges) {
-                    setShowExitDialog(true)
-                  } else {
-                    router.push('/dashboard')
-                  }
-                }}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <Input
-                value={catalogName}
-                onChange={(e) => setCatalogName(e.target.value)}
-                className="h-9 font-bold text-lg min-w-[120px] w-[200px] sm:w-[240px] border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-input transition-all px-2 rounded-md"
-                placeholder={t('builder.catalogNamePlaceholder')}
-              />
-
-
-            </div>
-
-            {!isMobile && (
-              <>
-                <div className="h-6 w-px bg-border/60" />
-
-                {/* Status & Live Bar */}
-                <div className="flex items-center gap-4">
-
-
-
-                  {isPublished && catalog?.share_slug ? (
-                    <>
-                      <div className="flex items-center gap-1 pl-1 pr-1.5 py-1 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-full transition-all hover:border-emerald-200 dark:hover:border-emerald-800">
-                        <div className="flex items-center gap-1.5 px-2">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                          </span>
-                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Yayında</span>
-                        </div>
-
-                        <div className="h-4 w-px bg-emerald-200/50 dark:bg-emerald-800/50 mx-1" />
-
-                        <div className="flex items-center gap-1 group">
-
-
-
-
-                          {/* URL Güncelleme Uyarısı (Buton Şeklinde) */}
-                          {/* Sadece katalog gerçekten yayınlanmışsa (catalog.is_published === true) ve slug değişmişse göster */}
-                          {/* Hiç yayınlanmamış katalog için bu buton gösterilmez - yayınlarken otomatik yeni slug oluşturulur */}
-                          {isUrlOutdated && catalog?.is_published === true && (
-                            <div className="flex items-center animate-in fade-in zoom-in duration-300 mr-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={handleUpdateSlug}
-                                className="h-6 px-2 text-[10px] font-medium gap-1.5 rounded-full bg-amber-100/80 hover:bg-amber-200 text-amber-700 border border-amber-200/50 shadow-sm"
-                                title="URL güncel bilgilerinizle eşleşmiyor."
-                              >
-                                <AlertTriangle className="w-3 h-3" />
-                                Link Yenile
-                              </Button>
-                            </div>
-                          )}
-
-                          {/* Aksiyonlar: Kopyala & Görüntüle */}
-                          <div className="flex items-center">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600"
-                              onClick={() => {
-                                const url = `${window.location.origin}/catalog/${catalog?.share_slug}`
-                                navigator.clipboard.writeText(url)
-                                toast.success("Link kopyalandı!")
-                              }}
-                              title="Linki Kopyala"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                            <a
-                              href={`/catalog/${catalog.share_slug}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600"
-                                title="Kataloğu Görüntüle"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                              </Button>
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Yayını Güncelle Butonu (Amber - Sarı) */}
-                      {isPublished && hasUnpushedChanges && (
-                        <div className="ml-2 animate-in fade-in zoom-in slide-in-from-left-2 duration-300 flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handlePushUpdates}
-                            disabled={isPending}
-                            className="h-8 px-4 text-xs font-bold gap-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-200 border border-amber-600/20 hover:scale-105 transition-all"
-                            title="Yaptığınız değişiklikler sadece taslak olarak kaydedildi. Kullanıcıların görmesi için tıklayın."
-                          >
-                            <RefreshCw className={cn("w-3.5 h-3.5", isPending && "animate-spin")} />
-                            YAYINI GÜNCELLE
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-                      {/* Status: Yayında Değil */}
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/80 rounded-full border border-slate-200/60">
-                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                        <span className="text-xs text-slate-500 font-medium">Yayında Değil</span>
-                      </div>
-
-                      {/* Yayınla Butonu */}
-                      <Button
-                        size="sm"
-                        onClick={handlePublish}
-                        disabled={isPending}
-                        className="h-7 px-3 text-xs font-bold gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow transition-all"
-                      >
-                        <Globe className="w-3 h-3" />
-                        Yayınla
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Center: Switch (Desktop) */}
-          {!isMobile && (
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-full border shadow-sm">
-                <Label
-                  htmlFor="view-mode"
-                  className="text-xs font-medium px-2 cursor-pointer transition-colors text-foreground"
-                  onClick={() => setView('split')}
-                >
-                  Editör
-                </Label>
-                <Switch
-                  id="view-mode"
-                  checked={false}
-                  onCheckedChange={(checked) => {
-                    if (checked) setView('preview')
-                  }}
-                  className="data-[state=checked]:bg-primary"
-                />
-                <Label
-                  htmlFor="view-mode"
-                  className="text-xs font-medium px-2 cursor-pointer transition-colors text-muted-foreground"
-                  onClick={() => setView('preview')}
-                >
-                  Önizleme
-                </Label>
-              </div>
-            </div>
-          )}
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            {/* Mobile View Toggle */}
-            {isMobile && (
-              <div className="flex bg-muted rounded-md p-0.5 mr-2">
-                <Button
-                  variant={(view as string) !== "preview" ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setView("editor")}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                  variant={(view as string) === "preview" ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setView("preview")}
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            )}
-
-            {/* Unsaved Changes Indicator (Next to Save Button) */}
-            {hasUnsavedChanges && !isPending && (
-              <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100 animate-in fade-in slide-in-from-right-2 duration-300">
-                <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                Kaydedilmemiş değişiklikler
-              </span>
-            )}
-
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={isPending}
-              variant="ghost"
-              className={`h-9 gap-2 px-4 transition-all ${hasUnsavedChanges
-                ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200 shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-            >
-              <Save className={`w-4 h-4 ${hasUnsavedChanges ? "text-amber-600" : ""}`} />
-              <span className="hidden sm:inline text-sm font-medium">
-                {isPending ? "Kaydediliyor..." : (hasUnsavedChanges ? "Kaydet" : "Kaydedildi")}
-              </span>
-            </Button>
-
-
-
-            <Button
-              variant="default" // Primary
-              size="sm"
-              onClick={handleShare}
-              className="h-9 gap-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-            >
-              <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium">Paylaş</span>
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9" title="Daha fazla seçenek">
-                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handlePublish}>
-                  <Globe className="w-4 h-4 mr-2" />
-                  {isPublished ? 'Yayından Kaldır' : 'Yayınla'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadPDF}>
-                  <Download className="w-4 h-4 mr-2" />
-                  PDF İndir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+        <BuilderToolbar
+          catalog={catalog}
+          catalogName={catalogName}
+          onCatalogNameChange={setCatalogName}
+          isMobile={isMobile}
+          isPublished={isPublished}
+          hasUnsavedChanges={hasUnsavedChanges}
+          hasUnpushedChanges={hasUnpushedChanges}
+          isUrlOutdated={isUrlOutdated}
+          isPending={isPending}
+          view={view}
+          onViewChange={setView}
+          onSave={handleSave}
+          onPublish={handlePublish}
+          onPushUpdates={handlePushUpdates}
+          onUpdateSlug={handleUpdateSlug}
+          onShare={handleShare}
+          onDownloadPDF={handleDownloadPDF}
+          onExit={() => {
+            if (hasUnsavedChanges) {
+              setShowExitDialog(true)
+            } else {
+              router.push('/dashboard')
+            }
+          }}
+        />
       )}
 
 
@@ -1131,30 +908,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       </div>
 
       {/* Preview Mode Floating Header (Switch Back) */}
-      {view === "preview" && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
-          <div className="flex items-center gap-2 bg-background/80 backdrop-blur-md p-1.5 rounded-full border shadow-lg ring-1 ring-black/5">
-            <Label
-              htmlFor="preview-mode-switch"
-              className="text-xs font-medium px-3 cursor-pointer transition-colors text-muted-foreground hover:text-foreground"
-              onClick={() => setView('split')}
-            >
-              Editör
-            </Label>
-            <Switch
-              id="preview-mode-switch"
-              checked={true}
-              onCheckedChange={(checked) => !checked && setView('split')}
-              className="data-[state=checked]:bg-primary"
-            />
-            <Label
-              className="text-xs font-medium px-3 text-foreground cursor-default"
-            >
-              Önizleme
-            </Label>
-          </div>
-        </div>
-      )}
+      <PreviewFloatingHeader view={view} onViewChange={setView} />
 
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
 
@@ -1187,40 +941,20 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       />
 
       {/* Exit Confirmation Dialog */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
-            <AlertDialogDescription>
-              Katalogda kaydedilmemiş değişiklikler var. Çıkmadan önce kaydetmek ister misiniz?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel onClick={() => setShowExitDialog(false)}>
-              İptal
-            </AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setShowExitDialog(false)
-                router.push('/dashboard')
-              }}
-            >
-              Kaydetmeden Çık
-            </Button>
-            <Button
-              onClick={() => {
-                handleSave()
-                setShowExitDialog(false)
-                // Kayıt tamamlandıktan sonra yönlendir
-                setTimeout(() => router.push('/dashboard'), 500)
-              }}
-            >
-              Kaydet ve Çık
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ExitDialog
+        open={showExitDialog}
+        onOpenChange={setShowExitDialog}
+        onExitWithoutSaving={() => {
+          setShowExitDialog(false)
+          router.push('/dashboard')
+        }}
+        onSaveAndExit={() => {
+          handleSave()
+          setShowExitDialog(false)
+          // Kayıt tamamlandıktan sonra yönlendir
+          setTimeout(() => router.push('/dashboard'), 500)
+        }}
+      />
 
       {/* GHOST CONTAINER (PDF Export için Gizli Alan) */}
       {isExporting && (
