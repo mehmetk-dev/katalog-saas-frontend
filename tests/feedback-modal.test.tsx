@@ -87,10 +87,11 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
         if (unoptimized !== undefined) imgProps.unoptimized = String(unoptimized)
+        // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />
     },
 }))
@@ -99,10 +100,10 @@ global.URL.createObjectURL = vi.fn(() => 'blob:test')
 global.URL.revokeObjectURL = vi.fn()
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Feedback Modal Testleri', () => {
     beforeEach(() => {
@@ -167,7 +168,7 @@ describe('Feedback Modal Testleri', () => {
         it('Boş form gönderimi engellenir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -189,7 +190,7 @@ describe('Feedback Modal Testleri', () => {
         it('Sadece konu dolu ise gönderim engellenir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -214,7 +215,7 @@ describe('Feedback Modal Testleri', () => {
         it('Sadece mesaj dolu ise gönderim engellenir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -242,7 +243,7 @@ describe('Feedback Modal Testleri', () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
             const { sendFeedback } = await import('@/lib/actions/feedback')
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -278,7 +279,7 @@ describe('Feedback Modal Testleri', () => {
 
         it('Gönderim sırasında loading state gösterilir', async () => {
             const user = userEvent.setup()
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -355,7 +356,7 @@ describe('Feedback Modal Testleri', () => {
             })
 
             const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-            const files = Array.from({ length: 6 }, (_, i) => 
+            const files = Array.from({ length: 6 }, (_, i) =>
                 new File(['test'], `test-${i}.jpg`, { type: 'image/jpeg' })
             )
 
@@ -372,7 +373,7 @@ describe('Feedback Modal Testleri', () => {
         it('Çok büyük dosya için hata gösterilir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -433,7 +434,7 @@ describe('Feedback Modal Testleri', () => {
             // Delete button should appear on hover, but we can test the remove function
             // by checking if the file is removed from state
             const removeButtons = document.querySelectorAll('button[type="button"]')
-            const deleteButton = Array.from(removeButtons).find(btn => 
+            const deleteButton = Array.from(removeButtons).find(btn =>
                 btn.querySelector('.w-3.h-3') // X icon
             )
 
@@ -451,7 +452,7 @@ describe('Feedback Modal Testleri', () => {
         it('Dosya ile birlikte form gönderilebilir', async () => {
             const user = userEvent.setup()
             const { sendFeedback } = await import('@/lib/actions/feedback')
-            
+
             render(<FeedbackModal />)
 
             const trigger = screen.getByText('Geri Bildirim')
@@ -524,7 +525,7 @@ describe('Feedback Modal Testleri', () => {
         it('Kullanıcı oturumu yoksa hata gösterilir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             mockGetUser.mockResolvedValueOnce({
                 data: { user: null },
             })

@@ -33,14 +33,15 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
             imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)
         }
+        // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />
     },
 }))
@@ -65,10 +66,10 @@ global.URL.createObjectURL = vi.fn(() => 'blob:test')
 global.URL.revokeObjectURL = vi.fn()
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Form Validasyon Testleri', () => {
     beforeEach(() => {
@@ -79,7 +80,7 @@ describe('Form Validasyon Testleri', () => {
         it('Ürün adı zorunludur', async () => {
             const user = userEvent.setup()
             const onSaved = vi.fn()
-            
+
             render(
                 <ProductModal
                     open={true}
@@ -94,15 +95,15 @@ describe('Form Validasyon Testleri', () => {
             // Form submit et (boş form)
             // Buton metni translation key olabilir, tüm butonları kontrol et
             const buttons = screen.getAllByRole('button')
-            const submitButton = buttons.find(btn => 
-                btn.textContent?.includes('products.save') || 
+            const submitButton = buttons.find(btn =>
+                btn.textContent?.includes('products.save') ||
                 btn.textContent?.includes('Kaydet') ||
                 btn.textContent?.includes('Save')
             )
-            
+
             if (submitButton) {
                 await user.click(submitButton)
-                
+
                 // Form validasyonu çalışmalı - ürün adı boş olduğu için kayıt yapılmamalı
                 await waitFor(() => {
                     expect(onSaved).not.toHaveBeenCalled()
@@ -115,7 +116,7 @@ describe('Form Validasyon Testleri', () => {
 
         it('Fiyat negatif olamaz', async () => {
             const user = userEvent.setup()
-            
+
             render(
                 <ProductModal
                     open={true}
@@ -129,7 +130,7 @@ describe('Form Validasyon Testleri', () => {
 
             // Fiyat inputunu bul ve negatif değer gir
             const priceInputs = screen.queryAllByRole('textbox')
-            const priceInput = priceInputs.find(input => 
+            const priceInput = priceInputs.find(input =>
                 (input as HTMLInputElement).placeholder?.toLowerCase().includes('fiyat') ||
                 (input as HTMLInputElement).placeholder?.toLowerCase().includes('price')
             ) || screen.queryByLabelText(/fiyat|price/i)
@@ -152,7 +153,7 @@ describe('Form Validasyon Testleri', () => {
 
         it('Stok negatif olamaz', async () => {
             const user = userEvent.setup()
-            
+
             render(
                 <ProductModal
                     open={true}
@@ -179,7 +180,7 @@ describe('Form Validasyon Testleri', () => {
             // Katalog adı boş olamaz
             const catalogName = ''
             expect(catalogName.trim().length).toBe(0)
-            
+
             // Validasyon kontrolü
             const isValid = catalogName.trim().length > 0
             expect(isValid).toBe(false)
@@ -188,7 +189,7 @@ describe('Form Validasyon Testleri', () => {
         it('Katalog adı çok uzun olamaz', () => {
             const longName = 'A'.repeat(300) // Çok uzun isim
             expect(longName.length).toBeGreaterThan(255) // Genelde DB limiti 255 karakter
-            
+
             // Validasyon kontrolü
             const isValid = longName.length <= 255
             expect(isValid).toBe(false)

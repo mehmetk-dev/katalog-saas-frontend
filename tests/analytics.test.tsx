@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -21,10 +19,20 @@ vi.mock('next/navigation', () => ({
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
+
+interface Catalog {
+    id: string;
+    name: string;
+    share_slug: string;
+    is_published: boolean;
+    view_count: number;
+    user_id?: string;
+    products: unknown[];
+}
 
 describe('Analytics Testleri', () => {
     beforeEach(() => {
@@ -46,7 +54,7 @@ describe('Analytics Testleri', () => {
             // İlk görüntüleme
             vi.mocked(apiFetch).mockResolvedValueOnce(mockCatalog)
 
-            const catalog = await apiFetch(`/catalogs/public/test-slug`)
+            const catalog = await apiFetch<Catalog>(`/catalogs/public/test-slug`)
             expect(catalog).toBeDefined()
             expect(catalog.view_count).toBe(0) // İlk görüntüleme, henüz artmamış olabilir (async)
 
@@ -70,7 +78,7 @@ describe('Analytics Testleri', () => {
             // Owner olarak görüntüleme (x-user-id header ile)
             vi.mocked(apiFetch).mockResolvedValueOnce(mockCatalog)
 
-            const catalog = await apiFetch(`/catalogs/public/test-slug`, {
+            const catalog = await apiFetch<Catalog>(`/catalogs/public/test-slug`, {
                 headers: {
                     'x-user-id': 'owner-user-id'
                 }
@@ -94,12 +102,12 @@ describe('Analytics Testleri', () => {
 
             // Visitor 1
             vi.mocked(apiFetch).mockResolvedValueOnce({ ...mockCatalog, view_count: 1 })
-            const catalog1 = await apiFetch(`/catalogs/public/test-slug`)
+            const catalog1 = await apiFetch<Catalog>(`/catalogs/public/test-slug`)
             expect(catalog1.view_count).toBeGreaterThanOrEqual(0)
 
             // Visitor 2 (farklı IP/visitor hash)
             vi.mocked(apiFetch).mockResolvedValueOnce({ ...mockCatalog, view_count: 2 })
-            const catalog2 = await apiFetch(`/catalogs/public/test-slug`)
+            const catalog2 = await apiFetch<Catalog>(`/catalogs/public/test-slug`)
             expect(catalog2.view_count).toBeGreaterThanOrEqual(1)
         })
 
@@ -116,13 +124,13 @@ describe('Analytics Testleri', () => {
 
             // İlk görüntüleme
             vi.mocked(apiFetch).mockResolvedValueOnce({ ...mockCatalog, view_count: 1 })
-            const catalog1 = await apiFetch(`/catalogs/public/test-slug`)
+            const catalog1 = await apiFetch<Catalog>(`/catalogs/public/test-slug`)
 
             // Aynı visitor aynı gün içinde tekrar görüntüleme
             // unique index (catalog_id, visitor_hash, view_date) sayesinde
             // aynı gün içinde tekrar kayıt eklenmez
             vi.mocked(apiFetch).mockResolvedValueOnce({ ...mockCatalog, view_count: 1 })
-            const catalog2 = await apiFetch(`/catalogs/public/test-slug`)
+            const catalog2 = await apiFetch<Catalog>(`/catalogs/public/test-slug`)
 
             // View count aynı kalmalı (unique constraint sayesinde)
             expect(catalog2.view_count).toBe(catalog1.view_count)
@@ -132,7 +140,7 @@ describe('Analytics Testleri', () => {
             // Visitor hash: IP + User Agent hash'i
             const ip = '192.168.1.1'
             const userAgent = 'Mozilla/5.0'
-            
+
             // Basit hash fonksiyonu (gerçek implementasyon farklı olabilir)
             const createVisitorHash = (ip: string, ua: string) => {
                 return btoa(`${ip}-${ua}`).substring(0, 32)
@@ -200,7 +208,7 @@ describe('Analytics Testleri', () => {
             // Başarılı insert
             mockRPC.mockResolvedValueOnce({ data: true, error: null })
 
-            const result = await mockRPC('smart_increment_view_count', {
+            const _result = await mockRPC('smart_increment_view_count', {
                 p_catalog_id: catalogId,
                 p_visitor_hash: visitorHash,
                 p_is_owner: isOwner
@@ -234,7 +242,7 @@ describe('Analytics Testleri', () => {
     describe('Public Catalog Endpoint Integration', () => {
         it('Public katalog endpoint çağrıldığında view tracking tetiklenir', async () => {
             const { apiFetch } = await import('@/lib/api')
-            
+
             // Mock: Public catalog endpoint çağrısı
             const mockCatalog = {
                 id: 'catalog-1',
@@ -259,7 +267,7 @@ describe('Analytics Testleri', () => {
 
         it('Owner header ile görüntülediğinde view count artmaz', async () => {
             const { apiFetch } = await import('@/lib/api')
-            
+
             const mockCatalog = {
                 id: 'catalog-1',
                 name: 'Test Catalog',
@@ -273,8 +281,8 @@ describe('Analytics Testleri', () => {
             // Owner olarak görüntüleme (x-user-id header backend'de kontrol ediliyor)
             vi.mocked(apiFetch).mockResolvedValueOnce(mockCatalog)
 
-            const catalog = await apiFetch('/catalogs/public/test-slug')
-            
+            const catalog = await apiFetch<Catalog>('/catalogs/public/test-slug')
+
             // Backend'de isOwner kontrolü yapılıyor ve smartIncrementViewCount çağrılmıyor
             // Bu test mock'lanmış response'u test ediyor
             expect(catalog.view_count).toBe(5) // Artmamalı

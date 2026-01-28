@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
+import { type Product } from "@/lib/actions/products"
+
 interface ProductsBulkPriceModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     selectedIds: string[]
     onSelectedIdsChange: (ids: string[]) => void
-    paginatedProducts: any[]
-    allProducts: any[]
+    paginatedProducts: Product[]
+    allProducts: Product[]
     categories: string[]
     categoryStats: [string, { count: number; totalValue: number }][]
     priceChangeType: "increase" | "decrease"

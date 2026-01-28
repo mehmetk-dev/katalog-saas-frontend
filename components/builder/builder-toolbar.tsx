@@ -2,8 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,7 +9,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-    ArrowLeft, Copy, ExternalLink, Globe, MoreVertical,
+    ArrowLeft, Copy, Globe, MoreVertical,
     RefreshCw, AlertTriangle, Save, Share2, Eye, Pencil, Download
 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-provider"

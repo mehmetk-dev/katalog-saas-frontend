@@ -14,7 +14,6 @@ import {
     Loader2
 } from "lucide-react"
 import { toast } from "sonner"
-import { createBrowserClient } from "@supabase/ssr"
 import { getSessionSafe } from "@/lib/supabase/client"
 import NextImage from "next/image"
 
@@ -165,7 +164,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     uploadTimeoutId.current = timeoutId
                 })
 
-                const result: any = await Promise.race([uploadPromise, timeoutPromise])
+                const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | null
 
                 // Timeout'u temizle (başarılı olduysa)
                 if (timeoutId) {
@@ -181,7 +180,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     throw new Error('Upload successful but URL is missing')
                 }
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Timeout'u temizle (hata durumunda)
                 if (timeoutId) {
                     clearTimeout(timeoutId)
@@ -190,11 +189,11 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                 }
 
                 // İptal hatası ise direkt fırlat
-                if (error.message === 'Upload cancelled' || signal?.aborted) {
+                if ((error as Error).message === 'Upload cancelled' || signal?.aborted) {
                     throw error
                 }
 
-                console.error(`[Categories] ❌ Attempt ${attempt + 1} failed:`, error.message)
+                console.error(`[Categories] ❌ Attempt ${attempt + 1} failed:`, (error as Error).message)
 
                 // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
                 if (attempt === MAX_RETRIES - 1) {
@@ -248,15 +247,15 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
             setCoverImage(publicUrl)
             toast.success(t('toasts.imageUploaded'))
-        } catch (error: any) {
+        } catch (error: unknown) {
             // İptal hatası ise sessizce geç
-            if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
+            if ((error as Error).message === 'Upload cancelled' || abortController.signal.aborted) {
                 return
             }
 
             console.error('Upload error:', error)
 
-            const errorMessage = error.message?.includes('UPLOAD_TIMEOUT') || error.message?.includes('timeout')
+            const errorMessage = (error as Error).message?.includes('UPLOAD_TIMEOUT') || (error as Error).message?.includes('timeout')
                 ? t('auth.timeout')
                 : t('toasts.imageUploadFailed')
 

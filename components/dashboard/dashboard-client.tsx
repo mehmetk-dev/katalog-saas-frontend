@@ -311,7 +311,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                                             const date = new Date(catalog.updated_at)
                                                             if (isNaN(date.getTime())) return t("common.updateError") || "Bilinmiyor"
                                                             return formatDistanceToNow(date, { addSuffix: true, locale: tr })
-                                                        } catch (e) {
+                                                        } catch {
                                                             return t("common.updateError") || "Bilinmiyor"
                                                         }
                                                     })()}

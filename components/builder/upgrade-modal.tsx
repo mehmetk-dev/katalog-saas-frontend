@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Check, Sparkles, CreditCard, MousePointer2, Link2, ShieldCheck, CalendarPlus, BadgeCheck } from "lucide-react"
+import { Check, MousePointer2, Link2, ShieldCheck, CalendarPlus, BadgeCheck } from "lucide-react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/user-context"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -118,7 +117,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         { text: "7/24 Öncelikli VIP Destek", included: true },
       ],
     },
-  ], [t])
+  ], [PlanIcons.free, PlanIcons.plus, PlanIcons.pro])
 
   const handleUpgrade = async (planId: string) => {
     setIsLoading(true)
@@ -247,7 +246,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                             : feature.included === "warning" ? "text-amber-600 font-medium" : "text-muted-foreground"
                         )}>
                           {feature.text}
-                          {(feature as any).icon && (feature as any).icon}
+                          {'icon' in feature && feature.icon}
                         </span>
                       </li>
                     ))}

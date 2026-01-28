@@ -21,6 +21,7 @@ function toProduct(p: {
         images: p.image_url ? [p.image_url] : [],
         product_url: null,
         custom_attributes: [],
+        order: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
     }

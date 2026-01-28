@@ -100,7 +100,7 @@ export class CloudinaryProvider implements StorageProvider {
       const data = await response.json()
 
       // Cloudinary response'tan gelen URL'e otomatik optimizasyon parametrelerini ekle
-      let rawUrl = data.secure_url || data.url
+      const rawUrl = data.secure_url || data.url
       let imageUrl = rawUrl
 
       if (rawUrl && rawUrl.includes('/upload/')) {
@@ -129,7 +129,7 @@ export class CloudinaryProvider implements StorageProvider {
     }
   }
 
-  async delete(path: string): Promise<void> {
+  async delete(_path: string): Promise<void> {
     // Cloudinary'de silme işlemi için signed request gerekir (server-side)
     // Client-side'da sadece upload yapılabilir, silme için API endpoint gerekir
     console.warn('[Cloudinary] Delete operation should be done server-side')

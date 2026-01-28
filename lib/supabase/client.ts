@@ -10,7 +10,7 @@ export function createClient() {
  */
 export async function getSessionSafe() {
   const supabase = createClient()
-  let { data: { session } } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   if (session?.access_token) return session
 

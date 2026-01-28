@@ -1,8 +1,5 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { ProductsPageClient } from '@/components/products/products-page-client'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -52,10 +49,10 @@ vi.mock('@/lib/actions/products', () => ({
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Arama ve Filtreleme Testleri', () => {
     beforeEach(() => {
@@ -71,7 +68,7 @@ describe('Arama ve Filtreleme Testleri', () => {
             ]
 
             const searchQuery = 'Laptop'
-            const filtered = products.filter(p => 
+            const filtered = products.filter(p =>
                 p.name.toLowerCase().includes(searchQuery.toLowerCase())
             )
 
@@ -86,7 +83,7 @@ describe('Arama ve Filtreleme Testleri', () => {
             ]
 
             const searchQuery = 'MOU-001'
-            const filtered = products.filter(p => 
+            const filtered = products.filter(p =>
                 p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 p.sku?.toLowerCase().includes(searchQuery.toLowerCase())
             )
@@ -102,7 +99,7 @@ describe('Arama ve Filtreleme Testleri', () => {
             ]
 
             const searchQuery = 'Electronics'
-            const filtered = products.filter(p => 
+            const filtered = products.filter(p =>
                 p.category?.toLowerCase().includes(searchQuery.toLowerCase())
             )
 

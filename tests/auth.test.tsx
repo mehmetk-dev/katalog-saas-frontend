@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AuthPageClient } from '@/components/auth/auth-page-client'
+import { useRouter } from 'next/navigation'
 
 // Mock dependencies
 const mockSupabaseAuth = {
@@ -19,7 +20,7 @@ const mockSupabaseClient = {
     auth: mockSupabaseAuth,
     from: vi.fn(() => ({
         insert: vi.fn(),
-    })) as any,
+    })) as unknown as ReturnType<typeof mockSupabaseClient.from>,
 }
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -40,27 +41,29 @@ vi.mock('next/navigation', () => ({
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Authentication Testleri', () => {
-    let mockRouter: any
+    let mockRouter: {
+        push: ReturnType<typeof vi.fn>;
+        replace: ReturnType<typeof vi.fn>;
+        refresh: ReturnType<typeof vi.fn>;
+    }
 
     beforeEach(() => {
         vi.clearAllMocks()
-        
-        const { useRouter } = require('next/navigation')
-        
+
         mockRouter = {
             push: vi.fn(),
             replace: vi.fn(),
             refresh: vi.fn(),
         }
-        
-        useRouter.mockReturnValue(mockRouter)
-        
+
+        vi.mocked(useRouter).mockReturnValue(mockRouter as ReturnType<typeof useRouter>)
+
         // Reset mocks
         mockSupabaseAuth.signUp.mockReset()
         mockSupabaseAuth.signInWithPassword.mockReset()
@@ -71,7 +74,7 @@ describe('Authentication Testleri', () => {
     describe('Sign Up (Kayıt Ol)', () => {
         it('Başarılı kayıt işlemi yapar', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseAuth.signUp.mockResolvedValueOnce({
                 data: {
                     user: { id: 'user-1', email: 'test@example.com' },
@@ -83,20 +86,20 @@ describe('Authentication Testleri', () => {
             render(<AuthPageClient />)
 
             // Sign up moduna geç - tab veya toggle butonunu bul
-            const signUpToggle = screen.queryByText(/kayıt ol|sign up|register/i) || 
-                                screen.queryByRole('button', { name: /kayıt ol|sign up/i })
-            
+            const signUpToggle = screen.queryByText(/kayıt ol|sign up|register/i) ||
+                screen.queryByRole('button', { name: /kayıt ol|sign up/i })
+
             if (signUpToggle) {
                 await user.click(signUpToggle)
             }
 
             // Form alanlarını doldur - placeholder veya label ile bul
-            const nameInput = screen.queryByPlaceholderText(/ad|name/i) || 
-                             screen.queryByLabelText(/ad|name/i)
+            const nameInput = screen.queryByPlaceholderText(/ad|name/i) ||
+                screen.queryByLabelText(/ad|name/i)
             const emailInput = screen.getByPlaceholderText(/e-posta|email/i)
             const passwordInput = screen.getByPlaceholderText(/şifre|password/i)
-            const companyInput = screen.queryByPlaceholderText(/şirket|company/i) || 
-                                screen.queryByLabelText(/şirket|company/i)
+            const companyInput = screen.queryByPlaceholderText(/şirket|company/i) ||
+                screen.queryByLabelText(/şirket|company/i)
 
             if (nameInput) await user.type(nameInput, 'Test User')
             await user.type(emailInput, 'test@example.com')
@@ -119,7 +122,7 @@ describe('Authentication Testleri', () => {
 
         it('Email doğrulama gerektiğinde verify sayfasına yönlendirir', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signUp.mockResolvedValueOnce({
                 data: {
                     user: { id: 'user-1', email: 'test@example.com' },
@@ -149,7 +152,7 @@ describe('Authentication Testleri', () => {
 
         it('Kayıt hatası durumunda hata mesajı gösterir', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signUp.mockResolvedValueOnce({
                 data: null,
                 error: { message: 'Email already registered' },
@@ -176,7 +179,7 @@ describe('Authentication Testleri', () => {
 
         it('Şifre minimum uzunluk kontrolü yapar', async () => {
             const user = userEvent.setup()
-            
+
             render(<AuthPageClient />)
 
             const signUpTab = screen.getByText(/kayıt ol|sign up/i)
@@ -193,7 +196,7 @@ describe('Authentication Testleri', () => {
     describe('Sign In (Giriş Yap)', () => {
         it('Başarılı giriş işlemi yapar', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signInWithPassword.mockResolvedValueOnce({
                 data: {
                     user: { id: 'user-1', email: 'test@example.com' },
@@ -233,7 +236,7 @@ describe('Authentication Testleri', () => {
 
         it('Geçersiz kimlik bilgileri durumunda hata gösterir', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signInWithPassword.mockResolvedValueOnce({
                 data: null,
                 error: { message: 'Invalid login credentials' },
@@ -257,7 +260,7 @@ describe('Authentication Testleri', () => {
 
         it('Email doğrulanmamış durumunda hata gösterir', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signInWithPassword.mockResolvedValueOnce({
                 data: null,
                 error: { message: 'Email not confirmed' },
@@ -281,7 +284,7 @@ describe('Authentication Testleri', () => {
 
         it('Network hatası durumunda hata gösterir', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signInWithPassword.mockResolvedValueOnce({
                 data: null,
                 error: { message: 'fetch failed' },
@@ -307,7 +310,7 @@ describe('Authentication Testleri', () => {
     describe('Google OAuth', () => {
         it('Google ile giriş butonu çalışır', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signInWithOAuth.mockResolvedValueOnce({
                 data: { url: 'https://accounts.google.com/oauth' },
                 error: null,
@@ -330,7 +333,7 @@ describe('Authentication Testleri', () => {
 
         it('OAuth hatası durumunda hata gösterir', async () => {
             const user = userEvent.setup()
-            
+
             mockSupabaseClient.auth.signInWithOAuth.mockResolvedValueOnce({
                 data: null,
                 error: { message: 'OAuth error' },
@@ -351,7 +354,7 @@ describe('Authentication Testleri', () => {
     describe('Form Validasyonu', () => {
         it('Email formatı kontrolü yapar', async () => {
             const user = userEvent.setup()
-            
+
             render(<AuthPageClient />)
 
             const emailInput = screen.getByPlaceholderText(/e-posta/i)
@@ -362,8 +365,8 @@ describe('Authentication Testleri', () => {
         })
 
         it('Zorunlu alanlar boş bırakılamaz', async () => {
-            const user = userEvent.setup()
-            
+            userEvent.setup()
+
             render(<AuthPageClient />)
 
             const emailInput = screen.getByPlaceholderText(/e-posta/i)
@@ -375,7 +378,7 @@ describe('Authentication Testleri', () => {
 
         it('Şifre göster/gizle toggle çalışır', async () => {
             const user = userEvent.setup()
-            
+
             render(<AuthPageClient />)
 
             const passwordInput = screen.getByPlaceholderText(/şifre/i) as HTMLInputElement
@@ -397,7 +400,7 @@ describe('Authentication Testleri', () => {
     describe('Loading States', () => {
         it('Giriş sırasında loading state gösterir', async () => {
             const user = userEvent.setup()
-            
+
             // Async işlemi yavaşlat
             mockSupabaseClient.auth.signInWithPassword.mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve({

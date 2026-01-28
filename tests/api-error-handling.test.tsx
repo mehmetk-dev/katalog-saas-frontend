@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { apiFetch } from '@/lib/api'
 
 // Mock fetch
@@ -11,8 +11,9 @@ describe('API Error Handling Testleri', () => {
 
     describe('Network Errors', () => {
         it('Network hatası durumunda retry yapar', async () => {
+            const fetchMock = global.fetch as Mock
             let callCount = 0
-            ;(global.fetch as any).mockImplementation(() => {
+            fetchMock.mockImplementation(() => {
                 callCount++
                 if (callCount < 3) {
                     return Promise.reject(new Error('Network error'))
@@ -30,7 +31,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('Max retry sonrası hata fırlatır', async () => {
-            ;(global.fetch as any).mockRejectedValue(new Error('Network error'))
+            ; (global.fetch as Mock).mockRejectedValue(new Error('Network error'))
 
             await expect(apiFetch('/test')).rejects.toThrow()
         })
@@ -38,7 +39,7 @@ describe('API Error Handling Testleri', () => {
 
     describe('HTTP Status Codes', () => {
         it('401 Unauthorized hatası doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 401,
                 json: async () => ({ error: 'Unauthorized' }),
@@ -48,7 +49,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('403 Forbidden hatası doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 403,
                 json: async () => ({ error: 'Forbidden' }),
@@ -58,7 +59,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('404 Not Found hatası doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 404,
                 json: async () => ({ error: 'Not Found' }),
@@ -68,7 +69,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('500 Internal Server Error hatası doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 500,
                 json: async () => ({ error: 'Internal Server Error' }),
@@ -78,7 +79,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('429 Rate Limit hatası doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 429,
                 json: async () => ({ error: 'Too Many Requests' }),
@@ -90,7 +91,7 @@ describe('API Error Handling Testleri', () => {
 
     describe('Timeout Handling', () => {
         it('Timeout durumunda hata fırlatır', async () => {
-            ;(global.fetch as any).mockImplementation(
+            ; (global.fetch as Mock).mockImplementation(
                 () => new Promise(resolve => setTimeout(resolve, 10000))
             )
 
@@ -98,7 +99,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('Timeout süresi içinde yanıt gelirse başarılı olur', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ data: 'success' }),
             })
@@ -112,10 +113,10 @@ describe('API Error Handling Testleri', () => {
     describe('Response Parsing', () => {
         it('JSON response doğru parse edilir', async () => {
             const mockData = { id: 1, name: 'Test' }
-            ;(global.fetch as any).mockResolvedValueOnce({
-                ok: true,
-                json: async () => mockData,
-            })
+                ; (global.fetch as Mock).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => mockData,
+                })
 
             const result = await apiFetch('/test')
 
@@ -123,7 +124,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('Invalid JSON response hatası doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: true,
                 json: async () => {
                     throw new Error('Invalid JSON')
@@ -134,7 +135,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('Empty response doğru işlenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: true,
                 json: async () => null,
             })
@@ -148,10 +149,10 @@ describe('API Error Handling Testleri', () => {
     describe('Request Headers', () => {
         it('Authorization header doğru eklenir', async () => {
             const token = 'test-token'
-            ;(global.fetch as any).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ data: 'success' }),
-            })
+                ; (global.fetch as Mock).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ data: 'success' }),
+                })
 
             await apiFetch('/test', {
                 headers: {
@@ -170,7 +171,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('Content-Type header doğru eklenir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ data: 'success' }),
             })
@@ -193,7 +194,7 @@ describe('API Error Handling Testleri', () => {
 
     describe('Request Methods', () => {
         it('GET request doğru gönderilir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ data: 'success' }),
             })
@@ -210,10 +211,10 @@ describe('API Error Handling Testleri', () => {
 
         it('POST request doğru gönderilir', async () => {
             const body = { name: 'Test' }
-            ;(global.fetch as any).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ data: 'success' }),
-            })
+                ; (global.fetch as Mock).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ data: 'success' }),
+                })
 
             await apiFetch('/test', {
                 method: 'POST',
@@ -231,10 +232,10 @@ describe('API Error Handling Testleri', () => {
 
         it('PUT request doğru gönderilir', async () => {
             const body = { id: 1, name: 'Updated' }
-            ;(global.fetch as any).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ data: 'success' }),
-            })
+                ; (global.fetch as Mock).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ data: 'success' }),
+                })
 
             await apiFetch('/test', {
                 method: 'PUT',
@@ -250,7 +251,7 @@ describe('API Error Handling Testleri', () => {
         })
 
         it('DELETE request doğru gönderilir', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ data: 'success' }),
             })
@@ -268,7 +269,7 @@ describe('API Error Handling Testleri', () => {
 
     describe('Error Messages', () => {
         it('Hata mesajları kullanıcı dostu olmalı', async () => {
-            ;(global.fetch as any).mockResolvedValueOnce({
+            ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 400,
                 json: async () => ({
@@ -279,9 +280,10 @@ describe('API Error Handling Testleri', () => {
 
             try {
                 await apiFetch('/test')
-            } catch (error: any) {
-                expect(error.message).toBeTruthy()
-                expect(typeof error.message).toBe('string')
+            } catch (error: unknown) {
+                const apiError = error as { message: string }
+                expect(apiError.message).toBeTruthy()
+                expect(typeof apiError.message).toBe('string')
             }
         })
 
@@ -294,17 +296,18 @@ describe('API Error Handling Testleri', () => {
                 },
             }
 
-            ;(global.fetch as any).mockResolvedValueOnce({
-                ok: false,
-                status: 400,
-                json: async () => errorDetails,
-            })
+                ;; (global.fetch as Mock).mockResolvedValueOnce({
+                    ok: false,
+                    status: 400,
+                    json: async () => errorDetails,
+                })
 
             try {
                 await apiFetch('/test')
-            } catch (error: any) {
-                expect(error.details).toBeDefined()
-                expect(error.details.fields).toBeDefined()
+            } catch (error: unknown) {
+                const apiError = error as { details: { fields: Record<string, string> } }
+                expect(apiError.details).toBeDefined()
+                expect(apiError.details.fields).toBeDefined()
             }
         })
     })

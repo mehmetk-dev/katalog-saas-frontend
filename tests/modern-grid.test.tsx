@@ -1,17 +1,19 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { ModernGridTemplate } from '@/components/catalogs/templates/modern-grid'
+import type { Product } from '@/lib/actions/products'
 
 // Mock NextImage since it doesn't work well in jsdom/vitest without setup
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
             imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)
         }
+        // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />
     },
 }))
@@ -64,7 +66,7 @@ describe('ModernGridTemplate', () => {
             { id: '1', name: 'Ürün 1', price: 100, image_url: '/1.jpg' },
             { id: '2', name: 'Ürün 2', price: 200, image_url: '/2.jpg' }
         ]
-        render(<ModernGridTemplate {...defaultProps} products={products as any} />)
+        render(<ModernGridTemplate {...defaultProps} products={products as Product[]} />)
 
         expect(screen.getByText('Ürün 1')).toBeDefined()
         expect(screen.getByText('Ürün 2')).toBeDefined()

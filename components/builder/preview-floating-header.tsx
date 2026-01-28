@@ -1,8 +1,6 @@
 "use client"
 
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Pencil, MoreVertical, Globe, Download, Copy, Share2 } from "lucide-react"
+import { ArrowLeft, Pencil, MoreVertical, Globe, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,

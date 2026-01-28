@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useTransition, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { toast } from "sonner"
 import NextImage from "next/image"
 import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
@@ -26,14 +26,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { createClient, getSessionSafe } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { storage } from "@/lib/storage"
 
 export default function SettingsPage() {
   const { user, setUser, isLoading, refreshUser } = useUser()
   const { language, setLanguage, t } = useTranslation()
-  const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
@@ -134,17 +133,18 @@ export default function SettingsPage() {
           }, TIMEOUT_MS)
         })
 
-        const result: any = await Promise.race([uploadPromise, timeoutPromise])
+        const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | never
 
         if (timeoutId) clearTimeout(timeoutId)
 
-        if (result && result.url) return result.url
+        if (result && 'url' in result && result.url) return result.url
         else throw new Error('Upload successful but URL is missing')
 
-      } catch (error: any) {
+      } catch (error) {
         if (timeoutId) clearTimeout(timeoutId)
-        if (error.message === 'Upload cancelled' || signal?.aborted) throw error
-        console.error(`[Settings] ❌ ${bucketPath} attempt ${attempt + 1} failed:`, error.message)
+        if (error instanceof Error && (error.message === 'Upload cancelled' || signal?.aborted)) throw error
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+        console.error(`[Settings] ❌ ${bucketPath} attempt ${attempt + 1} failed:`, errorMessage)
         if (attempt === MAX_RETRIES - 1) throw error
       }
     }
@@ -228,12 +228,13 @@ export default function SettingsPage() {
             const fileName = `${user.id}-${Date.now()}.${fileExtension}`
             const publicUrl = await uploadFileWithRetry(pendingAvatarFile, 'avatars', fileName, abortController.signal)
             avatarUrlToSave = publicUrl
-          } catch (error: any) {
-            if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
+          } catch (error) {
+            if (error instanceof Error && (error.message === 'Upload cancelled' || abortController.signal.aborted)) {
               return
             }
             console.error('[Settings] Avatar upload failed:', error)
-            toast.error(`Avatar yüklenemedi: ${error.message}`)
+            const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+            toast.error(`Avatar yüklenemedi: ${errorMessage}`)
             throw error // İşlemi durdur
           } finally {
             avatarAbortController.current = null
@@ -254,12 +255,13 @@ export default function SettingsPage() {
             const fileName = `logo-${user.id}-${Date.now()}.${fileExtension}`
             const publicUrl = await uploadFileWithRetry(pendingLogoFile, 'company-logos', fileName, abortController.signal)
             logoUrlToSave = publicUrl
-          } catch (error: any) {
-            if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
+          } catch (error) {
+            if (error instanceof Error && (error.message === 'Upload cancelled' || abortController.signal.aborted)) {
               return
             }
             console.error('[Settings] Logo upload failed:', error)
-            toast.error(`Logo yüklenemedi: ${error.message}`)
+            const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+            toast.error(`Logo yüklenemedi: ${errorMessage}`)
             throw error // İşlemi durdur
           } finally {
             logoAbortController.current = null
@@ -284,7 +286,7 @@ export default function SettingsPage() {
 
         // 4. Force refresh (Background - Fire & Forget)
         // Kullanıcıyı bekletmemek için refresh işlemini arka planda başlatıyoruz ve beklemiyoruz.
-        refreshUser().catch(() => {})
+        refreshUser().catch(() => { })
 
         // Cleanup
         setPendingAvatarFile(null)
@@ -493,8 +495,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex justify-end pt-4 pb-2 md:pb-0">
-                  <Button type="submit" disabled={isPending || isSaving} className="min-w-[120px]">
-                    {isPending || isSaving ? (
+                  <Button type="submit" disabled={isSaving} className="min-w-[120px]">
+                    {isSaving ? (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         {t("settings.saving")}

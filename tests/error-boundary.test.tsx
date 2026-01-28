@@ -20,7 +20,7 @@ describe('Error Boundary Testleri', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         // Suppress console.error for expected errors
-        vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'error').mockImplementation(() => { })
     })
 
     afterEach(() => {
@@ -51,11 +51,11 @@ describe('Error Boundary Testleri', () => {
 
     it('Reload butonu çalışır', async () => {
         const user = userEvent.setup()
-        
+
         // window.location.reload mock
         const reloadMock = vi.fn()
-        delete (window as any).location
-        ;(window as any).location = { reload: reloadMock }
+        delete (window as { location?: Location }).location
+            ; (window as { location: { reload: () => void } }).location = { reload: reloadMock }
 
         render(
             <ErrorBoundary>
@@ -71,10 +71,10 @@ describe('Error Boundary Testleri', () => {
 
     it('Go Home butonu çalışır', async () => {
         const user = userEvent.setup()
-        
+
         // window.location.href mock
-        delete (window as any).location
-        ;(window as any).location = { href: '' }
+        delete (window as { location?: Location }).location
+            ; (window as { location: { href: string } }).location = { href: '' }
 
         render(
             <ErrorBoundary>
@@ -102,7 +102,7 @@ describe('Error Boundary Testleri', () => {
 
     it('Development modunda error detayları gösterir', () => {
         const originalEnv = process.env.NODE_ENV
-        process.env.NODE_ENV = 'development'
+            ; (process.env as { NODE_ENV?: string }).NODE_ENV = 'development'
 
         render(
             <ErrorBoundary>
@@ -113,12 +113,12 @@ describe('Error Boundary Testleri', () => {
         // Development modunda error message gösterilmeli
         expect(screen.getByText(/Test error/i)).toBeTruthy()
 
-        process.env.NODE_ENV = originalEnv
+            ; (process.env as { NODE_ENV?: string }).NODE_ENV = originalEnv
     })
 
     it('Production modunda error detayları gizlenir', () => {
         const originalEnv = process.env.NODE_ENV
-        process.env.NODE_ENV = 'production'
+            ; (process.env as { NODE_ENV?: string }).NODE_ENV = 'production'
 
         render(
             <ErrorBoundary>
@@ -130,6 +130,6 @@ describe('Error Boundary Testleri', () => {
         const errorMessage = screen.queryByText(/Test error/i)
         expect(errorMessage).toBeNull()
 
-        process.env.NODE_ENV = originalEnv
+            ; (process.env as { NODE_ENV?: string }).NODE_ENV = originalEnv
     })
 })

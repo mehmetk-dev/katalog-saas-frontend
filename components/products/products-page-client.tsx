@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useTransition, useRef, useMemo, useCallback, useEffect } from "react"
-import { FileDown, Plus, Sparkles, Filter, LayoutGrid, List, Search, X, Package, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, Image as ImageIcon, Percent, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SortAsc, SortDesc, DollarSign } from "lucide-react"
+import { useState, useTransition, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -10,18 +9,10 @@ import { ProductsTable } from "./products-table"
 import { ProductModal } from "./product-modal"
 import { ImportExportModal } from "./import-export-modal"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n-provider"
 import { Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
-import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,13 +48,12 @@ type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 const DEFAULT_ITEMS_PER_PAGE = 12
 const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 
 export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
   const searchParams = useSearchParams()
-  const router = useRouter()
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [search, setSearch] = useState("")
   const [showLimitModal, setShowLimitModal] = useState(false)
@@ -72,7 +62,6 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Modallar State
   const [showBulkImageModal, setShowBulkImageModal] = useState(false)
@@ -427,13 +416,13 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             onOpenChange={setShowFilters}
             sortField={sortField}
             sortOrder={sortOrder}
-            onSortFieldChange={(field) => setSortField(field)}
+            onSortFieldChange={(field) => setSortField(field as SortField)}
             onSortOrderChange={setSortOrder}
             selectedCategory={selectedCategory}
             onCategoryChange={(cat) => { setSelectedCategory(cat); setCurrentPage(1) }}
             categories={categories}
             stockFilter={stockFilter}
-            onStockFilterChange={(filter) => { setStockFilter(filter); setCurrentPage(1) }}
+            onStockFilterChange={(filter) => { setStockFilter(filter as StockFilter); setCurrentPage(1) }}
             priceRange={priceRange}
             onPriceRangeChange={setPriceRange}
             maxPrice={priceStats.max}
@@ -450,7 +439,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
               <AlertDialogHeader>
                 <AlertDialogTitle>{t("products.deleteConfirmTitle") || "Emin misiniz?"}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t("products.deleteConfirmDesc", { count: selectedIds.length }) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz. Bu işlem geri alınamaz.`}
+                  {t("products.deleteConfirmDesc", { count: selectedIds.length }) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz.Bu işlem geri alınamaz.`}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

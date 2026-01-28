@@ -5,7 +5,7 @@ import { AlertTriangle, RefreshCw, Home, Heart } from 'lucide-react'
 import * as Sentry from "@sentry/nextjs"
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function GlobalError({
     error,

@@ -17,7 +17,6 @@ import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
 import { useTranslation } from "@/lib/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
@@ -135,8 +134,8 @@ export function CatalogEditor({
   onLogoUrlChange,
   logoPosition = 'header-left',
   onLogoPositionChange,
-  logoSize = 'medium',
-  onLogoSizeChange,
+  logoSize: _logoSize = 'medium',
+  onLogoSizeChange: _onLogoSizeChange,
   titlePosition: _titlePosition = 'left',
   onTitlePositionChange: _onTitlePositionChange,
   showAttributes = false,
@@ -235,7 +234,7 @@ export function CatalogEditor({
     // Looking at imports, createClient is not imported in this file, only getSessionSafe and storage.
     // However, getSessionSafe uses createClient internally or we can use refreshSession from it?
     // Let's check imports. Lines 1-30 shows `import { getSessionSafe } from "@/lib/supabase/client"`.
-    // We need to import `createClient` too or use a way to refresh.
+    // We need to add `createClient` to imports or use a way to refresh.
     // Actually, let's use `createClient` to be consistent with other files.
     // I will add the function body here and assume `createClient` needs to be added to imports or used from `getSessionSafe` if it exposed it (it usually doesn't).
     // Wait, the previous tool output showed imports. Line 30: `import { getSessionSafe } from "@/lib/supabase/client"`.
@@ -286,7 +285,6 @@ export function CatalogEditor({
               resolve()
             }, waitTime)
           })
-        } else {
         }
 
         // İptal kontrolü (bekleme sonrası)
@@ -323,7 +321,7 @@ export function CatalogEditor({
           uploadTimeoutIds.current.set(uploadKey, timeoutId)
         })
 
-        const result: any = await Promise.race([uploadPromise, timeoutPromise])
+        const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | never
 
         // Timeout'u temizle (başarılı olduysa)
         if (timeoutId) {
@@ -339,7 +337,7 @@ export function CatalogEditor({
           throw new Error('Upload successful but URL is missing')
         }
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Timeout'u temizle (hata durumunda)
         if (timeoutId) {
           clearTimeout(timeoutId)
@@ -347,12 +345,14 @@ export function CatalogEditor({
           timeoutId = null
         }
 
+        const errorMessage = error instanceof Error ? error.message : String(error)
+
         // İptal hatası ise direkt fırlat
-        if (error.message === 'Upload cancelled' || signal?.aborted) {
+        if (errorMessage === 'Upload cancelled' || signal?.aborted) {
           throw error
         }
 
-        console.error(`[CatalogEditor] ❌ Attempt ${attempt + 1}/${MAX_RETRIES} failed for ${type}:`, error.message)
+        console.error(`[CatalogEditor] ❌ Attempt ${attempt + 1}/${MAX_RETRIES} failed for ${type}:`, errorMessage)
 
         // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
         if (attempt === MAX_RETRIES - 1) {
@@ -414,9 +414,9 @@ export function CatalogEditor({
       }
 
       toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
-    } catch (error: any) {
+    } catch (error) {
       // İptal hatası ise sessizce geç
-      if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
+      if (error instanceof Error && (error.message === 'Upload cancelled' || abortController.signal.aborted)) {
         toast.dismiss(toastId)
         return
       }
@@ -426,12 +426,14 @@ export function CatalogEditor({
       // Hata mesajını ayrıştır ve kullanıcı dostu bir mesaj göster
       let errorMessage = "Yükleme başarısız oldu."
 
-      if (error?.message === 'UPLOAD_TIMEOUT' || error?.message === 'TIMEOUT' || error?.message?.includes('timeout')) {
+      if (error instanceof Error && (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT' || error.message.includes('timeout'))) {
         errorMessage = "İşlem zaman aşımına uğradı (tüm denemeler başarısız). İnternet bağlantınızı kontrol edip tekrar deneyin."
-      } else if (error?.message) {
+      } else if (error instanceof Error && error.message) {
         // Diğer teknik hatalar için de kısa bir bilgi
         const msg = error.message.length > 60 ? error.message.substring(0, 60) + '...' : error.message
         errorMessage = `Hata: ${msg}`
+      } else {
+        errorMessage = `Bilinmeyen bir hata oluştu: ${String(error)}`
       }
 
       toast.error(errorMessage, {
@@ -923,7 +925,7 @@ export function CatalogEditor({
                     <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest pl-1">Logo Konumu</Label>
-                        <Select value={logoPosition || 'header-left'} onValueChange={(v) => onLogoPositionChange?.(v as any)}>
+                        <Select value={logoPosition || 'header-left'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
                           <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[11px] font-bold">
                             <SelectValue />
                           </SelectTrigger>
@@ -936,7 +938,7 @@ export function CatalogEditor({
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest pl-1">Başlık Hizalama</Label>
-                        <Select value={_titlePosition || 'left'} onValueChange={(v) => _onTitlePositionChange?.(v as any)}>
+                        <Select value={_titlePosition || 'left'} onValueChange={(v) => _onTitlePositionChange?.(v as NonNullable<Catalog['title_position']>)}>
                           <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[11px] font-bold">
                             <SelectValue />
                           </SelectTrigger>
@@ -1104,7 +1106,7 @@ export function CatalogEditor({
                             <div className="flex-1 flex flex-col gap-3 animate-in slide-in-from-right-4 duration-500">
                               <div className="space-y-1.5">
                                 <Label className="text-[9px] font-black text-slate-400 px-1">Görünüm</Label>
-                                <Select value={backgroundImageFit} onValueChange={(v) => onBackgroundImageFitChange?.(v as any)}>
+                                <Select value={backgroundImageFit} onValueChange={(v) => onBackgroundImageFitChange?.(v as NonNullable<Catalog['background_image_fit']>)}>
                                   <SelectTrigger className="h-10 rounded-xl text-xs font-bold"><SelectValue /></SelectTrigger>
                                   <SelectContent className="rounded-2xl">
                                     <SelectItem value="cover">Kapla (Cover)</SelectItem>

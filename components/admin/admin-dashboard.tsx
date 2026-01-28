@@ -49,7 +49,6 @@ interface ActivityLog {
 
 export function AdminDashboardClient() {
     const { t } = useTranslation()
-    const supabase = createClient()
 
     const [stats, setStats] = useState({
         usersCount: 0,
@@ -112,9 +111,10 @@ export function AdminDashboardClient() {
             } else {
                 setActivityLogs(data || [])
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error fetching activity logs:', error)
-            toast.error(`Beklenmeyen hata: ${error?.message || 'Bilinmeyen hata'}`)
+            const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+            toast.error(`Beklenmeyen hata: ${errorMessage}`)
             setActivityLogs([])
             setLogsTotalCount(0)
         } finally {

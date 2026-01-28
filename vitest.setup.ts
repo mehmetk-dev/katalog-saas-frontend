@@ -1,4 +1,5 @@
 /// <reference types="vitest/globals" />
+import '@testing-library/jest-dom'
 import '@testing-library/dom'
 import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
@@ -44,7 +45,7 @@ if (!global.PointerEvent) {
             super(type, params)
         }
     }
-    // @ts-ignore
+    // @ts-expect-error - Mocking PointerEvent for Radix UI
     global.PointerEvent = PointerEvent
 }
 

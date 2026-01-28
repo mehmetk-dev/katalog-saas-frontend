@@ -1,17 +1,14 @@
 "use client"
 
-import { Mail, MapPin, Phone, Send, Clock, Sparkles, ArrowRight, Globe } from "lucide-react"
+import { Mail, MapPin, Phone, Sparkles, ArrowRight, Globe } from "lucide-react"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
-import { useTranslation } from "@/lib/i18n-provider"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
 
 export default function ContactPage() {
-  const { t } = useTranslation()
 
   return (
     <div className="min-h-screen bg-[#e8e6e1] selection:bg-rose-100 font-serif">

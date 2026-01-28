@@ -4,10 +4,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 import { translations, Language } from "./translations"
 
+export type TranslationValue = string | number | boolean | null | undefined | { [key: string]: TranslationValue } | TranslationValue[]
+
 interface I18nContextType {
     language: Language
     setLanguage: (lang: Language) => void
-    t: (key: string, params?: Record<string, any>) => any
+    t: (key: string, params?: Record<string, unknown>) => TranslationValue
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
@@ -36,9 +38,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("language", lang)
     }
 
-    const t = (path: string, params?: Record<string, any>): any => {
+    const t = (path: string, params?: Record<string, unknown>): TranslationValue => {
         const keys = path.split(".")
-        let current: any = translations[language]
+        let current: unknown = translations[language]
 
         // Navigate through the translation object
         for (const key of keys) {
@@ -46,7 +48,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
                 current = (current as Record<string, unknown>)[key]
             } else {
                 // Fallback to Turkish if key not found in current language
-                let fallback: any = translations.tr
+                let fallback: unknown = translations.tr
                 for (const k of keys) {
                     if (fallback && typeof fallback === 'object' && !Array.isArray(fallback) && k in fallback) {
                         fallback = (fallback as Record<string, unknown>)[k]
@@ -62,7 +64,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
         // Return the value directly if it's not a string (e.g. array or object)
         if (typeof current !== 'string') {
-            return current
+            return current as TranslationValue
         }
 
         let result = current
@@ -103,7 +105,7 @@ export function useTranslation() {
         return {
             language: "tr" as Language,
             setLanguage: () => { },
-            t: (key: string) => key
+            t: (key: string) => key as TranslationValue
         }
     }
     return context

@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { UserProvider, useUser } from '@/lib/user-context'
+import { createClient } from '@/lib/supabase/client'
+import { apiFetch } from '@/lib/api'
 
 // Mock dependencies
 vi.mock('@/lib/supabase/client', () => ({
@@ -34,11 +36,11 @@ vi.mock('next/navigation', () => ({
 // Test component that uses useUser
 function TestComponent() {
     const { user, isLoading, logout, canExport, incrementExports } = useUser()
-    
+
     if (isLoading) {
         return <div>Loading...</div>
     }
-    
+
     return (
         <div>
             <div data-testid="user-plan">{user?.plan || 'no-plan'}</div>
@@ -51,18 +53,15 @@ function TestComponent() {
 }
 
 describe('User Context Testleri', () => {
-    let mockSupabaseClient: any
-    let mockApiFetch: any
+    let mockSupabaseClient: ReturnType<typeof createClient>
+    let mockApiFetch: ReturnType<typeof vi.fn>
 
     beforeEach(() => {
         vi.clearAllMocks()
-        
-        const { createClient } = require('@/lib/supabase/client')
-        const { apiFetch } = require('@/lib/api')
-        
+
         mockApiFetch = vi.fn()
-        apiFetch.mockImplementation(mockApiFetch)
-        
+        vi.mocked(apiFetch).mockImplementation(mockApiFetch)
+
         mockSupabaseClient = {
             auth: {
                 getUser: vi.fn(),
@@ -75,8 +74,8 @@ describe('User Context Testleri', () => {
                 select: vi.fn(),
             })),
         }
-        
-        createClient.mockReturnValue(mockSupabaseClient)
+
+        vi.mocked(createClient).mockReturnValue(mockSupabaseClient)
     })
 
     describe('User Loading', () => {
@@ -327,7 +326,7 @@ describe('User Context Testleri', () => {
     describe('Logout', () => {
         it('Logout işlemi çalışır', async () => {
             const user = userEvent.setup()
-            
+
             const mockUser = {
                 id: 'user-1',
                 email: 'test@example.com',
@@ -343,8 +342,8 @@ describe('User Context Testleri', () => {
             mockSupabaseClient.auth.signOut.mockResolvedValueOnce({ error: null })
 
             // window.location.href mock
-            delete (window as any).location
-            ;(window as any).location = { href: '' }
+            delete (window as { location?: Location }).location
+                ; (window as { location: { href: string } }).location = { href: '' }
 
             render(
                 <UserProvider>
@@ -367,9 +366,9 @@ describe('User Context Testleri', () => {
 
     describe('Auth State Changes', () => {
         it('Auth state değiştiğinde user bilgilerini günceller', async () => {
-            let authStateChangeCallback: any = null
+            let authStateChangeCallback: ((event: string, session: { user: { id: string; email: string } | null } | null) => void) | null = null
 
-            mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: any) => {
+            mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: (event: string, session: { user: { id: string; email: string } | null } | null) => void) => {
                 authStateChangeCallback = callback
                 return {
                     data: { subscription: { unsubscribe: vi.fn() } }
@@ -406,9 +405,9 @@ describe('User Context Testleri', () => {
         })
 
         it('Logout olduğunda user state temizlenir', async () => {
-            let authStateChangeCallback: any = null
+            let authStateChangeCallback: ((event: string, session: { user: { id: string; email: string } | null } | null) => void) | null = null
 
-            mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: any) => {
+            mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: (event: string, session: { user: { id: string; email: string } | null } | null) => void) => {
                 authStateChangeCallback = callback
                 return {
                     data: { subscription: { unsubscribe: vi.fn() } }

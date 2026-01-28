@@ -114,13 +114,11 @@ export function CatalogPreview(props: CatalogPreviewProps) {
     )
     : [[]]
 
-  // Sayfa değiştiğinde geçerli aralıkta tut
   useEffect(() => {
     if (pages.length > 0 && currentPage >= pages.length) {
       setCurrentPage(Math.max(0, pages.length - 1))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pages.length])
+  }, [pages.length, currentPage])
 
   // Arka plan stili hesaplama
   const getBackgroundStyle = (): React.CSSProperties => {

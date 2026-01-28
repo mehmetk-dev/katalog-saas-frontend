@@ -61,7 +61,7 @@ export function ModernGridTemplate({
     const logoAlignment = logoPosition?.split('-')[1] || 'left'
 
     // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
-    const renderHeaderContent = (isFirstPage: boolean) => {
+    const renderHeaderContent = (_isFirstPage: boolean) => {
         // Başlık yazı rengi - headerTextColor prop'undan alınır, yoksa beyaz
         const textSize = 'text-lg font-bold'
 

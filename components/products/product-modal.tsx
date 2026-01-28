@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useTransition, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
 import NextImage from "next/image"
@@ -52,12 +52,10 @@ const MAGIC_DESCRIPTIONS_EN = [
   "Attention-grabbing with its elegant design and useful features, this product is designed to fit into any environment.",
 ]
 
-export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan = 'free' }: ProductModalProps) {
-  const [isPending, startTransition] = useTransition()
+export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan: _userPlan = 'free' }: ProductModalProps) {
   const [isSaving, setIsSaving] = useState(false)
   const { t, language } = useTranslation()
   const isEditing = !!product
-  const isFreeUser = userPlan === 'free'
 
   const unitKeys = ["none", "kg", "g", "m", "cm", "mm", "L", "mL", "adet", "paket", "kutu"]
   const quickAttributeKeys = [
@@ -109,25 +107,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     uploadId: string
   }
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
-  const [session, setSession] = useState<any>(null)
 
   // Listen for session changes
   useEffect(() => {
     const supabase = createClient()
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-
-    // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
+    // Refresh session on mount if needed
+    supabase.auth.getSession()
   }, [])
 
 
@@ -274,7 +260,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           signal: signal,
         })
 
-        const result: any = await Promise.race([uploadPromise, timeoutPromise, abortPromise])
+        const result = (await Promise.race([uploadPromise, timeoutPromise, abortPromise])) as { url: string } | null
 
         if (timeoutId) clearTimeout(timeoutId)
 
@@ -283,7 +269,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         }
         throw new Error('Upload successful but URL is missing')
 
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as Error
         // Timeout'u temizle (hata durumunda)
         if (timeoutId) {
           clearTimeout(timeoutId)
@@ -292,15 +279,15 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         }
 
         // İptal hatası ise direkt fırlat
-        if (error.message === 'Upload cancelled' || signal?.aborted) {
-          throw error
+        if (err.message === 'Upload cancelled' || signal?.aborted) {
+          throw err
         }
 
-        console.error(`[ProductModal] ❌ Attempt ${attempt + 1} failed:`, error.message)
+        console.error(`[ProductModal] ❌ Attempt ${attempt + 1} failed:`, err.message)
 
         // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
         if (attempt === MAX_RETRIES - 1) {
-          throw error
+          throw err
         }
         // Değilse döngü başa döner ve tekrar dener
       }
@@ -378,8 +365,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           // Active image güncelle
           setActiveImageUrl(curr => curr === previewUrl ? publicUrl : curr)
 
-        } catch (itemError: any) {
-          console.error(`❌ ${file.name} tamamen başarısız oldu:`, itemError)
+        } catch (itemError: unknown) {
+          const err = itemError as Error
+          console.error(`❌ ${file.name} tamamen başarısız oldu:`, err.message)
 
           // Hatalı preview'ı state'ten kaldır
           try {
@@ -430,11 +418,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
       return finalAllUrls
 
-    } catch (err: any) {
-      console.error("Critical Upload Error:", err)
+    } catch (err: unknown) {
+      const error = err as Error
+      console.error("Critical Upload Error:", error.message)
       if (!toastUpdated) toast.error("Yükleme sırasında hata oluştu.", { id: toastId })
       toastUpdated = true
-      throw err // Hatayı yukarı fırlat (handleSubmit yakalasın)
+      throw error // Hatayı yukarı fırlat (handleSubmit yakalasın)
     } finally {
       clearTimeout(safetyTimer)
 
@@ -461,39 +450,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   }
 
   // Pending fotoğrafı kaldır
-  const removePendingImage = (uploadId: string) => {
-    // Devam eden upload'ı iptal et
-    const controller = uploadAbortControllers.current.get(uploadId)
-    if (controller) {
-      controller.abort()
-      uploadAbortControllers.current.delete(uploadId)
-    }
-
-    // Timeout'u temizle
-    const timeoutId = uploadTimeoutIds.current.get(uploadId)
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      uploadTimeoutIds.current.delete(uploadId)
-    }
-
-    setPendingImages(prev => {
-      const removed = prev.find(p => p.uploadId === uploadId)
-      if (removed) {
-        // Blob URL'i temizle
-        URL.revokeObjectURL(removed.previewUrl)
-        blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== removed.previewUrl)
-
-        setAdditionalImages(prevImages => {
-          const next = prevImages.filter(url => url !== removed.previewUrl)
-          // Active image (kapak) siliniyorsa güncelle
-          setActiveImageUrl(curr => curr === removed.previewUrl ? (next[0] || "") : curr)
-          return next
-        })
-      }
-      return prev.filter(p => p.uploadId !== uploadId)
-    })
-  }
-
   // Modal açıldığında state'leri başlat - SADECE MODAL AÇILDIĞINDA
   // ÖNEMLİ: product prop'u değişse bile state'i sıfırlama (fotoğraf yükleme sırasında kaybolmasın)
   const lastProductIdRef = useRef<string | null>(null)
@@ -619,8 +575,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     let finalImageUrls: string[] = []
     try {
       finalImageUrls = await uploadPendingImages()
-    } catch (uploadError: any) {
-      console.error("[ProductModal] Upload error in handleSubmit:", uploadError)
+    } catch (uploadError: unknown) {
+      const err = uploadError as Error
+      console.error("[ProductModal] Upload error in handleSubmit:", err.message)
       // Upload hatası varsa dur. Toast zaten atıldı.
       return
     }
@@ -1067,7 +1024,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                 <TabsContent value="images" className="m-0 focus-visible:ring-0 p-1">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {additionalImages.map((url, idx) => {
-                      const isPending = url.startsWith('blob:')
 
                       return (
                         <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900")}>

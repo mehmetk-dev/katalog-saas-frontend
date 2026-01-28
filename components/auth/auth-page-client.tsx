@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Loader2, ArrowLeft, Eye, EyeOff, BookOpen, Star, CheckCircle2, ShieldCheck, Mail, AlertCircle } from "lucide-react"
+import { Loader2, ArrowLeft, Eye, EyeOff, Star, CheckCircle2, AlertCircle } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import NextImage from "next/image"
 
@@ -48,7 +48,7 @@ export function AuthPageClient() {
 
         // Debug: window objesine her zaman ekle (production'da kontrol için)
         if (typeof window !== "undefined") {
-            (window as any).__authErrorCheck = {
+            (window as Window & { __authErrorCheck?: unknown }).__authErrorCheck = {
                 urlError,
                 errorCode,
                 errorDescription,
@@ -63,7 +63,7 @@ export function AuthPageClient() {
         if (urlError || errorCode) {
             // Debug için window objesine ekle (production'da da çalışır)
             if (typeof window !== "undefined") {
-                (window as any).__authError = { urlError, errorCode, errorDescription, timestamp: Date.now() }
+                (window as Window & { __authError?: unknown }).__authError = { urlError, errorCode, errorDescription, timestamp: Date.now() }
             }
 
             // Özel hata mesajları
@@ -113,7 +113,7 @@ export function AuthPageClient() {
 
                 // Debug için window objesine ekle
                 if (typeof window !== "undefined") {
-                    (window as any).__authErrorMessage = errorMessage
+                    (window as Window & { __authErrorMessage?: string }).__authErrorMessage = errorMessage
                 }
             }
 
@@ -185,7 +185,7 @@ export function AuthPageClient() {
             const SITE_URL = getSiteUrl()
             const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
 
-            const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: redirectUrl,
             })
 

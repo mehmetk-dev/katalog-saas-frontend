@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
 
     const {
       data: { user },
-      error,
+      error: _error,
     } = await supabase.auth.getUser()
 
     // Redirect to login if accessing dashboard without auth

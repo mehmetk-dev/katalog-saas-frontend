@@ -1,5 +1,4 @@
 import NextImage from "next/image"
-import { useTranslation } from "@/lib/i18n-provider"
 import { TemplateProps } from "./types"
 
 /**
@@ -23,7 +22,6 @@ export function TechModernTemplate({
     logoPosition,
     logoSize,
 }: TemplateProps) {
-    const { t } = useTranslation()
     const safeProducts = products || []
 
     const getGridCols = () => {
@@ -101,7 +99,7 @@ export function TechModernTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                             {/* Technical Frame */}
                             <div className="relative aspect-video bg-[#05070a] m-1 overflow-hidden shrink-0">
                                 <NextImage

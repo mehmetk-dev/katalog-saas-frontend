@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
-import NextImage from "next/image"
 import { jsPDF } from "jspdf"
 import { toPng } from "html-to-image"
 import {
     Download,
     Share2,
-    BookOpen,
     Sparkles,
     Search,
     X
@@ -53,7 +51,6 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
-    const [zoom, setZoom] = useState(1)
 
     // Detaylı ekran boyutu kontrolü
     useEffect(() => {

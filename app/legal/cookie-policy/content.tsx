@@ -94,7 +94,7 @@ export function CookiePolicyContent() {
                             </div>
                             <div className="md:w-1/2 w-full grid grid-cols-1 gap-3">
                                 <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-2 px-2">{t("legal.cookiePolicy.management.instruction")}</p>
-                                {(t("legal.cookiePolicy.management.browsers", { returnObjects: true }) as any[]).map((browser, i) => (
+                                {(t("legal.cookiePolicy.management.browsers", { returnObjects: true }) as Array<{ name: string; path: string }>).map((browser, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 transition-colors rounded-2xl border border-white/10 group cursor-default">
                                         <span className="text-sm font-bold">{browser.name}</span>
                                         <span className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity font-mono text-indigo-200">{browser.path}</span>

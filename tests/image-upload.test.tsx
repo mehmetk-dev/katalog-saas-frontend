@@ -8,9 +8,9 @@ import { Product } from '@/lib/actions/products'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
-    useTranslation: () => ({ 
-        t: (key: string) => key, 
-        language: 'tr' 
+    useTranslation: () => ({
+        t: (key: string) => key,
+        language: 'tr'
     }),
 }))
 
@@ -26,31 +26,31 @@ vi.mock('sonner', () => ({
 
 const mockSupabaseClient = {
     auth: {
-        getSession: vi.fn().mockResolvedValue({ 
-            data: { 
-                session: { 
-                    user: { id: 'test-user-id' } 
-                } 
-            } 
+        getSession: vi.fn().mockResolvedValue({
+            data: {
+                session: {
+                    user: { id: 'test-user-id' }
+                }
+            }
         }),
-        getUser: vi.fn().mockResolvedValue({ 
-            data: { 
-                user: { id: 'test-user-id' } 
-            } 
+        getUser: vi.fn().mockResolvedValue({
+            data: {
+                user: { id: 'test-user-id' }
+            }
         }),
     },
     storage: {
         from: vi.fn(() => ({
-            upload: vi.fn().mockResolvedValue({ 
-                data: { path: 'test-path.jpg' }, 
-                error: null 
+            upload: vi.fn().mockResolvedValue({
+                data: { path: 'test-path.jpg' },
+                error: null
             }),
-            getPublicUrl: vi.fn(() => ({ 
-                data: { publicUrl: 'https://example.com/test.jpg' } 
+            getPublicUrl: vi.fn(() => ({
+                data: { publicUrl: 'https://example.com/test.jpg' }
             })),
-            createSignedUrl: vi.fn().mockResolvedValue({ 
-                data: { signedUrl: 'https://example.com/signed.jpg' }, 
-                error: null 
+            createSignedUrl: vi.fn().mockResolvedValue({
+                data: { signedUrl: 'https://example.com/signed.jpg' },
+                error: null
             }),
         })),
     },
@@ -61,14 +61,15 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
             imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)
         }
+        // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />
     },
 }))
@@ -99,10 +100,10 @@ global.URL.revokeObjectURL = vi.fn()
 
 // Mock ResizeObserver properly
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 // Helper function to create mock image file
 const createMockImageFile = (name: string, size: number = 100000): File => {
@@ -128,6 +129,7 @@ const createMockProduct = (id: string, name: string, sku?: string): Product => (
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     product_url: null,
+    order: 0,
 })
 
 describe('Fotoğraf Yükleme Testleri', () => {
@@ -205,16 +207,16 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
         it('5 fotoğraftan fazla yüklemeyi engeller', async () => {
             const user = userEvent.setup()
-            const { toast } = await import('sonner')
+            await import('sonner')
             vi.clearAllMocks() // Toast mock'unu temizle
-            
+
             render(<ProductModal {...defaultProps} />)
 
             const tab = screen.getByTestId('tab-images')
             await user.click(tab)
 
             // Önce 5 dosya yükle
-            const firstBatch = Array.from({ length: 5 }, (_, i) => 
+            const firstBatch = Array.from({ length: 5 }, (_, i) =>
                 createMockImageFile(`test-${i}.png`)
             )
             const input = await screen.findByTestId('file-upload')
@@ -306,17 +308,17 @@ describe('Fotoğraf Yükleme Testleri', () => {
             // Yükleme işlemini başlat
             const file = createMockImageFile('test.png')
             const input = await screen.findByTestId('file-upload')
-            
+
             // Upload'ı başlat
             user.upload(input, file) // await kaldırıldı - async işlem başlatıldı
 
             // Loading state kontrolü - toast.loading çağrılmalı veya input disabled olmalı
             await waitFor(async () => {
-                const { toast } = await import('sonner')
                 const uploadInput = screen.queryByTestId('file-upload')
-                const loadingCalled = toast.loading.mock.calls.length > 0
+                const { toast } = await import('sonner')
+                const loadingCalled = (toast.loading as unknown as { mock: { calls: unknown[] } }).mock.calls.length > 0
                 const isDisabled = uploadInput?.hasAttribute('disabled')
-                
+
                 // Loading gösterilmeli (toast veya disabled input)
                 expect(loadingCalled || isDisabled || mockSupabaseClient.storage.from).toBeTruthy()
             }, { timeout: 2000 })
@@ -375,7 +377,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const file = createMockImageFile('LUP-001.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
             expect(input).toBeTruthy()
-            
+
             await user.upload(input, file)
 
             await waitFor(() => {
@@ -461,7 +463,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('eşleşen fotoğrafları toplu yükler', async () => {
             const user = userEvent.setup()
             const { bulkUpdateProductImages } = await import('@/lib/actions/products')
-            
+
             render(<BulkImageUploadModal {...defaultProps} />)
 
             const files = [
@@ -611,13 +613,13 @@ describe('Fotoğraf Yükleme Testleri', () => {
             }
 
             fireEvent.dragEnter(dropZone!, {
-                dataTransfer: dataTransfer as any,
+                dataTransfer: dataTransfer as DataTransfer,
             })
             fireEvent.dragOver(dropZone!, {
-                dataTransfer: dataTransfer as any,
+                dataTransfer: dataTransfer as DataTransfer,
             })
             fireEvent.drop(dropZone!, {
-                dataTransfer: dataTransfer as any,
+                dataTransfer: dataTransfer as DataTransfer,
             })
 
             await waitFor(() => {
@@ -629,7 +631,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const user = userEvent.setup()
             render(<BulkImageUploadModal {...defaultProps} />)
 
-            const files = Array.from({ length: 5 }, (_, i) => 
+            const files = Array.from({ length: 5 }, (_, i) =>
                 createMockImageFile(`LUP-001-${i}.jpg`)
             )
 
@@ -697,7 +699,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
             await waitFor(() => {
                 const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-                const files = Array.from({ length: 6 }, (_, i) => 
+                const files = Array.from({ length: 6 }, (_, i) =>
                     createMockImageFile(`file-${i}.png`)
                 )
                 user.upload(fileInput, files)
@@ -705,8 +707,9 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
             // 5 dosya limiti kontrolü
             await waitFor(() => {
-                const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
                 // 6. dosya eklenmemeli
+                const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+                expect(fileInput).toBeTruthy()
             })
         })
 
@@ -726,7 +729,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             // Silme butonunu bul ve tıkla
             await waitFor(() => {
                 const removeButtons = document.querySelectorAll('button[type="button"]')
-                const removeButton = Array.from(removeButtons).find(btn => 
+                const removeButton = Array.from(removeButtons).find(btn =>
                     btn.querySelector('svg')
                 )
                 if (removeButton) {
@@ -738,7 +741,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('50MB üzeri dosya yüklemeyi engeller', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<FeedbackModal {...defaultProps} />)
 
             const trigger = screen.getByText('Feedback')
@@ -748,16 +751,16 @@ describe('Fotoğraf Yükleme Testleri', () => {
                 const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
                 // 51MB dosya oluştur
                 const largeFile = createMockImageFile('large.png', 51 * 1024 * 1024)
-                
+
                 // Form submit et
                 const form = fileInput.closest('form')
                 if (form) {
                     const subjectInput = form.querySelector('input[id="subject"]') as HTMLInputElement
                     const messageInput = form.querySelector('textarea[id="message"]') as HTMLTextAreaElement
-                    
+
                     if (subjectInput) subjectInput.value = 'Test Subject'
                     if (messageInput) messageInput.value = 'Test Message'
-                    
+
                     await user.upload(fileInput, largeFile)
                     fireEvent.submit(form)
                 }
@@ -771,7 +774,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('feedback gönderirken dosyaları yükler', async () => {
             const user = userEvent.setup()
             const { sendFeedback } = await import('@/lib/actions/feedback')
-            
+
             render(<FeedbackModal {...defaultProps} />)
 
             const trigger = screen.getByText('Feedback')
@@ -805,7 +808,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
     describe('Catalog Editor - Logo ve Arka Plan Yükleme', () => {
         // Catalog Editor component'i için testler
         // Not: Catalog Editor çok kompleks bir component, burada temel yükleme testlerini yazıyoruz
-        
+
         it('logo yükleme inputunu gösterir', () => {
             // Catalog Editor render edilmesi gerekiyor
             // Bu test için component'in render edilmesi gerekir
@@ -829,7 +832,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
                 // Küçük dosyalar için blob aynı kalabilir veya dönüştürülebilir
                 expect(result).toBeTruthy()
                 expect(result.blob).toBeTruthy()
-            } catch (error) {
+            } catch {
                 // Canvas API test ortamında çalışmayabilir, bu normal
                 expect(true).toBe(true)
             }
@@ -864,7 +867,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const input = await screen.findByTestId('file-upload')
             // Input'un accept attribute'unu kontrol et
             expect(input.getAttribute('accept')).toContain('image/png')
-            
+
             // PDF dosyası browser seviyesinde filtreleme yapılır
             // Test ortamında bu kontrol edilemez ama accept attribute doğru olmalı
         })
@@ -873,14 +876,15 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
             vi.clearAllMocks()
-            
+
             // Upload hatası simüle et
             const storageFrom = mockSupabaseClient.storage.from
             const mockUpload = vi.fn().mockRejectedValueOnce(new Error('Network error'))
             mockSupabaseClient.storage.from = vi.fn(() => ({
                 upload: mockUpload,
                 getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.com/test.jpg' } })),
-            }))
+                createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.com/test.jpg' }, error: null }),
+            })) as unknown as typeof mockSupabaseClient.storage.from
 
             const defaultProps = {
                 open: true,
@@ -913,18 +917,19 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
             vi.clearAllMocks()
-            
+
             // Timeout simülasyonu - Promise.race ile timeout olacak
             const storageFrom = mockSupabaseClient.storage.from
             const mockUpload = vi.fn().mockImplementation(
-                () => new Promise((_, reject) => 
+                () => new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('TIMEOUT')), 200)
                 )
             )
             mockSupabaseClient.storage.from = vi.fn(() => ({
                 upload: mockUpload,
                 getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.com/test.jpg' } })),
-            }))
+                createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.com/test.jpg' }, error: null }),
+            })) as unknown as typeof mockSupabaseClient.storage.from
 
             const defaultProps = {
                 open: true,

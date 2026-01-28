@@ -1,38 +1,17 @@
 "use client"
 
-import { useState, useTransition, useEffect, useRef, useMemo } from "react"
+import { useState, useTransition, useEffect, useRef, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Download, Share2, Save, ArrowLeft, Eye, EyeOff, Pencil, Globe, MoreVertical, ExternalLink, Copy, Check, RefreshCw, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 
 import { CatalogEditor } from "@/components/builder/catalog-editor"
 import { CatalogPreview } from "@/components/builder/catalog-preview"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { ShareModal } from "@/components/catalogs/share-modal"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useUser } from "@/lib/user-context"
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
-import { cn } from "@/lib/utils"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { useTranslation } from "@/lib/i18n-provider"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 
 // Atomic Components
 import { BuilderToolbar } from "./builder-toolbar"
@@ -80,7 +59,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(catalog?.product_ids || [])
   const [layout, setLayout] = useState(catalog?.layout || "grid")
   // Helper: Convert hex to rgba
-  const hexToRgba = (hex: string, alpha: number = 1): string => {
+  const hexToRgba = useCallback((hex: string, alpha: number = 1): string => {
     if (hex.startsWith('rgba')) return hex
     if (hex === 'transparent') return 'rgba(0, 0, 0, 0)'
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -91,14 +70,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       return `rgba(${r}, ${g}, ${b}, ${alpha})`
     }
     return `rgba(124, 58, 237, ${alpha})` // default purple
-  }
+  }, [])
 
-  const getInitialPrimaryColor = () => {
+  const getInitialPrimaryColor = useCallback(() => {
     if (!catalog?.primary_color) return "rgba(124, 58, 237, 1)"
     if (catalog.primary_color.startsWith('rgba')) return catalog.primary_color
     if (catalog.primary_color === 'transparent') return 'rgba(0, 0, 0, 0)'
     return hexToRgba(catalog.primary_color)
-  }
+  }, [catalog?.primary_color, hexToRgba])
 
   const [primaryColor, setPrimaryColor] = useState(getInitialPrimaryColor())
   const [headerTextColor, setHeaderTextColor] = useState(catalog?.header_text_color || "#ffffff")
@@ -218,7 +197,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       })
       setIsDirty(false)
     }
-  }, [catalog?.id]) // catalog.id değiştiğinde tetiklenir
+  }, [catalog?.id, catalog, getInitialPrimaryColor, user?.logo_url]) // catalog.id değiştiğinde tetiklenir
 
   // Herhangi bir değişiklikte isDirty'i true yap
   useEffect(() => {
@@ -232,10 +211,10 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundGradient])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundGradient, catalog?.background_gradient, catalog?.description, catalog?.name, catalog?.product_ids])
 
   // Autosave state
-  const [isAutoSaving, setIsAutoSaving] = useState(false)
+  const [, setIsAutoSaving] = useState(false)
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Debounced Autosave - 3 saniye bekle, sonra kaydet
@@ -528,7 +507,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         toast.success("Katalog linki güncellendi!", {
           description: "Yeni link oluşturuldu."
         })
-      } catch (error) {
+      } catch {
         toast.error("Link güncellenirken hata oluştu.")
       }
     })
@@ -643,7 +622,6 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       const resolutionText = isPro ? " (Yüksek Çözünürlük)" : ""
       toast.loading(`Görseller işleniyor ve PDF hazırlanıyor${resolutionText}...`, { id: "pdf-process" })
 
-      const { toJpeg } = await import("html-to-image")
       const { jsPDF } = await import("jspdf")
 
       // HAYALET KONTEYNIRI HEDEFLE

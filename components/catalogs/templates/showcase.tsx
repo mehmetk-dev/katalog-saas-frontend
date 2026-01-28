@@ -13,12 +13,12 @@ export function ShowcaseTemplate({
     primaryColor = "#3b82f6",
     showPrices,
     showDescriptions,
-    showAttributes,
+    showAttributes: _showAttributes,
     showSku,
     showUrls = false,
     pageNumber = 1,
     totalPages = 1,
-    columnsPerRow = 2,
+    columnsPerRow: _columnsPerRow = 2,
     logoUrl,
     logoPosition,
     logoSize,
@@ -94,7 +94,7 @@ export function ShowcaseTemplate({
                     }
 
                     return (
-                        <Wrapper {...(wrapperProps as any)}>
+                        <Wrapper {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                             {/* Spotlight Effect Background */}
                             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
 
@@ -175,7 +175,7 @@ export function ShowcaseTemplate({
                         }
 
                         return (
-                            <Wrapper key={product.id} {...(wrapperProps as any)}>
+                            <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                                 <div className="absolute inset-0 opacity-20 group-hover:opacity-50 transition-all duration-[1.5s]">
                                     <NextImage
                                         src={product.image_url || product.images?.[0] || "/placeholder.svg"}

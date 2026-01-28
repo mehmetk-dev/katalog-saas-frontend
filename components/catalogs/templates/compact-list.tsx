@@ -2,6 +2,29 @@ import NextImage from "next/image"
 
 import { TemplateProps } from "./types"
 
+// Reusable Title Component (For Collisions) - moved outside render
+function TitleBlock({ 
+    align = 'left', 
+    catalogName, 
+    headerTextColor, 
+    primaryColor 
+}: { 
+    align?: 'left' | 'right'
+    catalogName: string
+    headerTextColor?: string
+    primaryColor: string
+}) {
+    return (
+        <div className={`flex flex-col ${align === 'right' ? 'items-end text-right' : 'items-start text-left'}`}>
+            <h1 className="text-2xl font-black tracking-tight leading-none mb-1 uppercase truncate max-w-[300px]"
+                style={{ color: headerTextColor || '#1a1a1a' }}>
+                {catalogName || "KATALOG"}
+            </h1>
+            <div className={`h-1 w-12 rounded-full opacity-60`} style={{ backgroundColor: primaryColor }} />
+        </div>
+    )
+}
+
 export function CompactListTemplate({
     catalogName,
     products,
@@ -19,7 +42,7 @@ export function CompactListTemplate({
     logoSize,
     titlePosition = 'left',
     productImageFit = "cover",
-    backgroundColor
+    backgroundColor: _backgroundColor
 }: TemplateProps) {
     // A4 Yüksekliği ~1123px
     // Header: 80px
@@ -62,17 +85,6 @@ export function CompactListTemplate({
         return 'items-start text-left justify-center pl-8'
     }
 
-    // Reusable Title Component (For Collisions)
-    const TitleBlock = ({ align = 'left' }: { align?: 'left' | 'right' }) => (
-        <div className={`flex flex-col ${align === 'right' ? 'items-end text-right' : 'items-start text-left'}`}>
-            <h1 className="text-2xl font-black tracking-tight leading-none mb-1 uppercase truncate max-w-[300px]"
-                style={{ color: headerTextColor || '#1a1a1a' }}>
-                {catalogName || "KATALOG"}
-            </h1>
-            <div className={`h-1 w-12 rounded-full opacity-60`} style={{ backgroundColor: primaryColor }} />
-        </div>
-    )
-
     return (
         <div className="h-full flex flex-col relative overflow-hidden">
             {/* Header - Premium Tasarım */}
@@ -101,7 +113,7 @@ export function CompactListTemplate({
                         {isCollisionLeft ? (
                             <div className="flex items-center gap-4">
                                 {logoUrl && <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />}
-                                <TitleBlock align="left" />
+                                <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
                             </div>
                         ) : (
                             /* Normal Logo */
@@ -117,7 +129,7 @@ export function CompactListTemplate({
                         {isCollisionCenter ? (
                             <div className="flex items-center gap-4">
                                 {logoUrl && <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />}
-                                <TitleBlock align="left" />
+                                <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
                             </div>
                         ) : (
                             /* Normal Logo */
@@ -132,7 +144,7 @@ export function CompactListTemplate({
                         {/* Çakışma Varsa: TITLE + LOGO (Sağ olduğu için title önce) */}
                         {isCollisionRight ? (
                             <div className="flex items-center gap-4">
-                                <TitleBlock align="right" />
+                                <TitleBlock align="right" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
                                 {logoUrl && <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />}
                             </div>
                         ) : (

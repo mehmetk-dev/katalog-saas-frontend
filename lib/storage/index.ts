@@ -1,6 +1,11 @@
 /**
  * Storage Provider Factory
  * Environment variable'a göre uygun storage provider'ı döndürür
+ * 
+ * ÖNEMLİ: 
+ * - NEXT_PUBLIC_ prefix'li env var'lar build zamanında bundle'a girer
+ * - Production'da env var değiştirirseniz yeniden build gerekir
+ * - Client-side'da çalıştığı için NEXT_PUBLIC_ prefix zorunlu
  */
 
 import type { StorageProvider } from './types'
@@ -22,16 +27,48 @@ export function createStorageProvider(): StorageProvider {
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
     if (!cloudName || !uploadPreset) {
+      // Detaylı hata mesajı ve debug bilgisi
+      const debugInfo = {
+        provider,
+        cloudName: cloudName ? '✓ SET' : '✗ MISSING',
+        uploadPreset: uploadPreset ? '✓ SET' : '✗ MISSING',
+        envCheck: {
+          NEXT_PUBLIC_STORAGE_PROVIDER: process.env.NEXT_PUBLIC_STORAGE_PROVIDER || 'NOT SET (defaults to supabase)',
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+          NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ? 'SET' : 'MISSING',
+        }
+      }
+
+      console.error('[Storage] ❌ Cloudinary configuration missing!')
+      console.error('[Storage] Debug info:', debugInfo)
+      
       throw new Error(
-        'Cloudinary configuration missing! Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET in your .env.local file.'
+        'Cloudinary configuration missing!\n\n' +
+        'Please set the following environment variables in your hosting platform:\n' +
+        '- NEXT_PUBLIC_STORAGE_PROVIDER=cloudinary\n' +
+        '- NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name\n' +
+        '- NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your-preset-name\n\n' +
+        'Current status:\n' +
+        `- Provider: ${debugInfo.envCheck.NEXT_PUBLIC_STORAGE_PROVIDER}\n` +
+        `- Cloud Name: ${debugInfo.cloudName}\n` +
+        `- Upload Preset: ${debugInfo.uploadPreset}\n\n` +
+        '⚠️ IMPORTANT: After setting env vars, you MUST rebuild and redeploy!\n' +
+        'NEXT_PUBLIC_ variables are bundled at build time.'
       )
     }
 
+    if (typeof window !== 'undefined') {
+      console.log('[Storage] ✓ Using Cloudinary provider')
+    }
+    
     storageInstance = new CloudinaryProvider({
       cloudName,
       uploadPreset,
     })
   } else {
+    if (typeof window !== 'undefined') {
+      console.log('[Storage] ✓ Using Supabase provider (default)')
+    }
     // Default: Supabase
     storageInstance = new SupabaseProvider('product-images')
   }

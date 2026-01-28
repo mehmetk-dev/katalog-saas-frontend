@@ -25,7 +25,7 @@ export interface User {
   isAdmin?: boolean
 }
 
-interface UserContextType {
+export interface UserContextType {
   user: User | null
   supabaseUser: SupabaseUser | null
   setUser: (user: User | null) => void

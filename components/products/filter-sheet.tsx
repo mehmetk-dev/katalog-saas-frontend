@@ -14,13 +14,13 @@ interface ProductsFilterSheetProps {
     onOpenChange: (open: boolean) => void
     sortField: string
     sortOrder: "asc" | "desc"
-    onSortFieldChange: (field: any) => void
+    onSortFieldChange: (field: string) => void
     onSortOrderChange: (order: "asc" | "desc") => void
     selectedCategory: string
     onCategoryChange: (category: string) => void
     categories: string[]
     stockFilter: string
-    onStockFilterChange: (filter: any) => void
+    onStockFilterChange: (filter: string) => void
     priceRange: [number, number]
     onPriceRangeChange: (range: [number, number]) => void
     maxPrice: number

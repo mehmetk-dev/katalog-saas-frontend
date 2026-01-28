@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BuilderPageClient } from '@/components/builder/builder-page-client'
 import { useUser } from '@/lib/user-context'
 import { useRouter } from 'next/navigation'
+import type { Catalog } from '@/lib/actions/catalogs'
 
 // Mock dependencies
 vi.mock('@/lib/user-context')
@@ -44,7 +45,7 @@ vi.mock('@/components/builder/catalog-editor', () => ({
     CatalogEditor: () => <div data-testid="catalog-editor" />
 }))
 vi.mock('@/components/builder/catalog-preview', () => ({
-    CatalogPreview: ({ isExporting }: any) => (
+    CatalogPreview: ({ isExporting }: { isExporting?: boolean }) => (
         <div data-testid="catalog-preview">
             {isExporting && (
                 <div id="catalog-export-container">
@@ -61,8 +62,8 @@ describe('BuilderPageClient PDF Export', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
-            ; (useRouter as any).mockReturnValue(mockRouter)
-            ; (useUser as any).mockReturnValue({
+            ; (useRouter as unknown as { mockReturnValue: (value: typeof mockRouter) => void }).mockReturnValue(mockRouter)
+            ; (useUser as unknown as { mockReturnValue: (value: { user: { plan: string; exports_remaining: number }; refreshUser: () => void }) => void }).mockReturnValue({
                 user: { plan: 'free', exports_remaining: 5 },
                 refreshUser: vi.fn()
             })
@@ -71,26 +72,37 @@ describe('BuilderPageClient PDF Export', () => {
     it('should set isExporting to true and attempt PDF download', async () => {
         // Mock translate function is already handled via @/lib/i18n-provider mock
 
+        const mockCatalog: Catalog = {
+            id: '1',
+            name: 'Test',
+            product_ids: [] as string[],
+            layout: 'modern-grid',
+            user_id: 'user1',
+            template_id: null,
+            description: '',
+            primary_color: '#000000',
+            header_text_color: '#ffffff',
+            show_prices: true,
+            show_descriptions: true,
+            show_attributes: true,
+            show_sku: true,
+            show_urls: true,
+            columns_per_row: 3,
+            background_color: '#ffffff',
+            background_image: null,
+            background_gradient: null,
+            logo_url: null,
+            logo_position: 'header-left',
+            logo_size: 'medium',
+            title_position: 'left',
+            created_at: '',
+            updated_at: '',
+            share_slug: 'test-slug',
+            is_published: true
+        }
+
         render(<BuilderPageClient
-            catalog={{
-                id: '1',
-                name: 'Test',
-                product_ids: [],
-                layout: 'modern-grid',
-                user_id: 'user1',
-                description: '',
-                primary_color: '#000000',
-                header_text_color: '#ffffff',
-                show_prices: true,
-                show_descriptions: true,
-                show_attributes: true,
-                show_sku: true,
-                show_urls: true,
-                created_at: '',
-                updated_at: '',
-                share_slug: 'test-slug',
-                is_published: true
-            } as any}
+            catalog={mockCatalog}
             products={[]}
         />)
 

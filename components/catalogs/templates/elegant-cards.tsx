@@ -34,7 +34,7 @@ export function ElegantCardsTemplate({
         }
     }
 
-    const getGridCols = () => {
+    const _getGridCols = () => {
         switch (columnsPerRow) {
             case 2: return "grid-cols-2"
             case 3: return "grid-cols-3"
@@ -106,7 +106,7 @@ export function ElegantCardsTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Product Image Capsule - MAXIMIZED IMAGE AREA */}
                             <div className="relative flex-1 bg-white rounded-[40px] overflow-hidden shadow-inner flex items-center justify-center p-2 shrink-0">
                                 <NextImage

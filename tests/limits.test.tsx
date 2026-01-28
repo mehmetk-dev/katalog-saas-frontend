@@ -1,9 +1,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render } from '@testing-library/react'
 import { ProductsPageClient } from '@/components/products/products-page-client'
 import { CatalogsPageClient } from '@/components/catalogs/catalogs-page-client'
+import type { Product } from '@/lib/actions/products'
+import type { Catalog } from '@/lib/actions/catalogs'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -62,10 +63,10 @@ vi.mock('@/components/builder/upgrade-modal', () => ({
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Plan Limitleri Testleri', () => {
     beforeEach(() => {
@@ -93,8 +94,8 @@ describe('Plan Limitleri Testleri', () => {
             }))
 
             render(
-                <ProductsPageClient 
-                    initialProducts={mockProducts as any}
+                <ProductsPageClient
+                    initialProducts={mockProducts as Parameters<typeof ProductsPageClient>[0]['initialProducts']}
                     userPlan="free"
                     maxProducts={50}
                 />
@@ -104,10 +105,14 @@ describe('Plan Limitleri Testleri', () => {
             // handleAddProduct fonksiyonu isAtLimit kontrolü yapıyor
             const isAtLimit = mockProducts.length >= 50
             expect(isAtLimit).toBe(true)
-            
+
             // Component render edildi, limit kontrolü yapıldı
             // Modal'ın gösterilip gösterilmediğini kontrol etmek için butona tıklamak gerekir
             // Ama test basit tutmak için sadece limit kontrolünü doğruluyoruz
+            const mockApiFetch = vi.fn()
+            void mockApiFetch // Suppress unused warning
+            const { apiFetch } = await import('@/lib/api')
+            vi.mocked(apiFetch).mockImplementation(mockApiFetch)
             expect(mockProducts.length).toBe(50)
         })
 
@@ -142,8 +147,8 @@ describe('Plan Limitleri Testleri', () => {
             }]
 
             render(
-                <CatalogsPageClient 
-                    initialCatalogs={mockCatalogs as any}
+                <CatalogsPageClient
+                    initialCatalogs={mockCatalogs as Catalog[]}
                     userProducts={[]}
                     userPlan="free"
                 />
@@ -179,8 +184,8 @@ describe('Plan Limitleri Testleri', () => {
             }))
 
             render(
-                <ProductsPageClient 
-                    initialProducts={mockProducts as any}
+                <ProductsPageClient
+                    initialProducts={mockProducts as Product[]}
                     userPlan="plus"
                     maxProducts={1000}
                 />
@@ -223,8 +228,8 @@ describe('Plan Limitleri Testleri', () => {
             }))
 
             render(
-                <CatalogsPageClient 
-                    initialCatalogs={mockCatalogs as any}
+                <CatalogsPageClient
+                    initialCatalogs={mockCatalogs as Catalog[]}
                     userProducts={[]}
                     userPlan="plus"
                 />
@@ -236,7 +241,7 @@ describe('Plan Limitleri Testleri', () => {
             const isAtLimit = mockCatalogs.length >= maxCatalogs
             expect(isAtLimit).toBe(true)
             expect(mockCatalogs.length).toBe(10)
-            
+
             // NOT: Kullanıcı 50 katalog dedi ama kod 10 gösteriyor
             // Bu durum kontrol edilmeli - belki kod güncellenmeli veya kullanıcı yanlış bilgi vermiş
         })

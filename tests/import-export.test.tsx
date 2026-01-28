@@ -1,8 +1,4 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { ImportExportModal } from '@/components/products/import-export-modal'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -18,9 +14,9 @@ vi.mock('sonner', () => ({
     },
 }))
 
-const mockApiFetch = vi.fn()
+let mockApiFetch = vi.fn()
 vi.mock('@/lib/api', () => ({
-    apiFetch: mockApiFetch,
+    apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }))
 
 vi.mock('@/lib/actions/products', () => ({
@@ -32,14 +28,15 @@ vi.mock('@/components/builder/upgrade-modal', () => ({
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Import/Export Testleri', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        mockApiFetch = vi.fn() // Re-initialize mockApiFetch for each test
     })
 
     describe('CSV Import', () => {
@@ -48,8 +45,6 @@ describe('Import/Export Testleri', () => {
 Ürün 1,SKU-001,100,10
 Ürün 2,SKU-002,200,20`
 
-            const file = new File([csvContent], 'products.csv', { type: 'text/csv' })
-            
             // CSV parsing testi
             const lines = csvContent.split('\n')
             const headers = lines[0].split(',')
@@ -64,7 +59,7 @@ describe('Import/Export Testleri', () => {
             const lines = invalidCsv.split('\n')
             const headers = lines[0].split(',')
             const firstRow = lines[1].split(',')
-            
+
             // Eksik kolon kontrolü
             expect(firstRow.length).toBeLessThan(headers.length)
         })
@@ -75,7 +70,7 @@ describe('Import/Export Testleri', () => {
 
             const lines = csvWithAliases.split('\n')
             const headers = lines[0].split(',')
-            
+
             // Header alias kontrolü
             const nameHeader = headers.find(h => h.includes('ad') || h.includes('name'))
             expect(nameHeader).toBeTruthy()
@@ -102,7 +97,6 @@ describe('Import/Export Testleri', () => {
     describe('Bulk Import', () => {
         it('Toplu import limit kontrolü yapar', async () => {
             const { bulkImportProducts } = await import('@/lib/actions/products')
-            const { apiFetch } = await import('@/lib/api')
 
             // Free plan için 50 ürün limiti
             const mockProducts = Array.from({ length: 51 }, (_, i) => ({
@@ -111,13 +105,13 @@ describe('Import/Export Testleri', () => {
                 stock: 10,
             }))
 
-            const error = new Error('Limit Reached') as any
+            const error = new Error('Limit Reached') as Error & { status?: number }
             error.status = 403
             mockApiFetch.mockRejectedValueOnce(error)
 
             // bulkImportProducts hata fırlatmalı
             try {
-                await bulkImportProducts(mockProducts as any)
+                await bulkImportProducts(mockProducts as Parameters<typeof bulkImportProducts>[0])
                 expect.fail('Should have thrown an error')
             } catch (err) {
                 expect(err).toBeDefined()

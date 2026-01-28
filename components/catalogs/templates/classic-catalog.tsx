@@ -16,7 +16,7 @@ export function ClassicCatalogTemplate({
     showSku,
     showUrls = false,
     pageNumber = 1,
-    totalPages = 1,
+    totalPages: _totalPages = 1,
     logoUrl,
     logoPosition,
     logoSize,
@@ -101,7 +101,7 @@ export function ClassicCatalogTemplate({
 
                     return (
                         <div key={product.id} className="flex-1 min-h-0 w-full">
-                            <Wrapper {...(wrapperProps as any)} className={`group w-full h-full flex items-center gap-12 cursor-pointer relative ${orderClass}`}>
+                            <Wrapper {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)} className={`group w-full h-full flex items-center gap-12 cursor-pointer relative ${orderClass}`}>
                                 {/* Image Section */}
                                 <div className="w-[45%] h-full relative bg-zinc-50 border border-black/5 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.03)] shrink-0">
                                     <NextImage

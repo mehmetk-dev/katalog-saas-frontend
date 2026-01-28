@@ -158,7 +158,7 @@ export async function smartRetry<T>(
                 ? getRetryAfter(error)
                 : options.backoffMultiplier ? 1000 * Math.pow(2, attempt - 1) : 1000
 
-            console.warn(`Retry attempt ${attempt}, waiting ${delay}ms...`, error?.message)
+            console.warn(`Retry attempt ${attempt}, waiting ${delay}ms...`, error instanceof Error ? error.message : String(error))
             options.onRetry?.(attempt, error)
         }
     })

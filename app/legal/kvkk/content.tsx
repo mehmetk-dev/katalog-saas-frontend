@@ -98,8 +98,8 @@ export function KvkkContent() {
                                                 <button
                                                     onClick={() => scrollToSection(section.id)}
                                                     className={`text-left transition-all duration-300 group ${activeSection === section.id
-                                                            ? "text-indigo-600"
-                                                            : "text-slate-400 hover:text-slate-600"
+                                                        ? "text-indigo-600"
+                                                        : "text-slate-400 hover:text-slate-600"
                                                         }`}
                                                 >
                                                     <span className="block text-[10px] uppercase tracking-widest mb-1 opacity-50 font-bold">Section 0{section.id}</span>
@@ -185,7 +185,7 @@ export function KvkkContent() {
                                 <h2 className="text-3xl font-bold text-slate-950 mb-8 tracking-tight">{t("legal.kvkk.transfer.title")}</h2>
                                 <p className="text-slate-600 text-lg leading-relaxed mb-10">{t("legal.kvkk.transfer.desc")}</p>
                                 <div className="grid md:grid-cols-2 gap-6">
-                                    {(t("legal.kvkk.transfer.items", { returnObjects: true }) as any[]).map((item, i) => (
+                                    {(t("legal.kvkk.transfer.items", { returnObjects: true }) as Array<{ label: string; text: string }>).map((item, i) => (
                                         <div key={i} className="p-8 bg-indigo-50 rounded-3xl border border-indigo-100/50">
                                             <h4 className="font-bold text-indigo-900 mb-3 flex items-center gap-2">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>

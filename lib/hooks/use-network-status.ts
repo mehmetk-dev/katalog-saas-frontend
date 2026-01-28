@@ -17,6 +17,12 @@ interface UseNetworkStatusReturn {
     checkConnection: () => Promise<boolean>
 }
 
+interface NetworkInformation extends EventTarget {
+    readonly type?: string
+    readonly effectiveType: 'slow-2g' | '2g' | '3g' | '4g'
+    onchange: ((this: NetworkInformation, ev: Event) => void) | null
+}
+
 export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetworkStatusReturn {
     const { showToasts = true, onOnline, onOffline } = options
 
@@ -65,7 +71,11 @@ export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetw
             onOffline?.()
         }
 
-        const nav = navigator as { connection?: unknown; mozConnection?: unknown; webkitConnection?: unknown }
+        const nav = navigator as Navigator & {
+            connection?: NetworkInformation
+            mozConnection?: NetworkInformation
+            webkitConnection?: NetworkInformation
+        }
         const connection = nav.connection || nav.mozConnection || nav.webkitConnection
 
         const updateConnectionInfo = () => {

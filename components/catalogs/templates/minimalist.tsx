@@ -11,15 +11,15 @@ import { cn } from "@/lib/utils"
 export function MinimalistTemplate({
     catalogName,
     products,
-    primaryColor = "#000000",
+    primaryColor: _primaryColor = "#000000",
     showPrices,
     showDescriptions,
-    showAttributes,
-    showSku,
+    showAttributes: _showAttributes,
+    showSku: _showSku,
     showUrls = false,
     pageNumber = 1,
-    totalPages = 1,
-    columnsPerRow = 2,
+    totalPages: _totalPages = 1,
+    columnsPerRow: _columnsPerRow = 2,
     logoUrl,
     logoPosition,
     logoSize,
@@ -71,7 +71,7 @@ export function MinimalistTemplate({
                 const isBuilderMode = safeProducts.length > PRODUCTS_PER_PAGE
 
                 const currentPage = isBuilderMode ? pageIndex + 1 : pageNumber
-                const totalPageCount = isBuilderMode ? productChunks.length : totalPages
+                const totalPageCount = isBuilderMode ? productChunks.length : _totalPages
 
                 return (
                     <div key={pageIndex} className="h-[1123px] w-full flex flex-col bg-white text-[#1a1a1a] overflow-hidden selection:bg-[#f0f0f0] relative shadow-sm">
@@ -120,10 +120,10 @@ export function MinimalistTemplate({
                                     className: 'group flex flex-col relative cursor-pointer w-full aspect-[3/4]'
                                 } : {
                                     className: 'flex flex-col relative w-full aspect-[3/4]'
-                                }
+                                } as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>
 
                                 return (
-                                    <Wrapper key={product.id} {...(wrapperProps as any)}>
+                                    <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                                         {/* Product Image - Fixed Proportion */}
                                         <div className="relative flex-1 mb-6 bg-[#fafafa] flex items-center justify-center transition-all duration-1000 group-hover:bg-[#f2f2f2]">
                                             <div className="absolute inset-8">
@@ -171,7 +171,7 @@ export function MinimalistTemplate({
                                                 </p>
                                             )}
 
-                                            {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
+                                            {_showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
                                                 <div className="flex flex-wrap gap-4 pt-4 border-t border-[#f0f0f0]">
                                                     {product.custom_attributes.filter((a: CustomAttribute) => a.name !== 'currency' && a.value).slice(0, 3).map((attr: CustomAttribute, idx: number) => (
                                                         <div key={idx} className="flex flex-col gap-0.5">

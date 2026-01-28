@@ -5,19 +5,13 @@ import Link from "next/link"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import {
-    Plus,
-    Minus,
     Search,
     MessageCircle,
-    FileText,
     Settings,
     ShieldCheck,
-    CreditCard,
     Package,
     LifeBuoy,
-    ArrowRight,
-    CheckCircle2,
-    TrendingUp
+    ArrowRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"

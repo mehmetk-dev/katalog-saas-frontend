@@ -2,12 +2,10 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2, Lock, CheckCircle2, ShieldCheck, BookOpen } from "lucide-react"
+import { Loader2, CheckCircle2, BookOpen } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
-import { useTranslation } from "@/lib/i18n-provider"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -17,7 +15,6 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
-  const { t } = useTranslation()
 
   useEffect(() => {
     let mounted = true

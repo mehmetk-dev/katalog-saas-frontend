@@ -18,11 +18,11 @@ export function ProductTilesTemplate({
     showSku,
     showUrls = false,
     pageNumber = 1,
-    totalPages = 1,
+    totalPages: _totalPages = 1,
     columnsPerRow = 3,
     logoUrl,
     logoPosition,
-    logoSize,
+    logoSize: _logoSize,
     titlePosition = 'left',
     productImageFit = 'cover'
 }: TemplateProps) {

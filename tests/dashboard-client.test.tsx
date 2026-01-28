@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { DashboardClient } from '@/components/dashboard/dashboard-client'
 import { type Catalog } from '@/lib/actions/catalogs'
 import { type Product } from '@/lib/actions/products'
+import { type User } from '@/lib/user-context'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -70,16 +71,17 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
-        if (fill) imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
+        if (fill) imgProps.style = { position: 'absolute', width: '100%', height: '100%' }
         if (unoptimized !== undefined) imgProps.unoptimized = String(unoptimized)
-        return <img {...imgProps} />
+        // eslint-disable-next-line @next/next/no-img-element
+        return <img {...(imgProps as React.ImgHTMLAttributes<HTMLImageElement>)} />
     },
 }))
 
 vi.mock('date-fns', () => ({
-    formatDistanceToNow: vi.fn((date: Date) => '2 gün önce'),
+    formatDistanceToNow: vi.fn((_date: Date) => '2 gün önce'),
 }))
 
 vi.mock('date-fns/locale', () => ({
@@ -95,10 +97,10 @@ vi.mock('@/components/dashboard/onboarding-checklist', () => ({
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Dashboard Client Testleri', () => {
     const mockCatalogs: Catalog[] = [
@@ -168,10 +170,13 @@ describe('Dashboard Client Testleri', () => {
             category: 'Category 1',
             image_url: 'https://example.com/image1.jpg',
             images: ['https://example.com/image1.jpg'],
-            url: 'https://example.com/product1',
+            product_url: 'https://example.com/product1',
             user_id: 'test-user',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            stock: 10,
+            custom_attributes: [],
+            order: 0,
         },
         {
             id: 'product-2',
@@ -182,10 +187,13 @@ describe('Dashboard Client Testleri', () => {
             category: 'Category 2',
             image_url: 'https://example.com/image2.jpg',
             images: ['https://example.com/image2.jpg'],
-            url: 'https://example.com/product2',
+            product_url: 'https://example.com/product2',
             user_id: 'test-user',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            stock: 5,
+            custom_attributes: [],
+            order: 1,
         },
     ]
 
@@ -193,6 +201,8 @@ describe('Dashboard Client Testleri', () => {
         totalViews: 150,
         totalProducts: 2,
         totalCatalogs: 2,
+        publishedCatalogs: 1,
+        topCatalogs: [],
     }
 
     beforeEach(() => {
@@ -475,7 +485,7 @@ describe('Dashboard Client Testleri', () => {
         it('Loading state gösterilir', () => {
             // useUser mock'unu değiştir
             mockUseUser.mockReturnValueOnce({
-                user: null,
+                user: null as User | null,
                 isLoading: true,
                 refreshUser: vi.fn(),
             })
@@ -498,7 +508,7 @@ describe('Dashboard Client Testleri', () => {
         it('Null catalogs ile çalışır', () => {
             render(
                 <DashboardClient
-                    initialCatalogs={null as any}
+                    initialCatalogs={null as unknown as Catalog[]}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
                 />
@@ -511,7 +521,7 @@ describe('Dashboard Client Testleri', () => {
             render(
                 <DashboardClient
                     initialCatalogs={mockCatalogs}
-                    initialProducts={null as any}
+                    initialProducts={null as unknown as Product[]}
                     initialStats={mockStats}
                 />
             )
@@ -589,8 +599,8 @@ describe('Dashboard Client Testleri', () => {
 
             // Builder linkini bul - catalog ID içermeli
             const allLinks = screen.getAllByRole('link')
-            const builderLink = allLinks.find(link => 
-                link.getAttribute('href')?.includes('catalog-1') || 
+            const builderLink = allLinks.find(link =>
+                link.getAttribute('href')?.includes('catalog-1') ||
                 link.getAttribute('href')?.includes('builder?id=catalog-1')
             )
             expect(builderLink).toBeInTheDocument()

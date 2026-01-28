@@ -1,8 +1,7 @@
-
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProductModal } from '@/components/products/product-modal'
-import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -33,15 +32,16 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
-            imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+            imgProps.style = { position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)
         }
-        return <img {...imgProps} />
+        // eslint-disable-next-line @next/next/no-img-element
+        return <img {...(imgProps as React.ImgHTMLAttributes<HTMLImageElement>)} />
     },
 }))
 
@@ -66,10 +66,10 @@ global.URL.createObjectURL = vi.fn(() => 'blob:test')
 global.URL.revokeObjectURL = vi.fn()
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('ProductModal Image Upload', () => {
     const defaultProps = {
@@ -121,7 +121,6 @@ describe('ProductModal Image Upload', () => {
 
     it('prevents uploading more than 5 images', async () => {
         const user = userEvent.setup()
-        const { toast } = await import('sonner')
         render(<ProductModal {...defaultProps} />)
 
         // Switch to images tab
@@ -147,10 +146,8 @@ describe('ProductModal Image Upload', () => {
         // Verify that when trying to upload 6 files at once, only 5 are accepted
         // and error toast is shown for the 6th
         vi.clearAllMocks()
-        
+
         // Try to upload 6 files at once - the component should only accept 5
-        const sixFiles = Array.from({ length: 6 }, (_, i) => new File(['content'], `test-${i}.png`, { type: 'image/png' }))
-        
         // Since input is hidden, we need to test the limit differently
         // The component logic prevents more than 5, so we test by checking
         // that when 5 images exist, the input is hidden

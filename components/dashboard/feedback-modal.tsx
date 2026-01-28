@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 import NextImage from "next/image"
 
-import { createClient, getSessionSafe } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import {
     Dialog,
     DialogContent,
@@ -119,7 +119,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                     uploadTimeoutIds.current.set(uploadKey, timeoutId)
                 })
 
-                const result: any = await Promise.race([uploadPromise, timeoutPromise])
+                const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | null
 
                 // Timeout'u temizle (başarılı olduysa)
                 if (timeoutId) {
@@ -135,7 +135,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                     throw new Error('Upload successful but URL is missing')
                 }
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Timeout'u temizle (hata durumunda)
                 if (timeoutId) {
                     clearTimeout(timeoutId)
@@ -144,11 +144,11 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                 }
 
                 // İptal hatası ise direkt fırlat
-                if (error.message === 'Upload cancelled' || signal?.aborted) {
+                if ((error as Error).message === 'Upload cancelled' || signal?.aborted) {
                     throw error
                 }
 
-                console.error(`[FeedbackModal] ❌ Attempt ${attempt + 1} failed:`, error.message)
+                console.error(`[FeedbackModal] ❌ Attempt ${attempt + 1} failed:`, (error as Error).message)
 
                 // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
                 if (attempt === MAX_RETRIES - 1) {

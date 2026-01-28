@@ -84,16 +84,17 @@ vi.mock('@/lib/actions/products', () => ({
 }))
 
 vi.mock('@/components/builder/upgrade-modal', () => ({
-    UpgradeModal: ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
+    UpgradeModal: ({ open, onOpenChange: _onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
         open ? <div data-testid="upgrade-modal">Upgrade Modal</div> : null
     ),
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: any) => {
-        const imgProps: any = { src, alt, ...props }
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+        const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
         if (unoptimized !== undefined) imgProps.unoptimized = String(unoptimized)
+        // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />
     },
 }))
@@ -102,10 +103,10 @@ global.URL.createObjectURL = vi.fn(() => 'blob:test')
 global.URL.revokeObjectURL = vi.fn()
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 // Mock window.confirm
 global.confirm = vi.fn(() => true)
@@ -132,7 +133,7 @@ describe('Categories Page Client Testleri', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
-        ;(global.confirm as any).mockReturnValue(true)
+            ; (global.confirm as unknown as { mockReturnValue: (value: boolean) => void }).mockReturnValue(true)
     })
 
     describe('Render ve Temel İşlevsellik', () => {
@@ -255,7 +256,7 @@ describe('Categories Page Client Testleri', () => {
 
             await waitFor(() => {
                 const colorButtons = screen.getAllByRole('button')
-                const colorButton = colorButtons.find(btn => 
+                const colorButton = colorButtons.find(btn =>
                     btn.style.backgroundColor === '#ef4444' || btn.style.backgroundColor === 'rgb(239, 68, 68)'
                 )
                 if (colorButton) {
@@ -313,7 +314,7 @@ describe('Categories Page Client Testleri', () => {
         it('Geçersiz dosya türü için hata gösterilir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
             const addButton = screen.getByText('Yeni Kategori')
@@ -339,7 +340,7 @@ describe('Categories Page Client Testleri', () => {
         it('Çok büyük dosya için hata gösterilir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
             const addButton = screen.getByText('Yeni Kategori')
@@ -368,7 +369,7 @@ describe('Categories Page Client Testleri', () => {
         it('Boş kategori adı ile kaydetme engellenir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
             const addButton = screen.getByText('Yeni Kategori')
@@ -390,7 +391,7 @@ describe('Categories Page Client Testleri', () => {
         it('Yeni kategori başarıyla kaydedilir', async () => {
             const user = userEvent.setup()
             const { toast } = await import('sonner')
-            
+
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
             const addButton = screen.getByText('Yeni Kategori')

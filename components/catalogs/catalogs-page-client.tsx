@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download, Shield, Zap, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import NextImage from "next/image"
@@ -55,7 +55,6 @@ const CATALOG_LIMITS = {
 
 export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "free" }: CatalogsPageClientProps) {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const [catalogs, setCatalogs] = useState(initialCatalogs)
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -201,7 +200,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                     <ResponsiveContainer>
                       <CatalogPreview
                         layout={catalog.layout}
-                        name={catalog.name}
+                        catalogName={catalog.name}
                         products={catalogProducts}
                         primaryColor={catalog.primary_color}
                         showPrices={catalog.show_prices}

@@ -13,7 +13,7 @@ export function FashionLookbookTemplate({
     primaryColor = "#000000",
     showPrices,
     showDescriptions,
-    showAttributes,
+    showAttributes: _showAttributes,
     showSku,
     showUrls = false,
     pageNumber = 1,

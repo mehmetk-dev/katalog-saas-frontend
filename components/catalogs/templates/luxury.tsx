@@ -56,7 +56,7 @@ export function LuxuryTemplate({
     }
 
     const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'center'
+    const _logoAlignment = logoPosition?.split('-')[1] || 'center'
 
     return (
         <div className="h-full flex flex-col overflow-hidden bg-[#0a0a0a] text-[#d4af37] relative selection:bg-[#d4af37] selection:text-black">
@@ -117,7 +117,7 @@ export function LuxuryTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Product Frame */}
                             <div className="relative aspect-[10/12] bg-[#111] border border-[#d4af37]/20 group-hover:border-[#d4af37]/50 transition-all duration-700 overflow-hidden shadow-2xl">
                                 {/* Image */}

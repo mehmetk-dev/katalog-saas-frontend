@@ -90,7 +90,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                 <ResponsiveContainer>
                   <CatalogPreview
                     layout={template.layout}
-                    name={template.name}
+                    catalogName={template.name}
                     products={getPreviewProductsByLayout(template.layout)}
                   />
                 </ResponsiveContainer>

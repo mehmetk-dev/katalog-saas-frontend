@@ -7,13 +7,9 @@ import {
     QrCode,
     BarChart3,
     Share2,
-    Download,
     FileText,
-    Palette,
     Smartphone,
     Rocket,
-    CreditCard,
-    Lock,
     Globe,
     Zap,
     Image as ImageIcon,
@@ -23,7 +19,6 @@ import {
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 export default function FeaturesPage() {
     return (

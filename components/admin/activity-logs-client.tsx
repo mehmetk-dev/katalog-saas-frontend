@@ -219,7 +219,7 @@ export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsCl
                                                                     addSuffix: true,
                                                                     locale: language === "tr" ? tr : enUS
                                                                 })
-                                                            } catch (e) {
+                                                            } catch {
                                                                 return "Bilinmiyor"
                                                             }
                                                         })()}
@@ -246,7 +246,7 @@ export function ActivityLogsClient({ initialLogs, initialTotal }: ActivityLogsCl
                                                         return format(date, "dd MMM yyyy HH:mm", {
                                                             locale: language === "tr" ? tr : enUS
                                                         })
-                                                    } catch (e) {
+                                                    } catch {
                                                         return "Bilinmiyor"
                                                     }
                                                 })()}

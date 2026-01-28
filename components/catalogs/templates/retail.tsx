@@ -75,7 +75,7 @@ export function RetailTemplate({
                         </div>
                     )}
                     <div className="text-[11px] font-bold text-black border-2 border-black px-3 py-1 italic">
-                        PAGE_{pageNumber.toString().padStart(2, '0')}
+                        PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}
                     </div>
                 </div>
             </div>
@@ -95,7 +95,7 @@ export function RetailTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                             {/* Large Image Side */}
                             <div className="w-1/3 bg-zinc-50 relative overflow-hidden shrink-0">
                                 <NextImage

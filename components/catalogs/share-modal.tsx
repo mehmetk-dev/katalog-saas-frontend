@@ -13,7 +13,6 @@ import {
     Smartphone,
     Link as LinkIcon,
     Globe,
-    ExternalLink,
     Send
 } from "lucide-react"
 import { toast } from "sonner"
@@ -21,7 +20,6 @@ import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useTranslation } from "@/lib/i18n-provider"
 import { type Catalog } from "@/lib/actions/catalogs"
 
 interface ShareModalProps {
@@ -34,7 +32,6 @@ interface ShareModalProps {
 }
 
 export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl, onDownloadPdf }: ShareModalProps) {
-    const { t } = useTranslation()
     const [copied, setCopied] = useState(false)
     const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
     const [activeTab, setActiveTab] = useState<"link" | "qr">("link")

@@ -24,7 +24,7 @@ export async function sendFeedback(data: {
     page_url?: string;
     attachments?: string[];
 }) {
-    
+
     const supabase = await createServerSupabaseClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -32,7 +32,7 @@ export async function sendFeedback(data: {
         console.error("❌ No user found in sendFeedback")
         throw new Error("Oturum açmanız gerekiyor")
     }
-    
+
 
     // Kullanıcı profil bilgilerini al
     const { data: profile } = await supabase
@@ -59,15 +59,14 @@ export async function sendFeedback(data: {
         console.error("❌ Database insert error:", error)
         throw error
     }
-    
-    // eslint-disable-next-line no-console
+
 
     // Admin'e e-posta gönder (asenkron, hata olsa bile devam et)
     // Environment variable'ları direkt kontrol et
     const adminEmail = process.env.ADMIN_EMAIL
     const resendApiKey = process.env.RESEND_API_KEY
-    
-    
+
+
     if (!adminEmail) {
         console.error("❌ ADMIN_EMAIL is not set! Email will not be sent.")
         console.error("   Please add ADMIN_EMAIL to your .env.local file")
@@ -294,14 +293,14 @@ export async function sendFeedback(data: {
                                     <span class="message-box-title">Ekli Dosyalar</span>
                                     <div style="display: flex; flex-wrap: wrap;">
                                         ${data.attachments.map(url => {
-                                            const fileName = escapeHtml(url).split('/').pop() || 'dosya'
-                                            const displayName = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName
-                                            return `
+                const fileName = escapeHtml(url).split('/').pop() || 'dosya'
+                const displayName = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName
+                return `
                                             <a href="${escapeHtml(url)}" class="attachment-badge" target="_blank" rel="noopener noreferrer">
                                                 📄 ${displayName}
                                             </a>
                                         `
-                                        }).join('')}
+            }).join('')}
                                     </div>
                                 </div>
                                 ` : ''}
@@ -322,7 +321,7 @@ export async function sendFeedback(data: {
                 subject: `[Sorun Bildirimi] ${data.subject}`,
                 html: emailHtml,
             })
-            
+
             if (!emailResult.success) {
                 console.error("Failed to send feedback email:", emailResult.error)
             }
@@ -377,7 +376,7 @@ export async function bulkUpdateFeedbackStatus(ids: string[], status: Feedback['
 
 export async function bulkDeleteFeedbacks(ids: string[]) {
     const supabase = await createServerSupabaseClient()
-    
+
     let deletedCount = 0
     let errorCount = 0
 
@@ -397,10 +396,10 @@ export async function bulkDeleteFeedbacks(ids: string[]) {
                         try {
                             let filePath: string | null = null
                             const urlObj = new URL(url)
-                            
+
                             const publicMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/feedback-attachments\/(.+)/)
                             const signedMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/feedback-attachments\/(.+)/)
-                            
+
                             if (publicMatch) {
                                 filePath = publicMatch[1]
                             } else if (signedMatch) {
@@ -411,7 +410,7 @@ export async function bulkDeleteFeedbacks(ids: string[]) {
                                     filePath = altMatch[1]
                                 }
                             }
-                            
+
                             if (filePath) {
                                 await supabase.storage
                                     .from('feedback-attachments')
@@ -467,21 +466,20 @@ export async function deleteFeedback(id: string) {
 
     // Storage'dan dosyaları sil
     if (feedback.attachments && Array.isArray(feedback.attachments) && feedback.attachments.length > 0) {
-        // eslint-disable-next-line no-console
-        
+
         for (const url of feedback.attachments) {
             try {
                 let filePath: string | null = null
-                
+
                 // URL'den dosya yolunu çıkar - farklı formatları kontrol et
                 try {
                     const urlObj = new URL(url)
-                    
+
                     // Format 1: Public URL: /storage/v1/object/public/feedback-attachments/{userId}/feedback/{fileName}
                     // Format 2: Signed URL: /storage/v1/object/sign/feedback-attachments/{userId}/feedback/{fileName}?token=...
                     const publicMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/feedback-attachments\/(.+)/)
                     const signedMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/feedback-attachments\/(.+)/)
-                    
+
                     if (publicMatch) {
                         filePath = publicMatch[1]
                     } else if (signedMatch) {
@@ -493,10 +491,8 @@ export async function deleteFeedback(id: string) {
                             filePath = altMatch[1]
                         }
                     }
-                    
+
                     if (filePath) {
-                        // eslint-disable-next-line no-console
-                        
                         const { error: deleteError } = await supabase.storage
                             .from('feedback-attachments')
                             .remove([filePath])
@@ -504,8 +500,6 @@ export async function deleteFeedback(id: string) {
                         if (deleteError) {
                             console.error(`❌ Failed to delete file ${filePath}:`, deleteError)
                             // Devam et, veritabanı kaydını sil
-                        } else {
-                            // eslint-disable-next-line no-console
                         }
                     } else {
                         console.warn(`⚠️ Could not extract file path from URL: ${url}`)
@@ -531,7 +525,6 @@ export async function deleteFeedback(id: string) {
         throw deleteError
     }
 
-    // eslint-disable-next-line no-console
     revalidatePath("/dashboard/admin")
     return { success: true }
 }

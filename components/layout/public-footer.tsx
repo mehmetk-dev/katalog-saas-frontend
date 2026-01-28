@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { LayoutGrid } from "lucide-react"
 
 import { useTranslation } from "@/lib/i18n-provider"
 

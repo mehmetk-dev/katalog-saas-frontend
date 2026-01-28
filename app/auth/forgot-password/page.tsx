@@ -3,10 +3,9 @@
 import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Loader2, Mail, CheckCircle2, BookOpen, AlertCircle } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle2, BookOpen } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-provider"
 
 const getSiteUrl = () => {
@@ -58,7 +57,7 @@ export default function ForgotPasswordPage() {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
 
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       })
 
@@ -97,7 +96,7 @@ export default function ForgotPasswordPage() {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
 
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       })
 

@@ -105,7 +105,7 @@ export function BoldTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Huge Image Area */}
                             <div className="relative aspect-[16/10] bg-gray-200 border-b-4 border-black overflow-hidden group">
                                 <NextImage

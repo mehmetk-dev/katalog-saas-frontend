@@ -21,7 +21,7 @@ export function SessionWatcher() {
         // 1. Auth Durum Değişikliklerini Dinle
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
+        } = supabase.auth.onAuthStateChange((event) => {
 
             if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
                 // Next.js router.refresh() sunucu tarafındaki cookie'leri ve durumu senkronize eder

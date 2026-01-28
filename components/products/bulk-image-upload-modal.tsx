@@ -2,15 +2,14 @@
 
 import * as React from "react"
 import { useState, useCallback } from "react"
-import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ArrowRight, RefreshCw, ChevronDown } from "lucide-react"
+import { Upload, X, Check, AlertCircle, Image as ImageIcon, Loader2, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import NextImage from "next/image"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { createClient, getSessionSafe } from "@/lib/supabase/client"
-import { Progress } from "@/components/ui/progress"
+import { createClient } from "@/lib/supabase/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type Product, bulkUpdateProductImages } from "@/lib/actions/products"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
@@ -330,15 +329,15 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         timeoutId = setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), TIMEOUT_MS)
                     })
 
-                    const result: any = await Promise.race([uploadPromise, timeoutPromise])
+                    const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | null
                     if (timeoutId) clearTimeout(timeoutId)
 
                     if (result?.url) return result.url
                     throw new Error('URL missing')
 
-                } catch (err: any) {
+                } catch (err: unknown) {
                     if (timeoutId) clearTimeout(timeoutId)
-                    if (err.message === 'Upload cancelled' || signal?.aborted) throw err
+                    if ((err as Error).message === 'Upload cancelled' || signal?.aborted) throw err
 
                     if (attempt === MAX_RETRIES - 1) throw err
                     // Wait before retry
@@ -379,9 +378,9 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         productUpdates.set(matchId, [...currentList, url])
                         successCount++
 
-                    } catch (err: any) {
+                    } catch (err: unknown) {
                         console.error("Upload error for " + img.file.name, err)
-                        setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: err.message } : p))
+                        setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: (err as Error).message } : p))
                     }
                 }))
 

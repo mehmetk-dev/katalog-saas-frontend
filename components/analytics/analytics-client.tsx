@@ -6,16 +6,10 @@ import {
     Eye,
     ArrowUpRight,
     ArrowDownRight,
-    Smartphone,
-    Monitor,
-    Tablet,
     FileText,
-    Activity,
     Sparkles,
-    Info,
     LayoutGrid,
     Package,
-    Clock,
     PieChart as LucidePieChart
 } from "lucide-react"
 import Link from "next/link"
@@ -299,7 +293,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             backgroundColor: 'white'
                                         }}
                                         labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1e293b' }}
-                                        formatter={(value: any) => [`${value} ${t("dashboard.analytics.views")}`, '']}
+                                        formatter={(value: number | string) => [`${value} ${t("dashboard.analytics.views")}`, '']}
                                     />
                                     <Bar
                                         dataKey="views"

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { usePathname } from 'next/navigation'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
+import { useUser } from '@/lib/user-context'
+import { useSidebar } from '@/lib/sidebar-context'
 
 // Mock dependencies
 vi.mock('@/lib/user-context', () => ({
@@ -40,16 +43,16 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/link', () => ({
-    default: ({ children, href, ...props }: any) => (
+    default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
         <a href={href} {...props}>{children}</a>
     ),
 }))
 
 global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-} as any
+    observe() { }
+    unobserve() { }
+    disconnect() { }
+} as unknown as typeof ResizeObserver
 
 describe('Navigation Testleri', () => {
     beforeEach(() => {
@@ -68,8 +71,7 @@ describe('Navigation Testleri', () => {
         })
 
         it('Aktif sayfa highlight edilir', () => {
-            const { usePathname } = require('next/navigation')
-            usePathname.mockReturnValue('/dashboard/products')
+            vi.mocked(usePathname).mockReturnValue('/dashboard/products')
 
             render(<DashboardSidebar />)
 
@@ -79,8 +81,7 @@ describe('Navigation Testleri', () => {
         })
 
         it('Admin panel sadece admin kullanıcılar için gösterilir', () => {
-            const { useUser } = require('@/lib/user-context')
-            useUser.mockReturnValue({
+            vi.mocked(useUser).mockReturnValue({
                 user: {
                     id: 'user-1',
                     email: 'admin@example.com',
@@ -88,7 +89,7 @@ describe('Navigation Testleri', () => {
                     isAdmin: true,
                 },
                 isLoading: false,
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 
@@ -96,8 +97,7 @@ describe('Navigation Testleri', () => {
         })
 
         it('Admin panel normal kullanıcılar için gösterilmez', () => {
-            const { useUser } = require('@/lib/user-context')
-            useUser.mockReturnValue({
+            vi.mocked(useUser).mockReturnValue({
                 user: {
                     id: 'user-1',
                     email: 'user@example.com',
@@ -105,7 +105,7 @@ describe('Navigation Testleri', () => {
                     isAdmin: false,
                 },
                 isLoading: false,
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 
@@ -115,7 +115,7 @@ describe('Navigation Testleri', () => {
 
         it('Premium özellikler için upgrade modal gösterir', async () => {
             const user = userEvent.setup()
-            
+
             render(<DashboardSidebar />)
 
             // Categories premium özellik
@@ -131,14 +131,13 @@ describe('Navigation Testleri', () => {
 
     describe('Mobile Navigation', () => {
         it('Mobilde sidebar overlay gösterir', () => {
-            const { useSidebar } = require('@/lib/sidebar-context')
-            useSidebar.mockReturnValue({
+            vi.mocked(useSidebar).mockReturnValue({
                 isOpen: true,
                 isCollapsed: false,
                 isMobile: true,
                 close: vi.fn(),
                 toggle: vi.fn(),
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 
@@ -150,15 +149,14 @@ describe('Navigation Testleri', () => {
         it('Overlay tıklandığında sidebar kapanır', async () => {
             const user = userEvent.setup()
             const closeMock = vi.fn()
-            
-            const { useSidebar } = require('@/lib/sidebar-context')
-            useSidebar.mockReturnValue({
+
+            vi.mocked(useSidebar).mockReturnValue({
                 isOpen: true,
                 isCollapsed: false,
                 isMobile: true,
                 close: closeMock,
                 toggle: vi.fn(),
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 
@@ -172,15 +170,14 @@ describe('Navigation Testleri', () => {
         it('Mobilde link tıklandığında sidebar kapanır', async () => {
             const user = userEvent.setup()
             const closeMock = vi.fn()
-            
-            const { useSidebar } = require('@/lib/sidebar-context')
-            useSidebar.mockReturnValue({
+
+            vi.mocked(useSidebar).mockReturnValue({
                 isOpen: true,
                 isCollapsed: false,
                 isMobile: true,
                 close: closeMock,
                 toggle: vi.fn(),
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 
@@ -193,14 +190,13 @@ describe('Navigation Testleri', () => {
 
     describe('Sidebar Collapse', () => {
         it('Collapsed modda sadece iconlar gösterilir', () => {
-            const { useSidebar } = require('@/lib/sidebar-context')
-            useSidebar.mockReturnValue({
+            vi.mocked(useSidebar).mockReturnValue({
                 isOpen: true,
                 isCollapsed: true,
                 isMobile: false,
                 close: vi.fn(),
                 toggle: vi.fn(),
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 
@@ -212,15 +208,14 @@ describe('Navigation Testleri', () => {
         it('Toggle butonu sidebar\'ı açıp kapatır', async () => {
             const user = userEvent.setup()
             const toggleMock = vi.fn()
-            
-            const { useSidebar } = require('@/lib/sidebar-context')
-            useSidebar.mockReturnValue({
+
+            vi.mocked(useSidebar).mockReturnValue({
                 isOpen: true,
                 isCollapsed: false,
                 isMobile: false,
                 close: vi.fn(),
                 toggle: toggleMock,
-            })
+            } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
 

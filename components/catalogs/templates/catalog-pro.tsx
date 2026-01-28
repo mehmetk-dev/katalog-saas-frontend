@@ -101,7 +101,7 @@ export function CatalogProTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as any)}>
+                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Product Frame with Bauhaus Tint Background */}
                             <div className="relative flex-1 mb-3 group-hover:-translate-y-2 transition-transform duration-500 min-h-0">
                                 {/* The Offset Accent - Only shows on hover or subtlely */}

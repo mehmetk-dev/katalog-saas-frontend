@@ -29,14 +29,14 @@ export class SupabaseProvider implements StorageProvider {
     const filePath = options.path ? `${options.path}/${fileName}` : `${userId}/${fileName}`
 
     // Upload
-    const { error, data } = await supabase.storage
+    const { error, data: _data } = await supabase.storage
       .from(this.bucketName)
       .upload(filePath, file, {
         contentType: options.contentType || file.type || 'image/jpeg',
         cacheControl: options.cacheControl || '3600',
         upsert: true,
         // AbortSignal desteği için
-        // @ts-ignore
+        // @ts-expect-error - Supabase client types may not include signal yet
         signal: options.signal,
       })
 
