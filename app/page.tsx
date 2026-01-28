@@ -46,7 +46,6 @@ export default function HomePage() {
     const errorDesc = url.searchParams.get('error_description') || new URLSearchParams(url.hash.substring(1)).get('error_description')
 
     if (error || errorCode || errorDesc) {
-      console.log('[AuthError] Detected in URL, redirecting to login:', { error, errorCode, errorDesc })
 
       const authUrl = new URL(`${window.location.origin}/auth`)
       if (error) authUrl.searchParams.set('error', error)

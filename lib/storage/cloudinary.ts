@@ -44,17 +44,6 @@ export class CloudinaryProvider implements StorageProvider {
     // NOT: folder parametresi kullanıldığında, public_id'de klasör belirtmeye gerek yok
     formData.append('public_id', fileNameWithoutExt)
 
-    console.log('[Cloudinary] Upload attempt:', {
-      cloudName: this.config.cloudName,
-      uploadPreset: this.config.uploadPreset,
-      uploadPresetLength: this.config.uploadPreset.length,
-      folder,
-      fileNameWithoutExt,
-      publicId: fileNameWithoutExt, // public_id sadece dosya adı (folder parametresi klasörü belirler)
-      fullPath: `${folder}/${fileNameWithoutExt}`, // Tam path gösterimi
-      fileSize: file.size,
-      fileType: file instanceof File ? file.type : 'Blob'
-    })
 
     try {
       // Preset adı kontrolü
@@ -65,6 +54,7 @@ export class CloudinaryProvider implements StorageProvider {
       const response = await fetch(`${this.baseUrl}/image/upload`, {
         method: 'POST',
         body: formData,
+        signal: options.signal,
       })
 
       if (!response.ok) {
@@ -109,18 +99,6 @@ export class CloudinaryProvider implements StorageProvider {
 
       const data = await response.json()
 
-      console.log('[Cloudinary] Upload success - Full response:', {
-        asset_id: data.asset_id,
-        public_id: data.public_id,
-        version: data.version,
-        secure_url: data.secure_url,
-        url: data.url,
-        width: data.width,
-        height: data.height,
-        bytes: data.bytes,
-        format: data.format
-      })
-
       // Cloudinary response'tan gelen URL'e otomatik optimizasyon parametrelerini ekle
       let rawUrl = data.secure_url || data.url
       let imageUrl = rawUrl
@@ -133,7 +111,6 @@ export class CloudinaryProvider implements StorageProvider {
         throw new Error('Cloudinary upload başarılı ama URL dönmedi. Response: ' + JSON.stringify(data))
       }
 
-      console.log('[Cloudinary] Extracted URL:', imageUrl)
 
       return {
         url: imageUrl,

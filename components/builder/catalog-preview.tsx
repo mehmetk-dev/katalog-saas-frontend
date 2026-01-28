@@ -13,11 +13,11 @@ interface CatalogPreviewProps {
   catalogName: string
   products: Product[]
   layout: string
-  primaryColor: string
-  showPrices: boolean
-  showDescriptions: boolean
-  showAttributes: boolean
-  showSku: boolean
+  primaryColor?: string
+  showPrices?: boolean
+  showDescriptions?: boolean
+  showAttributes?: boolean
+  showSku?: boolean
   showUrls?: boolean
   // Yeni kişiselleştirme props
   columnsPerRow?: number
@@ -190,13 +190,13 @@ export function CatalogPreview(props: CatalogPreviewProps) {
         <TemplateComponent
           catalogName={props.catalogName}
           products={pageProducts}
-          primaryColor={props.primaryColor}
-          headerTextColor={props.headerTextColor}
-          showPrices={props.showPrices}
-          showDescriptions={props.showDescriptions}
-          showAttributes={props.showAttributes}
-          showSku={props.showSku}
-          showUrls={props.showUrls}
+          primaryColor={props.primaryColor || '#4f46e5'}
+          headerTextColor={props.headerTextColor || '#ffffff'}
+          showPrices={props.showPrices ?? true}
+          showDescriptions={props.showDescriptions ?? true}
+          showAttributes={props.showAttributes ?? true}
+          showSku={props.showSku ?? true}
+          showUrls={props.showUrls ?? true}
           productImageFit={props.productImageFit || 'cover'}
           isFreeUser={isFreeUser}
           pageNumber={pageIndex + 1}
@@ -218,44 +218,47 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   return (
     <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-gray-100/50">
       {/* Sayfa Kontrolü */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white/80 backdrop-blur border-b shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 bg-white/90 backdrop-blur-md border-b shrink-0 gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => setViewMode(viewMode === "single" ? "all" : "single")}
-            className="text-xs"
+            className="h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold uppercase tracking-tight rounded-full transition-all"
           >
-            {viewMode === "single" ? "Tüm Sayfalar" : "Tek Sayfa"}
+            {viewMode === "single" ? "TÜM SAYFALAR" : "TEK SAYFA"}
           </Button>
 
+          <div className="h-4 w-px bg-border/60 mx-1 hidden xs:block" />
+
           {/* Sütun sayısı göstergesi */}
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-            {columnsPerRow} sütun
-          </span>
+          <div className="hidden xs:flex items-center gap-1 px-2 py-1 bg-muted/60 rounded-full border border-border/40 shrink-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">{columnsPerRow} SÜTUN</span>
+          </div>
         </div>
 
         {viewMode === "single" && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-muted"
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 0}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <div className="flex items-center gap-1 min-w-[100px] justify-center">
-              <span className="text-sm font-medium">Sayfa {currentPage + 1}</span>
-              <span className="text-sm text-muted-foreground">/ {pages.length}</span>
+            <div className="flex items-center justify-center bg-muted/50 px-3 py-1 rounded-full border border-border/30 min-w-[70px] sm:min-w-[90px]">
+              <span className="text-xs font-black text-foreground tabular-nums">{currentPage + 1}</span>
+              <span className="text-[10px] font-bold text-muted-foreground mx-1">/</span>
+              <span className="text-xs font-black text-muted-foreground tabular-nums">{pages.length}</span>
             </div>
 
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-muted"
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === pages.length - 1}
             >
@@ -265,20 +268,20 @@ export function CatalogPreview(props: CatalogPreviewProps) {
         )}
 
         {viewMode === "all" && (
-          <div className="text-sm text-muted-foreground">
-            Toplam {pages.length} sayfa
+          <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hidden sm:block">
+            TOPLAM {pages.length} SAYFA
           </div>
         )}
 
-        {/* Mini sayfa göstergeleri */}
+        {/* Mini indicators - Hidden on very small screens */}
         {pages.length > 1 && viewMode === "single" && (
-          <div className="flex flex-wrap items-center justify-end gap-1.5 max-w-[120px] sm:max-w-[200px] min-w-0">
+          <div className="hidden md:flex items-center justify-end gap-1.5 min-w-0">
             {pages.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => goToPage(idx)}
-                className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${idx === currentPage
-                  ? "bg-primary shadow-sm"
+                className={`w-1.5 h-1.5 rounded-full transition-all hover:scale-150 ${idx === currentPage
+                  ? "bg-violet-500 w-3 shadow-md shadow-violet-200"
                   : "bg-slate-300 hover:bg-slate-400"
                   }`}
                 title={`Sayfa ${idx + 1}`}

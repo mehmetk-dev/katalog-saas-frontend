@@ -42,7 +42,6 @@ export function extractPublicId(photoUrl: string): string | null {
     if (match && match[1]) {
         // Format uzantısını kaldır (örn: .webp, .jpg)
         const publicId = match[1].replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
-        console.log('[extractPublicId] Extracted:', { photoUrl, publicId });
         return publicId;
     }
     
@@ -54,7 +53,6 @@ export function extractPublicId(photoUrl: string): string | null {
  * Fotoğrafı Cloudinary'de deleted-images klasörüne taşı
  */
 export async function movePhotoToDeletedFolder(photoUrl: string): Promise<boolean> {
-    console.log('[movePhotoToDeletedFolder] Starting:', { photoUrl, deletedFolder, cloudName: !!cloudName, apiKey: !!apiKey, apiSecret: !!apiSecret });
     
     if (!cloudName || !apiKey || !apiSecret) {
         console.warn('[Cloudinary] Credentials missing, skipping photo move');
@@ -72,7 +70,6 @@ export async function movePhotoToDeletedFolder(photoUrl: string): Promise<boolea
         // Not: public_id artık sadece dosya adı olabilir, asset_folder kontrolü yapmalıyız
         // Ama basitlik için public_id'de klasör varsa kontrol edelim
         if (publicId.includes('/') && publicId.startsWith(`${deletedFolder}/`)) {
-            console.log(`[Cloudinary] Photo already in ${deletedFolder} folder:`, publicId);
             return true;
         }
 
@@ -109,22 +106,11 @@ export async function movePhotoToDeletedFolder(photoUrl: string): Promise<boolea
                 asset_folder: deletedFolder, // Media Library'de görünecek klasör
                 invalidate: true
             });
-            console.log(`[Cloudinary] asset_folder updated to ${deletedFolder} for:`, newPublicId);
         } catch (updateError: any) {
             console.warn(`[Cloudinary] Failed to update asset_folder for ${newPublicId}:`, updateError.message);
             // asset_folder güncelleme hatası olsa bile devam et (public_id zaten değişti)
         }
 
-        // Result'u detaylı logla
-        console.log(`[Cloudinary] Photo moved to ${deletedFolder}:`, {
-            from: publicId,
-            to: newPublicId,
-            resultPublicId: result.public_id,
-            resultSecureUrl: result.secure_url,
-            resultUrl: result.url,
-            resultVersion: result.version,
-            fullResult: JSON.stringify(result, null, 2)
-        });
 
         // Result'un public_id'si yeni public_id ile eşleşmeli
         if (result.public_id !== newPublicId) {

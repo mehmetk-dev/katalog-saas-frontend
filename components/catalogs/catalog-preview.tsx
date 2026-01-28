@@ -21,7 +21,7 @@ import { ProductTilesTemplate } from "./templates/product-tiles"
 
 interface CatalogPreviewProps {
     layout: string
-    name: string
+    catalogName: string
     products: Product[]
     primaryColor?: string
     headerTextColor?: string
@@ -46,7 +46,7 @@ interface CatalogPreviewProps {
 
 export function CatalogPreview({
     layout,
-    name,
+    catalogName,
     products,
     primaryColor = "#7c3aed",
     headerTextColor,
@@ -135,7 +135,7 @@ export function CatalogPreview({
 
     // Default props for preview
     const templateProps = {
-        catalogName: name,
+        catalogName: catalogName,
         products: previewProducts,
         primaryColor,
         headerTextColor: headerTextColor || catalog?.header_text_color || '#ffffff',

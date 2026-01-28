@@ -25,6 +25,7 @@ export interface Product {
   custom_attributes: CustomAttribute[]
   created_at: string
   updated_at: string
+  order: number
 }
 
 export async function getProducts() {
@@ -241,10 +242,35 @@ export async function bulkUpdatePrices(
 }
 
 export async function bulkUpdateProductImages(updates: { productId: string; images: string[] }[]) {
-  // Tek bir API isteği ile tüm ürünleri sunucu tarafında güncelle
+  // Veriyi hazırlarken her bir ürün için mevcut görselleri koruyarak ekleme yapılması
+  // Normalde backend'in bunu yapması idealdir ama backend'e müdahale edemediğimiz için
+  // burada her ürün için güncel halini alıp birleştiriyoruz (Server-side merge).
+
+  const finalUpdates = await Promise.all(updates.map(async (update) => {
+    try {
+      // Ürünün en güncel halini çek
+      const currentProduct = await apiFetch<Product>(`/products/${update.productId}`)
+      const existingImages = currentProduct.images || (currentProduct.image_url ? [currentProduct.image_url] : [])
+
+      // Mevcut olanların üzerine yenileri ekle (Tekil tutarak ve limitleyerek)
+      const combined = [...existingImages]
+      update.images.forEach(img => {
+        if (!combined.includes(img)) combined.push(img)
+      })
+
+      return {
+        productId: update.productId,
+        images: combined.slice(0, 5)
+      }
+    } catch (error) {
+      console.error(`[bulkUpdateProductImages] Fetch error for ${update.productId}:`, error)
+      return update // Hata durumunda orijinal güncellemeyi döndür (fallback)
+    }
+  }))
+
   await apiFetch("/products/bulk-image-update", {
     method: "POST",
-    body: JSON.stringify({ updates }),
+    body: JSON.stringify({ updates: finalUpdates }),
   })
 
   revalidatePath("/dashboard/products")
@@ -429,5 +455,8 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
     }
   ];
 
-  return await bulkImportProducts(dummyProducts);
+  // Add order field
+  const dummyProductsWithOrder = dummyProducts.map((p, index) => ({ ...p, order: index }))
+
+  return await bulkImportProducts(dummyProductsWithOrder);
 }

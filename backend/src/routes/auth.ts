@@ -34,7 +34,6 @@ router.post('/check-provider', async (req: Request<{}, CheckProviderResponse | {
         // Kullanıcı var mı?
         const exists = !!publicUser || !!authUser;
 
-        console.log(`[CheckProvider] ${cleanEmail} -> DB:${!!publicUser}, Auth:${!!authUser}, Result:${exists}`);
 
         if (!exists) {
             return res.json({ exists: false, provider: null, isOAuth: false });

@@ -58,17 +58,10 @@ export default function ForgotPasswordPage() {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
 
-      console.log("[ForgotPassword] Attempting to send reset email:", {
-        email,
-        redirectUrl,
-        siteUrl: SITE_URL
-      })
-
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       })
 
-      console.log("[ForgotPassword] Response:", { data, error })
 
       if (error) {
         console.error("[ForgotPassword] Supabase error:", error)
@@ -87,7 +80,6 @@ export default function ForgotPasswordPage() {
         throw new Error(errorMessage)
       }
       
-      console.log("[ForgotPassword] Email sent successfully")
       setSuccess(true)
     } catch (err) {
       console.error("[ForgotPassword] Error:", err)
@@ -105,7 +97,6 @@ export default function ForgotPasswordPage() {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
       
-      console.log("[ForgotPassword] Continue anyway - Attempting to send reset email:", {
         email,
         redirectUrl,
         siteUrl: SITE_URL
@@ -115,7 +106,6 @@ export default function ForgotPasswordPage() {
         redirectTo: redirectUrl,
       })
 
-      console.log("[ForgotPassword] Continue anyway - Response:", { data, error })
 
       if (error) {
         console.error("[ForgotPassword] Continue anyway - Supabase error:", error)
@@ -134,7 +124,6 @@ export default function ForgotPasswordPage() {
         throw new Error(errorMessage)
       }
       
-      console.log("[ForgotPassword] Continue anyway - Email sent successfully")
       setSuccess(true)
     } catch (err) {
       console.error("[ForgotPassword] Continue anyway - Error:", err)

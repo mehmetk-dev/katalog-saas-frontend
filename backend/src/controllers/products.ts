@@ -13,7 +13,7 @@ function extractSupabasePath(photoUrl: string, bucketName: string = 'product-ima
 
     try {
         const urlObj = new URL(photoUrl);
-        
+
         // Public URL formatı: /storage/v1/object/public/{bucket}/{path}
         const publicMatch = urlObj.pathname.match(new RegExp(`/storage/v1/object/public/${bucketName}/(.+)`));
         if (publicMatch) {
@@ -48,7 +48,7 @@ async function deletePhotosFromSupabase(photoUrls: string[], bucketName: string 
     }
 
     const paths: string[] = [];
-    
+
     for (const photoUrl of photoUrls) {
         const path = extractSupabasePath(photoUrl, bucketName);
         if (path) {
@@ -72,7 +72,6 @@ async function deletePhotosFromSupabase(photoUrls: string[], bucketName: string 
             return { success: 0, failed: paths.length };
         }
 
-        console.log(`[deletePhotosFromSupabase] ${paths.length} photo(s) deleted from Supabase storage`);
         return { success: paths.length, failed: photoUrls.length - paths.length };
     } catch (error: any) {
         console.error('[deletePhotosFromSupabase] Exception deleting photos:', error);
@@ -319,8 +318,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
         // Storage provider'ı belirle
         const storageProvider = process.env.STORAGE_PROVIDER || process.env.NEXT_PUBLIC_STORAGE_PROVIDER || 'supabase';
-        
-        console.log('[deleteProduct] Debug info:', {
+
             productId: product.id,
             productName: product.name,
             photoUrls,
@@ -336,12 +334,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
                 // Cloudinary: deletedproducts klasörüne taşı
                 try {
                     const moveResult = await movePhotosToDeletedFolder(photoUrls);
-                    console.log('[deleteProduct] Photos moved to deletedproducts:', {
-                        total: photoUrls.length,
-                        success: moveResult.success,
-                        failed: moveResult.failed
-                    });
-                    
+
                     if (moveResult.failed > 0) {
                         console.warn(`[deleteProduct] ${moveResult.failed} fotoğraf deletedproducts klasörüne taşınamadı, ürün yine de silinecek.`);
                     }
@@ -353,12 +346,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
                 // Supabase: direkt sil
                 try {
                     const deleteResult = await deletePhotosFromSupabase(photoUrls);
-                    console.log('[deleteProduct] Photos deleted from Supabase:', {
-                        total: photoUrls.length,
-                        success: deleteResult.success,
-                        failed: deleteResult.failed
-                    });
-                    
+
                     if (deleteResult.failed > 0) {
                         console.warn(`[deleteProduct] ${deleteResult.failed} fotoğraf Supabase'den silinemedi, ürün yine de silinecek.`);
                     }
@@ -387,17 +375,17 @@ export const deleteProduct = async (req: Request, res: Response) => {
             userId,
             activityType: 'product_deleted',
             description: 'Bir ürün sildi',
-            metadata: { 
+            metadata: {
                 productId: id,
-                photosCount: photoUrls.length 
+                photosCount: photoUrls.length
             },
             ipAddress,
             userAgent
         });
 
-        res.json({ 
+        res.json({
             success: true,
-            deletedPhotosCount: photoUrls.length 
+            deletedPhotosCount: photoUrls.length
         });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -452,12 +440,11 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
                     // Cloudinary: deletedproducts klasörüne taşı
                     try {
                         const moveResult = await movePhotosToDeletedFolder(photoUrls);
-                        console.log('[bulkDeleteProducts] Photos moved to deletedproducts:', {
                             total: photoUrls.length,
                             success: moveResult.success,
                             failed: moveResult.failed
                         });
-                        
+
                         if (moveResult.failed > 0) {
                             console.warn(`[bulkDeleteProducts] ${moveResult.failed} fotoğraf deletedproducts klasörüne taşınamadı, ürünler yine de silinecek.`);
                         }
@@ -469,12 +456,7 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
                     // Supabase: direkt sil
                     try {
                         const deleteResult = await deletePhotosFromSupabase(photoUrls);
-                        console.log('[bulkDeleteProducts] Photos deleted from Supabase:', {
-                            total: photoUrls.length,
-                            success: deleteResult.success,
-                            failed: deleteResult.failed
-                        });
-                        
+
                         if (deleteResult.failed > 0) {
                             console.warn(`[bulkDeleteProducts] ${deleteResult.failed} fotoğraf Supabase'den silinemedi, ürünler yine de silinecek.`);
                         }
@@ -498,9 +480,9 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
 
-        res.json({ 
+        res.json({
             success: true,
-            deletedPhotosCount: photoUrls.length 
+            deletedPhotosCount: photoUrls.length
         });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -579,26 +561,32 @@ export const reorderProducts = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'order must be an array' });
         }
 
-        // N+1 FIX: RPC function ile tek seferde batch update
-        // Supabase otomatik olarak JavaScript array'i JSONB'ye serialize eder
-        const ordersArray = order.map(item => ({ id: item.id, order: item.order }));
-        
-        const { data, error } = await supabase.rpc('batch_update_product_orders', {
-            p_user_id: userId,
-            p_orders: ordersArray
-        });
+        // Batched update using Promise.all since RPC might be missing
+        const updatePromises = order.map(item =>
+            supabase
+                .from('products')
+                .update({
+                    display_order: item.order,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', item.id)
+                .eq('user_id', userId)
+        );
 
-        if (error) throw error;
+        await Promise.all(updatePromises);
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
 
-        res.json({ success: true, updated: data?.length || 0 });
+        res.json({ success: true, updated: order.length });
     } catch (error: unknown) {
-        // Sıralama kaydedilemedi ama UI çalışmaya devam etsin
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        // Hata detayını string olarak al (Supabase hatası obje olabilir)
+        const errorMessage = error instanceof Error
+            ? error.message
+            : (typeof error === 'object' ? JSON.stringify(error) : String(error));
+
         console.error('Reorder products error:', errorMessage);
-        res.json({ success: false, message: 'Sıralama veritabanına kaydedilemedi' });
+        res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi', error: errorMessage });
     }
 };
 

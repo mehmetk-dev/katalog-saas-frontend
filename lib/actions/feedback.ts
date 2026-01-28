@@ -24,13 +24,6 @@ export async function sendFeedback(data: {
     page_url?: string;
     attachments?: string[];
 }) {
-    // eslint-disable-next-line no-console
-    console.log("🚀 sendFeedback function called with:", {
-        subject: data.subject,
-        hasMessage: !!data.message,
-        pageUrl: data.page_url,
-        attachmentsCount: data.attachments?.length || 0
-    })
     
     const supabase = await createServerSupabaseClient()
 
@@ -40,8 +33,6 @@ export async function sendFeedback(data: {
         throw new Error("Oturum açmanız gerekiyor")
     }
     
-    // eslint-disable-next-line no-console
-    console.log("✅ User authenticated:", user.email)
 
     // Kullanıcı profil bilgilerini al
     const { data: profile } = await supabase
@@ -53,8 +44,6 @@ export async function sendFeedback(data: {
     const userName = profile?.full_name || user.user_metadata?.full_name || "Bilinmiyor"
     const userEmail = user.email || ""
 
-    // eslint-disable-next-line no-console
-    console.log("💾 Inserting feedback to database...")
     const { error } = await supabase.from("feedbacks").insert({
         user_id: user.id,
         user_name: userName,
@@ -72,32 +61,12 @@ export async function sendFeedback(data: {
     }
     
     // eslint-disable-next-line no-console
-    console.log("✅ Feedback inserted to database successfully")
 
     // Admin'e e-posta gönder (asenkron, hata olsa bile devam et)
     // Environment variable'ları direkt kontrol et
     const adminEmail = process.env.ADMIN_EMAIL
     const resendApiKey = process.env.RESEND_API_KEY
     
-    // Detaylı loglama
-    // eslint-disable-next-line no-console
-    console.log("=".repeat(50))
-    // eslint-disable-next-line no-console
-    console.log("📧 EMAIL NOTIFICATION PROCESS STARTING")
-    // eslint-disable-next-line no-console
-    console.log("=".repeat(50))
-    // eslint-disable-next-line no-console
-    console.log("Environment check:")
-    // eslint-disable-next-line no-console
-    console.log("  - ADMIN_EMAIL exists:", !!adminEmail)
-    // eslint-disable-next-line no-console
-    console.log("  - ADMIN_EMAIL value:", adminEmail ? `${adminEmail.substring(0, 5)}...` : "NOT SET")
-    // eslint-disable-next-line no-console
-    console.log("  - RESEND_API_KEY exists:", !!resendApiKey)
-    // eslint-disable-next-line no-console
-    console.log("  - RESEND_API_KEY value:", resendApiKey ? `${resendApiKey.substring(0, 10)}...` : "NOT SET")
-    // eslint-disable-next-line no-console
-    console.log("=".repeat(50))
     
     if (!adminEmail) {
         console.error("❌ ADMIN_EMAIL is not set! Email will not be sent.")
@@ -106,8 +75,6 @@ export async function sendFeedback(data: {
         console.error("❌ RESEND_API_KEY is not set! Email will not be sent.")
         console.error("   Please add RESEND_API_KEY to your .env.local file")
     } else {
-        // eslint-disable-next-line no-console
-        console.log("✅ Both environment variables are set, proceeding with email send...")
         try {
             // XSS koruması için HTML escape
             const escapeHtml = (text: string) => {
@@ -350,54 +317,18 @@ export async function sendFeedback(data: {
                 </html>
             `
 
-            // eslint-disable-next-line no-console
-            console.log("📤 Calling sendEmail function...")
-            // eslint-disable-next-line no-console
-            console.log("   To:", adminEmail)
-            // eslint-disable-next-line no-console
-            console.log("   Subject:", `[Sorun Bildirimi] ${data.subject}`)
-            
             const emailResult = await sendEmail({
                 to: adminEmail,
                 subject: `[Sorun Bildirimi] ${data.subject}`,
                 html: emailHtml,
             })
             
-            // eslint-disable-next-line no-console
-            console.log("📧 sendEmail returned:", {
-                success: emailResult.success,
-                error: emailResult.error,
-                hasData: !!emailResult.data
-            })
-            
-            if (emailResult.success) {
-                // eslint-disable-next-line no-console
-                console.log("=".repeat(50))
-                // eslint-disable-next-line no-console
-                console.log(`✅✅✅ SUCCESS: Feedback email sent to ${adminEmail}`)
-                // eslint-disable-next-line no-console
-                console.log("=".repeat(50))
-                if (emailResult.data) {
-                    // eslint-disable-next-line no-console
-                    console.log("Email ID:", emailResult.data)
-                }
-            } else {
-                console.error("=".repeat(50))
-                console.error(`❌❌❌ FAILED: Could not send email`)
-                console.error("Error:", emailResult.error)
-                console.error("=".repeat(50))
+            if (!emailResult.success) {
+                console.error("Failed to send feedback email:", emailResult.error)
             }
         } catch (emailError) {
             // E-posta gönderme hatası olsa bile feedback kaydı başarılı sayılır
-            console.error("=".repeat(50))
-            console.error("❌❌❌ EXCEPTION in email sending:")
-            console.error("=".repeat(50))
-            if (emailError instanceof Error) {
-                console.error("Error message:", emailError.message)
-                console.error("Error stack:", emailError.stack)
-            } else {
-                console.error("Unknown error:", emailError)
-            }
+            console.error("Exception in email sending:", emailError instanceof Error ? emailError.message : emailError)
             console.error("=".repeat(50))
         }
     }
@@ -537,7 +468,6 @@ export async function deleteFeedback(id: string) {
     // Storage'dan dosyaları sil
     if (feedback.attachments && Array.isArray(feedback.attachments) && feedback.attachments.length > 0) {
         // eslint-disable-next-line no-console
-        console.log(`🗑️ Deleting ${feedback.attachments.length} attachment(s) from storage...`)
         
         for (const url of feedback.attachments) {
             try {
@@ -566,7 +496,6 @@ export async function deleteFeedback(id: string) {
                     
                     if (filePath) {
                         // eslint-disable-next-line no-console
-                        console.log(`🗑️ Deleting file from storage: ${filePath}`)
                         
                         const { error: deleteError } = await supabase.storage
                             .from('feedback-attachments')
@@ -577,7 +506,6 @@ export async function deleteFeedback(id: string) {
                             // Devam et, veritabanı kaydını sil
                         } else {
                             // eslint-disable-next-line no-console
-                            console.log(`✅ Successfully deleted file: ${filePath}`)
                         }
                     } else {
                         console.warn(`⚠️ Could not extract file path from URL: ${url}`)
@@ -604,7 +532,6 @@ export async function deleteFeedback(id: string) {
     }
 
     // eslint-disable-next-line no-console
-    console.log(`✅ Feedback ${id} deleted successfully`)
     revalidatePath("/dashboard/admin")
     return { success: true }
 }

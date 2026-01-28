@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useTransition, useRef } from "react"
+import { useState, useTransition, useRef, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import {
     FolderPlus,
     Folder,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { createBrowserClient } from "@supabase/ssr"
+import { getSessionSafe } from "@/lib/supabase/client"
 import NextImage from "next/image"
 
 import { storage } from "@/lib/storage"
@@ -59,9 +61,11 @@ const CATEGORY_COLORS = [
 ]
 
 export function CategoriesPageClient({ initialCategories, userPlan }: CategoriesPageClientProps) {
+    const searchParams = useSearchParams()
     const [categories, setCategories] = useState<Category[]>(initialCategories)
     const [showAddModal, setShowAddModal] = useState(false)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
     const [editingCategory, setEditingCategory] = useState<Category | null>(null)
     const [newCategoryName, setNewCategoryName] = useState("")
     const [selectedColor, setSelectedColor] = useState(CATEGORY_COLORS[0])
@@ -77,6 +81,25 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     const isFreeUser = userPlan === "free"
     const { t } = useTranslation()
 
+    // URL'deki action=new parametresini kontrol et
+    useEffect(() => {
+        if (searchParams.get("action") === "new") {
+            if (isFreeUser) {
+                setShowUpgradeModal(true)
+            } else {
+                setEditingCategory(null)
+                setNewCategoryName("")
+                setSelectedColor(CATEGORY_COLORS[Math.floor(Math.random() * CATEGORY_COLORS.length)])
+                setCoverImage(null)
+                setShowAddModal(true)
+            }
+
+            // Parametreyi temizle
+            const newPath = window.location.pathname
+            window.history.replaceState({}, "", newPath)
+        }
+    }, [searchParams, isFreeUser])
+
     // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
     const uploadCategoryImageWithRetry = async (file: File, signal?: AbortSignal): Promise<string> => {
         const MAX_RETRIES = 3
@@ -85,7 +108,6 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             // İptal kontrolü
             if (signal?.aborted) {
-                console.log(`[Categories] 🛑 Upload cancelled for ${file.name}`)
                 throw new Error('Upload cancelled')
             }
 
@@ -95,9 +117,8 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                 // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
                 if (attempt > 0) {
                     const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-                    console.log(`[Categories] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${file.name}. Waiting ${waitTime}ms`)
                     toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
-                    
+
                     // Bekleme sırasında da iptal kontrolü
                     await new Promise<void>((resolve, reject) => {
                         const checkInterval = setInterval(() => {
@@ -106,7 +127,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                                 reject(new Error('Upload cancelled'))
                             }
                         }, 100)
-                        
+
                         setTimeout(() => {
                             clearInterval(checkInterval)
                             resolve()
@@ -116,7 +137,6 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
                 // İptal kontrolü (bekleme sonrası)
                 if (signal?.aborted) {
-                    console.log(`[Categories] 🛑 Upload cancelled for ${file.name} after wait`)
                     throw new Error('Upload cancelled')
                 }
 
@@ -131,15 +151,16 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     contentType: file.type || 'image/jpeg',
                     cacheControl: '3600',
                     fileName,
+                    signal, // AĞ SEVİYESİNDE İPTAL DESTEĞİ
                 })
 
                 // Timeout promise'i (temizlenebilir)
                 const timeoutPromise = new Promise<never>((_, reject) => {
                     timeoutId = setTimeout(() => {
-                        console.error(`[Categories] ⏱️ Upload timeout for ${file.name} after ${TIMEOUT_MS/1000} seconds`)
+                        console.error(`[Categories] ⏱️ Upload timeout for ${file.name} after ${TIMEOUT_MS / 1000} seconds`)
                         reject(new Error('UPLOAD_TIMEOUT'))
                     }, TIMEOUT_MS)
-                    
+
                     // Timeout ID'yi kaydet (temizlemek için)
                     uploadTimeoutId.current = timeoutId
                 })
@@ -170,12 +191,11 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
                 // İptal hatası ise direkt fırlat
                 if (error.message === 'Upload cancelled' || signal?.aborted) {
-                    console.log(`[Categories] 🛑 Upload cancelled for ${file.name}`)
                     throw error
                 }
 
                 console.error(`[Categories] ❌ Attempt ${attempt + 1} failed:`, error.message)
-                
+
                 // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
                 if (attempt === MAX_RETRIES - 1) {
                     throw error
@@ -216,6 +236,13 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
         setIsUploadingImage(true)
 
         try {
+            // 0. Oturum Kontrolü (Daha dayanıklı)
+            const session = await getSessionSafe()
+            if (!session?.access_token) {
+                toast.error("Oturum hazır değil veya süresi dolmuş. Lütfen tekrar giriş yapın.")
+                return
+            }
+
             // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
             const publicUrl = await uploadCategoryImageWithRetry(file, abortController.signal)
 
@@ -224,16 +251,15 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
         } catch (error: any) {
             // İptal hatası ise sessizce geç
             if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
-                console.log(`[Categories] 🛑 Upload cancelled, silently ignoring`)
                 return
             }
 
             console.error('Upload error:', error)
-            
+
             const errorMessage = error.message?.includes('UPLOAD_TIMEOUT') || error.message?.includes('timeout')
                 ? t('auth.timeout')
                 : t('toasts.imageUploadFailed')
-            
+
             toast.error(errorMessage)
         } finally {
             // Cleanup
@@ -242,7 +268,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                 clearTimeout(uploadTimeoutId.current)
                 uploadTimeoutId.current = null
             }
-            
+
             setIsUploadingImage(false)
             if (e.target) e.target.value = ''
         }

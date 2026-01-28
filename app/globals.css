@@ -417,3 +417,10 @@
   scrollbar-width: thin;
   scrollbar-color: #e2e8f0 transparent;
 }
+
+/* Sonner Toast Mobile Offset for Builder */
+@media (max-width: 640px) {
+  body:has(.builder-page) [data-sonner-toaster] {
+    --offset: calc(env(safe-area-inset-bottom, 0px) + 94px) !important;
+  }
+}

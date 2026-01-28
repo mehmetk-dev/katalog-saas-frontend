@@ -393,7 +393,7 @@ export function ProductsTable({
                       )}>
                         {product.stock} adet
                       </span>
-                      <DropdownMenu>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 -mr-1">
                             <MoreHorizontal className="w-3 h-3" />
@@ -738,7 +738,7 @@ export function ProductsTable({
                   >
                     <Pencil className="w-4 h-4 text-muted-foreground" />
                   </Button>
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="w-4 h-4" />

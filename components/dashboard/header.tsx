@@ -21,10 +21,14 @@ import { useSidebar } from "@/lib/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 
+// 1. Import usePathname
+import { usePathname } from "next/navigation"
+
 export function DashboardHeader() {
   const { user, logout } = useUser()
   const { t } = useTranslation()
   const { toggle, isMobile, isCollapsed } = useSidebar()
+  const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -34,6 +38,32 @@ export function DashboardHeader() {
   const handleLogout = async () => {
     await logout()
   }
+
+  // Dinamik Header Aksiyonu
+  const getHeaderAction = () => {
+    if (pathname.startsWith("/dashboard/products")) {
+      return {
+        label: t("products.addNew"),
+        href: "/dashboard/products?action=new",
+        icon: <Plus className="w-4 h-4" />
+      }
+    }
+    if (pathname.startsWith("/dashboard/categories")) {
+      return {
+        label: t("categories.newCategory"),
+        href: "/dashboard/categories?action=new",
+        icon: <Plus className="w-4 h-4" />
+      }
+    }
+    // Varsayılan: Katalog Oluştur
+    return {
+      label: t("dashboard.createCatalog"),
+      href: "/dashboard/builder",
+      icon: <Plus className="w-4 h-4" />
+    }
+  }
+
+  const action = getHeaderAction()
 
   // Prevents hydration mismatch for Radix UI components by rendering them only on client
   const UserMenu = mounted ? (
@@ -118,11 +148,11 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Create New Catalog Button */}
+          {/* Dinamik Aksiyon Butonu */}
           <Button asChild className="gap-2" size="sm">
-            <Link href="/dashboard/builder">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("dashboard.createCatalog")}</span>
+            <Link href={action.href}>
+              {action.icon}
+              <span className="hidden sm:inline">{action.label}</span>
               <span className="sm:hidden">{t("common.new")}</span>
             </Link>
           </Button>

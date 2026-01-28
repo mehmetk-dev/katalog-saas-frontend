@@ -15,14 +15,16 @@ export class SupabaseProvider implements StorageProvider {
 
   async upload(file: File | Blob, options: UploadOptions = {}): Promise<UploadResult> {
     const supabase = createClient()
-    
-    // Session kontrolü
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      throw new Error('Oturum bulunamadı. Lütfen tekrar giriş yapın.')
+
+    // Session validasyonu yapmak yerine direkt deniyoruz.
+    // Auth hatası olursa zaten catch bloğuna düşecek.
+    // Bu, "getSessionSafe" içinde oluşabilecek sonsuz bekleme/hang durumlarını engeller.
+
+    const userId = (await supabase.auth.getUser()).data.user?.id
+    if (!userId) {
+      throw new Error('User not found in Supabase client context')
     }
 
-    const userId = session.user.id
     const fileName = options.fileName || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     const filePath = options.path ? `${options.path}/${fileName}` : `${userId}/${fileName}`
 
@@ -33,6 +35,9 @@ export class SupabaseProvider implements StorageProvider {
         contentType: options.contentType || file.type || 'image/jpeg',
         cacheControl: options.cacheControl || '3600',
         upsert: true,
+        // AbortSignal desteği için
+        // @ts-ignore
+        signal: options.signal,
       })
 
     if (error) {

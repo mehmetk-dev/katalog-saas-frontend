@@ -8,6 +8,7 @@ export interface UploadOptions {
   fileName?: string
   contentType?: string
   cacheControl?: string
+  signal?: AbortSignal
 }
 
 export interface UploadResult {

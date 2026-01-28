@@ -790,7 +790,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const effectiveView = isMobile ? (view === "split" ? "editor" : view) : view
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
+    <div className="builder-page h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
       {/* Header - Clean Single Row */}
       {view !== "preview" && (
         <BuilderToolbar
@@ -908,36 +908,28 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       </div>
 
       {/* Preview Mode Floating Header (Switch Back) */}
-      <PreviewFloatingHeader view={view} onViewChange={setView} />
-
-      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
-
-      {/* Share Modal */}
-      <ShareModal
-        open={showShareModal}
-        onOpenChange={setShowShareModal}
-        catalog={catalog}
-        isPublished={isPublished}
-        shareUrl={catalog?.share_slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/catalog/${catalog.share_slug}` : ""}
-        onDownloadPdf={handleDownloadPDF}
+      <PreviewFloatingHeader
+        view={view}
+        onViewChange={setView}
+        catalogName={catalogName}
+        onPublish={handlePublish}
+        onDownloadPDF={handleDownloadPDF}
       />
 
-      {/* Share Modal */}
-      {/* Share Modal */}
-      <ShareModal
-        open={showShareModal}
-        onOpenChange={setShowShareModal}
-        catalog={catalog}
-        isPublished={isPublished}
-        shareUrl={catalog?.share_slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/catalog/${catalog.share_slug}` : ""}
-        onDownloadPdf={handleDownloadPDF}
-      />
-
-      {/* Upgrade Modal */}
       <UpgradeModal
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
         plan={user?.plan || "free"}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        catalog={catalog}
+        isPublished={isPublished}
+        shareUrl={catalog?.share_slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/catalog/${catalog.share_slug}` : ""}
+        onDownloadPdf={handleDownloadPDF}
       />
 
       {/* Exit Confirmation Dialog */}

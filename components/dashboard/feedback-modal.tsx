@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 import NextImage from "next/image"
 
-import { createClient } from "@/lib/supabase/client"
+import { createClient, getSessionSafe } from "@/lib/supabase/client"
 import {
     Dialog,
     DialogContent,
@@ -35,7 +35,6 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const [message, setMessage] = useState("")
     const [files, setFiles] = useState<{ file: File; preview: string; type: string }[]>([])
     const [uploading, setUploading] = useState(false)
-    const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({})
     const fileInputRef = useRef<HTMLInputElement>(null)
     const pathname = usePathname()
     const { t } = useTranslation()
@@ -45,16 +44,22 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
     const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
+    // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
+    const handleUploadClick = async () => {
+        const { error } = await supabase.auth.refreshSession()
+        if (error) console.error('[FeedbackModal] Pre-upload session refresh failed:', error)
+    }
+
     // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
     const uploadSingleFileWithRetry = async (file: File, fileIndex: number, signal?: AbortSignal): Promise<string> => {
         const MAX_RETRIES = 3
-        const TIMEOUT_MS = 30000 // 30 Saniye
+        const TIMEOUT_MS = 10000 // 10 Saniye (Kullanıcı isteği)
         const uploadKey = `file-${fileIndex}`
 
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            // ... (rest of the logic remains same until inner try)
             // İptal kontrolü
             if (signal?.aborted) {
-                console.log(`[FeedbackModal] 🛑 Upload cancelled for ${file.name}`)
                 throw new Error('Upload cancelled')
             }
 
@@ -64,8 +69,8 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                 // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
                 if (attempt > 0) {
                     const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-                    console.log(`[FeedbackModal] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${file.name}. Waiting ${waitTime}ms`)
-                    
+
+
                     // Bekleme sırasında da iptal kontrolü
                     await new Promise<void>((resolve, reject) => {
                         const checkInterval = setInterval(() => {
@@ -74,7 +79,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                 reject(new Error('Upload cancelled'))
                             }
                         }, 100)
-                        
+
                         setTimeout(() => {
                             clearInterval(checkInterval)
                             resolve()
@@ -84,7 +89,6 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
 
                 // İptal kontrolü (bekleme sonrası)
                 if (signal?.aborted) {
-                    console.log(`[FeedbackModal] 🛑 Upload cancelled for ${file.name} after wait`)
                     throw new Error('Upload cancelled')
                 }
 
@@ -101,15 +105,16 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                     contentType: file.type || 'application/octet-stream',
                     cacheControl: '3600',
                     fileName,
+                    signal, // AĞ SEVİYESİNDE İPTAL DESTEĞİ
                 })
 
                 // Timeout promise'i (temizlenebilir)
                 const timeoutPromise = new Promise<never>((_, reject) => {
                     timeoutId = setTimeout(() => {
-                        console.error(`[FeedbackModal] ⏱️ Upload timeout for ${file.name} after ${TIMEOUT_MS/1000} seconds`)
+                        console.error(`[FeedbackModal] ⏱️ Upload timeout for ${file.name} after ${TIMEOUT_MS / 1000} seconds`)
                         reject(new Error('UPLOAD_TIMEOUT'))
                     }, TIMEOUT_MS)
-                    
+
                     // Timeout ID'yi kaydet (temizlemek için)
                     uploadTimeoutIds.current.set(uploadKey, timeoutId)
                 })
@@ -140,12 +145,11 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
 
                 // İptal hatası ise direkt fırlat
                 if (error.message === 'Upload cancelled' || signal?.aborted) {
-                    console.log(`[FeedbackModal] 🛑 Upload cancelled for ${file.name}`)
                     throw error
                 }
 
                 console.error(`[FeedbackModal] ❌ Attempt ${attempt + 1} failed:`, error.message)
-                
+
                 // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
                 if (attempt === MAX_RETRIES - 1) {
                     throw error
@@ -157,6 +161,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     }
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleUploadClick() // Dosya seçildiğinde refresh yap
         const selectedFiles = Array.from(e.target.files || [])
         const newFiles = selectedFiles.map(file => ({
             file,
@@ -175,14 +180,14 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
             controller.abort()
             uploadAbortControllers.current.delete(uploadKey)
         }
-        
+
         // Timeout'u temizle
         const timeoutId = uploadTimeoutIds.current.get(uploadKey)
         if (timeoutId) {
             clearTimeout(timeoutId)
             uploadTimeoutIds.current.delete(uploadKey)
         }
-        
+
         setFiles(prev => {
             const newFiles = [...prev]
             URL.revokeObjectURL(newFiles[index].preview)
@@ -199,7 +204,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                 controller.abort()
             })
             uploadAbortControllers.current.clear()
-            
+
             // Tüm timeout'ları temizle
             uploadTimeoutIds.current.forEach((timeoutId) => {
                 clearTimeout(timeoutId)
@@ -216,7 +221,6 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
         }
 
         setLoading(true)
-        setUploadProgress({})
 
         try {
             const attachmentUrls: string[] = []
@@ -233,63 +237,39 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                     const item = files[index]
 
                     // İptal kontrolü
-                    if (mainAbortController.signal.aborted) {
-                        console.log(`[FeedbackModal] 🛑 Upload cancelled, stopping at file ${index + 1}`)
-                        break
-                    }
+                    if (mainAbortController.signal.aborted) break
 
                     // Dosya boyutu kontrolü (50MB limit)
                     const maxSize = 50 * 1024 * 1024 // 50MB
                     if (item.file.size > maxSize) {
-                        throw new Error(t('feedback.fileTooLarge'))
+                        throw new Error(`${item.file.name}: ${t('feedback.fileTooLarge')}`)
                     }
 
                     try {
-                        // Progress göster
-                        setUploadProgress(prev => ({ ...prev, [index]: 0 }))
                         const fileSizeMB = (item.file.size / 1024 / 1024).toFixed(2)
                         toast.loading(`${t('feedback.uploading')} (${index + 1}/${files.length}) - ${fileSizeMB}MB`, { id: `upload-${index}` })
 
-                        // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
                         const publicUrl = await uploadSingleFileWithRetry(item.file, index, mainAbortController.signal)
-
                         attachmentUrls.push(publicUrl)
 
-                        setUploadProgress(prev => ({ ...prev, [index]: 100 }))
                         toast.success(t('feedback.uploadSuccess', { current: index + 1, total: files.length }), { id: `upload-${index}` })
 
                     } catch (uploadError: unknown) {
-                        // İptal hatası ise sessizce geç
                         if (uploadError instanceof Error && (uploadError.message === 'Upload cancelled' || mainAbortController.signal.aborted)) {
-                            console.log(`[FeedbackModal] 🛑 Upload cancelled for ${item.file.name}, silently ignoring`)
-                            continue
+
+                            break
                         }
-
-                        let errorMessage = t('feedback.uploadFailed')
-
-                        if (uploadError instanceof Error) {
-                            if (uploadError.message === 'UPLOAD_TIMEOUT' || uploadError.message?.includes('timeout')) {
-                                errorMessage = t('auth.timeout')
-                            } else {
-                                errorMessage = uploadError.message
-                            }
-                        }
-
-                        toast.error(errorMessage, { id: `upload-${index}`, duration: 5000 })
-                        throw new Error(errorMessage)
+                        const msg = uploadError instanceof Error ? uploadError.message : "Upload error"
+                        toast.error(msg, { id: `upload-${index}` })
+                        throw uploadError
                     }
                 }
 
-                // Cleanup: AbortController ve timeout'ları temizle
+                // Cleanup
                 mainAbortController.abort()
                 uploadAbortControllers.current.delete('main-upload')
-                uploadTimeoutIds.current.forEach((timeoutId) => {
-                    clearTimeout(timeoutId)
-                })
-                uploadTimeoutIds.current.clear()
 
                 setUploading(false)
-                setUploadProgress({})
             }
 
             // Feedback gönder
@@ -307,7 +287,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
             setSubject("")
             setMessage("")
             setFiles([])
-            setUploadProgress({})
+
         } catch (error: unknown) {
             console.error("Feedback submit error:", error)
             const msg = error instanceof Error ? error.message : t('common.error')
@@ -315,7 +295,6 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
         } finally {
             setLoading(false)
             setUploading(false)
-            setUploadProgress({})
         }
     }
 
@@ -368,9 +347,6 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                             <Label>{t('feedback.addFiles')}</Label>
                             <div className="flex flex-wrap gap-2">
                                 {files.map((file, index) => {
-                                    const progress = uploadProgress[index]
-                                    const isUploading = uploading && progress !== undefined && progress < 100
-
                                     return (
                                         <div key={index} className="relative w-20 h-20 rounded-lg border overflow-hidden group">
                                             {file.type.startsWith('image/') ? (
@@ -382,12 +358,12 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                                     <Film className="w-8 h-8 text-slate-400" />
                                                 </div>
                                             )}
-                                            {isUploading && (
+                                            {uploading && (
                                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                                     <Loader2 className="w-6 h-6 text-white animate-spin" />
                                                 </div>
                                             )}
-                                            {!isUploading && (
+                                            {!uploading && (
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFile(index)}
@@ -403,7 +379,10 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                 {files.length < 5 && (
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() => {
+                                            handleUploadClick()
+                                            fileInputRef.current?.click()
+                                        }}
                                         className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center hover:border-violet-500 hover:bg-violet-50 transition-all text-slate-500 hover:text-violet-600"
                                     >
                                         <Paperclip className="w-6 h-6" />

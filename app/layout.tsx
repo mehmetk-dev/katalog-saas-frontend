@@ -4,6 +4,7 @@ import { Inter, Montserrat } from "next/font/google"
 
 import "./globals.css"
 import { I18nProvider } from "@/lib/i18n-provider"
+import { SessionWatcher } from "@/components/auth/session-watcher"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -161,6 +162,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://supabase.co" />
       </head>
       <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
+        <SessionWatcher />
         <I18nProvider>
           {children}
         </I18nProvider>

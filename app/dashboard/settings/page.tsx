@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useTransition, useRef } from "react"
+import { useState, useTransition, useRef, useEffect } from "react"
 import { toast } from "sonner"
 import NextImage from "next/image"
 import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
@@ -26,12 +26,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, getSessionSafe } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { storage } from "@/lib/storage"
 
 export default function SettingsPage() {
-  const { user, isLoading, refreshUser } = useUser()
+  const { user, setUser, isLoading, refreshUser } = useUser()
   const { language, setLanguage, t } = useTranslation()
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -42,145 +42,68 @@ export default function SettingsPage() {
 
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string | null>(null)
   const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(null)
+
+  // Cleanup effect for object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewAvatarUrl) URL.revokeObjectURL(previewAvatarUrl)
+      if (previewLogoUrl) URL.revokeObjectURL(previewLogoUrl)
+    }
+  }, [previewAvatarUrl, previewLogoUrl])
+
+  // FORCE SESSION REFRESH ON MOUNT
+  // Bu, client-side gezinmelerde middleware tetiklenmediği için oluşabilecek "stale token" sorununu çözer.
+  useEffect(() => {
+    const checkAndRefreshSession = async () => {
+      // Mevcut oturumu kontrol et
+      const { data: { session }, error } = await supabase.auth.getSession()
+
+      // Eğer session yoksa veya hata varsa, ya da token süresi dolmak üzereyse (burada basitçe session kontrolü yapıyoruz)
+      if (error || !session) {
+        const { error: refreshError } = await supabase.auth.refreshSession()
+
+        if (refreshError) {
+          console.error("[SettingsPage] Oturum yenileme başarısız:", refreshError)
+        }
+      }
+    }
+
+    checkAndRefreshSession()
+  }, [supabase.auth])
+
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
 
   // Upload işlemlerini iptal etmek için ref'ler
   const avatarAbortController = useRef<AbortController | null>(null)
   const logoAbortController = useRef<AbortController | null>(null)
-  const avatarTimeoutId = useRef<NodeJS.Timeout | null>(null)
-  const logoTimeoutId = useRef<NodeJS.Timeout | null>(null)
 
-  // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı - Avatar
-  const uploadAvatarWithRetry = async (file: File, userId: string, signal?: AbortSignal): Promise<string> => {
-    const MAX_RETRIES = 3
-    const TIMEOUT_MS = 30000 // 30 Saniye
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      // İptal kontrolü
-      if (signal?.aborted) {
-        console.log(`[Settings] 🛑 Avatar upload cancelled`)
-        throw new Error('Upload cancelled')
-      }
-
-      let timeoutId: NodeJS.Timeout | null = null
-
-      try {
-        // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
-        if (attempt > 0) {
-          const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-          console.log(`[Settings] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for avatar. Waiting ${waitTime}ms`)
-          toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
-
-          // Bekleme sırasında da iptal kontrolü
-          await new Promise<void>((resolve, reject) => {
-            const checkInterval = setInterval(() => {
-              if (signal?.aborted) {
-                clearInterval(checkInterval)
-                reject(new Error('Upload cancelled'))
-              }
-            }, 100)
-
-            setTimeout(() => {
-              clearInterval(checkInterval)
-              resolve()
-            }, waitTime)
-          })
-        }
-
-        // İptal kontrolü (bekleme sonrası)
-        if (signal?.aborted) {
-          console.log(`[Settings] 🛑 Avatar upload cancelled after wait`)
-          throw new Error('Upload cancelled')
-        }
-
-        // 2. Dosya adı oluştur
-        const fileExtension = file.name.split('.').pop() || 'jpg'
-        const fileName = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
-
-        // 3. YARIŞ BAŞLASIN: Upload vs Timeout
-        const uploadPromise = storage.upload(file, {
-          path: 'avatars', // Yeni klasör yapısı: avatars klasörü
-          contentType: file.type || 'image/jpeg',
-          cacheControl: '3600',
-          fileName,
-        })
-
-        // Timeout promise'i (temizlenebilir)
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => {
-            console.error(`[Settings] ⏱️ Avatar upload timeout after ${TIMEOUT_MS / 1000} seconds`)
-            reject(new Error('UPLOAD_TIMEOUT'))
-          }, TIMEOUT_MS)
-
-          // Timeout ID'yi kaydet (temizlemek için)
-          avatarTimeoutId.current = timeoutId
-        })
-
-        const result: any = await Promise.race([uploadPromise, timeoutPromise])
-
-        // Timeout'u temizle (başarılı olduysa)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          avatarTimeoutId.current = null
-          timeoutId = null
-        }
-
-        // 4. Sonuç Kontrolü
-        if (result && result.url) {
-          return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
-        } else {
-          throw new Error('Upload successful but URL is missing')
-        }
-
-      } catch (error: any) {
-        // Timeout'u temizle (hata durumunda)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          avatarTimeoutId.current = null
-          timeoutId = null
-        }
-
-        // İptal hatası ise direkt fırlat
-        if (error.message === 'Upload cancelled' || signal?.aborted) {
-          console.log(`[Settings] 🛑 Avatar upload cancelled`)
-          throw error
-        }
-
-        console.error(`[Settings] ❌ Avatar attempt ${attempt + 1} failed:`, error.message)
-
-        // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
-        if (attempt === MAX_RETRIES - 1) {
-          throw error
-        }
-        // Değilse döngü başa döner ve tekrar dener
-      }
-    }
-    throw new Error('Unexpected retry loop exit')
+  // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele
+  // Bu "Just-in-Time" kontrolü sağlar
+  const handleUploadClick = async () => {
+    const { error } = await supabase.auth.refreshSession()
+    if (error) console.error('[Settings] Pre-upload session refresh failed:', error)
   }
 
-  // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı - Logo
-  const uploadLogoWithRetry = async (file: File, userId: string, signal?: AbortSignal): Promise<string> => {
+  // Ortak Upload Fonksiyonu (DRY Prensibi)
+  const uploadFileWithRetry = async (
+    file: File,
+    bucketPath: 'avatars' | 'company-logos',
+    customFileName: string,
+    signal?: AbortSignal
+  ): Promise<string> => {
     const MAX_RETRIES = 3
-    const TIMEOUT_MS = 30000 // 30 Saniye
+    const TIMEOUT_MS = 10000 // Kullanıcı isteği: 10 saniye (Profil fotoları küçük olduğu için yeterli)
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      // İptal kontrolü
-      if (signal?.aborted) {
-        console.log(`[Settings] 🛑 Logo upload cancelled`)
-        throw new Error('Upload cancelled')
-      }
+      if (signal?.aborted) throw new Error('Upload cancelled')
 
       let timeoutId: NodeJS.Timeout | null = null
 
       try {
-        // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
         if (attempt > 0) {
-          const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-          console.log(`[Settings] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for logo. Waiting ${waitTime}ms`)
+          const waitTime = 1000 * Math.pow(2, attempt - 1)
           toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
-
-          // Bekleme sırasında da iptal kontrolü
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
               if (signal?.aborted) {
@@ -188,7 +111,6 @@ export default function SettingsPage() {
                 reject(new Error('Upload cancelled'))
               }
             }, 100)
-
             setTimeout(() => {
               clearInterval(checkInterval)
               resolve()
@@ -196,72 +118,34 @@ export default function SettingsPage() {
           })
         }
 
-        // İptal kontrolü (bekleme sonrası)
-        if (signal?.aborted) {
-          console.log(`[Settings] 🛑 Logo upload cancelled after wait`)
-          throw new Error('Upload cancelled')
-        }
+        if (signal?.aborted) throw new Error('Upload cancelled')
 
-        // 2. Dosya adı oluştur
-        const fileExtension = file.name.split('.').pop() || 'jpg'
-        const fileName = `logo-${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
-
-        // 3. YARIŞ BAŞLASIN: Upload vs Timeout
         const uploadPromise = storage.upload(file, {
-          path: 'company-logos', // Yeni klasör yapısı: company-logos klasörü
+          path: bucketPath,
           contentType: file.type || 'image/jpeg',
           cacheControl: '3600',
-          fileName,
+          fileName: customFileName,
+          signal,
         })
 
-        // Timeout promise'i (temizlenebilir)
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => {
-            console.error(`[Settings] ⏱️ Logo upload timeout after ${TIMEOUT_MS / 1000} seconds`)
             reject(new Error('UPLOAD_TIMEOUT'))
           }, TIMEOUT_MS)
-
-          // Timeout ID'yi kaydet (temizlemek için)
-          logoTimeoutId.current = timeoutId
         })
 
         const result: any = await Promise.race([uploadPromise, timeoutPromise])
 
-        // Timeout'u temizle (başarılı olduysa)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          logoTimeoutId.current = null
-          timeoutId = null
-        }
+        if (timeoutId) clearTimeout(timeoutId)
 
-        // 4. Sonuç Kontrolü
-        if (result && result.url) {
-          return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
-        } else {
-          throw new Error('Upload successful but URL is missing')
-        }
+        if (result && result.url) return result.url
+        else throw new Error('Upload successful but URL is missing')
 
       } catch (error: any) {
-        // Timeout'u temizle (hata durumunda)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          logoTimeoutId.current = null
-          timeoutId = null
-        }
-
-        // İptal hatası ise direkt fırlat
-        if (error.message === 'Upload cancelled' || signal?.aborted) {
-          console.log(`[Settings] 🛑 Logo upload cancelled`)
-          throw error
-        }
-
-        console.error(`[Settings] ❌ Logo attempt ${attempt + 1} failed:`, error.message)
-
-        // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
-        if (attempt === MAX_RETRIES - 1) {
-          throw error
-        }
-        // Değilse döngü başa döner ve tekrar dener
+        if (timeoutId) clearTimeout(timeoutId)
+        if (error.message === 'Upload cancelled' || signal?.aborted) throw error
+        console.error(`[Settings] ❌ ${bucketPath} attempt ${attempt + 1} failed:`, error.message)
+        if (attempt === MAX_RETRIES - 1) throw error
       }
     }
     throw new Error('Unexpected retry loop exit')
@@ -270,6 +154,9 @@ export default function SettingsPage() {
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Dosya seçildiği an da bir refresh yapalım (garanti olsun)
+    handleUploadClick()
 
     // Validate file
     if (!file.type.startsWith('image/')) {
@@ -288,6 +175,9 @@ export default function SettingsPage() {
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    // Dosya seçildiği an da bir refresh yapalım
+    handleUploadClick()
+
     if (!file) return
 
     // Validate file
@@ -305,64 +195,48 @@ export default function SettingsPage() {
     setPendingLogoFile(file)
   }
 
+  const [isSaving, setIsSaving] = useState(false)
+
   const handleSaveProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!user) return
 
     const formData = new FormData(e.currentTarget)
 
-    startTransition(async () => {
+    // startTransition'ı kaldırıyoruz, direkt async execute ediyoruz
+    // Bu, React concurrent features ile async/await flow arasındaki potansiyel race condition'ı engeller
+    const executeSave = async () => {
+      setIsSaving(true) // UI loading durumunu aktif et
+
       try {
-        let dbUpdateNeeded = false
-        const dbUpdates: Record<string, string> = {}
+        // Oturum kontrolünü kaldırdık - zaten upload işleminde veya server action'da hata verirse yakalayacağız.
+        // Buradaki getSession bazen hang olabiliyor.
+
+        let avatarUrlToSave = user.avatar_url
+        let logoUrlToSave = user.logo_url
 
         // 1. Upload Avatar if pending
         if (pendingAvatarFile) {
           setIsUploadingAvatar(true)
 
-          // Önceki upload'ı iptal et
-          if (avatarAbortController.current) {
-            avatarAbortController.current.abort()
-          }
-          if (avatarTimeoutId.current) {
-            clearTimeout(avatarTimeoutId.current)
-            avatarTimeoutId.current = null
-          }
-
-          // Yeni AbortController oluştur
+          if (avatarAbortController.current) avatarAbortController.current.abort()
           const abortController = new AbortController()
           avatarAbortController.current = abortController
 
           try {
-            // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
-            const publicUrl = await uploadAvatarWithRetry(pendingAvatarFile, user.id, abortController.signal)
-
-            dbUpdates.avatar_url = publicUrl
-            dbUpdateNeeded = true
+            const fileExtension = pendingAvatarFile.name.split('.').pop() || 'jpg'
+            const fileName = `${user.id}-${Date.now()}.${fileExtension}`
+            const publicUrl = await uploadFileWithRetry(pendingAvatarFile, 'avatars', fileName, abortController.signal)
+            avatarUrlToSave = publicUrl
           } catch (error: any) {
-            // İptal hatası ise sessizce geç
             if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
-              console.log(`[Settings] 🛑 Avatar upload cancelled, silently ignoring`)
               return
             }
-
-            console.error("Avatar upload error:", error)
-            let msg = t('toasts.imageUploadFailed')
-            if (error.message === 'UPLOAD_TIMEOUT' || error.message?.includes('timeout')) {
-              msg = 'Avatar yükleme zaman aşımına uğradı (tüm denemeler başarısız). Lütfen tekrar deneyin.'
-            } else if (error.message) {
-              msg = `Avatar yükleme hatası: ${error.message.substring(0, 50)}`
-            }
-            toast.error(msg)
-            throw error
+            console.error('[Settings] Avatar upload failed:', error)
+            toast.error(`Avatar yüklenemedi: ${error.message}`)
+            throw error // İşlemi durdur
           } finally {
-            // Cleanup
             avatarAbortController.current = null
-            if (avatarTimeoutId.current) {
-              clearTimeout(avatarTimeoutId.current)
-              avatarTimeoutId.current = null
-            }
-
             setIsUploadingAvatar(false)
           }
         }
@@ -371,72 +245,50 @@ export default function SettingsPage() {
         if (pendingLogoFile) {
           setIsUploadingLogo(true)
 
-          // Önceki upload'ı iptal et
-          if (logoAbortController.current) {
-            logoAbortController.current.abort()
-          }
-          if (logoTimeoutId.current) {
-            clearTimeout(logoTimeoutId.current)
-            logoTimeoutId.current = null
-          }
-
-          // Yeni AbortController oluştur
+          if (logoAbortController.current) logoAbortController.current.abort()
           const abortController = new AbortController()
           logoAbortController.current = abortController
 
           try {
-            // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
-            const publicUrl = await uploadLogoWithRetry(pendingLogoFile, user.id, abortController.signal)
-
-            dbUpdates.logo_url = publicUrl
-            dbUpdateNeeded = true
+            const fileExtension = pendingLogoFile.name.split('.').pop() || 'jpg'
+            const fileName = `logo-${user.id}-${Date.now()}.${fileExtension}`
+            const publicUrl = await uploadFileWithRetry(pendingLogoFile, 'company-logos', fileName, abortController.signal)
+            logoUrlToSave = publicUrl
           } catch (error: any) {
-            // İptal hatası ise sessizce geç
             if (error.message === 'Upload cancelled' || abortController.signal.aborted) {
-              console.log(`[Settings] 🛑 Logo upload cancelled, silently ignoring`)
               return
             }
-
-            console.error("Logo upload error:", error)
-            let msg = t('toasts.imageUploadFailed')
-            if (error.message === 'UPLOAD_TIMEOUT' || error.message?.includes('timeout')) {
-              msg = 'Logo yükleme zaman aşımına uğradı (tüm denemeler başarısız). Lütfen tekrar deneyin.'
-            } else if (error.message) {
-              msg = `Logo yükleme hatası: ${error.message.substring(0, 50)}`
-            }
-            toast.error(msg)
-            throw error
+            console.error('[Settings] Logo upload failed:', error)
+            toast.error(`Logo yüklenemedi: ${error.message}`)
+            throw error // İşlemi durdur
           } finally {
-            // Cleanup
             logoAbortController.current = null
-            if (logoTimeoutId.current) {
-              clearTimeout(logoTimeoutId.current)
-              logoTimeoutId.current = null
-            }
-
             setIsUploadingLogo(false)
           }
         }
 
-        // 3. Update DB for images if needed
-        if (dbUpdateNeeded) {
-          const { error: updateError } = await supabase
-            .from('users')
-            .update(dbUpdates)
-            .eq('id', user.id)
+        // 3. Update Profile Server Action
+        await updateProfile(formData, avatarUrlToSave, logoUrlToSave)
 
-          if (updateError) throw updateError
+        // OPTIMISTIC UPDATE: Hemen UI'ı yeni bilgilerle güncelle (refreshUser'ı bekleme)
+        // Bu sayede eski fotoğraf geri gelmez
+        if (user) {
+          setUser({
+            ...user,
+            name: (formData.get('fullName') as string) || user.name,
+            company: (formData.get('company') as string) || user.company,
+            avatar_url: avatarUrlToSave || user.avatar_url,
+            logo_url: logoUrlToSave || user.logo_url
+          })
         }
 
-        // 4. Update Profile Text Data
-        await updateProfile(formData)
+        // 4. Force refresh (Background - Fire & Forget)
+        // Kullanıcıyı bekletmemek için refresh işlemini arka planda başlatıyoruz ve beklemiyoruz.
+        refreshUser().catch(() => {})
 
-        await refreshUser()
-
-        // Reset pending states
+        // Cleanup
         setPendingAvatarFile(null)
         setPendingLogoFile(null)
-        // Clear local preview state so it falls back to user data from refreshUser
         if (previewAvatarUrl) URL.revokeObjectURL(previewAvatarUrl)
         if (previewLogoUrl) URL.revokeObjectURL(previewLogoUrl)
         setPreviewAvatarUrl(null)
@@ -444,15 +296,23 @@ export default function SettingsPage() {
 
         toast.success(t('toasts.profileUpdated'))
       } catch (error: unknown) {
-        console.error("Save profile error:", error)
+        console.error("[Settings] Save profile error:", error)
         let msg = t('toasts.profileUpdateFailed')
         if (error instanceof Error) msg += `: ${error.message}`
         toast.error(msg)
       } finally {
         setIsUploadingAvatar(false)
         setIsUploadingLogo(false)
+        setIsSaving(false)
       }
-    })
+    }
+
+    // Manually manage pending state since we removed startTransition
+    // startTransition hook'u yerine kendi state'imizi kullanıyoruz (gerçi isPending hook'tan geliyor ama effect olarak wrap edebiliriz)
+    // Ama en temizi startTransition hook'unu çağırmak yerine direkt execute etmek
+
+    // Geçici olarak isPending kontrolü için:
+    executeSave()
   }
 
   // Helper to get display source
@@ -492,18 +352,27 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px] bg-muted/50 dark:bg-muted/30 p-1">
-          <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-background dark:data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
+        <TabsList className="flex items-center w-full grid grid-cols-3 lg:w-[480px] bg-slate-100/80 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
+          <TabsTrigger
+            value="profile"
+            className="h-9 rounded-xl gap-2 font-black text-[10px] uppercase tracking-wider transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-md data-[state=active]:text-indigo-600 text-slate-500"
+          >
             <User className="w-4 h-4" />
-            {t("settings.profile")}
+            <span className="truncate">{t("settings.profile")}</span>
           </TabsTrigger>
-          <TabsTrigger value="subscription" className="gap-2 data-[state=active]:bg-background dark:data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
+          <TabsTrigger
+            value="subscription"
+            className="h-9 rounded-xl gap-2 font-black text-[10px] uppercase tracking-wider transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-md data-[state=active]:text-indigo-600 text-slate-500"
+          >
             <CreditCard className="w-4 h-4" />
-            {t("settings.subscription")}
+            <span className="truncate">{t("settings.subscription")}</span>
           </TabsTrigger>
-          <TabsTrigger value="preferences" className="gap-2 data-[state=active]:bg-background dark:data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground">
+          <TabsTrigger
+            value="preferences"
+            className="h-9 rounded-xl gap-2 font-black text-[10px] uppercase tracking-wider transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-md data-[state=active]:text-indigo-600 text-slate-500"
+          >
             <Globe className="w-4 h-4" />
-            {t("settings.preferences")}
+            <span className="truncate">{t("settings.preferences")}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -534,6 +403,7 @@ export default function SettingsPage() {
                     </Avatar>
                     <label
                       htmlFor="avatar-upload"
+                      onClick={handleUploadClick}
                       className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       {isUploadingAvatar ? (
@@ -586,6 +456,7 @@ export default function SettingsPage() {
                     </div>
                     <label
                       htmlFor="logo-upload"
+                      onClick={handleUploadClick}
                       className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
                       {isUploadingLogo ? (
@@ -598,7 +469,10 @@ export default function SettingsPage() {
                       id="logo-upload"
                       type="file"
                       accept="image/*"
-                      onChange={handleLogoUpload}
+                      onChange={(e) => {
+                        handleUploadClick()
+                        handleLogoUpload(e)
+                      }}
                       className="hidden"
                       disabled={isUploadingLogo}
                     />
@@ -619,8 +493,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex justify-end pt-4 pb-2 md:pb-0">
-                  <Button type="submit" disabled={isPending} className="min-w-[120px]">
-                    {isPending ? (
+                  <Button type="submit" disabled={isPending || isSaving} className="min-w-[120px]">
+                    {isPending || isSaving ? (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         {t("settings.saving")}
@@ -773,8 +647,8 @@ export default function SettingsPage() {
                   variant={language === 'tr' ? 'default' : 'outline'}
                   onClick={() => setLanguage('tr')}
                   className={`flex-1 h-auto py-4 justify-start px-4 gap-3 relative overflow-hidden transition-all duration-300 ${language === 'tr'
-                      ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
-                      : 'hover:bg-muted/50 dark:hover:bg-muted/20'
+                    ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
+                    : 'hover:bg-muted/50 dark:hover:bg-muted/20'
                     }`}
                 >
                   <span className="text-2xl">🇹🇷</span>
@@ -789,8 +663,8 @@ export default function SettingsPage() {
                   variant={language === 'en' ? 'default' : 'outline'}
                   onClick={() => setLanguage('en')}
                   className={`flex-1 h-auto py-4 justify-start px-4 gap-3 relative overflow-hidden transition-all duration-300 ${language === 'en'
-                      ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
-                      : 'hover:bg-muted/50 dark:hover:bg-muted/20'
+                    ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
+                    : 'hover:bg-muted/50 dark:hover:bg-muted/20'
                     }`}
                 >
                   <span className="text-2xl">🇺🇸</span>

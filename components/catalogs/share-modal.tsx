@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import QRCode from "qrcode"
 import NextImage from "next/image"
 import {
@@ -12,12 +12,14 @@ import {
     QrCode,
     Smartphone,
     Link as LinkIcon,
-    Globe
+    Globe,
+    ExternalLink,
+    Send
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
 import { type Catalog } from "@/lib/actions/catalogs"
@@ -35,44 +37,24 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
     const { t } = useTranslation()
     const [copied, setCopied] = useState(false)
     const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
-    const [activeTab, setActiveTab] = useState<"social" | "qr">("social")
-
-    // Yükseklik Animasyonu için Ref
-    const contentRef = useRef<HTMLDivElement>(null)
-    const [contentHeight, setContentHeight] = useState<number | undefined>(undefined)
-
-    // Tab değiştiğinde yüksekliği güncelle
-    useEffect(() => {
-        if (contentRef.current) {
-            const resizeObserver = new ResizeObserver((entries) => {
-                for (const entry of entries) {
-                    setContentHeight(entry.contentRect.height)
-                }
-            })
-            resizeObserver.observe(contentRef.current)
-            return () => resizeObserver.disconnect()
-        }
-    }, [activeTab, open])
+    const [activeTab, setActiveTab] = useState<"link" | "qr">("link")
 
     const catalogName = catalog?.name || "Katalog"
-    const catalogDescription = catalog?.description || ""
 
-    // Generate QR Code
+    // Generate QR Code with premium styling
     useEffect(() => {
         if (open && shareUrl && isPublished) {
             QRCode.toDataURL(shareUrl, {
-                width: 600, // Yüksek kalite
+                width: 600,
                 margin: 2,
                 color: {
-                    dark: "#4338ca",
+                    dark: "#0f172a", // Slate 900
                     light: "#ffffff"
                 },
                 errorCorrectionLevel: "H"
             }).then(setQrCodeUrl).catch(console.error)
         }
     }, [open, shareUrl, isPublished])
-
-    if (!open) return null
 
     const handleCopyLink = async () => {
         if (!isPublished) return
@@ -88,289 +70,255 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
         link.download = `${catalogName.replace(/\s+/g, "-").toLowerCase()}-qr.png`
         link.href = qrCodeUrl
         link.click()
-        toast.success("QR kod indirildi!")
+        toast.success("QR kod galeriye kaydedildi.")
     }
 
-    // QR Kodu Paylaşma Mantığı (WhatsApp Odaklı)
     const handleShareQR = async () => {
         if (!qrCodeUrl) return
-
         try {
             const response = await fetch(qrCodeUrl)
             const blob = await response.blob()
             const file = new File([blob], "katalog-qr.png", { type: "image/png" })
 
-            // 1. Mobil Native Paylaşım (Varsa)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
                     title: catalogName,
-                    text: `${catalogName} WhatsApp QR Kodu`
+                    text: `${catalogName} Kataloğu QR Kodu`
                 })
-                // Başarılı olursa native ekran açılır.
             } else {
-                // 2. Desteklemiyorsa (Desktop) -> Kopyala ve Uyar
-                try {
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ [blob.type]: blob })
-                    ])
-                    toast.success("QR Kod Kopyalandı! 📋", {
-                        description: "WhatsApp Web'i açıp sohbete yapıştırabilirsin (Ctrl+V).",
-                        duration: 5000,
-                        action: {
-                            label: "WhatsApp Web'i Aç",
-                            onClick: () => window.open('https://web.whatsapp.com', '_blank')
-                        }
-                    })
-                } catch (err) {
-                    // 3. Hiçbiri olmadı -> İndir
-                    handleDownloadQR()
-                    toast.info("Resim indirildi. WhatsApp'tan gönderebilirsiniz.")
-                }
+                handleDownloadQR()
             }
         } catch (error) {
             console.error("QR Share Error:", error)
         }
     }
 
-    const handlePdfClick = async () => {
-        onOpenChange(false)
-        await onDownloadPdf()
-    }
-
     const encodedUrl = encodeURIComponent(shareUrl)
-    const encodedText = encodeURIComponent(catalogDescription || `${catalogName} kataloğuna göz atın!`)
+    const encodedText = encodeURIComponent(`${catalogName} kataloğuna göz atın!`)
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            {/* Backdrop with Blur */}
-            <div
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
-                onClick={() => onOpenChange(false)}
-            />
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl bg-background rounded-[2rem]">
+                <DialogTitle className="sr-only">Kataloğu Paylaş</DialogTitle>
 
-            {/* Modal Container with Smooth Height Transition */}
-            <div
-                className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 flex flex-col transition-[height] ease-in-out"
-                style={{ height: contentHeight ? `${contentHeight}px` : 'auto', maxHeight: '90vh' }}
-            >
-                {/* Content Wrapper for measuring height */}
-                <div ref={contentRef} className="flex flex-col h-full">
+                {/* Minimalist Header Style (Matching UpgradeModal) */}
+                <div className="relative border-b border-border bg-gradient-to-b from-background to-muted/20 pb-1">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-full bg-primary/5 blur-[80px] pointer-events-none" />
 
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-6 flex items-start justify-between shrink-0 relative overflow-hidden">
-                        {/* Abstract Shapes */}
-                        <div className="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10">
-                            <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="100" cy="100" r="100" fill="white" />
-                            </svg>
-                        </div>
-
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md shadow-inner border border-white/10">
-                                <Share2 className="w-6 h-6 text-white" />
+                    <div className="relative px-6 pt-6 pb-2">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-border flex items-center justify-center">
+                                <Share2 className="w-6 h-6 text-indigo-600" />
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-white tracking-tight">Kataloğu Paylaş</h2>
-                                <p className="text-white/80 text-sm font-medium">{catalogName}</p>
+                            <div className="text-center space-y-1">
+                                <h2 className="text-xl font-bold tracking-tight text-foreground">Kataloğu Paylaş</h2>
+                                <p className="text-xs text-muted-foreground">{catalogName}</p>
                             </div>
-                        </div>
 
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onOpenChange(false)}
-                            className="text-white hover:bg-white/20 rounded-full relative z-10 -mr-2"
-                        >
-                            <X className="w-5 h-5" />
-                        </Button>
-                    </div>
-
-                    {/* Main Body */}
-                    <div className="p-6 bg-slate-50/50 flex-1">
-                        {!isPublished ? (
-                            <div className="text-center py-8 space-y-4">
-                                <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
-                                    <Globe className="w-8 h-8 text-amber-600" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg text-slate-800">Yayında Değil</h3>
-                                    <p className="text-slate-500 text-sm max-w-xs mx-auto mt-1">
-                                        Paylaşım seçeneklerini kullanabilmek için kataloğunuzu yayınlamanız gerekiyor.
-                                    </p>
-                                </div>
-                                <Button onClick={handlePdfClick} className="w-full bg-slate-900 text-white rounded-xl h-12 mt-4">
-                                    <Download className="w-4 h-4 mr-2" /> PDF İndir
-                                </Button>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Tabs */}
-                                <div className="bg-slate-200/60 p-1.5 rounded-2xl flex relative mb-6 shrink-0">
-                                    <button
-                                        onClick={() => setActiveTab("social")}
+                            {/* Pill Toggle (Matching UpgradeModal Style) */}
+                            {isPublished && (
+                                <div className="relative flex items-center p-1 bg-muted/50 rounded-full border border-border shadow-inner w-full max-w-[240px]">
+                                    <div
                                         className={cn(
-                                            "flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all duration-300 z-10 relative",
-                                            activeTab === "social"
-                                                ? "bg-white text-indigo-600 shadow-sm"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-300/50"
+                                            "absolute h-[calc(100%-8px)] rounded-full bg-background shadow-sm border border-border/10 transition-all duration-300 ease-in-out",
+                                            activeTab === "qr" ? "left-[calc(50%+4px)] w-[calc(50%-8px)]" : "left-1 w-[calc(50%-8px)]"
+                                        )}
+                                    />
+                                    <button
+                                        onClick={() => setActiveTab("link")}
+                                        className={cn(
+                                            "relative flex-1 py-1.5 text-[11px] font-bold z-10 transition-colors flex items-center justify-center gap-1.5",
+                                            activeTab === "link" ? "text-foreground" : "text-muted-foreground"
                                         )}
                                     >
-                                        <LinkIcon className="w-4 h-4" />
+                                        <LinkIcon className="w-3 h-3" />
                                         Link Paylaş
                                     </button>
                                     <button
                                         onClick={() => setActiveTab("qr")}
                                         className={cn(
-                                            "flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all duration-300 z-10 relative",
-                                            activeTab === "qr"
-                                                ? "bg-white text-indigo-600 shadow-sm"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-300/50"
+                                            "relative flex-1 py-1.5 text-[11px] font-bold z-10 flex items-center justify-center gap-1.5 transition-colors",
+                                            activeTab === "qr" ? "text-foreground" : "text-muted-foreground"
                                         )}
                                     >
-                                        <QrCode className="w-4 h-4" />
+                                        <QrCode className="w-3 h-3" />
                                         QR Kod
                                     </button>
                                 </div>
-
-                                <div className="relative">
-                                    {/* SOCIAL VIEW */}
-                                    {activeTab === "social" && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
-
-                                            {/* Copy Link Card */}
-                                            <div
-                                                onClick={handleCopyLink}
-                                                className="group cursor-pointer bg-white border border-slate-200 hover:border-indigo-400 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between relative overflow-hidden"
-                                            >
-                                                <div className="flex items-center gap-4 relative z-10">
-                                                    <div className={cn(
-                                                        "w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300",
-                                                        copied ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
-                                                    )}>
-                                                        {copied ? <Check className="w-6 h-6" /> : <LinkIcon className="w-6 h-6" />}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className={cn(
-                                                            "font-bold text-sm transition-colors",
-                                                            copied ? "text-emerald-700" : "text-slate-700 group-hover:text-indigo-700"
-                                                        )}>
-                                                            {copied ? "Kopyalandı!" : "Katalog Linkini Kopyala"}
-                                                        </span>
-                                                        <span className="text-xs text-slate-400 truncate max-w-[200px] mt-0.5">
-                                                            {shareUrl.replace(/^https?:\/\//, '')}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-slate-50 p-2 rounded-lg text-slate-400 group-hover:bg-white group-hover:text-indigo-500 transition-colors border border-slate-100 group-hover:border-indigo-100 relative z-10">
-                                                    <Copy className="w-4 h-4" />
-                                                </div>
-
-                                                {/* Gradient Hover Effect bg */}
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-50/30 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                            </div>
-
-                                            {/* Social Grid */}
-                                            <div>
-                                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-3 block">
-                                                    Sosyal Medyada Paylaş
-                                                </label>
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    {[
-                                                        { name: "WhatsApp", src: "/icons/social/whatsapp.png", url: `https://wa.me/?text=${encodedText}%20${encodedUrl}` },
-                                                        { name: "Email", src: "/icons/social/gmail.png", url: `mailto:?subject=${encodeURIComponent(catalogName)}&body=${encodedText}%0A%0A${encodedUrl}` },
-                                                        { name: "LinkedIn", src: "/icons/social/linkedin.png", url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
-                                                        { name: "Twitter", src: "/icons/social/twitter.png", url: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}` },
-                                                        { name: "Telegram", src: "/icons/social/telegram.png", url: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}` },
-                                                        { name: "Facebook", src: "/icons/social/facebook.png", url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
-                                                    ].map((social) => (
-                                                        <a
-                                                            key={social.name}
-                                                            href={social.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-indigo-100 hover:-translate-y-1 transition-all duration-300 group"
-                                                        >
-                                                            <div className="relative w-8 h-8 group-hover:scale-110 transition-transform duration-300">
-                                                                <NextImage src={social.src} alt={social.name} width={32} height={32} className="object-contain" unoptimized />
-                                                            </div>
-                                                            <span className="text-[10px] font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">
-                                                                {social.name}
-                                                            </span>
-                                                        </a>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <Button
-                                                variant="outline"
-                                                onClick={handlePdfClick}
-                                                className="w-full h-12 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl font-medium"
-                                            >
-                                                <Download className="w-4 h-4 mr-2" />
-                                                PDF Versiyonunu İndir
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {/* QR VIEW */}
-                                    {activeTab === "qr" && (
-                                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                                            {/* QR Container - Enlarged and Spaced */}
-                                            <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 flex flex-col items-center justify-center relative overflow-hidden group">
-                                                <div className="absolute inset-0 bg-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                                {/* Corner Frames */}
-                                                <div className="absolute top-4 left-4 w-6 h-6 border-l-4 border-t-4 border-slate-900 rounded-tl-lg opacity-10" />
-                                                <div className="absolute top-4 right-4 w-6 h-6 border-r-4 border-t-4 border-slate-900 rounded-tr-lg opacity-10" />
-                                                <div className="absolute bottom-4 left-4 w-6 h-6 border-l-4 border-b-4 border-slate-900 rounded-bl-lg opacity-10" />
-                                                <div className="absolute bottom-4 right-4 w-6 h-6 border-r-4 border-b-4 border-slate-900 rounded-br-lg opacity-10" />
-
-                                                {qrCodeUrl && (
-                                                    <div className="relative z-10 bg-white p-2 rounded-xl shadow-sm">
-                                                        <NextImage
-                                                            src={qrCodeUrl}
-                                                            alt="QR"
-                                                            width={240}
-                                                            height={240}
-                                                            unoptimized
-                                                            className="mix-blend-multiply"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <p className="relative z-10 text-[11px] text-slate-400 mt-4 font-medium px-4 text-center leading-tight">
-                                                    Müşterileriniz telefonuyla tarayarak kataloğu açabilir.
-                                                </p>
-                                            </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="grid grid-cols-2 gap-3 mt-auto">
-                                                <Button
-                                                    onClick={handleShareQR}
-                                                    className="w-full h-12 bg-[#25D366] hover:bg-[#20BD5A] text-white rounded-xl shadow-lg shadow-green-600/20 font-bold text-xs transition-transform active:scale-[0.98] group flex items-center justify-center gap-2"
-                                                >
-                                                    <NextImage src="/icons/social/whatsapp.png" width={18} height={18} alt="WA" className="brightness-0 invert" unoptimized />
-                                                    WhatsApp
-                                                </Button>
-
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={handleDownloadQR}
-                                                    className="w-full h-12 bg-white hover:bg-slate-50 border-slate-200 text-slate-700 rounded-xl text-xs font-bold"
-                                                >
-                                                    <Download className="w-4 h-4 mr-2" />
-                                                    İndir
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+
+                {/* Main Content Area */}
+                <div className="px-6 py-6 overflow-y-auto max-h-[60vh] custom-scrollbar bg-slate-50/30 dark:bg-background/20">
+                    {!isPublished ? (
+                        <div className="text-center py-6 space-y-4">
+                            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto border border-amber-100">
+                                <Globe className="w-8 h-8 text-amber-500" />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="font-bold text-slate-800">Katalog Yayında Değil</h3>
+                                <p className="text-slate-500 text-[11px] max-w-[240px] mx-auto">
+                                    Paylaşım yapabilmek için önce kataloğu yayınlamanız gerekiyor.
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => { onOpenChange(false); onDownloadPdf() }}
+                                className="h-10 px-6 rounded-xl text-xs font-bold"
+                            >
+                                <Download className="w-3.5 h-3.5 mr-2" /> PDF Olarak İndir
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="animate-in fade-in duration-500">
+                            {activeTab === "link" ? (
+                                <div className="space-y-6">
+                                    {/* Link Card - Premium Stylized */}
+                                    <div className="group relative bg-white dark:bg-card border border-border rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:border-indigo-200">
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Katalog Bağlantısı</span>
+                                                {copied && (
+                                                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 animate-in fade-in slide-in-from-right-2">
+                                                        <Check className="w-3 h-3" /> Kopyalandı
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 p-3 bg-muted/40 rounded-xl border border-dashed border-border/50 select-all overflow-hidden shrink-0">
+                                                <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                                                <code className="text-xs font-medium text-foreground truncate flex-1 font-mono">
+                                                    {shareUrl.replace(/^https?:\/\//, '')}
+                                                </code>
+                                            </div>
+                                            <Button
+                                                onClick={handleCopyLink}
+                                                className={cn(
+                                                    "w-full h-10 font-bold text-xs rounded-xl transition-all",
+                                                    copied ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                                )}
+                                            >
+                                                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                                                {copied ? "Link Kopyalandı" : "Linki Kopyala"}
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Social Connect Grid */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 px-1">
+                                            <div className="h-px bg-border flex-1" />
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Hızlı Paylaş</span>
+                                            <div className="h-px bg-border flex-1" />
+                                        </div>
+
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {[
+                                                { name: "WhatsApp", color: "bg-[#25D366]", icon: "/icons/social/whatsapp.png", url: `https://wa.me/?text=${encodedText}%20${encodedUrl}` },
+                                                { name: "Telegram", color: "bg-[#0088cc]", icon: "/icons/social/telegram.png", url: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}` },
+                                                { name: "Email", color: "bg-slate-700", icon: "/icons/social/gmail.png", url: `mailto:?subject=${encodeURIComponent(catalogName)}&body=${encodedText}%0A%0A${encodedUrl}` },
+                                                { name: "LinkedIn", color: "bg-[#0077b5]", icon: "/icons/social/linkedin.png", url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
+                                            ].map((soc) => (
+                                                <a
+                                                    key={soc.name}
+                                                    href={soc.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex flex-col items-center gap-1.5 group transition-transform hover:-translate-y-1"
+                                                >
+                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-white dark:bg-card border border-border shadow-sm group-hover:shadow-md")}>
+                                                        <NextImage src={soc.icon} width={24} height={24} alt={soc.name} className="object-contain transition-transform group-hover:scale-110" unoptimized />
+                                                    </div>
+                                                    <span className="text-[9px] font-bold text-muted-foreground">{soc.name}</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center space-y-6 animate-in slide-in-from-right-4 duration-500">
+                                    {/* QR Code Frame - High-End Aesthetic */}
+                                    <div className="relative p-6 bg-white dark:bg-card rounded-[2.5rem] shadow-xl border border-border group overflow-hidden">
+                                        {/* Abstract background for QR */}
+                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                        {/* Corner Frames (Minimalist) */}
+                                        <div className="absolute top-6 left-6 w-8 h-8 border-l-2 border-t-2 border-indigo-200 rounded-tl-xl" />
+                                        <div className="absolute top-6 right-6 w-8 h-8 border-r-2 border-t-2 border-indigo-200 rounded-tr-xl" />
+                                        <div className="absolute bottom-6 left-6 w-8 h-8 border-l-2 border-b-2 border-indigo-200 rounded-bl-xl" />
+                                        <div className="absolute bottom-6 right-6 w-8 h-8 border-r-2 border-b-2 border-indigo-200 rounded-br-xl" />
+
+                                        {qrCodeUrl && (
+                                            <div className="relative z-10 bg-white p-2 rounded-2xl shadow-sm border border-slate-50">
+                                                <NextImage
+                                                    src={qrCodeUrl}
+                                                    alt="QR"
+                                                    width={180}
+                                                    height={180}
+                                                    unoptimized
+                                                    className="mix-blend-multiply transition-transform group-hover:scale-105 duration-700"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="text-center space-y-4 w-full">
+                                        <p className="text-[11px] text-muted-foreground font-medium px-8 leading-relaxed">
+                                            Müşterileriniz cihazlarıyla tarayarak kataloğunuzu hızlıca açabilir.
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Button
+                                                onClick={handleShareQR}
+                                                className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px]"
+                                            >
+                                                <Send className="w-3.5 h-3.5 mr-2" /> Paylaş
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleDownloadQR}
+                                                className="h-10 rounded-xl font-bold text-[11px] border-indigo-100 text-indigo-700 bg-indigo-50/10 hover:bg-indigo-50"
+                                            >
+                                                <Download className="w-3.5 h-3.5 mr-2" /> İndir
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Trust Section (Matching UpgradeModal) */}
+                <div className="px-6 py-4 border-t border-border bg-muted/10">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5">
+                            <Smartphone className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Mobil Uyumlu</span>
+                        </div>
+                        <div className="h-3 w-px bg-border/50" />
+                        <div className="flex items-center gap-1.5 px-4">
+                            <Download className="w-3.5 h-3.5 text-blue-500" />
+                            <span>PDF Destekli</span>
+                        </div>
+                        <div className="h-3 w-px bg-border/50" />
+                        <div className="flex items-center gap-1.5">
+                            <Globe className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>Canlı Link</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Close Button UI Adjustment */}
+                <button
+                    onClick={() => onOpenChange(false)}
+                    className="absolute right-4 top-4 rounded-full p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-white"
+                >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                    <span className="sr-only">Kapat</span>
+                </button>
+            </DialogContent>
+        </Dialog>
     )
 }

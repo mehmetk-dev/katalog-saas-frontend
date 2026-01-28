@@ -54,6 +54,7 @@ const MAGIC_DESCRIPTIONS_EN = [
 
 export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan = 'free' }: ProductModalProps) {
   const [isPending, startTransition] = useTransition()
+  const [isSaving, setIsSaving] = useState(false)
   const { t, language } = useTranslation()
   const isEditing = !!product
   const isFreeUser = userPlan === 'free'
@@ -95,11 +96,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const [activeImageUrl, setActiveImageUrl] = useState(product?.image_url || "")
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const blobUrlsRef = useRef<string[]>([])
-  
+
   // Upload işlemlerini iptal etmek için ref'ler
   const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
   const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
-  
+  const currentUploadToastId = useRef<string | number | null>(null)
+
   // Pending images: Seçilmiş ama henüz Cloudinary'ye yüklenmemiş fotoğraflar
   interface PendingImage {
     file: File
@@ -107,6 +109,26 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     uploadId: string
   }
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
+  const [session, setSession] = useState<any>(null)
+
+  // Listen for session changes
+  useEffect(() => {
+    const supabase = createClient()
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
 
   // Reset state when modal opens/closes or product changes
@@ -117,25 +139,15 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Resim sil - YENİ: Pending ve kaydedilmiş fotoğrafları destekler
   const handleRemoveImage = (index: number) => {
-    const urlToRemove = additionalImages[index]
-    
-    // Eğer blob URL ise (pending image), pending images'den kaldır
-    if (urlToRemove.startsWith('blob:')) {
-      const pendingImage = pendingImages.find(p => p.previewUrl === urlToRemove)
-      if (pendingImage) {
-        removePendingImage(pendingImage.uploadId)
-        return
-      }
-    }
-    
-    // Kaydedilmiş fotoğraf ise state'ten kaldır
-    const newImages = additionalImages.filter((_, i) => i !== index)
-    setAdditionalImages(newImages)
-    
-    // Active image güncelle
-    if (activeImageUrl === urlToRemove) {
-      setActiveImageUrl(newImages[0] || "")
-    }
+    setAdditionalImages(prevImages => {
+      const urlToRemove = prevImages[index]
+      const next = prevImages.filter((_, i) => i !== index)
+
+      // Active image (kapak) siliniyorsa, yeni listeden birini seç
+      setActiveImageUrl(curr => curr === urlToRemove ? (next[0] || "") : curr)
+
+      return next
+    })
   }
 
   // UPLOAD ON SAVE: Fotoğraf seçilince sadece preview oluştur, Cloudinary'ye yükleme
@@ -145,56 +157,70 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     // Limit kontrolü (mevcut + pending)
     const maxFiles = 5
-    const currentSavedCount = additionalImages.filter(url => !url.startsWith('blob:')).length
+    const currentSavedCount = additionalImages.filter((url) => !url.startsWith("blob:")).length
     const currentPendingCount = pendingImages.length
     const totalCount = currentSavedCount + currentPendingCount
     const allowedCount = maxFiles - totalCount
 
     if (allowedCount <= 0) {
-      toast.error(t('toasts.maxPhotosReached'))
+      toast.error(t("toasts.maxPhotosReached"))
       return
     }
 
-    const filesToAdd = Array.from(files).slice(0, allowedCount)
-    
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    const filesToAdd = Array.from(files)
+      .slice(0, allowedCount)
+      .filter((file) => {
+        if (file.size > MAX_SIZE) {
+          toast.error(`${file.name} çok büyük (Max 5MB).`)
+          return false
+        }
+        return true
+      })
+
     // Her dosya için preview oluştur (Cloudinary'ye YÜKLEME)
-    const newPendingImages: PendingImage[] = filesToAdd.map(file => {
+    const newPendingImages: PendingImage[] = filesToAdd.map((file) => {
       const uploadId = `pending-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
       const previewUrl = URL.createObjectURL(file)
       blobUrlsRef.current.push(previewUrl)
-      
+
       return { file, previewUrl, uploadId }
     })
 
     // Pending images'e ekle
-    setPendingImages(prev => [...prev, ...newPendingImages])
-    
+    setPendingImages((prev) => [...prev, ...newPendingImages])
+
     // Preview'ları state'e ekle (görüntüleme için)
-    setAdditionalImages(prev => {
-      const newPreviews = newPendingImages.map(item => item.previewUrl)
+    setAdditionalImages((prev) => {
+      const newPreviews = newPendingImages.map((item) => item.previewUrl)
       const updated = [...prev, ...newPreviews].slice(0, 5)
-      console.log('[ProductModal] 📸 Preview added (not uploaded yet):', newPreviews.length)
       return updated
     })
-    
+
     if (!activeImageUrl && newPendingImages.length > 0) {
       setActiveImageUrl(newPendingImages[0].previewUrl)
     }
 
     // Input'u temizle
-    if (e.target) e.target.value = ''
+    if (e.target) e.target.value = ""
+  }
+
+  // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
+  const handleUploadClick = async () => {
+    const supabase = createClient()
+    const { error } = await supabase.auth.refreshSession()
+    if (error) console.error('[ProductModal] Pre-upload session refresh failed:', error)
   }
 
   // Pending fotoğrafları Cloudinary'ye yükle (sadece "Kaydet" butonunda çağrılacak)
   // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
   const uploadSingleImageWithRetry = async (file: File, uploadId: string, signal?: AbortSignal): Promise<string> => {
     const MAX_RETRIES = 3
-    const TIMEOUT_MS = 30000 // 30 Saniye
+    const TIMEOUT_MS = 10000 // Kullanıcı isteği: 10 saniye (yeterli süre)
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       // İptal kontrolü
       if (signal?.aborted) {
-        console.log(`[ProductModal] 🛑 Upload cancelled for ${uploadId}`)
         throw new Error('Upload cancelled')
       }
 
@@ -204,9 +230,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
         if (attempt > 0) {
           const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-          console.log(`[ProductModal] 🔄 Retry attempt ${attempt + 1}/${MAX_RETRIES} for ${uploadId}. Waiting ${waitTime}ms`)
           toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
-          
+
           // Bekleme sırasında da iptal kontrolü
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
@@ -215,7 +240,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                 reject(new Error('Upload cancelled'))
               }
             }, 100)
-            
+
             setTimeout(() => {
               clearInterval(checkInterval)
               resolve()
@@ -225,47 +250,38 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         // İptal kontrolü (bekleme sonrası)
         if (signal?.aborted) {
-          console.log(`[ProductModal] 🛑 Upload cancelled for ${uploadId} after wait`)
           throw new Error('Upload cancelled')
         }
 
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
 
-        // 2. YARIŞ BAŞLASIN: Upload vs Timeout
-        // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
+        // Basit timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), TIMEOUT_MS)
+        })
+
+        // Abort promise - İptal edildiğinde hemen reject et
+        const abortPromise = new Promise<never>((_, reject) => {
+          if (signal?.aborted) return reject(new Error('Upload cancelled'))
+          signal?.addEventListener('abort', () => reject(new Error('Upload cancelled')))
+        })
+
         const uploadPromise = storage.upload(file, {
           path: 'products',
           contentType: file.type || 'image/jpeg',
           cacheControl: '3600',
           fileName,
+          signal: signal,
         })
 
-        // Timeout promise'i (temizlenebilir)
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => {
-            console.error(`[ProductModal] ⏱️ Upload timeout for ${uploadId} after ${TIMEOUT_MS/1000} seconds`)
-            reject(new Error('UPLOAD_TIMEOUT'))
-          }, TIMEOUT_MS)
-          
-          // Timeout ID'yi kaydet (temizlemek için)
-          uploadTimeoutIds.current.set(uploadId, timeoutId)
-        })
+        const result: any = await Promise.race([uploadPromise, timeoutPromise, abortPromise])
 
-        const result: any = await Promise.race([uploadPromise, timeoutPromise])
+        if (timeoutId) clearTimeout(timeoutId)
 
-        // Timeout'u temizle (başarılı olduysa)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          uploadTimeoutIds.current.delete(uploadId)
-          timeoutId = null
-        }
-
-        // 3. Sonuç Kontrolü
         if (result && result.url) {
-          return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
-        } else {
-          throw new Error('Upload successful but URL is missing')
+          return result.url
         }
+        throw new Error('Upload successful but URL is missing')
 
       } catch (error: any) {
         // Timeout'u temizle (hata durumunda)
@@ -277,12 +293,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         // İptal hatası ise direkt fırlat
         if (error.message === 'Upload cancelled' || signal?.aborted) {
-          console.log(`[ProductModal] 🛑 Upload cancelled for ${uploadId}`)
           throw error
         }
 
         console.error(`[ProductModal] ❌ Attempt ${attempt + 1} failed:`, error.message)
-        
+
         // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
         if (attempt === MAX_RETRIES - 1) {
           throw error
@@ -297,115 +312,91 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const uploadPendingImages = async (): Promise<string[]> => {
     const currentPendingImages = [...pendingImages]
     const currentAdditionalImages = [...additionalImages]
-    
+
     if (currentPendingImages.length === 0) {
       return currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
     }
 
     setIsUploading(true)
-    const toastId = 'img-upload-' + Date.now()
+    const toastId = "img-upload-" + Date.now()
+    currentUploadToastId.current = toastId
     toast.loading(`Fotoğraflar yükleniyor (0/${currentPendingImages.length})...`, { id: toastId })
 
-    // GLOBAL SİGORTA: 60 saniye sonra her şeyi iptal et (UI donmasını önler)
+    // Ana AbortController oluştur
+    const mainAbortController = new AbortController()
+    uploadAbortControllers.current.set("main-upload", mainAbortController)
+
+    // GLOBAL SİGORTA: 5 dakika sonra her şeyi iptal et (Yavaş ağlar için daha esnek)
     const safetyTimer = setTimeout(() => {
-        setIsUploading(false)
-        toast.dismiss(toastId)
-        toast.error("İşlem zaman aşımına uğradı, lütfen sayfayı yenileyin.")
-    }, 60000)
+
+      mainAbortController.abort()
+    }, 300000)
+
+    // Toast durumunu takip et
+    let toastUpdated = false
 
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Oturum bulunamadı.')
-
+      // Session kontrolünü kaldırdık - Settings sayfası gibi "Trust" modeline geçiyoruz.
       const uploadedUrls: string[] = []
       const successfulPreviewUrls: string[] = []
-
-      // Ana AbortController oluştur (tüm upload'lar için)
-      const mainAbortController = new AbortController()
-      uploadAbortControllers.current.set('main-upload', mainAbortController)
+      const previewToPublic = new Map<string, string>()
 
       // Her resim için döngü
       for (let i = 0; i < currentPendingImages.length; i++) {
         const { file, previewUrl, uploadId } = currentPendingImages[i]
-        
+
         // İptal kontrolü
         if (mainAbortController.signal.aborted) {
-          console.log(`[ProductModal] 🛑 Upload cancelled, stopping at image ${i + 1}`)
           break
         }
-        
+
         try {
-            // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
-            const publicUrl = await uploadSingleImageWithRetry(file, uploadId, mainAbortController.signal)
-            
-            uploadedUrls.push(publicUrl)
-            successfulPreviewUrls.push(previewUrl)
+          // Progress mesajını güncelle
+          toast.loading(`Yükleniyor (${i + 1}/${currentPendingImages.length})...`, { id: toastId })
 
-            // State'te preview'ı gerçek URL ile değiştir
-            setAdditionalImages(prev => {
-              const previewIndex = prev.findIndex(url => url === previewUrl)
-              if (previewIndex >= 0) {
-                const updated = [...prev]
-                updated[previewIndex] = publicUrl
-                return updated
-              }
-              // Preview bulunamadı, ekle
-              if (!prev.includes(publicUrl)) {
-                return [...prev, publicUrl].slice(0, 5)
-              }
-              return prev
-            })
+          // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
+          const publicUrl = await uploadSingleImageWithRetry(file, uploadId, mainAbortController.signal)
 
-            // Active image güncelle
-            setActiveImageUrl(curr => {
-              if (curr === previewUrl) {
-                return publicUrl
-              }
-              return curr
-            })
+          uploadedUrls.push(publicUrl)
+          successfulPreviewUrls.push(previewUrl)
+          previewToPublic.set(previewUrl, publicUrl)
 
-            // Progress güncelle
-            toast.loading(`Yükleniyor (${i + 1}/${currentPendingImages.length})...`, { id: toastId })
+          // State'te preview'ı gerçek URL ile değiştir
+          setAdditionalImages(prev => {
+            const previewIndex = prev.findIndex(url => url === previewUrl)
+            if (previewIndex >= 0) {
+              const updated = [...prev]
+              updated[previewIndex] = publicUrl
+              return updated
+            }
+            if (!prev.includes(publicUrl)) {
+              return [...prev, publicUrl].slice(0, 5)
+            }
+            return prev
+          })
+
+          // Active image güncelle
+          setActiveImageUrl(curr => curr === previewUrl ? publicUrl : curr)
 
         } catch (itemError: any) {
-            // İptal hatası ise sessizce geç
-            if (itemError.message === 'Upload cancelled' || mainAbortController.signal.aborted) {
-              console.log(`[ProductModal] 🛑 Upload cancelled for ${file.name}, silently ignoring`)
-              continue
-            }
+          console.error(`❌ ${file.name} tamamen başarısız oldu:`, itemError)
 
-            console.error(`❌ ${file.name} tamamen başarısız oldu:`, itemError)
-            
-            // Hatalı preview'ı state'ten kaldır ve blob URL'i revoke et
-            try {
-              URL.revokeObjectURL(previewUrl)
-              blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== previewUrl)
-              
-              setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
-              setPendingImages(prev => prev.filter(p => p.uploadId !== uploadId))
-            } catch (cleanupError) {
-              console.error("[ProductModal] Cleanup error:", cleanupError)
-            }
-            
-            const errorMessage = itemError.message?.includes('UPLOAD_TIMEOUT') || itemError.message?.includes('zaman aşımı')
-              ? 'Yükleme zaman aşımına uğradı (tüm denemeler başarısız)'
-              : itemError.message?.substring(0, 50) || 'Bilinmeyen hata'
-            
-            toast.error(`${file.name} yüklenemedi: ${errorMessage}`, { duration: 3000 })
-            // Bir dosya patlasa bile diğerlerine devam etsin diye throw yapmıyoruz
+          // Hatalı preview'ı state'ten kaldır
+          try {
+            URL.revokeObjectURL(previewUrl)
+            blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== previewUrl)
+
+            setAdditionalImages(prev => prev.filter(url => url !== previewUrl))
+            setPendingImages(prev => prev.filter(p => p.uploadId !== uploadId))
+          } catch (cleanupError) {
+            console.error("[ProductModal] Cleanup error:", cleanupError)
+          }
         }
-      }
+      } // End Loop
 
       // Temizlik ve State Güncelleme
-      clearTimeout(safetyTimer) // Sigortayı kapat
+      clearTimeout(safetyTimer)
 
-      // Başarılı olanların blob URL'lerini temizle
-      successfulPreviewUrls.forEach(url => {
-        URL.revokeObjectURL(url)
-        blobUrlsRef.current = blobUrlsRef.current.filter(blobUrl => blobUrl !== url)
-      })
-      
       // Sadece yüklenenleri listeden düşür
       setPendingImages(prev => prev.filter(p => !successfulPreviewUrls.includes(p.previewUrl)))
 
@@ -417,44 +408,58 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       setAdditionalImages(finalAllUrls)
 
       // Kapak fotoğrafı blob ise ve yüklendiyse güncelle
-      if (activeImageUrl.startsWith('blob:') && uploadedUrls.length > 0) {
-           // Basit mantık: İlk yükleneni kapak yap. Daha gelişmişi için previewUrl eşleştirmesi yapılabilir.
-           setActiveImageUrl(finalAllUrls[0])
+      if (activeImageUrl.startsWith('blob:')) {
+        const mapped = previewToPublic.get(activeImageUrl)
+        if (mapped) {
+          setActiveImageUrl(mapped)
+        } else if (uploadedUrls.length > 0) {
+          setActiveImageUrl(finalAllUrls[0])
+        }
       }
 
       if (uploadedUrls.length > 0) {
         toast.success(`${uploadedUrls.length} fotoğraf yüklendi.`, { id: toastId })
+        toastUpdated = true
       } else {
-        toast.error("Hiçbir fotoğraf yüklenemedi.", { id: toastId })
+        // Hiçbişey yüklenemediyse hata fırlat ki kaydetme işlemi dursun
+        const msg = "Fotoğraf yüklenemedi. İşlem durduruldu."
+        toast.error(msg, { id: toastId })
+        toastUpdated = true
+        throw new Error(msg)
       }
-      
+
       return finalAllUrls
 
     } catch (err: any) {
       console.error("Critical Upload Error:", err)
-      toast.error("Yükleme sırasında genel hata oluştu.", { id: toastId })
-      return currentAdditionalImages.filter(u => !u.startsWith('blob:'))
+      if (!toastUpdated) toast.error("Yükleme sırasında hata oluştu.", { id: toastId })
+      toastUpdated = true
+      throw err // Hatayı yukarı fırlat (handleSubmit yakalasın)
     } finally {
       clearTimeout(safetyTimer)
-      
+
       // Cleanup: AbortController ve timeout'ları temizle
       const mainController = uploadAbortControllers.current.get('main-upload')
       if (mainController) {
         mainController.abort()
         uploadAbortControllers.current.delete('main-upload')
       }
-      
+
       // Tüm timeout'ları temizle
       uploadTimeoutIds.current.forEach((timeoutId) => {
         clearTimeout(timeoutId)
       })
       uploadTimeoutIds.current.clear()
-      
+
       setIsUploading(false)
-      toast.dismiss(toastId)
+
+      // EĞER HALA YÜKLENİYOR GÖRÜNÜYORSA VE GÜNCELLENMEDİYSE ZORLA KAPAT
+      if (!toastUpdated) {
+        toast.dismiss(toastId)
+      }
     }
   }
-  
+
   // Pending fotoğrafı kaldır
   const removePendingImage = (uploadId: string) => {
     // Devam eden upload'ı iptal et
@@ -463,31 +468,26 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       controller.abort()
       uploadAbortControllers.current.delete(uploadId)
     }
-    
+
     // Timeout'u temizle
     const timeoutId = uploadTimeoutIds.current.get(uploadId)
     if (timeoutId) {
       clearTimeout(timeoutId)
       uploadTimeoutIds.current.delete(uploadId)
     }
-    
+
     setPendingImages(prev => {
       const removed = prev.find(p => p.uploadId === uploadId)
       if (removed) {
         // Blob URL'i temizle
         URL.revokeObjectURL(removed.previewUrl)
         blobUrlsRef.current = blobUrlsRef.current.filter(url => url !== removed.previewUrl)
-        
-        // State'ten de kaldır
-        setAdditionalImages(prevImages => prevImages.filter(url => url !== removed.previewUrl))
-        
-        // Active image güncelle
-        setActiveImageUrl(curr => {
-          if (curr === removed.previewUrl) {
-            const remaining = additionalImages.filter(url => url !== removed.previewUrl && !url.startsWith('blob:'))
-            return remaining[0] || ""
-          }
-          return curr
+
+        setAdditionalImages(prevImages => {
+          const next = prevImages.filter(url => url !== removed.previewUrl)
+          // Active image (kapak) siliniyorsa güncelle
+          setActiveImageUrl(curr => curr === removed.previewUrl ? (next[0] || "") : curr)
+          return next
         })
       }
       return prev.filter(p => p.uploadId !== uploadId)
@@ -497,11 +497,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   // Modal açıldığında state'leri başlat - SADECE MODAL AÇILDIĞINDA
   // ÖNEMLİ: product prop'u değişse bile state'i sıfırlama (fotoğraf yükleme sırasında kaybolmasın)
   const lastProductIdRef = useRef<string | null>(null)
-  
+
   useEffect(() => {
     if (open) {
       const currentProductId = product?.id || null
-      
+
       // Sadece modal ilk açıldığında veya farklı bir ürün seçildiğinde state'i sıfırla
       // Aynı ürün için modal açıkken product prop'u değişse bile state'i koru (fotoğraf yükleme sırasında kaybolmasın)
       if (lastProductIdRef.current !== currentProductId) {
@@ -551,10 +551,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         setProductUrl(product?.product_url || "")
         setUploadedUrl(null)
         setActiveTab("basic")
-        
+
         // Modal açıldığında pending images'i temizle
         setPendingImages([])
-        
+
         lastProductIdRef.current = currentProductId
       }
     } else {
@@ -564,31 +564,37 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         controller.abort()
       })
       uploadAbortControllers.current.clear()
-      
+
       // 2. TÜM TIMEOUT'LARI TEMİZLE
       uploadTimeoutIds.current.forEach((timeoutId) => {
         clearTimeout(timeoutId)
       })
       uploadTimeoutIds.current.clear()
-      
+
       // 3. BLOB URL'LERİ TEMİZLE
       blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
       blobUrlsRef.current = []
-      
+
       // 4. Pending images'deki blob URL'leri temizle
       pendingImages.forEach(({ previewUrl }) => {
         URL.revokeObjectURL(previewUrl)
       })
       setPendingImages([])
-      
-      // 5. State'i TAMAMEN SIFIRLA (product'tan yüklenecek, şimdilik boş)
+
+      // 5. State'i TAMAMEN SIFIRLA
       setAdditionalImages([])
       setActiveImageUrl("")
-      
+
       // 6. Upload state'ini sıfırla
       setIsUploading(false)
-      
-      // 7. Modal kapandığında flag'leri sıfırla
+
+      // 7. Toast'ı temizle (Varsa)
+      if (currentUploadToastId.current) {
+        toast.dismiss(currentUploadToastId.current)
+        currentUploadToastId.current = null
+      }
+
+      // 8. Modal kapandığında flag'leri sıfırla
       lastProductIdRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -615,9 +621,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       finalImageUrls = await uploadPendingImages()
     } catch (uploadError: any) {
       console.error("[ProductModal] Upload error in handleSubmit:", uploadError)
-      // Upload hatası olsa bile devam et (mevcut fotoğraflarla)
-      finalImageUrls = additionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
-      toast.error("Fotoğraf yükleme hatası. Mevcut fotoğraflarla devam ediliyor.")
+      // Upload hatası varsa dur. Toast zaten atıldı.
+      return
     }
 
     // State'i güncelle (yüklenen URL'lerle)
@@ -651,38 +656,43 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     formData.set("custom_attributes", JSON.stringify(attributesToSave))
 
-    startTransition(async () => {
-      try {
-        if (isEditing) {
-          await updateProduct(product.id, formData)
-          onSaved({
-            ...product,
-            name,
-            sku,
-            description,
-            price: Number.parseFloat(price) || 0,
-            stock: Number.parseInt(stock) || 0,
-            category: category.join(", "),
-            image_url: finalActiveImageUrl,
-            images: finalImageUrls,
-            product_url: productUrl || null,
-            custom_attributes: attributesToSave,
-          })
-          toast.success(t('toasts.productUpdated'))
-        } else {
-          const newProduct = await createProduct(formData)
-          onSaved(newProduct)
-          toast.success(t('toasts.productCreated'))
-        }
-        
-        // Kayıt başarılı - pending images zaten temizlendi
-        setPendingImages([])
-        
-        onOpenChange(false)
-      } catch {
-        toast.error(isEditing ? t('toasts.productUpdateFailed') : t('toasts.productCreateFailed'))
+    // Direct Async Execution (No startTransition)
+    setIsSaving(true)
+
+    try {
+      if (isEditing) {
+        await updateProduct(product.id, formData)
+        onSaved({
+          ...product,
+          name,
+          sku,
+          description,
+          price: Number.parseFloat(price) || 0,
+          stock: Number.parseInt(stock) || 0,
+          category: category.join(", "),
+          image_url: finalActiveImageUrl,
+          images: finalImageUrls,
+          product_url: productUrl || null,
+          custom_attributes: attributesToSave,
+        })
+        toast.success(t('toasts.productUpdated'))
+      } else {
+        const newProduct = await createProduct(formData)
+        onSaved(newProduct)
+        toast.success(t('toasts.productCreated'))
       }
-    })
+
+      // Kayıt başarılı - pending images zaten temizlendi
+      setPendingImages([])
+      // Modal'ı kapat
+      onOpenChange(false)
+
+    } catch (error) {
+      console.error("Save error:", error)
+      toast.error(isEditing ? t('toasts.productUpdateFailed') : t('toasts.productCreateFailed'))
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // UI Render Part (Inside TabsContent value="images")
@@ -818,131 +828,131 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
                   {/* Kategoriler */}
                   <div className="space-y-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowCategorySection(!showCategorySection)}
-                        className="w-full flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FolderPlus className="w-4 h-4 text-violet-600" />
-                          <span className="font-medium text-sm">{t('categories.title')}</span>
-                          {category.length > 0 && (
-                            <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
-                              {t('products.selected', { count: category.length })}
-                            </Badge>
-                          )}
-                        </div>
-                        {showCategorySection ? (
-                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    <button
+                      type="button"
+                      onClick={() => setShowCategorySection(!showCategorySection)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderPlus className="w-4 h-4 text-violet-600" />
+                        <span className="font-medium text-sm">{t('categories.title')}</span>
+                        {category.length > 0 && (
+                          <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
+                            {t('products.selected', { count: category.length })}
+                          </Badge>
                         )}
-                      </button>
-
-                      {/* Seçili Kategoriler - Her zaman göster */}
-                      {category.length > 0 && !showCategorySection && (
-                        <div className="flex flex-wrap gap-1.5 px-1">
-                          {category.map((cat, idx) => (
-                            <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700 border-violet-100">
-                              {cat}
-                              <button
-                                type="button"
-                                onClick={() => setCategory(category.filter((_, i) => i !== idx))}
-                                className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
+                      </div>
+                      {showCategorySection ? (
+                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       )}
+                    </button>
 
-                      {/* Kategori İçeriği - Açık olduğunda */}
-                      {showCategorySection && (
-                        <div className="space-y-3 p-3 border rounded-lg bg-background animate-in slide-in-from-top-2 duration-200">
-                          {/* Mevcut Kategoriler */}
-                          {allCategories.length > 0 && (
-                            <div className="space-y-1.5">
-                              <Label className="text-xs text-muted-foreground">{t('products.existingCategories')}</Label>
-                              <div className="flex flex-wrap gap-1.5">
-                                {allCategories.map((cat) => (
-                                  <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => {
-                                      if (category.includes(cat)) {
-                                        setCategory(category.filter(c => c !== cat))
-                                      } else {
-                                        setCategory([...category, cat])
-                                      }
-                                    }}
-                                    className={cn(
-                                      "px-2.5 py-1 text-xs rounded-full border transition-all",
-                                      category.includes(cat)
-                                        ? "bg-violet-600 text-white border-violet-600"
-                                        : "bg-background hover:bg-violet-50 hover:border-violet-300"
-                                    )}
-                                  >
-                                    {cat}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Yeni Kategori Ekle */}
-                          <div className="flex gap-2">
-                            <Input
-                              value={categoryInput}
-                              onChange={(e) => setCategoryInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && categoryInput.trim()) {
-                                  e.preventDefault()
-                                  if (!category.includes(categoryInput.trim())) {
-                                    setCategory([...category, categoryInput.trim()])
-                                  }
-                                  setCategoryInput("")
-                                }
-                              }}
-                              placeholder={t('products.newCategory')}
-                              className="h-8 text-sm"
-                            />
-                            <Button
+                    {/* Seçili Kategoriler - Her zaman göster */}
+                    {category.length > 0 && !showCategorySection && (
+                      <div className="flex flex-wrap gap-1.5 px-1">
+                        {category.map((cat, idx) => (
+                          <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700 border-violet-100">
+                            {cat}
+                            <button
                               type="button"
-                              size="sm"
-                              className="h-8 px-3 bg-violet-600 hover:bg-violet-700"
-                              onClick={() => {
-                                if (categoryInput.trim() && !category.includes(categoryInput.trim())) {
-                                  setCategory([...category, categoryInput.trim()])
-                                  setCategoryInput("")
-                                }
-                              }}
-                              disabled={!categoryInput.trim()}
+                              onClick={() => setCategory(category.filter((_, i) => i !== idx))}
+                              className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
                             >
-                              <Plus className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
 
-                          {/* Seçili Kategoriler */}
-                          {category.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-2 border-t">
-                              {category.map((cat, idx) => (
-                                <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700">
+                    {/* Kategori İçeriği - Açık olduğunda */}
+                    {showCategorySection && (
+                      <div className="space-y-3 p-3 border rounded-lg bg-background animate-in slide-in-from-top-2 duration-200">
+                        {/* Mevcut Kategoriler */}
+                        {allCategories.length > 0 && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{t('products.existingCategories')}</Label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {allCategories.map((cat) => (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    if (category.includes(cat)) {
+                                      setCategory(category.filter(c => c !== cat))
+                                    } else {
+                                      setCategory([...category, cat])
+                                    }
+                                  }}
+                                  className={cn(
+                                    "px-2.5 py-1 text-xs rounded-full border transition-all",
+                                    category.includes(cat)
+                                      ? "bg-violet-600 text-white border-violet-600"
+                                      : "bg-background hover:bg-violet-50 hover:border-violet-300"
+                                  )}
+                                >
                                   {cat}
-                                  <button
-                                    type="button"
-                                    onClick={() => setCategory(category.filter((_, i) => i !== idx))}
-                                    className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
-                                  >
-                                    <X className="w-2.5 h-2.5" />
-                                  </button>
-                                </Badge>
+                                </button>
                               ))}
                             </div>
-                          )}
+                          </div>
+                        )}
+
+                        {/* Yeni Kategori Ekle */}
+                        <div className="flex gap-2">
+                          <Input
+                            value={categoryInput}
+                            onChange={(e) => setCategoryInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && categoryInput.trim()) {
+                                e.preventDefault()
+                                if (!category.includes(categoryInput.trim())) {
+                                  setCategory([...category, categoryInput.trim()])
+                                }
+                                setCategoryInput("")
+                              }
+                            }}
+                            placeholder={t('products.newCategory')}
+                            className="h-8 text-sm"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 px-3 bg-violet-600 hover:bg-violet-700"
+                            onClick={() => {
+                              if (categoryInput.trim() && !category.includes(categoryInput.trim())) {
+                                setCategory([...category, categoryInput.trim()])
+                                setCategoryInput("")
+                              }
+                            }}
+                            disabled={!categoryInput.trim()}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
-                      )}
-                    </div>
+
+                        {/* Seçili Kategoriler */}
+                        {category.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+                            {category.map((cat, idx) => (
+                              <Badge key={idx} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-xs bg-violet-50 text-violet-700">
+                                {cat}
+                                <button
+                                  type="button"
+                                  onClick={() => setCategory(category.filter((_, i) => i !== idx))}
+                                  className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Ürün Linki */}
                   <div className="space-y-2 pt-2">
@@ -1058,7 +1068,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {additionalImages.map((url, idx) => {
                       const isPending = url.startsWith('blob:')
-                      
+
                       return (
                         <div key={idx} className={cn("relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800", activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900")}>
                           <NextImage
@@ -1072,7 +1082,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                             "absolute inset-0 bg-black/40 transition-opacity flex flex-col items-center justify-center gap-2",
                             activeImageUrl === url ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
                           )}>
-                            {activeImageUrl !== url && !isPending && (
+                            {activeImageUrl !== url && (
                               <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-white/90 hover:bg-white" onClick={() => handleSetCover(url)}>
                                 <Sparkles className="w-3.5 h-3.5 mr-1" /> {t('products.makeCover')}
                               </Button>
@@ -1090,8 +1100,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       )
                     })}
 
-                    {(additionalImages.length + pendingImages.length) < 5 && (
-                      <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-900/20 dark:hover:border-violet-700 transition-all group bg-slate-50/50 dark:bg-slate-900/20">
+                    {additionalImages.length < 5 && (
+                      <label
+                        onClick={handleUploadClick}
+                        className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-900/20 dark:hover:border-violet-700 transition-all group bg-slate-50/50 dark:bg-slate-900/20"
+                      >
                         <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm mb-2 group-hover:scale-110 transition-transform">
                           <Upload className="w-6 h-6 text-violet-500" />
                         </div>
@@ -1103,15 +1116,18 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                           className="hidden"
                           accept="image/png, image/jpeg, image/webp"
                           multiple
-                          onChange={handleImageUpload}
+                          onChange={(e) => {
+                            handleUploadClick()
+                            handleImageUpload(e)
+                          }}
                           disabled={isUploading}
                         />
-                        {isUploading && (
-                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
-                            <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
-                          </div>
-                        )}
                       </label>
+                    )}
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl backdrop-blur-[1px] z-10">
+                        <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                      </div>
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-4 text-center">
@@ -1234,30 +1250,25 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               <span>{activeTab === "basic" ? "1/3" : activeTab === "images" ? "2/3" : "3/3"}</span>
             </div>
             <div className="flex gap-3">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   // İptal edildiğinde: Pending fotoğrafları temizle (Cloudinary'de yok, sadece blob URL'ler)
-                  console.log('[ProductModal] 🗑️ İptal: Clearing pending images', {
-                    pendingCount: pendingImages.length,
-                    blobUrlsCount: blobUrlsRef.current.length
-                  })
-                  
                   // Pending images'deki blob URL'leri temizle
                   pendingImages.forEach(({ previewUrl }) => {
                     URL.revokeObjectURL(previewUrl)
                   })
-                  
+
                   // State'ten blob URL'leri kaldır (sadece kaydedilmiş fotoğraflar kalır)
                   setAdditionalImages(prev => prev.filter(url => !url.startsWith('blob:')))
-                  
+
                   // Pending images'i temizle
                   setPendingImages([])
-                  
+
                   // Blob URL ref'ini temizle
                   blobUrlsRef.current = []
-                  
+
                   // Modal'ı kapat - useEffect state'i product'tan yeniden yükleyecek
                   onOpenChange(false)
                 }}
@@ -1266,7 +1277,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || isUploading}
+                disabled={isSaving || isUploading}
                 className="min-w-[120px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
               >
                 {isUploading ? (
@@ -1274,7 +1285,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {t('common.loading')}
                   </>
-                ) : isPending ? (
+                ) : isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {t('builder.saving')}

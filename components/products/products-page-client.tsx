@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useTransition, useRef, useMemo, useCallback } from "react"
+import { useState, useTransition, useRef, useMemo, useCallback, useEffect } from "react"
 import { FileDown, Plus, Sparkles, Filter, LayoutGrid, List, Search, X, Package, TrendingUp, AlertTriangle, MoreHorizontal, Trash2, Image as ImageIcon, Percent, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SortAsc, SortDesc, DollarSign } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -49,7 +49,7 @@ interface ProductsPageClientProps {
   maxProducts: number
 }
 
-type SortField = "name" | "price" | "stock" | "created_at" | "category"
+type SortField = "name" | "price" | "stock" | "created_at" | "category" | "order"
 type SortOrder = "asc" | "desc"
 type ViewMode = "grid" | "list"
 type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
@@ -57,14 +57,19 @@ type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 const DEFAULT_ITEMS_PER_PAGE = 12
 const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
+import { useRouter, useSearchParams } from "next/navigation"
+
 export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [search, setSearch] = useState("")
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -93,6 +98,22 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
   const isFreeUser = userPlan === "free"
   const isAtLimit = isFreeUser && products.length >= maxProducts
+
+  // URL'deki action=new parametresini kontrol et
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      if (isAtLimit) {
+        setShowLimitModal(true)
+      } else {
+        setEditingProduct(null)
+        setShowProductModal(true)
+      }
+
+      // Parametreyi temizle
+      const newPath = window.location.pathname
+      window.history.replaceState({}, "", newPath)
+    }
+  }, [searchParams, isAtLimit])
 
   // Kategorileri çıkar
   const categories = useMemo(() => {
@@ -166,6 +187,9 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           break
         case "created_at":
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          break
+        case "order":
+          comparison = (a.order || 0) - (b.order || 0)
           break
       }
       return sortOrder === "asc" ? comparison : -comparison
@@ -447,7 +471,15 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             onEdit={handleEditProduct}
             onDeleted={handleProductDeleted}
             viewMode={viewMode}
-            onProductsReorder={(newProducts) => setProducts(newProducts)}
+            onProductsReorder={(newProducts) => {
+              setProducts(newProducts)
+              // Sürükle-bırak yapıldığında otomatik olarak manuel sıralamaya geç
+              if (sortField !== "order") {
+                setSortField("order")
+                setSortOrder("asc")
+                toast.info(t("products.switchedToManualSort") || "Manuel sıralamaya geçildi")
+              }
+            }}
           />
         </div>
 

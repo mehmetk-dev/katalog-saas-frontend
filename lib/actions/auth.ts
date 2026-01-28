@@ -40,7 +40,7 @@ export async function getCurrentUser() {
   }
 }
 
-export async function updateProfile(formData: FormData) {
+export async function updateProfile(formData: FormData, avatarUrl?: string | null, logoUrl?: string | null) {
   const fullName = formData.get("fullName") as string
   const company = formData.get("company") as string
 
@@ -49,6 +49,8 @@ export async function updateProfile(formData: FormData) {
     body: JSON.stringify({
       full_name: fullName,
       company: company,
+      avatar_url: avatarUrl,
+      logo_url: logoUrl
     }),
   })
   revalidatePath("/dashboard/settings")

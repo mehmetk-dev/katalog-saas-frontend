@@ -55,7 +55,6 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
     const errors: string[] = []
     const warnings: string[] = []
 
-    console.log('\n🔍 Validating environment variables...\n')
 
     for (const envVar of requiredEnvVars) {
         const value = process.env[envVar.key]
@@ -69,7 +68,6 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
         } else if (!envVar.required && !value) {
             warnings.push(`⚠️  Optional missing: ${envVar.key} - ${envVar.description}`)
         } else {
-            console.log(`✅ ${envVar.key}`)
         }
     }
 
@@ -84,7 +82,6 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
         warnings.forEach(warning => console.warn(warning))
     }
 
-    console.log('')
 
     return {
         valid: errors.length === 0,

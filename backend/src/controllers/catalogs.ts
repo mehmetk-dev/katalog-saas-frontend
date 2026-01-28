@@ -351,7 +351,6 @@ export const updateCatalog = async (req: Request, res: Response) => {
         if (product_image_fit !== undefined && product_image_fit !== null) updateData.product_image_fit = product_image_fit;
         if (header_text_color !== undefined && header_text_color !== null) updateData.header_text_color = header_text_color;
 
-        console.log('Updating catalog with data:', JSON.stringify(updateData, null, 2));
 
         const { error, data } = await supabase
             .from('catalogs')
@@ -378,7 +377,6 @@ export const updateCatalog = async (req: Request, res: Response) => {
             });
         }
 
-        console.log('Catalog updated successfully:', data);
 
         // Cache'leri temizle
         await deleteCache(cacheKeys.catalogs(userId));
@@ -598,7 +596,6 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
         }
 
         // DEBUG: Analytics tracking info
-        console.log(`[Analytics] View Attempt: Catalog=${data.id}, IP=${visitorInfo.ip}, isOwner=${isOwner}, Slug=${slug}`);
 
         // Increment view count asynchronously to not block the request
         smartIncrementViewCount(data.id, ownerId, visitorInfo, isOwner).catch(err => {
@@ -632,11 +629,6 @@ const getVisitorInfo = (req: Request) => {
     const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
 
     // DEBUG LOG
-    console.log('--- [DEBUG Analytics] ---');
-    console.log(`IP: ${ip}`);
-    console.log(`UA: ${userAgent.substring(0, 100)}...`);
-    console.log(`Hash: ${visitorHash}`);
-    console.log('-------------------------');
 
     return { ip, userAgent, deviceType, visitorHash };
 };
@@ -649,7 +641,6 @@ const smartIncrementViewCount = async (
 ) => {
     try {
         if (isOwner) {
-            console.log(`[Analytics] Skip: Owner view for ${catalogId}`);
             return;
         }
 
@@ -670,7 +661,6 @@ const smartIncrementViewCount = async (
 
         // If a new view was recorded, clear the catalogs list cache for this user
         if (inserted || !error) {
-            console.log(`[Analytics] Success: View recorded for ${catalogId}`);
             await deleteCache(cacheKeys.catalogs(ownerId));
         }
     } catch (err) {

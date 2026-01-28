@@ -146,7 +146,7 @@ export function ProductsToolbar({
             </div>
 
             {/* Menü (Mobil & Masaüstü için ortak drop) */}
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
                         <MoreHorizontal className="w-4 h-4" />

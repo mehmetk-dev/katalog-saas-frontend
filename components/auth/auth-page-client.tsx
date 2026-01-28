@@ -185,17 +185,10 @@ export function AuthPageClient() {
             const SITE_URL = getSiteUrl()
             const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
 
-            console.log("[AuthPageClient] Attempting to send reset email:", {
-                email,
-                redirectUrl,
-                siteUrl: SITE_URL
-            })
-
             const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: redirectUrl,
             })
 
-            console.log("[AuthPageClient] Response:", { data, error })
 
             if (error) {
                 console.error("[AuthPageClient] Supabase error:", error)
@@ -214,7 +207,6 @@ export function AuthPageClient() {
                 throw new Error(errorMessage)
             }
 
-            console.log("[AuthPageClient] Email sent successfully")
             setSuccess(true)
         } catch (err) {
             console.error("[AuthPageClient] Error:", err)
