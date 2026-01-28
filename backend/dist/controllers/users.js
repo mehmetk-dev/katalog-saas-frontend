@@ -140,15 +140,15 @@ exports.sendWelcomeNotification = sendWelcomeNotification;
 const updateMe = async (req, res) => {
     try {
         const userId = getUserId(req);
-        // Sadece full_name, company ve avatar_url alanlarının güncellenmesine izin ver
-        // Plan veya exports_used gibi kritik alanlar buradan güncellenemez
-        const { full_name, company, avatar_url } = req.body;
+        // Sadece full_name, company, avatar_url ve logo_url alanlarının güncellenmesine izin ver
+        const { full_name, company, avatar_url, logo_url } = req.body;
         const { error } = await supabase_1.supabase
             .from('users')
             .update({
             full_name,
             company,
             avatar_url,
+            logo_url,
             updated_at: new Date().toISOString()
         })
             .eq('id', userId);

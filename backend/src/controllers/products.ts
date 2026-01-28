@@ -319,15 +319,6 @@ export const deleteProduct = async (req: Request, res: Response) => {
         // Storage provider'ı belirle
         const storageProvider = process.env.STORAGE_PROVIDER || process.env.NEXT_PUBLIC_STORAGE_PROVIDER || 'supabase';
 
-            productId: product.id,
-            productName: product.name,
-            photoUrls,
-            photoCount: photoUrls.length,
-            storageProvider,
-            envStorageProvider: process.env.STORAGE_PROVIDER,
-            envNextPublicStorageProvider: process.env.NEXT_PUBLIC_STORAGE_PROVIDER
-        });
-
         // Fotoğrafları işle
         if (photoUrls.length > 0) {
             if (storageProvider === 'cloudinary') {
@@ -440,10 +431,6 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
                     // Cloudinary: deletedproducts klasörüne taşı
                     try {
                         const moveResult = await movePhotosToDeletedFolder(photoUrls);
-                            total: photoUrls.length,
-                            success: moveResult.success,
-                            failed: moveResult.failed
-                        });
 
                         if (moveResult.failed > 0) {
                             console.warn(`[bulkDeleteProducts] ${moveResult.failed} fotoğraf deletedproducts klasörüne taşınamadı, ürünler yine de silinecek.`);

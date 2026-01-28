@@ -159,7 +159,9 @@ exports.getTemplates = getTemplates;
 const createCatalog = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { name, description, layout } = req.body;
+        const { name: rawName, description, layout } = req.body;
+        // Varsayılan isim ataması: Eğer isim belirtilmemişse 'Yeni Katalog' veya 'Katalog-[zamandamgası]' kullan
+        const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
         // Limit kontrolü ve kullanıcı bilgileri
         const [userData, catalogsCountResult] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
@@ -181,8 +183,18 @@ const createCatalog = async (req, res) => {
         }
         // Generate unique dynamic share slug: [username]-[catalogname]-[random]
         const cleanUserName = userName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-        const cleanCatalogName = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-        const shareSlug = `${cleanUserName}-${cleanCatalogName}-${Date.now().toString(36)}`;
+        const cleanCatalogName = name.toLowerCase()
+            .replace(/[ıİ]/g, 'i')
+            .replace(/[ğĞ]/g, 'g')
+            .replace(/[üÜ]/g, 'u')
+            .replace(/[şŞ]/g, 's')
+            .replace(/[öÖ]/g, 'o')
+            .replace(/[çÇ]/g, 'c')
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        // Eğer kullanıcı adı "fogcatalog" ise slug'a ekleme (URL tekrarını önlemek için)
+        const slugPrefix = cleanUserName === 'fogcatalog' ? '' : `${cleanUserName}-`;
+        const shareSlug = `${slugPrefix}${cleanCatalogName || 'katalog'}-${Date.now().toString(36)}`;
         const { data, error } = await supabase_1.supabase
             .from('catalogs')
             .insert({
@@ -251,7 +263,7 @@ const updateCatalog = async (req, res) => {
         };
         if (name !== undefined && name !== null)
             updateData.name = name;
-        if (description !== undefined && description !== null)
+        if (description !== undefined)
             updateData.description = description;
         if (layout !== undefined && layout !== null)
             updateData.layout = layout;
@@ -277,15 +289,15 @@ const updateCatalog = async (req, res) => {
             updateData.columns_per_row = columns_per_row;
         if (background_color !== undefined && background_color !== null)
             updateData.background_color = background_color;
-        if (background_gradient !== undefined && background_gradient !== null)
+        if (background_gradient !== undefined)
             updateData.background_gradient = background_gradient;
         if (background_image !== undefined)
-            updateData.background_image = background_image; // null olabilir
+            updateData.background_image = background_image;
         if (background_image_fit !== undefined && background_image_fit !== null)
             updateData.background_image_fit = background_image_fit;
         if (logo_url !== undefined)
-            updateData.logo_url = logo_url; // null olabilir
-        if (logo_position !== undefined && logo_position !== null)
+            updateData.logo_url = logo_url;
+        if (logo_position !== undefined)
             updateData.logo_position = logo_position;
         if (logo_size !== undefined && logo_size !== null)
             updateData.logo_size = logo_size;
@@ -295,7 +307,6 @@ const updateCatalog = async (req, res) => {
             updateData.product_image_fit = product_image_fit;
         if (header_text_color !== undefined && header_text_color !== null)
             updateData.header_text_color = header_text_color;
-        console.log('Updating catalog with data:', JSON.stringify(updateData, null, 2));
         const { error, data } = await supabase_1.supabase
             .from('catalogs')
             .update(updateData)
@@ -319,7 +330,6 @@ const updateCatalog = async (req, res) => {
                 code: error.code
             });
         }
-        console.log('Catalog updated successfully:', data);
         // Cache'leri temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id));
@@ -456,6 +466,7 @@ const getPublicCatalog = async (req, res) => {
             return data;
         });
         const userId = data.user_id;
+        // Perform basic limit check via cache if possible
         const [allCatalogs, user] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.catalogs(userId), redis_1.cacheTTL.catalogs, async () => {
                 const { data: list } = await supabase_1.supabase.from('catalogs').select('id').eq('user_id', userId).order('updated_at', { ascending: false });
@@ -484,9 +495,34 @@ const getPublicCatalog = async (req, res) => {
                     .filter(Boolean);
             }
         }
+        // --- OWNERSHIP & VIEW TRACKING ---
         const visitorInfo = getVisitorInfo(req);
-        const isOwner = req.headers['x-user-id'] === data.user_id;
-        await smartIncrementViewCount(data.id, visitorInfo, isOwner);
+        const ownerId = data.user_id;
+        // Try to identify if the current visitor is the owner
+        let isOwner = false;
+        // 1. Check x-user-id header (passed by apiFetch in frontend)
+        const headerUserId = req.headers['x-user-id'];
+        if (headerUserId && headerUserId === ownerId) {
+            isOwner = true;
+        }
+        // 2. If no header, try to verify JWT (fallback for security)
+        if (!isOwner && req.headers.authorization) {
+            try {
+                const token = req.headers.authorization.replace('Bearer ', '');
+                const { data: { user: authUser } } = await supabase_1.supabase.auth.getUser(token);
+                if (authUser && authUser.id === ownerId) {
+                    isOwner = true;
+                }
+            }
+            catch (e) {
+                // Ignore auth error in public route
+            }
+        }
+        // DEBUG: Analytics tracking info
+        // Increment view count asynchronously to not block the request
+        smartIncrementViewCount(data.id, ownerId, visitorInfo, isOwner).catch(err => {
+            console.error('[PublicCatalog] View tracking failed:', err);
+        });
         res.json({ ...data, products });
     }
     catch (error) {
@@ -497,193 +533,139 @@ const getPublicCatalog = async (req, res) => {
 };
 exports.getPublicCatalog = getPublicCatalog;
 const getVisitorInfo = (req) => {
+    // Forwarded IP takes precedence
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
         req.headers['x-real-ip']?.toString() ||
         req.socket?.remoteAddress ||
-        'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+        '0.0.0.0';
+    // User Agent
+    const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 500);
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
+    // Creating a truly unique identifier per day for this visitor
     const visitorHash = crypto_1.default.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
+    // DEBUG LOG
     return { ip, userAgent, deviceType, visitorHash };
 };
-const smartIncrementViewCount = async (catalogId, visitorInfo, isOwner) => {
+const smartIncrementViewCount = async (catalogId, ownerId, visitorInfo, isOwner) => {
     try {
-        if (isOwner)
+        if (isOwner) {
             return;
-        const { error } = await supabase_1.supabase.rpc('smart_increment_view_count', {
+        }
+        const { data: inserted, error } = await supabase_1.supabase.rpc('smart_increment_view_count', {
             p_catalog_id: catalogId,
             p_visitor_hash: visitorInfo.visitorHash,
             p_ip_address: visitorInfo.ip,
-            p_user_agent: visitorInfo.userAgent.substring(0, 500),
+            p_user_agent: visitorInfo.userAgent,
             p_device_type: visitorInfo.deviceType,
             p_is_owner: isOwner
         });
-        if (error && error.message.includes('function')) {
+        if (error) {
+            console.error('[Analytics] RPC Error:', error.message);
+            // Fallback: Just increment the counter if complex tracking fails
             await supabase_1.supabase.rpc('increment_view_count', { catalog_id: catalogId });
+        }
+        // If a new view was recorded, clear the catalogs list cache for this user
+        if (inserted || !error) {
+            await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(ownerId));
         }
     }
-    catch {
-        try {
-            await supabase_1.supabase.rpc('increment_view_count', { catalog_id: catalogId });
-        }
-        catch {
-            // Silently fail
-        }
+    catch (err) {
+        console.error('[Analytics] Critical error:', err);
     }
 };
 const getDashboardStats = async (req, res) => {
     try {
         const userId = getUserId(req);
-        // TimeRange parametresini al (7d, 30d, 90d) - varsayılan 30d
         const timeRange = req.query.timeRange || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
-        const [catalogsResult, productsResult] = await Promise.all([
-            supabase_1.supabase
-                .from('catalogs')
-                .select('id, name, is_published, created_at')
-                .eq('user_id', userId),
-            supabase_1.supabase
-                .from('products')
-                .select('id', { count: 'exact' })
-                .eq('user_id', userId),
-        ]);
-        if (catalogsResult.error) {
-            console.error('Error fetching catalogs:', catalogsResult.error);
-            throw new Error('Failed to fetch catalogs');
+        // 1. Fetch Summary Stats from user_dashboard_stats view
+        const { data: summaryData, error: summaryError } = await supabase_1.supabase
+            .from('user_dashboard_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+        if (summaryError) {
+            console.error('[Stats] Error fetching summary view:', summaryError);
+            // Fallback will happen below if needed, but summary is preferred
         }
-        if (productsResult.error) {
-            console.error('Error fetching products:', productsResult.error);
-            throw new Error('Failed to fetch products');
-        }
-        const catalogs = catalogsResult.data || [];
-        const productCount = productsResult.count || 0;
-        // catalog_views tablosundan gerçek view sayılarını al
-        const catalogIds = catalogs.map(c => c.id);
-        let verifiedTotalViews = 0;
-        const viewCountMap = new Map();
-        if (catalogIds.length > 0) {
-            try {
-                // Her katalog için catalog_views tablosundan gerçek sayıyı al
-                const { data: viewCounts, error: viewCountError } = await supabase_1.supabase
-                    .from('catalog_views')
-                    .select('catalog_id')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false);
-                if (!viewCountError && viewCounts) {
-                    // Her katalog için view sayısını hesapla
-                    viewCounts.forEach(v => {
-                        const count = viewCountMap.get(v.catalog_id) || 0;
-                        viewCountMap.set(v.catalog_id, count + 1);
-                    });
-                    verifiedTotalViews = viewCounts.length;
-                }
-                else {
-                    console.warn('Could not fetch view counts from catalog_views table:', viewCountError);
-                }
-            }
-            catch (error) {
-                console.error('Error fetching view counts:', error);
-            }
-        }
-        // Top catalogs için gerçek view sayılarını kullan
-        const topCatalogs = catalogs
-            .map(c => ({
-            id: c.id,
-            name: c.name,
-            views: viewCountMap.get(c.id) || 0,
-        }))
-            .sort((a, b) => b.views - a.views)
-            .slice(0, 5);
         const stats = {
-            totalCatalogs: catalogs.length,
-            publishedCatalogs: catalogs.filter(c => c.is_published).length,
-            totalViews: verifiedTotalViews, // Doğrulanmış view sayısı
-            totalProducts: productCount,
-            topCatalogs,
+            totalCatalogs: summaryData?.total_catalogs || 0,
+            publishedCatalogs: summaryData?.published_catalogs || 0,
+            totalViews: summaryData?.total_views || 0,
+            totalProducts: summaryData?.total_products || 0,
+            topCatalogs: summaryData?.top_catalogs || [],
         };
         const detailedStats = {
             uniqueVisitors: 0,
             deviceStats: [],
             dailyViews: [],
         };
-        // Detaylı analitik verilerini çek
+        const { data: catalogs } = await supabase_1.supabase.from('catalogs').select('id').eq('user_id', userId);
+        const catalogIds = catalogs?.map(c => c.id) || [];
+        // 2. Fetch Detailed Analytics (Zaman aralığına duyarlı)
         if (catalogIds.length > 0) {
             try {
                 const dateThreshold = new Date();
                 dateThreshold.setDate(dateThreshold.getDate() - days);
                 const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
-                // Unique visitors (belirtilen zaman aralığında)
-                const { data: uniqueData, error: uniqueError } = await supabase_1.supabase
-                    .from('catalog_views')
-                    .select('visitor_hash')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false)
-                    .gte('view_date', dateThresholdStr);
-                if (!uniqueError && uniqueData) {
-                    const uniqueHashes = new Set(uniqueData.map(d => d.visitor_hash));
-                    detailedStats.uniqueVisitors = uniqueHashes.size;
+                // a. Unique Visitors
+                const { data: vCount, error: vError } = await supabase_1.supabase
+                    .rpc('get_unique_visitors_multi', {
+                    p_catalog_ids: catalogIds,
+                    p_days: days
+                });
+                if (!vError) {
+                    detailedStats.uniqueVisitors = Number(vCount);
                 }
-                else if (uniqueError) {
-                    console.error('Error fetching unique visitors:', uniqueError);
-                }
-                // Device stats (belirtilen zaman aralığında)
-                const { data: deviceData, error: deviceError } = await supabase_1.supabase
+                // b. Device Stats (Using query directly for multi-catalog)
+                const { data: deviceData } = await supabase_1.supabase
                     .from('catalog_views')
                     .select('device_type')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
                     .gte('view_date', dateThresholdStr);
-                if (!deviceError && deviceData && deviceData.length > 0) {
-                    const deviceCounts = {};
+                if (deviceData && deviceData.length > 0) {
+                    const counts = {};
                     deviceData.forEach(d => {
-                        const type = d.device_type || 'unknown';
-                        deviceCounts[type] = (deviceCounts[type] || 0) + 1;
+                        const t = d.device_type || 'unkn';
+                        counts[t] = (counts[t] || 0) + 1;
                     });
                     const total = deviceData.length;
-                    detailedStats.deviceStats = Object.entries(deviceCounts).map(([type, count]) => ({
+                    detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
                         device_type: type,
                         view_count: count,
                         percentage: Math.round((count / total) * 100)
                     })).sort((a, b) => b.view_count - a.view_count);
                 }
-                else if (deviceError) {
-                    console.error('Error fetching device stats:', deviceError);
-                }
-                // Daily views (belirtilen zaman aralığında)
-                const { data: dailyData, error: dailyError } = await supabase_1.supabase
+                // c. Daily Views
+                const { data: dailyData } = await supabase_1.supabase
                     .from('catalog_views')
                     .select('view_date')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
                     .gte('view_date', dateThresholdStr);
-                if (!dailyError && dailyData && dailyData.length > 0) {
-                    const dailyCounts = {};
+                if (dailyData) {
+                    const dCounts = {};
                     dailyData.forEach(d => {
-                        const date = d.view_date;
-                        dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+                        dCounts[d.view_date] = (dCounts[d.view_date] || 0) + 1;
                     });
-                    detailedStats.dailyViews = Object.entries(dailyCounts)
+                    detailedStats.dailyViews = Object.entries(dCounts)
                         .map(([date, count]) => ({ view_date: date, view_count: count }))
                         .sort((a, b) => a.view_date.localeCompare(b.view_date));
                 }
-                else if (dailyError) {
-                    console.error('Error fetching daily views:', dailyError);
-                }
             }
-            catch (error) {
-                // Detaylı analitik hatalarını logla ama işlemi durdurma
-                console.error('Error fetching detailed analytics:', error);
+            catch (err) {
+                console.error('[Stats] Detailed error:', err);
             }
         }
         res.json({ ...stats, ...detailedStats });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Error in getDashboardStats:', error);
-        res.status(500).json({ error: errorMessage });
+        console.error('[Stats] Critical Error:', error);
+        res.status(500).json({ error: 'İstatistikler alınamadı' });
     }
 };
 exports.getDashboardStats = getDashboardStats;

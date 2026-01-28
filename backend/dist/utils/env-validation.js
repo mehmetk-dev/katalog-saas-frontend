@@ -49,7 +49,6 @@ const requiredEnvVars = [
 function validateEnv() {
     const errors = [];
     const warnings = [];
-    console.log('\n🔍 Validating environment variables...\n');
     for (const envVar of requiredEnvVars) {
         const value = process.env[envVar.key];
         if (envVar.required && !value) {
@@ -63,7 +62,6 @@ function validateEnv() {
             warnings.push(`⚠️  Optional missing: ${envVar.key} - ${envVar.description}`);
         }
         else {
-            console.log(`✅ ${envVar.key}`);
         }
     }
     if (errors.length > 0) {
@@ -75,7 +73,6 @@ function validateEnv() {
         console.warn('\n⚠️  Warnings (optional vars):\n');
         warnings.forEach(warning => console.warn(warning));
     }
-    console.log('');
     return {
         valid: errors.length === 0,
         errors,

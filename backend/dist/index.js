@@ -17,6 +17,8 @@ const errorHandler_1 = require("./middlewares/errorHandler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
+// Cloudflare veya Docker arkasında olduğun için gerçek IP'yi görmesini sağlar.
+app.set('trust proxy', 1);
 // Varsayılan metrikleri (CPU, RAM vb.) toplamaya başla
 const collectDefaultMetrics = prom_client_1.default.collectDefaultMetrics;
 collectDefaultMetrics({ register: prom_client_1.default.register });
@@ -29,7 +31,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
 const isDev = process.env.NODE_ENV !== 'production';
 const apiLimiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDev ? 1000 : 100, // 1000 for dev, 100 for production
+    max: isDev ? 10000 : 1000, // Increased: 10000 for dev, 1000 for production
     message: { error: 'Too many requests, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
