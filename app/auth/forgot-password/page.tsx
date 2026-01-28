@@ -96,11 +96,6 @@ export default function ForgotPasswordPage() {
     try {
       const SITE_URL = getSiteUrl()
       const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
-      
-        email,
-        redirectUrl,
-        siteUrl: SITE_URL
-      })
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
