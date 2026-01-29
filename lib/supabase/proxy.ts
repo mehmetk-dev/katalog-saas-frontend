@@ -35,6 +35,43 @@ export async function updateSession(request: NextRequest) {
       error: _error,
     } = await supabase.auth.getUser()
 
+    // --- Session Expiry Logic ---
+    // User wants to be asked for login again if a certain time has passed.
+    // Default Supabase sessions can be very long. We implement a custom 12-hour limit.
+    const MAX_SESSION_AGE = 12 * 60 * 60 * 1000; // 12 Hours in ms
+    const sessionAgeCookie = request.cookies.get("auth_session_timer")?.value;
+    const now = Date.now();
+
+    if (user) {
+      if (sessionAgeCookie) {
+        const lastAuth = parseInt(sessionAgeCookie);
+        if (now - lastAuth > MAX_SESSION_AGE) {
+          // Session too old, force logout
+          await supabase.auth.signOut();
+          const url = request.nextUrl.clone();
+          url.pathname = "/auth";
+          const response = NextResponse.redirect(url);
+          response.cookies.delete("auth_session_timer");
+          return response;
+        }
+      }
+
+      // Update activity timer if on a dashboard route
+      if (request.nextUrl.pathname.startsWith("/dashboard")) {
+        supabaseResponse.cookies.set("auth_session_timer", now.toString(), {
+          maxAge: 60 * 60 * 24 * 7, // 1 week cookie life
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+      }
+    } else {
+      // No user, clear the timer
+      supabaseResponse.cookies.delete("auth_session_timer");
+    }
+    // ----------------------------
+
     // Redirect to login if accessing dashboard without auth
     if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
       const url = request.nextUrl.clone()

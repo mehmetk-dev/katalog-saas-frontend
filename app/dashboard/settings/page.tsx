@@ -98,20 +98,23 @@ export default function SettingsPage() {
       if (signal?.aborted) throw new Error('Upload cancelled')
 
       let timeoutId: NodeJS.Timeout | null = null
+      let retryToastId: string | number | null = null
 
       try {
         if (attempt > 0) {
           const waitTime = 1000 * Math.pow(2, attempt - 1)
-          toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+          retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
               if (signal?.aborted) {
                 clearInterval(checkInterval)
+                if (retryToastId) toast.dismiss(retryToastId)
                 reject(new Error('Upload cancelled'))
               }
             }, 100)
             setTimeout(() => {
               clearInterval(checkInterval)
+              if (retryToastId) toast.dismiss(retryToastId)
               resolve()
             }, waitTime)
           })
@@ -136,12 +139,20 @@ export default function SettingsPage() {
         const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | never
 
         if (timeoutId) clearTimeout(timeoutId)
+        if (retryToastId) {
+          toast.dismiss(retryToastId)
+          retryToastId = null
+        }
 
         if (result && 'url' in result && result.url) return result.url
         else throw new Error('Upload successful but URL is missing')
 
       } catch (error) {
         if (timeoutId) clearTimeout(timeoutId)
+        if (retryToastId) {
+          toast.dismiss(retryToastId)
+          retryToastId = null
+        }
         if (error instanceof Error && (error.message === 'Upload cancelled' || signal?.aborted)) throw error
         const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
         console.error(`[Settings] ❌ ${bucketPath} attempt ${attempt + 1} failed:`, errorMessage)
@@ -160,11 +171,11 @@ export default function SettingsPage() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      toast.error(t('toasts.invalidImageFile'))
+      toast.error(t('toasts.invalidImageFile') as string)
       return
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(t('toasts.imageSizeLimit', { size: 2 }))
+      toast.error(t('toasts.imageSizeLimit', { size: 2 }) as string)
       return
     }
 
@@ -182,11 +193,11 @@ export default function SettingsPage() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      toast.error(t('toasts.invalidImageFile'))
+      toast.error(t('toasts.invalidImageFile') as string)
       return
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(t('toasts.imageSizeLimit', { size: 2 }))
+      toast.error(t('toasts.imageSizeLimit', { size: 2 }) as string)
       return
     }
 
@@ -296,12 +307,12 @@ export default function SettingsPage() {
         setPreviewAvatarUrl(null)
         setPreviewLogoUrl(null)
 
-        toast.success(t('toasts.profileUpdated'))
+        toast.success(t('toasts.profileUpdated') as string)
       } catch (error: unknown) {
         console.error("[Settings] Save profile error:", error)
         let msg = t('toasts.profileUpdateFailed')
         if (error instanceof Error) msg += `: ${error.message}`
-        toast.error(msg)
+        toast.error(msg as string)
       } finally {
         setIsUploadingAvatar(false)
         setIsUploadingLogo(false)
@@ -328,7 +339,7 @@ export default function SettingsPage() {
       toast.success(t('toasts.accountDeleted'))
       window.location.href = "/auth"
     } catch {
-      toast.error(t('toasts.accountDeleteFailed'))
+      toast.error(t('toasts.accountDeleteFailed') as string)
       setIsDeleting(false)
     }
   }
@@ -349,32 +360,32 @@ export default function SettingsPage() {
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("settings.title")}</h1>
-        <p className="text-muted-foreground mt-2 text-lg">{t("settings.managePreferences")}</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("settings.title") as string}</h1>
+        <p className="text-muted-foreground mt-2 text-lg">{t("settings.managePreferences") as string}</p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="flex items-center w-full grid grid-cols-3 lg:w-[480px] bg-slate-100/80 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[480px] h-12 bg-slate-100/80 dark:bg-slate-950/50 p-1 rounded-full border border-slate-200/50 dark:border-slate-800/50 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
           <TabsTrigger
             value="profile"
-            className="h-9 rounded-xl gap-2 font-black text-[10px] uppercase tracking-wider transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-md data-[state=active]:text-indigo-600 text-slate-500"
+            className="h-full rounded-full gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-tight transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           >
             <User className="w-4 h-4" />
-            <span className="truncate">{t("settings.profile")}</span>
+            <span className="truncate">{t("settings.profile") as string}</span>
           </TabsTrigger>
           <TabsTrigger
             value="subscription"
-            className="h-9 rounded-xl gap-2 font-black text-[10px] uppercase tracking-wider transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-md data-[state=active]:text-indigo-600 text-slate-500"
+            className="h-full rounded-full gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-tight transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           >
             <CreditCard className="w-4 h-4" />
-            <span className="truncate">{t("settings.subscription")}</span>
+            <span className="truncate">{t("settings.subscription") as string}</span>
           </TabsTrigger>
           <TabsTrigger
             value="preferences"
-            className="h-9 rounded-xl gap-2 font-black text-[10px] uppercase tracking-wider transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-md data-[state=active]:text-indigo-600 text-slate-500"
+            className="h-full rounded-full gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-tight transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           >
             <Globe className="w-4 h-4" />
-            <span className="truncate">{t("settings.preferences")}</span>
+            <span className="truncate">{t("settings.preferences") as string}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -387,8 +398,8 @@ export default function SettingsPage() {
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl text-foreground">{t("settings.personalInfo")}</CardTitle>
-                  <CardDescription className="text-muted-foreground">{t("settings.personalInfoDesc")}</CardDescription>
+                  <CardTitle className="text-xl text-foreground">{t("settings.personalInfo") as string}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{t("settings.personalInfoDesc") as string}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -424,9 +435,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <h3 className="font-medium text-foreground">{t("settings.profilePhoto")}</h3>
+                    <h3 className="font-medium text-foreground">{t("settings.profilePhoto") as string}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {t("settings.photoDesc")}
+                      {t("settings.photoDesc") as string}
                     </p>
                   </div>
                 </div>
@@ -434,13 +445,13 @@ export default function SettingsPage() {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="fullName" className="flex items-center gap-2 text-foreground">
-                      <User className="w-3.5 h-3.5" /> {t("auth.name")}
+                      <User className="w-3.5 h-3.5" /> {t("auth.name") as string}
                     </Label>
                     <Input id="fullName" name="fullName" defaultValue={user?.name} className="bg-background border-input focus:bg-background transition-colors" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company" className="flex items-center gap-2 text-foreground">
-                      <Building2 className="w-3.5 h-3.5" /> {t("auth.company")}
+                      <Building2 className="w-3.5 h-3.5" /> {t("auth.company") as string}
                     </Label>
                     <Input id="company" name="company" defaultValue={user?.company} className="bg-background border-input focus:bg-background transition-colors" />
                   </div>
@@ -480,16 +491,16 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <h3 className="font-medium text-foreground">{t("settings.companyLogo")}</h3>
+                    <h3 className="font-medium text-foreground">{t("settings.companyLogo") as string}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {t("settings.logoDesc")}
+                      {t("settings.logoDesc") as string}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
-                    <Mail className="w-3.5 h-3.5" /> {t("auth.email")}
+                    <Mail className="w-3.5 h-3.5" /> {t("auth.email") as string}
                   </Label>
                   <Input id="email" type="email" defaultValue={user?.email} disabled className="bg-muted text-muted-foreground" />
                 </div>
@@ -499,10 +510,10 @@ export default function SettingsPage() {
                     {isSaving ? (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        {t("settings.saving")}
+                        {t("settings.saving") as string}
                       </div>
                     ) : (
-                      t("common.save")
+                      t("common.save") as string
                     )}
                   </Button>
                 </div>
@@ -514,32 +525,32 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 text-destructive">
                 <Trash2 className="w-5 h-5" />
-                <CardTitle className="text-lg text-foreground">{t("settings.dangerZone")}</CardTitle>
+                <CardTitle className="text-lg text-foreground">{t("settings.dangerZone") as string}</CardTitle>
               </div>
-              <CardDescription className="text-muted-foreground">{t("settings.deleteWarning")}</CardDescription>
+              <CardDescription className="text-muted-foreground">{t("settings.deleteWarning") as string}</CardDescription>
             </CardHeader>
             <CardContent className="pb-4 md:pb-6">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="bg-destructive/90 hover:bg-destructive">
-                    {t("settings.deleteAccount")}
+                    {t("settings.deleteAccount") as string}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-destructive">{t("settings.deleteConfirmTitle")}</AlertDialogTitle>
+                    <AlertDialogTitle className="text-destructive">{t("settings.deleteConfirmTitle") as string}</AlertDialogTitle>
                     <AlertDialogDescription className="text-muted-foreground">
-                      {t("settings.deleteConfirmDesc")}
+                      {t("settings.deleteConfirmDesc") as string}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogCancel>{t("common.cancel") as string}</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleDeleteAccount}
                       disabled={isDeleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {isDeleting ? t("settings.deleting") : t("settings.yesDelete")}
+                      {isDeleting ? t("settings.deleting") as string : t("settings.yesDelete") as string}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -556,19 +567,19 @@ export default function SettingsPage() {
             </div>
             <CardHeader className="bg-gradient-to-r from-muted/50 via-muted/30 to-background dark:from-muted/20 dark:to-transparent border-b">
               <CardTitle className="flex items-center gap-2 text-xl text-foreground">
-                {t("settings.currentPlanTitle")}
+                {t("settings.currentPlanTitle") as string}
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${user?.plan === "pro" ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white" :
                   user?.plan === "plus" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white" :
                     "bg-secondary text-secondary-foreground"}`}>
-                  {user?.plan === "pro" ? t("plans.pro") : user?.plan === "plus" ? t("plans.plus") : t("plans.free")}
+                  {user?.plan === "pro" ? t("plans.pro") as string : user?.plan === "plus" ? t("plans.plus") as string : t("plans.free") as string}
                 </span>
               </CardTitle>
               <CardDescription className="text-muted-foreground">
                 {user?.plan === "pro"
-                  ? t("settings.planDescPro")
+                  ? t("settings.planDescPro") as string
                   : user?.plan === "plus"
-                    ? t("settings.planDescPlus")
-                    : t("settings.planDescFree")}
+                    ? t("settings.planDescPlus") as string
+                    : t("settings.planDescFree") as string}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-8 pb-8">
@@ -576,7 +587,7 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg flex items-center gap-2 text-foreground">
                     <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    {t("settings.planFeatures")}
+                    {t("settings.planFeatures") as string}
                   </h3>
                   <ul className="space-y-3 pl-2">
                     <li className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -605,22 +616,22 @@ export default function SettingsPage() {
                 {(user?.plan === "free" || user?.plan === "plus") && (
                   <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl border border-indigo-100 dark:border-indigo-500/20 text-center space-y-4">
                     <h3 className="font-bold text-indigo-900 dark:text-indigo-300 text-lg">
-                      {user?.plan === "plus" ? t("plans.upgradeToPro") : t("plans.upgrade")}
+                      {user?.plan === "plus" ? t("plans.upgradeToPro") as string : t("plans.upgrade") as string}
                     </h3>
                     <p className="text-sm text-indigo-700/80 dark:text-indigo-200/60">
-                      {user?.plan === "plus" ? t("plans.upgradeDescPro") : t("plans.upgradeDescPlus")}
+                      {user?.plan === "plus" ? t("plans.upgradeDescPro") as string : t("plans.upgradeDescPlus") as string}
                     </p>
                     <Button size="lg" onClick={() => setShowUpgrade(true)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/20 text-white font-semibold">
-                      {user?.plan === "plus" ? t("plans.upgradeToProBtn") : t("plans.viewPlans")}
+                      {user?.plan === "plus" ? t("plans.upgradeToProBtn") as string : t("plans.viewPlans") as string}
                     </Button>
                   </div>
                 )}
                 {user?.plan === "pro" && (
                   <div className="flex flex-col items-center justify-center p-6 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-100 dark:border-green-500/20 text-center space-y-4">
-                    <h3 className="font-bold text-green-900 dark:text-green-300 text-lg">{t("settings.greatChoice")}</h3>
-                    <p className="text-sm text-green-700/80 dark:text-green-200/60">{t("settings.planDescPro")}</p>
+                    <h3 className="font-bold text-green-900 dark:text-green-300 text-lg">{t("settings.greatChoice") as string}</h3>
+                    <p className="text-sm text-green-700/80 dark:text-green-200/60">{t("settings.planDescPro") as string}</p>
                     <Button variant="outline" className="w-full border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40">
-                      {t("settings.billingHistory")}
+                      {t("settings.billingHistory") as string}
                     </Button>
                   </div>
                 )}
@@ -638,8 +649,8 @@ export default function SettingsPage() {
                   <Globe className="w-5 h-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl text-foreground">{t("settings.language")}</CardTitle>
-                  <CardDescription className="text-muted-foreground">{t("settings.selectLanguage")}</CardDescription>
+                  <CardTitle className="text-xl text-foreground">{t("settings.language") as string}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{t("settings.selectLanguage") as string}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -656,7 +667,7 @@ export default function SettingsPage() {
                   <span className="text-2xl">🇹🇷</span>
                   <div className="flex flex-col items-start">
                     <span className={`font-semibold ${language === 'tr' ? 'text-primary-foreground' : 'text-foreground'}`}>Türkçe</span>
-                    <span className={`text-xs opacity-70 ${language === 'tr' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{t("settings.defaultLanguage")}</span>
+                    <span className={`text-xs opacity-70 ${language === 'tr' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{t("settings.defaultLanguage") as string}</span>
                   </div>
                   {language === 'tr' && <CheckCircle2 className="w-5 h-5 ml-auto text-primary-foreground" />}
                 </Button>
@@ -672,7 +683,7 @@ export default function SettingsPage() {
                   <span className="text-2xl">🇺🇸</span>
                   <div className="flex flex-col items-start">
                     <span className={`font-semibold ${language === 'en' ? 'text-primary-foreground' : 'text-foreground'}`}>English</span>
-                    <span className={`text-xs opacity-70 ${language === 'en' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{t("settings.international")}</span>
+                    <span className={`text-xs opacity-70 ${language === 'en' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{t("settings.international") as string}</span>
                   </div>
                   {language === 'en' && <CheckCircle2 className="w-5 h-5 ml-auto text-primary-foreground" />}
                 </Button>

@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
 import NextImage from "next/image"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -149,7 +149,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     const allowedCount = maxFiles - totalCount
 
     if (allowedCount <= 0) {
-      toast.error(t("toasts.maxPhotosReached"))
+      toast.error(t("toasts.maxPhotosReached") as string)
       return
     }
 
@@ -212,23 +212,27 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
       let timeoutId: NodeJS.Timeout | null = null
 
+      let retryToastId: string | number | null = null
+
       try {
         // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
         if (attempt > 0) {
           const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-          toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+          retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
 
           // Bekleme sırasında da iptal kontrolü
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
               if (signal?.aborted) {
                 clearInterval(checkInterval)
+                if (retryToastId) toast.dismiss(retryToastId)
                 reject(new Error('Upload cancelled'))
               }
             }, 100)
 
             setTimeout(() => {
               clearInterval(checkInterval)
+              if (retryToastId) toast.dismiss(retryToastId)
               resolve()
             }, waitTime)
           })
@@ -263,6 +267,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         const result = (await Promise.race([uploadPromise, timeoutPromise, abortPromise])) as { url: string } | null
 
         if (timeoutId) clearTimeout(timeoutId)
+        if (retryToastId) toast.dismiss(retryToastId)
 
         if (result && result.url) {
           return result.url
@@ -276,6 +281,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           clearTimeout(timeoutId)
           uploadTimeoutIds.current.delete(uploadId)
           timeoutId = null
+        }
+        // Retry toast'unu kapat
+        if (retryToastId) {
+          toast.dismiss(retryToastId)
+          retryToastId = null
         }
 
         // İptal hatası ise direkt fırlat
@@ -561,7 +571,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     e.preventDefault()
 
     if (!name.trim()) {
-      toast.error(t('toasts.productNameRequired'))
+      toast.error(t('toasts.productNameRequired') as string)
       setActiveTab("basic")
       return
     }
@@ -632,11 +642,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           product_url: productUrl || null,
           custom_attributes: attributesToSave,
         })
-        toast.success(t('toasts.productUpdated'))
+        toast.success(t('toasts.productUpdated') as string)
       } else {
         const newProduct = await createProduct(formData)
         onSaved(newProduct)
-        toast.success(t('toasts.productCreated'))
+        toast.success(t('toasts.productCreated') as string)
       }
 
       // Kayıt başarılı - pending images zaten temizlendi
@@ -646,7 +656,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     } catch (error) {
       console.error("Save error:", error)
-      toast.error(isEditing ? t('toasts.productUpdateFailed') : t('toasts.productCreateFailed'))
+      toast.error(isEditing ? t('toasts.productUpdateFailed') as string : t('toasts.productCreateFailed') as string)
     } finally {
       setIsSaving(false)
     }
@@ -664,14 +674,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     const random = source[Math.floor(Math.random() * source.length)]
     const enhanced = name ? `${name} - ${random}` : random
     setDescription(enhanced)
-    toast.success(t('toasts.magicDescription'))
+    toast.success(t('toasts.magicDescription') as string)
   }
 
   const generateSKU = () => {
     const prefix = category.length > 0 ? category[0].substring(0, 3).toUpperCase() : "URN"
     const random = Math.random().toString(36).substring(2, 8).toUpperCase()
     setSku(`${prefix}-${random}`)
-    toast.success(t('toasts.skuGenerated'))
+    toast.success(t('toasts.skuGenerated') as string)
   }
 
   const addCustomAttribute = (presetName?: string) => {
@@ -697,8 +707,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
             <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600">
               <Package2 className="w-5 h-5 text-white" />
             </div>
-            {isEditing ? t('products.editProduct') : t('products.addNew')}
+            {isEditing ? t('products.editProduct') as string : t('products.addNew') as string}
           </DialogTitle>
+          <DialogDescription>
+            {isEditing ? t('products.editProductDesc') as string || 'Ürün bilgilerini güncelleyin.' : t('products.addProductDesc') as string || 'Yeni bir ürün ekleyin.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
@@ -710,8 +723,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <Tag className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('products.basicInfo')}</span>
-                  <span className="sm:hidden">{t('products.basicInfo')}</span>
+                  <span className="hidden sm:inline">{t('products.basicInfo') as string}</span>
+                  <span className="sm:hidden">{t('products.basicInfo') as string}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="images"
@@ -719,16 +732,16 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <ImagePlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('products.images')}</span>
-                  <span className="sm:hidden">{t('products.images')}</span>
+                  <span className="hidden sm:inline">{t('products.images') as string}</span>
+                  <span className="sm:hidden">{t('products.images') as string}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="attributes"
                   className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
                 >
                   <Layers className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('products.attributes')}</span>
-                  <span className="sm:hidden">{t('products.attributes')}</span>
+                  <span className="hidden sm:inline">{t('products.attributes') as string}</span>
+                  <span className="sm:hidden">{t('products.attributes') as string}</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -741,14 +754,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     <div className="space-y-2 sm:col-span-2">
                       <Label htmlFor="name" className="flex items-center gap-2">
                         <Tag className="w-4 h-4 text-muted-foreground" />
-                        {t('products.name')} *
+                        {t('products.name') as string} *
                       </Label>
                       <Input
                         id="name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        placeholder={t('products.productNamePlaceholder')}
+                        placeholder={t('products.productNamePlaceholder') as string}
                         className="h-11"
                       />
                     </div>
@@ -756,14 +769,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     <div className="space-y-2">
                       <Label htmlFor="sku" className="flex items-center gap-2">
                         <Barcode className="w-4 h-4 text-muted-foreground" />
-                        {t('products.sku')}
+                        {t('products.sku') as string}
                       </Label>
                       <div className="flex gap-2">
                         <Input
                           id="sku"
                           value={sku}
                           onChange={(e) => setSku(e.target.value)}
-                          placeholder={t('products.skuPlaceholder')}
+                          placeholder={t('products.skuPlaceholder') as string}
                           className="h-11"
                         />
                         <Button
@@ -792,10 +805,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     >
                       <div className="flex items-center gap-2">
                         <FolderPlus className="w-4 h-4 text-violet-600" />
-                        <span className="font-medium text-sm">{t('categories.title')}</span>
+                        <span className="font-medium text-sm">{t('categories.title') as string}</span>
                         {category.length > 0 && (
                           <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
-                            {t('products.selected', { count: category.length })}
+                            {t('products.selected', { count: category.length }) as string}
                           </Badge>
                         )}
                       </div>
@@ -871,7 +884,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                                 setCategoryInput("")
                               }
                             }}
-                            placeholder={t('products.newCategory')}
+                            placeholder={t('products.newCategory') as string}
                             className="h-8 text-sm"
                           />
                           <Button
@@ -917,7 +930,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
-                      {t('products.productUrl')}
+                      {t('products.productUrl') as string}
                       <span className="text-xs text-muted-foreground font-normal">(opsiyonel)</span>
                     </Label>
                     <Input
@@ -929,13 +942,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                       className="h-10"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {t('products.productUrlDesc')}
+                      {t('products.productUrlDesc') as string}
                     </p>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="description">{t('products.description')}</Label>
+                      <Label htmlFor="description">{t('products.description') as string}</Label>
                       <Button
                         type="button"
                         variant="ghost"
@@ -944,14 +957,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         onClick={generateMagicDescription}
                       >
                         <Wand2 className="w-3.5 h-3.5" />
-                        {t('products.generateAi')}
+                        {t('products.generateAi') as string}
                       </Button>
                     </div>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder={t('products.descriptionPlaceholder')}
+                      placeholder={t('products.descriptionPlaceholder') as string}
                       rows={4}
                       className="resize-none"
                     />
@@ -962,7 +975,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     {/* Fiyat */}
                     <div className="space-y-2">
                       <Label htmlFor="price" className="text-sm font-medium">
-                        {t('products.price')}
+                        {t('products.price') as string}
                       </Label>
                       <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
                         <Select value={currency} onValueChange={setCurrency}>
@@ -994,7 +1007,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     {/* Stok */}
                     <div className="space-y-2">
                       <Label htmlFor="stock" className="text-sm font-medium">
-                        {t('products.stockCount')}
+                        {t('products.stockCount') as string}
                       </Label>
                       <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
                         <Input
@@ -1008,11 +1021,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         />
                         <div className="shrink-0">
                           {Number(stock) === 0 ? (
-                            <Badge variant="destructive" className="text-sm px-3 py-1">{t('products.outOfStock')}</Badge>
+                            <Badge variant="destructive" className="text-sm px-3 py-1">{t('products.outOfStock') as string}</Badge>
                           ) : Number(stock) < 10 ? (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-3 py-1">{t('products.lowStock')}</Badge>
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-sm px-3 py-1">{t('products.lowStock') as string}</Badge>
                           ) : (
-                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm px-3 py-1">{t('products.inStock')}</Badge>
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm px-3 py-1">{t('products.inStock') as string}</Badge>
                           )}
                         </div>
                       </div>
@@ -1049,7 +1062,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                           </div>
                           {activeImageUrl === url && (
                             <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
-                              <Sparkles className="w-3 h-3 mr-1" /> {t('products.cover')}
+                              <Sparkles className="w-3 h-3 mr-1" /> {t('products.cover') as string}
                             </div>
                           )}
                         </div>
@@ -1064,8 +1077,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                         <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm mb-2 group-hover:scale-110 transition-transform">
                           <Upload className="w-6 h-6 text-violet-500" />
                         </div>
-                        <span className="text-xs text-slate-600 font-medium">{t('products.addPhoto')}</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">{t('products.remainingUploads', { count: 5 - additionalImages.length })}</span>
+                        <span className="text-xs text-slate-600 font-medium">{t('products.addPhoto') as string}</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">{t('products.remainingUploads', { count: 5 - additionalImages.length }) as string}</span>
                         <input
                           type="file"
                           data-testid="file-upload"
@@ -1096,9 +1109,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label className="text-base font-medium">{t('products.customAttributes')}</Label>
+                        <Label className="text-base font-medium">{t('products.customAttributes') as string}</Label>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {t('products.customAttributesDesc')}
+                          {t('products.customAttributesDesc') as string}
                         </p>
                       </div>
                       <Button
@@ -1116,7 +1129,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     {/* Hızlı Ekleme */}
                     <div className="flex flex-wrap gap-2">
                       {quickAttributeKeys.map((attr) => {
-                        const label = t(`products.attributeNames.${attr.key}` as "products.attributeNames.color" | "products.attributeNames.material" | "products.attributeNames.weight" | "products.attributeNames.size" | "products.attributeNames.origin" | "products.attributeNames.warranty")
+                        const label = t(`products.attributeNames.${attr.key}` as "products.attributeNames.color" | "products.attributeNames.material" | "products.attributeNames.weight" | "products.attributeNames.size" | "products.attributeNames.origin" | "products.attributeNames.warranty") as string
                         return (
                           <Button
                             key={attr.key}
@@ -1229,7 +1242,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                   onOpenChange(false)
                 }}
               >
-                {t('common.cancel')}
+                {t('common.cancel') as string}
               </Button>
               <Button
                 type="submit"

@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, X, Filter, LayoutGrid, List, MoreHorizontal, FileDown, Image as ImageIcon, Sparkles, Percent, Trash2, Plus } from "lucide-react"
+import { Search, X, Filter, LayoutGrid, List, MoreHorizontal, FileDown, Image as ImageIcon, Sparkles, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useTranslation } from "@/lib/i18n-provider"
+import { cn } from "@/lib/utils"
 
 interface ProductsToolbarProps {
     selectedCount: number
@@ -46,155 +47,157 @@ export function ProductsToolbar({
     pageSizeOptions,
     onOpenImportExport,
     onOpenBulkImageUpload,
-    onOpenBulkPriceUpdate,
-    onBulkDelete,
     onAddTestProducts,
     onAddProduct
 }: ProductsToolbarProps) {
     const { t } = useTranslation()
 
     return (
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-2 shadow-sm">
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-1.5 shadow-sm border border-gray-200 dark:border-gray-800">
             {/* Tümünü Seç Checkbox */}
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="flex items-center justify-center h-7 w-7 sm:h-9 sm:w-9 shrink-0">
+            <div className="flex items-center justify-center h-8 w-8 shrink-0">
+                <Tooltip>
+                    <TooltipTrigger asChild>
                         <Checkbox
                             checked={selectedCount > 0 && selectedCount === totalFilteredCount}
                             onCheckedChange={onSelectAll}
-                            className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+                            className="h-4 w-4 border-gray-300 dark:border-gray-700 data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
                         />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                    {selectedCount > 0 ? `${t("products.selected", { count: selectedCount })} - ${t("products.clear")}` : t("products.selectAll")}
-                </TooltipContent>
-            </Tooltip>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                        {selectedCount > 0 ? (t("products.selected", { count: selectedCount }) as string) : (t("products.selectAll") as string)}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
 
-            {/* Arama */}
-            <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            {/* Arama - Compact */}
+            <div className="relative flex-1 max-w-[200px] group transition-all focus-within:max-w-[280px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground transition-colors group-focus-within:text-violet-500" />
                 <Input
-                    placeholder={t("products.searchPlaceholder")}
+                    placeholder={t("products.searchPlaceholder") as string}
                     value={search}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-9 pr-9 h-9 border-0 bg-gray-50 dark:bg-gray-800"
+                    className="pl-8 pr-8 h-8 text-[11px] border-0 bg-gray-50 dark:bg-gray-800 focus-visible:ring-1 focus-visible:ring-violet-500/20 rounded-lg placeholder:text-muted-foreground/60"
                 />
                 {search && (
                     <button
                         onClick={() => onSearchChange("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                     </button>
                 )}
             </div>
 
-            {/* Filtre Butonu */}
-            <Button
-                variant={hasActiveFilters ? "secondary" : "ghost"}
-                size="sm"
-                className="gap-1.5 shrink-0 h-9"
-                onClick={onOpenFilters}
-            >
-                <Filter className="w-4 h-4" />
-                <span className="hidden md:inline">{t("products.filterBy")}</span>
-                {hasActiveFilters && (
-                    <Badge variant="destructive" className="ml-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                        !
-                    </Badge>
-                )}
-            </Button>
+            {/* Ayırıcı */}
+            <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 hidden sm:block mx-1" />
 
-            {/* Görünüm Seçici */}
-            <div className="hidden sm:flex items-center border rounded-lg p-0.5 shrink-0">
-                <Button
-                    variant={viewMode === "grid" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onViewModeChange("grid")}
-                >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                </Button>
-                <Button
-                    variant={viewMode === "list" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => onViewModeChange("list")}
-                >
-                    <List className="w-3.5 h-3.5" />
-                </Button>
-            </div>
-
-            {/* Sayfa Boyutu */}
-            <div className="hidden lg:flex items-center gap-1 shrink-0">
-                <Select
-                    value={itemsPerPage.toString()}
-                    onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
-                >
-                    <SelectTrigger className="h-9 w-[70px] px-2 text-xs justify-between bg-white dark:bg-gray-900 border-0 shadow-sm ring-1 ring-inset ring-gray-200 dark:ring-gray-800">
-                        <span className="truncate">{itemsPerPage}</span>
-                    </SelectTrigger>
-                    <SelectContent>
-                        {pageSizeOptions.map((size) => (
-                            <SelectItem key={size} value={size.toString()}>
-                                {size} {t("products.perPage")}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Menü (Mobil & Masaüstü için ortak drop) */}
-            <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-                        <MoreHorizontal className="w-4 h-4" />
+            {/* Desktop Kontroller */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                {/* Görünüm Seçici */}
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-0.5 h-8">
+                    <Button
+                        variant={viewMode === "grid" ? "secondary" : "ghost"}
+                        size="icon"
+                        className={cn("h-7 w-7 transition-all", viewMode === "grid" && "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm")}
+                        onClick={() => onViewModeChange("grid")}
+                    >
+                        <LayoutGrid className="w-3.5 h-3.5" />
                     </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem className="gap-2" onClick={onOpenImportExport}>
-                        <FileDown className="w-4 h-4 text-violet-600" />
-                        {t("importExport.title")}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="gap-2" onClick={onOpenBulkImageUpload}>
-                        <ImageIcon className="w-4 h-4" />
-                        {t("products.bulkImageUpload")}
-                    </DropdownMenuItem>
-                    {selectedCount > 0 && (
-                        <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                {t("products.productsSelected", { count: selectedCount })}
-                            </DropdownMenuLabel>
-                            <DropdownMenuItem className="gap-2" onClick={onOpenBulkPriceUpdate}>
-                                <Percent className="w-4 h-4 text-blue-600" />
-                                {t("products.bulkPriceUpdate")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 text-destructive" onClick={onBulkDelete}>
-                                <Trash2 className="w-4 h-4" />
-                                {t("products.deleteSelected")}
-                            </DropdownMenuItem>
-                        </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="gap-2" onClick={onAddTestProducts}>
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        {t("products.addTestProducts")}
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                    <Button
+                        variant={viewMode === "list" ? "secondary" : "ghost"}
+                        size="icon"
+                        className={cn("h-7 w-7 transition-all", viewMode === "list" && "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm")}
+                        onClick={() => onViewModeChange("list")}
+                    >
+                        <List className="w-3.5 h-3.5" />
+                    </Button>
+                </div>
 
-            {/* + Ürün Ekle Butonu */}
-            <Button
-                onClick={onAddProduct}
-                size="sm"
-                className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white border-0 shadow-lg shadow-indigo-500/20 shrink-0"
-            >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{t("products.addProduct")}</span>
-            </Button>
+                {/* Sayfa Boyutu */}
+                <div className="shrink-0">
+                    <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
+                    >
+                        <SelectTrigger className="h-8 w-[64px] px-1.5 text-[10px] font-bold bg-gray-50 dark:bg-gray-800 border-0 shadow-none focus:ring-violet-500/20">
+                            <span>{itemsPerPage}</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                            {pageSizeOptions.map((size) => (
+                                <SelectItem key={size} value={size.toString()} className="text-[10px]">
+                                    {size}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {/* Filtre Butonu */}
+                <Button
+                    variant={hasActiveFilters ? "secondary" : "ghost"}
+                    size="sm"
+                    className={cn(
+                        "gap-1 h-8 px-2 transition-all shrink-0",
+                        hasActiveFilters ? "bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" : "text-muted-foreground"
+                    )}
+                    onClick={onOpenFilters}
+                >
+                    <Filter className="w-3.5 h-3.5" />
+                    <span className="hidden xl:inline text-[11px] font-semibold">{t("products.filterBy") as string}</span>
+                    {hasActiveFilters && (
+                        <Badge variant="default" className="h-4 min-w-[16px] px-0.5 bg-violet-600 text-[8px] flex items-center justify-center">
+                            !
+                        </Badge>
+                    )}
+                </Button>
+
+                {/* Boşluk */}
+                <div className="flex-1" />
+
+                {/* İşlemler Dropdown */}
+                <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[11px] font-bold text-muted-foreground/80 border-gray-200 dark:border-gray-800 transition-all hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                            <span className="hidden md:inline">{t("common.actions") as string || "İşlemler"}</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 p-1.5">
+                        <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                            {t("common.actions") as string || "Dosya İşlemleri"}
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onOpenImportExport}>
+                            <FileDown className="w-4 h-4 text-violet-600" />
+                            <span className="font-medium text-sm">{t("importExport.title") as string}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onOpenBulkImageUpload}>
+                            <ImageIcon className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium text-sm">{t("products.bulkImageUpload") as string}</span>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="my-1.5" />
+
+                        <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                            {t("products.tools") as string || "Araçlar"}
+                        </DropdownMenuLabel>
+                        <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onAddTestProducts}>
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                            <span className="font-medium text-sm">{t("products.addTestProducts") as string}</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* + Ürün Ekle - Primary */}
+                <Button
+                    onClick={onAddProduct}
+                    size="sm"
+                    className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-md shrink-0 h-8 px-3 transition-all font-bold text-[11px]"
+                >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{t("products.addProduct") as string}</span>
+                </Button>
+            </div>
         </div>
     )
 }

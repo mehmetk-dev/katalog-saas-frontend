@@ -214,7 +214,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-gray-100/50">
+    <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-white catalog-light">
       {/* Sayfa Kontrolü */}
       <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 bg-white/90 backdrop-blur-md border-b shrink-0 gap-3">
         <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">

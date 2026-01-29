@@ -308,6 +308,8 @@ export const translations = {
             noProductsDesc: "Katalog oluşturmak için önce ürün eklemelisiniz.",
             addProduct: "Ürün Ekle",
             editProduct: "Ürün Düzenle",
+            editProductDesc: "Ürün bilgilerini ve görsellerini güncelleyin.",
+            addProductDesc: "Yeni bir ürün ekleyerek envanterinizi büyütün.",
             deleteProduct: "Ürünü Sil",
             deleteConfirm: "Bu ürünü silmek istediğinize emin misiniz?",
             deleteConfirmTitle: "Ürünü silmek istediğinize emin misiniz?",
@@ -400,6 +402,7 @@ export const translations = {
                 warranty: "Garanti",
             },
             uncategorized: "Kategorisiz",
+            tools: "Araçlar",
         },
 
         categories: {
@@ -1560,6 +1563,8 @@ export const translations = {
             noProductsDesc: "Add products to start creating catalogs.",
             addProduct: "Add Product",
             editProduct: "Edit Product",
+            editProductDesc: "Update product information and images.",
+            addProductDesc: "Grow your inventory by adding a new product.",
             deleteProduct: "Delete Product",
             deleteConfirm: "Are you sure you want to delete this product?",
             deleteConfirmTitle: "Are you sure you want to delete this product?",
@@ -1652,6 +1657,7 @@ export const translations = {
                 warranty: "Warranty",
             },
             uncategorized: "Uncategorized",
+            tools: "Tools",
         },
         categories: {
             title: "Categories",

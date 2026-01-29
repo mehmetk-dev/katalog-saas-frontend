@@ -96,6 +96,112 @@
   --sidebar-ring: hsl(262 83% 65%);
 }
 
+.catalog-light {
+  --background: #ffffff !important;
+  --foreground: #020617 !important;
+  --card: #ffffff !important;
+  --card-foreground: #020617 !important;
+  --popover: #ffffff !important;
+  --popover-foreground: #020617 !important;
+  --primary: #4f46e5 !important;
+  --primary-foreground: #ffffff !important;
+  --secondary: #f8fafc !important;
+  --secondary-foreground: #0f172a !important;
+  --muted: #f8fafc !important;
+  --muted-foreground: #64748b !important;
+  --accent: #f1f5f9 !important;
+  --accent-foreground: #0f172a !important;
+  --border: #e2e8f0 !important;
+  --input: #e2e8f0 !important;
+  --ring: #4f46e5 !important;
+
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* KESİN ÇÖZÜM: .catalog-light içindeki her şeyi zorla ışık modunda tut */
+.catalog-light,
+.catalog-light * {
+  border-color: var(--border);
+}
+
+/* Sadece katalog içindeki metinleri hedefle, tüm uygulamayı (sidebar vs) bozma */
+.catalog-light h1,
+.catalog-light h2,
+.catalog-light h3,
+.catalog-light h4,
+.catalog-light h5,
+.catalog-light h6,
+.catalog-light p,
+.catalog-light span,
+.catalog-light div,
+.catalog-light section,
+.catalog-light article {
+  color: inherit;
+}
+
+/* Tailwind renk sınıflarının dark modda sapmasını engelle */
+.catalog-light .text-slate-950,
+.catalog-light .text-gray-950,
+.catalog-light .text-black {
+  color: #020617 !important;
+}
+
+.catalog-light .text-slate-900,
+.catalog-light .text-gray-900 {
+  color: #0f172a !important;
+}
+
+.catalog-light .text-slate-800,
+.catalog-light .text-gray-800 {
+  color: #1e293b !important;
+}
+
+.catalog-light .text-slate-700,
+.catalog-light .text-gray-700 {
+  color: #334155 !important;
+}
+
+.catalog-light .text-slate-600,
+.catalog-light .text-gray-600 {
+  color: #475569 !important;
+}
+
+.catalog-light .text-slate-500,
+.catalog-light .text-gray-500 {
+  color: #64748b !important;
+}
+
+.catalog-light .text-slate-400,
+.catalog-light .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+/* Arka planlar */
+.catalog-light .bg-white {
+  background-color: #ffffff !important;
+}
+
+.catalog-light .bg-slate-50,
+.catalog-light .bg-gray-50 {
+  background-color: #f8fafc !important;
+}
+
+.catalog-light .bg-slate-100,
+.catalog-light .bg-gray-100 {
+  background-color: #f1f5f9 !important;
+}
+
+.catalog-light .bg-slate-200,
+.catalog-light .bg-gray-200 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Force white text where explicitly requested in catalog-light (like on primary color surfaces) */
+.catalog-light .text-white {
+  color: #ffffff !important;
+}
+
 @theme inline {
   --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
   --font-montserrat: "Montserrat", "Montserrat Fallback", sans-serif;

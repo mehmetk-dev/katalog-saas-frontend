@@ -206,7 +206,7 @@ export function CatalogPreview({
             )}
             style={isMultiPage ? { ...getBackgroundStyle(), height: 'auto', minHeight: '1123px' } : getBackgroundStyle()}
         >
-            <div className={cn("pointer-events-none select-none", isMultiPage ? "" : "h-full")}>
+            <div className={cn("pointer-events-none select-none", isMultiPage ? "" : "h-full", "catalog-light")}>
                 {getTemplate()}
             </div>
         </div>

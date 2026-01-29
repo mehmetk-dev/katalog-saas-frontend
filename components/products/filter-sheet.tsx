@@ -3,7 +3,7 @@
 import { Filter, X, Check, SortAsc, SortDesc } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -56,8 +56,11 @@ export function ProductsFilterSheet({
                 <SheetHeader>
                     <SheetTitle className="flex items-center gap-2">
                         <Filter className="w-5 h-5" />
-                        {t("products.filterBy")}
+                        {t("products.filterBy") as string}
                     </SheetTitle>
+                    <SheetDescription>
+                        {t("filters.description") as string}
+                    </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-6 mt-6">
                     {/* Sıralama */}
@@ -100,13 +103,13 @@ export function ProductsFilterSheet({
 
                     {/* Kategori */}
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t("filters.category")}</Label>
+                        <Label className="text-sm font-medium">{t("filters.category") as string}</Label>
                         <Select value={selectedCategory} onValueChange={onCategoryChange}>
                             <SelectTrigger>
-                                <SelectValue placeholder={t("filters.allCategories")} />
+                                <SelectValue placeholder={t("filters.allCategories") as string} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
+                                <SelectItem value="all">{t("filters.allCategories") as string}</SelectItem>
                                 {categories.map((cat) => (
                                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                 ))}
@@ -116,13 +119,13 @@ export function ProductsFilterSheet({
 
                     {/* Stok Durumu */}
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t("filters.stockStatus")}</Label>
+                        <Label className="text-sm font-medium">{t("filters.stockStatus") as string}</Label>
                         <div className="grid grid-cols-2 gap-2">
                             {[
-                                { value: "all", label: t("filters.all") },
-                                { value: "in_stock", label: t("filters.inStock") },
-                                { value: "low_stock", label: t("filters.lowStock") },
-                                { value: "out_of_stock", label: t("filters.outOfStock") },
+                                { value: "all", label: t("filters.all") as string },
+                                { value: "in_stock", label: t("filters.inStock") as string },
+                                { value: "low_stock", label: t("filters.lowStock") as string },
+                                { value: "out_of_stock", label: t("filters.outOfStock") as string },
                             ].map((opt) => (
                                 <Button
                                     key={opt.value}
@@ -139,13 +142,13 @@ export function ProductsFilterSheet({
 
                     {/* Fiyat Aralığı */}
                     <div className="space-y-3">
-                        <Label className="text-sm font-medium">{t("filters.priceRange")}</Label>
+                        <Label className="text-sm font-medium">{t("filters.priceRange") as string}</Label>
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₺</span>
                                 <Input
                                     type="number"
-                                    placeholder={t("filters.min")}
+                                    placeholder={t("filters.min") as string}
                                     value={priceRange[0] || ""}
                                     onChange={(e) => onPriceRangeChange([Number(e.target.value) || 0, priceRange[1]])}
                                     className="pl-7 h-9"
@@ -156,7 +159,7 @@ export function ProductsFilterSheet({
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₺</span>
                                 <Input
                                     type="number"
-                                    placeholder={t("filters.max")}
+                                    placeholder={t("filters.max") as string}
                                     value={priceRange[1] || ""}
                                     onChange={(e) => onPriceRangeChange([priceRange[0], Number(e.target.value) || maxPrice])}
                                     className="pl-7 h-9"
@@ -191,7 +194,7 @@ export function ProductsFilterSheet({
                             {hasActiveFilters && (
                                 <Button variant="outline" className="flex-1 gap-2" onClick={onClearFilters}>
                                     <X className="w-4 h-4" />
-                                    {t("filters.clear")}
+                                    {t("filters.clear") as string}
                                 </Button>
                             )}
                             <Button
@@ -199,7 +202,7 @@ export function ProductsFilterSheet({
                                 onClick={() => onOpenChange(false)}
                             >
                                 <Check className="w-4 h-4" />
-                                {t("filters.apply")} ({filteredCount} {t("products.product")})
+                                {t("filters.apply") as string} ({filteredCount} {t("products.product") as string})
                             </Button>
                         </div>
                     </div>

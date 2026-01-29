@@ -1,180 +1,173 @@
-# Katalog SaaS - Ürün Kataloğu Oluşturucu
+# 🌫️ FogCatalog - Profesyonel Dijital Ürün Kataloğu Platformu
 
-Modern, hızlı ve kullanıcı dostu ürün kataloğu oluşturma platformu.
+**FogCatalog**, işletmelerin ürünlerini en şık ve profesyonel şekilde sergilemesini sağlayan modern, hızlı ve ölçeklenebilir bir **SaaS (Software as a Service)** platformudur. Dakikalar içinde etkileyici kataloglar oluşturabilir, PDF olarak indirebilir veya dijital ortamda QR kod ile paylaşabilirsiniz.
 
-## 🚀 Özellikler
+---
 
-- ✅ **Kolay Katalog Oluşturma** - Drag & drop ile ürün ekleme
-- ✅ **15+ Profesyonel Şablon** - Farklı sektörler için hazır tasarımlar
-- ✅ **PDF Export** - Yüksek kaliteli PDF çıktısı
-- ✅ **Paylaşılabilir Linkler** - Katalogları online paylaşma
-- ✅ **Responsive Tasarım** - Mobil ve masaüstü uyumlu
-- ✅ **Çoklu Dil Desteği** - Türkçe ve İngilizce
+## ✨ Temel Özellikler
 
-## 🛠️ Teknolojiler
+- 🎨 **Gerçek Zamanlı Editör:** Renk, logo, sayfa yapısı ve ürün yerleşimini anlık olarak özelleştirin.
+- 📐 **15+ Tasarım Şablonu:** "Bauhaus Vanguard", "Modern HUD", "Archive Editorial" gibi dünyaca ünlü tasarım akımlarından ilham alan profesyonel şablonlar.
+- 📄 **Yüksek Kaliteli Export:** `html-to-image` ve `jsPDF` teknolojileriyle vektörel kalitede PDF çıktısı.
+- 🔗 **Akıllı Paylaşım Sistemi:** Her katalog için özel `slug` bazlı URL'ler ve otomatik QR kod oluşturma.
+- 📖 **Dijital Sayfa Çevirme:** `react-pageflip` ile gerçek bir katalog deneyimi sunan etkileşimli dijital görünümler.
+- 📊 **Detaylı Analiz Paneli:** Katalog görüntülenmeleri, cihaz türleri ve performans metriklerini takip edin.
+- 🌍 **Çoklu Dil Desteği:** i18next tabanlı yapı ile Türkçe ve İngilizce tam uyumluluk.
+- 📱 **Responsive Tasarım:** Telefonda, tablette veya masaüstünde kusursuz görünüm.
+
+---
+
+## 🛠️ Teknoloji Yığını
+
+FogCatalog, en güncel ve performanslı teknolojiler üzerine inşa edilmiştir.
 
 ### Frontend
-- **Next.js 16** - React Framework
-- **TypeScript** - Type-safe development
-- **Tailwind CSS 4** - Styling
-- **Radix UI** - Accessible components
-- **Supabase** - Authentication & Database
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router Architecture)
+- **Dil:** [TypeScript](https://www.typescriptlang.org/) (Strict Type Safety)
+- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/) & [Tailwind CSS Animate](https://github.com/jamiebuilds/tailwind-css-animate)
+- **UI Bileşenleri:** [Radix UI](https://www.radix-ui.com/) (Accessible Primitives)
+- **Grafikler:** [Recharts](https://recharts.org/) (Data Visualization)
+- **Dosya Yönetimi:** Client-side PDF generation (`jsPDF`) & Image Processing
 
-### Backend
-- **Express.js** - REST API
-- **Redis** - Caching (opsiyonel)
-- **Supabase** - Database & Auth
+### Backend & Altyapı
+- **Runtime:** [Node.js](https://nodejs.org/) & [Express.js](https://expressjs.com/)
+- **Veritabanı:** [PostgreSQL](https://www.postgresql.org/) (via [Supabase](https://supabase.com/))
+- **Oturum Yönetimi:** [Supabase Auth](https://supabase.com/auth) (JWT & RBAC)
+- **Storage:** [Supabase Storage](https://supabase.com/storage) (Ürün ve Katalog görselleri)
+- **Caching:** [Redis](https://redis.io/) (via [IORedis](https://github.com/luin/ioredis))
+- **İzleme (Monitoring):** [Prometheus](https://prometheus.io/) & [Sentry](https://sentry.io/)
 
-## 📦 Kurulum
+---
+
+## 🚀 Hızlı Başlangıç
 
 ### Gereksinimler
-- Node.js 20+
-- npm veya pnpm
-- Supabase hesabı
+- **Node.js:** v20.x veya üzeri
+- **Paket Yöneticisi:** npm (veya pnpm/yarn)
+- **Database:** Aktif bir Supabase projesi
 
-### 1. Repository'yi klonlayın
-```bash
-git clone https://github.com/your-username/katalog-app.git
-cd katalog-app
-```
+### 1. Kurulum
 
-### 2. Bağımlılıkları yükleyin
 ```bash
-# Frontend
+# Projeyi klonlayın
+git clone https://github.com/kullaniciadi/fogcatalog.git
+cd fogcatalog
+
+# Frontend bağımlılıklarını yükleyin
 npm install
 
-# Backend
+# Backend bağımlılıklarını yükleyin
 cd backend
 npm install
 cd ..
 ```
 
-### 3. Environment değişkenlerini ayarlayın
-```bash
-# .env.example dosyasını kopyalayın
-cp .env.example .env.local
+### 2. Environment (Ortam) Değişkenleri
 
-# Backend için
-cp backend/.env.example backend/.env
-```
+Uygulamanın tam fonksiyonel çalışması için çevresel değişkenlerin doğru set edilmesi kritik önem taşır. Hem kök dizindeki hem de backend dizindeki `.env.example` dosyalarını kopyalayıp güncelleyin:
 
-`.env.local` dosyasını düzenleyin:
+**Frontend (Kök Dizin - `.env.local`):**
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ADMIN_EMAIL=admin@example.com
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Uygulama URL'leri
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+
+# Cloudinary (Görsel Yükleme)
+NEXT_PUBLIC_STORAGE_PROVIDER=cloudinary
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_preset
+
+# Email (Resend)
+RESEND_API_KEY=re_your_api_key
+RESEND_FROM_EMAIL=your@email.com
+
+# Monitoring (Sentry)
+SENTRY_AUTH_TOKEN=your_sentry_token
 ```
 
-### 4. Supabase Migration'ları çalıştırın
-Supabase Dashboard > SQL Editor'da şu dosyaları çalıştırın:
-- `supabase/migrations/create_templates_table.sql`
-- `supabase/migrations/add_catalog_customization.sql`
-- `supabase/migrations/fix_templates_rls_policy.sql`
+**Backend (`/backend/.env`):**
+```env
+# Server
+PORT=4000
 
-### 5. Uygulamayı başlatın
+# Supabase Admin
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_key
+
+# Cloudinary Admin (Görsel Silme/Yönetim)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_DELETED_FOLDER=deletedproducts
+```
+
+### 3. Çalıştırma
+
 ```bash
-# Frontend (Terminal 1)
+# Frontend'i başlatın (Terminal 1)
 npm run dev
 
-# Backend (Terminal 2)
+# Backend'i başlatın (Terminal 2)
 cd backend
 npm run dev
 ```
 
-Uygulama şu adreslerde çalışacak:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:4000
-
-## 🐳 Docker ile Çalıştırma
-
-```bash
-# Tüm servisleri başlat
-docker-compose up -d
-
-# Logları görüntüle
-docker-compose logs -f
-
-# Servisleri durdur
-docker-compose down
-```
+---
 
 ## 📁 Proje Yapısı
 
-```
-katalog-app/
-├── app/                    # Next.js App Router
-│   ├── auth/              # Authentication sayfaları
-│   ├── dashboard/         # Kullanıcı paneli
-│   ├── catalog/           # Public katalog görüntüleme
-│   └── ...
-├── components/            # React componentleri
-│   ├── ui/               # Temel UI componentleri
-│   ├── catalogs/         # Katalog componentleri
-│   ├── products/         # Ürün componentleri
-│   └── ...
-├── lib/                   # Utility fonksiyonlar
-│   ├── actions/          # Server actions
-│   ├── supabase/         # Supabase client
-│   └── ...
-├── backend/              # Express.js API
-│   ├── src/
-│   │   ├── controllers/  # Route handlers
-│   │   ├── middlewares/  # Express middlewares
-│   │   ├── routes/       # API routes
-│   │   └── services/     # Business logic
-│   └── ...
-├── public/               # Statik dosyalar
-└── supabase/            # Database migrations
-```
-
-## 🔒 Güvenlik
-
-- ✅ Row Level Security (RLS) ile veritabanı koruması
-- ✅ JWT token doğrulaması
-- ✅ Rate limiting
-- ✅ CORS konfigürasyonu
-- ✅ Helmet.js güvenlik headers
-- ✅ Input validation
-
-## 📊 API Endpoints
-
-### Public
-- `GET /health` - Health check
-- `GET /api/v1/catalogs/public/:slug` - Public katalog
-
-### Protected (Auth gerekli)
-- `GET /api/v1/products` - Ürünleri listele
-- `POST /api/v1/products` - Ürün ekle
-- `GET /api/v1/catalogs` - Katalogları listele
-- `POST /api/v1/catalogs` - Katalog oluştur
-
-### Admin (Admin yetkisi gerekli)
-- `GET /api/v1/admin/users` - Tüm kullanıcılar
-- `GET /api/v1/admin/stats` - İstatistikler
-
-## 🧪 Testing
-
 ```bash
-# Lint kontrolü
-npm run lint
-
-# Type kontrolü
-npx tsc --noEmit
+fogcatalog/
+├── app/                    # Next.js App Router (Sayfalar ve Layoutlar)
+│   ├── (auth)/             # Giriş, Kayıt ve Şifre işlemleri
+│   ├── dashboard/          # Kullanıcı Yönetim Paneli
+│   └── catalog/            # Public paylaşılan katalog görünümleri
+├── components/             # Reusable React Bileşenleri
+│   ├── builder/            # Katalog editör bileşenleri
+│   ├── catalogs/           # Şablon sistemi ve önizleme
+│   └── ui/                 # Shadcn/ui tabanlı temel bileşenler
+├── lib/                    # Core Logic
+│   ├── actions/            # Server Actions (Veri mutasyonları)
+│   ├── supabase/           # Veritabanı istemcileri
+│   └── translations/       # Çoklu dil dosyaları
+├── backend/                # Express.js API Katmanı
+│   ├── src/controllers/    # İş mantığı (Business Logic)
+│   ├── src/routes/         # API uç noktaları
+│   └── src/middlewares/    # Güvenlik ve Doğrulama
+└── supabase/               # SQL Migration dosyaları
 ```
 
-## 📝 Lisans
+---
 
-MIT License - detaylar için [LICENSE](LICENSE) dosyasına bakın.
+## 🔒 Güvenlik Yaklaşımı
+
+- **RLS (Row Level Security):** Supabase üzerinde her kullanıcının sadece kendi verisine erişebilmesi sağlanmıştır.
+- **JWT Authentication:** Tüm API istekleri güvenli tokenlar ile doğrulanır.
+- **Rate Limiting:** Backend tarafında ddos ve brute-force saldırılarına karşı önlem alınmıştır.
+- **Input Validation:** Zod şemaları ile hem frontend hem backend tarafında veri doğrulaması yapılır.
+
+---
 
 ## 🤝 Katkıda Bulunma
 
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit yapın (`git commit -m 'Add amazing feature'`)
-4. Push yapın (`git push origin feature/amazing-feature`)
-5. Pull Request açın
+1. Projeyi fork'layın.
+2. Yeni bir feature branch açın (`git checkout -b feature/harika-ozellik`).
+3. Değişikliklerinizi commit'leyin (`git commit -m 'Yeni özellik eklendi'`).
+4. Branch'inizi push'layın (`git push origin feature/harika-ozellik`).
+5. Bir Pull Request açın.
 
-## 📧 İletişim
+---
 
-Sorularınız için: [destek@fogcatalog.app](mailto:destek@fogcatalog.app)
+## 📄 Lisans
+
+Bu proje **MIT** lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakabilirsiniz.
+
+---
+
+**FogCatalog** - *Ürünlerinizi dünyayla profesyonelce paylaşın.*
+[Web Sitemiz](https://fogcatalog.com) | [Destek](mailto:destek@fogcatalog.com)

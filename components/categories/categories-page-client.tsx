@@ -112,23 +112,27 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
             let timeoutId: NodeJS.Timeout | null = null
 
+            let retryToastId: string | number | null = null
+
             try {
                 // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
                 if (attempt > 0) {
                     const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-                    toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+                    retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
 
                     // Bekleme sırasında da iptal kontrolü
                     await new Promise<void>((resolve, reject) => {
                         const checkInterval = setInterval(() => {
                             if (signal?.aborted) {
                                 clearInterval(checkInterval)
+                                if (retryToastId) toast.dismiss(retryToastId)
                                 reject(new Error('Upload cancelled'))
                             }
                         }, 100)
 
                         setTimeout(() => {
                             clearInterval(checkInterval)
+                            if (retryToastId) toast.dismiss(retryToastId)
                             resolve()
                         }, waitTime)
                     })
@@ -172,6 +176,11 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     uploadTimeoutId.current = null
                     timeoutId = null
                 }
+                // Retry toast'unu kapat
+                if (retryToastId) {
+                    toast.dismiss(retryToastId)
+                    retryToastId = null
+                }
 
                 // 4. Sonuç Kontrolü
                 if (result && result.url) {
@@ -186,6 +195,11 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     clearTimeout(timeoutId)
                     uploadTimeoutId.current = null
                     timeoutId = null
+                }
+                // Retry toast'unu kapat
+                if (retryToastId) {
+                    toast.dismiss(retryToastId)
+                    retryToastId = null
                 }
 
                 // İptal hatası ise direkt fırlat

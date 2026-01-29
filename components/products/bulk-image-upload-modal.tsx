@@ -312,10 +312,44 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${img.file.name.split('.').pop() || 'jpg'}`
 
             for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-                if (signal?.aborted) throw new Error('Upload cancelled')
+                // İptal kontrolü
+                if (signal?.aborted) {
+                    throw new Error('Upload cancelled')
+                }
 
                 let timeoutId: NodeJS.Timeout | null = null
+
+                let retryToastId: string | number | null = null
+
                 try {
+                    // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+                    if (attempt > 0) {
+                        const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+                        retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+
+                        // Bekleme sırasında da iptal kontrolü
+                        await new Promise<void>((resolve, reject) => {
+                            const checkInterval = setInterval(() => {
+                                if (signal?.aborted) {
+                                    clearInterval(checkInterval)
+                                    if (retryToastId) toast.dismiss(retryToastId)
+                                    reject(new Error('Upload cancelled'))
+                                }
+                            }, 100)
+
+                            setTimeout(() => {
+                                clearInterval(checkInterval)
+                                if (retryToastId) toast.dismiss(retryToastId)
+                                resolve()
+                            }, waitTime)
+                        })
+                    }
+
+                    // İptal kontrolü (bekleme sonrası)
+                    if (signal?.aborted) {
+                        throw new Error('Upload cancelled')
+                    }
+
                     // Simple upload
                     const uploadPromise = storage.upload(img.file, {
                         path: 'products',
@@ -331,17 +365,26 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
                     const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | null
                     if (timeoutId) clearTimeout(timeoutId)
+                    if (retryToastId) toast.dismiss(retryToastId)
 
                     if (result?.url) return result.url
                     throw new Error('URL missing')
 
                 } catch (err: unknown) {
                     if (timeoutId) clearTimeout(timeoutId)
+                    if (retryToastId) {
+                        toast.dismiss(retryToastId)
+                        retryToastId = null
+                    }
                     if ((err as Error).message === 'Upload cancelled' || signal?.aborted) throw err
 
-                    if (attempt === MAX_RETRIES - 1) throw err
-                    // Wait before retry
-                    await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)))
+                    console.error(`[BulkImageUpload] ❌ Attempt ${attempt + 1} failed:`, (err as Error).message)
+
+                    // Eğer son denemeyse hatayı fırlat
+                    if (attempt === MAX_RETRIES - 1) {
+                        throw err
+                    }
+                    // Değilse döngü başa döner ve tekrar dener
                 }
             }
             throw new Error('Max retries reached')

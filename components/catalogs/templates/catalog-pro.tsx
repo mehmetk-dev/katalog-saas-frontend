@@ -55,7 +55,7 @@ export function CatalogProTemplate({
     const logoAlignment = logoPosition?.split('-')[1] || 'left'
 
     return (
-        <div className="h-full bg-white flex flex-col relative overflow-hidden selection:bg-black selection:text-white">
+        <div className="h-full bg-white text-slate-950 flex flex-col relative overflow-hidden selection:bg-black selection:text-white">
             {/* Bauhaus Side Stripe */}
             <div className="absolute top-0 right-0 w-2 h-full z-50" style={{ backgroundColor: primaryColor }} />
 
@@ -68,7 +68,7 @@ export function CatalogProTemplate({
                                 <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </div>
                         )}
-                        <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8]">
+                        <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] text-slate-950">
                             {catalogName || "VANGUARD"}
                         </h1>
                     </div>
@@ -134,7 +134,7 @@ export function CatalogProTemplate({
                             {/* Typography Info */}
                             <div className="flex flex-col">
                                 <div className="flex justify-between items-start gap-4 border-b border-black pb-2 mb-2">
-                                    <h3 className="text-sm font-black uppercase tracking-tight line-clamp-1 flex-1">
+                                    <h3 className="text-sm font-black uppercase tracking-tight line-clamp-1 flex-1 text-slate-950">
                                         {product.name}
                                     </h3>
                                     {showPrices && (

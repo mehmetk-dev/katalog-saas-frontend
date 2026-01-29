@@ -71,7 +71,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   // Filtreleme State
-  const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [sortField, setSortField] = useState<SortField>("created_at")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   const [stockFilter, setStockFilter] = useState<StockFilter>("all")
@@ -209,7 +209,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const categoryStats = useMemo(() => {
     const statsMap: Record<string, { count: number; totalValue: number }> = {}
     products.forEach(p => {
-      const cat = p.category || t("products.uncategorized")
+      const cat = (p.category || t("products.uncategorized")) as string
       if (!statsMap[cat]) statsMap[cat] = { count: 0, totalValue: 0 }
       statsMap[cat].count++
       statsMap[cat].totalValue += (Number(p.price) || 0) * p.stock
@@ -263,18 +263,18 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         await deleteProducts(selectedIds)
         setProducts(products.filter((p) => !selectedIds.includes(p.id)))
         setSelectedIds([])
-        toast.success(t('toasts.productsDeleted', { count: selectedIds.length }))
+        toast.success(t('toasts.productsDeleted', { count: selectedIds.length }) as string)
         setShowDeleteAlert(false)
         refreshUser()
       } catch {
-        toast.error(t('toasts.errorOccurred'))
+        toast.error(t('toasts.errorOccurred') as string)
       }
     })
   }
 
   const handleBulkPriceUpdate = () => {
     if (selectedIds.length === 0) {
-      toast.error(t('toasts.selectProductFirst'))
+      toast.error(t('toasts.selectProductFirst') as string)
       return
     }
 
@@ -294,9 +294,9 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         setShowPriceModal(false)
         setSelectedIds([])
 
-        toast.success(t('toasts.operationComplete'))
+        toast.success(t('toasts.operationComplete') as string)
       } catch {
-        toast.error(t('toasts.priceUpdateFailed'))
+        toast.error(t('toasts.priceUpdateFailed') as string)
       }
     })
   }
@@ -311,10 +311,10 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
       try {
         const addedProducts = await addDummyProducts(language as 'tr' | 'en', userPlan)
         setProducts([...addedProducts, ...products])
-        toast.success(t('toasts.testProductsAdded'))
+        toast.success(t('toasts.testProductsAdded') as string)
         refreshUser()
       } catch {
-        toast.error(t('toasts.testProductsFailed'))
+        toast.error(t('toasts.testProductsFailed') as string)
       }
     })
   }
@@ -339,7 +339,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
   const selectByCategory = (category: string) => {
     const categoryIds = products
-      .filter(p => (p.category || t("products.uncategorized")) === category)
+      .filter(p => (p.category || (t("products.uncategorized") as string)) === category)
       .map(p => p.id)
     const newSelectedIds = Array.from(new Set([...selectedIds, ...categoryIds]))
     setSelectedIds(newSelectedIds)
@@ -437,15 +437,15 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{t("products.deleteConfirmTitle") || "Emin misiniz?"}</AlertDialogTitle>
+                <AlertDialogTitle>{(t("products.deleteConfirmTitle") as string) || "Emin misiniz?"}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t("products.deleteConfirmDesc", { count: selectedIds.length }) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz.Bu işlem geri alınamaz.`}
+                  {(t("products.deleteConfirmDesc", { count: selectedIds.length }) as string) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz.Bu işlem geri alınamaz.`}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogCancel>{t("common.cancel") as string}</AlertDialogCancel>
                 <AlertDialogAction onClick={executeBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {t("common.delete")}
+                  {t("common.delete") as string}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -466,7 +466,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
               if (sortField !== "order") {
                 setSortField("order")
                 setSortOrder("asc")
-                toast.info(t("products.switchedToManualSort") || "Manuel sıralamaya geçildi")
+                toast.info((t("products.switchedToManualSort") as string) || "Manuel sıralamaya geçildi")
               }
             }}
           />
@@ -499,17 +499,17 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t("products.limits.title")}</DialogTitle>
+              <DialogTitle>{t("products.limits.title") as string}</DialogTitle>
               <DialogDescription>
-                {t("products.limits.description", { max: maxProducts.toString() })}
+                {t("products.limits.description", { max: maxProducts.toString() }) as string}
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-3 mt-4">
               <Button variant="outline" onClick={() => setShowLimitModal(false)}>
-                {t("common.cancel")}
+                {t("common.cancel") as string}
               </Button>
               <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
-                <Link href="/pricing">{t("products.limits.upgrade")}</Link>
+                <Link href="/pricing">{t("products.limits.upgrade") as string}</Link>
               </Button>
             </div>
           </DialogContent>
@@ -566,7 +566,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             const updatedProducts = await getProducts()
             setProducts(updatedProducts)
             setShowBulkImageModal(false)
-            toast.success(t('toasts.photosUpdated'))
+            toast.success(t('toasts.photosUpdated') as string)
           }}
         />
 

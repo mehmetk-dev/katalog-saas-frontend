@@ -365,7 +365,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             product_image_fit: productImageFit,
             header_text_color: headerTextColor,
           })
-          toast.success(t('toasts.catalogSaved'))
+          toast.success(t('toasts.catalogSaved') as string)
         } else {
           const newCatalog = await createCatalog({
             name: catalogName,
@@ -396,7 +396,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             header_text_color: headerTextColor,
           })
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
-          toast.success(t('toasts.catalogCreated'))
+          toast.success(t('toasts.catalogCreated') as string)
         }
 
         // Kayıt başarılı - lastSavedState güncelle
@@ -419,7 +419,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           setHasUnpushedChanges(true)
         }
       } catch {
-        toast.error(t('toasts.catalogSaveFailed'))
+        toast.error(t('toasts.catalogSaveFailed') as string)
       }
     })
   }
@@ -515,7 +515,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
   const handlePublish = () => {
     if (!currentCatalogId) {
-      toast.error(t('toasts.saveCatalogFirst'))
+      toast.error(t('toasts.saveCatalogFirst') as string)
       return
     }
 
@@ -582,7 +582,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               label: "Linki Kopyala",
               onClick: () => {
                 navigator.clipboard.writeText(shareUrl)
-                toast.success(t('toasts.linkCopied'))
+                toast.success(t('toasts.linkCopied') as string)
               }
             }
           })
@@ -604,7 +604,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
   const handleDownloadPDF = async () => {
     try {
-      toast.info(t('builder.downloadStarting'), { id: "pdf-process" })
+      toast.info(t('builder.downloadStarting') as string, { id: "pdf-process" })
 
       if (!canExport()) {
         toast.dismiss("pdf-process")
@@ -737,7 +737,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
       // UI'ı hemen güncelle (Hayaleti kapat ve başarı mesajı ver)
       setIsExporting(false)
-      toast.success(t('builder.pdfDownloaded') + resolutionText, { id: "pdf-process" })
+      toast.success((t('builder.pdfDownloaded') as string) + resolutionText, { id: "pdf-process" })
 
       // Arka planda kota/limit işlemlerini yap (Kullanıcıyı bekletme)
       import("@/lib/actions/user").then(async ({ incrementUserExports }) => {
@@ -751,13 +751,13 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       console.error("PDF Fail:", err)
       setIsExporting(false)
       const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
-      toast.error(t('builder.pdfFailed') + ": " + msg, { id: "pdf-process" })
+      toast.error((t('builder.pdfFailed') as string) + ": " + msg, { id: "pdf-process" })
     }
   }
 
   const handleShare = () => {
     if (!currentCatalogId || !catalog?.share_slug) {
-      toast.error(t('toasts.saveCatalogFirst'))
+      toast.error(t('toasts.saveCatalogFirst') as string)
       return
     }
     setShowShareModal(true)
@@ -857,7 +857,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         {(effectiveView === "split" || effectiveView === "preview") && (
           <div
             id="catalog-preview-container"
-            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} ${view === "preview" ? "bg-background" : "bg-muted/30"} overflow-auto`}
+            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-50 overflow-auto catalog-light`}
           >
             <CatalogPreview
               catalogName={catalogName}

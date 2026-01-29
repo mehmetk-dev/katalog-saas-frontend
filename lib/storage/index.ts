@@ -57,18 +57,11 @@ export function createStorageProvider(): StorageProvider {
       )
     }
 
-    if (typeof window !== 'undefined') {
-      console.log('[Storage] ✓ Using Cloudinary provider')
-    }
-    
     storageInstance = new CloudinaryProvider({
       cloudName,
       uploadPreset,
     })
   } else {
-    if (typeof window !== 'undefined') {
-      console.log('[Storage] ✓ Using Supabase provider (default)')
-    }
     // Default: Supabase
     storageInstance = new SupabaseProvider('product-images')
   }

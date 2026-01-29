@@ -265,23 +265,27 @@ export function CatalogEditor({
 
       let timeoutId: NodeJS.Timeout | null = null
 
+      let retryToastId: string | number | null = null
+
       try {
         // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
         if (attempt > 0) {
           const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-          toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+          retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
 
           // Bekleme sırasında da iptal kontrolü
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
               if (signal?.aborted) {
                 clearInterval(checkInterval)
+                if (retryToastId) toast.dismiss(retryToastId)
                 reject(new Error('Upload cancelled'))
               }
             }, 100)
 
             setTimeout(() => {
               clearInterval(checkInterval)
+              if (retryToastId) toast.dismiss(retryToastId)
               resolve()
             }, waitTime)
           })
@@ -329,6 +333,11 @@ export function CatalogEditor({
           uploadTimeoutIds.current.delete(uploadKey)
           timeoutId = null
         }
+        // Retry toast'unu kapat
+        if (retryToastId) {
+          toast.dismiss(retryToastId)
+          retryToastId = null
+        }
 
         // 5. Sonuç Kontrolü
         if (result && result.url) {
@@ -343,6 +352,11 @@ export function CatalogEditor({
           clearTimeout(timeoutId)
           uploadTimeoutIds.current.delete(uploadKey)
           timeoutId = null
+        }
+        // Retry toast'unu kapat
+        if (retryToastId) {
+          toast.dismiss(retryToastId)
+          retryToastId = null
         }
 
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -370,7 +384,7 @@ export function CatalogEditor({
     if (!file) return
     const limit = type === 'logo' ? 2 : 5
     if (file.size > limit * 1024 * 1024) {
-      toast.error(t('toasts.imageSizeLimit', { size: limit }))
+      toast.error(t('toasts.imageSizeLimit', { size: limit }) as string)
       return
     }
 
@@ -413,7 +427,7 @@ export function CatalogEditor({
         onBackgroundImageChange?.(publicUrl)
       }
 
-      toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`), { id: toastId })
+      toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`) as string, { id: toastId })
     } catch (error) {
       // İptal hatası ise sessizce geç
       if (error instanceof Error && (error.message === 'Upload cancelled' || abortController.signal.aborted)) {
@@ -515,14 +529,14 @@ export function CatalogEditor({
               className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
             >
               <Package className="w-4 h-4" />
-              {t('builder.productSelection')}
+              {t('builder.productSelection') as string}
             </TabsTrigger>
             <TabsTrigger
               value="design"
               className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
             >
               <Palette className="w-4 h-4" />
-              {t('builder.designSettings')}
+              {t('builder.designSettings') as string}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -539,7 +553,7 @@ export function CatalogEditor({
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                      {t('builder.catalogDetails')}
+                      {t('builder.catalogDetails') as string}
                     </span>
                   </div>
                   {selectedProductIds.length > 0 && (
@@ -552,7 +566,7 @@ export function CatalogEditor({
                   <div className="space-y-2">
                     <textarea
                       className="w-full min-h-[90px] p-3 text-sm bg-transparent border-none rounded-xl focus:ring-0 transition-all outline-none resize-none placeholder:text-muted-foreground font-medium text-slate-700 dark:text-slate-300"
-                      placeholder={t('builder.descriptionPlaceholder')}
+                      placeholder={t('builder.descriptionPlaceholder') as string}
                       value={description}
                       onChange={(e) => onDescriptionChange(e.target.value)}
                     />
@@ -567,7 +581,7 @@ export function CatalogEditor({
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                   <Input
-                    placeholder={t('builder.searchProducts')}
+                    placeholder={t('builder.searchProducts') as string}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-12 h-12 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
@@ -577,10 +591,10 @@ export function CatalogEditor({
                   <div className="flex-1">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="h-11 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm text-xs font-bold px-4">
-                        <SelectValue placeholder={t('common.category')} />
+                        <SelectValue placeholder={t('common.category') as string} />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-border shadow-xl">
-                        <SelectItem value="all">{t('common.all')}</SelectItem>
+                        <SelectItem value="all">{t('common.all') as string}</SelectItem>
                         {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -604,7 +618,7 @@ export function CatalogEditor({
                       }
                     }}
                   >
-                    {filteredProducts.every(p => selectedProductIds.includes(p.id)) ? t('builder.clearSelection') : t('builder.selectAll')}
+                    {filteredProducts.every(p => selectedProductIds.includes(p.id)) ? t('builder.clearSelection') as string : t('builder.selectAll') as string}
                   </Button>
                 </div>
               </div>
@@ -687,7 +701,7 @@ export function CatalogEditor({
                     onClick={() => setVisibleCount(v => v + 24)}
                     className="rounded-2xl h-10 px-6 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 border-slate-200/60 transition-all hover:bg-indigo-50"
                   >
-                    {t('builder.loadMore', { count: filteredProducts.length - visibleCount })}
+                    {t('builder.loadMore', { count: filteredProducts.length - visibleCount }) as string}
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
@@ -700,12 +714,12 @@ export function CatalogEditor({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: selectedProductIds.length })}</h3>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder')}</p>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: selectedProductIds.length }) as string}</h3>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder') as string}</p>
                 </div>
                 {selectedProductIds.length > 0 && (
                   <Button variant="ghost" size="sm" onClick={() => onSelectedProductIdsChange([])} className="h-8 text-xs font-bold text-destructive hover:bg-destructive/5 px-3 rounded-lg">
-                    {t('builder.clearSelection')}
+                    {t('builder.clearSelection') as string}
                   </Button>
                 )}
               </div>
@@ -783,7 +797,7 @@ export function CatalogEditor({
                   <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
                     <Layout className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.designSettings')}</h3>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.designSettings') as string}</h3>
                 </div>
 
                 <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
@@ -809,7 +823,7 @@ export function CatalogEditor({
                             "text-xs font-bold transition-colors",
                             item.disabled ? "text-slate-400" : "text-slate-700 dark:text-slate-300"
                           )}>
-                            {item.label}
+                            {item.label as string}
                             {item.disabled && <span className="text-[8px] ml-2 font-medium italic opacity-60">(Dergide yok)</span>}
                           </span>
                           <div className={cn(
@@ -827,7 +841,7 @@ export function CatalogEditor({
 
                     {/* Image Alignment Pill */}
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <Label className="text-[11px] font-black uppercase text-slate-500 mb-2.5 block tracking-widest text-center">{t('builder.productImages') || "Ürün Fotoğrafları"}</Label>
+                      <Label className="text-[11px] font-black uppercase text-slate-500 mb-2.5 block tracking-widest text-center">{(t('builder.productImages') || "Ürün Fotoğrafları") as string}</Label>
                       <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
                         {[
                           { value: 'cover' as const, label: 'Kırp' },
@@ -882,7 +896,7 @@ export function CatalogEditor({
                   <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
                     <Sparkles className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.logoBranding')}</h3>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.logoBranding') as string}</h3>
                 </div>
 
                 <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
@@ -913,7 +927,7 @@ export function CatalogEditor({
                             <Upload className="w-6 h-6 text-indigo-500" />
                           </div>
                           <div>
-                            <p className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">{t('builder.logoUpload')}</p>
+                            <p className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">{t('builder.logoUpload') as string}</p>
                             <p className="text-[9px] text-slate-400 font-bold tracking-tight">PNG, WEBP (Max 2MB)</p>
                           </div>
                         </div>
@@ -1024,7 +1038,7 @@ export function CatalogEditor({
                   <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
                     <ImageIcon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.backgroundSettings')}</h3>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.backgroundSettings') as string}</h3>
                 </div>
 
                 <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden">
@@ -1141,7 +1155,7 @@ export function CatalogEditor({
                   <div className="w-10 h-10 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-200 flex items-center justify-center text-white">
                     <Sparkles className="w-5 h-5" />
                   </div>
-                  <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">{t('builder.templateStyle')}</h3>
+                  <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">{t('builder.templateStyle') as string}</h3>
                 </div>
                 <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
               </div>
@@ -1160,22 +1174,24 @@ export function CatalogEditor({
                           : "hover:scale-[1.03] hover:shadow-xl shadow-md border-border"
                       )}
                     >
-                      <div className="absolute inset-0 bg-white dark:bg-slate-900">
-                        <ResponsiveContainer>
-                          <CatalogPreview
-                            layout={tmpl.id}
-                            catalogName={tmpl.name}
-                            products={getPreviewProductsByLayout(tmpl.id)}
-                            primaryColor={primaryColor || '#4f46e5'}
-                            headerTextColor={headerTextColor || '#ffffff'}
-                            showPrices={showPrices ?? true}
-                            showDescriptions={showDescriptions ?? true}
-                            showAttributes={showAttributes ?? true}
-                            showSku={showSku ?? true}
-                            showUrls={showUrls ?? true}
-                            productImageFit={productImageFit || 'cover'}
-                          />
-                        </ResponsiveContainer>
+                      <div className="absolute inset-0 bg-white transition-all duration-500 overflow-hidden">
+                        <div className="w-full h-full catalog-light text-slate-950">
+                          <ResponsiveContainer>
+                            <CatalogPreview
+                              layout={tmpl.id}
+                              catalogName={tmpl.name}
+                              products={getPreviewProductsByLayout(tmpl.id)}
+                              primaryColor={primaryColor || '#4f46e5'}
+                              headerTextColor={headerTextColor || '#ffffff'}
+                              showPrices={showPrices ?? true}
+                              showDescriptions={showDescriptions ?? true}
+                              showAttributes={showAttributes ?? true}
+                              showSku={showSku ?? true}
+                              showUrls={showUrls ?? true}
+                              productImageFit={productImageFit || 'cover'}
+                            />
+                          </ResponsiveContainer>
+                        </div>
                       </div>
 
                       {/* Premium Glass Overlay */}
