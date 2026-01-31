@@ -52,6 +52,12 @@ interface CatalogUpdatePayload {
     title_position?: string;
     product_image_fit?: string;
     header_text_color?: string;
+    // Storytelling Catalog Features
+    enable_cover_page?: boolean;
+    cover_image_url?: string;
+    cover_description?: string;
+    enable_category_dividers?: boolean;
+    cover_theme?: string;
 }
 
 const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequest).user.id;
@@ -218,10 +224,11 @@ export const createCatalog = async (req: Request, res: Response) => {
             .replace(/[öÖ]/g, 'o')
             .replace(/[çÇ]/g, 'c')
             .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
+            .replace(/^-+|-+$/g, "")
+            .substring(0, 50); // Uzun isimleri kırp
 
         // Eğer kullanıcı adı "fogcatalog" ise slug'a ekleme (URL tekrarını önlemek için)
-        const slugPrefix = cleanUserName === 'fogcatalog' ? '' : `${cleanUserName}-`;
+        const slugPrefix = cleanUserName === 'fogcatalog' ? '' : `${cleanUserName.substring(0, 30)}-`;
 
         const shareSlug = `${slugPrefix}${cleanCatalogName || 'katalog'}-${Date.now().toString(36)}`;
 
@@ -312,8 +319,33 @@ export const updateCatalog = async (req: Request, res: Response) => {
             logo_size,
             title_position,
             product_image_fit,
-            header_text_color
+            header_text_color,
+            enable_cover_page,
+            cover_image_url,
+            cover_description,
+            enable_category_dividers,
+            cover_theme
         }: CatalogUpdatePayload = req.body;
+
+        // Validate cover_description length (max 500 chars)
+        if (cover_description !== undefined && cover_description !== null && cover_description.length > 500) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: 'Kapak açıklaması maksimum 500 karakter olabilir.'
+            });
+        }
+
+        // Validate cover_image_url format (basic URL check)
+        if (cover_image_url !== undefined && cover_image_url !== null && cover_image_url.trim() !== '') {
+            try {
+                new URL(cover_image_url);
+            } catch {
+                return res.status(400).json({
+                    error: 'Validation Error',
+                    message: 'Geçersiz kapak görsel URL formatı.'
+                });
+            }
+        }
 
         // Eski slug'ı bul (cache temizlemek için)
         const { data: oldCatalog } = await supabase
@@ -350,6 +382,12 @@ export const updateCatalog = async (req: Request, res: Response) => {
         if (title_position !== undefined && title_position !== null) updateData.title_position = title_position;
         if (product_image_fit !== undefined && product_image_fit !== null) updateData.product_image_fit = product_image_fit;
         if (header_text_color !== undefined && header_text_color !== null) updateData.header_text_color = header_text_color;
+        // Storytelling Catalog Features
+        if (enable_cover_page !== undefined && enable_cover_page !== null) updateData.enable_cover_page = enable_cover_page;
+        if (cover_image_url !== undefined) updateData.cover_image_url = cover_image_url;
+        if (cover_description !== undefined) updateData.cover_description = cover_description;
+        if (enable_category_dividers !== undefined && enable_category_dividers !== null) updateData.enable_category_dividers = enable_category_dividers;
+        if (cover_theme !== undefined) updateData.cover_theme = cover_theme;
 
 
         const { error, data } = await supabase

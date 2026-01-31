@@ -225,7 +225,7 @@ const INDUSTRIAL_PRODUCTS: Product[] = [
         name: "El Aletleri Seti",
         description: "125 parça, çelik alaşım",
         price: 1890.00,
-        image_url: "https://images.unsplash.com/photo-1581147036324-c1c1b77ff6e4?w=500&auto=format&fit=crop&q=60",
+        image_url: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=500&auto=format&fit=crop&q=60",
     }),
     toProduct({
         id: "i3",

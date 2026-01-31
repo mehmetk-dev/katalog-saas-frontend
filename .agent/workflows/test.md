@@ -2,82 +2,143 @@
 description: Test generation and test running command. Creates and executes tests for code.
 ---
 
-/test - Modular Test Generation (Turkish Explanations)
+# /test - Test Generation and Execution
 
 $ARGUMENTS
-Purpose
-Generate production-grade Vitest tests for the Katalog App, focusing on modular structure and providing explanations in Turkish.
 
-$BEHAVIOR
-When asked to test a file, feature, or module:
+---
 
-1. 📦 Module Analysis & Context
-   - Identify the module (e.g., Auth, Product, Cart).
-   - Detect environment: Frontend (React/Next.js) or Backend (Node.js/Spring logic).
-   - Identify dependencies to mock (DB, API, Hooks).
+## Purpose
 
-2. 🇹🇷 Turkish Explanation & Strategy
-   - Explain *specifically* what will be tested in Turkish.
-   - Highlight why certain edge cases are critical for this specific module.
+This command generates tests, runs existing tests, or checks test coverage.
 
-3. 📝 Test Plan Generation (Turkish)
-   - Create a table with columns: 'Senaryo' (Scenario), 'Tür' (Type), 'Önem Derecesi' (Priority).
+---
 
-4. 🧪 Write Tests (Vitest Specific)
-   - USE: `import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';`
-   - FRONTEND: Use `@testing-library/react` and `@testing-library/user-event`.
-   - MOCKING: Use `vi.fn()` and `vi.mock()`.
-   - COMMENTS: Add Turkish comments inside the code explaining complex steps.
+## Sub-commands
 
-$OUTPUT_FORMAT
+```
+/test                - Run all tests
+/test [file/feature] - Generate tests for specific target
+/test coverage       - Show test coverage report
+/test watch          - Run tests in watch mode
+```
 
-## 📦 Modül: [Modül Adı / Dosya Adı]
+---
 
-### 🇹🇷 Test Kapsamı ve Analizi
-Bu modülde şunları test edeceğiz:
-* **Ana İşlev:** [Örn: Kullanıcının doğru şifreyle giriş yapabilmesi]
-* **Validasyon:** [Örn: Email formatı kontrolü]
-* **Kritik Hata:** [Örn: API yanıt vermezse uygulamanın çökmemesi]
+## Behavior
 
-### 📋 Test Planı
-| Senaryo | Tür | Öncelik |
-|---------|-----|---------|
-| Başarılı ürün ekleme | Happy Path | Yüksek |
-| Fiyat alanı boş bırakılırsa | Validation | Orta |
-| Sunucu 500 hatası verirse | Error Case | Yüksek |
+### Generate Tests
 
-### 🧪 Oluşturulan Test Kodu
-`tests/[dosya_adi].test.tsx`
-[CODE BLOCK]
+When asked to test a file or feature:
 
-$TEST_PATTERNS
+1. **Analyze the code**
+   - Identify functions and methods
+   - Find edge cases
+   - Detect dependencies to mock
 
-// Pattern for React (Frontend)
-describe('LoginForm', () => {
-  it('butona basıldığında loading state görünmeli', async () => {
-    // Hazırlık (Arrange)
-    const user = userEvent.setup();
-    render(<LoginForm />);
-    
-    // Eylem (Act)
-    await user.click(screen.getByRole('button', { name: /giriş/i }));
-    
-    // Kontrol (Assert)
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+2. **Generate test cases**
+   - Happy path tests
+   - Error cases
+   - Edge cases
+   - Integration tests (if needed)
+
+3. **Write tests**
+   - Use project's test framework (Jest, Vitest, etc.)
+   - Follow existing test patterns
+   - Mock external dependencies
+
+---
+
+## Output Format
+
+### For Test Generation
+
+```markdown
+## 🧪 Tests: [Target]
+
+### Test Plan
+| Test Case | Type | Coverage |
+|-----------|------|----------|
+| Should create user | Unit | Happy path |
+| Should reject invalid email | Unit | Validation |
+| Should handle db error | Unit | Error case |
+
+### Generated Tests
+
+`tests/[file].test.ts`
+
+[Code block with tests]
+
+---
+
+Run with: `npm test`
+```
+
+### For Test Execution
+
+```
+🧪 Running tests...
+
+✅ auth.test.ts (5 passed)
+✅ user.test.ts (8 passed)
+❌ order.test.ts (2 passed, 1 failed)
+
+Failed:
+  ✗ should calculate total with discount
+    Expected: 90
+    Received: 100
+
+Total: 15 tests (14 passed, 1 failed)
+```
+
+---
+
+## Examples
+
+```
+/test src/services/auth.service.ts
+/test user registration flow
+/test coverage
+/test fix failed tests
+```
+
+---
+
+## Test Patterns
+
+### Unit Test Structure
+
+```typescript
+describe('AuthService', () => {
+  describe('login', () => {
+    it('should return token for valid credentials', async () => {
+      // Arrange
+      const credentials = { email: 'test@test.com', password: 'pass123' };
+      
+      // Act
+      const result = await authService.login(credentials);
+      
+      // Assert
+      expect(result.token).toBeDefined();
+    });
+
+    it('should throw for invalid password', async () => {
+      // Arrange
+      const credentials = { email: 'test@test.com', password: 'wrong' };
+      
+      // Act & Assert
+      await expect(authService.login(credentials)).rejects.toThrow('Invalid credentials');
+    });
   });
 });
+```
 
-// Pattern for Node.js (Backend)
-describe('CatalogService', () => {
-  it('geçersiz kategori ID ile kayıt engellenmeli', async () => {
-    // Hazırlık & Eylem & Kontrol
-    await expect(createCatalog({ categoryId: null }))
-      .rejects.toThrow('Kategori ID zorunludur');
-  });
-});
+---
 
-$KEY_PRINCIPLES
-- **Language:** Code logic in English, but Comments and Descriptions in TURKISH.
-- **Isolation:** Each test must be independent.
-- **Mocking:** Always mock external calls (Supabase, Axios).
-- **Quality:** Focus on behavior, not implementation details.
+## Key Principles
+
+- **Test behavior not implementation**
+- **One assertion per test** (when practical)
+- **Descriptive test names**
+- **Arrange-Act-Assert pattern**
+- **Mock external dependencies**

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react"
 import {
   Palette, GripVertical, Trash2, Package, Image as ImageIcon,
-  Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search
+  Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search, ChevronRight
 } from "lucide-react"
 import NextImage from "next/image"
 import { toast } from "sonner"
@@ -21,9 +21,10 @@ import { useTranslation } from "@/lib/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { TEMPLATES } from "@/lib/constants"
+import { COVER_THEMES } from "@/components/catalogs/covers"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 
-import { CatalogPreview } from "../catalogs/catalog-preview"
+import { CatalogPreview } from "./catalog-preview"
 import { getPreviewProductsByLayout } from "../templates/preview-data"
 import { storage } from "@/lib/storage"
 import { getSessionSafe } from "@/lib/supabase/client"
@@ -62,16 +63,27 @@ interface CatalogEditorProps {
   onLogoSizeChange?: (size: NonNullable<Catalog['logo_size']>) => void
   titlePosition?: Catalog['title_position']
   onTitlePositionChange?: (position: NonNullable<Catalog['title_position']>) => void
+  productImageFit?: NonNullable<Catalog['product_image_fit']>
+  onProductImageFitChange?: (fit: NonNullable<Catalog['product_image_fit']>) => void
+  headerTextColor?: string
+  onHeaderTextColorChange?: (color: string) => void
   showAttributes?: boolean
   onShowAttributesChange?: (show: boolean) => void
   showSku?: boolean
   onShowSkuChange?: (show: boolean) => void
   showUrls?: boolean
   onShowUrlsChange?: (show: boolean) => void
-  headerTextColor?: string
-  onHeaderTextColorChange?: (color: string) => void
-  productImageFit?: 'cover' | 'contain' | 'fill'
-  onProductImageFitChange?: (fit: 'cover' | 'contain' | 'fill') => void
+  // Storytelling Catalog Props
+  enableCoverPage?: boolean
+  onEnableCoverPageChange?: (enable: boolean) => void
+  coverImageUrl?: string | null
+  onCoverImageUrlChange?: (url: string | null) => void
+  coverDescription?: string | null
+  onCoverDescriptionChange?: (desc: string | null) => void
+  enableCategoryDividers?: boolean
+  onEnableCategoryDividersChange?: (enable: boolean) => void
+  coverTheme?: string
+  onCoverThemeChange?: (theme: string) => void
 }
 
 // Helper: Parse color to RGB
@@ -148,6 +160,17 @@ export function CatalogEditor({
   onHeaderTextColorChange,
   productImageFit = 'cover',
   onProductImageFitChange,
+  // Storytelling Catalog Features
+  enableCoverPage = false,
+  onEnableCoverPageChange,
+  coverImageUrl = null,
+  onCoverImageUrlChange,
+  coverDescription = null,
+  onCoverDescriptionChange,
+  enableCategoryDividers = false,
+  onEnableCategoryDividersChange,
+  coverTheme = 'modern',
+  onCoverThemeChange,
 }: CatalogEditorProps) {
   const { t } = useTranslation()
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -192,6 +215,26 @@ export function CatalogEditor({
   }, [showPrimaryColorPicker, showHeaderTextColorPicker, showBackgroundColorPicker])
   const logoInputRef = useRef<HTMLInputElement>(null)
   const bgInputRef = useRef<HTMLInputElement>(null)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+
+  // Upload işlemlerini iptal etmek için ref'ler
+  const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
+  const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+  // YENİ: Component unmount olduğunda tüm toast'ları ve upload'ları temizle
+  useEffect(() => {
+    return () => {
+      // Bekleyen tüm upload'ları iptal et
+      uploadAbortControllers.current.forEach(controller => controller.abort())
+
+      // Tüm aktif timeout'ları temizle
+      uploadTimeoutIds.current.forEach(timeout => clearTimeout(timeout))
+
+      // UI temizliği
+      toast.dismiss()
+    }
+  }, [])
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [visibleCount, setVisibleCount] = useState(12)
   const [activeTab, setActiveTab] = useState("content")
@@ -223,242 +266,194 @@ export function CatalogEditor({
     onLayoutChange(templateId)
   }
 
-  // Upload işlemlerini iptal etmek için ref'ler
-  const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
-  const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  // Sayfa açıldığında oturumu arka planda tazele (Kullanıcı upload yapana kadar hazır olsun)
+  useEffect(() => {
+    const refreshSessionInBackground = async () => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client")
+        const supabase = createClient()
+        await supabase.auth.refreshSession()
+      } catch (e) {
+        // Silent error
+      }
+    }
+    refreshSessionInBackground()
+  }, [])
 
-  // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
+  // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) hızlı bir kontrol yap
   const handleUploadClick = async () => {
-    // Session check logic here using createClient imported from lib/supabase/client
-    // But we need to import createClient first if not already imported.
-    // Looking at imports, createClient is not imported in this file, only getSessionSafe and storage.
-    // However, getSessionSafe uses createClient internally or we can use refreshSession from it?
-    // Let's check imports. Lines 1-30 shows `import { getSessionSafe } from "@/lib/supabase/client"`.
-    // We need to add `createClient` to imports or use a way to refresh.
-    // Actually, let's use `createClient` to be consistent with other files.
-    // I will add the function body here and assume `createClient` needs to be added to imports or used from `getSessionSafe` if it exposed it (it usually doesn't).
-    // Wait, the previous tool output showed imports. Line 30: `import { getSessionSafe } from "@/lib/supabase/client"`.
-    // I need to add `createClient` to imports or use `supabase-js` directly but better to use the helper.
-    // Let's check if I can add the function now and fix imports in next step or use a dynamic import/existing import if possible.
-    // To be safe, I'll add the function and then check imports.
-    // Actually, I can use `getSessionSafe` which might refresh? No, we want explicit refresh.
-    // Let's add `createClient` to the import list in a separate step or just use what we have?
-    // I'll add the function now.
-
-    const { createClient } = await import("@/lib/supabase/client")
-    const supabase = createClient()
-    const { error } = await supabase.auth.refreshSession()
-    if (error) console.error('[CatalogEditor] Pre-upload session refresh failed:', error)
+    try {
+      const { createClient } = await import("@/lib/supabase/client")
+      const supabase = createClient()
+      await supabase.auth.getSession()
+    } catch (e) {
+      console.error('[CatalogEditor] handleUploadClick session check error:', e)
+    }
   }
 
   // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
-  const uploadFileWithRetry = async (file: File, type: 'logo' | 'bg', signal?: AbortSignal): Promise<string> => {
+  const uploadFileWithRetry = async (
+    file: File,
+    type: 'logo' | 'bg' | 'cover',
+    parentSignal?: AbortSignal,
+    onProgress?: (status: string) => void
+  ): Promise<string> => {
     const MAX_RETRIES = 3
-    const TIMEOUT_MS = 10000 // 10 Saniye (Kullanıcı isteği)
-    const uploadKey = `${type}-${Date.now()}`
+    const TIMEOUT_MS = type === 'bg' ? 120000 : 30000 // Arka planlar için 120sn (2dk), diğerleri için 30sn
+    const typeLabel = type === 'logo' ? 'Logo' : (type === 'cover' ? 'Kapak' : 'Arka plan')
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      // İptal kontrolü
-      if (signal?.aborted) {
-        throw new Error('Upload cancelled')
-      }
+      // 1. İptal kontrolü (Her deneme başında)
+      if (parentSignal?.aborted) throw new Error('Upload cancelled')
 
+      let currentAttemptController = new AbortController()
       let timeoutId: NodeJS.Timeout | null = null
 
-      let retryToastId: string | number | null = null
-
       try {
-        // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
+        // 2. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
         if (attempt > 0) {
-          const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
-          retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000) // Max 5sn bekle
+          onProgress?.(`Tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
 
-          // Bekleme sırasında da iptal kontrolü
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
-              if (signal?.aborted) {
+              if (parentSignal?.aborted) {
                 clearInterval(checkInterval)
-                if (retryToastId) toast.dismiss(retryToastId)
                 reject(new Error('Upload cancelled'))
               }
             }, 100)
-
-            setTimeout(() => {
-              clearInterval(checkInterval)
-              if (retryToastId) toast.dismiss(retryToastId)
-              resolve()
-            }, waitTime)
+            setTimeout(() => { clearInterval(checkInterval); resolve(); }, waitTime)
           })
         }
 
         // İptal kontrolü (bekleme sonrası)
-        if (signal?.aborted) {
+        if (parentSignal?.aborted) {
           throw new Error('Upload cancelled')
         }
+        onProgress?.(attempt > 0 ? `Yükleniyor (Deneme ${attempt + 1})...` : 'Yükleniyor...')
 
-        // 2. Dosya adı oluştur
+        // 3. Dosya adı oluştur
         const fileExtension = file.name.split('.').pop() || 'jpg'
-        const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+        const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExtension}`
+        const folder = type === 'logo' ? 'company-logos' : (type === 'cover' ? 'catalog-covers' : 'catalog-backgrounds')
 
-        // 3. Klasör belirleme
-        const folder = type === 'logo' ? 'company-logos' : 'catalog-backgrounds'
-
-        // 4. YARIŞ BAŞLASIN: Upload vs Timeout
-        // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
-
+        // 4. YARIŞ: Yükleme vs Zaman Aşımı
         const uploadPromise = storage.upload(file, {
-          path: folder, // Logo için company-logos, background için catalog-backgrounds
+          path: folder,
           contentType: file.type || 'image/jpeg',
           cacheControl: '3600',
           fileName,
-          signal, // AĞ SEVİYESİNDE İPTAL DESTEĞİ
+          signal: currentAttemptController.signal,
         })
 
-        // Timeout promise'i (temizlenebilir)
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => {
-            console.error(`[CatalogEditor] ⏱️ Upload timeout for ${type} after ${TIMEOUT_MS / 1000} seconds`)
+            console.warn(`[CatalogEditor] ⏱️ Attempt ${attempt + 1} timeout (${TIMEOUT_MS / 1000}s)`)
+            currentAttemptController.abort() // Zaman aşımı olunca fetch'i de kes
             reject(new Error('UPLOAD_TIMEOUT'))
           }, TIMEOUT_MS)
-
-          // Timeout ID'yi kaydet (temizlemek için)
-          uploadTimeoutIds.current.set(uploadKey, timeoutId)
         })
 
-        const result = await Promise.race([uploadPromise, timeoutPromise]) as { url: string } | never
-
-        // Timeout'u temizle (başarılı olduysa)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          uploadTimeoutIds.current.delete(uploadKey)
-          timeoutId = null
-        }
-        // Retry toast'unu kapat
-        if (retryToastId) {
-          toast.dismiss(retryToastId)
-          retryToastId = null
+        // Hem ebeveyn sinyali hem de yerel timeout sinyali ile çalış
+        if (parentSignal) {
+          parentSignal.addEventListener('abort', () => currentAttemptController.abort())
         }
 
-        // 5. Sonuç Kontrolü
-        if (result && result.url) {
-          return result.url // Başarılı! URL'i döndür ve fonksiyondan çık.
-        } else {
-          throw new Error('Upload successful but URL is missing')
-        }
+        const result = (await Promise.race([uploadPromise, timeoutPromise])) as { url: string }
+
+        if (timeoutId) clearTimeout(timeoutId)
+
+        if (result?.url) return result.url
+        throw new Error('URL dönmedi')
 
       } catch (error: unknown) {
-        // Timeout'u temizle (hata durumunda)
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-          uploadTimeoutIds.current.delete(uploadKey)
-          timeoutId = null
-        }
-        // Retry toast'unu kapat
-        if (retryToastId) {
-          toast.dismiss(retryToastId)
-          retryToastId = null
-        }
+        if (timeoutId) clearTimeout(timeoutId)
+        currentAttemptController.abort()
 
         const errorMessage = error instanceof Error ? error.message : String(error)
 
-        // İptal hatası ise direkt fırlat
-        if (errorMessage === 'Upload cancelled' || signal?.aborted) {
-          throw error
+        if (errorMessage === 'Upload cancelled' || parentSignal?.aborted) {
+          throw new Error('Upload cancelled')
         }
 
-        console.error(`[CatalogEditor] ❌ Attempt ${attempt + 1}/${MAX_RETRIES} failed for ${type}:`, errorMessage)
-
-        // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
-        if (attempt === MAX_RETRIES - 1) {
-          throw error
-        }
-        // Değilse döngü başa döner ve tekrar dener
+        if (attempt === MAX_RETRIES - 1) throw error
       }
     }
-    throw new Error('Unexpected retry loop exit')
+    throw new Error("Yükleme başarıyla tamamlanamadı.")
   }
 
   // Logo/BG Upload Logic
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg' | 'cover') => {
     const file = e.target.files?.[0]
     if (!file) return
-    const limit = type === 'logo' ? 2 : 5
+
+    const limit = type === 'logo' ? 2 : 10 // Arka planlar için 10MB limit
     if (file.size > limit * 1024 * 1024) {
-      toast.error(t('toasts.imageSizeLimit', { size: limit }) as string)
+      toast.error(`Dosya çok büyük. Maksimum ${limit}MB yüklenebilir.`)
+      if (e.target) e.target.value = ''
       return
     }
 
-    // Önceki upload işlemlerini iptal et (aynı type için)
     const uploadKey = `${type}-upload`
     const existingController = uploadAbortControllers.current.get(uploadKey)
     if (existingController) {
       existingController.abort()
     }
 
-    // Yeni AbortController oluştur
     const abortController = new AbortController()
     uploadAbortControllers.current.set(uploadKey, abortController)
 
-    // Önceki timeout'ları temizle
     const existingTimeout = uploadTimeoutIds.current.get(uploadKey)
     if (existingTimeout) {
       clearTimeout(existingTimeout)
       uploadTimeoutIds.current.delete(uploadKey)
     }
 
-    const toastId = toast.loading(`${type === 'logo' ? 'Logo' : 'Arka plan'} yükleniyor...`)
+    const typeLabel = type === 'logo' ? 'Logo' : (type === 'cover' ? 'Kapak' : 'Arka plan')
+    const toastId = `upload-${type}-${Date.now()}`
+    toast.loading(`${typeLabel} hazırlanıyor...`, { id: toastId })
 
     try {
-      // 0. Oturum Kontrolü (Daha dayanıklı)
-      const session = await getSessionSafe()
-      if (!session?.access_token) {
-        toast.error("Oturum hazır değil veya süresi dolmuş. Lütfen tekrar giriş yapın.")
-        return
-      }
+      // 1. Session check removed - Cloudinary upload is client-side and doesn't depend on Supabase session immediately.
+      // Access control is handled at the page level and during the final "Save" action.
 
-      // YUKARIDAKİ AKILLI FONKSİYONU ÇAĞIRIYORUZ
-      const publicUrl = await uploadFileWithRetry(file, type, abortController.signal)
+      // 2. Upload (Yeniden deneme mekanizması ile)
+      toast.loading(`${typeLabel} gönderiliyor...`, { id: toastId })
 
+      const publicUrl = await uploadFileWithRetry(file, type, abortController.signal, (status) => {
+        toast.loading(`${typeLabel}: ${status}`, { id: toastId })
+      })
 
-      // State'i güncelle (veritabanına kaydetmeye gerek yok, sadece state)
+      console.log(`[CatalogEditor] ✅ Success: ${publicUrl}`)
+
       if (type === 'logo') {
         onLogoUrlChange?.(publicUrl)
+      } else if (type === 'cover') {
+        onCoverImageUrlChange?.(publicUrl)
       } else {
         onBackgroundImageChange?.(publicUrl)
       }
 
-      toast.success(t(`toasts.${type === 'logo' ? 'logoUploaded' : 'backgroundUploaded'}`) as string, { id: toastId })
-    } catch (error) {
-      // İptal hatası ise sessizce geç
-      if (error instanceof Error && (error.message === 'Upload cancelled' || abortController.signal.aborted)) {
+      toast.success(`${typeLabel} yüklendi.`, { id: toastId })
+    } catch (error: unknown) {
+      console.error(`[CatalogEditor] ❌ Error:`, error)
+
+      const errorMessage = error instanceof Error ? error.message : String(error)
+
+      if (errorMessage === 'Upload cancelled' || abortController.signal.aborted) {
         toast.dismiss(toastId)
         return
       }
 
-      console.error("Upload error:", error)
+      let userMessage = "Yükleme başarısız."
+      if (errorMessage === 'SESSION_TIMEOUT') userMessage = "Oturum doğrulanamadı, lütfen tekrar deneyin."
+      else if (errorMessage === 'UPLOAD_TIMEOUT') userMessage = "İşlem çok uzun sürdü, bağlantınızı kontrol edin."
+      else if (errorMessage.includes('too large')) userMessage = "Dosya boyutu çok büyük."
+      else userMessage = `Hata: ${errorMessage.substring(0, 40)}`
 
-      // Hata mesajını ayrıştır ve kullanıcı dostu bir mesaj göster
-      let errorMessage = "Yükleme başarısız oldu."
-
-      if (error instanceof Error && (error.message === 'UPLOAD_TIMEOUT' || error.message === 'TIMEOUT' || error.message.includes('timeout'))) {
-        errorMessage = "İşlem zaman aşımına uğradı (tüm denemeler başarısız). İnternet bağlantınızı kontrol edip tekrar deneyin."
-      } else if (error instanceof Error && error.message) {
-        // Diğer teknik hatalar için de kısa bir bilgi
-        const msg = error.message.length > 60 ? error.message.substring(0, 60) + '...' : error.message
-        errorMessage = `Hata: ${msg}`
-      } else {
-        errorMessage = `Bilinmeyen bir hata oluştu: ${String(error)}`
-      }
-
-      toast.error(errorMessage, {
-        id: toastId,
-        duration: 5000 // Hata mesajı biraz daha uzun kalsın
-      })
+      toast.error(userMessage, { id: toastId })
     } finally {
-      // Cleanup: AbortController'ı temizle
       uploadAbortControllers.current.delete(uploadKey)
-
-      // Dosya inputunu temizle ki aynı dosyayı tekrar seçebilsin
       if (e.target) e.target.value = ''
     }
   }
@@ -788,8 +783,8 @@ export function CatalogEditor({
           </TabsContent>
 
           <TabsContent value="design" className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
-            {/* DESIGN GRID - TWO COLUMNS ON DESKTOP */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* DESIGN GRID - STACKS ON MOBILE/TABLET, TWO COLUMNS ON LARGE SCREENS */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
               {/* 1. APPEARANCE SETTINGS */}
               <div className="space-y-4">
@@ -935,8 +930,8 @@ export function CatalogEditor({
                       <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
                     </div>
 
-                    {/* Logo/Title Settings Grid */}
-                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                    {/* Logo/Title Settings Grid - Responsive stacking */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest pl-1">Logo Konumu</Label>
                         <Select value={logoPosition || 'header-left'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
@@ -981,7 +976,7 @@ export function CatalogEditor({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Primary Color Picker */}
                         <div className="space-y-2 relative" ref={primaryColorPickerRef}>
                           <Label className="text-[10px] font-bold text-slate-500">Üst Kart Rengi</Label>
@@ -1033,7 +1028,7 @@ export function CatalogEditor({
               </div>
 
               {/* 3. BACKGROUND SETTINGS - FULL WIDTH ON LG */}
-              <div className="space-y-4 lg:col-span-2">
+              <div className="space-y-4 xl:col-span-2">
                 <div className="flex items-center gap-2 px-1">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
                     <ImageIcon className="w-4 h-4" />
@@ -1147,6 +1142,208 @@ export function CatalogEditor({
               </div>
             </div>
 
+            {/* 4. STORYTELLING CATALOG SETTINGS */}
+            <div className="space-y-4 xl:col-span-2">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Hikaye Kataloğu</h3>
+              </div>
+
+              <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden">
+                <CardContent className="p-6 space-y-6">
+                  {/* Cover Page Toggle */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-wide">Kapak Sayfası</Label>
+                        <p className="text-[10px] text-slate-500">Katalogda profesyonel bir kapak sayfası göster</p>
+                      </div>
+                      <button
+                        onClick={() => onEnableCoverPageChange?.(!enableCoverPage)}
+                        className={cn(
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out",
+                          enableCoverPage ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            enableCoverPage ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Cover Page Options (only visible when enabled) */}
+                    {enableCoverPage && (
+                      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-500">
+
+                        {/* THEME SELECTOR */}
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kapak Tasarımı</Label>
+                          <Select value={coverTheme || 'modern'} onValueChange={(v) => onCoverThemeChange?.(v)}>
+                            <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                              {Object.entries(COVER_THEMES).map(([key, theme]) => (
+                                <SelectItem key={key} value={key}>
+                                  <div className="flex flex-col gap-0.5 text-left">
+                                    <span className="font-bold">{theme.name}</span>
+                                    <span className="text-[9px] text-slate-400 font-normal">{theme.description}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Cover Image Upload */}
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kapak Görseli</Label>
+                          <div className="flex flex-col gap-3">
+                            {coverImageUrl && (
+                              <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-800">
+                                <NextImage src={coverImageUrl} alt="Cover" fill className="object-cover" unoptimized />
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  handleUploadClick();
+                                  coverInputRef.current?.click();
+                                }}
+                                className="flex-1 h-10 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 text-xs font-bold uppercase tracking-wide transition-all"
+                              >
+                                <Upload className="w-4 h-4 mr-2" />
+                                {coverImageUrl ? 'Görseli Değiştir' : 'Görsel Yükle'}
+                              </Button>
+                              <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} />
+                              {coverImageUrl && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onCoverImageUrlChange?.(null)}
+                                  className="h-10 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50"
+                                >
+                                  Kaldır
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Cover Description */}
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kapak Açıklaması</Label>
+                          <textarea
+                            value={coverDescription || ''}
+                            onChange={(e) => onCoverDescriptionChange?.(e.target.value || null)}
+                            placeholder="Katalog hakkında kısa bir açıklama (maksimum 500 karakter)"
+                            maxLength={500}
+                            className="w-full min-h-[100px] p-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none"
+                          />
+                          <p className="text-[9px] text-slate-400 text-right">{(coverDescription || '').length}/500</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Category Dividers Toggle */}
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-wide">Kategori Geçiş Sayfaları</Label>
+                        <p className="text-[10px] text-slate-500">Kategoriler arası geçişlerde görsel ayraç sayfaları göster</p>
+                      </div>
+                      <button
+                        onClick={() => onEnableCategoryDividersChange?.(!enableCategoryDividers)}
+                        className={cn(
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out",
+                          enableCategoryDividers ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            enableCategoryDividers ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+
+
+            {/* NEW: VISUAL STRUCTURE PREVIEW (SAYFA YAPISI) */}
+            <div className="space-y-6 pt-6 animate-in fade-in duration-700">
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
+                <div className="flex items-center gap-2 px-6">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 shadow-lg shadow-amber-200 flex items-center justify-center text-white">
+                    <Layout className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">SAYFA YAPISI</h3>
+                </div>
+                <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x px-4 max-w-7xl mx-auto items-center justify-center min-h-[160px]">
+                {/* 1. Cover Page Card */}
+                <div className={cn(
+                  "flex-shrink-0 w-28 h-40 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-300",
+                  enableCoverPage
+                    ? "border-indigo-600 bg-indigo-50/50 shadow-lg scale-105"
+                    : "border-slate-200 border-dashed bg-slate-50 opacity-60 grayscale"
+                )}>
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                    enableCoverPage ? "bg-indigo-600 shadow-md" : "bg-slate-300"
+                  )}>
+                    <span className="text-[10px] font-black">01</span>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-tight text-slate-600">Kapak Sayfası</span>
+                  {enableCoverPage && <div className="text-[9px] text-green-600 font-bold bg-green-100 px-1.5 py-0.5 rounded">AKTİF</div>}
+                </div>
+
+                {/* Arrow */}
+                <div className="text-slate-300"><ChevronRight className="w-5 h-5" /></div>
+
+                {/* 2. Intro/Products Card */}
+                <div className="flex-shrink-0 w-28 h-40 rounded-xl border-2 border-slate-200 bg-white shadow-sm flex flex-col items-center justify-center gap-2">
+                  <div className="w-10 h-14 bg-slate-100 rounded border border-slate-200 flex flex-col gap-1 p-1">
+                    <div className="w-full h-1/2 bg-slate-200 rounded-sm"></div>
+                    <div className="w-full h-1/2 bg-slate-200 rounded-sm"></div>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-tight text-slate-600">Ürün Sayfaları</span>
+                  <span className="text-[9px] text-slate-400 font-bold">{selectedProductIds.length} Ürün</span>
+                </div>
+
+                {/* Arrow */}
+                {enableCategoryDividers && (
+                  <>
+                    <div className="text-slate-300"><ChevronRight className="w-5 h-5" /></div>
+                    {/* 3. Category Divider Card */}
+                    <div className="flex-shrink-0 w-28 h-40 rounded-xl border-2 border-purple-500 bg-purple-50/50 shadow-lg scale-105 flex flex-col items-center justify-center gap-2 animate-in zoom-in-50">
+                      <div className="w-8 h-8 rounded-lg bg-purple-600 shadow-md flex items-center justify-center text-white">
+                        <Layout className="w-4 h-4" />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-tight text-slate-600 text-center px-1">Kategori Geçişleri</span>
+                      <div className="text-[9px] text-purple-600 font-bold bg-purple-100 px-1.5 py-0.5 rounded">AKTİF</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* 4. TEMPLATE SELECTOR - STUNNING GRID */}
             <div className="space-y-6 pt-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-center gap-3">
@@ -1160,7 +1357,7 @@ export function CatalogEditor({
                 <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
               </div>
 
-              <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto px-4">
                 {TEMPLATES.map((tmpl) => {
                   const isSelected = layout === tmpl.id;
                   return (
@@ -1168,14 +1365,15 @@ export function CatalogEditor({
                       key={tmpl.id}
                       onClick={() => handleTemplateSelect(tmpl.id, tmpl.isPro)}
                       className={cn(
-                        "group relative aspect-[3/4.2] rounded-[1.75rem] transition-all duration-500 cursor-pointer overflow-hidden",
+                        "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-white",
                         isSelected
-                          ? "ring-4 ring-indigo-600 ring-offset-4 ring-offset-slate-50 scale-95 shadow-2xl"
-                          : "hover:scale-[1.03] hover:shadow-xl shadow-md border-border"
+                          ? "ring-8 ring-indigo-600 ring-offset-0 scale-95 shadow-2xl"
+                          : "shadow-lg border border-slate-200 hover:shadow-2xl hover:scale-[1.02]"
                       )}
                     >
-                      <div className="absolute inset-0 bg-white transition-all duration-500 overflow-hidden">
-                        <div className="w-full h-full catalog-light text-slate-950">
+                      {/* Preview Container - Takes most of the space */}
+                      <div className="absolute inset-0 pb-14">
+                        <div className="w-full h-full catalog-light pointer-events-none">
                           <ResponsiveContainer>
                             <CatalogPreview
                               layout={tmpl.id}
@@ -1189,36 +1387,47 @@ export function CatalogEditor({
                               showSku={showSku ?? true}
                               showUrls={showUrls ?? true}
                               productImageFit={productImageFit || 'cover'}
+                              backgroundColor={backgroundColor}
+                              backgroundImage={backgroundImage}
+                              backgroundImageFit={backgroundImageFit}
+                              backgroundGradient={backgroundGradient}
+                              logoUrl={logoUrl}
+                              logoPosition={logoPosition ?? undefined}
+                              logoSize={_logoSize ?? undefined}
+                              titlePosition={_titlePosition ?? undefined}
+                              enableCoverPage={false}
+                              coverImageUrl={null}
+                              coverDescription={null}
+                              enableCategoryDividers={false}
+                              showControls={false}
                             />
                           </ResponsiveContainer>
                         </div>
                       </div>
 
-                      {/* Premium Glass Overlay */}
+                      {/* Clean Bottom Bar - High Contrast */}
                       <div className={cn(
-                        "absolute inset-x-0 bottom-0 p-3.5 transition-all duration-500 z-20",
+                        "absolute inset-x-0 bottom-0 h-10 px-3 transition-all duration-300 z-20 flex items-center justify-between border-t",
                         isSelected
-                          ? "bg-indigo-600/95 backdrop-blur-md text-white"
-                          : "bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-white group-hover:bg-indigo-600 group-hover:text-white"
+                          ? "bg-indigo-600 border-indigo-600 text-white"
+                          : "bg-white border-slate-100 text-slate-900 group-hover:bg-slate-50"
                       )}>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.1em] truncate">{tmpl.name}</p>
-                          {tmpl.isPro && !isSelected && (
-                            <span className="text-[8px] font-black bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded shadow-sm">PRO</span>
-                          )}
-                        </div>
+                        <p className="text-[9px] font-black uppercase tracking-tight truncate flex-1 leading-none">
+                          {tmpl.name}
+                        </p>
+                        {tmpl.isPro && (
+                          <span className={cn(
+                            "ml-2 text-[9px] font-black px-1.5 py-1 rounded shadow-sm shrink-0 leading-none",
+                            isSelected ? "bg-white text-indigo-600" : "bg-amber-400 text-slate-900"
+                          )}>PRO</span>
+                        )}
                       </div>
 
-                      {/* Status Indicator */}
+                      {/* Selection Checkmark */}
                       {isSelected && (
-                        <div className="absolute top-4 right-4 bg-white text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center shadow-xl animate-in zoom-in-50 duration-300 z-30">
+                        <div className="absolute top-4 right-4 bg-white text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center shadow-xl z-30 animate-in zoom-in-50">
                           <CheckSquare className="w-5 h-5" />
                         </div>
-                      )}
-
-                      {/* Selection Overlay Tint */}
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-indigo-600/5 pointer-events-none z-10" />
                       )}
                     </div>
                   );
@@ -1227,7 +1436,7 @@ export function CatalogEditor({
             </div>
           </TabsContent>
         </div>
-      </Tabs>
-    </div>
+      </Tabs >
+    </div >
   )
 }

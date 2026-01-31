@@ -1,59 +1,74 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef } from "react"
+import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
 /**
  * SessionWatcher Component
  * 
  * Bu bileşen arka planda Supabase oturumunu izler.
- * Java/Spring dünyasındaki SessionListener'a benzer bir görevi vardır:
- * 1. Oturum durumunda bir değişiklik (giriş/çıkış/token yenileme) olduğunda Server Component'leri yeniler.
- * 2. Uygulama sekmesi tekrar odaklandığında (focus) session'ı tazeler (refresh).
- * 3. Token süresi dolmuşsa veya başka bir sekmede çıkış yapılmışsa UI'ı güncel tutar.
+ * 1. Oturum değişikliğinde (giriş/çıkış) sayfayı yeniler.
+ * 2. Sekmeye odaklanıldığında veya SAYFA DEĞİŞTİĞİNDE (navigasyon) oturumu tazeler.
  */
 export function SessionWatcher() {
     const router = useRouter()
+    const pathname = usePathname()
     const supabase = createClient()
+
+    // Gereksiz refresh'leri önlemek için son kontrol zamanı
+    const lastCheckTime = useRef<number>(Date.now())
+
+    // Ortak refresh fonksiyonu
+    const refreshSession = async (source: string) => {
+        const now = Date.now()
+        // Çok sık kontrolü engelle (örn: 5 saniyede bir en fazla)
+        if (now - lastCheckTime.current < 5000) return
+
+        lastCheckTime.current = now
+
+        try {
+            // Sadece getSession çağırmak bile arka planda gerekiyorsa refresh yapar
+            const { data: { session }, error } = await supabase.auth.getSession()
+
+            if (error) {
+                console.error(`[SessionWatcher] ${source} refresh error:`, error)
+            } else if (!session && pathname?.startsWith('/dashboard')) {
+                // Dashboard'dayız ama session yok, refresh yap ki middleware yakalasın
+                console.log(`[SessionWatcher] ${source} - Session lost, refreshing router`)
+                router.refresh()
+            } else {
+                // console.log(`[SessionWatcher] ${source} - Session active`)
+            }
+        } catch (e) {
+            console.error(`[SessionWatcher] ${source} check failed`, e)
+        }
+    }
 
     useEffect(() => {
         // 1. Auth Durum Değişikliklerini Dinle
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event) => {
-
             if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-                // Next.js router.refresh() sunucu tarafındaki cookie'leri ve durumu senkronize eder
                 router.refresh()
             }
         })
 
-        // 2. Sekmeye Geri Dönüldüğünde Session'ı Tazele
-        // Bilgisayar uykudan kalktığında veya sekme saatler sonra açıldığında çalışır
-        const handleFocus = async () => {
-            const { data: { session }, error } = await supabase.auth.getSession()
-
-            if (error) {
-                console.error("[SessionWatcher] Session refresh error:", error)
-                return
-            }
-
-            if (!session) {
-                // Eğer session yoksa ve dashboard'daysak logout olmuş olabiliriz
-                if (window.location.pathname.startsWith('/dashboard')) {
-                    router.refresh()
-                }
-            }
-        }
-
+        // 2. Sekmeye Geri Dönüldüğünde
+        const handleFocus = () => refreshSession('focus')
         window.addEventListener("focus", handleFocus)
 
         return () => {
             subscription.unsubscribe()
             window.removeEventListener("focus", handleFocus)
         }
-    }, [router, supabase.auth])
+    }, [router, supabase.auth, pathname])
+
+    // 3. Her Sayfa Değişiminde (Pathname değiştiğinde)
+    useEffect(() => {
+        refreshSession('navigation')
+    }, [pathname])
 
     return null // Bu bileşen bir şey render etmez, sadece arka planda çalışır
 }

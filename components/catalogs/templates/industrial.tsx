@@ -101,7 +101,7 @@ export function IndustrialTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
+                        <Wrapper key={product.id || idx} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Left: Index & Stripe */}
                             <div className="w-10 bg-black flex flex-col items-center justify-center gap-1 shrink-0 text-white z-20">
                                 <span className="text-[10px] font-mono font-bold -rotate-90 whitespace-nowrap tracking-widest opacity-50">NO</span>

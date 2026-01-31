@@ -79,20 +79,36 @@ export default function SettingsPage() {
 
   // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele
   // Bu "Just-in-Time" kontrolü sağlar
+  // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
   const handleUploadClick = async () => {
-    const { error } = await supabase.auth.refreshSession()
-    if (error) console.error('[Settings] Pre-upload session refresh failed:', error)
+    try {
+      const { createClient } = await import("@/lib/supabase/client")
+      const supabase = createClient()
+      const { error } = await supabase.auth.refreshSession()
+      if (error) console.error('[Settings] Pre-upload session refresh failed:', error)
+    } catch (e) {
+      console.error('[Settings] handleUploadClick error:', e)
+    }
   }
+
+  // YENİ: Component unmount olduğunda tüm toast'ları ve upload'ları temizle
+  useEffect(() => {
+    return () => {
+      if (avatarAbortController.current) avatarAbortController.current.abort()
+      if (logoAbortController.current) logoAbortController.current.abort()
+      toast.dismiss()
+    }
+  }, [])
 
   // Ortak Upload Fonksiyonu (DRY Prensibi)
   const uploadFileWithRetry = async (
     file: File,
-    bucketPath: 'avatars' | 'company-logos',
+    bucketPath: string,
     customFileName: string,
     signal?: AbortSignal
   ): Promise<string> => {
     const MAX_RETRIES = 3
-    const TIMEOUT_MS = 10000 // Kullanıcı isteği: 10 saniye (Profil fotoları küçük olduğu için yeterli)
+    const TIMEOUT_MS = 30000 // 30 Saniye (Daha yüksek limit)
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       if (signal?.aborted) throw new Error('Upload cancelled')

@@ -110,10 +110,17 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Listen for session changes
   useEffect(() => {
-    const supabase = createClient()
+    // Component unmount olduğunda tüm toast'ları ve upload'ları temizle
+    return () => {
+      // Bekleyen tüm upload'ları iptal et
+      uploadAbortControllers.current.forEach(controller => controller.abort())
 
-    // Refresh session on mount if needed
-    supabase.auth.getSession()
+      // Tüm aktif timeout'ları temizle
+      uploadTimeoutIds.current.forEach(timeout => clearTimeout(timeout))
+
+      // UI temizliği
+      toast.dismiss()
+    }
   }, [])
 
 
@@ -193,9 +200,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
   const handleUploadClick = async () => {
-    const supabase = createClient()
-    const { error } = await supabase.auth.refreshSession()
-    if (error) console.error('[ProductModal] Pre-upload session refresh failed:', error)
+    try {
+      const { createClient } = await import("@/lib/supabase/client")
+      const supabase = createClient()
+      const { error } = await supabase.auth.refreshSession()
+      if (error) console.error('[ProductModal] Pre-upload session refresh failed:', error)
+    } catch (e) {
+      console.error('[ProductModal] handleUploadClick error:', e)
+    }
   }
 
   // Pending fotoğrafları Cloudinary'ye yükle (sadece "Kaydet" butonunda çağrılacak)
@@ -211,16 +223,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       }
 
       let timeoutId: NodeJS.Timeout | null = null
-
       let retryToastId: string | number | null = null
 
       try {
         // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
         if (attempt > 0) {
-          const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+          const waitTime = 1000 * Math.pow(2, attempt - 1)
           retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
 
-          // Bekleme sırasında da iptal kontrolü
           await new Promise<void>((resolve, reject) => {
             const checkInterval = setInterval(() => {
               if (signal?.aborted) {
@@ -238,35 +248,36 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           })
         }
 
-        // İptal kontrolü (bekleme sonrası)
         if (signal?.aborted) {
           throw new Error('Upload cancelled')
         }
 
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+        const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
 
-        // Basit timeout promise
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), TIMEOUT_MS)
-        })
-
-        // Abort promise - İptal edildiğinde hemen reject et
-        const abortPromise = new Promise<never>((_, reject) => {
-          if (signal?.aborted) return reject(new Error('Upload cancelled'))
-          signal?.addEventListener('abort', () => reject(new Error('Upload cancelled')))
-        })
-
+        // 2. YARIŞ BAŞLASIN: Upload vs Timeout
         const uploadPromise = storage.upload(file, {
           path: 'products',
           contentType: file.type || 'image/jpeg',
           cacheControl: '3600',
           fileName,
-          signal: signal,
+          signal,
         })
 
-        const result = (await Promise.race([uploadPromise, timeoutPromise, abortPromise])) as { url: string } | null
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            console.error(`[ProductModal] ⏱️ Upload timeout for image after ${TIMEOUT_MS / 1000} seconds`)
+            reject(new Error('UPLOAD_TIMEOUT'))
+          }, TIMEOUT_MS)
 
-        if (timeoutId) clearTimeout(timeoutId)
+          uploadTimeoutIds.current.set(uploadId, timeoutId)
+        })
+
+        const result = (await Promise.race([uploadPromise, timeoutPromise])) as { url: string } | never
+
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          uploadTimeoutIds.current.delete(uploadId)
+        }
         if (retryToastId) toast.dismiss(retryToastId)
 
         if (result && result.url) {
@@ -275,29 +286,25 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         throw new Error('Upload successful but URL is missing')
 
       } catch (error: unknown) {
-        const err = error as Error
-        // Timeout'u temizle (hata durumunda)
+        // Timeout'u temizle
         if (timeoutId) {
           clearTimeout(timeoutId)
           uploadTimeoutIds.current.delete(uploadId)
-          timeoutId = null
         }
-        // Retry toast'unu kapat
-        if (retryToastId) {
-          toast.dismiss(retryToastId)
-          retryToastId = null
-        }
+        if (retryToastId) toast.dismiss(retryToastId)
+
+        const errorMessage = error instanceof Error ? error.message : String(error)
 
         // İptal hatası ise direkt fırlat
-        if (err.message === 'Upload cancelled' || signal?.aborted) {
-          throw err
+        if (errorMessage === 'Upload cancelled' || signal?.aborted) {
+          throw error
         }
 
-        console.error(`[ProductModal] ❌ Attempt ${attempt + 1} failed:`, err.message)
+        console.error(`[ProductModal] ❌ Attempt ${attempt + 1} failed:`, errorMessage)
 
         // Eğer son denemeyse hatayı fırlat ki ana fonksiyon yakalasın
         if (attempt === MAX_RETRIES - 1) {
-          throw err
+          throw error
         }
         // Değilse döngü başa döner ve tekrar dener
       }

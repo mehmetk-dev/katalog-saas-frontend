@@ -64,7 +64,13 @@ cd ..
 
 ### 2. Environment (Ortam) Değişkenleri
 
-Uygulamanın tam fonksiyonel çalışması için çevresel değişkenlerin doğru set edilmesi kritik önem taşır. Hem kök dizindeki hem de backend dizindeki `.env.example` dosyalarını kopyalayıp güncelleyin:
+> ⚠️ **KRİTİK UYARI:** Local development için **ASLA** production database kullanmayın!
+
+**📚 Detaylı Setup Kılavuzları:**
+- 🚀 **[LOCAL_DB_QUICKSTART.md](./LOCAL_DB_QUICKSTART.md)** - Hızlı başlangıç (5 dakika)
+- 📖 **[ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md)** - Detaylı environment kurulumu
+
+Uygulamanın tam fonksiyonel çalışması için çevresel değişkenlerin doğru set edilmesi kritik önem taşır.
 
 **Frontend (Kök Dizin - `.env.local`):**
 ```env

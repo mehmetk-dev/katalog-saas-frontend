@@ -37,6 +37,9 @@ import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import type { TemplateProps } from "@/components/catalogs/templates/types"
+// Storytelling Catalog Components
+import { CoverPage } from "@/components/catalogs/cover-page"
+import { CategoryDivider } from "@/components/catalogs/category-divider"
 
 interface PublicCatalogClientProps {
     catalog: Catalog
@@ -51,6 +54,9 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
+    const [isExporting, setIsExporting] = useState(false)
+    // Lazy loading for mobile performance - track which pages are visible
+    const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([0, 1, 2]))
 
     // Detaylı ekran boyutu kontrolü
     useEffect(() => {
@@ -93,10 +99,75 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
 
     const productsPerPage = getPageSize(catalog.layout, columnsPerRow)
 
-    const pages: Product[][] = []
-    for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
-        pages.push(filteredProducts.slice(i, i + productsPerPage))
+    // === STORYTELLING CATALOG LOGIC ===
+    // Build pages array with cover, category dividers, and product pages
+    type CatalogPage =
+        | { type: 'cover' }
+        | { type: 'divider'; categoryName: string; firstProductImage: string | null }
+        | { type: 'products'; products: Product[]; pageNumber: number; totalPages: number }
+
+    const catalogPages: CatalogPage[] = []
+
+    // 1. Add Cover Page (if enabled)
+    if (catalog.enable_cover_page) {
+        catalogPages.push({ type: 'cover' })
     }
+
+    // 2. Group products by category and create pages
+    if (catalog.enable_category_dividers && filteredProducts.length > 0) {
+        // Group products by category
+        const productsByCategory = new Map<string, Product[]>()
+        filteredProducts.forEach(product => {
+            const category = product.category || 'Kategorisiz'
+            if (!productsByCategory.has(category)) {
+                productsByCategory.set(category, [])
+            }
+            productsByCategory.get(category)!.push(product)
+        })
+
+        // For each category, add divider + product pages
+        productsByCategory.forEach((products, categoryName) => {
+            // Add category divider
+            const firstProductImage = products[0]?.image_url || null
+            catalogPages.push({
+                type: 'divider',
+                categoryName,
+                firstProductImage
+            })
+
+            // Paginate products in this category
+            for (let i = 0; i < products.length; i += productsPerPage) {
+                catalogPages.push({
+                    type: 'products',
+                    products: products.slice(i, i + productsPerPage),
+                    pageNumber: 0, // Will be updated later
+                    totalPages: 0  // Will be updated later
+                })
+            }
+        })
+    } else {
+        // No category dividers, just paginate all products
+        for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
+            catalogPages.push({
+                type: 'products',
+                products: filteredProducts.slice(i, i + productsPerPage),
+                pageNumber: 0,
+                totalPages: 0
+            })
+        }
+    }
+
+    // 3. Update page numbers for product pages
+    let productPageCounter = 1
+    const totalProductPages = catalogPages.filter(p => p.type === 'products').length
+    catalogPages.forEach(page => {
+        if (page.type === 'products') {
+            page.pageNumber = productPageCounter
+            page.totalPages = totalProductPages
+            productPageCounter++
+        }
+    })
+
 
 
     const toggleFullscreen = () => {
@@ -114,7 +185,11 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     // İndirme işlemi: İstemci tarafında PDF oluşturma (API bağımlılığı kaldırıldı)
     const handleDownload = async () => {
         try {
+            setIsExporting(true) // Animasyonları devre dışı bırak
             toast.loading("PDF oluşturuluyor, lütfen bekleyin... (Sayfa sayısına göre biraz sürebilir)", { id: "pdf-download", duration: 10000 })
+
+            // Kısa bir gecikme ile render'ın tamamlanmasını bekle
+            await new Promise(resolve => setTimeout(resolve, 100))
 
             // A4 Boyutu (mm cinsinden)
             const content = document.querySelectorAll('[data-pdf-page="true"]')
@@ -169,6 +244,8 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
         } catch (error) {
             console.error("PDF Generation Error:", error)
             toast.error("PDF oluşturulamadı. Lütfen tekrar deneyin.", { id: "pdf-download" })
+        } finally {
+            setIsExporting(false) // Animasyonları tekrar aç
         }
     }
 
@@ -367,7 +444,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                             }}
                         >
                             <div className="w-full flex flex-col gap-6 items-center">
-                                {pages.map((pageProds, index) => (
+                                {catalogPages.map((page, index) => (
                                     <div
                                         key={index}
                                         data-pdf-page="true"
@@ -380,7 +457,26 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                     >
                                         <div className="w-full h-full" style={{ height: '1123px' }}>
                                             <div style={{ width: '100%', height: '100%' }}>
-                                                {renderTemplate(pageProds, index + 1, pages.length)}
+                                                {page.type === 'cover' ? (
+                                                    <CoverPage
+                                                        catalogName={catalog.name}
+                                                        coverImageUrl={catalog.cover_image_url}
+                                                        coverDescription={catalog.cover_description}
+                                                        logoUrl={catalog.logo_url}
+                                                        primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                        isExporting={isExporting}
+                                                        theme={catalog.cover_theme}
+                                                    />
+                                                ) : page.type === 'divider' ? (
+                                                    <CategoryDivider
+                                                        categoryName={page.categoryName}
+                                                        firstProductImage={page.firstProductImage}
+                                                        primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                        theme={catalog.cover_theme}
+                                                    />
+                                                ) : (
+                                                    renderTemplate(page.products, page.pageNumber, page.totalPages)
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -390,8 +486,8 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                     </TransformWrapper>
                 ) : (
                     <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
-                        {pages.length > 0 && pages[0].length > 0 ? (
-                            pages.map((pageProds, index) => (
+                        {catalogPages.length > 0 ? (
+                            catalogPages.map((page, index) => (
                                 <div
                                     key={index}
                                     data-pdf-page="true"
@@ -406,7 +502,26 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                     {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
                                     <div className="w-full h-full" style={{ height: '1123px' }}>
                                         <div style={{ width: '100%', height: '100%' }}>
-                                            {renderTemplate(pageProds, index + 1, pages.length)}
+                                            {page.type === 'cover' ? (
+                                                <CoverPage
+                                                    catalogName={catalog.name}
+                                                    coverImageUrl={catalog.cover_image_url}
+                                                    coverDescription={catalog.cover_description}
+                                                    logoUrl={catalog.logo_url}
+                                                    primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                    isExporting={isExporting}
+                                                    theme={catalog.cover_theme}
+                                                />
+                                            ) : page.type === 'divider' ? (
+                                                <CategoryDivider
+                                                    categoryName={page.categoryName}
+                                                    firstProductImage={page.firstProductImage}
+                                                    primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                    theme={catalog.cover_theme}
+                                                />
+                                            ) : (
+                                                renderTemplate(page.products, page.pageNumber, page.totalPages)
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -35,6 +35,12 @@ export interface Catalog {
   product_image_fit?: 'cover' | 'contain' | 'fill'  // Ürün görsel hizalama
   header_text_color?: string  // Başlık yazı rengi
   view_count?: number
+  // Storytelling Catalog Features (Cover & Category Pages)
+  enable_cover_page?: boolean  // Enable cover page (default: false)
+  cover_image_url?: string | null  // Custom cover image uploaded by user
+  cover_description?: string | null  // Cover page description (max 500 chars)
+  enable_category_dividers?: boolean  // Enable category transition pages (default: false)
+  cover_theme?: string // Theme for the cover page (e.g., 'modern', 'minimal', 'lux', etc.)
   created_at: string
   updated_at: string
   // Public API'den gelen ürünler (opsiyonel)

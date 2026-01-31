@@ -99,6 +99,27 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
         }
     }, [searchParams, isFreeUser])
 
+    // YENİ: Component unmount olduğunda tüm toast'ları ve upload'ları temizle
+    useEffect(() => {
+        return () => {
+            if (uploadAbortController.current) uploadAbortController.current.abort()
+            if (uploadTimeoutId.current) clearTimeout(uploadTimeoutId.current)
+            toast.dismiss()
+        }
+    }, [])
+
+    // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
+    const handleUploadClick = async () => {
+        try {
+            const { createClient } = await import("@/lib/supabase/client")
+            const supabase = createClient()
+            const { error } = await supabase.auth.refreshSession()
+            if (error) console.error('[Categories] Pre-upload session refresh failed:', error)
+        } catch (e) {
+            console.error('[Categories] handleUploadClick error:', e)
+        }
+    }
+
     // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
     const uploadCategoryImageWithRetry = async (file: File, signal?: AbortSignal): Promise<string> => {
         const MAX_RETRIES = 3
@@ -117,10 +138,9 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
             try {
                 // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
                 if (attempt > 0) {
-                    const waitTime = 1000 * Math.pow(2, attempt - 1) // 1s, 2s, 4s...
+                    const waitTime = 1000 * Math.pow(2, attempt - 1)
                     retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
 
-                    // Bekleme sırasında da iptal kontrolü
                     await new Promise<void>((resolve, reject) => {
                         const checkInterval = setInterval(() => {
                             if (signal?.aborted) {
@@ -138,7 +158,6 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     })
                 }
 
-                // İptal kontrolü (bekleme sonrası)
                 if (signal?.aborted) {
                     throw new Error('Upload cancelled')
                 }

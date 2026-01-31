@@ -12,6 +12,7 @@ import { useUser } from "@/lib/user-context"
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/i18n-provider"
+import { COVER_THEMES } from "@/components/catalogs/covers"
 
 // Atomic Components
 import { BuilderToolbar } from "./builder-toolbar"
@@ -96,7 +97,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [backgroundImage, setBackgroundImage] = useState<string | null>(catalog?.background_image || null)
   const [backgroundImageFit, setBackgroundImageFit] = useState<NonNullable<Catalog['background_image_fit']>>(catalog?.background_image_fit || 'cover')
   const [backgroundGradient, setBackgroundGradient] = useState<string | null>(catalog?.background_gradient || null)
-  const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || user?.logo_url || null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || null)
   const [logoPosition, setLogoPosition] = useState<Catalog['logo_position']>(catalog?.logo_position || 'header-left')
   const [logoSize, setLogoSize] = useState<Catalog['logo_size']>(catalog?.logo_size || 'medium')
   const [titlePosition, setTitlePosition] = useState<Catalog['title_position']>(catalog?.title_position || 'left')
@@ -104,6 +105,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [hasUnpushedChanges, setHasUnpushedChanges] = useState(false)
+  // Storytelling Catalog States
+  const [enableCoverPage, setEnableCoverPage] = useState(catalog?.enable_cover_page ?? false)
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(catalog?.cover_image_url || null)
+  const [coverDescription, setCoverDescription] = useState<string | null>(catalog?.cover_description || null)
+  const [enableCategoryDividers, setEnableCategoryDividers] = useState(catalog?.enable_category_dividers ?? false)
+  const [coverTheme, setCoverTheme] = useState(catalog?.cover_theme || "modern")
 
 
   // Kaydedilmemiş değişiklik takibi
@@ -121,6 +128,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     showUrls: catalog?.show_urls ?? false,
     columnsPerRow: catalog?.columns_per_row || 3,
     backgroundColor: catalog?.background_color || '#ffffff',
+    backgroundImage: catalog?.background_image || null,
+    logoUrl: catalog?.logo_url || null,
+    enableCoverPage: catalog?.enable_cover_page ?? false,
+    enableCategoryDividers: catalog?.enable_category_dividers ?? false,
+    coverTheme: catalog?.cover_theme || "modern",
   })
 
   // Değişiklik var mı kontrol et
@@ -129,6 +141,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     catalogDescription !== lastSavedState.description ||
     JSON.stringify(selectedProductIds) !== JSON.stringify(lastSavedState.productIds) ||
     layout !== lastSavedState.layout ||
+    coverTheme !== lastSavedState.coverTheme ||
     primaryColor !== lastSavedState.primaryColor ||
     showPrices !== lastSavedState.showPrices ||
     showDescriptions !== lastSavedState.showDescriptions ||
@@ -136,7 +149,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     showSku !== lastSavedState.showSku ||
     showUrls !== lastSavedState.showUrls ||
     columnsPerRow !== lastSavedState.columnsPerRow ||
-    backgroundColor !== lastSavedState.backgroundColor
+    backgroundColor !== lastSavedState.backgroundColor ||
+    backgroundImage !== lastSavedState.backgroundImage ||
+    logoUrl !== lastSavedState.logoUrl ||
+    enableCoverPage !== lastSavedState.enableCoverPage ||
+    enableCategoryDividers !== lastSavedState.enableCategoryDividers
   )
 
   // Sayfa kapatma/yenileme uyarısı
@@ -173,13 +190,18 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       setBackgroundImage(catalog.background_image || null)
       setBackgroundImageFit(catalog.background_image_fit || 'cover')
       setBackgroundGradient(catalog.background_gradient || null)
-      setLogoUrl(catalog.logo_url || user?.logo_url || null)
+      setLogoUrl(catalog.logo_url || null)
       setLogoPosition(catalog.logo_position || 'header-left')
       setLogoSize(catalog.logo_size || 'medium')
       setTitlePosition(catalog.title_position || 'left')
       setProductImageFit(catalog.product_image_fit || 'cover')
       setIsPublished(catalog.is_published || false)
       setCurrentCatalogId(catalog.id || null)
+      // Storytelling Catalog States
+      setEnableCoverPage(catalog.enable_cover_page ?? false)
+      setCoverImageUrl(catalog.cover_image_url || null)
+      setCoverDescription(catalog.cover_description || null)
+      setEnableCategoryDividers(catalog.enable_category_dividers ?? false)
 
       setLastSavedState({
         name: catalog.name || "",
@@ -194,6 +216,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         showUrls: catalog.show_urls ?? false,
         columnsPerRow: catalog.columns_per_row || 3,
         backgroundColor: catalog.background_color || '#ffffff',
+        backgroundImage: catalog.background_image || null,
+        logoUrl: catalog.logo_url || null,
+        enableCoverPage: catalog.enable_cover_page ?? false,
+        enableCategoryDividers: catalog.enable_category_dividers ?? false,
+        coverTheme: catalog.cover_theme || "modern",
       })
       setIsDirty(false)
     }
@@ -211,7 +238,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundGradient, catalog?.background_gradient, catalog?.description, catalog?.name, catalog?.product_ids])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundGradient, catalog?.background_gradient, catalog?.description, catalog?.name, catalog?.product_ids, enableCoverPage, coverImageUrl, coverDescription, enableCategoryDividers])
 
   // Autosave state
   const [, setIsAutoSaving] = useState(false)
@@ -253,6 +280,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           title_position: titlePosition,
           product_image_fit: productImageFit,
           header_text_color: headerTextColor,
+          // Storytelling Catalog
+          enable_cover_page: enableCoverPage,
+          cover_image_url: coverImageUrl,
+          cover_description: coverDescription,
+          enable_category_dividers: enableCategoryDividers,
         })
 
         // Başarılı - state'leri güncelle
@@ -269,6 +301,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           showUrls,
           columnsPerRow,
           backgroundColor,
+          backgroundImage,
+          logoUrl,
+          enableCoverPage,
+          enableCategoryDividers,
+          coverTheme,
         })
         setIsDirty(false)
         if (isPublished) {
@@ -312,7 +349,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     logoPosition,
     logoSize,
     titlePosition,
-    isPublished
+    isPublished,
+    // Storytelling Catalog
+    enableCoverPage,
+    coverImageUrl,
+    coverDescription,
+    enableCategoryDividers,
   ])
 
   // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
@@ -342,6 +384,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     startTransition(async () => {
       try {
         if (currentCatalogId) {
+          // 1. Katalogu güncelle
           await updateCatalog(currentCatalogId, {
             name: catalogName,
             description: catalogDescription,
@@ -364,7 +407,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             title_position: titlePosition,
             product_image_fit: productImageFit,
             header_text_color: headerTextColor,
+            // Storytelling Catalog
+            enable_cover_page: enableCoverPage,
+            cover_image_url: coverImageUrl,
+            cover_description: coverDescription,
+            enable_category_dividers: enableCategoryDividers,
+            cover_theme: coverTheme,
           })
+
           toast.success(t('toasts.catalogSaved') as string)
         } else {
           const newCatalog = await createCatalog({
@@ -372,9 +422,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             description: catalogDescription,
             layout,
           })
+
           // Katalog oluşturulduğu anda kullanıcı bilgilerini güncelle
           await refreshUser()
           setCurrentCatalogId(newCatalog.id)
+
           await updateCatalog(newCatalog.id, {
             product_ids: selectedProductIds,
             primary_color: primaryColor,
@@ -394,7 +446,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             title_position: titlePosition,
             product_image_fit: productImageFit,
             header_text_color: headerTextColor,
+            // Storytelling Catalog
+            enable_cover_page: enableCoverPage,
+            cover_image_url: coverImageUrl,
+            cover_description: coverDescription,
+            enable_category_dividers: enableCategoryDividers,
+            cover_theme: coverTheme,
           })
+
           router.replace(`/dashboard/builder?id=${newCatalog.id}`)
           toast.success(t('toasts.catalogCreated') as string)
         }
@@ -413,13 +472,20 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           showUrls,
           columnsPerRow,
           backgroundColor,
+          backgroundImage,
+          logoUrl,
+          enableCoverPage,
+          enableCategoryDividers,
+          coverTheme,
         })
         setIsDirty(false)
         if (isPublished) {
           setHasUnpushedChanges(true)
         }
-      } catch {
-        toast.error(t('toasts.catalogSaveFailed') as string)
+      } catch (error) {
+        console.error('Catalog save error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+        toast.error(`${t('toasts.catalogSaveFailed') as string}: ${errorMessage}`)
       }
     })
   }
@@ -452,6 +518,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           title_position: titlePosition,
           product_image_fit: productImageFit,
           header_text_color: headerTextColor,
+          // Storytelling Catalog
+          enable_cover_page: enableCoverPage,
+          cover_image_url: coverImageUrl,
+          cover_description: coverDescription,
+          enable_category_dividers: enableCategoryDividers,
+          cover_theme: coverTheme,
         })
 
         // 2. Cache temizle (Slug kullanarak)
@@ -464,8 +536,10 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         setHasUnpushedChanges(false)
         setIsDirty(false)
         toast.success("Yayındaki katalog güncellendi! 🚀")
-      } catch {
-        toast.error("Güncelleme sırasında bir hata oluştu.")
+      } catch (error) {
+        console.error('Catalog publish/push error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+        toast.error(`Güncelleme sırasında bir hata oluştu: ${errorMessage}`)
       }
     })
   }
@@ -559,6 +633,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           product_image_fit: productImageFit,
           header_text_color: headerTextColor,
           share_slug: shareSlug,
+          // Storytelling Catalog
+          enable_cover_page: enableCoverPage,
+          cover_image_url: coverImageUrl,
+          cover_description: coverDescription,
+          enable_category_dividers: enableCategoryDividers,
+          cover_theme: coverTheme,
         })
 
         // 2. Şimdi yayın durumunu güncelle
@@ -849,6 +929,17 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onLogoSizeChange={(v) => setLogoSize(v)}
               titlePosition={titlePosition}
               onTitlePositionChange={(v) => setTitlePosition(v)}
+              // Storytelling Catalog Props
+              enableCoverPage={enableCoverPage}
+              onEnableCoverPageChange={setEnableCoverPage}
+              coverImageUrl={coverImageUrl}
+              onCoverImageUrlChange={setCoverImageUrl}
+              coverDescription={coverDescription}
+              onCoverDescriptionChange={setCoverDescription}
+              enableCategoryDividers={enableCategoryDividers}
+              onEnableCategoryDividersChange={setEnableCategoryDividers}
+              coverTheme={coverTheme}
+              onCoverThemeChange={setCoverTheme}
             />
           </div>
         )}
@@ -880,6 +971,11 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               logoPosition={logoPosition ?? undefined}
               logoSize={logoSize}
               titlePosition={titlePosition}
+              enableCoverPage={enableCoverPage}
+              coverImageUrl={coverImageUrl}
+              coverDescription={coverDescription}
+              enableCategoryDividers={enableCategoryDividers}
+              theme={coverTheme}
             />
           </div>
         )}
@@ -963,6 +1059,10 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             logoSize={logoSize}
             titlePosition={titlePosition}
             isExporting={true} // Her zaman tüm sayfalar
+            enableCoverPage={enableCoverPage}
+            coverImageUrl={coverImageUrl}
+            coverDescription={coverDescription}
+            enableCategoryDividers={enableCategoryDividers}
           />
         </div>
       )}
