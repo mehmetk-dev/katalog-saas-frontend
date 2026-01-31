@@ -20,7 +20,7 @@ backend/.env.production
 # Loglar
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+yarn-error.log* 
 # Sentry Config File
 .env.sentry-build-plugin
 .agent
