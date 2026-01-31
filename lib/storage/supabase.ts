@@ -20,10 +20,18 @@ export class SupabaseProvider implements StorageProvider {
     // Auth hatası olursa zaten catch bloğuna düşecek.
     // Bu, "getSessionSafe" içinde oluşabilecek sonsuz bekleme/hang durumlarını engeller.
 
-    const userId = (await supabase.auth.getUser()).data.user?.id
-    if (!userId) {
-      throw new Error('User not found in Supabase client context')
+    let user = (await supabase.auth.getUser()).data.user
+
+    // Eğer user bulunamazsa, session'ı bir kez tazelemeyi dene
+    if (!user) {
+      const { data: { session } } = await supabase.auth.getSession()
+      user = session?.user || null
     }
+
+    if (!user) {
+      throw new Error('User not found in Supabase client context. Please refresh your session.')
+    }
+    const userId = user.id
 
     const fileName = options.fileName || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     const filePath = options.path ? `${options.path}/${fileName}` : `${userId}/${fileName}`

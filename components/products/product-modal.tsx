@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { toast } from "sonner"
 import { Plus, Trash2, Loader2, Upload, X, Wand2, ImagePlus, GripVertical, Sparkles, Tag, Barcode, Package2, Layers, ChevronDown, ChevronUp, FolderPlus } from "lucide-react"
 import NextImage from "next/image"
@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { type Product, type CustomAttribute, createProduct, updateProduct } from "@/lib/actions/products"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createClient } from "@/lib/supabase/client"
 import { storage } from "@/lib/storage"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -54,7 +53,8 @@ const MAGIC_DESCRIPTIONS_EN = [
 
 export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan: _userPlan = 'free' }: ProductModalProps) {
   const [isSaving, setIsSaving] = useState(false)
-  const { t, language } = useTranslation()
+  const { t: baseT, language } = useTranslation()
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
   const isEditing = !!product
 
   const unitKeys = ["none", "kg", "g", "m", "cm", "mm", "L", "mL", "adet", "paket", "kutu"]
@@ -443,6 +443,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       throw error // Hatayı yukarı fırlat (handleSubmit yakalasın)
     } finally {
       clearTimeout(safetyTimer)
+      if (!toastUpdated) {
+        toast.dismiss(toastId)
+      }
 
       // Cleanup: AbortController ve timeout'ları temizle
       const mainController = uploadAbortControllers.current.get('main-upload')

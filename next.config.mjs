@@ -10,7 +10,8 @@ const nextConfig = {
     // Temporarily ignore ESLint errors for production build
     ignoreDuringBuilds: true,
   },
-  output: "standalone",
+  // Standalone output is required for Docker but buggy on Windows during local builds
+  output: process.platform === "win32" ? undefined : "standalone",
   images: {
     // Görsel optimizasyonu aç
     unoptimized: false,

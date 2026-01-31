@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download, Shield, Zap, Sparkles } from "lucide-react"
@@ -75,7 +75,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const isAtLimit = catalogs.length >= maxCatalogs
   const isFreeUser = userPlan === "free"
   const { t: baseT } = useTranslation()
-  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
 
   const filteredCatalogs = catalogs.filter(
     (catalog) =>

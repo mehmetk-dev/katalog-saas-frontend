@@ -1,10 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
-import { jsPDF } from "jspdf"
-import { toPng } from "html-to-image"
 import {
     Download,
     Share2,
@@ -47,7 +45,8 @@ interface PublicCatalogClientProps {
 }
 
 export function PublicCatalogClient({ catalog, products: initialProducts }: PublicCatalogClientProps) {
-    const { t } = useTranslation()
+    const { t: baseT } = useTranslation()
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
 
@@ -55,8 +54,6 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     const [isMobile, setIsMobile] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
-    // Lazy loading for mobile performance - track which pages are visible
-    const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([0, 1, 2]))
 
     // Detaylı ekran boyutu kontrolü
     useEffect(() => {
@@ -186,7 +183,11 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     const handleDownload = async () => {
         try {
             setIsExporting(true) // Animasyonları devre dışı bırak
-            toast.loading("PDF oluşturuluyor, lütfen bekleyin... (Sayfa sayısına göre biraz sürebilir)", { id: "pdf-download", duration: 10000 })
+            toast.loading("PDF oluşturuluyor, lütfen bekleyin... (Sayfa sayısına göre biraz sürebilir)", { id: "pdf-download", duration: 15000 })
+
+            // Dinamik Import: Sadece indirme butona basıldığında kütüphaneleri yükle (Bundle Optimizasyonu)
+            const { jsPDF } = await import("jspdf")
+            const { toPng } = await import("html-to-image")
 
             // Kısa bir gecikme ile render'ın tamamlanmasını bekle
             await new Promise(resolve => setTimeout(resolve, 100))

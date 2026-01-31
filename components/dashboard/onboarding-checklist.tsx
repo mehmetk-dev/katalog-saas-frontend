@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { CheckCircle2, ChevronRight, X } from "lucide-react"
 import Link from "next/link"
 
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
-import { Skeleton } from "@/components/ui/skeleton"
 import { useTranslation } from "@/lib/i18n-provider"
 
 interface OnboardingChecklistProps {
@@ -19,7 +18,7 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChecklistProps) {
     const { t: baseT } = useTranslation()
-    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
     const [isVisible, setIsVisible] = useState(true)
 
     if (!isVisible) return null

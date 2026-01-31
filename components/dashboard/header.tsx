@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Bell, Plus, ChevronDown, LogOut, Settings, User, Menu, PanelLeftClose, PanelLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ import { usePathname } from "next/navigation"
 export function DashboardHeader() {
   const { user, logout } = useUser()
   const { t: baseT } = useTranslation()
-  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
   const { toggle, isMobile, isCollapsed } = useSidebar()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)

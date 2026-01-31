@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { MessageSquare, Send, Loader2, AlertCircle, Paperclip, X, Film } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 import NextImage from "next/image"
 
-import { createClient } from "@/lib/supabase/client"
 import {
     Dialog,
     DialogContent,
@@ -37,8 +36,8 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const [uploading, setUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const pathname = usePathname()
-    const { t } = useTranslation()
-    const supabase = createClient()
+    const { t: baseT } = useTranslation()
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
 
     // Upload işlemlerini iptal etmek için ref'ler
     const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
@@ -191,18 +190,21 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
 
     // Modal kapatıldığında veya unmount olduğunda devam eden upload'ları iptal et
     useEffect(() => {
+        const controllers = uploadAbortControllers.current
+        const timeouts = uploadTimeoutIds.current
+
         return () => {
             // Devam eden upload'ları iptal et
-            uploadAbortControllers.current.forEach((controller) => {
+            controllers.forEach((controller) => {
                 controller.abort()
             })
-            uploadAbortControllers.current.clear()
+            controllers.clear()
 
             // Tüm timeout'ları temizle
-            uploadTimeoutIds.current.forEach((timeoutId) => {
+            timeouts.forEach((timeoutId) => {
                 clearTimeout(timeoutId)
             })
-            uploadTimeoutIds.current.clear()
+            timeouts.clear()
 
             toast.dismiss()
         }

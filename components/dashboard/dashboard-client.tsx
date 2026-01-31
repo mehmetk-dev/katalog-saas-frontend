@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useCallback } from "react"
 import { Package, FileText, TrendingUp, Clock, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
@@ -60,7 +61,7 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
 
 export function DashboardClient({ initialCatalogs, initialProducts, initialStats }: DashboardClientProps) {
     const { t: baseT } = useTranslation()
-    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
     const { user, isLoading } = useUser()
 
     // Güvenli fallback değerleri - undefined/null durumlarını ele al

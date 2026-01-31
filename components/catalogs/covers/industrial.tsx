@@ -36,7 +36,7 @@ export function IndustrialCover({
                 <div className="flex justify-between items-start mb-12">
                     <div className="border-l-4 border-yellow-400 pl-4">
                         <div className="text-xs text-yellow-400 font-bold tracking-[0.2em] mb-1">SPECIFICATION DOC</div>
-                        <div className="text-xs text-gray-400">REF: {Math.floor(Math.random() * 10000)}</div>
+                        <div className="text-xs text-gray-400">REF: INDUSTRIAL-2024-X1</div>
                     </div>
                     {logoUrl && (
                         <div className="relative w-40 h-16 bg-white/10 p-2 border border-white/20">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Bell, Check, CheckCheck, Trash2, ExternalLink, Package, Download, CreditCard, Sparkles, X } from "lucide-react"
 import Link from "next/link"
 
@@ -25,7 +25,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 
 export function NotificationDropdown() {
     const { t: baseT, language } = useTranslation()
-    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)

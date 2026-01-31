@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield, BarChart3, HelpCircle } from "lucide-react"
@@ -23,7 +23,7 @@ export function DashboardSidebar() {
   const pathname = usePathname()
   const { user, isLoading } = useUser()
   const { t: baseT } = useTranslation()
-  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
   const { isOpen, isCollapsed, isMobile, close, toggle } = useSidebar()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 

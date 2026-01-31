@@ -457,6 +457,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         } finally {
             setIsUploading(false)
             uploadAbortControllers.current.delete('main-upload')
+            // Don't toast.dismiss here because success/error toasts already reused the same ID
         }
     }
 

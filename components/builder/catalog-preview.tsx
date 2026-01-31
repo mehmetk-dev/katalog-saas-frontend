@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import NextImage from "next/image"
 
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"

@@ -5,7 +5,7 @@ Sentry.init({
     enabled: process.env.NODE_ENV === "production",
 
     // Adjust this value in production, or use tracesSampler for greater control
-    tracesSampleRate: 1,
+    tracesSampleRate: 0.1,
 
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
@@ -17,5 +17,5 @@ Sentry.init({
     replaysSessionSampleRate: 0.1,
 
     // You can remove this option if you're not planning to use the Sentry browser profiling integration
-    profilesSampleRate: 1.0,
+    profilesSampleRate: 0.1,
 });

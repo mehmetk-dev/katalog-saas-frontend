@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -17,10 +17,10 @@ export function SessionWatcher() {
     const supabase = createClient()
 
     // Gereksiz refresh'leri önlemek için son kontrol zamanı
-    const lastCheckTime = useRef<number>(Date.now())
+    const lastCheckTime = useRef<number>(0)
 
     // Ortak refresh fonksiyonu
-    const refreshSession = async (source: string) => {
+    const refreshSession = useCallback(async (source: string) => {
         const now = Date.now()
         // Çok sık kontrolü engelle (örn: 5 saniyede bir en fazla)
         if (now - lastCheckTime.current < 5000) return
@@ -43,7 +43,7 @@ export function SessionWatcher() {
         } catch (e) {
             console.error(`[SessionWatcher] ${source} check failed`, e)
         }
-    }
+    }, [pathname, router, supabase.auth])
 
     useEffect(() => {
         // 1. Auth Durum Değişikliklerini Dinle
@@ -63,12 +63,12 @@ export function SessionWatcher() {
             subscription.unsubscribe()
             window.removeEventListener("focus", handleFocus)
         }
-    }, [router, supabase.auth, pathname])
+    }, [router, supabase.auth, refreshSession])
 
     // 3. Her Sayfa Değişiminde (Pathname değiştiğinde)
     useEffect(() => {
         refreshSession('navigation')
-    }, [pathname])
+    }, [pathname, refreshSession])
 
     return null // Bu bileşen bir şey render etmez, sadece arka planda çalışır
 }

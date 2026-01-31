@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import Link from "next/link"
 import { ArrowLeft, Loader2, CheckCircle2, BookOpen } from "lucide-react"
 
@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [showGoogleWarning, setShowGoogleWarning] = useState(false)
   const { t: baseT } = useTranslation()
-  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params as Record<string, any>) as string, [baseT])
 
   const checkProvider = async (email: string) => {
     try {

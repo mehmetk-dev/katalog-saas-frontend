@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -59,7 +60,8 @@ export function BuilderToolbar({
     onDownloadPDF,
     onExit
 }: BuilderToolbarProps) {
-    const { t } = useTranslation()
+    const { t: baseT } = useTranslation()
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
 
     // Dynamic Action Button State
     const getMainAction = () => {
@@ -111,7 +113,7 @@ export function BuilderToolbar({
                             value={catalogName}
                             onChange={(e) => onCatalogNameChange(e.target.value)}
                             className="h-9 font-black text-sm sm:text-lg w-full border-transparent bg-transparent hover:bg-slate-50 focus:bg-white focus:border-slate-200 transition-all px-2 rounded-xl truncate"
-                            placeholder={t('builder.catalogNamePlaceholder')}
+                            placeholder={t('builder.catalogNamePlaceholder') as string}
                         />
                     </div>
                 </div>
@@ -221,18 +223,29 @@ export function BuilderToolbar({
                             </>
                         )}
 
-                        {/* MOBILE DYNAMIC ACTION (TOP BAR) */}
+                        {/* MOBILE ACTIONS (TOP BAR) */}
                         {isMobile && (
-                            <Button
-                                size="icon"
-                                onClick={mainAction.onClick}
-                                className={cn(
-                                    "h-9 w-9 rounded-xl shadow-lg transition-all active:scale-90",
-                                    mainAction.className
-                                )}
-                            >
-                                {mainAction.icon}
-                            </Button>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
+                                    className="h-9 w-9 rounded-xl text-slate-500 hover:bg-slate-100"
+                                    title="Önizle"
+                                >
+                                    <Eye className="w-5 h-5" />
+                                </Button>
+                                <Button
+                                    size="icon"
+                                    onClick={mainAction.onClick}
+                                    className={cn(
+                                        "h-9 w-9 rounded-xl shadow-lg transition-all active:scale-90",
+                                        mainAction.className
+                                    )}
+                                >
+                                    {mainAction.icon}
+                                </Button>
+                            </div>
                         )}
 
                         {/* MORE OPTIONS */}
@@ -276,6 +289,13 @@ export function BuilderToolbar({
 
                                         <div className="h-px bg-slate-50 my-1.5" />
                                     </>
+                                )}
+
+                                {isMobile && (
+                                    <DropdownMenuItem onClick={() => onViewChange(view === "preview" ? "editor" : "preview")} className="rounded-xl h-10 font-bold text-xs">
+                                        {view === "preview" ? <Pencil className="w-4 h-4 mr-2.5 text-slate-400" /> : <Eye className="w-4 h-4 mr-2.5 text-slate-400" />}
+                                        {view === "preview" ? 'Düzenleme Modu' : 'Önizleme Modu'}
+                                    </DropdownMenuItem>
                                 )}
 
                                 <DropdownMenuItem onClick={onPublish} className="rounded-xl h-10 font-bold text-xs">

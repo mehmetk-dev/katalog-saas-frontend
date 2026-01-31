@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback } from "react"
 import Link from "next/link"
 import { ArrowRight, Layout, CheckCircle2, Share2 } from "lucide-react"
 
@@ -10,7 +11,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 
 export default function HowItWorksPage() {
     const { t: baseT } = useTranslation()
-    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
 
     return (
         <div className="min-h-screen bg-slate-50">

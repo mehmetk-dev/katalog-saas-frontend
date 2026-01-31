@@ -101,12 +101,7 @@ export async function getTemplates(): Promise<CatalogTemplate[]> {
   }
 }
 
-export async function createCatalog(data: {
-  name: string
-  description?: string
-  template_id?: string
-  layout?: string
-}) {
+export async function createCatalog(data: Partial<Catalog>) {
   const newCatalog = await apiFetch<Catalog>("/catalogs", {
     method: "POST",
     body: JSON.stringify(data),

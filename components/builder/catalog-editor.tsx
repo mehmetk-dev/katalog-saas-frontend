@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
-  Palette, GripVertical, Trash2, Package, Image as ImageIcon,
+  GripVertical, Trash2, Package, Image as ImageIcon,
   Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search, ChevronRight
 } from "lucide-react"
 import NextImage from "next/image"
@@ -27,7 +27,6 @@ import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { CatalogPreview } from "./catalog-preview"
 import { getPreviewProductsByLayout } from "../templates/preview-data"
 import { storage } from "@/lib/storage"
-import { getSessionSafe } from "@/lib/supabase/client"
 
 interface CatalogEditorProps {
   products: Product[]
@@ -173,7 +172,7 @@ export function CatalogEditor({
   onCoverThemeChange,
 }: CatalogEditorProps) {
   const { t: baseT } = useTranslation()
-  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
@@ -224,12 +223,15 @@ export function CatalogEditor({
 
   // YENİ: Component unmount olduğunda tüm toast'ları ve upload'ları temizle
   useEffect(() => {
+    const controllers = uploadAbortControllers.current
+    const timeouts = uploadTimeoutIds.current
+
     return () => {
       // Bekleyen tüm upload'ları iptal et
-      uploadAbortControllers.current.forEach(controller => controller.abort())
+      controllers.forEach(controller => controller.abort())
 
       // Tüm aktif timeout'ları temizle
-      uploadTimeoutIds.current.forEach(timeout => clearTimeout(timeout))
+      timeouts.forEach(timeout => clearTimeout(timeout))
 
       // UI temizliği
       toast.dismiss()
@@ -274,7 +276,7 @@ export function CatalogEditor({
         const { createClient } = await import("@/lib/supabase/client")
         const supabase = createClient()
         await supabase.auth.refreshSession()
-      } catch (e) {
+      } catch (_e) {
         // Silent error
       }
     }

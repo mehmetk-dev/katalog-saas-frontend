@@ -12,7 +12,6 @@ import { useUser } from "@/lib/user-context"
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/i18n-provider"
-import { COVER_THEMES } from "@/components/catalogs/covers"
 
 // Atomic Components
 import { BuilderToolbar } from "./builder-toolbar"
@@ -52,7 +51,8 @@ interface BuilderPageClientProps {
 export function BuilderPageClient({ catalog, products }: BuilderPageClientProps) {
   const router = useRouter()
   const { user, canExport, refreshUser } = useUser()
-  const { t } = useTranslation()
+  const { t: baseT } = useTranslation()
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
   const [isPending, startTransition] = useTransition()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [catalogName, setCatalogName] = useState(catalog?.name || "")
@@ -384,8 +384,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     startTransition(async () => {
       try {
         if (currentCatalogId) {
-          // 1. Katalogu güncelle
-          await updateCatalog(currentCatalogId, {
+          // 1. Mevcut katalogu tek seferde güncelle - Hızlı geri bildirim
+          const updatePromise = updateCatalog(currentCatalogId, {
             name: catalogName,
             description: catalogDescription,
             product_ids: selectedProductIds,
@@ -415,19 +415,15 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             cover_theme: coverTheme,
           })
 
+          // Beklemeden başarılı mesajı ver (Optimistic)
           toast.success(t('toasts.catalogSaved') as string)
+          await updatePromise
         } else {
+          // 2. Yeni katalog oluştururken TÜM verileri tek seferde gönder
           const newCatalog = await createCatalog({
             name: catalogName,
             description: catalogDescription,
             layout,
-          })
-
-          // Katalog oluşturulduğu anda kullanıcı bilgilerini güncelle
-          await refreshUser()
-          setCurrentCatalogId(newCatalog.id)
-
-          await updateCatalog(newCatalog.id, {
             product_ids: selectedProductIds,
             primary_color: primaryColor,
             show_prices: showPrices,
@@ -446,7 +442,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             title_position: titlePosition,
             product_image_fit: productImageFit,
             header_text_color: headerTextColor,
-            // Storytelling Catalog
+            // Storytelling
             enable_cover_page: enableCoverPage,
             cover_image_url: coverImageUrl,
             cover_description: coverDescription,
@@ -454,8 +450,12 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             cover_theme: coverTheme,
           })
 
-          router.replace(`/dashboard/builder?id=${newCatalog.id}`)
+          setCurrentCatalogId(newCatalog.id)
           toast.success(t('toasts.catalogCreated') as string)
+
+          // refreshUser'ı arka planda yap, kullanıcıyı bekletme
+          refreshUser()
+          router.replace(`/dashboard/builder?id=${newCatalog.id}`)
         }
 
         // Kayıt başarılı - lastSavedState güncelle

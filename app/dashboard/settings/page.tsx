@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import NextImage from "next/image"
 import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
@@ -33,7 +33,7 @@ import { storage } from "@/lib/storage"
 export default function SettingsPage() {
   const { user, setUser, isLoading, refreshUser } = useUser()
   const { language, setLanguage, t: baseT } = useTranslation()
-  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
   const [isDeleting, setIsDeleting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)

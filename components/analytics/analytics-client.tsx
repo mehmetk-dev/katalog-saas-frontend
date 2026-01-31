@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import {
     Users,
     Eye,
@@ -54,7 +54,7 @@ function calculateTrend(currentValue: number, previousValue: number) {
 
 export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClientProps) {
     const { t: baseT, language } = useTranslation()
-    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
+    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
     const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d")
     const [stats, setStats] = useState<DashboardStats | null>(initialStats)
     const [isLoading, setIsLoading] = useState(false)

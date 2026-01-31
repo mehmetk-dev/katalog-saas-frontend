@@ -27,7 +27,7 @@ export function TechCover({
             {/* Code/Data Rain Effect - Static Decoration */}
             <div className="absolute top-0 right-10 w-48 h-full opacity-20 flex flex-col text-[10px] items-end pt-20 leading-tight select-none">
                 {Array.from({ length: 40 }).map((_, i) => (
-                    <span key={i} style={{ opacity: Math.random() }}>01001010 1101 ({i})</span>
+                    <span key={i} style={{ opacity: 0.1 + (i % 5) * 0.1 }}>01001010 1101 ({i})</span>
                 ))}
             </div>
 
