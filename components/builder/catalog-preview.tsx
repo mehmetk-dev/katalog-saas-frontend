@@ -44,6 +44,12 @@ interface CatalogPreviewProps {
   theme?: string
 }
 
+// Sayfa tipi için type-safe interface
+type CatalogPage =
+  | { type: 'cover' }
+  | { type: 'divider'; categoryName: string; firstProductImage: string | null }
+  | { type: 'products'; products: Product[] }
+
 export function CatalogPreview(props: CatalogPreviewProps) {
   const { user } = useUser()
   const isFreeUser = user?.plan === "free"
@@ -120,7 +126,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
 
   // === STORYTELLING & PAGINATION LOGIC ===
   const buildPages = () => {
-    const pages: any[] = []
+    const pages: CatalogPage[] = []
 
     // 1. Kapak sayfası (Prop ile kontrol edilir)
     if (props.enableCoverPage) {
@@ -211,7 +217,12 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   }
 
   // Sayfa içeriğini render et - Logo bilgisi template'e geçirilir
-  const renderPage = (page: any, pageIndex: number, isClickable: boolean = false) => {
+  const renderPage = (page: CatalogPage | undefined, pageIndex: number, isClickable: boolean = false) => {
+    // Null/undefined kontrolü
+    if (!page) {
+      return null
+    }
+
     // 1. KAPAK SAYFASI
     if (page.type === 'cover') {
       return (
@@ -261,8 +272,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
             height: A4_HEIGHT,
             transform: `scale(${scale})`,
             transformOrigin: 'top center',
-            ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {}),
-            backgroundColor: 'yellow' // Temp, will be removed via logic below
+            ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {})
           }}
           onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
         >
@@ -292,9 +302,9 @@ export function CatalogPreview(props: CatalogPreviewProps) {
       )
     }
 
-    // 3. ÜRÜN SAYFASI
+    // 3. ÜRÜN SAYFASI (page.type === 'products' olmalı - else bloğu olarak düşecek)
     const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
-    const pageProducts = page.products || []
+    const pageProducts = page.type === 'products' ? page.products : []
 
     return (
       <div

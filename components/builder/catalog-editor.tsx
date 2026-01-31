@@ -424,7 +424,6 @@ export function CatalogEditor({
         toast.loading(`${typeLabel}: ${status}`, { id: toastId })
       })
 
-      console.log(`[CatalogEditor] ✅ Success: ${publicUrl}`)
 
       if (type === 'logo') {
         onLogoUrlChange?.(publicUrl)

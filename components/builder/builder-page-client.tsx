@@ -1017,8 +1017,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         onSaveAndExit={() => {
           handleSave()
           setShowExitDialog(false)
-          // Kayıt tamamlandıktan sonra yönlendir
-          setTimeout(() => router.push('/dashboard'), 500)
+          // Kayıt işlemi için yeterli süre bekle
+          setTimeout(() => router.push('/dashboard'), 1500)
         }}
       />
 
@@ -1063,6 +1063,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             coverImageUrl={coverImageUrl}
             coverDescription={coverDescription}
             enableCategoryDividers={enableCategoryDividers}
+            theme={coverTheme}
           />
         </div>
       )}
