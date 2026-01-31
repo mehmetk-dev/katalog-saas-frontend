@@ -74,7 +74,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const maxCatalogs = CATALOG_LIMITS[userPlan]
   const isAtLimit = catalogs.length >= maxCatalogs
   const isFreeUser = userPlan === "free"
-  const { t } = useTranslation()
+  const { t: baseT } = useTranslation()
+  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
 
   const filteredCatalogs = catalogs.filter(
     (catalog) =>

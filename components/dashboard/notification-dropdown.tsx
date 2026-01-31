@@ -21,7 +21,11 @@ import {
     type Notification,
 } from "@/lib/actions/notifications"
 
+import { useTranslation } from "@/lib/i18n-provider"
+
 export function NotificationDropdown() {
+    const { t: baseT, language } = useTranslation()
+    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)
@@ -109,11 +113,11 @@ export function NotificationDropdown() {
         const diffHours = Math.floor(diffMs / 3600000)
         const diffDays = Math.floor(diffMs / 86400000)
 
-        if (diffMins < 1) return "Şimdi"
-        if (diffMins < 60) return `${diffMins} dk önce`
-        if (diffHours < 24) return `${diffHours} saat önce`
-        if (diffDays < 7) return `${diffDays} gün önce`
-        return date.toLocaleDateString("tr-TR")
+        if (diffMins < 1) return t("settings.notifications.time.now")
+        if (diffMins < 60) return t("settings.notifications.time.minsAgo", { count: diffMins })
+        if (diffHours < 24) return t("settings.notifications.time.hoursAgo", { count: diffHours })
+        if (diffDays < 7) return t("settings.notifications.time.daysAgo", { count: diffDays })
+        return date.toLocaleDateString(language === 'tr' ? "tr-TR" : "en-US")
     }
 
     return (
@@ -131,7 +135,7 @@ export function NotificationDropdown() {
             <DropdownMenuContent align="end" className="w-80 p-0">
                 {/* Header */}
                 <div className="flex items-center justify-between p-3 border-b">
-                    <h3 className="font-semibold text-sm">Bildirimler</h3>
+                    <h3 className="font-semibold text-sm">{t("settings.notifications.title")}</h3>
                     {unreadCount > 0 && (
                         <Button
                             variant="ghost"
@@ -140,7 +144,7 @@ export function NotificationDropdown() {
                             onClick={handleMarkAllAsRead}
                         >
                             <CheckCheck className="w-3.5 h-3.5" />
-                            Tümünü Okundu İşaretle
+                            {t("settings.notifications.markAllRead")}
                         </Button>
                     )}
                 </div>
@@ -149,12 +153,12 @@ export function NotificationDropdown() {
                 <ScrollArea className="h-[320px]">
                     {isLoading && notifications.length === 0 ? (
                         <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                            Yükleniyor...
+                            {t("settings.notifications.loading")}
                         </div>
                     ) : notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-32 text-sm text-muted-foreground">
                             <Bell className="w-8 h-8 mb-2 opacity-30" />
-                            <p>Bildirim yok</p>
+                            <p>{t("settings.notifications.noNotifications")}</p>
                         </div>
                     ) : (
                         <div className="divide-y">
@@ -198,7 +202,7 @@ export function NotificationDropdown() {
                                                             setIsOpen(false)
                                                         }}
                                                     >
-                                                        Görüntüle
+                                                        {t("settings.notifications.view")}
                                                         <ExternalLink className="w-2.5 h-2.5" />
                                                     </Link>
                                                 )}
@@ -243,7 +247,7 @@ export function NotificationDropdown() {
                             onClick={handleDeleteAll}
                         >
                             <Trash2 className="w-3 h-3 mr-1" />
-                            Tümünü Temizle
+                            {t("settings.notifications.clearAll")}
                         </Button>
                     </div>
                 )}

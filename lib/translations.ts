@@ -60,6 +60,7 @@ export const translations = {
             siteTitle: "FogCatalog - Ürün Katalog Oluşturucu",
             siteDescription: "Dakikalar içinde profesyonel ürün katalogları oluşturun",
             wait: "Lütfen bekleyin...",
+            updateError: "Güncelleme hatası",
         },
         plans: {
             unlimited: "Sınırsız",
@@ -290,6 +291,27 @@ export const translations = {
                 collectingData: "Görüntülenme verisi toplanıyor...",
                 realTimeTracking: "Gerçek Zamanlı Takip Aktif",
                 dataDisclaimer: "Analitik verileri anlık olarak toplanır ve işlenir. Kendi görüntülenmeleriniz (\"Sahip\" olarak giriş yaptığınız sürece) istatistiklere dahil edilmez."
+            },
+            onboarding: {
+                title: "Başlangıç Rehberi",
+                completed: "%{percent} tamamlandı",
+                steps: {
+                    product: {
+                        title: "İlk Ürününü Ekle",
+                        description: "Kataloğuna eklemek için önce ürünlerini sisteme yükle.",
+                        cta: "Ürün Ekle"
+                    },
+                    catalog: {
+                        title: "Katalog Oluştur",
+                        description: "Ürünlerini seç ve şablonunu belirleyerek kataloğunu yarat.",
+                        cta: "Katalog Oluştur"
+                    },
+                    share: {
+                        title: "Müşterilerinle Paylaş",
+                        description: "Kataloğunu PDF indir veya dijital link ile paylaş.",
+                        cta: "Kataloglara Git"
+                    }
+                }
             },
         },
         products: {
@@ -551,6 +573,7 @@ export const translations = {
             title: "Katalog Oluşturucu",
             designSettings: "Tasarım Ayarları",
             catalogDetails: "Katalog Detayları",
+            productsSelected: "ÜRÜN SEÇİLDİ",
             catalogName: "Katalog Adı",
             catalogNamePlaceholder: "Katalog Başlığı",
             selectProducts: "Ürün Seç",
@@ -683,6 +706,20 @@ export const translations = {
             managePreferences: "Hesabınızı ve tercihlerinizi yönetin.",
             defaultLanguage: "Varsayılan dil",
             international: "Uluslararası",
+            notifications: {
+                title: "Bildirimler",
+                markAllRead: "Tümünü Okundu İşaretle",
+                clearAll: "Tümünü Temizle",
+                noNotifications: "Bildirim yok",
+                loading: "Yükleniyor...",
+                view: "Görüntüle",
+                time: {
+                    now: "Şimdi",
+                    minsAgo: "{count} dk önce",
+                    hoursAgo: "{count} saat önce",
+                    daysAgo: "{count} gün önce"
+                }
+            }
         },
         feedback: {
             trigger: "Sorun Bildir / Geri Bildirim",
@@ -1315,6 +1352,7 @@ export const translations = {
             siteTitle: "FogCatalog - Product Catalog Builder",
             siteDescription: "Create professional product catalogs in minutes",
             wait: "Please wait...",
+            updateError: "Update error",
         },
         plans: {
             unlimited: "Unlimited",
@@ -1545,6 +1583,27 @@ export const translations = {
                 collectingData: "Collecting view data...",
                 realTimeTracking: "Real-time Tracking Enabled",
                 dataDisclaimer: "Analytics data is processed in real-time. Your own views (while logged in as owner) are excluded to ensure accurate results."
+            },
+            onboarding: {
+                title: "Getting Started",
+                completed: "{percent}% completed",
+                steps: {
+                    product: {
+                        title: "Add Your First Product",
+                        description: "Upload your products to the system first to add them to your catalog.",
+                        cta: "Add Product"
+                    },
+                    catalog: {
+                        title: "Create Catalog",
+                        description: "Select your products, choose a template, and create your catalog.",
+                        cta: "Create Catalog"
+                    },
+                    share: {
+                        title: "Share with Customers",
+                        description: "Download your catalog as PDF or share via digital link.",
+                        cta: "Go to Catalogs"
+                    }
+                }
             },
         },
         products: {
@@ -1856,6 +1915,7 @@ export const translations = {
             title: "Catalog Builder",
             designSettings: "Design Settings",
             catalogDetails: "Catalog Details",
+            productsSelected: "PRODUCTS SELECTED",
             catalogName: "Catalog Name",
             catalogNamePlaceholder: "Catalog Title",
             selectProducts: "Select Products",
@@ -1993,6 +2053,20 @@ export const translations = {
             managePreferences: "Manage your account and preferences.",
             defaultLanguage: "Default language",
             international: "International",
+            notifications: {
+                title: "Notifications",
+                markAllRead: "Mark all as read",
+                clearAll: "Clear all",
+                noNotifications: "No notifications",
+                loading: "Loading...",
+                view: "View",
+                time: {
+                    now: "Just now",
+                    minsAgo: "{count}m ago",
+                    hoursAgo: "{count}h ago",
+                    daysAgo: "{count}d ago"
+                }
+            }
         },
         feedback: {
             trigger: "Report an Issue / Feedback",

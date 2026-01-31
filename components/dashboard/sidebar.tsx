@@ -22,7 +22,8 @@ import { FeedbackModal } from "./feedback-modal"
 export function DashboardSidebar() {
   const pathname = usePathname()
   const { user, isLoading } = useUser()
-  const { t } = useTranslation()
+  const { t: baseT } = useTranslation()
+  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
   const { isOpen, isCollapsed, isMobile, close, toggle } = useSidebar()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 

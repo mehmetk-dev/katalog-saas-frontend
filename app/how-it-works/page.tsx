@@ -9,7 +9,8 @@ import { PublicFooter } from "@/components/layout/public-footer"
 import { useTranslation } from "@/lib/i18n-provider"
 
 export default function HowItWorksPage() {
-    const { t } = useTranslation()
+    const { t: baseT } = useTranslation()
+    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
 
     return (
         <div className="min-h-screen bg-slate-50">

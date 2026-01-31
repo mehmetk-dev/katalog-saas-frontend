@@ -59,7 +59,8 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
 }
 
 export function DashboardClient({ initialCatalogs, initialProducts, initialStats }: DashboardClientProps) {
-    const { t } = useTranslation()
+    const { t: baseT } = useTranslation()
+    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
     const { user, isLoading } = useUser()
 
     // Güvenli fallback değerleri - undefined/null durumlarını ele al
@@ -307,12 +308,14 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
                                                     {(() => {
+                                                        const updateErrorText = t("common.updateError") || "Bilinmiyor";
+                                                        if (!catalog.updated_at) return updateErrorText;
                                                         try {
                                                             const date = new Date(catalog.updated_at)
-                                                            if (isNaN(date.getTime())) return t("common.updateError") || "Bilinmiyor"
+                                                            if (isNaN(date.getTime())) return updateErrorText;
                                                             return formatDistanceToNow(date, { addSuffix: true, locale: tr })
                                                         } catch {
-                                                            return t("common.updateError") || "Bilinmiyor"
+                                                            return updateErrorText;
                                                         }
                                                     })()}
                                                 </span>

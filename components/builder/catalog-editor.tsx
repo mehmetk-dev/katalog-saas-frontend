@@ -172,7 +172,8 @@ export function CatalogEditor({
   coverTheme = 'modern',
   onCoverThemeChange,
 }: CatalogEditorProps) {
-  const { t } = useTranslation()
+  const { t: baseT } = useTranslation()
+  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
@@ -522,15 +523,13 @@ export function CatalogEditor({
               value="content"
               className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
             >
-              <Package className="w-4 h-4" />
-              {t('builder.productSelection') as string}
+              {t('builder.productSelection')}
             </TabsTrigger>
             <TabsTrigger
               value="design"
               className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
             >
-              <Palette className="w-4 h-4" />
-              {t('builder.designSettings') as string}
+              {t('builder.designSettings')}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -547,12 +546,12 @@ export function CatalogEditor({
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                      {t('builder.catalogDetails') as string}
+                      {t('builder.catalogDetails')}
                     </span>
                   </div>
                   {selectedProductIds.length > 0 && (
                     <div className="bg-indigo-600 text-[10px] font-black text-white px-2 py-0.5 rounded-full shadow-sm shadow-indigo-200">
-                      {selectedProductIds.length} ÜRÜN SEÇİLDİ
+                      {selectedProductIds.length} {t('builder.productsSelected')}
                     </div>
                   )}
                 </div>
@@ -560,7 +559,7 @@ export function CatalogEditor({
                   <div className="space-y-2">
                     <textarea
                       className="w-full min-h-[90px] p-3 text-sm bg-transparent border-none rounded-xl focus:ring-0 transition-all outline-none resize-none placeholder:text-muted-foreground font-medium text-slate-700 dark:text-slate-300"
-                      placeholder={t('builder.descriptionPlaceholder') as string}
+                      placeholder={t('builder.descriptionPlaceholder')}
                       value={description}
                       onChange={(e) => onDescriptionChange(e.target.value)}
                     />
@@ -575,7 +574,7 @@ export function CatalogEditor({
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                   <Input
-                    placeholder={t('builder.searchProducts') as string}
+                    placeholder={t('builder.searchProducts')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-12 h-12 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
@@ -585,10 +584,10 @@ export function CatalogEditor({
                   <div className="flex-1">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="h-11 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm text-xs font-bold px-4">
-                        <SelectValue placeholder={t('common.category') as string} />
+                        <SelectValue placeholder={t('common.category')} />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-border shadow-xl">
-                        <SelectItem value="all">{t('common.all') as string}</SelectItem>
+                        <SelectItem value="all">{t('common.all')}</SelectItem>
                         {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -612,7 +611,7 @@ export function CatalogEditor({
                       }
                     }}
                   >
-                    {filteredProducts.every(p => selectedProductIds.includes(p.id)) ? t('builder.clearSelection') as string : t('builder.selectAll') as string}
+                    {filteredProducts.every(p => selectedProductIds.includes(p.id)) ? t('builder.clearSelection') : t('builder.selectAll')}
                   </Button>
                 </div>
               </div>
@@ -695,7 +694,7 @@ export function CatalogEditor({
                     onClick={() => setVisibleCount(v => v + 24)}
                     className="rounded-2xl h-10 px-6 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 border-slate-200/60 transition-all hover:bg-indigo-50"
                   >
-                    {t('builder.loadMore', { count: filteredProducts.length - visibleCount }) as string}
+                    {t('builder.loadMore', { count: filteredProducts.length - visibleCount })}
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
@@ -708,12 +707,12 @@ export function CatalogEditor({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: selectedProductIds.length }) as string}</h3>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder') as string}</p>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: selectedProductIds.length })}</h3>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder')}</p>
                 </div>
                 {selectedProductIds.length > 0 && (
                   <Button variant="ghost" size="sm" onClick={() => onSelectedProductIdsChange([])} className="h-8 text-xs font-bold text-destructive hover:bg-destructive/5 px-3 rounded-lg">
-                    {t('builder.clearSelection') as string}
+                    {t('builder.clearSelection')}
                   </Button>
                 )}
               </div>
@@ -791,7 +790,7 @@ export function CatalogEditor({
                   <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
                     <Layout className="w-4 h-4" />
                   </div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.designSettings') as string}</h3>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.designSettings')}</h3>
                 </div>
 
                 <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">

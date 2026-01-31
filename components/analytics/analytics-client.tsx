@@ -53,7 +53,8 @@ function calculateTrend(currentValue: number, previousValue: number) {
 }
 
 export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClientProps) {
-    const { t, language } = useTranslation()
+    const { t: baseT, language } = useTranslation()
+    const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
     const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d")
     const [stats, setStats] = useState<DashboardStats | null>(initialStats)
     const [isLoading, setIsLoading] = useState(false)
@@ -173,10 +174,10 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1 text-left">
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-                        {t("dashboard.analytics.title") as string}
+                        {t("dashboard.analytics.title")}
                     </h1>
                     <p className="text-muted-foreground text-sm md:text-base">
-                        {t("dashboard.analytics.subtitle") as string}
+                        {t("dashboard.analytics.subtitle")}
                     </p>
                 </div>
 
@@ -192,8 +193,8 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                     : "text-muted-foreground hover:text-foreground"
                             )}
                         >
-                            {range === "7d" ? t("dashboard.analytics.last7Days") as string :
-                                range === "30d" ? t("dashboard.analytics.last30Days") as string :
+                            {range === "7d" ? t("dashboard.analytics.last7Days") :
+                                range === "30d" ? t("dashboard.analytics.last30Days") :
                                     (language === 'tr' ? "90 GÜN" : "90 DAYS")}
                         </button>
                     ))}
@@ -229,12 +230,12 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             {stat.trend.value}%
                                         </Badge>
                                         <span className="text-[10px] text-muted-foreground">
-                                            {t("dashboard.analytics.vsLastMonth") as string}
+                                            {t("dashboard.analytics.vsLastMonth")}
                                         </span>
                                     </>
                                 ) : (
                                     <span className="text-[10px] text-muted-foreground">
-                                        {t("dashboard.analytics.currentPeriodData") as string}
+                                        {t("dashboard.analytics.currentPeriodData")}
                                     </span>
                                 )}
                             </div>
@@ -248,14 +249,14 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                 <Card className="lg:col-span-4 border-border/50 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/5 py-4">
                         <div className="text-left">
-                            <CardTitle className="text-base font-semibold">{t("dashboard.analytics.viewsOverTime") as string}</CardTitle>
+                            <CardTitle className="text-base font-semibold">{t("dashboard.analytics.viewsOverTime")}</CardTitle>
                             <CardDescription className="text-xs">
-                                {t("dashboard.analytics.dailyViewsDescription") as string}
+                                {t("dashboard.analytics.dailyViewsDescription")}
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-violet-500" />
-                            <span className="text-[10px] font-medium text-muted-foreground uppercase">{t("dashboard.analytics.views") as string}</span>
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase">{t("dashboard.analytics.views")}</span>
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
@@ -293,7 +294,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             backgroundColor: 'white'
                                         }}
                                         labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1e293b' }}
-                                        formatter={(value: any) => [`${value} ${t("dashboard.analytics.views") as string}`, '']}
+                                        formatter={(value: any) => [`${value} ${t("dashboard.analytics.views")}`, '']}
                                     />
                                     <Bar
                                         dataKey="views"
@@ -311,9 +312,9 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                 {/* Device Distribution Card */}
                 <Card className="lg:col-span-3 border-border/50 shadow-sm flex flex-col">
                     <CardHeader className="text-left border-b bg-muted/5 py-4">
-                        <CardTitle className="text-base font-semibold">{t("dashboard.analytics.deviceStats") as string}</CardTitle>
+                        <CardTitle className="text-base font-semibold">{t("dashboard.analytics.deviceStats")}</CardTitle>
                         <CardDescription className="text-xs">
-                            {t("dashboard.analytics.deviceDistributionDescription") as string}
+                            {t("dashboard.analytics.deviceDistributionDescription")}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-center gap-6 pt-6">
@@ -347,7 +348,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                 <span className="text-2xl font-bold">
                                     {devicePieData.reduce((acc, curr) => acc + curr.value, 0).toLocaleString()}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground uppercase">{t("dashboard.analytics.views") as string}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">{t("dashboard.analytics.views")}</span>
                             </div>
                         </div>
 
@@ -366,7 +367,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             ))}
                             {devicePieData.length === 0 && (
                                 <div className="text-center py-4 text-xs text-muted-foreground italic">
-                                    {t("dashboard.analytics.noData") as string}
+                                    {t("dashboard.analytics.noData")}
                                 </div>
                             )}
                         </div>
@@ -377,16 +378,16 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             {/* Bottom Row - Top Catalogs Table */}
             <Card className="border-border/50 shadow-sm overflow-hidden">
                 <CardHeader className="border-b bg-muted/20 text-left py-4">
-                    <CardTitle className="text-base font-semibold">{t("dashboard.analytics.topCatalogs") as string}</CardTitle>
+                    <CardTitle className="text-base font-semibold">{t("dashboard.analytics.topCatalogs")}</CardTitle>
                     <CardDescription className="text-xs">
-                        {t("dashboard.analytics.topCatalogsDescription") as string}
+                        {t("dashboard.analytics.topCatalogsDescription")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                     {!hasCatalogs ? (
                         <div className="p-12 text-center space-y-4">
                             <LayoutGrid className="w-12 h-12 mx-auto text-muted-foreground/20" />
-                            <p className="text-sm text-muted-foreground">{t("dashboard.analytics.noData") as string}</p>
+                            <p className="text-sm text-muted-foreground">{t("dashboard.analytics.noData")}</p>
                             <Button size="sm" asChild variant="outline">
                                 <Link href="/dashboard/builder">
                                     {language === 'tr' ? 'İlk Kataloğu Oluştur' : 'Create First Catalog'}
@@ -399,7 +400,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                 <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
                                     <tr>
                                         <th className="px-6 py-3 font-semibold">{language === 'tr' ? 'KATALOG ADI' : 'CATALOG NAME'}</th>
-                                        <th className="px-6 py-3 font-semibold text-right">{(t("dashboard.analytics.views") as string).toUpperCase()}</th>
+                                        <th className="px-6 py-3 font-semibold text-right">{t("dashboard.analytics.views").toUpperCase()}</th>
                                         <th className="px-6 py-3 font-semibold hidden md:table-cell">{language === 'tr' ? 'POPÜLERLİK' : 'POPULARITY'}</th>
                                     </tr>
                                 </thead>
@@ -413,9 +414,9 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-sm shrink-0 shadow-sm">
-                                                            {(cName as string).charAt(0).toUpperCase()}
+                                                            {cName.charAt(0).toUpperCase()}
                                                         </div>
-                                                        <span className="font-semibold text-slate-700 dark:text-slate-200 group-hover:text-primary transition-colors">{cName as string}</span>
+                                                        <span className="font-semibold text-slate-700 dark:text-slate-200 group-hover:text-primary transition-colors">{cName}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
@@ -438,7 +439,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                     {devicePieData.length === 0 && (
                                         <tr>
                                             <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground italic">
-                                                {t("dashboard.analytics.collectingData") as string}
+                                                {t("dashboard.analytics.collectingData")}
                                             </td>
                                         </tr>
                                     )}

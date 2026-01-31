@@ -26,7 +26,8 @@ import { usePathname } from "next/navigation"
 
 export function DashboardHeader() {
   const { user, logout } = useUser()
-  const { t } = useTranslation()
+  const { t: baseT } = useTranslation()
+  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
   const { toggle, isMobile, isCollapsed } = useSidebar()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)

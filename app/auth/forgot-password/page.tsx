@@ -21,7 +21,8 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showGoogleWarning, setShowGoogleWarning] = useState(false)
-  const { t } = useTranslation()
+  const { t: baseT } = useTranslation()
+  const t = (key: string, params?: Record<string, any>) => baseT(key, params) as string
 
   const checkProvider = async (email: string) => {
     try {
@@ -64,10 +65,10 @@ export default function ForgotPasswordPage() {
 
       if (error) {
         console.error("[ForgotPassword] Supabase error:", error)
-        
+
         // Daha açıklayıcı hata mesajları
         let errorMessage = error.message || t("auth.errorGeneric")
-        
+
         if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
           errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
         } else if (error.message?.includes('email')) {
@@ -75,10 +76,10 @@ export default function ForgotPasswordPage() {
         } else if (error.message?.includes('redirect')) {
           errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
         }
-        
+
         throw new Error(errorMessage)
       }
-      
+
       setSuccess(true)
     } catch (err) {
       console.error("[ForgotPassword] Error:", err)
@@ -103,10 +104,10 @@ export default function ForgotPasswordPage() {
 
       if (error) {
         console.error("[ForgotPassword] Continue anyway - Supabase error:", error)
-        
+
         // Daha açıklayıcı hata mesajları
         let errorMessage = error.message || t("auth.errorGeneric")
-        
+
         if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
           errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
         } else if (error.message?.includes('email')) {
@@ -114,10 +115,10 @@ export default function ForgotPasswordPage() {
         } else if (error.message?.includes('redirect')) {
           errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
         }
-        
+
         throw new Error(errorMessage)
       }
-      
+
       setSuccess(true)
     } catch (err) {
       console.error("[ForgotPassword] Continue anyway - Error:", err)
@@ -167,7 +168,7 @@ export default function ForgotPasswordPage() {
           <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white/80 backdrop-blur-sm">
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
           </div>
-          <span>{t("auth.backToLogin") || "Geri Dön"}</span>
+          <span>{t("auth.backToLogin")}</span>
         </Link>
       </div>
 
@@ -177,12 +178,12 @@ export default function ForgotPasswordPage() {
             <BookOpen className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
-            {success ? t("auth.emailSentTitle") || "Kontrol Edin" :
-              showGoogleWarning ? "Google Hesabı" : t("auth.forgotPasswordTitle") || "Şifremi Unuttum"}
+            {success ? t("auth.emailSentTitle") :
+              showGoogleWarning ? "Google Hesabı" : t("auth.forgotPasswordTitle")}
           </h1>
           <p className="text-slate-500 text-[15px] leading-relaxed">
-            {success ? t("auth.emailSentText", { email }) || "Şifre sıfırlama linki gönderildi." :
-              showGoogleWarning ? "Bu hesap Google ile kayıtlıdır." : t("auth.forgotPasswordSubtitle") || "Size bir şifre yenileme bağlantısı göndereceğiz."}
+            {success ? t("auth.emailSentText", { email }) :
+              showGoogleWarning ? "Bu hesap Google ile kayıtlıdır." : t("auth.forgotPasswordSubtitle")}
           </p>
         </div>
 
@@ -199,7 +200,7 @@ export default function ForgotPasswordPage() {
             </div>
             <Link href="/auth" className="block w-full">
               <button className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg shadow-violet-600/20 transition-all">
-                {t("auth.backToLogin") || "Giriş Yap"}
+                {t("auth.backToLogin")}
               </button>
             </Link>
           </div>
@@ -241,7 +242,7 @@ export default function ForgotPasswordPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email") || "E-posta"}</label>
+              <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email")}</label>
               <input
                 type="email"
                 required
@@ -249,7 +250,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300"
-                placeholder={t("auth.placeholderEmail") || "email@adresiniz.com"}
+                placeholder={t("auth.placeholderEmail")}
               />
             </div>
             <button
@@ -257,7 +258,7 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 transition-all flex items-center justify-center gap-2"
             >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t("auth.sendResetLink") || "Sıfırlama Bağlantısı Gönder"}
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t("auth.sendResetLink")}
             </button>
           </form>
         )}
