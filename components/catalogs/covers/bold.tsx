@@ -7,79 +7,102 @@ export function BoldCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#000000'
+    primaryColor = '#e11d48' // rose-600
 }: CoverPageProps) {
+    const currentYear = new Date().getFullYear();
+
     return (
-        <div className="relative w-full h-full bg-black text-white flex flex-col font-sans">
+        <div className="relative w-full h-full bg-slate-950 text-white flex flex-col font-sans overflow-hidden group">
 
-            {/* Split Background Layout */}
-            <div className="absolute inset-0 flex flex-col">
-                {/* Upper 2/3 Image Area */}
-                <div className="h-[70%] relative bg-neutral-900 overflow-hidden">
-                    {coverImageUrl ? (
-                        <div className="w-full h-full relative">
-                            <Image src={coverImageUrl} alt="Bold" fill className="object-cover grayscale contrast-125" />
-                            {/* Red Overlay Effect */}
-                            <div className="absolute inset-0 bg-red-600/40 mix-blend-multiply" />
-                            {/* Grain Texture */}
-                            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/noise.png')]" />
+            {/* Main Visual Section (70%) */}
+            <section className="relative h-[65%] w-full overflow-hidden bg-slate-900">
+                {coverImageUrl ? (
+                    <div className="w-full h-full relative">
+                        <Image
+                            src={coverImageUrl}
+                            alt="Visual"
+                            fill
+                            className="object-cover grayscale hover:grayscale-0 transition-all duration-[2s] scale-105 group-hover:scale-110"
+                        />
+                        {/* Dynamic Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                        <div
+                            className="absolute inset-0 opacity-40 mix-blend-multiply"
+                            style={{ backgroundColor: primaryColor }}
+                        />
+                    </div>
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                        <div className="text-white/5 font-black text-[12vw] tracking-tighter italic">GALLERY.OBJ</div>
+                    </div>
+                )}
+
+                {/* LOGO - Top Left (floating) */}
+                {logoUrl && (
+                    <div className="absolute top-10 left-10 z-30">
+                        <div className="bg-white p-4 shadow-2xl relative">
+                            <div className="relative w-24 h-10 lg:w-32 lg:h-12">
+                                <Image src={logoUrl} alt="Logo" fill className="object-contain" />
+                            </div>
                         </div>
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-neutral-800">
-                            <span className="text-[150px] font-black opacity-10 uppercase">IMAGE</span>
-                        </div>
+                    </div>
+                )}
+
+                {/* ISSUE BADGE - Top Right */}
+                <div className="absolute top-10 right-10 z-30">
+                    <div
+                        className="text-white px-4 py-2 font-black text-xl lg:text-2xl uppercase border-4 border-white shadow-[10px_10px_0px_rgba(0,0,0,0.3)] bg-slate-950 -rotate-3"
+                    >
+                        NEW ED.
+                    </div>
+                </div>
+
+                {/* MASSIVE RESPONSIVE TITLE */}
+                <div className="absolute bottom-0 left-0 w-full p-10 lg:p-16 z-20">
+                    <h1
+                        className="text-[clamp(48px,9vw,160px)] font-black italic tracking-tighter leading-[0.85] text-white uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
+                    >
+                        {catalogName}
+                    </h1>
+                </div>
+            </section>
+
+            {/* Content & Details Section (35%) */}
+            <section className="flex-1 bg-white text-slate-950 p-10 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+
+                {/* Visual Flair: Giant Arrow */}
+                <div className="absolute -right-8 -bottom-8 w-48 h-48 lg:w-72 lg:h-72 bg-slate-950 rounded-full flex items-start justify-start p-10 z-0">
+                    <svg className="w-24 h-24 lg:w-32 lg:h-32 text-white -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </div>
+
+                <div className="relative z-10">
+                    <div className="flex flex-col gap-2 mb-8">
+                        <h2 className="text-4xl lg:text-6xl font-black italic uppercase leading-none tracking-tight">
+                            The New<br />Perspective.
+                        </h2>
+                        <div className="h-4 w-32" style={{ backgroundColor: primaryColor }} />
+                    </div>
+
+                    {coverDescription && (
+                        <p className="max-w-2xl text-xl lg:text-2xl font-bold leading-tight uppercase tracking-tight text-slate-700">
+                            {coverDescription}
+                        </p>
                     )}
-
-                    {/* OVERSIZED TITLE - Clipping out of bounds */}
-                    <div className="absolute bottom-[-60px] left-[-20px] w-[120%] overflow-hidden leading-none z-10 pointer-events-none">
-                        <h1 className="text-[160px] font-black tracking-tighter text-white mix-blend-difference whitespace-nowrap"
-                            style={{ WebkitTextStroke: '2px white', color: 'transparent' }}>
-                            {catalogName.toUpperCase()}
-                        </h1>
-                        <h1 className="text-[160px] font-black tracking-tighter text-white absolute top-0 left-0 whitespace-nowrap mix-blend-overlay opacity-50">
-                            {catalogName.toUpperCase()}
-                        </h1>
-                    </div>
                 </div>
 
-                {/* Lower 1/3 Content Area */}
-                <div className="h-[30%] bg-white text-black p-12 flex justify-between items-start relative overflow-hidden">
-                    {/* Decorative Big Arrow */}
-                    <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-black rounded-full flex items-center justify-center z-0">
-                        <div className="text-white text-8xl -rotate-45 mb-4 mr-4">→</div>
+                {/* Small Prints */}
+                <div className="relative z-10 flex justify-between items-end border-t border-slate-200 pt-6">
+                    <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <span>EST. {currentYear}</span>
+                        <span>DESIGN.SYS v3</span>
                     </div>
-
-                    <div className="flex flex-col justify-between h-full max-w-2xl z-10 relative">
-                        <div>
-                            <h2 className="text-5xl font-bold leading-none uppercase tracking-tight mb-4">
-                                The New<br />Standard.
-                            </h2>
-                            <div className="w-24 h-4 bg-red-600 mb-6" />
-                        </div>
-
-                        {coverDescription && (
-                            <p className="font-bold text-xl leading-tight max-w-lg">
-                                {coverDescription}
-                            </p>
-                        )}
+                    <div className="font-mono text-[10px] font-bold text-slate-400">
+                        CAT-REF // {currentYear}-ALPHA
                     </div>
                 </div>
-            </div>
-
-            {/* Floating Badges */}
-            {logoUrl && (
-                <div className="absolute top-0 left-0 bg-white p-6 z-20">
-                    <div className="relative w-32 h-12">
-                        <Image src={logoUrl} alt="Logo" fill className="object-contain" />
-                    </div>
-                </div>
-            )}
-
-            <div className="absolute top-12 right-12 z-20">
-                <div className="bg-red-600 text-white px-4 py-2 text-2xl font-black uppercase -rotate-3 border-4 border-white shadow-[8px_8px_0px_#000]">
-                    Vol. 1
-                </div>
-            </div>
+            </section>
         </div>
     )
 }

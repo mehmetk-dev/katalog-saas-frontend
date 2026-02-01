@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Industrial Template - "The Structural Blueprint"
@@ -112,12 +113,12 @@ export function IndustrialTemplate({
                             <div className="w-36 relative border-r-2 border-black shrink-0 bg-white group-hover:bg-yellow-50 transition-colors">
                                 <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-black z-10 opacity-30" />
                                 <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-black z-10 opacity-30" />
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={`p-3 mix-blend-multiply group-hover:scale-105 transition-all duration-500 ${getImageFitClass()}`}
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
+                                    imageClassName="p-3 mix-blend-multiply group-hover:scale-105 transition-all duration-500"
+                                    showNavigation={false}
                                 />
                             </div>
 

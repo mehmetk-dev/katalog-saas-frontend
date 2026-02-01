@@ -312,7 +312,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                       <Badge variant={catalog.is_published ? "default" : "secondary"} className="rounded-sm font-normal text-xs">
                         {catalog.is_published ? t("catalogs.published") : t("catalogs.draft")}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{catalog.product_ids?.length || 0} {t("catalogs.products")}</span>
+                      <span className="text-xs text-muted-foreground">{catalogProducts.length} {t("catalogs.products")}</span>
                     </div>
                   </div>
                 </CardContent>

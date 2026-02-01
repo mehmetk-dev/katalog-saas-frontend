@@ -1,6 +1,7 @@
 import NextImage from "next/image"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Showcase Template - "The Spotlight Noir"
@@ -98,12 +99,11 @@ export function ShowcaseTemplate({
                             {/* Spotlight Effect Background */}
                             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
 
-                            <NextImage
-                                src={main.image_url || "/placeholder.svg"}
-                                alt={main.name}
-                                fill
-                                unoptimized
-                                className={`w-full h-full p-20 group-hover:scale-105 transition-transform duration-[3000ms] opacity-80 group-hover:opacity-100 ${getImageFitClass()}`}
+                            <ProductImageGallery
+                                product={main}
+                                imageFit={productImageFit}
+                                className="w-full h-full"
+                                imageClassName="p-20 group-hover:scale-105 transition-transform duration-[3000ms] opacity-80 group-hover:opacity-100"
                             />
 
                             {/* Cinematic Overlays */}
@@ -177,12 +177,13 @@ export function ShowcaseTemplate({
                         return (
                             <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                                 <div className="absolute inset-0 opacity-20 group-hover:opacity-50 transition-all duration-[1.5s]">
-                                    <NextImage
-                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                        alt={product.name}
-                                        fill
-                                        unoptimized
-                                        className={`p-12 group-hover:scale-110 transition-all duration-[2s] ${getImageFitClass()}`}
+                                    <ProductImageGallery
+                                        product={product}
+                                        imageFit={productImageFit}
+                                        className="w-full h-full"
+                                        imageClassName="p-12 group-hover:scale-110 transition-all duration-[2s]"
+                                        showNavigation={false}
+                                        interactive={false}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                                 </div>

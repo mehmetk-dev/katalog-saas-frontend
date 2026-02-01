@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Retail Template - "The High-Street Gallery"
@@ -98,15 +99,15 @@ export function RetailTemplate({
                         <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                             {/* Large Image Side */}
                             <div className="w-1/3 bg-zinc-50 relative overflow-hidden shrink-0">
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className="object-contain p-2 group-hover:scale-110 transition-transform duration-700"
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit="contain"
+                                    className="w-full h-full"
+                                    imageClassName="p-2 group-hover:scale-110 transition-transform duration-700"
+                                    showNavigation={false}
                                 />
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-0 right-0 bg-black text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-0 right-0 bg-black text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                         </svg>

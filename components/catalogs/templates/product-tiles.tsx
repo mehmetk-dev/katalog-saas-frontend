@@ -2,6 +2,7 @@ import NextImage from "next/image"
 import { ExternalLink } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Product Tiles Template - Art Gallery / Lookbook Style
@@ -127,15 +128,11 @@ export function ProductTilesTemplate({
                                     height: columnsPerRow === 2 ? '320px' : '220px'
                                 }}
                             >
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={cn(
-                                        "w-full h-full transition-transform duration-1000 group-hover:scale-110",
-                                        getImageFitClass()
-                                    )}
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
+                                    imageClassName="transition-transform duration-1000 group-hover:scale-110"
                                 />
 
                                 {/* Geometric Accent */}

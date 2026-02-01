@@ -1,6 +1,7 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Bold Template - "The Neo-Brutalist"
@@ -108,14 +109,12 @@ export function BoldTemplate({
                         <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Huge Image Area */}
                             <div className="relative aspect-[16/10] bg-gray-200 border-b-4 border-black overflow-hidden group">
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={cn(
-                                        "grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500",
-                                        getImageFitClass()
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
+                                    imageClassName={cn(
+                                        "grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
                                     )}
                                 />
                                 {/* Label Ribbon */}

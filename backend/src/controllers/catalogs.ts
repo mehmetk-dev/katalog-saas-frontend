@@ -713,6 +713,14 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
 
         // 1. Fetch Summary Stats from user_dashboard_stats view
+        let stats = {
+            totalCatalogs: 0,
+            publishedCatalogs: 0,
+            totalViews: 0,
+            totalProducts: 0,
+            topCatalogs: [],
+        };
+
         const { data: summaryData, error: summaryError } = await supabase
             .from('user_dashboard_stats')
             .select('*')
@@ -720,17 +728,37 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             .single();
 
         if (summaryError) {
-            console.error('[Stats] Error fetching summary view:', summaryError);
-            // Fallback will happen below if needed, but summary is preferred
-        }
+            console.error('[Stats] API error or view missing, falling back to manual count:', summaryError.message);
 
-        const stats = {
-            totalCatalogs: summaryData?.total_catalogs || 0,
-            publishedCatalogs: summaryData?.published_catalogs || 0,
-            totalViews: summaryData?.total_views || 0,
-            totalProducts: summaryData?.total_products || 0,
-            topCatalogs: summaryData?.top_catalogs || [],
-        };
+            // FALLBACK: If view doesn't exist, calculate manually
+            const [catalogsResult, productsResult] = await Promise.all([
+                supabase.from('catalogs').select('id, is_published, view_count, name').eq('user_id', userId),
+                supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+            ]);
+
+            if (catalogsResult.data) {
+                const catalogs = catalogsResult.data;
+                stats.totalCatalogs = catalogs.length;
+                stats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
+                stats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
+
+                // Get top 5 catalogs
+                stats.topCatalogs = [...catalogs]
+                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+                    .slice(0, 5)
+                    .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
+            }
+
+            stats.totalProducts = productsResult.count || 0;
+        } else {
+            stats = {
+                totalCatalogs: summaryData?.total_catalogs || 0,
+                publishedCatalogs: summaryData?.published_catalogs || 0,
+                totalViews: summaryData?.total_views || 0,
+                totalProducts: summaryData?.total_products || 0,
+                topCatalogs: summaryData?.top_catalogs || [],
+            };
+        }
 
         const detailedStats = {
             uniqueVisitors: 0,
@@ -738,8 +766,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             dailyViews: [] as { view_date: string; view_count: number }[],
         };
 
-        const { data: catalogs } = await supabase.from('catalogs').select('id').eq('user_id', userId);
-        const catalogIds = catalogs?.map(c => c.id) || [];
+        // Reuse catalog ids if we already have them from fallback
+        const { data: catList } = await supabase.from('catalogs').select('id').eq('user_id', userId);
+        const catalogIds = catList?.map(c => c.id) || [];
 
         // 2. Fetch Detailed Analytics (Zaman aralığına duyarlı)
         if (catalogIds.length > 0) {

@@ -38,6 +38,9 @@ import type { TemplateProps } from "@/components/catalogs/templates/types"
 // Storytelling Catalog Components
 import { CoverPage } from "@/components/catalogs/cover-page"
 import { CategoryDivider } from "@/components/catalogs/category-divider"
+// Image Gallery & Lightbox
+import { LightboxProvider } from "@/lib/lightbox-context"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 
 interface PublicCatalogClientProps {
     catalog: Catalog
@@ -317,145 +320,197 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
     }
 
     return (
-        <div className={cn(
-            "min-h-screen flex flex-col transition-colors duration-500",
-            isFullscreen ? "bg-black" : "bg-slate-50"
-        )}>
-            <Toaster position="top-center" expand={true} richColors />
-
-            <ShareModal
-                open={isShareModalOpen}
-                onOpenChange={setIsShareModalOpen}
-                shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                catalog={catalog}
-                isPublished={true} // Public view is always published
-                onDownloadPdf={async () => handleDownload()}
-            />
-
-            {/* Fullscreen Exit Button (Floating) */}
-            {isFullscreen && (
-                <button
-                    onClick={toggleFullscreen}
-                    className="fixed top-6 right-6 z-[100] bg-white/10 backdrop-blur-md border border-white/20 text-white p-3 rounded-full hover:bg-white/20 transition-all shadow-xl group"
-                >
-                    <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                    <span className="sr-only">Exit Fullscreen</span>
-                </button>
-            )}
-
-            {/* Premium Glass Header */}
-            {!isFullscreen && (
-                <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-sm">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <Link href="/" className="flex items-center group">
-                                    <span className="font-montserrat text-xl tracking-tighter flex items-center">
-                                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                        <span className="font-light text-slate-900">Catalog</span>
-                                    </span>
-                                </Link>
-                                <div className="h-6 w-px bg-slate-200" />
-                                <h1 className="text-sm font-semibold text-slate-600 truncate max-w-[200px]">{catalog.name}</h1>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1 md:w-64">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        placeholder={t("catalogs.public.searchPlaceholder")}
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 bg-slate-100/50 border-none rounded-full text-sm focus:ring-2 focus:ring-violet-500/20 transition-all outline-none"
-                                    />
-                                </div>
-
-                                <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => setIsShareModalOpen(true)} className="rounded-full hover:bg-violet-50 hover:text-violet-600">
-                                        <Share2 className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={handleDownload} className="rounded-full hover:bg-violet-50 hover:text-violet-600">
-                                        <Download className="w-4 h-4" />
-                                    </Button>
-
-                                    {!isMobile && (
-                                        <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full hover:bg-slate-100">
-                                            <Sparkles className="w-4 h-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Category Pills */}
-                        {categories.length > 2 && (
-                            <div className="mt-3 flex flex-wrap items-center gap-2 pb-2 sm:flex-nowrap sm:overflow-x-auto sm:no-scrollbar">
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => setSelectedCategory(cat)}
-                                        className={cn(
-                                            "px-3 py-1 rounded-full text-xs font-medium transition-all sm:px-4 sm:py-1.5 sm:whitespace-nowrap",
-                                            selectedCategory === cat
-                                                ? "bg-violet-600 text-white shadow-md shadow-violet-200"
-                                                : "bg-white text-slate-600 border border-slate-200 hover:border-violet-300 hover:text-violet-600"
-                                        )}
-                                    >
-                                        {cat === "all" ? t("catalogs.public.all") : cat}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </header>
-            )}
-
-            {/* Main Content - Vertical Scroll with Pinch Zoom for Mobile */}
-            <main className={cn(
-                "flex-1 relative w-full",
-                isFullscreen ? "bg-black" : "bg-slate-50",
-                // Masaüstünde dikey kaydırma, mobilde ZoomWrapper kontrolünde
-                !isMobile && "overflow-y-auto"
+        <LightboxProvider>
+            <div className={cn(
+                "min-h-screen flex flex-col transition-colors duration-500",
+                isFullscreen ? "bg-black" : "bg-slate-50"
             )}>
-                {isMobile ? (
-                    <TransformWrapper
-                        initialScale={Math.min(1, (typeof window !== 'undefined' ? window.innerWidth : 390) / 820)}
-                        minScale={0.2}
-                        maxScale={3}
-                        centerOnInit={false}
-                        initialPositionX={0}
-                        initialPositionY={0}
-                        wheel={{ disabled: true }}
-                        panning={{ velocityDisabled: true }}
+                {/* Global Lightbox */}
+                <ImageLightbox />
+
+                <Toaster position="top-center" expand={true} richColors />
+
+                <ShareModal
+                    open={isShareModalOpen}
+                    onOpenChange={setIsShareModalOpen}
+                    shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                    catalog={catalog}
+                    isPublished={true} // Public view is always published
+                    onDownloadPdf={async () => handleDownload()}
+                />
+
+                {/* Fullscreen Exit Button (Floating) */}
+                {isFullscreen && (
+                    <button
+                        onClick={toggleFullscreen}
+                        className="fixed top-6 right-6 z-[100] bg-white/10 backdrop-blur-md border border-white/20 text-white p-3 rounded-full hover:bg-white/20 transition-all shadow-xl group"
                     >
-                        <TransformComponent
-                            wrapperStyle={{
-                                width: "100%",
-                                height: "calc(100vh - 80px)", // Footer alanını hesaba kat
-                                overflow: "hidden"
-                            }}
-                            contentStyle={{
-                                width: "100%",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "12px",
-                                padding: "12px 0 60px 0", // Alt tarafa scroll payı
-                                alignItems: "center"
-                            }}
+                        <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        <span className="sr-only">Exit Fullscreen</span>
+                    </button>
+                )}
+
+                {/* Premium Glass Header */}
+                {!isFullscreen && (
+                    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-sm">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <Link href="/" className="flex items-center group">
+                                        <span className="font-montserrat text-xl tracking-tighter flex items-center">
+                                            <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                                            {/* Eğer katalog ismi zaten "Fog Catalog" veya benzeri ise platform ismini gizle veya sadeleştir */}
+                                            {!(catalog.name.toLowerCase().includes('fog') && catalog.name.toLowerCase().includes('catalog')) && (
+                                                <span className="font-light text-slate-900">Catalog</span>
+                                            )}
+                                        </span>
+                                    </Link>
+                                    <div className="h-6 w-px bg-slate-200" />
+                                    <h1 className="text-sm font-semibold text-slate-600 truncate max-w-[200px]">{catalog.name}</h1>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="relative flex-1 md:w-64">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder={t("catalogs.public.searchPlaceholder")}
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 bg-slate-100/50 border-none rounded-full text-sm focus:ring-2 focus:ring-violet-500/20 transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => setIsShareModalOpen(true)} className="rounded-full hover:bg-violet-50 hover:text-violet-600">
+                                            <Share2 className="w-4 h-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={handleDownload} className="rounded-full hover:bg-violet-50 hover:text-violet-600">
+                                            <Download className="w-4 h-4" />
+                                        </Button>
+
+                                        {!isMobile && (
+                                            <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full hover:bg-slate-100">
+                                                <Sparkles className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Category Pills */}
+                            {categories.length > 2 && (
+                                <div className="mt-3 flex flex-wrap items-center gap-2 pb-2 sm:flex-nowrap sm:overflow-x-auto sm:no-scrollbar">
+                                    {categories.map(cat => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className={cn(
+                                                "px-3 py-1 rounded-full text-xs font-medium transition-all sm:px-4 sm:py-1.5 sm:whitespace-nowrap",
+                                                selectedCategory === cat
+                                                    ? "bg-violet-600 text-white shadow-md shadow-violet-200"
+                                                    : "bg-white text-slate-600 border border-slate-200 hover:border-violet-300 hover:text-violet-600"
+                                            )}
+                                        >
+                                            {cat === "all" ? t("catalogs.public.all") : cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </header>
+                )}
+
+                {/* Main Content - Vertical Scroll with Pinch Zoom for Mobile */}
+                <main className={cn(
+                    "flex-1 relative w-full",
+                    isFullscreen ? "bg-black" : "bg-slate-50",
+                    // Masaüstünde dikey kaydırma, mobilde ZoomWrapper kontrolünde
+                    !isMobile && "overflow-y-auto"
+                )}>
+                    {isMobile ? (
+                        <TransformWrapper
+                            initialScale={Math.min(1, (typeof window !== 'undefined' ? window.innerWidth : 390) / 820)}
+                            minScale={0.2}
+                            maxScale={3}
+                            centerOnInit={false}
+                            initialPositionX={0}
+                            initialPositionY={0}
+                            wheel={{ disabled: true }}
+                            panning={{ velocityDisabled: true }}
                         >
-                            <div className="w-full flex flex-col gap-6 items-center">
-                                {catalogPages.map((page, index) => (
+                            <TransformComponent
+                                wrapperStyle={{
+                                    width: "100%",
+                                    height: "calc(100vh - 80px)", // Footer alanını hesaba kat
+                                    overflow: "hidden"
+                                }}
+                                contentStyle={{
+                                    width: "100%",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "12px",
+                                    padding: "12px 0 60px 0", // Alt tarafa scroll payı
+                                    alignItems: "center"
+                                }}
+                            >
+                                <div className="w-full flex flex-col gap-6 items-center">
+                                    {catalogPages.map((page, index) => (
+                                        <div
+                                            key={index}
+                                            data-pdf-page="true"
+                                            className="shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white shrink-0"
+                                            style={{
+                                                width: '794px',
+                                                height: '1123px',
+                                                ...getBackgroundStyle()
+                                            }}
+                                        >
+                                            <div className="w-full h-full" style={{ height: '1123px' }}>
+                                                <div style={{ width: '100%', height: '100%' }}>
+                                                    {page.type === 'cover' ? (
+                                                        <CoverPage
+                                                            catalogName={catalog.name}
+                                                            coverImageUrl={catalog.cover_image_url}
+                                                            coverDescription={catalog.cover_description}
+                                                            logoUrl={catalog.logo_url}
+                                                            primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                            isExporting={isExporting}
+                                                            theme={catalog.cover_theme}
+                                                        />
+                                                    ) : page.type === 'divider' ? (
+                                                        <CategoryDivider
+                                                            categoryName={page.categoryName}
+                                                            firstProductImage={page.firstProductImage}
+                                                            primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                            theme={catalog.cover_theme}
+                                                        />
+                                                    ) : (
+                                                        renderTemplate(page.products, page.pageNumber, page.totalPages)
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </TransformComponent>
+                        </TransformWrapper>
+                    ) : (
+                        <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
+                            {catalogPages.length > 0 ? (
+                                catalogPages.map((page, index) => (
                                     <div
                                         key={index}
                                         data-pdf-page="true"
-                                        className="shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white shrink-0"
+                                        className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
                                         style={{
                                             width: '794px',
                                             height: '1123px',
+                                            margin: '0 auto',
                                             ...getBackgroundStyle()
                                         }}
                                     >
+                                        {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
                                         <div className="w-full h-full" style={{ height: '1123px' }}>
                                             <div style={{ width: '100%', height: '100%' }}>
                                                 {page.type === 'cover' ? (
@@ -481,99 +536,55 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </TransformComponent>
-                    </TransformWrapper>
-                ) : (
-                    <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
-                        {catalogPages.length > 0 ? (
-                            catalogPages.map((page, index) => (
-                                <div
-                                    key={index}
-                                    data-pdf-page="true"
-                                    className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
-                                    style={{
-                                        width: '794px',
-                                        height: '1123px',
-                                        margin: '0 auto',
-                                        ...getBackgroundStyle()
-                                    }}
-                                >
-                                    {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
-                                    <div className="w-full h-full" style={{ height: '1123px' }}>
-                                        <div style={{ width: '100%', height: '100%' }}>
-                                            {page.type === 'cover' ? (
-                                                <CoverPage
-                                                    catalogName={catalog.name}
-                                                    coverImageUrl={catalog.cover_image_url}
-                                                    coverDescription={catalog.cover_description}
-                                                    logoUrl={catalog.logo_url}
-                                                    primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
-                                                    isExporting={isExporting}
-                                                    theme={catalog.cover_theme}
-                                                />
-                                            ) : page.type === 'divider' ? (
-                                                <CategoryDivider
-                                                    categoryName={page.categoryName}
-                                                    firstProductImage={page.firstProductImage}
-                                                    primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
-                                                    theme={catalog.cover_theme}
-                                                />
-                                            ) : (
-                                                renderTemplate(page.products, page.pageNumber, page.totalPages)
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                                <Search className="w-12 h-12 mb-4 opacity-20" />
-                                <p>{t("catalogs.public.noResults")}</p>
-                                <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-2 text-violet-600">
-                                    {t("catalogs.public.resetFilters")}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </main>
-
-            {/* Modern Footer */}
-            {!isFullscreen && (
-                <footer className="shrink-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-200/50 py-4">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <Link href="/" className="flex items-center group">
-                                    <span className="font-montserrat text-lg tracking-tighter flex items-center">
-                                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                        <span className="font-light text-slate-900">Catalog</span>
-                                    </span>
-                                </Link>
-                                <div className="h-4 w-px bg-slate-200" />
-                                <p className="text-slate-500 text-xs font-medium">
-                                    {t("catalogs.public.createdWithPrefix")}{" "}
-                                    {t("catalogs.public.createdWithSuffix")}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <p className="text-slate-400 text-xs hidden md:block">
-                                    {t("catalogs.public.ctaDesc")}
-                                </p>
-                                <Link href="/">
-                                    <Button size="sm" className="h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2 text-xs font-semibold">
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        {t("catalogs.public.startNow")}
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <Search className="w-12 h-12 mb-4 opacity-20" />
+                                    <p>{t("catalogs.public.noResults")}</p>
+                                    <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }} className="mt-2 text-violet-600">
+                                        {t("catalogs.public.resetFilters")}
                                     </Button>
-                                </Link>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </main>
+
+                {/* Modern Footer */}
+                {!isFullscreen && (
+                    <footer className="shrink-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-200/50 py-4">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <Link href="/" className="flex items-center group">
+                                        <span className="font-montserrat text-lg tracking-tighter flex items-center">
+                                            <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                                            <span className="font-light text-slate-900">Catalog</span>
+                                        </span>
+                                    </Link>
+                                    <div className="h-4 w-px bg-slate-200" />
+                                    <p className="text-slate-500 text-xs font-medium">
+                                        {t("catalogs.public.createdWithPrefix")}{" "}
+                                        {t("catalogs.public.createdWithSuffix")}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <p className="text-slate-400 text-xs hidden md:block">
+                                        {t("catalogs.public.ctaDesc")}
+                                    </p>
+                                    <Link href="/">
+                                        <Button size="sm" className="h-9 px-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white gap-2 text-xs font-semibold">
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            {t("catalogs.public.startNow")}
+                                        </Button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </footer>
-            )}
-        </div>
+                    </footer>
+                )}
+            </div>
+        </LightboxProvider>
     )
 }

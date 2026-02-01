@@ -1,6 +1,7 @@
 import NextImage from "next/image"
 import { useTranslation } from "@/lib/i18n-provider"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Luxury Template - "The Royal Essence"
@@ -89,10 +90,10 @@ export function LuxuryTemplate({
                             </div>
                         )}
                         <h1 className="font-serif text-2xl tracking-[0.2em] uppercase text-[#f3eacb] drop-shadow-sm">
-                            {catalogName || t('catalogs.luxury')}
+                            {catalogName || (t('catalogs.luxury') as string)}
                         </h1>
                         <div className="text-[9px] uppercase tracking-[0.5em] text-[#d4af37]/60 mt-1">
-                            {t('catalogs.premiumCollection') || "ESTABLISHED QUALITY"}
+                            {(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}
                         </div>
                     </div>
 
@@ -103,7 +104,7 @@ export function LuxuryTemplate({
             </div>
 
             {/* Grid - Products */}
-            <div className={`flex-1 px-12 pb-8 grid ${getGridCols()} ${getGridRows()} gap-8 overflow-hidden z-10`}>
+            <div className={`flex-1 px-12 pb-8 grid ${getGridCols()} ${getGridRows()} gap-x-12 gap-y-10 overflow-hidden z-10`}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
@@ -113,58 +114,53 @@ export function LuxuryTemplate({
                         rel: 'noopener noreferrer',
                         className: 'group h-full flex flex-col relative focus:outline-none'
                     } : {
-                        className: 'h-full flex flex-col relative'
+                        className: 'h-full flex flex-col relative group'
                     }
 
                     return (
                         <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
-                            {/* Product Frame */}
-                            <div className="relative aspect-[10/12] bg-[#111] border border-[#d4af37]/20 group-hover:border-[#d4af37]/50 transition-all duration-700 overflow-hidden shadow-2xl">
-                                {/* Image */}
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={`opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[1.5s] ease-out ${getImageFitClass()}`}
+                            {/* Product Image Frame - The "Classic Luxury" Look */}
+                            <div className="relative aspect-[10/12] bg-[#0c0c0c] border border-white/10 group-hover:border-[#d4af37]/40 transition-all duration-700 overflow-hidden shadow-2xl shadow-black">
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
+                                    imageClassName="opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[2s] ease-out"
                                 />
-
-                                {/* Overlay Shadow */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
 
                                 {/* Link Icon */}
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-md border border-[#d4af37]/30 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                                        <svg className="w-3 h-3 text-[#d4af37]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    <div className="absolute top-4 right-4 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-500 z-20">
+                                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>
                                     </div>
                                 )}
 
-                                {/* SKU Overlay */}
+                                {/* SKU Overlay - Now Pure White for visibility */}
                                 {showSku && product.sku && (
-                                    <div className="absolute top-3 left-3">
-                                        <span className="text-[8px] font-serif tracking-widest text-[#d4af37]/40 uppercase">NO. {product.sku}</span>
+                                    <div className="absolute top-4 left-4 z-20">
+                                        <span className="text-[8px] font-sans font-black tracking-widest text-white uppercase bg-black/40 px-1.5 py-0.5 rounded-sm">#{product.sku}</span>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Product Info */}
-                            <div className="mt-3 flex flex-col items-center text-center px-2">
-                                <h3 className="font-serif text-sm tracking-widest text-[#f3eacb] uppercase line-clamp-1 mb-1 group-hover:text-[#d4af37] transition-colors">
+                            {/* Product Info - All Text Made Pure White as Requested */}
+                            <div className="mt-5 flex flex-col items-center text-center">
+                                <h3 className="font-serif text-[13px] tracking-[0.2em] text-white uppercase line-clamp-1 mb-1 group-hover:text-[#d4af37] transition-colors duration-500">
                                     {product.name}
                                 </h3>
 
                                 {showDescriptions && product.description && (
-                                    <p className="text-[10px] text-[#ffffff]/40 italic line-clamp-1 mb-2 font-serif font-light">
+                                    <p className="text-[10px] text-white italic line-clamp-2 mb-2 font-serif font-light tracking-wide max-w-[200px] leading-relaxed">
                                         {product.description}
                                     </p>
                                 )}
 
-                                <div className="w-8 h-[1px] bg-[#d4af37]/20 mb-2 group-hover:w-16 transition-all duration-500" />
+                                <div className="w-8 h-[1px] bg-[#d4af37]/60 my-2 group-hover:w-16 transition-all duration-700" />
 
                                 {showPrices && (
-                                    <div className="text-sm font-serif text-[#d4af37] font-medium tracking-widest">
+                                    <div className="text-base font-serif text-[#d4af37] font-medium tracking-[0.1em]">
                                         {(() => {
                                             const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
@@ -174,11 +170,11 @@ export function LuxuryTemplate({
                                 )}
 
                                 {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                    <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 opacity-80 group-hover:opacity-100 transition-opacity duration-500">
                                         {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
-                                            <div key={aidx} className="flex items-center text-[8px] tracking-widest uppercase">
-                                                <span className="text-[#d4af37]/50 mr-1">{attr.name}:</span>
-                                                <span className="text-[#f3eacb]">{attr.value}{attr.unit}</span>
+                                            <div key={aidx} className="flex items-center text-[8px] tracking-[0.15em] uppercase text-white font-medium">
+                                                <span className="text-white/60 mr-1">{attr.name}:</span>
+                                                <span className="text-white">{attr.value}{attr.unit}</span>
                                             </div>
                                         ))}
                                     </div>

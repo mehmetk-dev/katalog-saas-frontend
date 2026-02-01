@@ -7,85 +7,130 @@ export function MagazineCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#ef4444' // Red-500 default
+    primaryColor = '#ef4444'
 }: CoverPageProps) {
+    const currentYear = new Date().getFullYear();
+
     return (
-        <div className="relative w-full h-full bg-white flex flex-col pt-4">
-            {/* Top Header Strip */}
-            <div className="px-8 flex justify-between items-end border-b-4 border-black pb-2 mb-4">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    Monthly Issue • No. 42
+        <div className="relative w-full h-full bg-[#fcfcfc] flex flex-col overflow-hidden font-sans text-slate-900">
+            {/* Top Magazine Header - High End Label */}
+            <header className="px-10 pt-8 pb-4 flex justify-between items-baseline border-b border-black/10 z-20">
+                <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Monthly Issue</span>
+                    <div className="h-[1px] w-12 bg-black/10" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Vol. {currentYear % 100} — No. 04</span>
                 </div>
-                <div className="font-serif italic text-2xl font-bold flex items-center gap-2">
-                    WEEKLY <span className="bg-red-600 text-white text-xs not-italic px-1 font-sans py-0.5">PRO</span>
-                </div>
-            </div>
 
-            {/* Main Content Layout */}
-            <div className="flex-1 relative flex flex-col px-8 pb-8">
+                {/* Brand Logo Integration */}
+                {logoUrl ? (
+                    <div className="relative h-8 w-24">
+                        <Image src={logoUrl} alt="Logo" fill className="object-contain" />
+                    </div>
+                ) : (
+                    <div className="font-serif italic text-xl font-black tracking-tighter">
+                        LIFESTYLE <span className="not-italic text-sm font-light tracking-widest ml-1 text-slate-400">PRO</span>
+                    </div>
+                )}
+            </header>
 
-                {/* Massive Magazine Header */}
-                <h1 className="text-[140px] leading-[0.85] font-black tracking-tighter text-black uppercase mb-4 w-full text-center relative z-10 mix-blend-exclusion text-white">
-                    {catalogName.substring(0, 10)}
-                    {catalogName.length > 10 && <span className="text-4xl block tracking-normal mt-2">{catalogName.substring(10)}</span>}
-                </h1>
-
-                {/* Main Image Layer */}
-                <div className="absolute inset-0 top-32 z-0 mx-4">
+            <main className="flex-1 relative flex flex-col p-10">
+                {/* Background Image Container */}
+                <div className="absolute inset-0 z-0">
                     {coverImageUrl ? (
-                        <div className="w-full h-[85%] relative shadow-2xl">
-                            <Image src={coverImageUrl} alt="Main" fill className="object-cover" />
-                            {/* Gradient for text readability */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60" />
+                        <div className="w-full h-full relative">
+                            <Image
+                                src={coverImageUrl}
+                                alt="Cover"
+                                fill
+                                className="object-cover"
+                                priority
+                            />
+                            {/* Sophisticated Gradients */}
+                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-white via-white/80 to-transparent" />
+                            <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/20 to-transparent opacity-40" />
                         </div>
                     ) : (
-                        <div className="w-full h-[85%] bg-neutral-200 flex items-center justify-center">
-                            <span className="text-6xl font-black text-neutral-300">COVER IMAGE</span>
+                        <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                            <div className="text-slate-200 font-serif italic text-8xl -rotate-12 opacity-50">LIFESTYLE</div>
                         </div>
                     )}
                 </div>
 
-                {/* Floating "Teaser" texts on left and right */}
-                <div className="relative z-20 flex-1 flex flex-col justify-end pb-12">
-                    <div className="flex justify-between items-end">
-                        {/* Left Teaser Box */}
-                        <div className="bg-white/90 p-6 max-w-xs shadow-lg backdrop-blur border-l-4 border-red-600">
-                            <h3 className="font-black text-xl uppercase mb-2">Inside This Issue</h3>
-                            <p className="text-sm font-serif leading-tight">
-                                Explore our latest collection features, exclusive interviews, and product deep dives.
-                            </p>
+                {/* Main Heading - Modern Magazine Style */}
+                <div className="relative z-10 flex-1 flex flex-col justify-between">
+                    <div className="pt-4">
+                        <h1
+                            className="text-[clamp(60px,12vh,110px)] font-black leading-[0.85] tracking-[-0.05em] uppercase text-slate-900 max-w-2xl"
+                            style={{
+                                textShadow: '0 10px 30px rgba(255,255,255,0.5)',
+                                mixBlendMode: coverImageUrl ? 'normal' : 'normal'
+                            }}
+                        >
+                            {catalogName}
+                        </h1>
+                        <div className="h-2 w-24 mt-6" style={{ backgroundColor: primaryColor }} />
+                    </div>
+
+                    {/* Secondary Headlines - Typical Magazine Covers */}
+                    <div className="flex justify-between items-end gap-12">
+                        {/* Left Side: Headlines */}
+                        <div className="flex flex-col gap-6 max-w-xs">
+                            <article className="border-l-2 pl-4 py-1" style={{ borderColor: primaryColor }}>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Trends</h4>
+                                <h3 className="text-xl font-bold leading-tight uppercase tracking-tight">The Future of Modern Design</h3>
+                            </article>
+                            <article className="border-l-2 pl-4 py-1 border-slate-300">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Exclusive</h4>
+                                <h3 className="text-xl font-bold leading-tight uppercase tracking-tight">Behind the Curated Collection</h3>
+                            </article>
                         </div>
 
-                        {/* Right Main Description */}
-                        {coverDescription && (
-                            <div className="bg-black/80 text-white p-8 max-w-sm backdrop-blur shadow-2xl">
-                                <h3 className="text-red-500 font-bold uppercase tracking-widest text-xs mb-3">Cover Story</h3>
-                                <p className="text-xl font-bold leading-tight">
-                                    {coverDescription}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Footer Barcode */}
-                <div className="absolute bottom-4 right-8 z-20 bg-white p-2">
-                    <div className="h-8 w-32 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAABCAYAAAD5g7RNAAAAAXNSR0IArs4c6QAAABJJREFUGFdj/P///38GKgI0jAAApM4PwRyt7QoAAAAASUVORK5CYII=')] bg-repeat-x" />
-                    <div className="flex justify-between text-[8px] font-mono mt-1">
-                        <span>$12.99</span>
-                        <span>0 71486 01234 5</span>
-                    </div>
-                </div>
-
-                {/* Logo on top of image */}
-                {logoUrl && (
-                    <div className="absolute top-40 left-1/2 -translate-x-1/2 z-20 drop-shadow-2xl">
-                        <div className="relative w-48 h-24">
-                            <Image src={logoUrl} alt="Logo" fill className="object-contain" style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))' }} />
+                        {/* Right Side: Cover Description Box */}
+                        <div className="flex flex-col items-end text-right">
+                            {coverDescription && (
+                                <div className="bg-white p-8 shadow-[20px_20px_60px_-15px_rgba(0,0,0,0.1)] border-t-8 border-slate-900 max-w-sm">
+                                    <span className="inline-block text-[10px] font-black uppercase tracking-[0.4em] mb-4 py-1 px-2 bg-slate-100 italic">Feature Story</span>
+                                    <p className="text-2xl font-serif italic leading-[1.1] text-slate-900">
+                                        "{coverDescription}"
+                                    </p>
+                                    <div className="mt-6 flex justify-end gap-2 text-[10px] font-bold uppercase tracking-widest">
+                                        <span>Read More</span>
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            </main>
+
+            {/* Footer Bar */}
+            <footer className="px-10 py-6 bg-white border-t border-black/5 flex justify-between items-center z-20">
+                <div className="flex items-center gap-8 text-[11px] font-black uppercase tracking-widest">
+                    <span>Premium Edition</span>
+                    <span className="text-slate-300">/</span>
+                    <span style={{ color: primaryColor }}>Interiors</span>
+                    <span className="text-slate-300">/</span>
+                    <span>Style</span>
+                </div>
+
+                {/* Price & Barcode Area */}
+                <div className="flex items-center gap-6">
+                    <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-bold">$12.99 USD</span>
+                        <span className="text-[10px] font-bold">14.00 EUR</span>
+                    </div>
+                    <div className="bg-white p-2 border border-slate-100">
+                        <div className="h-6 w-24 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAABCAYAAAD5g7RNAAAAAXNSR0IArs4c6QAAABJJREFUGFdj/P///38GKgI0jAAApM4PwRyt7QoAAAAASUVORK5CYII=')] bg-repeat-x opacity-60" />
+                        <div className="flex justify-between text-[7px] font-mono mt-0.5 tracking-tighter">
+                            <span>071486</span>
+                            <span>012345</span>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </div>
     )
 }

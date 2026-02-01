@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Tech Modern Template - "The Kinetic HUD"
@@ -102,12 +103,11 @@ export function TechModernTemplate({
                         <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
                             {/* Technical Frame */}
                             <div className="relative aspect-video bg-[#05070a] m-1 overflow-hidden shrink-0">
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className="object-contain p-4 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit="contain"
+                                    className="w-full h-full"
+                                    imageClassName="p-4 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                                 />
                                 {/* Crosshair Overlay */}
                                 <div className="absolute inset-2 border border-white/5 opacity-40" />

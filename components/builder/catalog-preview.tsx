@@ -1,15 +1,25 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useState, useRef, useEffect, useMemo } from "react"
+import { ChevronLeft, ChevronRight, Layout, Monitor } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
 import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 
 import { ALL_TEMPLATES } from "../catalogs/templates/registry"
 import { CategoryDivider } from "../catalogs/category-divider"
 import { CoverPage } from "../catalogs/cover-page"
+// Lightbox support
+import { LightboxProvider } from "@/lib/lightbox-context"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 
 interface CatalogPreviewProps {
   catalogName: string
@@ -123,8 +133,8 @@ export function CatalogPreview(props: CatalogPreviewProps) {
 
   const itemsPerPage = getItemsPerPage()
 
-  // === STORYTELLING & PAGINATION LOGIC ===
-  const buildPages = () => {
+  // === STORYTELLING & PAGINATION LOGIC (MEMOIZED) ===
+  const displayPages = useMemo(() => {
     const pages: CatalogPage[] = []
 
     // 1. Kapak sayfası (Prop ile kontrol edilir)
@@ -175,9 +185,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
     }
 
     return pages
-  }
-
-  const displayPages = buildPages()
+  }, [props.enableCoverPage, props.enableCategoryDividers, props.products, itemsPerPage])
 
   useEffect(() => {
     if (displayPages.length > 0 && currentPage >= displayPages.length) {
@@ -185,8 +193,8 @@ export function CatalogPreview(props: CatalogPreviewProps) {
     }
   }, [displayPages.length, currentPage])
 
-  // Arka plan stili hesaplama
-  const getBackgroundStyle = (): React.CSSProperties => {
+  // Arka plan stili hesaplama (MEMOIZED)
+  const backgroundStyle = useMemo((): React.CSSProperties => {
     const style: React.CSSProperties = {
       backgroundColor: backgroundColor,
     }
@@ -207,7 +215,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
     }
 
     return style
-  }
+  }, [backgroundColor, backgroundGradient, backgroundImage, backgroundImageFit])
 
   const goToPage = (page: number) => {
     if (page >= 0 && page < displayPages.length) {
@@ -315,7 +323,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
           ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {}),
-          ...getBackgroundStyle(),
+          ...backgroundStyle,
         }}
         onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
       >
@@ -365,112 +373,156 @@ export function CatalogPreview(props: CatalogPreviewProps) {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-white catalog-light">
-      {/* Sayfa Kontrolü - Sadece 'showControls' true ise göster */}
-      {showControls && (
-        <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 bg-white/90 backdrop-blur-md border-b shrink-0 gap-3">
-          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setViewMode(viewMode === "single" ? "all" : "single")}
-              className="h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold uppercase tracking-tight rounded-full transition-all"
-            >
-              {viewMode === "single" ? "TÜM SAYFALAR" : "TEK SAYFA"}
-            </Button>
+    <LightboxProvider>
+      <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-white catalog-light">
+        {/* Global Lightbox support in Preview */}
+        <ImageLightbox />
 
-            <div className="h-4 w-px bg-border/60 mx-1 hidden xs:block" />
-
-            {/* Sütun sayısı göstergesi */}
-            <div className="hidden xs:flex items-center gap-1 px-2 py-1 bg-muted/60 rounded-full border border-border/40 shrink-0">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">{columnsPerRow} SÜTUN</span>
-            </div>
-          </div>
-
-          {viewMode === "single" && (
-            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-muted"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              <div className="flex items-center justify-center bg-muted/50 px-3 py-1 rounded-full border border-border/30 min-w-[70px] sm:min-w-[90px]">
-                <span className="text-xs font-black text-foreground tabular-nums">{currentPage + 1}</span>
-                <span className="text-[10px] font-bold text-muted-foreground mx-1">/</span>
-                <span className="text-xs font-black text-muted-foreground tabular-nums">{displayPages.length}</span>
+        {/* Sayfa Kontrolü - Sadece 'showControls' true ise göster */}
+        {showControls && (
+          <div className="flex items-center justify-between px-2 sm:px-4 py-2 bg-white border-b shrink-0 gap-1.5 sm:gap-4 shadow-sm z-10">
+            <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+              <div className="flex xl:hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 rounded-full border border-border/40 bg-muted/30 px-3 flex items-center gap-2 hover:bg-muted/50 transition-all active:scale-95"
+                  onClick={() => setViewMode(viewMode === "single" ? "all" : "single")}
+                >
+                  {viewMode === "single" ? (
+                    <>
+                      <Monitor className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-[9px] font-black uppercase">TEK SAYFA</span>
+                    </>
+                  ) : (
+                    <>
+                      <Layout className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-[9px] font-black uppercase tracking-tight">TÜM SAYFALAR</span>
+                    </>
+                  )}
+                </Button>
               </div>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-muted"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === displayPages.length - 1}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+              <div className="hidden xl:block">
+                <Tabs
+                  value={viewMode}
+                  onValueChange={(v) => setViewMode(v as "single" | "all")}
+                  className="h-9"
+                >
+                  <TabsList className="bg-muted/50 p-1 rounded-full border border-border/40">
+                    <TabsTrigger
+                      value="single"
+                      className="rounded-full px-4 py-1.5 h-7 text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                    >
+                      <Monitor className="h-3.5 w-3.5 mr-1.5 opacity-70" />
+                      TEK SAYFA
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="all"
+                      className="rounded-full px-4 py-1.5 h-7 text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+                    >
+                      <Layout className="h-3.5 w-3.5 mr-1.5 opacity-70" />
+                      TÜM SAYFALAR
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
 
-          {viewMode === "all" && (
-            <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hidden sm:block">
-              TOPLAM {displayPages.length} SAYFA
-            </div>
-          )}
+              <div className="h-5 w-px bg-border/40 mx-0.5 hidden xl:block" />
 
-          {/* Mini indicators - Hidden on very small screens */}
-          {displayPages.length > 1 && viewMode === "single" && (
-            <div className="hidden md:flex items-center justify-end gap-1.5 min-w-0">
-              {displayPages.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => goToPage(idx)}
-                  className={`w-1.5 h-1.5 rounded-full transition-all hover:scale-150 ${idx === currentPage
-                    ? "bg-violet-500 w-3 shadow-md shadow-violet-200"
-                    : "bg-slate-300 hover:bg-slate-400"
-                    }`}
-                  title={`Sayfa ${idx + 1}`}
-                />
+              {/* Sütun sayısı - Sadece geniş ekranlarda */}
+              <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 bg-muted/40 rounded-full border border-border/20 shrink-0">
+                <span className="text-[9px] font-black text-muted-foreground uppercase opacity-80 tracking-widest">{columnsPerRow} SÜTUN</span>
+              </div>
+            </div>
+
+            {viewMode === "single" && (
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-muted"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+
+                <div className="flex items-center justify-center bg-muted/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-border/30 min-w-[50px] sm:min-w-[80px]">
+                  <span className="text-[10px] sm:text-xs font-black text-foreground tabular-nums">{currentPage + 1}</span>
+                  <span className="text-[9px] font-bold text-muted-foreground mx-1">/</span>
+                  <span className="text-[10px] sm:text-xs font-black text-muted-foreground tabular-nums">{displayPages.length}</span>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-muted"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === displayPages.length - 1}
+                >
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Sayfa Kaydırıcı - Sadece geniş ekranlarda */}
+            {displayPages.length > 1 && viewMode === "single" && (
+              <div className="hidden 2xl:flex items-center gap-3 flex-1 max-w-[200px] ml-4">
+                <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[8px] font-black text-muted-foreground uppercase">SAYFA GEZGİNİ</span>
+                  </div>
+                  <Slider
+                    value={[currentPage]}
+                    max={displayPages.length - 1}
+                    step={1}
+                    onValueChange={(vals) => goToPage(vals[0])}
+                    className="cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+
+            {viewMode === "all" && (
+              <div className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hidden sm:flex items-center gap-1.5 bg-muted/30 px-2.5 py-1 rounded-full border border-border/20">
+                <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                {displayPages.length} SAYFA
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Önizleme Alanı */}
+        <div
+          id="catalog-preview-container"
+          className="flex-1 overflow-auto p-6"
+        >
+          {viewMode === "single" && !isExporting ? (
+            /* Tek Sayfa Görünümü */
+            <div
+              className="flex justify-center"
+              style={{
+                minHeight: A4_HEIGHT * scale + 32
+              }}
+            >
+              {/* Tek sayfa modunda wrapper'a gerek var mı? PDF için yok ama tutarlılık için ekleyelim */}
+              <div className="catalog-page-wrapper">
+                {renderPage(displayPages[currentPage], currentPage, false)}
+              </div>
+            </div>
+          ) : (
+            /* Tüm Sayfalar Görünümü (veya Export Modu) */
+            <div className="flex flex-col items-center gap-8">
+              {displayPages.map((page, index) => (
+                <div key={index} className="catalog-page-wrapper">
+                  {renderPage(page, index, !isExporting)}
+                </div>
               ))}
             </div>
           )}
         </div>
-      )}
-
-      {/* Önizleme Alanı */}
-      <div
-        id="catalog-preview-container"
-        className="flex-1 overflow-auto p-6"
-      >
-        {viewMode === "single" && !isExporting ? (
-          /* Tek Sayfa Görünümü */
-          <div
-            className="flex justify-center"
-            style={{
-              minHeight: A4_HEIGHT * scale + 32
-            }}
-          >
-            {/* Tek sayfa modunda wrapper'a gerek var mı? PDF için yok ama tutarlılık için ekleyelim */}
-            <div className="catalog-page-wrapper">
-              {renderPage(displayPages[currentPage], currentPage, false)}
-            </div>
-          </div>
-        ) : (
-          /* Tüm Sayfalar Görünümü (veya Export Modu) */
-          <div className="flex flex-col items-center gap-8">
-            {displayPages.map((page, index) => (
-              <div key={index} className="catalog-page-wrapper">
-                {renderPage(page, index, !isExporting)}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-    </div>
+    </LightboxProvider>
   )
 }

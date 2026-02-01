@@ -2,6 +2,7 @@ import NextImage from "next/image"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Minimalist Template - "The Essence"
@@ -127,14 +128,12 @@ export function MinimalistTemplate({
                                         {/* Product Image - Fixed Proportion */}
                                         <div className="relative flex-1 mb-6 bg-[#fafafa] flex items-center justify-center transition-all duration-1000 group-hover:bg-[#f2f2f2]">
                                             <div className="absolute inset-8">
-                                                <NextImage
-                                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                                    alt={product.name}
-                                                    fill
-                                                    unoptimized
-                                                    className={cn(
-                                                        "mix-blend-multiply opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-[1.5s]",
-                                                        getImageFitClass()
+                                                <ProductImageGallery
+                                                    product={product}
+                                                    imageFit={productImageFit}
+                                                    className="w-full h-full"
+                                                    imageClassName={cn(
+                                                        "mix-blend-multiply opacity-90 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-[1.5s]"
                                                     )}
                                                 />
                                             </div>

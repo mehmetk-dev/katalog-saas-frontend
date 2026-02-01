@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Catalog Pro Template - "The Bauhaus Vanguard"
@@ -108,12 +109,11 @@ export function CatalogProTemplate({
                                 <div className="absolute -inset-2 border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 translate-y-1" />
 
                                 <div className="absolute inset-0 bg-[#f0f0f0] border-2 border-black overflow-hidden flex items-center justify-center p-4">
-                                    <NextImage
-                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                        alt={product.name}
-                                        fill
-                                        unoptimized
-                                        className={`p-4 mix-blend-multiply transition-all duration-700 group-hover:scale-110 ${getImageFitClass()}`}
+                                    <ProductImageGallery
+                                        product={product}
+                                        imageFit={productImageFit}
+                                        className="w-full h-full"
+                                        imageClassName="p-4 mix-blend-multiply transition-all duration-700 group-hover:scale-110"
                                     />
                                 </div>
 

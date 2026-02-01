@@ -53,7 +53,7 @@ export function ModernCover({
                     <div className="col-span-12 lg:col-span-5 relative mt-8 lg:mt-0">
                         {coverImageUrl ? (
                             <div className="relative w-full h-full min-h-[400px] rounded-[2rem] overflow-hidden shadow-2xl rotate-3 transition-transform hover:rotate-0">
-                                <Image src={coverImageUrl} alt="Cover" fill className="object-cover" />
+                                <Image src={coverImageUrl} alt="Cover" fill sizes="(max-width: 768px) 100vw, 800px" className="object-cover" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
                             </div>
                         ) : (
@@ -74,7 +74,7 @@ export function ModernCover({
                 <div className="mt-16 pt-8 border-t border-slate-200 flex justify-between items-end">
                     {logoUrl ? (
                         <div className="relative w-40 h-16">
-                            <Image src={logoUrl} alt="Logo" fill className="object-contain object-left" />
+                            <Image src={logoUrl} alt="Logo" fill sizes="(max-width: 768px) 100vw, 200px" className="object-contain object-left" />
                         </div>
                     ) : (
                         <div className="text-2xl font-bold tracking-tighter text-slate-900">BRAND.</div>

@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Elegant Cards Template - "The Floating Glass"
@@ -109,15 +110,14 @@ export function ElegantCardsTemplate({
                         <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Product Image Capsule - MAXIMIZED IMAGE AREA */}
                             <div className="relative flex-1 bg-white rounded-[40px] overflow-hidden shadow-inner flex items-center justify-center p-2 shrink-0">
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={`p-2 group-hover:scale-105 transition-all duration-[1.5s] ${getImageFitClass()}`}
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
+                                    imageClassName="p-2 group-hover:scale-105 transition-all duration-[1.5s]"
                                 />
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-stone-400 opacity-0 group-hover:opacity-100 transition-all shadow-sm">
+                                    <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-stone-400 opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>

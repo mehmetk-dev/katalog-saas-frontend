@@ -1,14 +1,15 @@
 import NextImage from "next/image"
 
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 // Reusable Title Component (For Collisions) - moved outside render
-function TitleBlock({ 
-    align = 'left', 
-    catalogName, 
-    headerTextColor, 
-    primaryColor 
-}: { 
+function TitleBlock({
+    align = 'left',
+    catalogName,
+    headerTextColor,
+    primaryColor
+}: {
     align?: 'left' | 'right'
     catalogName: string
     headerTextColor?: string
@@ -181,15 +182,14 @@ export function CompactListTemplate({
 
                             {/* Görsel - Daha Büyük (80px) */}
                             <div className="w-20 h-20 shrink-0 bg-gray-50 rounded-lg overflow-hidden relative shadow-inner border border-gray-100">
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={`w-full h-full transition-transform duration-500 group-hover:scale-110 ${productImageFit === 'contain' ? 'object-contain p-1' : productImageFit === 'fill' ? 'object-fill' : 'object-cover'}`}
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
+                                    showNavigation={false}
                                 />
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
                                         <svg className="w-6 h-6 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>

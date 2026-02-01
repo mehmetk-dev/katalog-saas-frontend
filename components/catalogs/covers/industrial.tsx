@@ -9,92 +9,129 @@ export function IndustrialCover({
     logoUrl,
     primaryColor = '#facc15' // Yellow-400
 }: CoverPageProps) {
+    const currentYear = new Date().getFullYear();
+
     return (
-        <div className="relative w-full h-full bg-[#1a1a1a] text-white font-sans overflow-hidden">
-            {/* Blueprint Grid Background */}
-            <div className="absolute inset-0 opacity-20"
+        <div className="relative w-full h-full bg-[#0a0a0a] text-white font-mono overflow-hidden flex flex-col">
+            {/* Technical Engineering Grid */}
+            <div className="absolute inset-0 opacity-[0.07] pointer-events-none"
                 style={{
-                    backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)',
-                    backgroundSize: '20px 20px'
+                    backgroundImage: `linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)`,
+                    backgroundSize: '40px 40px'
+                }}
+            />
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                style={{
+                    backgroundImage: `linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)`,
+                    backgroundSize: '10px 10px'
                 }}
             />
 
-            {/* Hazard Stripes - Top and Bottom */}
-            <div className="absolute top-0 w-full h-4 bg-yellow-400"
-                style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 10px, #facc15 10px, #facc15 20px)' }} />
-            <div className="absolute bottom-0 w-full h-12 bg-yellow-400 flex items-center px-4 font-black text-black tracking-tighter"
-                style={{ backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 20px, #facc15 20px, #facc15 40px)' }}>
-                <div className="bg-yellow-400 px-4 py-1 z-10 border-2 border-black shadow-[4px_4px_0px_#000]">
-                    HEAVY DUTY CATALOG // 2024 SERIES
+            {/* Heavy Duty Hazard Strip - Top */}
+            <div className="relative w-full h-8 bg-yellow-400 flex overflow-hidden shrink-0 z-20">
+                <div className="absolute inset-0"
+                    style={{
+                        backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 20px, transparent 20px, transparent 40px)'
+                    }}
+                />
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 relative z-10 flex flex-col p-12 lg:p-16">
+
+                {/* Header: Project Badge & Logo */}
+                <div className="flex justify-between items-start mb-16">
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-yellow-400 text-black px-2 py-0.5 text-[10px] font-black tracking-tighter">AUTHENTIC IND.</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic">SERIES v2.4</span>
+                        </div>
+                        <div className="text-2xl font-black text-white tracking-widest mt-1">
+                            SPECIFICATION <span className="text-yellow-400">DOC</span>
+                        </div>
+                    </div>
+
+                    {logoUrl && (
+                        <div className="relative w-24 h-24 bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xl flex items-center justify-center transform hover:rotate-3 transition-transform">
+                            <Image src={logoUrl} alt="Logo" fill className="object-contain p-4" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Massive Industrial Heading */}
+                <div className="mb-12 relative">
+                    <h1 className="text-[clamp(4rem,10vw,8rem)] font-black uppercase leading-[0.85] tracking-tighter text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                        {catalogName}
+                    </h1>
+                    <div className="mt-6 flex items-center gap-4">
+                        <div className="h-0.5 w-24 bg-yellow-400" />
+                        <span className="text-xs font-black tracking-[0.4em] text-yellow-400/80 uppercase">Structural Overview // {currentYear}</span>
+                    </div>
+                </div>
+
+                {/* Main Component Visualization */}
+                <div className="flex-1 relative flex gap-8">
+                    {/* Visual Card */}
+                    <div className="flex-1 relative border border-white/10 bg-white/[0.02] p-2 rounded-sm overflow-hidden group">
+                        {/* Internal Borders */}
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-yellow-400 z-20" />
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-yellow-400 z-20" />
+
+                        <div className="w-full h-full relative bg-[#111] overflow-hidden">
+                            {coverImageUrl ? (
+                                <>
+                                    <Image src={coverImageUrl} alt="Asset" fill className="object-cover opacity-70 group-hover:scale-105 group-hover:opacity-100 transition-all duration-[5s]" />
+                                    {/* Tech Overlay */}
+                                    <div className="absolute inset-0 pointer-events-none border-[1px] border-white/5" />
+                                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-yellow-400/10" />
+                                    <div className="absolute left-1/2 top-0 h-full w-[1px] bg-yellow-400/10" />
+                                </>
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-white/10">
+                                    <div className="text-white/5 text-[100px] font-black rotate-[-15deg]">IND-TECH</div>
+                                    <span className="text-[10px] text-yellow-400/30 uppercase tracking-[0.5em] mt-8">Schematic Area</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Technical Side Details - Vertical Layout */}
+                    <div className="hidden lg:flex w-64 flex-col gap-6">
+                        <div className="p-4 border-l-2 border-yellow-400 bg-white/5">
+                            <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-1">Status</h4>
+                            <p className="text-xs font-bold text-slate-300">PRODUCTION READY</p>
+                        </div>
+                        <div className="p-4 border-l-2 border-white/10 bg-white/5">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Verification</h4>
+                            <p className="text-xs font-bold text-slate-300 italic">ISO-9001 CERTIFIED</p>
+                        </div>
+                        <div className="mt-auto">
+                            <div className="text-[40px] font-black text-white/10 tracking-widest transform rotate-90 origin-right translate-x-12 translate-y-12 select-none">
+                                Q1.REPORT
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Description */}
+                <div className="mt-12 max-w-2xl bg-white/[0.03] p-8 border-t border-white/10 backdrop-blur-md">
+                    <span className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.5em] mb-4 block italic">Technical Summary</span>
+                    <p className="text-lg font-bold leading-relaxed text-slate-300 uppercase italic tracking-wide">
+                        {coverDescription || "Complete systems documentation defining architectural standards and modular component selections for large scale industrial implementations."}
+                    </p>
                 </div>
             </div>
 
-            {/* Main Layout - Split with diagonal cut */}
-            <div className="absolute inset-0 z-10 p-12 flex flex-col">
-
-                {/* Header Block */}
-                <div className="flex justify-between items-start mb-12">
-                    <div className="border-l-4 border-yellow-400 pl-4">
-                        <div className="text-xs text-yellow-400 font-bold tracking-[0.2em] mb-1">SPECIFICATION DOC</div>
-                        <div className="text-xs text-gray-400">REF: INDUSTRIAL-2024-X1</div>
-                    </div>
-                    {logoUrl && (
-                        <div className="relative w-40 h-16 bg-white/10 p-2 border border-white/20">
-                            <Image src={logoUrl} alt="Logo" fill className="object-contain" />
-                        </div>
-                    )}
-                </div>
-
-                {/* Main Title - Stencil Style */}
-                <h1 className="text-6xl font-black uppercase tracking-tighter text-transparent stroke-white stroke-2 mb-2"
-                    style={{ WebkitTextStroke: '2px white' }}>
-                    {catalogName}
-                </h1>
-                <h1 className="text-6xl font-black uppercase tracking-tighter text-yellow-400 mb-8 -mt-12 ml-1">
-                    {catalogName}
-                </h1>
-
-                {/* Image Area with "Technical Drawing" overlay */}
-                <div className="relative flex-1 border-2 border-white/20 bg-[#2a2a2a] p-2">
-                    {/* Corner Marks */}
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-yellow-400" />
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-yellow-400" />
-
-                    {coverImageUrl ? (
-                        <div className="relative w-full h-full grayscale hover:grayscale-0 transition-all duration-500">
-                            <Image src={coverImageUrl} alt="Industrial" fill className="object-cover" />
-                            {/* Measurement Lines Overlay */}
-                            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/30" />
-                            <div className="absolute left-1/2 top-0 h-full w-[1px] bg-white/30" />
-                            <div className="absolute top-1/2 left-1/2 text-[9px] text-yellow-400 bg-black p-1 -translate-y-1/2 -translate-x-1/2 border border-yellow-400">
-                                1200mm
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-black/50">
-                            <span className="text-yellow-400 font-mono">NO SCHEMATIC LOADED</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Description Box */}
-                <div className="mt-8 grid grid-cols-2 gap-8">
-                    <div className="bg-[#262626] p-4 border-t-2 border-yellow-400">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Description</h3>
-                        <p className="text-sm text-gray-300 leading-relaxed font-mono">
-                            {coverDescription || "No description available for this unit."}
-                        </p>
-                    </div>
-                    <div className="flex flex-col gap-2 justify-end items-end">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">APPROVED BY</span>
-                            <div className="h-px w-24 bg-gray-600" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">DATE</span>
-                            <span className="text-xs font-mono text-yellow-400">{new Date().toLocaleDateString()}</span>
-                        </div>
-                    </div>
+            {/* Bottom Hazard Bar */}
+            <div className="relative w-full h-12 bg-yellow-400 flex items-center px-12 overflow-hidden shrink-0">
+                <div className="absolute inset-0 opacity-20"
+                    style={{
+                        backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 30px, transparent 30px, transparent 60px)'
+                    }}
+                />
+                <div className="relative flex justify-between w-full text-black text-xs font-black italic tracking-tighter uppercase px-4 py-1 bg-yellow-400 border-2 border-black shadow-[4px_4px_0px_#000]">
+                    <span>SYSTEM IDENTIFICATION: CLASS-III CORE</span>
+                    <span>TIMESTAMP: {new Date().toISOString().split('T')[0]}</span>
                 </div>
             </div>
         </div>

@@ -315,13 +315,13 @@ export function BuilderToolbar({
 
             {/* MOBILE ONLY: STICKY BOTTOM ACTION BAR */}
             {isMobile && (
-                <div className="fixed bottom-0 left-0 right-0 z-[60] p-3 pt-6 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-md safe-area-bottom">
-                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-slate-100 dark:border-slate-800/50 animate-in slide-in-from-bottom-8 duration-500">
+                <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 pointer-events-none safe-area-bottom">
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-slate-200 dark:border-slate-800 pointer-events-auto animate-in slide-in-from-bottom-6 duration-500">
                         {/* Preview Button */}
                         <Button
                             variant="ghost"
                             className={cn(
-                                "flex-1 h-12 rounded-xl text-slate-600 font-black text-xs uppercase tracking-wider gap-2 transition-all active:scale-95",
+                                "flex-1 h-12 rounded-xl text-slate-600 font-black text-[10px] uppercase tracking-wider gap-2 transition-all active:scale-95",
                                 view === "preview" ? "bg-slate-100 text-indigo-600" : ""
                             )}
                             onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
@@ -329,12 +329,12 @@ export function BuilderToolbar({
                             {view === "preview" ? (
                                 <>
                                     <Pencil className="w-4 h-4" />
-                                    Düzenle
+                                    <span>{t('builder.editor') as string || 'Düzenle'}</span>
                                 </>
                             ) : (
                                 <>
                                     <Eye className="w-4 h-4" />
-                                    Önizle
+                                    <span>{t('builder.preview') as string || 'Önizle'}</span>
                                 </>
                             )}
                         </Button>
@@ -344,13 +344,13 @@ export function BuilderToolbar({
                             onClick={mainAction.onClick}
                             disabled={isPending}
                             className={cn(
-                                "flex-[2] h-12 rounded-xl font-black text-xs uppercase tracking-[0.1em] shadow-xl transition-all active:scale-95 hover:scale-[1.02]",
+                                "flex-[2] h-12 rounded-xl font-black text-[10px] uppercase tracking-[0.1em] shadow-lg transition-all active:scale-95 hover:scale-[1.02]",
                                 mainAction.className
                             )}
                         >
                             {mainAction.icon}
                             <span className="ml-2">
-                                {isPublished && hasUnpushedChanges ? "Yayını Güncelle" : mainAction.label}
+                                {isPublished && hasUnpushedChanges ? (t('builder.updatePublish') as string || "Yayını Güncelle") : mainAction.label}
                             </span>
                         </Button>
                     </div>

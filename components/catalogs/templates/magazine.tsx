@@ -2,6 +2,7 @@ import NextImage from "next/image"
 import { ExternalLink } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 export function MagazineTemplate({
     catalogName,
@@ -110,15 +111,11 @@ export function MagazineTemplate({
                     <div className="relative h-[380px] w-full flex bg-slate-100 overflow-hidden group shadow-2xl">
                         {/* Huge Image */}
                         <div className="w-2/3 h-full relative overflow-hidden">
-                            <NextImage
-                                src={heroProduct.image_url || heroProduct.images?.[0] || "/placeholder.svg"}
-                                alt={heroProduct.name}
-                                fill
-                                unoptimized
-                                className={cn(
-                                    "w-full h-full transition-transform duration-[2000ms] group-hover:scale-110",
-                                    getImageFitClass()
-                                )}
+                            <ProductImageGallery
+                                product={heroProduct}
+                                imageFit={productImageFit}
+                                className="w-full h-full"
+                                imageClassName="transition-transform duration-[2000ms] group-hover:scale-110"
                             />
                             {/* Decorative Frame */}
                             <div className="absolute inset-4 border border-white/30 z-10" />
@@ -176,27 +173,23 @@ export function MagazineTemplate({
                             <div key={product.id} className="relative group flex flex-col h-[260px] overflow-hidden">
                                 {/* Secondary Image - FIXED HEIGHT */}
                                 <div className="relative h-[180px] bg-slate-50 border border-slate-100 overflow-hidden shadow-lg transition-transform duration-500 hover:translate-y-[-4px]">
-                                    <NextImage
-                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                        alt={product.name}
-                                        fill
-                                        unoptimized
-                                        className={cn(
-                                            "w-full h-full transition-transform duration-700 group-hover:scale-110",
-                                            getImageFitClass()
-                                        )}
+                                    <ProductImageGallery
+                                        product={product}
+                                        imageFit={productImageFit}
+                                        className="w-full h-full"
+                                        imageClassName="transition-transform duration-700 group-hover:scale-110"
                                     />
 
                                     {/* Small URL Tab */}
                                     {showUrls && product.product_url && (
-                                        <div className="absolute bottom-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-slate-900 shadow-xl">
+                                        <div className="absolute bottom-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-slate-900 shadow-xl z-10">
                                             <ExternalLink className="w-3 h-3" />
                                         </div>
                                     )}
 
                                     {/* Price Tag Overlay */}
                                     {showPrices && (
-                                        <div className="absolute top-2 left-2 bg-slate-950 text-white px-2 py-0.5 text-[11px] font-black italic shadow-lg">
+                                        <div className="absolute top-2 left-2 bg-slate-950 text-white px-2 py-0.5 text-[11px] font-black italic shadow-lg z-10">
                                             {(() => {
                                                 const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                 const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"

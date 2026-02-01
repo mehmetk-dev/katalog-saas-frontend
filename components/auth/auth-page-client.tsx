@@ -36,6 +36,25 @@ export function AuthPageClient() {
 
     // Handle URL error parameters from callback (e.g., expired password reset link)
     useEffect(() => {
+        // Oturum kontrolü yap
+        const checkSession = async () => {
+            const supabase = createClient()
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+                setIsRedirecting(true)
+                router.push("/dashboard")
+                router.refresh()
+            }
+        }
+        checkSession()
+
+        // Sayfaya geri dönüldüğünde loading state'ini sıfırla
+        const handleFocus = () => {
+            setIsGoogleLoading(false)
+            setIsLoading(false)
+        }
+        window.addEventListener("focus", handleFocus)
+
         if (typeof window === "undefined") return
 
         // Hem query params (?) hem de hash (#) kısımlarını kontrol et
@@ -79,22 +98,22 @@ export function AuthPageClient() {
                 errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
                 setMode('forgot-password')
             } else if (errorCode === "code_expired" || urlError === "code_expired") {
-                errorMessage = t("auth.sessionExpired") || "Oturum süreniz dolmuş. Lütfen tekrar giriş yapın."
+                errorMessage = (t("auth.sessionExpired") as string) || "Oturum süreniz dolmuş. Lütfen tekrar giriş yapın."
             } else if (urlError === "auth_failed") {
-                errorMessage = t("auth.authFailed") || "Kimlik doğrulama başarısız oldu."
+                errorMessage = (t("auth.authFailed") as string) || "Kimlik doğrulama başarısız oldu."
             } else if (urlError === "invalid_code") {
-                errorMessage = t("auth.invalidCode") || "Geçersiz kod."
+                errorMessage = (t("auth.invalidCode") as string) || "Geçersiz kod."
             } else if (urlError === "network_error") {
-                errorMessage = t("auth.networkError") || "Ağ hatası oluştu."
+                errorMessage = (t("auth.networkError") as string) || "Ağ hatası oluştu."
             } else if (urlError === "missing_code") {
-                errorMessage = t("auth.missingCode") || "Kod bulunamadı."
+                errorMessage = (t("auth.missingCode") as string) || "Kod bulunamadı."
             } else if (urlError === "access_denied") {
                 // Eğer error_description varsa onu kullan, yoksa genel mesaj
                 if (errorDescription && errorDescription.includes("expired")) {
                     errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
                     setMode('forgot-password')
                 } else {
-                    errorMessage = t("auth.accessDenied") || "Erişim reddedildi."
+                    errorMessage = (t("auth.accessDenied") as string) || "Erişim reddedildi."
                 }
             } else if (errorDescription) {
                 // Eğer özel bir açıklama varsa onu kullan
@@ -104,16 +123,16 @@ export function AuthPageClient() {
                     setMode('forgot-password')
                 }
             } else if (urlError) {
-                errorMessage = `${t("auth.errorPrefix") || "Hata"} ${urlError}`
+                errorMessage = `${(t("auth.errorPrefix") as string) || "Hata"} ${urlError}`
             }
 
             if (errorMessage) {
                 // Production'da console.log kaldırıldığı için direkt setError yapıyoruz
-                setError(errorMessage)
+                setError(String(errorMessage))
 
                 // Debug için window objesine ekle
                 if (typeof window !== "undefined") {
-                    (window as Window & { __authErrorMessage?: string }).__authErrorMessage = errorMessage
+                    (window as Window & { __authErrorMessage?: string }).__authErrorMessage = String(errorMessage)
                 }
             }
 
@@ -135,7 +154,11 @@ export function AuthPageClient() {
 
             window.history.replaceState({}, "", newUrl.toString())
         }
-    }, [searchParams, t])
+
+        return () => {
+            window.removeEventListener("focus", handleFocus)
+        }
+    }, [searchParams, t, router])
 
     const getSiteUrl = () => {
         if (typeof window !== "undefined") {
@@ -194,7 +217,7 @@ export function AuthPageClient() {
                 console.error("[AuthPageClient] Supabase error:", error)
 
                 // Daha açıklayıcı hata mesajları
-                let errorMessage = error.message || t("auth.errorGeneric")
+                let errorMessage: any = error.message || t("auth.errorGeneric")
 
                 if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
                     errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
@@ -204,13 +227,13 @@ export function AuthPageClient() {
                     errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
                 }
 
-                throw new Error(errorMessage)
+                throw new Error(errorMessage as string)
             }
 
             setSuccess(true)
         } catch (err) {
             console.error("[AuthPageClient] Error:", err)
-            setError(err instanceof Error ? err.message : t("auth.errorGeneric"))
+            setError(err instanceof Error ? err.message : (t("auth.errorGeneric") as string))
         } finally {
             setIsLoading(false)
         }
@@ -257,20 +280,36 @@ export function AuthPageClient() {
                 router.refresh()
             }
         } catch {
-            setError(t("auth.errorGeneric") || "Bir hata oluştu. Lütfen tekrar deneyin.")
+            setError(String(t("auth.errorGeneric")) || "Bir hata oluştu. Lütfen tekrar deneyin.")
             setIsLoading(false)
         }
     }
 
     const handleGoogleAuth = async () => {
         setIsGoogleLoading(true)
+        setError(null)
         const supabase = createClient()
         try {
-            await supabase.auth.signInWithOAuth({
+            const { error: oauthError } = await supabase.auth.signInWithOAuth({
                 provider: "google",
-                options: { redirectTo: `${getSiteUrl()}/auth/callback` },
+                options: {
+                    redirectTo: `${getSiteUrl()}/auth/callback`,
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'select_account',
+                    }
+                },
             })
-        } catch {
+
+            if (oauthError) {
+                console.error("OAuth Error:", oauthError)
+                setError(oauthError.message)
+                setIsGoogleLoading(false)
+            }
+            // Başarılıysa zaten tarayıcı yönlendirilecek
+        } catch (err) {
+            console.error("Google Auth Exception:", err)
+            setError(err instanceof Error ? err.message : "Google ile giriş yaparken bir hata oluştu.")
             setIsGoogleLoading(false)
         }
     }
@@ -287,7 +326,7 @@ export function AuthPageClient() {
             if (error) throw error
             setSuccess(true)
         } catch (err) {
-            setError(err instanceof Error ? err.message : t("auth.errorGeneric"))
+            setError(err instanceof Error ? err.message : String(t("auth.errorGeneric")))
         } finally {
             setIsLoading(false)
         }
@@ -300,7 +339,7 @@ export function AuthPageClient() {
                     <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
                     </div>
-                    <p className="text-slate-500 font-medium">{t("auth.redirecting")}</p>
+                    <p className="text-slate-500 font-medium">{t("auth.redirecting") as any}</p>
                 </div>
             </div>
         )
@@ -333,20 +372,20 @@ export function AuthPageClient() {
 
                 <div className="relative z-10 max-w-lg">
                     <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-                        {t('landing.heroTitle')} {t('landing.heroTitleHighlight')} {t('landing.heroTitleEnd')}
+                        {t('landing.heroTitle') as any} {t('landing.heroTitleHighlight') as any} {t('landing.heroTitleEnd') as any}
                     </h2>
                     <ul className="space-y-4 mb-8">
                         <li className="flex items-center gap-3 text-white/80">
                             <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{t('marketing.feature1') || "Profesyonel şablonlar"}</span>
+                            <span>{(t('marketing.feature1') as any) || "Profesyonel şablonlar"}</span>
                         </li>
                         <li className="flex items-center gap-3 text-white/80">
                             <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{t('marketing.feature2') || "PDF ve Online paylaşım"}</span>
+                            <span>{(t('marketing.feature2') as any) || "PDF ve Online paylaşım"}</span>
                         </li>
                         <li className="flex items-center gap-3 text-white/80">
                             <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{t('marketing.feature3') || "Kolay yönetim paneli"}</span>
+                            <span>{(t('marketing.feature3') as any) || "Kolay yönetim paneli"}</span>
                         </li>
                     </ul>
                 </div>
@@ -360,14 +399,14 @@ export function AuthPageClient() {
                         <Star className="w-4 h-4 fill-current" />
                     </div>
                     <blockquote className="text-white/90 text-sm leading-relaxed mb-4">
-                        "{t('auth.testimonialQuote')}"
+                        "{t('auth.testimonialQuote') as any}"
                     </blockquote>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold">
                             AY
                         </div>
                         <div>
-                            <div className="font-semibold text-sm">{t('auth.testimonialAuthor')}</div>
+                            <div className="font-semibold text-sm">{t('auth.testimonialAuthor') as any}</div>
                             <div className="text-xs text-white/50">TechStore Kurucusu</div>
                         </div>
                     </div>
@@ -402,7 +441,7 @@ export function AuthPageClient() {
                         <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white/80 backdrop-blur-sm">
                             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                         </div>
-                        <span className="hidden sm:inline">{t("auth.backToHome")}</span>
+                        <span className="hidden sm:inline">{t("auth.backToHome") as any}</span>
                     </Link>
                 </div>
 
@@ -422,23 +461,23 @@ export function AuthPageClient() {
                                 </Link>
                             </div>
                             <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
-                                {mode === 'signup' ? t("auth.signup") : mode === 'forgot-password' ? t("auth.forgotPasswordTitle") : t("auth.welcomeBack")}
+                                {mode === 'signup' ? (t("auth.signup") as any) : mode === 'forgot-password' ? (t("auth.forgotPasswordTitle") as any) : (t("auth.welcomeBack") as any)}
                             </h1>
                             <p className="text-slate-500 text-[15px] leading-relaxed">
-                                {mode === 'signup' ? t("auth.signupDesc") : mode === 'forgot-password' ? t("auth.forgotPasswordSubtitle") : t("auth.signinDesc")}
+                                {mode === 'signup' ? (t("auth.signupDesc") as any) : mode === 'forgot-password' ? (t("auth.forgotPasswordSubtitle") as any) : (t("auth.signinDesc") as any)}
                             </p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {error && (
                                 <div className={`p-4 rounded-xl text-sm font-medium animate-in shake border-2 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
-                                        ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
-                                        : "bg-red-50 text-red-600 border-red-300 shadow-lg"
+                                    ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
+                                    : "bg-red-50 text-red-600 border-red-300 shadow-lg"
                                     }`}>
                                     <div className="flex items-start gap-2">
                                         <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
-                                                ? "text-amber-600"
-                                                : "text-red-500"
+                                            ? "text-amber-600"
+                                            : "text-red-500"
                                             }`} />
                                         <div className="flex-1">
                                             <p className="font-bold mb-2 text-base">
@@ -468,14 +507,14 @@ export function AuthPageClient() {
                                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                                     <div className="w-full h-12 bg-green-50 text-green-700 rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-green-100 italic">
                                         <CheckCircle2 className="w-5 h-5 animate-bounce-slow" />
-                                        <span>{t("auth.emailSentTitle") || "Bağlantı Gönderildi"}</span>
+                                        <span>{(t("auth.emailSentTitle") as any) || "Bağlantı Gönderildi"}</span>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => { setMode('signin'); setSuccess(false); }}
                                         className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg transition-all active:scale-[0.98]"
                                     >
-                                        {t("auth.backToLogin") || "Giriş Yapmaya Dön"}
+                                        {(t("auth.backToLogin") as any) || "Giriş Yapmaya Dön"}
                                     </button>
                                 </div>
                             ) : showGoogleWarning ? (
@@ -512,37 +551,37 @@ export function AuthPageClient() {
                                     {mode === 'signup' && (
                                         <div className="space-y-4">
                                             <div className="space-y-1.5">
-                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.fullName")}</label>
+                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.fullName") as any}</label>
                                                 <input
                                                     type="text"
                                                     value={name}
                                                     onChange={(e) => setName(e.target.value)}
                                                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
-                                                    placeholder={t("auth.placeholderName")}
+                                                    placeholder={t("auth.placeholderName") as string}
                                                     required
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.company")}</label>
+                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.company") as any}</label>
                                                 <input
                                                     type="text"
                                                     value={companyName}
                                                     onChange={(e) => setCompanyName(e.target.value)}
                                                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
-                                                    placeholder={t("auth.placeholderCompany")}
+                                                    placeholder={t("auth.placeholderCompany") as string}
                                                 />
                                             </div>
                                         </div>
                                     )}
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email")}</label>
+                                        <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email") as any}</label>
                                         <input
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
-                                            placeholder={t("auth.placeholderEmail")}
+                                            placeholder={t("auth.placeholderEmail") as string}
                                             required
                                         />
                                     </div>
@@ -550,14 +589,14 @@ export function AuthPageClient() {
                                     {mode !== 'forgot-password' && (
                                         <div className="space-y-1.5">
                                             <div className="flex items-center justify-between px-1">
-                                                <label className="text-[13px] font-medium text-slate-900">{t("auth.password")}</label>
+                                                <label className="text-[13px] font-medium text-slate-900">{t("auth.password") as any}</label>
                                                 {mode === 'signin' && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setMode('forgot-password')}
                                                         className="text-[13px] font-medium text-slate-500 hover:text-violet-600 transition-colors"
                                                     >
-                                                        {t("auth.forgotPassword")}
+                                                        {t("auth.forgotPassword") as any}
                                                     </button>
                                                 )}
                                             </div>
@@ -567,7 +606,7 @@ export function AuthPageClient() {
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
                                                     className="w-full h-12 px-4 pr-12 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
-                                                    placeholder={t("auth.placeholderPassword")}
+                                                    placeholder={t("auth.placeholderPassword") as string}
                                                     required
                                                 />
                                                 <button
@@ -589,7 +628,7 @@ export function AuthPageClient() {
                                         {isLoading ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
-                                            mode === 'signup' ? t("auth.signup") : mode === 'forgot-password' ? t("auth.sendResetLink") : t("auth.signin")
+                                            mode === 'signup' ? (t("auth.signup") as any) : mode === 'forgot-password' ? (t("auth.sendResetLink") as any) : (t("auth.signin") as any)
                                         )}
                                     </button>
 
@@ -601,7 +640,7 @@ export function AuthPageClient() {
                                                 </div>
                                                 <div className="relative flex justify-center">
                                                     <span className="bg-[#FDFDFD] px-4 text-xs font-medium text-slate-400 uppercase tracking-widest">
-                                                        {t("auth.or")}
+                                                        {t("auth.or") as any}
                                                     </span>
                                                 </div>
                                             </div>
@@ -622,7 +661,7 @@ export function AuthPageClient() {
                                                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                                                         </svg>
-                                                        {t("auth.continueWithGoogle")}
+                                                        {t("auth.continueWithGoogle") as any}
                                                     </>
                                                 )}
                                             </button>
@@ -636,17 +675,17 @@ export function AuthPageClient() {
                                                 onClick={() => setMode('signin')}
                                                 className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                                             >
-                                                {t("auth.backToLogin") || "Giriş Yap'a Dön"}
+                                                {(t("auth.backToLogin") as any) || "Giriş Yap'a Dön"}
                                             </button>
                                         ) : (
                                             <>
-                                                {mode === 'signup' ? t("auth.alreadyHaveAccount") : t("auth.dontHaveAccount")}{" "}
+                                                {mode === 'signup' ? (t("auth.alreadyHaveAccount") as any) : (t("auth.dontHaveAccount") as any)}{" "}
                                                 <button
                                                     type="button"
                                                     onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
                                                     className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                                                 >
-                                                    {mode === 'signup' ? t("auth.signin") : t("auth.signup")}
+                                                    {mode === 'signup' ? (t("auth.signin") as any) : (t("auth.signup") as any)}
                                                 </button>
                                             </>
                                         )}

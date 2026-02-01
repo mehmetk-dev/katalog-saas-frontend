@@ -172,11 +172,15 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   }, [hasUnsavedChanges])
 
   // Sync state when catalog prop changes (prevents state leaking between catalogs)
+  // CRITICAL: Sadece catalog.id değiştiğinde çalışmalı!
+  // NOT: 'catalog' objesini dependency'e ekleme - her autosave sonrası revalidation
+  // catalog objesini yeniden oluşturur ve bu useEffect'i tetikler, state'leri sıfırlar!
   useEffect(() => {
     if (catalog) {
       setCatalogName(catalog.name || "")
       setCatalogDescription(catalog.description || "")
-      setSelectedProductIds(catalog.product_ids || [])
+      const validIds = (catalog.product_ids || []).filter(id => products.some(p => p.id === id))
+      setSelectedProductIds(validIds)
       setLayout(catalog.layout || "grid")
       setPrimaryColor(getInitialPrimaryColor())
       setHeaderTextColor(catalog.header_text_color || "#ffffff")
@@ -224,7 +228,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       })
       setIsDirty(false)
     }
-  }, [catalog?.id, catalog, getInitialPrimaryColor, user?.logo_url]) // catalog.id değiştiğinde tetiklenir
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog?.id]) // SADECE catalog.id değiştiğinde tetiklenir - diğer catalog prop'ları değişince DEĞİL!
 
   // Herhangi bir değişiklikte isDirty'i true yap
   useEffect(() => {
@@ -244,7 +249,28 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [, setIsAutoSaving] = useState(false)
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Güncel değerleri ref'te tut - useEffect closure sorunlarını önler
+  const catalogDataRef = useRef({
+    catalogName, catalogDescription, selectedProductIds, layout, primaryColor,
+    showPrices, showDescriptions, showAttributes, showSku, showUrls,
+    columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit,
+    backgroundGradient, logoUrl, logoPosition, logoSize, titlePosition,
+    productImageFit, headerTextColor, enableCoverPage, coverImageUrl,
+    coverDescription, enableCategoryDividers, coverTheme, isPublished
+  })
+
+  // Ref'i her render'da güncelle (dependency olmadan)
+  catalogDataRef.current = {
+    catalogName, catalogDescription, selectedProductIds, layout, primaryColor,
+    showPrices, showDescriptions, showAttributes, showSku, showUrls,
+    columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit,
+    backgroundGradient, logoUrl, logoPosition, logoSize, titlePosition,
+    productImageFit, headerTextColor, enableCoverPage, coverImageUrl,
+    coverDescription, enableCategoryDividers, coverTheme, isPublished
+  }
+
   // Debounced Autosave - 3 saniye bekle, sonra kaydet
+  // OPTIMIZED: Sadece isDirty değiştiğinde effect yeniden oluşturulur
   useEffect(() => {
     // Sadece varolan kataloglar için autosave (yeni katalog = ilk manuel kayıt gerekli)
     if (!currentCatalogId || !isDirty) return
@@ -256,59 +282,60 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
     // 3 saniye sonra kaydet
     autoSaveTimeoutRef.current = setTimeout(async () => {
+      const data = catalogDataRef.current
       setIsAutoSaving(true)
       try {
         await updateCatalog(currentCatalogId, {
-          name: catalogName,
-          description: catalogDescription,
-          product_ids: selectedProductIds,
-          layout,
-          primary_color: primaryColor,
-          show_prices: showPrices,
-          show_descriptions: showDescriptions,
-          show_attributes: showAttributes,
-          show_sku: showSku,
-          show_urls: showUrls,
-          columns_per_row: columnsPerRow,
-          background_color: backgroundColor,
-          background_image: backgroundImage,
-          background_image_fit: backgroundImageFit,
-          background_gradient: backgroundGradient,
-          logo_url: logoUrl,
-          logo_position: logoPosition,
-          logo_size: logoSize,
-          title_position: titlePosition,
-          product_image_fit: productImageFit,
-          header_text_color: headerTextColor,
+          name: data.catalogName,
+          description: data.catalogDescription,
+          product_ids: data.selectedProductIds,
+          layout: data.layout,
+          primary_color: data.primaryColor,
+          show_prices: data.showPrices,
+          show_descriptions: data.showDescriptions,
+          show_attributes: data.showAttributes,
+          show_sku: data.showSku,
+          show_urls: data.showUrls,
+          columns_per_row: data.columnsPerRow,
+          background_color: data.backgroundColor,
+          background_image: data.backgroundImage,
+          background_image_fit: data.backgroundImageFit,
+          background_gradient: data.backgroundGradient,
+          logo_url: data.logoUrl,
+          logo_position: data.logoPosition,
+          logo_size: data.logoSize,
+          title_position: data.titlePosition,
+          product_image_fit: data.productImageFit,
+          header_text_color: data.headerTextColor,
           // Storytelling Catalog
-          enable_cover_page: enableCoverPage,
-          cover_image_url: coverImageUrl,
-          cover_description: coverDescription,
-          enable_category_dividers: enableCategoryDividers,
+          enable_cover_page: data.enableCoverPage,
+          cover_image_url: data.coverImageUrl,
+          cover_description: data.coverDescription,
+          enable_category_dividers: data.enableCategoryDividers,
         })
 
         // Başarılı - state'leri güncelle
         setLastSavedState({
-          name: catalogName,
-          description: catalogDescription,
-          productIds: selectedProductIds,
-          layout,
-          primaryColor,
-          showPrices,
-          showDescriptions,
-          showAttributes,
-          showSku,
-          showUrls,
-          columnsPerRow,
-          backgroundColor,
-          backgroundImage,
-          logoUrl,
-          enableCoverPage,
-          enableCategoryDividers,
-          coverTheme,
+          name: data.catalogName,
+          description: data.catalogDescription,
+          productIds: data.selectedProductIds,
+          layout: data.layout,
+          primaryColor: data.primaryColor,
+          showPrices: data.showPrices,
+          showDescriptions: data.showDescriptions,
+          showAttributes: data.showAttributes,
+          showSku: data.showSku,
+          showUrls: data.showUrls,
+          columnsPerRow: data.columnsPerRow,
+          backgroundColor: data.backgroundColor,
+          backgroundImage: data.backgroundImage,
+          logoUrl: data.logoUrl,
+          enableCoverPage: data.enableCoverPage,
+          enableCategoryDividers: data.enableCategoryDividers,
+          coverTheme: data.coverTheme,
         })
         setIsDirty(false)
-        if (isPublished) {
+        if (data.isPublished) {
           setHasUnpushedChanges(true)
         }
       } catch (error) {
@@ -325,42 +352,15 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [
-    currentCatalogId,
-    isDirty,
-    catalogName,
-    catalogDescription,
-    selectedProductIds,
-    layout,
-    primaryColor,
-    showPrices,
-    showDescriptions,
-    showAttributes,
-    showSku,
-    showUrls,
-    productImageFit,
-    headerTextColor,
-    columnsPerRow,
-    backgroundColor,
-    backgroundImage,
-    backgroundImageFit,
-    backgroundGradient,
-    logoUrl,
-    logoPosition,
-    logoSize,
-    titlePosition,
-    isPublished,
-    // Storytelling Catalog
-    enableCoverPage,
-    coverImageUrl,
-    coverDescription,
-    enableCategoryDividers,
-  ])
+  }, [currentCatalogId, isDirty]) // OPTIMIZED: Sadece 2 dependency!
 
-  // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra)
-  const selectedProducts = selectedProductIds
-    .map((id) => products.find((p) => p.id === id))
-    .filter((p): p is Product => p !== undefined)
+  // Ürünleri selectedProductIds sırasına göre sırala (kullanıcının belirlediği sıra) - MEMOIZED
+  const selectedProducts = useMemo(() =>
+    selectedProductIds
+      .map((id) => products.find((p) => p.id === id))
+      .filter((p): p is Product => p !== undefined),
+    [selectedProductIds, products]
+  )
 
   // Ekran boyutunu takip et
   useEffect(() => {

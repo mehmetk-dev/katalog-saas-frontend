@@ -1,6 +1,7 @@
 import NextImage from "next/image"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Fashion Lookbook Template - "The Couture Editorial"
@@ -91,12 +92,11 @@ export function FashionLookbookTemplate({
                         {hero && (
                             <div className="h-full flex flex-col group">
                                 <div className="flex-1 relative bg-[#f5f5f5] overflow-hidden">
-                                    <NextImage
-                                        src={hero.image_url || hero.images?.[0] || "/placeholder.svg"}
-                                        alt={hero.name}
-                                        fill
-                                        unoptimized
-                                        className={`group-hover:scale-105 transition-all duration-[2s] ${getImageFitClass()}`}
+                                    <ProductImageGallery
+                                        product={hero}
+                                        imageFit={productImageFit}
+                                        className="w-full h-full"
+                                        imageClassName="group-hover:scale-105 transition-all duration-[2s]"
                                     />
                                     {/* Overlay label */}
                                     <div className="absolute top-6 right-[-20px] rotate-90 origin-center bg-black text-white px-4 py-1 text-[10px] font-bold tracking-[0.3em] uppercase">
@@ -150,12 +150,12 @@ export function FashionLookbookTemplate({
                                     className="flex gap-4 group cursor-pointer flex-1 items-center border-b border-black/5 last:border-0"
                                 >
                                     <div className="w-[80px] h-[100px] relative bg-[#f5f5f5] shrink-0 overflow-hidden">
-                                        <NextImage
-                                            src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                            alt={product.name}
-                                            fill
-                                            unoptimized
-                                            className={`group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0 ${getImageFitClass()}`}
+                                        <ProductImageGallery
+                                            product={product}
+                                            imageFit={productImageFit}
+                                            className="w-full h-full"
+                                            imageClassName="group-hover:scale-110 transition-all duration-1000 grayscale group-hover:grayscale-0"
+                                            showNavigation={false}
                                         />
                                     </div>
                                     <div className="flex flex-col justify-center flex-1 min-w-0">

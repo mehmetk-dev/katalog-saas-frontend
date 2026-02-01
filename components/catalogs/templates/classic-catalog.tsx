@@ -1,5 +1,6 @@
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
  * Classic Catalog Template - "The Archive Editorial"
@@ -104,15 +105,14 @@ export function ClassicCatalogTemplate({
                             <Wrapper {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)} className={`group w-full h-full flex items-center gap-12 cursor-pointer relative ${orderClass}`}>
                                 {/* Image Section */}
                                 <div className="w-[45%] h-full relative bg-zinc-50 border border-black/5 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.03)] shrink-0">
-                                    <NextImage
-                                        src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                        alt={product.name}
-                                        fill
-                                        unoptimized
-                                        className={`p-4 mix-blend-multiply group-hover:scale-105 transition-all duration-[1.5s] ease-out ${getImageFitClass()}`}
+                                    <ProductImageGallery
+                                        product={product}
+                                        imageFit={productImageFit}
+                                        className="w-full h-full"
+                                        imageClassName="p-4 mix-blend-multiply group-hover:scale-105 transition-all duration-[1.5s] ease-out"
                                     />
                                     {(showUrls && productUrl) && (
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5">
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 z-10">
                                             <div className="w-12 h-12 rounded-full border border-black flex items-center justify-center bg-white">
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M14 5l7 7m0 0l-7 7m7-7H3" />

@@ -303,7 +303,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                             </p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-muted-foreground">
-                                                    {catalog.product_ids?.length || 0} {t('products.product').toLowerCase()}
+                                                    {(catalog.product_ids || []).filter(id => initialProducts.some(p => p.id === id)).length} {t('products.product').toLowerCase()}
                                                 </span>
                                                 <span className="text-muted-foreground/30">•</span>
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1">

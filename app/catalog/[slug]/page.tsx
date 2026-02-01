@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PublicCatalogPageProps): Prom
   }
 
   return {
-    title: `${catalog.name} | FogCatalog`,
+    title: catalog.name,
     description: catalog.description || `${catalog.name} kataloğunu görüntüleyin`,
     openGraph: {
       title: catalog.name,

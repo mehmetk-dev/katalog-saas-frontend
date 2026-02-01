@@ -1,6 +1,7 @@
 import NextImage from "next/image"
 
 import { TemplateProps } from "./types"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 export function ModernGridTemplate({
     catalogName,
@@ -35,7 +36,6 @@ export function ModernGridTemplate({
         switch (columnsPerRow) {
             case 2: return "grid-cols-2"
             case 3: return "grid-cols-3"
-            case 4: return "grid-cols-4"
             default: return "grid-cols-2"
         }
     }
@@ -164,19 +164,15 @@ export function ModernGridTemplate({
                         <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
                             {/* Görsel - KART YAPISI KORUNDU: aspect-[4/3] sabit oran, değiştirilmedi */}
                             <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
-                                {/* YENİ ÖZELLİK: productImageFit - Fotoğraf hizalaması */}
-                                {/* ÖNCE: className="object-cover" (sadece cover) */}
-                                {/* ŞİMDİ: productImageFit'e göre contain/fill/cover */}
-                                <NextImage
-                                    src={product.image_url || product.images?.[0] || "/placeholder.svg"}
-                                    alt={product.name}
-                                    fill
-                                    unoptimized
-                                    className={productImageFit === 'contain' ? 'object-contain' : productImageFit === 'fill' ? 'object-fill' : 'object-cover'}
+                                {/* YENİ: ProductImageGallery bileşeni - Çoklu görsel desteği */}
+                                <ProductImageGallery
+                                    product={product}
+                                    imageFit={productImageFit}
+                                    className="w-full h-full"
                                 />
                                 {/* YENİ ÖZELLİK: showUrls açıksa ve URL varsa link ikonu göster */}
                                 {(showUrls && productUrl) && (
-                                    <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
+                                    <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm z-10">
                                         <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>

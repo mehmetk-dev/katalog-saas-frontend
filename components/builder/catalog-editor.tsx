@@ -22,11 +22,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { TEMPLATES } from "@/lib/constants"
 import { COVER_THEMES } from "@/components/catalogs/covers"
-import { ResponsiveContainer } from "@/components/ui/responsive-container"
 
-import { CatalogPreview } from "./catalog-preview"
-import { getPreviewProductsByLayout } from "../templates/preview-data"
 import { storage } from "@/lib/storage"
+import { TemplatePreviewCard } from "./template-preview-card"
+import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
 
 interface CatalogEditorProps {
   products: Product[]
@@ -190,6 +189,20 @@ export function CatalogEditor({
     return { rgb, hexColor, opacity }
   }, [primaryColor])
 
+  // Debounced color change callbacks - Renk seçicideki her piksel değişikliğinde değil, 50ms bekledikten sonra güncelle
+  const debouncedPrimaryColorChange = useDebouncedCallback(
+    (color: string) => onPrimaryColorChange(color),
+    50
+  )
+  const debouncedHeaderTextColorChange = useDebouncedCallback(
+    (color: string) => onHeaderTextColorChange?.(color),
+    50
+  )
+  const debouncedBackgroundColorChange = useDebouncedCallback(
+    (color: string) => onBackgroundColorChange?.(color),
+    50
+  )
+
   // Close color pickers when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -244,6 +257,10 @@ export function CatalogEditor({
   const [searchQuery, setSearchQuery] = useState("")
 
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
+
+  const validProductIds = useMemo(() => {
+    return selectedProductIds.filter(id => products.some(p => p.id === id))
+  }, [selectedProductIds, products])
 
   const filteredProducts = products.filter(p => {
     const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
@@ -497,11 +514,12 @@ export function CatalogEditor({
       case 'tech-modern':
         return [2, 3]
       case 'compact-list':
-        return [1] // Liste görünümleri genelde tek sütun
       case 'industrial':
       case 'classic-catalog':
+      case 'showcase':
+        return [1] // Bu şablonlar genellikle tek sütun veya dikey liste
       default:
-        return [2, 3, 4]
+        return [2, 3]
     }
   }
 
@@ -551,9 +569,9 @@ export function CatalogEditor({
                       {t('builder.catalogDetails')}
                     </span>
                   </div>
-                  {selectedProductIds.length > 0 && (
+                  {validProductIds.length > 0 && (
                     <div className="bg-indigo-600 text-[10px] font-black text-white px-2 py-0.5 rounded-full shadow-sm shadow-indigo-200">
-                      {selectedProductIds.length} {t('builder.productsSelected')}
+                      {validProductIds.length} {t('builder.productsSelected')}
                     </div>
                   )}
                 </div>
@@ -709,7 +727,7 @@ export function CatalogEditor({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: selectedProductIds.length })}</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: validProductIds.length })}</h3>
                   <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder')}</p>
                 </div>
                 {selectedProductIds.length > 0 && (
@@ -860,11 +878,11 @@ export function CatalogEditor({
                     </div>
 
                     {/* Column Count Pill */}
-                    {['modern-grid', 'product-tiles', 'catalog-pro', 'bold', 'tech-modern', 'clean-white', 'elegant-cards', 'retail'].includes(layout) && (
+                    {availableColumns.length > 1 && (
                       <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                         <Label className="text-[11px] font-black uppercase text-slate-500 mb-2.5 block tracking-widest text-center">Görünüm Düzeni</Label>
                         <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
-                          {[2, 3, 4].map((num) => (
+                          {availableColumns.map((num) => (
                             <button
                               key={num}
                               onClick={() => onColumnsPerRowChange?.(num)}
@@ -993,7 +1011,7 @@ export function CatalogEditor({
                                 color={primaryColorParsed.hexColor}
                                 onChange={(hex) => {
                                   const r = parseInt(hex.substring(1, 3), 16), g = parseInt(hex.substring(3, 5), 16), b = parseInt(hex.substring(5, 7), 16)
-                                  onPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
+                                  debouncedPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
                                 }}
                                 style={{ width: '220px', height: '140px' }}
                               />
@@ -1015,7 +1033,7 @@ export function CatalogEditor({
                             <div className="absolute bottom-full right-0 mb-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in slide-in-from-bottom-4 duration-300">
                               <HexColorPicker
                                 color={headerTextColor || '#ffffff'}
-                                onChange={(hex) => onHeaderTextColorChange?.(hex)}
+                                onChange={(hex) => debouncedHeaderTextColorChange(hex)}
                                 style={{ width: '220px', height: '140px' }}
                               />
                             </div>
@@ -1054,7 +1072,7 @@ export function CatalogEditor({
                             <div className="absolute top-full left-0 mt-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
                               <HexColorPicker
                                 color={backgroundColor || '#ffffff'}
-                                onChange={(hex) => onBackgroundColorChange?.(hex)}
+                                onChange={(hex) => debouncedBackgroundColorChange(hex)}
                                 style={{ width: '240px', height: '160px' }}
                               />
                             </div>
@@ -1358,80 +1376,16 @@ export function CatalogEditor({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto px-4">
-                {TEMPLATES.map((tmpl) => {
-                  const isSelected = layout === tmpl.id;
-                  return (
-                    <div
-                      key={tmpl.id}
-                      onClick={() => handleTemplateSelect(tmpl.id, tmpl.isPro)}
-                      className={cn(
-                        "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-white",
-                        isSelected
-                          ? "ring-8 ring-indigo-600 ring-offset-0 scale-95 shadow-2xl"
-                          : "shadow-lg border border-slate-200 hover:shadow-2xl hover:scale-[1.02]"
-                      )}
-                    >
-                      {/* Preview Container - Takes most of the space */}
-                      <div className="absolute inset-0 pb-14">
-                        <div className="w-full h-full catalog-light pointer-events-none">
-                          <ResponsiveContainer>
-                            <CatalogPreview
-                              layout={tmpl.id}
-                              catalogName={tmpl.name}
-                              products={getPreviewProductsByLayout(tmpl.id)}
-                              primaryColor={primaryColor || '#4f46e5'}
-                              headerTextColor={headerTextColor || '#ffffff'}
-                              showPrices={showPrices ?? true}
-                              showDescriptions={showDescriptions ?? true}
-                              showAttributes={showAttributes ?? true}
-                              showSku={showSku ?? true}
-                              showUrls={showUrls ?? true}
-                              productImageFit={productImageFit || 'cover'}
-                              backgroundColor={backgroundColor}
-                              backgroundImage={backgroundImage}
-                              backgroundImageFit={backgroundImageFit}
-                              backgroundGradient={backgroundGradient}
-                              logoUrl={logoUrl}
-                              logoPosition={logoPosition ?? undefined}
-                              logoSize={_logoSize ?? undefined}
-                              titlePosition={_titlePosition ?? undefined}
-                              enableCoverPage={false}
-                              coverImageUrl={null}
-                              coverDescription={null}
-                              enableCategoryDividers={false}
-                              showControls={false}
-                            />
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-
-                      {/* Clean Bottom Bar - High Contrast */}
-                      <div className={cn(
-                        "absolute inset-x-0 bottom-0 h-10 px-3 transition-all duration-300 z-20 flex items-center justify-between border-t",
-                        isSelected
-                          ? "bg-indigo-600 border-indigo-600 text-white"
-                          : "bg-white border-slate-100 text-slate-900 group-hover:bg-slate-50"
-                      )}>
-                        <p className="text-[9px] font-black uppercase tracking-tight truncate flex-1 leading-none">
-                          {tmpl.name}
-                        </p>
-                        {tmpl.isPro && (
-                          <span className={cn(
-                            "ml-2 text-[9px] font-black px-1.5 py-1 rounded shadow-sm shrink-0 leading-none",
-                            isSelected ? "bg-white text-indigo-600" : "bg-amber-400 text-slate-900"
-                          )}>PRO</span>
-                        )}
-                      </div>
-
-                      {/* Selection Checkmark */}
-                      {isSelected && (
-                        <div className="absolute top-4 right-4 bg-white text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center shadow-xl z-30 animate-in zoom-in-50">
-                          <CheckSquare className="w-5 h-5" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {TEMPLATES.map((tmpl) => (
+                  <TemplatePreviewCard
+                    key={tmpl.id}
+                    templateId={tmpl.id}
+                    templateName={tmpl.name}
+                    isPro={tmpl.isPro}
+                    isSelected={layout === tmpl.id}
+                    onSelect={() => handleTemplateSelect(tmpl.id, tmpl.isPro)}
+                  />
+                ))}
               </div>
             </div>
           </TabsContent>

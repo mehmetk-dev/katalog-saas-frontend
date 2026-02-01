@@ -27,9 +27,9 @@ export function PreviewFloatingHeader({
     if (view !== "preview") return null
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 w-[95%] max-w-md">
-            <div className="flex items-center justify-between gap-2 bg-background/80 backdrop-blur-xl p-2 rounded-2xl border shadow-2xl ring-1 ring-black/10">
-                <div className="flex items-center gap-2 pl-2 min-w-0">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[90vw] max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 shadow-xl ring-1 ring-black/5">
+                <div className="flex items-center gap-1 pl-2 min-w-0">
                     <div className="flex flex-col min-w-0">
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Önizleme</span>
                         <h2 className="text-xs sm:text-sm font-bold truncate text-foreground leading-none mt-1">

@@ -32,8 +32,18 @@ export async function updateSession(request: NextRequest) {
 
     const {
       data: { user },
-      error: _error,
+      error: authError,
     } = await supabase.auth.getUser()
+
+    // Handle invalid refresh tokens (common after database resets or token expiry)
+    if (authError && (authError as any).code === 'refresh_token_not_found') {
+      console.warn("Middleware: Invalid refresh token detected. Redirecting to login.")
+      const url = request.nextUrl.clone()
+      url.pathname = "/auth"
+      const response = NextResponse.redirect(url)
+      response.cookies.delete("auth_session_timer")
+      return response
+    }
 
     // --- Session Expiry Logic ---
     // User wants to be asked for login again if a certain time has passed.
