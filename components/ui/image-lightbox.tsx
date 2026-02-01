@@ -47,29 +47,44 @@ export function ImageLightbox() {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [isOpen, closeLightbox, nextImage, prevImage])
 
-    // Zoom reset on image change
+    const [isLoading, setIsLoading] = React.useState(true)
+
+    // Reset loading on index change
     useEffect(() => {
-        setZoom(1)
+        setIsLoading(true)
     }, [currentIndex])
 
-    const handleBackdropClick = useCallback((e: React.MouseEvent) => {
-        if (e.target === e.currentTarget) {
-            closeLightbox()
-        }
+    const handleBackdropClick = useCallback(() => {
+        closeLightbox()
     }, [closeLightbox])
 
     if (!mounted || !isOpen) return null
 
     const currentImage = images[currentIndex]
     const hasMultiple = images.length > 1
+    const nextIdx = (currentIndex + 1) % images.length
+    const prevIdx = (currentIndex - 1 + images.length) % images.length
 
     const lightboxContent = (
         <div
             className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200"
             onClick={handleBackdropClick}
         >
+            {/* Prefetch Next/Prev Images */}
+            <div className="hidden">
+                {images.length > 1 && (
+                    <>
+                        <img src={images[nextIdx]} alt="" />
+                        <img src={images[prevIdx]} alt="" />
+                    </>
+                )}
+            </div>
+
             {/* Top Controls - Structured for no overlap */}
-            <div className="absolute top-4 left-0 right-0 z-10 px-4 pointer-events-none flex items-start justify-between">
+            <div
+                className="absolute top-4 left-0 right-0 z-20 px-4 pointer-events-none flex items-start justify-between"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Product Name - Only on Desktop/Large Tablets */}
                 <div className="hidden md:block pointer-events-auto">
                     {productName && (
@@ -117,14 +132,14 @@ export function ImageLightbox() {
                 <>
                     <button
                         onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all group"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all group"
                         aria-label="Önceki görsel"
                     >
                         <ChevronLeft className="w-8 h-8 group-hover:scale-110 transition-transform" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all group"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all group"
                         aria-label="Sonraki görsel"
                     >
                         <ChevronRight className="w-8 h-8 group-hover:scale-110 transition-transform" />
@@ -132,30 +147,40 @@ export function ImageLightbox() {
                 </>
             )}
 
-            {/* Main Image */}
-            <div
-                className="relative w-full h-full max-w-[90vw] max-h-[85vh] flex items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
-            >
+            {/* Main Image Area */}
+            <div className="relative w-full h-full flex items-center justify-center p-12">
+                {/* Loading Spinner */}
+                {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                    </div>
+                )}
+
                 <div
-                    className="relative transition-transform duration-200 ease-out"
+                    key={currentIndex}
+                    className={cn(
+                        "relative transition-all duration-300 ease-out pointer-events-auto",
+                        isLoading ? "opacity-0 scale-95" : "opacity-100 scale-100"
+                    )}
                     style={{ transform: `scale(${zoom})` }}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <NextImage
                         src={currentImage}
                         alt={productName || "Ürün görseli"}
-                        width={1200}
-                        height={1200}
+                        width={1400}
+                        height={1400}
                         className="max-w-[85vw] max-h-[80vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
                         priority
                         unoptimized
+                        onLoadingComplete={() => setIsLoading(false)}
                     />
                 </div>
             </div>
 
             {/* Dots Indicator */}
             {hasMultiple && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     {images.map((_, index) => (
                         <button
                             key={index}
@@ -174,7 +199,7 @@ export function ImageLightbox() {
 
             {/* Image Counter */}
             {hasMultiple && (
-                <div className="absolute bottom-6 right-4 sm:right-6 z-10 px-2.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                <div className="absolute bottom-6 right-4 sm:right-6 z-20 px-2.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <span className="text-white text-[10px] sm:text-xs font-mono">
                         {currentIndex + 1} / {images.length}
                     </span>
