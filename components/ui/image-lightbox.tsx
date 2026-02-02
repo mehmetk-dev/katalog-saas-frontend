@@ -6,6 +6,7 @@ import NextImage from "next/image"
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLightbox } from "@/lib/lightbox-context"
+import { getCloudinaryResizedUrl } from "@/lib/image-utils"
 
 export function ImageLightbox() {
     const { state, closeLightbox, nextImage, prevImage, goToImage } = useLightbox()
@@ -65,9 +66,14 @@ export function ImageLightbox() {
     const nextIdx = (currentIndex + 1) % images.length
     const prevIdx = (currentIndex - 1 + images.length) % images.length
 
+    // Optimize large image (limit to 2000px for 4K screens, but 1600px is safer for speed)
+    const displayImage = React.useMemo(() => {
+        return getCloudinaryResizedUrl(currentImage, 1600)
+    }, [currentImage])
+
     const lightboxContent = (
         <div
-            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200"
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300"
             onClick={handleBackdropClick}
         >
             {/* Prefetch Next/Prev Images */}
@@ -159,20 +165,23 @@ export function ImageLightbox() {
                 <div
                     key={currentIndex}
                     className={cn(
-                        "relative transition-all duration-300 ease-out pointer-events-auto",
-                        isLoading ? "opacity-0 scale-95" : "opacity-100 scale-100"
+                        "relative transition-all duration-500 ease-out pointer-events-auto",
+                        // Improved Animation: Start slightly smaller and fade in
+                        isLoading
+                            ? "opacity-0 scale-90 blur-sm"
+                            : "opacity-100 scale-100 blur-0 animate-in zoom-in-90 fade-in duration-500"
                     )}
                     style={{ transform: `scale(${zoom})` }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <NextImage
-                        src={currentImage}
+                        src={displayImage}
                         alt={productName || "Ürün görseli"}
-                        width={1400}
-                        height={1400}
-                        className="max-w-[85vw] max-h-[80vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
+                        width={1600}
+                        height={1600}
+                        className="max-w-[90vw] max-h-[85vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
                         priority
-                        unoptimized
+                        unoptimized // Using optimized Cloudinary URL manually
                         onLoadingComplete={() => setIsLoading(false)}
                     />
                 </div>

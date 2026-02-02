@@ -15,6 +15,7 @@ import { type Product, bulkUpdateProductImages } from "@/lib/actions/products"
 import { useAsyncTimeout } from "@/lib/hooks/use-async-timeout"
 import { cn } from "@/lib/utils"
 import { storage } from "@/lib/storage"
+import { optimizeImage } from "@/lib/image-utils"
 
 interface BulkImageUploadModalProps {
     open: boolean
@@ -308,7 +309,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
         // Upload Helper
         const uploadSingleImageWithRetry = async (img: ImageFile, signal?: AbortSignal): Promise<string> => {
             const MAX_RETRIES = 3
-            const TIMEOUT_MS = 20000 // 20 sn
+            const TIMEOUT_MS = 60000 // 60 saniye (yeterli süre)
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${img.file.name.split('.').pop() || 'jpg'}`
 
             for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -350,10 +351,19 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         throw new Error('Upload cancelled')
                     }
 
-                    // Simple upload
-                    const uploadPromise = storage.upload(img.file, {
+                    // 2. OPTİMİZASYON: Cloudinary'ye gitmeden önce resmi küçült ve WebP'ye çevir
+                    let fileToUpload = img.file
+                    try {
+                        const { blob } = await optimizeImage(img.file, { maxWidth: 2000, maxHeight: 2000, quality: 0.8 })
+                        fileToUpload = new File([blob], img.file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' })
+                    } catch (optError) {
+                        console.warn('[BulkUpload] Optimization failed, sending original:', optError)
+                    }
+
+                    // 3. Simple upload
+                    const uploadPromise = storage.upload(fileToUpload, {
                         path: 'products',
-                        contentType: img.file.type || 'image/jpeg',
+                        contentType: fileToUpload.type || 'image/jpeg',
                         cacheControl: '3600',
                         fileName,
                         signal,

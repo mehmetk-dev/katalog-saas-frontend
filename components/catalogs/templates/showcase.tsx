@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -84,18 +85,9 @@ export function ShowcaseTemplate({
                 {/* Hero Feature - Left */}
                 {main && (() => {
                     const productUrl = main.product_url
-                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
-                        href: productUrl,
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                        className: 'w-[60%] h-full relative block cursor-pointer group shrink-0 overflow-hidden'
-                    } : {
-                        className: 'w-[60%] h-full relative shrink-0'
-                    }
 
                     return (
-                        <Wrapper {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
+                        <div className="w-[60%] h-full relative shrink-0 group overflow-hidden">
                             {/* Spotlight Effect Background */}
                             <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
 
@@ -130,13 +122,15 @@ export function ShowcaseTemplate({
                                     {showPrices && (
                                         <div className="flex flex-col">
                                             <span className="text-[10px] uppercase font-black tracking-widest text-white/20 mb-2">Value Reference</span>
-                                            <p className="text-4xl font-black leading-none tracking-tighter" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = main.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(main.price).toFixed(2)}`
-                                                })()}
-                                            </p>
+                                            <div className="flex items-center gap-4">
+                                                <p className="text-4xl font-black leading-none tracking-tighter" style={{ color: primaryColor }}>
+                                                    {(() => {
+                                                        const currency = main.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
+                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                        return `${symbol}${Number(main.price).toFixed(2)}`
+                                                    })()}
+                                                </p>
+                                            </div>
                                         </div>
                                     )}
 
@@ -148,15 +142,19 @@ export function ShowcaseTemplate({
                                 </div>
                             </div>
 
-                            {/* Link Indicator */}
+                            {/* Buy Button - Main Hero */}
                             {(showUrls && productUrl) && (
-                                <div className="absolute top-10 right-10 w-14 h-14 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-700">
-                                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                </div>
+                                <a
+                                    href={productUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="absolute bottom-10 right-10 w-14 h-14 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all duration-300 z-30 group/btn"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <ShoppingBag className="w-6 h-6" />
+                                </a>
                             )}
-                        </Wrapper>
+                        </div>
                     )
                 })()}
 
@@ -164,18 +162,9 @@ export function ShowcaseTemplate({
                 <div className={`w-[40%] grid ${getRightCols()} grid-rows-4 bg-[#0d0d0d] border-l border-white/5 shrink-0`}>
                     {others.slice(0, 4).map((product, idx) => {
                         const productUrl = product.product_url
-                        const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                        const wrapperProps = (showUrls && productUrl) ? {
-                            href: productUrl,
-                            target: '_blank',
-                            rel: 'noopener noreferrer',
-                            className: 'relative group overflow-hidden border-b border-white/5 flex flex-col h-full cursor-pointer'
-                        } : {
-                            className: 'relative overflow-hidden border-b border-white/5 flex flex-col h-full'
-                        }
 
                         return (
-                            <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
+                            <div key={product.id} className="relative group overflow-hidden border-b border-white/5 flex flex-col h-full">
                                 <div className="absolute inset-0 opacity-20 group-hover:opacity-50 transition-all duration-[1.5s]">
                                     <ProductImageGallery
                                         product={product}
@@ -183,7 +172,7 @@ export function ShowcaseTemplate({
                                         className="w-full h-full"
                                         imageClassName="p-12 group-hover:scale-110 transition-all duration-[2s]"
                                         showNavigation={false}
-                                        interactive={false}
+                                        interactive={true}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                                 </div>
@@ -199,20 +188,35 @@ export function ShowcaseTemplate({
 
                                     <div className="flex items-end justify-between mt-3">
                                         {showPrices && (
-                                            <p className="text-sm font-bold tracking-tighter" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
-                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-bold tracking-tighter" style={{ color: primaryColor }}>
+                                                    {(() => {
+                                                        const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
+                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                        return `${symbol}${Number(product.price).toFixed(2)}`
+                                                    })()}
+                                                </p>
+                                            </div>
                                         )}
                                         {showSku && product.sku && (
                                             <span className="text-[9px] font-mono text-white/20">#{product.sku}</span>
                                         )}
                                     </div>
                                 </div>
-                            </Wrapper>
+
+                                {/* Buy Button - Sidebar Item */}
+                                {showUrls && productUrl && (
+                                    <a
+                                        href={productUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute bottom-4 right-4 w-9 h-9 rounded-full bg-white/5 hover:bg-white hover:text-black border border-white/10 flex items-center justify-center transition-all duration-300 z-20"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <ShoppingBag className="w-4 h-4" />
+                                    </a>
+                                )}
+                            </div>
                         )
                     })}
                 </div>

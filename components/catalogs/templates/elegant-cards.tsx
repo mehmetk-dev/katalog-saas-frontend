@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -140,13 +141,18 @@ export function ElegantCardsTemplate({
                                 <div className="flex items-center justify-center gap-3 mb-4">
                                     <div className="w-1.5 h-[1px] bg-stone-300" />
                                     {showPrices && (
-                                        <span className="text-base font-light text-stone-500 tracking-[0.1em]">
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-base font-light text-stone-500 tracking-[0.1em]">
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </span>
+                                            {showUrls && productUrl && (
+                                                <ShoppingBag className="w-4 h-4 text-stone-300 group-hover:text-stone-600 transition-colors" />
+                                            )}
+                                        </div>
                                     )}
                                     <div className="w-1.5 h-[1px] bg-stone-300" />
                                 </div>

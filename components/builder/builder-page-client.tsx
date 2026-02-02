@@ -381,12 +381,20 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   }, [view]) // Include view to handle view changes
 
   const handleSave = () => {
+    // Otomatik isim kontrolü
+    let finalName = catalogName?.trim()
+    if (!finalName) {
+      const currentDate = new Date().toLocaleDateString('tr-TR')
+      finalName = `${t("catalogs.newCatalog") || "Yeni Katalog"} - ${currentDate}`
+      setCatalogName(finalName) // Arayüzde de güncelle
+    }
+
     startTransition(async () => {
       try {
         if (currentCatalogId) {
           // 1. Mevcut katalogu tek seferde güncelle - Hızlı geri bildirim
           const updatePromise = updateCatalog(currentCatalogId, {
-            name: catalogName,
+            name: finalName,
             description: catalogDescription,
             product_ids: selectedProductIds,
             layout,
@@ -421,7 +429,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         } else {
           // 2. Yeni katalog oluştururken TÜM verileri tek seferde gönder
           const newCatalog = await createCatalog({
-            name: catalogName,
+            name: finalName,
             description: catalogDescription,
             layout,
             product_ids: selectedProductIds,

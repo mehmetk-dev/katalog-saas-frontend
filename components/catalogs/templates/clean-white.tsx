@@ -1,3 +1,4 @@
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -64,7 +65,7 @@ export function CleanWhiteTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
+                        <div key={product.id} className="flex flex-col h-full group shrink-0 relative">
                             <div className="aspect-[3/2] bg-gray-50 rounded-xl overflow-hidden mb-3 relative shrink-0">
                                 <ProductImageGallery
                                     product={product}
@@ -72,26 +73,21 @@ export function CleanWhiteTemplate({
                                     className="w-full h-full"
                                     imageClassName="p-2 group-hover:scale-105 transition-transform duration-500"
                                 />
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-3 right-3 bg-white/60 backdrop-blur-sm p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </div>
-                                )}
                             </div>
-                            <div className="flex-1 flex flex-col justify-between overflow-hidden">
+                            <div className="flex-1 flex flex-col justify-between overflow-hidden relative">
                                 <div className="space-y-1">
                                     <div className="flex justify-between items-start gap-2">
                                         <h3 className="font-bold text-sm text-gray-900 line-clamp-1 group-hover:text-gray-600 transition-colors leading-tight flex-1">{product.name}</h3>
                                         {showPrices && (
-                                            <span className="font-bold text-sm shrink-0 leading-tight" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <span className="font-bold text-sm leading-tight" style={{ color: primaryColor }}>
+                                                    {(() => {
+                                                        const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                        return `${symbol}${Number(product.price).toFixed(2)}`
+                                                    })()}
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                     {showDescriptions && product.description && (
@@ -99,7 +95,7 @@ export function CleanWhiteTemplate({
                                     )}
 
                                     {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-2 space-y-0.5 border-t border-gray-50 pt-2">
+                                        <div className="mt-2 space-y-0.5 border-t border-gray-50 pt-2 pb-6">
                                             {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
                                                 <div key={aidx} className="flex justify-between items-center text-[9px] gap-2">
                                                     <span className="text-gray-300 font-medium truncate flex-1">{attr.name}</span>
@@ -116,8 +112,21 @@ export function CleanWhiteTemplate({
                                         <span className="text-[8px] text-gray-200 font-mono tracking-widest leading-none uppercase">SKU: {product.sku}</span>
                                     </div>
                                 )}
+
+                                {/* Buy Button - Fixed to bottom right of info area */}
+                                {showUrls && productUrl && (
+                                    <a
+                                        href={productUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center bg-gray-50 hover:bg-black hover:text-white border border-gray-100 transition-all duration-300"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <ShoppingBag className="w-3.5 h-3.5" />
+                                    </a>
+                                )}
                             </div>
-                        </Wrapper>
+                        </div>
                     )
                 })}
             </div>

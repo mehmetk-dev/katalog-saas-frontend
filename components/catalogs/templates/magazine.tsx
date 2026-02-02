@@ -1,5 +1,5 @@
 import NextImage from "next/image"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -140,13 +140,20 @@ export function MagazineTemplate({
 
                             <div className="relative z-10 border-t border-white/20 pt-6">
                                 {showPrices && (
-                                    <p className="text-3xl font-black italic tracking-tighter" style={{ color: primaryColor }}>
-                                        {(() => {
-                                            const currency = heroProduct.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                            return `${symbol}${Number(heroProduct.price).toLocaleString('tr-TR')}`
-                                        })()}
-                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <p className="text-3xl font-black italic tracking-tighter" style={{ color: primaryColor }}>
+                                            {(() => {
+                                                const currency = heroProduct.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                return `${symbol}${Number(heroProduct.price).toLocaleString('tr-TR')}`
+                                            })()}
+                                        </p>
+                                        {showUrls && heroProduct.product_url && (
+                                            <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
+                                                <ShoppingBag className="w-5 h-5" style={{ color: primaryColor }} />
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                                 {showUrls && heroProduct.product_url && (
                                     <a
@@ -189,12 +196,17 @@ export function MagazineTemplate({
 
                                     {/* Price Tag Overlay */}
                                     {showPrices && (
-                                        <div className="absolute top-2 left-2 bg-slate-950 text-white px-2 py-0.5 text-[11px] font-black italic shadow-lg z-10">
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toLocaleString('tr-TR')}`
-                                            })()}
+                                        <div className="absolute top-2 left-2 bg-slate-950 text-white px-2 py-1 text-[11px] font-black italic shadow-lg z-10 flex items-center gap-2">
+                                            <span>
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toLocaleString('tr-TR')}`
+                                                })()}
+                                            </span>
+                                            {showUrls && product.product_url && (
+                                                <ShoppingBag className="w-3 h-3 text-white/70" />
+                                            )}
                                         </div>
                                     )}
                                 </div>

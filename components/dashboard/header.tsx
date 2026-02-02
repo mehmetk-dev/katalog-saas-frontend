@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
-import { Bell, Plus, ChevronDown, LogOut, Settings, User, Menu, PanelLeftClose, PanelLeft } from "lucide-react"
+import { Bell, Plus, ChevronDown, LogOut, Settings, User, Menu, PanelLeftClose, PanelLeft, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { NotificationDropdown } from "@/components/dashboard/notification-dropdown"
@@ -38,6 +39,33 @@ export function DashboardHeader() {
 
   const handleLogout = async () => {
     await logout()
+  }
+
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleCatalogCreate = async () => {
+    setIsCreating(true)
+    const creatingMsg = t("toasts.creatingCatalog")
+    const toastId = toast.loading(creatingMsg === "toasts.creatingCatalog" ? "Katalog oluşturuluyor..." : String(creatingMsg))
+    try {
+      const { createCatalog } = await import("@/lib/actions/catalogs")
+      const currentDate = new Date().toLocaleDateString('tr-TR')
+      const rawName = t("catalogs.newCatalog")
+      const baseName = rawName === "catalogs.newCatalog" ? "Yeni Katalog" : String(rawName)
+
+      const newCatalog = await createCatalog({
+        name: `${baseName} - ${currentDate}`,
+        layout: "modern-grid"
+      })
+
+      const successMsg = t("toasts.catalogCreated")
+      toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
+      window.location.href = `/dashboard/builder?id=${newCatalog.id}`
+    } catch (error: any) {
+      console.error("Header creation error:", error)
+      toast.error(error.message || "Hata oluştu", { id: toastId })
+      setIsCreating(false)
+    }
   }
 
   // Dinamik Header Aksiyonu
@@ -150,13 +178,21 @@ export function DashboardHeader() {
 
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Dinamik Aksiyon Butonu */}
-          <Button asChild className="gap-2" size="sm">
-            <Link href={action.href}>
-              {action.icon}
+          {action.href === "/dashboard/builder" ? (
+            <Button onClick={handleCatalogCreate} className="gap-2" size="sm" disabled={isCreating}>
+              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : action.icon}
               <span className="hidden sm:inline">{action.label}</span>
               <span className="sm:hidden">{t("common.new")}</span>
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild className="gap-2" size="sm">
+              <Link href={action.href}>
+                {action.icon}
+                <span className="hidden sm:inline">{action.label}</span>
+                <span className="sm:hidden">{t("common.new")}</span>
+              </Link>
+            </Button>
+          )}
 
           {/* Theme Toggle */}
           <ThemeToggle />

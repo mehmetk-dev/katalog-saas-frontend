@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
@@ -113,18 +114,8 @@ export function MinimalistTemplate({
                         <div className="flex-1 px-12 grid grid-cols-2 gap-x-12 gap-y-12 overflow-hidden py-10 content-start">
                             {pageProducts.map((product) => {
                                 const productUrl = product.product_url
-                                const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                                const wrapperProps = (showUrls && productUrl) ? {
-                                    href: productUrl,
-                                    target: '_blank',
-                                    rel: 'noopener noreferrer',
-                                    className: 'group flex flex-col relative cursor-pointer w-full aspect-[3/4]'
-                                } : {
-                                    className: 'flex flex-col relative w-full aspect-[3/4]'
-                                } as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>
-
                                 return (
-                                    <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
+                                    <div key={product.id} className="flex flex-col relative w-full aspect-[3/4] group">
                                         {/* Product Image - Fixed Proportion */}
                                         <div className="relative flex-1 mb-6 bg-[#fafafa] flex items-center justify-center transition-all duration-1000 group-hover:bg-[#f2f2f2]">
                                             <div className="absolute inset-8">
@@ -137,18 +128,10 @@ export function MinimalistTemplate({
                                                     )}
                                                 />
                                             </div>
-
-                                            {(showUrls && productUrl) && (
-                                                <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-[2px] rounded-full p-1.5 shadow-sm opacity-70 group-hover:opacity-100 transition-all duration-300">
-                                                    <svg className="w-2.5 h-2.5 text-[#1a1a1a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                    </svg>
-                                                </div>
-                                            )}
                                         </div>
 
                                         {/* Product Info - Precise Typography */}
-                                        <div className="shrink-0 pb-4">
+                                        <div className="shrink-0 pb-4 relative">
                                             <div className="flex justify-between items-baseline mb-2">
                                                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#1a1a1a] truncate flex-1">
                                                     {product.name}
@@ -171,7 +154,7 @@ export function MinimalistTemplate({
                                             )}
 
                                             {_showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                                <div className="flex flex-wrap gap-4 pt-4 border-t border-[#f0f0f0]">
+                                                <div className="flex flex-wrap gap-4 pt-4 border-t border-[#f0f0f0] pb-8">
                                                     {product.custom_attributes.filter((a: CustomAttribute) => a.name !== 'currency' && a.value).slice(0, 3).map((attr: CustomAttribute, idx: number) => (
                                                         <div key={idx} className="flex flex-col gap-0.5">
                                                             <span className="text-[7px] font-black uppercase tracking-tighter text-[#bbb]">{attr.name}</span>
@@ -180,8 +163,21 @@ export function MinimalistTemplate({
                                                     ))}
                                                 </div>
                                             )}
+
+                                            {/* Buy Button - Fixed to bottom right */}
+                                            {(showUrls && productUrl) && (
+                                                <a
+                                                    href={productUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full flex items-center justify-center border border-gray-100 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <ShoppingBag className="w-3.5 h-3.5" />
+                                                </a>
+                                            )}
                                         </div>
-                                    </Wrapper>
+                                    </div>
                                 )
                             })}
                         </div>

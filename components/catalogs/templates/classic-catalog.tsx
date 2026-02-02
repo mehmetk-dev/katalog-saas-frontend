@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -150,7 +151,7 @@ export function ClassicCatalogTemplate({
                                     )}
 
                                     {showPrices && (
-                                        <div className="mt-auto pt-6 border-t border-black/10 w-32">
+                                        <div className="mt-auto pt-6 border-t border-black/10 w-32 flex items-center justify-between">
                                             <span className="text-xl font-serif italic block" style={{ color: primaryColor }}>
                                                 {(() => {
                                                     const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
@@ -158,6 +159,9 @@ export function ClassicCatalogTemplate({
                                                     return `${symbol}${Number(product.price).toFixed(2)}`
                                                 })()}
                                             </span>
+                                            {showUrls && productUrl && (
+                                                <ShoppingBag className="w-4 h-4 text-black/20 group-hover:text-black/60 transition-colors" />
+                                            )}
                                         </div>
                                     )}
 

@@ -957,6 +957,7 @@ export function CatalogEditor({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl shadow-2xl">
+                            <SelectItem value="none">Gösterme</SelectItem>
                             <SelectItem value="header-left">Sol Üst</SelectItem>
                             <SelectItem value="header-center">Orta Üst</SelectItem>
                             <SelectItem value="header-right">Sağ Üst</SelectItem>

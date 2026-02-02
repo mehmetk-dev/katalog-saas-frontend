@@ -559,6 +559,7 @@ export function AuthPageClient() {
                                                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                                     placeholder={t("auth.placeholderName") as string}
                                                     required
+                                                    suppressHydrationWarning
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
@@ -569,6 +570,7 @@ export function AuthPageClient() {
                                                     onChange={(e) => setCompanyName(e.target.value)}
                                                     className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                                     placeholder={t("auth.placeholderCompany") as string}
+                                                    suppressHydrationWarning
                                                 />
                                             </div>
                                         </div>
@@ -583,6 +585,7 @@ export function AuthPageClient() {
                                             className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
                                             placeholder={t("auth.placeholderEmail") as string}
                                             required
+                                            suppressHydrationWarning
                                         />
                                     </div>
 

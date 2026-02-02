@@ -1,5 +1,5 @@
 import NextImage from "next/image"
-import { ExternalLink } from "lucide-react"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -146,7 +146,7 @@ export function ProductTilesTemplate({
                                 {/* Floating Price Tag */}
                                 {showPrices && (
                                     <div className={cn(
-                                        "absolute bottom-4 right-[-5px] bg-slate-900 text-white font-black shadow-xl translate-x-0 group-hover:translate-x-[-10px] transition-transform italic",
+                                        "absolute bottom-4 right-[-5px] bg-slate-900 text-white font-black shadow-xl translate-x-0 group-hover:translate-x-[-10px] transition-transform italic flex items-center gap-2",
                                         columnsPerRow === 2 ? "px-3 py-1.5 text-base" : "px-2 py-1 text-xs"
                                     )}>
                                         {(() => {
@@ -154,6 +154,12 @@ export function ProductTilesTemplate({
                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                             return `${symbol}${Number(product.price).toLocaleString('tr-TR')}`
                                         })()}
+                                        {showUrls && product.product_url && (
+                                            <ShoppingBag className={cn(
+                                                columnsPerRow === 2 ? "w-4 h-4" : "w-3 h-3",
+                                                "text-white/50"
+                                            )} />
+                                        )}
                                     </div>
                                 )}
 
@@ -161,7 +167,7 @@ export function ProductTilesTemplate({
                                 {showUrls && product.product_url && (
                                     <div className="absolute bottom-4 left-4 z-30">
                                         <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg border border-slate-200 text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all transform group-hover:scale-110">
-                                            <ExternalLink className={cn(
+                                            <ShoppingBag className={cn(
                                                 columnsPerRow === 2 ? "w-4 h-4" : "w-3 h-3"
                                             )} />
                                         </div>

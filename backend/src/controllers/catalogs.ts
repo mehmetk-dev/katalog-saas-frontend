@@ -649,13 +649,13 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
 };
 
 const getVisitorInfo = (req: Request) => {
-    // Forwarded IP takes precedence
-    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-        req.headers['x-real-ip']?.toString() ||
-        req.socket?.remoteAddress ||
-        '0.0.0.0';
+    // Forwarded IP takes precedence - handle multiple IPs in chain
+    const forwarded = req.headers['x-forwarded-for'] as string;
+    const ip = forwarded
+        ? forwarded.split(',')[0].trim()
+        : (req.headers['x-real-ip'] as string || req.socket?.remoteAddress || '0.0.0.0');
 
-    // User Agent
+    // User Agent - clean and cap
     const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 500);
 
     let deviceType = 'desktop';
@@ -664,9 +664,8 @@ const getVisitorInfo = (req: Request) => {
     }
 
     // Creating a truly unique identifier per day for this visitor
+    // Adding date ensures daily uniqueness if needed, but for now we use global hash
     const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
-
-    // DEBUG LOG
 
     return { ip, userAgent, deviceType, visitorHash };
 };
@@ -729,35 +728,32 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 
         if (summaryError) {
             console.error('[Stats] API error or view missing, falling back to manual count:', summaryError.message);
+        }
 
-            // FALLBACK: If view doesn't exist, calculate manually
-            const [catalogsResult, productsResult] = await Promise.all([
-                supabase.from('catalogs').select('id, is_published, view_count, name').eq('user_id', userId),
-                supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-            ]);
+        // ALWAYS PERFORM MANUAL COUNT FOR CORE STATS (More reliable than view triggers)
+        const [catalogsResult, productsResult] = await Promise.all([
+            supabase.from('catalogs').select('id, is_published, view_count, name').eq('user_id', userId),
+            supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
 
-            if (catalogsResult.data) {
-                const catalogs = catalogsResult.data;
-                stats.totalCatalogs = catalogs.length;
-                stats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
-                stats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
+        if (catalogsResult.data) {
+            const catalogs = catalogsResult.data;
+            stats.totalCatalogs = catalogs.length;
+            stats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
+            stats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
 
-                // Get top 5 catalogs
-                stats.topCatalogs = [...catalogs]
-                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
-                    .slice(0, 5)
-                    .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
-            }
+            // Get top 5 catalogs
+            stats.topCatalogs = [...catalogs]
+                .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+                .slice(0, 5)
+                .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
+        }
 
-            stats.totalProducts = productsResult.count || 0;
-        } else {
-            stats = {
-                totalCatalogs: summaryData?.total_catalogs || 0,
-                publishedCatalogs: summaryData?.published_catalogs || 0,
-                totalViews: summaryData?.total_views || 0,
-                totalProducts: summaryData?.total_products || 0,
-                topCatalogs: summaryData?.top_catalogs || [],
-            };
+        stats.totalProducts = productsResult.count || 0;
+
+        // If view didn't have error, use it for anything we missed (though we covered most)
+        if (!summaryError && summaryData) {
+            // Optional: You could use additional view data here if needed
         }
 
         const detailedStats = {
@@ -784,8 +780,21 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                         p_days: days
                     });
 
-                if (!vError) {
+                if (!vError && vCount !== null && Number(vCount) > 0) {
                     detailedStats.uniqueVisitors = Number(vCount);
+                } else {
+                    // FALLBACK: Eğer RPC 0 dönüyorsa veya hata veriyorsa doğrudan tablodan say
+                    // Bu, RPC'nin yanlış sütunu (örn. visitor_id) sayma ihtimaline karşı bir sigortadır.
+                    const { count: directUniqueCount } = await supabase
+                        .from('catalog_views')
+                        .select('visitor_hash', { count: 'exact', head: true })
+                        .in('catalog_id', catalogIds)
+                        .eq('is_owner', false)
+                        .gte('view_date', dateThresholdStr);
+
+                    if (directUniqueCount) {
+                        detailedStats.uniqueVisitors = directUniqueCount;
+                    }
                 }
 
                 // b. Device Stats (Using query directly for multi-catalog)

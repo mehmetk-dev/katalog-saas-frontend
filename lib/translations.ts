@@ -447,7 +447,7 @@ export const translations = {
             deleteConfirm: "{name} kategorisini silmek istediğinize emin misiniz?",
         },
         importExport: {
-            title: "İçe/Dışa Aktar",
+            title: "Excel ile Toplu Ürün Yükle / İndir",
             import: "İçe Aktar",
             export: "Dışa Aktar",
             downloadTemplate: "Şablonu İndir",
@@ -485,6 +485,7 @@ export const translations = {
                 stock: "Stok",
                 category: "Kategori",
                 imageUrl: "Görsel URL",
+                productUrl: "Ürün URL",
             },
             freePlanLimit: "Ücretsiz Plan Kısıtlaması",
             freePlanLimitDesc: "Kategori alanı ücretsiz planda desteklenmez. Kategorilerinizi içe aktarmak için Plus veya Pro'ya yükseltin.",
@@ -521,6 +522,7 @@ export const translations = {
             download: "İndir (PDF)",
             noCatalogs: "Henüz katalog oluşturmadınız",
             noCatalogsDesc: "Ürünlerinizi sergilemek için katalog oluşturun",
+            newCatalog: "Yeni Katalog",
             // New translations
             subtitle: "Oluşturduğunuz tüm katalogları yönetin",
             catalogCount: "{count}/{max} katalog",
@@ -1188,7 +1190,8 @@ export const translations = {
             categoryDeleteFailed: "Kategori silinemedi",
             categoryNameEmpty: "Kategori adı boş olamaz",
             // Catalogs
-            catalogCreated: "Katalog oluşturuldu!",
+            creatingCatalog: "Katalog oluşturuluyor...",
+            catalogCreated: "Katalog başarıyla oluşturuldu!",
             catalogSaved: "Katalog kaydedildi!",
             catalogDeleted: "Katalog silindi",
             catalogSaveFailed: "Katalog kaydedilemedi",
@@ -1870,6 +1873,7 @@ export const translations = {
             download: "Download (PDF)",
             noCatalogs: "You haven't created any catalogs yet",
             noCatalogsDesc: "Create a catalog to showcase your products",
+            newCatalog: "New Catalog",
             // New translations
             subtitle: "Manage all your created catalogs",
             catalogCount: "{count}/{max} catalogs",
@@ -2479,7 +2483,8 @@ export const translations = {
             categoryDeleteFailed: "Failed to delete category",
             categoryNameEmpty: "Category name cannot be empty",
             // Catalogs
-            catalogCreated: "Catalog created!",
+            creatingCatalog: "Creating catalog...",
+            catalogCreated: "Catalog successfully created!",
             catalogSaved: "Catalog saved!",
             catalogDeleted: "Catalog deleted",
             catalogSaveFailed: "Failed to save catalog",

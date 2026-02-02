@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -115,9 +116,7 @@ export function TechModernTemplate({
 
                                 {(showUrls && productUrl) && (
                                     <div className="absolute top-2 right-2 p-1.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 opacity-0 group-hover:opacity-100 transition-all">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
+                                        <ShoppingBag className="w-3 h-3" />
                                     </div>
                                 )}
                             </div>
@@ -134,7 +133,7 @@ export function TechModernTemplate({
                                         )}
                                     </div>
                                     {showPrices && (
-                                        <div className="text-right">
+                                        <div className="flex items-center gap-2 text-right">
                                             <span className="text-sm font-black font-mono shadow-[0_0_15px_rgba(59,130,246,0.2)]" style={{ color: primaryColor }}>
                                                 {(() => {
                                                     const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
@@ -142,6 +141,9 @@ export function TechModernTemplate({
                                                     return `${symbol}${Number(product.price).toFixed(2)}`
                                                 })()}
                                             </span>
+                                            {showUrls && productUrl && (
+                                                <ShoppingBag className="w-3.5 h-3.5 text-white/20 group-hover:text-blue-400 transition-colors" />
+                                            )}
                                         </div>
                                     )}
                                 </div>

@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -62,19 +63,20 @@ export function ModernGridTemplate({
 
     // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
     const renderHeaderContent = (_isFirstPage: boolean) => {
-        // Başlık yazı rengi - headerTextColor prop'undan alınır, yoksa beyaz
         const textSize = 'text-lg font-bold'
 
-        // Grid Yapısı: Sol - Orta - Sağ (3 sütun)
-        // Bu sayede orta kısım her zaman tam ortada kalır, sol veya sağdaki içerik onu itmez.
-        return (
-            <div className="grid grid-cols-3 w-full items-center">
+        // Logo ve Başlık Hizalamaları
+        const isCenterLogo = logoUrl && logoPosition === 'header-center'
+        const isLeftLogo = logoUrl && logoPosition === 'header-left'
+        const isRightLogo = logoUrl && logoPosition === 'header-right'
 
-                {/* SOL SÜTUN */}
-                <div className="flex items-center justify-start gap-3">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+        return (
+            <div className="flex w-full items-center h-full relative">
+                {/* SOL ALAN (25%) */}
+                <div className="flex-1 flex items-center justify-start gap-4 min-w-0 z-10">
+                    {isLeftLogo && (
                         <NextImage
-                            src={logoUrl}
+                            src={logoUrl!}
                             alt="Logo"
                             width={120}
                             height={getLogoHeight()}
@@ -84,36 +86,44 @@ export function ModernGridTemplate({
                         />
                     )}
                     {titlePosition === 'left' && (
-                        <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
+                        <span className={`${textSize} tracking-tight truncate max-w-[250px]`} style={{ color: headerTextColor }}>
+                            {catalogName || "Katalog"}
+                        </span>
                     )}
                 </div>
 
-                {/* ORTA SÜTUN (Tamamen Bağımsız ve Ortada) */}
-                <div className="flex items-center justify-center gap-3">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                        <NextImage
-                            src={logoUrl}
-                            alt="Logo"
-                            width={120}
-                            height={getLogoHeight()}
-                            unoptimized
-                            className="object-contain shrink-0"
-                            style={{ height: getLogoHeight() }}
-                        />
-                    )}
-                    {titlePosition === 'center' && (
-                        <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
-                    )}
+                {/* ORTA ALAN (Tam Matematiksel Merkez) */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 z-20 pointer-events-none w-full max-w-[50%]">
+                    <div className="flex flex-col items-center pointer-events-auto">
+                        {isCenterLogo && (
+                            <NextImage
+                                src={logoUrl!}
+                                alt="Logo"
+                                width={120}
+                                height={getLogoHeight()}
+                                unoptimized
+                                className="object-contain shrink-0 mb-1"
+                                style={{ height: getLogoHeight() }}
+                            />
+                        )}
+                        {titlePosition === 'center' && (
+                            <span className={`${textSize} tracking-tight truncate max-w-full text-center`} style={{ color: headerTextColor }}>
+                                {catalogName || "Katalog"}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                {/* SAĞ SÜTUN */}
-                <div className="flex items-center justify-end gap-3">
+                {/* SAĞ ALAN (25%) */}
+                <div className="flex-1 flex items-center justify-end gap-4 min-w-0 z-10 text-right">
                     {titlePosition === 'right' && (
-                        <span className={`${textSize} tracking-tight`} style={{ color: headerTextColor }}>{catalogName || "Katalog"}</span>
+                        <span className={`${textSize} tracking-tight truncate max-w-[250px]`} style={{ color: headerTextColor }}>
+                            {catalogName || "Katalog"}
+                        </span>
                     )}
-                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
+                    {isRightLogo && (
                         <NextImage
-                            src={logoUrl}
+                            src={logoUrl!}
                             alt="Logo"
                             width={120}
                             height={getLogoHeight()}
@@ -130,12 +140,9 @@ export function ModernGridTemplate({
     return (
         <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
             {/* Header */}
-            {/* DEĞİŞİKLİK: Tüm sayfalarda header renkli (primaryColor) */}
-            {/* ÖNCE: style={{ backgroundColor: pageNumber === 1 ? primaryColor : 'transparent' }} */}
-            {/* ŞİMDİ: Tüm sayfalarda primaryColor */}
             <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
                 <div
-                    className={`h-full px-6 flex items-center ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}
+                    className={`h-full px-8 flex items-center relative ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}
                     style={{ backgroundColor: primaryColor }}
                 >
                     {renderHeaderContent(pageNumber === 1)}
@@ -150,18 +157,8 @@ export function ModernGridTemplate({
                     // YENİ ÖZELLİK: showUrls kontrolü - showUrls=true ve URL varsa tıklanabilir, yoksa değil
                     // ÖNCE: Her zaman productUrl varsa tıklanabilirdi
                     // ŞİMDİ: showUrls=true VE productUrl varsa tıklanabilir
-                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
-                        href: productUrl,
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                        className: 'flex flex-col h-full border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer'
-                    } : {
-                        className: 'flex flex-col h-full border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm'
-                    }
-
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
+                        <div key={product.id} className="flex flex-col h-full border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm relative group">
                             {/* Görsel - KART YAPISI KORUNDU: aspect-[4/3] sabit oran, değiştirilmedi */}
                             <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
                                 {/* YENİ: ProductImageGallery bileşeni - Çoklu görsel desteği */}
@@ -170,32 +167,26 @@ export function ModernGridTemplate({
                                     imageFit={productImageFit}
                                     className="w-full h-full"
                                 />
-                                {/* YENİ ÖZELLİK: showUrls açıksa ve URL varsa link ikonu göster */}
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm z-10">
-                                        <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Bilgiler - KART YAPISI KORUNDU: flex-1 flex flex-col, değiştirilmedi */}
-                            <div className="p-3 flex-1 flex flex-col">
+                            <div className="p-3 flex-1 flex flex-col relative">
                                 <div className="flex justify-between items-start gap-2 mb-1">
                                     <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">{product.name}</h3>
                                     {showPrices && (
-                                        <span className="font-bold text-sm shrink-0" style={{ color: primaryColor }}>
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                                 {showDescriptions && product.description && (
-                                    <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
+                                    <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed mb-auto">
                                         {product.description}
                                     </p>
                                 )}
@@ -212,10 +203,23 @@ export function ModernGridTemplate({
                                     </div>
                                 )}
                                 {showSku && product.sku && (
-                                    <p className="text-[10px] text-gray-400 mt-auto pt-1 font-mono">SKU: {product.sku}</p>
+                                    <p className="text-[10px] text-gray-400 mt-2 font-mono">SKU: {product.sku}</p>
+                                )}
+
+                                {/* Buy Button - Fixed to bottom right of info area */}
+                                {showUrls && productUrl && (
+                                    <a
+                                        href={productUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute bottom-2 right-2 p-1.5 rounded-full bg-gray-50 hover:bg-gray-100 border border-gray-200 shadow-sm transition-all group-hover:scale-110 active:scale-95"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <ShoppingBag className="w-4 h-4" style={{ color: primaryColor }} />
+                                    </a>
                                 )}
                             </div>
-                        </Wrapper>
+                        </div>
                     )
                 })}
             </div>
@@ -227,60 +231,15 @@ export function ModernGridTemplate({
             {/* 3 Sütunlu Grid - Header ile Aynı Yapı (Logo Desteği Eklendi) */}
             <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
                 <div
-                    className="h-full px-6 grid grid-cols-3 items-center"
+                    className="h-full px-6 flex items-center justify-center"
                     style={{ backgroundColor: primaryColor }}
                 >
-                    {/* SOL SÜTUN */}
-                    <div className="flex items-center justify-start gap-3">
-                        {logoUrl && logoPosition?.startsWith('footer') && logoAlignment === 'left' && (
-                            <NextImage
-                                src={logoUrl}
-                                alt="Logo"
-                                width={120}
-                                height={getLogoHeight()}
-                                unoptimized
-                                className="object-contain shrink-0"
-                                style={{ height: getLogoHeight() }}
-                            />
-                        )}
-                    </div>
-
-                    {/* ORTA SÜTUN */}
-                    <div className="flex items-center justify-center gap-3">
-                        {logoUrl && logoPosition?.startsWith('footer') && logoAlignment === 'center' && (
-                            <NextImage
-                                src={logoUrl}
-                                alt="Logo"
-                                width={120}
-                                height={getLogoHeight()}
-                                unoptimized
-                                className="object-contain shrink-0"
-                                style={{ height: getLogoHeight() }}
-                            />
-                        )}
-                        {/* Sayfa bilgisi her zaman ortada veya logo ortadaysa yanında */}
-                        <span
-                            className="text-sm font-bold tracking-tight"
-                            style={{ color: headerTextColor }}
-                        >
-                            {catalogName} • Sayfa {pageNumber} / {totalPages}
-                        </span>
-                    </div>
-
-                    {/* SAĞ SÜTUN */}
-                    <div className="flex items-center justify-end gap-3">
-                        {logoUrl && logoPosition?.startsWith('footer') && logoAlignment === 'right' && (
-                            <NextImage
-                                src={logoUrl}
-                                alt="Logo"
-                                width={120}
-                                height={getLogoHeight()}
-                                unoptimized
-                                className="object-contain shrink-0"
-                                style={{ height: getLogoHeight() }}
-                            />
-                        )}
-                    </div>
+                    <span
+                        className="text-sm font-bold tracking-tight"
+                        style={{ color: headerTextColor }}
+                    >
+                        Sayfa {pageNumber} / {totalPages}
+                    </span>
                 </div>
             </div>
         </div>

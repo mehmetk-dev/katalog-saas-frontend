@@ -65,4 +65,12 @@ export const ALL_TEMPLATES: Record<string, React.ComponentType<TemplateProps>> =
         ssr: false,
         loading: LoadingPlaceholder
     }),
+    'clean-white': dynamic(() => import('./clean-white').then(m => m.CleanWhiteTemplate), {
+        ssr: false,
+        loading: LoadingPlaceholder
+    }),
+    'retail': dynamic(() => import('./retail').then(m => m.RetailTemplate), {
+        ssr: false,
+        loading: LoadingPlaceholder
+    }),
 }

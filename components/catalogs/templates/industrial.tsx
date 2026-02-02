@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -168,12 +169,17 @@ export function IndustrialTemplate({
                                         <div className="w-full text-center border-b border-black/10 pb-1 mb-1">
                                             <span className="text-[9px] font-bold uppercase tracking-widest text-black/40">FİYAT</span>
                                         </div>
-                                        <div className="text-xl font-[900] font-mono leading-none tracking-tighter text-black">
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-xl font-[900] font-mono leading-none tracking-tighter text-black">
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </div>
+                                            {showUrls && productUrl && (
+                                                <ShoppingBag className="w-4 h-4 text-black/30 group-hover:text-yellow-600 transition-colors" />
+                                            )}
                                         </div>
                                     </div>
                                 )}

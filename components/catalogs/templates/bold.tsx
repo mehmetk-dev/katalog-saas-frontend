@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -140,12 +141,19 @@ export function BoldTemplate({
                                         {product.name}
                                     </h3>
                                     {showPrices && (
-                                        <div className="bg-black text-white px-2 py-1 text-sm font-black italic shrink-0 shadow-[4px_4px_0px_0px_#fbbf24]">
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toFixed(2)}`
-                                            })()}
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <div className="bg-black text-white px-2 py-1 text-sm font-black italic shadow-[4px_4px_0px_0px_#fbbf24]">
+                                                {(() => {
+                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                    return `${symbol}${Number(product.price).toFixed(2)}`
+                                                })()}
+                                            </div>
+                                            {showUrls && productUrl && (
+                                                <div className="bg-white border-2 border-black p-1 group-hover:bg-yellow-400 transition-colors">
+                                                    <ShoppingBag className="w-3.5 h-3.5 text-black" />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>

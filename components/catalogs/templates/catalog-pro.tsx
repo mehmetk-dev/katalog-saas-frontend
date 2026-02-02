@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -138,7 +139,7 @@ export function CatalogProTemplate({
                                         {product.name}
                                     </h3>
                                     {showPrices && (
-                                        <div className="text-right">
+                                        <div className="flex items-center gap-2">
                                             <span className="text-sm font-black font-mono underline decoration-4" style={{ textDecorationColor: primaryColor }}>
                                                 {(() => {
                                                     const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
@@ -146,6 +147,11 @@ export function CatalogProTemplate({
                                                     return `${symbol}${Number(product.price).toFixed(2)}`
                                                 })()}
                                             </span>
+                                            {showUrls && productUrl && (
+                                                <div className="w-6 h-6 border border-black flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all">
+                                                    <ShoppingBag className="w-3 h-3" />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>

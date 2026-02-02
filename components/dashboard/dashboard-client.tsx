@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { useCallback } from "react"
-import { Package, FileText, TrendingUp, Clock, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid } from "lucide-react"
+import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
 import NextImage from "next/image"
+import { toast } from "sonner"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -238,11 +239,39 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                 <FileText className="w-8 h-8 text-muted-foreground/50" />
                             </div>
                             <p className="text-muted-foreground mb-4">{t("products.noProductsDesc")}</p>
-                            <Button asChild className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/20">
-                                <Link href="/dashboard/builder">
-                                    <Plus className="w-4 h-4" />
-                                    {t("dashboard.createCatalog")}
-                                </Link>
+                            <Button
+                                onClick={async () => {
+                                    const maxCatalogs = user?.plan === 'pro' ? 999999 : (user?.plan === 'plus' ? 10 : 1)
+                                    if (currentCatalogs.length >= maxCatalogs) {
+                                        toast.error(t("catalogs.limitReached") || "Limit doldu")
+                                        window.location.href = "/dashboard/catalogs?limit_reached=true"
+                                        return
+                                    }
+
+                                    const creatingMsg = t("toasts.creatingCatalog")
+                                    const toastId = toast.loading(creatingMsg === "toasts.creatingCatalog" ? "Katalog oluşturuluyor..." : String(creatingMsg))
+                                    try {
+                                        const { createCatalog } = await import("@/lib/actions/catalogs")
+                                        const currentDate = new Date().toLocaleDateString('tr-TR')
+                                        const rawName = t("catalogs.newCatalog")
+                                        const baseName = rawName === "catalogs.newCatalog" ? "Yeni Katalog" : String(rawName)
+
+                                        const newCatalog = await createCatalog({
+                                            name: `${baseName} - ${currentDate}`,
+                                            layout: "modern-grid"
+                                        })
+
+                                        const successMsg = t("toasts.catalogCreated")
+                                        toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
+                                        window.location.href = `/dashboard/builder?id=${newCatalog.id}`
+                                    } catch (error: any) {
+                                        toast.error(error.message || "Hata oluştu", { id: toastId })
+                                    }
+                                }}
+                                className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/20"
+                            >
+                                <Plus className="w-4 h-4" />
+                                {t("dashboard.createCatalog")}
                             </Button>
                         </div>
                     ) : (
@@ -303,17 +332,26 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                             </p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-muted-foreground">
-                                                    {(catalog.product_ids || []).filter(id => initialProducts.some(p => p.id === id)).length} {t('products.product').toLowerCase()}
+                                                    {(catalog.product_ids || []).filter(id => initialProducts.some(p => String(p.id) === String(id))).length} {t('products.product').toLowerCase()}
                                                 </span>
                                                 <span className="text-muted-foreground/30">•</span>
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
+                                                    <UserPen className="w-3 h-3" />
                                                     {(() => {
                                                         const updateErrorText = t("common.updateError") || "Bilinmiyor";
-                                                        if (!catalog.updated_at) return updateErrorText;
+                                                        if (!catalog.updated_at) return "-";
                                                         try {
                                                             const date = new Date(catalog.updated_at)
-                                                            if (isNaN(date.getTime())) return updateErrorText;
+                                                            if (isNaN(date.getTime())) {
+                                                                // Alternatif parse denemesi (ISO olmayan formatlar için)
+                                                                const altDate = new Date(String(catalog.updated_at).replace(' ', 'T'));
+                                                                if (isNaN(altDate.getTime())) return updateErrorText;
+                                                                const diffInSeconds = Math.floor((new Date().getTime() - altDate.getTime()) / 1000);
+                                                                if (diffInSeconds < 60) return "Az önce";
+                                                                return formatDistanceToNow(altDate, { addSuffix: true, locale: tr })
+                                                            }
+                                                            const diffInSeconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+                                                            if (diffInSeconds < 60) return "Az önce";
                                                             return formatDistanceToNow(date, { addSuffix: true, locale: tr })
                                                         } catch {
                                                             return updateErrorText;
@@ -382,7 +420,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                             asChild
                             className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
                         >
-                            <Link href="/dashboard/products" className="gap-2">
+                            <Link href="/dashboard/products?action=import" className="gap-2">
                                 <Plus className="w-4 h-4" />
                                 {t("products.addProduct")}
                             </Link>

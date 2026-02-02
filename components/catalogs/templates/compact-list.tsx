@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -162,20 +163,10 @@ export function CompactListTemplate({
             <div className="flex-1 px-8 pt-2 pb-6 flex flex-col justify-start gap-3 overflow-hidden">
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
-                        href: productUrl,
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                        className: 'flex items-center gap-4 p-3 h-[84px] bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group shrink-0 relative overflow-hidden'
-                    } : {
-                        className: 'flex items-center gap-4 p-3 h-[84px] bg-white rounded-xl border border-gray-100 shadow-sm hover:border-gray-200 transition-all group shrink-0 relative overflow-hidden'
-                    }
-
                     return (
-                        <Wrapper
+                        <div
                             key={product.id}
-                            {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}
+                            className="flex items-center gap-4 p-3 h-[84px] bg-white rounded-xl border border-gray-100 shadow-sm transition-all group shrink-0 relative overflow-hidden"
                         >
                             {/* Sol Kenar Vurgusu (Opsiyonel - Primary Color) */}
                             <div className="absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: primaryColor }} />
@@ -188,13 +179,6 @@ export function CompactListTemplate({
                                     className="w-full h-full"
                                     showNavigation={false}
                                 />
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
-                                        <svg className="w-6 h-6 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Bilgiler */}
@@ -233,20 +217,33 @@ export function CompactListTemplate({
 
                                     {/* Fiyat Alanı */}
                                     {showPrices && (
-                                        <div className="flex flex-col items-end justify-center pl-2 shrink-0 self-center">
+                                        <div className="flex items-center gap-2 pl-2 shrink-0 self-center">
                                             <span className="font-bold text-xl tracking-tight" style={{ color: primaryColor }}>
                                                 {(() => {
                                                     const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                     const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    // .00 ları atar, varsa küsuratı gösterir, binlik ayracı ekler.
                                                     return `${symbol}${Number(product.price).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
                                                 })()}
                                             </span>
                                         </div>
                                     )}
+
+                                    {/* Buy Button - Right side of price */}
+                                    {showUrls && productUrl && (
+                                        <a
+                                            href={productUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 group-hover:bg-primary/10 transition-colors"
+                                            style={{ color: primaryColor }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <ShoppingBag className="w-5 h-5" />
+                                        </a>
+                                    )}
                                 </div>
                             </div>
-                        </Wrapper>
+                        </div>
                     )
                 })}
             </div>

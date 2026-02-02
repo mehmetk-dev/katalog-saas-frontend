@@ -48,13 +48,20 @@ type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 const DEFAULT_ITEMS_PER_PAGE = 12
 const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>(initialProducts)
+
+  // Server-side güncellemeleri (revalidatePath sonrası) client state'e yansıt
+  useEffect(() => {
+    setProducts(initialProducts)
+  }, [initialProducts])
+
   const [search, setSearch] = useState("")
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [showProductModal, setShowProductModal] = useState(false)
@@ -88,17 +95,20 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const isFreeUser = userPlan === "free"
   const isAtLimit = isFreeUser && products.length >= maxProducts
 
-  // URL'deki action=new parametresini kontrol et
+  // URL'deki action parametrelerini kontrol et (import veya new)
   useEffect(() => {
-    if (searchParams.get("action") === "new") {
+    const action = searchParams.get("action")
+    if (action === "new") {
       if (isAtLimit) {
         setShowLimitModal(true)
       } else {
         setEditingProduct(null)
         setShowProductModal(true)
       }
-
-      // Parametreyi temizle
+      const newPath = window.location.pathname
+      window.history.replaceState({}, "", newPath)
+    } else if (action === "import") {
+      setShowImportModal(true)
       const newPath = window.location.pathname
       window.history.replaceState({}, "", newPath)
     }
@@ -346,18 +356,37 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   }
 
   const downloadAllProducts = () => {
-    const headers = ["Name", "SKU", "Description", "Price", "Stock", "Category", "Image URL"]
-    const rows = products.map(p => [
-      p.name,
-      p.sku || "",
-      p.description || "",
-      p.price,
-      p.stock,
-      p.category || "",
-      p.image_url || ""
-    ])
+    // CSV Headerları
+    const headers = ["Name", "SKU", "Description", "Price", "Stock", "Category", "Image URL", "Product URL"]
 
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
+    // CSV Satırları - Virgül içeren metinleri korumak için çift tırnak içine alıyoruz
+    const rows = products.map(p => {
+      // Tüm görselleri topla ve pipe (|) ile birleştir
+      const allImages = [
+        ...(p.image_url ? [p.image_url] : []),
+        ...(p.images || [])
+      ]
+      const imagesString = Array.from(new Set(allImages)).filter(Boolean).join("|");
+
+      const fields = [
+        p.name,
+        p.sku || "",
+        p.description || "",
+        p.price,
+        p.stock,
+        p.category || "",
+        imagesString,
+        p.product_url || ""
+      ]
+
+      // Her alanı temizle ve tırnak içine al
+      return fields.map(field => {
+        const stringValue = String(field || "").replace(/"/g, '""') // Çift tırnakları escape et
+        return `"${stringValue}"`
+      })
+    })
+
+    const csvContent = [headers.map(h => `"${h}"`), ...rows].map(e => e.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
@@ -522,7 +551,9 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           onImport={async (productsToImport) => {
             try {
               const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>)
+              // Optimistic update (optional now but good for perceived speed)
               setProducts([...imported, ...products])
+              router.refresh() // Force server re-fetch to ensure sync
               refreshUser()
             } catch (error) {
               console.error('Bulk import failed:', error)

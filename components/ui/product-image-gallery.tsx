@@ -5,6 +5,7 @@ import NextImage from "next/image"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLightbox } from "@/lib/lightbox-context"
+import { getCloudinaryResizedUrl } from "@/lib/image-utils"
 import type { Product } from "@/lib/actions/products"
 
 interface ProductImageGalleryProps {
@@ -65,6 +66,12 @@ export function ProductImageGallery({
     const hasMultiple = allImages.length > 1
     const currentImage = allImages[currentIndex] || "/placeholder.svg"
 
+    // Grid görünümü için optimize edilmiş (küçültülmüş) görsel kullan
+    // 800px genişlik genelde gridler için yeterli ve safe (2x pixel density)
+    const displayImage = React.useMemo(() => {
+        return getCloudinaryResizedUrl(currentImage, 800)
+    }, [currentImage])
+
     const goNext = useCallback((e: React.MouseEvent) => {
         e.stopPropagation()
         setCurrentIndex(prev => (prev + 1) % allImages.length)
@@ -75,8 +82,11 @@ export function ProductImageGallery({
         setCurrentIndex(prev => prev === 0 ? allImages.length - 1 : prev - 1)
     }, [allImages.length])
 
-    const handleImageClick = useCallback(() => {
+    const handleImageClick = useCallback((e: React.MouseEvent) => {
         if (interactive && allImages.length > 0 && allImages[0] !== "/placeholder.svg") {
+            // Eğer üst öğede bir link (a tag) varsa, onun tetiklenmesini engellemek için propagation'ı durduruyoruz.
+            // Böylece görsele tıklandığında sadece lightbox açılır, ürün sayfasına gitmez.
+            e.stopPropagation()
             openLightbox(allImages, currentIndex, product.name)
         }
     }, [interactive, allImages, currentIndex, product.name, openLightbox])
@@ -100,11 +110,13 @@ export function ProductImageGallery({
                 onClick={handleImageClick}
             >
                 <NextImage
-                    src={currentImage}
+                    src={displayImage}
                     alt={product.name}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    unoptimized
+                    unoptimized // Optimized URL used manually
+                    priority={false} // Lazy load by default for grid items
+                    loading="lazy"
                     className={cn(
                         "w-full h-full transition-transform duration-300",
                         fitClass,

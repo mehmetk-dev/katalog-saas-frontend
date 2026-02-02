@@ -18,6 +18,7 @@ import { getSessionSafe } from "@/lib/supabase/client"
 import NextImage from "next/image"
 
 import { storage } from "@/lib/storage"
+import { optimizeImage } from "@/lib/image-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -123,7 +124,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
     const uploadCategoryImageWithRetry = async (file: File, signal?: AbortSignal): Promise<string> => {
         const MAX_RETRIES = 3
-        const TIMEOUT_MS = 30000 // 30 Saniye
+        const TIMEOUT_MS = 60000 // 60 Saniye
 
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
             // İptal kontrolü
@@ -166,14 +167,22 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                 const fileExtension = file.name.split('.').pop() || 'jpg'
                 const fileName = `category-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
+                // 2. OPTİMİZASYON: Cloudinary'ye gitmeden önce resmi küçült ve WebP'ye çevir
+                let fileToUpload = file
+                try {
+                    const { blob } = await optimizeImage(file, { maxWidth: 2000, maxHeight: 2000, quality: 0.8 })
+                    fileToUpload = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' })
+                } catch (optError) {
+                    console.warn('[Categories] Optimization failed, sending original:', optError)
+                }
+
                 // 3. YARIŞ BAŞLASIN: Upload vs Timeout
-                // Hangisi önce biterse o kazanır. 1 saniye bekleme şartı yok.
-                const uploadPromise = storage.upload(file, {
-                    path: 'categories', // Yeni klasör yapısı: categories klasörü
-                    contentType: file.type || 'image/jpeg',
+                const uploadPromise = storage.upload(fileToUpload, {
+                    path: 'categories',
+                    contentType: fileToUpload.type || 'image/jpeg',
                     cacheControl: '3600',
                     fileName,
-                    signal, // AĞ SEVİYESİNDE İPTAL DESTEĞİ
+                    signal,
                 })
 
                 // Timeout promise'i (temizlenebilir)

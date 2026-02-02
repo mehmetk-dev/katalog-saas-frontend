@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
@@ -96,7 +97,7 @@ export function RetailTemplate({
                     }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AllHTMLAttributes<HTMLElement>)}>
+                        <div key={product.id} className="group flex bg-white border border-zinc-200 hover:border-black transition-all overflow-hidden p-2 relative">
                             {/* Large Image Side */}
                             <div className="w-1/3 bg-zinc-50 relative overflow-hidden shrink-0">
                                 <ProductImageGallery
@@ -106,17 +107,10 @@ export function RetailTemplate({
                                     imageClassName="p-2 group-hover:scale-110 transition-transform duration-700"
                                     showNavigation={false}
                                 />
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-0 right-0 bg-black text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                        </svg>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Info Side */}
-                            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+                            <div className="flex-1 p-4 flex flex-col justify-between min-w-0 relative">
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-start gap-2">
                                         <h3 className="font-black text-xs uppercase tracking-tight text-black line-clamp-2 leading-tight">
@@ -145,7 +139,7 @@ export function RetailTemplate({
                                     )}
                                 </div>
 
-                                <div className="mt-auto pt-4">
+                                <div className="mt-auto pt-4 flex items-center justify-between">
                                     {showPrices && (
                                         <div className="flex items-center gap-2">
                                             <span className="text-lg font-[900] tracking-tighter" style={{ color: primaryColor }}>
@@ -155,12 +149,25 @@ export function RetailTemplate({
                                                     return `${symbol}${Number(product.price).toFixed(2)}`
                                                 })()}
                                             </span>
-                                            <div className="flex-1 h-[2px] bg-zinc-100" />
+                                            <div className="w-12 h-[2px] bg-zinc-100" />
                                         </div>
+                                    )}
+
+                                    {/* Buy Button - Fixed to bottom right of info area */}
+                                    {showUrls && productUrl && (
+                                        <a
+                                            href={productUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-8 h-8 flex items-center justify-center bg-black text-white hover:bg-zinc-800 transition-colors"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <ShoppingBag className="w-4 h-4" />
+                                        </a>
                                     )}
                                 </div>
                             </div>
-                        </Wrapper>
+                        </div>
                     )
                 })}
             </div>

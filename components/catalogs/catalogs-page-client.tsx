@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download, Shield, Zap, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import NextImage from "next/image"
@@ -34,6 +34,7 @@ import type { Product } from "@/lib/actions/products"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { UpgradeModal } from "@/components/builder/upgrade-modal"
 import { useTranslation } from "@/lib/i18n-provider"
+import { useUser } from "@/lib/user-context"
 
 import { CatalogPreview } from "./catalog-preview"
 
@@ -55,6 +56,8 @@ const CATALOG_LIMITS = {
 
 export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "free" }: CatalogsPageClientProps) {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const { refreshUser } = useUser()
   const [catalogs, setCatalogs] = useState(initialCatalogs)
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -89,6 +92,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
     const result = await deleteCatalog(deleteId)
     if (result.success) {
       setCatalogs(catalogs.filter((c) => c.id !== deleteId))
+      await refreshUser()
+      router.refresh() // Sunucu verilerini de tazele
       toast.success(t('toasts.catalogDeleted'))
     } else {
       toast.error((result as { error?: string }).error || t('catalogs.deleteFailed'))
@@ -102,9 +107,32 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
     toast.success(t('toasts.linkCopied'))
   }
 
-  const handleNewCatalog = () => {
+  const handleNewCatalog = async () => {
     if (isAtLimit) {
       setShowLimitModal(true)
+      return
+    }
+
+    const creatingMsg = t('toasts.creatingCatalog')
+    const toastId = toast.loading(creatingMsg === 'toasts.creatingCatalog' ? "Katalog oluşturuluyor..." : String(creatingMsg))
+    try {
+      const { createCatalog } = await import("@/lib/actions/catalogs")
+      const currentDate = new Date().toLocaleDateString('tr-TR')
+      const rawName = t("catalogs.newCatalog")
+      const baseName = rawName === "catalogs.newCatalog" ? "Yeni Katalog" : String(rawName)
+
+      const newCatalog = await createCatalog({
+        name: `${baseName} - ${currentDate}`,
+        layout: "modern-grid"
+      })
+
+      const successMsg = t('toasts.catalogCreated')
+      toast.success(successMsg === 'toasts.catalogCreated' ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
+      window.location.href = `/dashboard/builder?id=${newCatalog.id}`
+    } catch (error: any) {
+      console.error("Catalog creation error:", error)
+      const message = error.message || t('catalogs.createFailed') || "Katalog oluşturulamadı"
+      toast.error(message, { id: toastId })
     }
   }
 
@@ -123,19 +151,10 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             )}
           </p>
         </div>
-        {isAtLimit ? (
-          <Button onClick={handleNewCatalog} className="w-full sm:w-auto gap-2">
-            <Lock className="w-4 h-4" />
-            {t("catalogs.createNew")}
-          </Button>
-        ) : (
-          <Button asChild className="w-full sm:w-auto">
-            <Link href="/dashboard/builder">
-              <Plus className="w-4 h-4 mr-2" />
-              {t("catalogs.createNew")}
-            </Link>
-          </Button>
-        )}
+        <Button onClick={handleNewCatalog} className="w-full sm:w-auto gap-2">
+          <Plus className="w-4 h-4" />
+          {t("catalogs.createNew")}
+        </Button>
       </div>
 
       {/* Limit Warning for Free Users */}
@@ -183,8 +202,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             </div>
             <h3 className="font-semibold mb-1 text-sm sm:text-base">{t("catalogs.noCatalogsYet")}</h3>
             <p className="text-xs sm:text-sm text-muted-foreground mb-4 text-center">{t("catalogs.createFirstDesc")}</p>
-            <Button asChild className="w-full sm:w-auto">
-              <Link href="/dashboard/builder">{t("catalogs.createCatalog")}</Link>
+            <Button onClick={handleNewCatalog} className="w-full sm:w-auto">
+              {t("catalogs.createCatalog")}
             </Button>
           </CardContent>
         </Card>

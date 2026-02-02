@@ -68,7 +68,7 @@ interface ImportExportModalProps {
 }
 
 // Sistem alanları
-const SYSTEM_FIELDS_KEYS = ['name', 'sku', 'description', 'price', 'stock', 'category', 'image_url'] as const
+const SYSTEM_FIELDS_KEYS = ['name', 'sku', 'description', 'price', 'stock', 'category', 'image_url', 'product_url'] as const
 
 
 // Otomatik eşleme için header aliases
@@ -164,8 +164,18 @@ const HEADER_ALIASES: Record<string, string> = {
     'foto': 'image_url',
     'fotoğraf': 'image_url',
     'fotograf': 'image_url',
-    'url': 'image_url',
-    'link': 'image_url',
+    // Ürün URL
+    'ürün url': 'product_url',
+    'urun url': 'product_url',
+    'ürün_url': 'product_url',
+    'urun_url': 'product_url',
+    'ürün linki': 'product_url',
+    'urun linki': 'product_url',
+    'product url': 'product_url',
+    'product_url': 'product_url',
+    'product link': 'product_url',
+    'link': 'product_url',
+    'url': 'product_url',
 }
 
 type MappingStatus = 'idle' | 'mapping' | 'loading' | 'success' | 'error'
@@ -199,7 +209,9 @@ export function ImportExportModal({
 
     const canImport = userPlan === 'plus' || userPlan === 'pro'
     const isFreeUser = userPlan === 'free'
-    const { t } = useTranslation()
+    const { t: rawT } = useTranslation()
+    // Helper to cast translation result to string, as we only use string translations in this component
+    const t = (key: string, params?: Record<string, unknown>) => rawT(key, params) as string
 
     // Timeout hook for import process
     const importTimeout = useAsyncTimeout({
@@ -358,8 +370,14 @@ export function ImportExportModal({
 
             reader.onload = (event) => {
                 try {
-                    const arrayBuffer = event.target?.result as ArrayBuffer
-                    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+                    // Binary String olarak oku
+                    const bstr = event.target?.result as string
+
+                    // type: 'binary' kullan
+                    const workbook = XLSX.read(bstr, {
+                        type: 'binary',
+                        codepage: 1254 // Türkçe desteği
+                    })
 
                     // İlk çalışma sayfasını al
                     const firstSheetName = workbook.SheetNames[0]
@@ -379,9 +397,11 @@ export function ImportExportModal({
                     // Diğer satırlar veri
                     const data: string[][] = []
                     for (let i = 1; i < jsonData.length; i++) {
-                        const row = jsonData[i] as string[]
-                        if (row && row.some(v => v !== undefined && v !== null && String(v).trim() !== '')) {
-                            data.push(row.map(v => String(v ?? '').trim()))
+                        const row = jsonData[i] as unknown[]
+                        if (row && Array.isArray(row) && row.some(v => v !== undefined && v !== null && String(v).trim() !== '')) {
+                            // Satırdaki her hücreyi stringe çevir, undefined/null ise boş string yap
+                            const stringRow = row.map(v => (v === undefined || v === null) ? '' : String(v).trim())
+                            data.push(stringRow)
                         }
                     }
 
@@ -392,51 +412,66 @@ export function ImportExportModal({
             }
 
             reader.onerror = () => reject(new Error(t('toasts.errorOccurred')))
-            reader.readAsArrayBuffer(file)
+            // ArrayBuffer yerine BinaryString olarak oku
+            reader.readAsBinaryString(file)
         })
     }
 
     // CSV dosyasını parse et
     const parseCSVFile = (file: File): Promise<{ headers: string[]; data: string[][] }> => {
         return new Promise((resolve, reject) => {
-            const reader = new FileReader()
+            const readFile = (encoding: string) => {
+                const reader = new FileReader()
 
-            reader.onload = (event) => {
-                try {
-                    const text = event.target?.result as string
-                    const lines = text.split(/\r?\n/).filter(line => line.trim())
+                reader.onload = (event) => {
+                    try {
+                        const text = event.target?.result as string
 
-                    if (lines.length < 2) {
-                        reject(new Error(t('toasts.noValidData')))
-                        return
-                    }
-
-                    // Ayırıcıyı tespit et
-                    const delimiter = detectDelimiter(lines[0])
-                    const headers = parseCSVLine(lines[0], delimiter)
-
-                    const data: string[][] = []
-                    for (let i = 1; i < lines.length; i++) {
-                        const values = parseCSVLine(lines[i], delimiter)
-                        // Header sayısı kadar kolon olmasını garanti et
-                        const paddedValues = Array(headers.length).fill('')
-                        values.forEach((v, idx) => {
-                            if (idx < headers.length) paddedValues[idx] = v
-                        })
-
-                        if (paddedValues.some(v => v)) {
-                            data.push(paddedValues)
+                        // UTF-8 okumasında bozuk karakter varsa ve henüz windows-1254 denemediysek retry yap
+                        // \uFFFD: Replacement Character (bozuk UTF-8 karakteri)
+                        if (encoding === 'UTF-8' && text.includes('\uFFFD')) {
+                            console.warn('[Import] UTF-8 decoding failed (contains replacement chars), retrying with windows-1254')
+                            readFile('windows-1254')
+                            return
                         }
-                    }
 
-                    resolve({ headers, data })
-                } catch (error) {
-                    reject(error)
+                        const lines = text.split(/\r?\n/).filter(line => line.trim())
+
+                        if (lines.length < 2) {
+                            reject(new Error(t('toasts.noValidData')))
+                            return
+                        }
+
+                        // Ayırıcıyı tespit et
+                        const delimiter = detectDelimiter(lines[0])
+                        const headers = parseCSVLine(lines[0], delimiter)
+
+                        const data: string[][] = []
+                        for (let i = 1; i < lines.length; i++) {
+                            const values = parseCSVLine(lines[i], delimiter)
+                            // Header sayısı kadar kolon olmasını garanti et
+                            const paddedValues = Array(headers.length).fill('')
+                            values.forEach((v, idx) => {
+                                if (idx < headers.length) paddedValues[idx] = v
+                            })
+
+                            if (paddedValues.some(v => v)) {
+                                data.push(paddedValues)
+                            }
+                        }
+
+                        resolve({ headers, data })
+                    } catch (error) {
+                        reject(error)
+                    }
                 }
+
+                reader.onerror = () => reject(new Error(t('toasts.errorOccurred')))
+                reader.readAsText(file, encoding)
             }
 
-            reader.onerror = () => reject(new Error(t('toasts.errorOccurred')))
-            reader.readAsText(file, 'UTF-8')
+            // Önce UTF-8 dene, olmazsa içerde windows-1254'e düşecek
+            readFile('UTF-8')
         })
     }
 
@@ -549,7 +584,7 @@ export function ImportExportModal({
 
     const SYSTEM_FIELDS = SYSTEM_FIELDS_KEYS.map(key => ({
         id: key,
-        label: t(`importExport.systemFields.${key === 'image_url' ? 'imageUrl' : key}` as string) + (key === 'name' || key === 'price' ? ' *' : '')
+        label: t(`importExport.systemFields.${key === 'image_url' ? 'imageUrl' : (key === 'product_url' ? 'productUrl' : key)}` as string) + (key === 'name' || key === 'price' ? ' *' : '')
     }))
 
     // İmport işlemini gerçekleştir
@@ -680,7 +715,17 @@ export function ImportExportModal({
                             product.category = isFreeUser ? null : (value || null)
                             break
                         case 'image_url':
-                            product.image_url = value || null
+                            if (value && value.includes('|')) {
+                                const urls = value.split('|').map(u => u.trim()).filter(Boolean)
+                                product.image_url = urls[0] || null
+                                product.images = urls
+                            } else {
+                                product.image_url = value || null
+                                product.images = value ? [value] : []
+                            }
+                            break
+                        case 'product_url':
+                            product.product_url = value || null
                             break
                     }
                 })

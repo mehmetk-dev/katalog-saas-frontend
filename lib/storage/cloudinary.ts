@@ -137,8 +137,9 @@ export class CloudinaryProvider implements StorageProvider {
 
   getPublicUrl(path: string): string {
     const cloudName = this.config.cloudName
-    // f_auto: Tarayıcı desteğine göre en iyi formatı (WebP, AVIF vb.) seçer
-    // q_auto: Görsel kalitesini bozmadan dosya boyutunu küçültür
-    return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto/${path}`
+    // f_auto: En iyi format (WebP/AVIF)
+    // q_auto: Otomatik kalite
+    // w_1600,c_limit: Görseli maks 1600px genişliğe çeker (eğer orijinali daha büyükse)
+    return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto,w_1600,c_limit/${path}`
   }
 }

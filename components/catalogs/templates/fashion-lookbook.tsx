@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -115,13 +116,18 @@ export function FashionLookbookTemplate({
                                     <div className="flex justify-between items-start">
                                         <h2 className="text-2xl font-serif text-black italic line-clamp-1">{hero.name}</h2>
                                         {showPrices && (
-                                            <span className="text-xl font-light text-black/60">
-                                                {(() => {
-                                                    const currency = hero.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(hero.price).toFixed(2)}`
-                                                })()}
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xl font-light text-black/60">
+                                                    {(() => {
+                                                        const currency = hero.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                        return `${symbol}${Number(hero.price).toFixed(2)}`
+                                                    })()}
+                                                </span>
+                                                {showUrls && hero.product_url && (
+                                                    <ShoppingBag className="w-5 h-5 text-black/20" />
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                     {showDescriptions && hero.description && (
@@ -174,13 +180,18 @@ export function FashionLookbookTemplate({
 
                                         <div className="flex items-center gap-2 mt-auto">
                                             {showPrices && (
-                                                <span className="text-xs font-light text-black">
-                                                    {(() => {
-                                                        const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                        return `${symbol}${Number(product.price).toFixed(2)}`
-                                                    })()}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-light text-black">
+                                                        {(() => {
+                                                            const currency = product.custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
+                                                            return `${symbol}${Number(product.price).toFixed(2)}`
+                                                        })()}
+                                                    </span>
+                                                    {showUrls && productUrl && (
+                                                        <ShoppingBag className="w-3 h-3 text-black/20" />
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     </div>

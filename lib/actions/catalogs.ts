@@ -28,7 +28,7 @@ export interface Catalog {
   background_image_fit?: 'cover' | 'contain' | 'fill'
   background_gradient: string | null
   logo_url: string | null
-  logo_position: 'header-left' | 'header-center' | 'header-right' | 'footer-left' | 'footer-center' | 'footer-right' | null
+  logo_position: 'header-left' | 'header-center' | 'header-right' | 'footer-left' | 'footer-center' | 'footer-right' | 'none' | null
   logo_size: 'small' | 'medium' | 'large'
   is_disabled?: boolean
   title_position: 'left' | 'center' | 'right'  // Başlık konumu

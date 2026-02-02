@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+import { ShoppingBag } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-provider"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -89,7 +90,7 @@ export function LuxuryTemplate({
                                 />
                             </div>
                         )}
-                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase text-[#f3eacb] drop-shadow-sm">
+                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase text-[#f3eacb] drop-shadow-sm truncate max-w-[400px]">
                             {catalogName || (t('catalogs.luxury') as string)}
                         </h1>
                         <div className="text-[9px] uppercase tracking-[0.5em] text-[#d4af37]/60 mt-1">
@@ -107,18 +108,9 @@ export function LuxuryTemplate({
             <div className={`flex-1 px-12 pb-8 grid ${getGridCols()} ${getGridRows()} gap-x-12 gap-y-10 overflow-hidden z-10`}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
-                        href: productUrl,
-                        target: '_blank',
-                        rel: 'noopener noreferrer',
-                        className: 'group h-full flex flex-col relative focus:outline-none'
-                    } : {
-                        className: 'h-full flex flex-col relative group'
-                    }
 
                     return (
-                        <Wrapper key={product.id} {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)}>
+                        <div key={product.id} className="h-full flex flex-col relative group">
                             {/* Product Image Frame - The "Classic Luxury" Look */}
                             <div className="relative aspect-[10/12] bg-[#0c0c0c] border border-white/10 group-hover:border-[#d4af37]/40 transition-all duration-700 overflow-hidden shadow-2xl shadow-black">
                                 <ProductImageGallery
@@ -127,15 +119,6 @@ export function LuxuryTemplate({
                                     className="w-full h-full"
                                     imageClassName="opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-[2s] ease-out"
                                 />
-
-                                {/* Link Icon */}
-                                {(showUrls && productUrl) && (
-                                    <div className="absolute top-4 right-4 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-500 z-20">
-                                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </div>
-                                )}
 
                                 {/* SKU Overlay - Now Pure White for visibility */}
                                 {showSku && product.sku && (
@@ -146,7 +129,7 @@ export function LuxuryTemplate({
                             </div>
 
                             {/* Product Info - All Text Made Pure White as Requested */}
-                            <div className="mt-5 flex flex-col items-center text-center">
+                            <div className="mt-5 flex flex-col items-center text-center relative px-2">
                                 <h3 className="font-serif text-[13px] tracking-[0.2em] text-white uppercase line-clamp-1 mb-1 group-hover:text-[#d4af37] transition-colors duration-500">
                                     {product.name}
                                 </h3>
@@ -170,7 +153,7 @@ export function LuxuryTemplate({
                                 )}
 
                                 {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                    <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+                                    <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 opacity-80 group-hover:opacity-100 transition-opacity duration-500 pb-8">
                                         {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
                                             <div key={aidx} className="flex items-center text-[8px] tracking-[0.15em] uppercase text-white font-medium">
                                                 <span className="text-white/60 mr-1">{attr.name}:</span>
@@ -179,8 +162,21 @@ export function LuxuryTemplate({
                                         ))}
                                     </div>
                                 )}
+
+                                {/* Floating Buy Button - Bottom Right of the card */}
+                                {(showUrls && productUrl) && (
+                                    <a
+                                        href={productUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute bottom-0 right-0 w-8 h-8 rounded-full border border-[#d4af37]/30 flex items-center justify-center bg-black/40 backdrop-blur-sm hover:bg-[#d4af37] hover:text-black transition-all duration-300 z-30 group/btn"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <ShoppingBag className="w-3.5 h-3.5 text-[#d4af37] group-hover/btn:text-black" />
+                                    </a>
+                                )}
                             </div>
-                        </Wrapper>
+                        </div>
                     )
                 })}
             </div>
@@ -193,7 +189,7 @@ export function LuxuryTemplate({
                         PAGE {pageNumber} OF {totalPages}
                     </span>
                     <div className="h-4 w-[1px] bg-[#d4af37]/20" />
-                    <span className="text-[9px] uppercase tracking-[0.4em] text-[#d4af37]/40 font-serif">
+                    <span className="text-[9px] uppercase tracking-[0.4em] text-[#d4af37]/40 font-serif truncate max-w-[150px]">
                         {catalogName}
                     </span>
                 </div>

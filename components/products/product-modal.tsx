@@ -15,6 +15,7 @@ import { type Product, type CustomAttribute, createProduct, updateProduct } from
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { storage } from "@/lib/storage"
+import { optimizeImage } from "@/lib/image-utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -214,7 +215,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
   const uploadSingleImageWithRetry = async (file: File, uploadId: string, signal?: AbortSignal): Promise<string> => {
     const MAX_RETRIES = 3
-    const TIMEOUT_MS = 10000 // Kullanıcı isteği: 10 saniye (yeterli süre)
+    const TIMEOUT_MS = 60000 // 60 saniye (yeterli süre)
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       // İptal kontrolü
@@ -254,10 +255,19 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         const fileName = `product-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
 
-        // 2. YARIŞ BAŞLASIN: Upload vs Timeout
-        const uploadPromise = storage.upload(file, {
+        // 2. OPTİMİZASYON: Cloudinary'ye gitmeden önce resmi küçült ve WebP'ye çevir
+        let fileToUpload = file
+        try {
+          const { blob } = await optimizeImage(file, { maxWidth: 2000, maxHeight: 2000, quality: 0.8 })
+          fileToUpload = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' })
+        } catch (optError) {
+          console.warn('[ProductModal] Optimization failed, sending original:', optError)
+        }
+
+        // 3. YARIŞ BAŞLASIN: Upload vs Timeout
+        const uploadPromise = storage.upload(fileToUpload, {
           path: 'products',
-          contentType: file.type || 'image/jpeg',
+          contentType: fileToUpload.type || 'image/jpeg',
           cacheControl: '3600',
           fileName,
           signal,

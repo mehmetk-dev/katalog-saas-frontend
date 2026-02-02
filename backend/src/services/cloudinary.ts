@@ -35,25 +35,96 @@ if (!cloudName || !apiKey || !apiSecret) {
 export function extractPublicId(photoUrl: string): string | null {
     if (!photoUrl) return null;
 
-    // Cloudinary URL formatını kontrol et
-    // Version ile: /image/upload/v1234567890/products/filename.webp
-    // Version olmadan: /image/upload/products/filename.webp
-    let match = photoUrl.match(/\/image\/upload\/(?:v\d+\/)?(.+)$/);
-    if (match && match[1]) {
-        // Format uzantısını kaldır (örn: .webp, .jpg)
-        const publicId = match[1].replace(/\.(jpg|jpeg|png|webp|gif)$/i, '');
-        return publicId;
+    // Cloudinary URL formatını analiz et
+    // Format: /image/upload/[transformations]/[version/]/[folder/]/filename.ext
+
+    // 1. /upload/ kısmından sonrasını al
+    const parts = photoUrl.split('/image/upload/');
+    if (parts.length < 2) {
+        console.warn('[extractPublicId] Invalid Cloudinary URL format:', photoUrl);
+        return null;
     }
-    
-    console.warn('[extractPublicId] Could not extract public_id from URL:', photoUrl);
-    return null;
+
+    let remainingPath = parts[1];
+
+    // 2. Uzantıyı kaldır (.jpg, .webp vb.)
+    remainingPath = remainingPath.replace(/\.[^/.]+$/, "");
+
+    // 3. Path'i parçalara böl
+    let segments = remainingPath.split('/');
+
+    // 4. Transformasyonları ve Versiyonu Temizle
+    // Genellikle ilk segmentler transformasyon olabilir (f_auto, w_100 vb.)
+    // Versiyon 'v' ile başlar ve sayı içerir (v123456)
+
+    const cleanSegments: string[] = [];
+    let isFolderReached = false;
+
+    for (const segment of segments) {
+        // Eğer bir klasör/dosya yapısına ulaştığımızı düşünüyorsak, geri kalan her şeyi ekle
+        if (isFolderReached) {
+            cleanSegments.push(segment);
+            continue;
+        }
+
+        // Versiyonu atla (v1234...)
+        if (segment.match(/^v\d+$/)) {
+            continue;
+        }
+
+        // Transformasyonları atla (virgül, eşittir içerir veya bilinen prefixler)
+        // Örn: f_auto, q_auto, w_1600, c_limit
+        if (segment.includes(',') || segment.includes('_') || segment.startsWith('f_') || segment.startsWith('q_')) {
+            // Ancak segment 'products' veya 'categories' ise (folder name), bu bir transformasyon değildir!
+            // Bu basit kontrol, klasör isimlerinde _ kullanmıyorsak çalışır. 
+            // Ama kullanıcı products_2024 diyebilir. 
+            // Cloudinary'de standart folder isimleri transformasyon parametreleriyle çakışmaz genelde.
+
+            // Daha güvenli kontrol: Bilinen transformasyon parametreleri
+            const isTransformation = segment.split(',').every(part => {
+                return /^[a-z]+_[a-zA-Z0-9_\.]+$/.test(part) || // w_500, c_limit
+                    /^[a-z]+$/.test(part); // short flags (rare)
+            });
+
+            // Eğer bu segment 'products', 'categories' veya 'deleted-images' ise transformasyon değildir
+            if (['products', 'categories', 'deleted-images'].includes(segment)) {
+                cleanSegments.push(segment);
+                isFolderReached = true; // Klasöre girdik, artık atlama yapma
+                continue;
+            }
+
+            // Basit heuristic: Eğer virgül varsa kesin transformasyondur
+            if (segment.includes(',')) continue;
+
+            // Eğer alt tire var ama bilinen folder değilse ve sayı içeriyorsa muhtemelen transformasyondur
+            // Ama "my_folder" da olabilir.
+            // Burada en güvenli yol: Klasörlerin "products" ve "categories" olduğunu biliyoruz.
+            // Genelleştirilmiş çözüm için: "v" versiyonundan önceki her şeyi (eğer folder değilse) transformasyon say.
+
+            // Şimdilik sadece transformasyon gibi görünenleri atlayalım
+            if (segment.startsWith('f_') || segment.startsWith('q_') || segment.startsWith('w_') || segment.startsWith('h_') || segment.startsWith('c_')) {
+                continue;
+            }
+        }
+
+        // Buraya geldiyse path parçasıdır (folder veya file)
+        cleanSegments.push(segment);
+        isFolderReached = true; // İlk folder/file'ı bulduk, sonrakiler de path'in parçasıdır
+    }
+
+    if (cleanSegments.length === 0) {
+        console.warn('[extractPublicId] Could not recognize public_id segments:', photoUrl);
+        return null; // Fallback
+    }
+
+    return cleanSegments.join('/');
 }
 
 /**
  * Fotoğrafı Cloudinary'de deleted-images klasörüne taşı
  */
 export async function movePhotoToDeletedFolder(photoUrl: string): Promise<boolean> {
-    
+
     if (!cloudName || !apiKey || !apiSecret) {
         console.warn('[Cloudinary] Credentials missing, skipping photo move');
         return false;

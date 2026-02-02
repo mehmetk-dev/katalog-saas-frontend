@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
     ArrowLeft, Copy, Globe, MoreVertical,
-    RefreshCw, AlertTriangle, Save, Share2, Eye, Pencil, Download
+    RefreshCw, AlertTriangle, Save, Share2, Eye, Pencil, Download,
+    ArrowUpRight
 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-provider"
 import { cn } from "@/lib/utils"
@@ -152,6 +153,15 @@ export function BuilderToolbar({
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-widest">Yayında</span>
+                            <a
+                                href={`/catalog/${catalog?.share_slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-1 p-1 hover:bg-emerald-100 rounded-md transition-all group/link"
+                                title="Canlı Katalogu Görüntüle"
+                            >
+                                <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                            </a>
                         </div>
                     )}
 
@@ -268,6 +278,15 @@ export function BuilderToolbar({
                                             </div>
                                             <div className="text-[9px] text-slate-400 font-bold truncate">slug: {catalog?.share_slug}</div>
                                         </div>
+
+                                        <DropdownMenuItem onClick={() => {
+                                            if (catalog?.share_slug) {
+                                                window.open(`${window.location.origin}/catalog/${catalog.share_slug}`, '_blank')
+                                            }
+                                        }} className="rounded-xl h-10 font-bold text-xs text-emerald-600 bg-emerald-50/30 hover:bg-emerald-50">
+                                            <ArrowUpRight className="w-4 h-4 mr-2.5" />
+                                            Kataloğu Görüntüle
+                                        </DropdownMenuItem>
 
                                         <DropdownMenuItem onClick={() => {
                                             if (catalog?.share_slug) {
