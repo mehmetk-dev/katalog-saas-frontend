@@ -57,6 +57,19 @@ export async function updateProfile(formData: FormData, avatarUrl?: string | nul
   return { success: true }
 }
 
+// Builder'dan logo güncellendiğinde profili de güncelle
+export async function updateUserLogo(logoUrl: string | null) {
+  await apiFetch("/users/me", {
+    method: "PUT",
+    body: JSON.stringify({
+      logo_url: logoUrl
+    }),
+  })
+  revalidatePath("/dashboard/settings")
+  revalidatePath("/dashboard/builder")
+  return { success: true }
+}
+
 export async function deleteAccount() {
   const supabase = await createServerSupabaseClient()
 

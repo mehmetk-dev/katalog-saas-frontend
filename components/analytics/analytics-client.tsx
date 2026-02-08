@@ -246,7 +246,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
 
             {/* Main Chart Section */}
             <div className="grid gap-6 lg:grid-cols-7">
-                <Card className="lg:col-span-4 border-border/50 shadow-sm">
+                <Card className="lg:col-span-4 border-border/50 shadow-sm min-w-0">
                     <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/5 py-4">
                         <div className="text-left">
                             <CardTitle className="text-base font-semibold">{t("dashboard.analytics.viewsOverTime")}</CardTitle>
@@ -260,8 +260,8 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="h-[300px] w-full min-w-0">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <BarChart data={barChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -310,7 +310,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                 </Card>
 
                 {/* Device Distribution Card */}
-                <Card className="lg:col-span-3 border-border/50 shadow-sm flex flex-col">
+                <Card className="lg:col-span-3 border-border/50 shadow-sm flex flex-col min-w-0">
                     <CardHeader className="text-left border-b bg-muted/5 py-4">
                         <CardTitle className="text-base font-semibold">{t("dashboard.analytics.deviceStats")}</CardTitle>
                         <CardDescription className="text-xs">
@@ -318,9 +318,9 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-center gap-6 pt-6">
-                        <div className="h-[180px] relative">
+                        <div className="h-[180px] w-full relative min-w-0">
                             {devicePieData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <RechartsPieChart>
                                         <Pie
                                             data={devicePieData}

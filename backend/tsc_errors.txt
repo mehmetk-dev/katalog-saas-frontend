@@ -1,0 +1,13 @@
+﻿src/controllers/catalogs.ts(2,23): error TS1109: Expression expected.
+src/controllers/catalogs.ts(3,11): error TS1109: Expression expected.
+src/controllers/catalogs.ts(4,16): error TS1109: Expression expected.
+src/controllers/catalogs.ts(5,12): error TS1109: Expression expected.
+src/controllers/catalogs.ts(6,17): error TS1109: Expression expected.
+src/controllers/catalogs.ts(7,20): error TS1109: Expression expected.
+src/controllers/catalogs.ts(8,20): error TS1109: Expression expected.
+src/controllers/catalogs.ts(10,20): error TS1109: Expression expected.
+src/controllers/catalogs.ts(11,18): error TS1109: Expression expected.
+src/controllers/catalogs.ts(12,20): error TS1109: Expression expected.
+src/controllers/catalogs.ts(13,27): error TS1109: Expression expected.
+src/controllers/catalogs.ts(14,14): error TS1109: Expression expected.
+src/controllers/catalogs.ts(15,1): error TS1128: Declaration or statement expected.

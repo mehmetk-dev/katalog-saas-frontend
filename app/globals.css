@@ -54,32 +54,32 @@
 }
 
 .dark {
-  --background: hsl(270 50% 5%);
-  --foreground: hsl(270 20% 98%);
+  --background: hsl(230 40% 4%);
+  --foreground: hsl(230 20% 98%);
 
-  --card: hsl(270 50% 7%);
-  --card-foreground: hsl(270 20% 98%);
-  --popover: hsl(270 50% 7%);
-  --popover-foreground: hsl(270 20% 98%);
+  --card: hsl(230 40% 6%);
+  --card-foreground: hsl(230 20% 98%);
+  --popover: hsl(230 40% 6%);
+  --popover-foreground: hsl(230 20% 98%);
 
-  --primary: hsl(262 83% 65%);
+  --primary: hsl(250 85% 65%);
   --primary-foreground: hsl(0 0% 100%);
 
-  --secondary: hsl(270 30% 15%);
-  --secondary-foreground: hsl(270 20% 98%);
+  --secondary: hsl(230 30% 12%);
+  --secondary-foreground: hsl(230 20% 98%);
 
-  --muted: hsl(270 30% 15%);
-  --muted-foreground: hsl(270 10% 65%);
+  --muted: hsl(230 25% 10%);
+  --muted-foreground: hsl(230 15% 65%);
 
-  --accent: hsl(270 30% 15%);
-  --accent-foreground: hsl(270 20% 98%);
+  --accent: hsl(250 40% 15%);
+  --accent-foreground: hsl(230 20% 98%);
 
   --destructive: hsl(0 62% 30%);
   --destructive-foreground: hsl(0 0% 98%);
 
-  --border: hsl(270 30% 15%);
-  --input: hsl(270 30% 15%);
-  --ring: hsl(262 83% 65%);
+  --border: hsl(230 30% 13%);
+  --input: hsl(230 30% 13%);
+  --ring: hsl(250 85% 65%);
 
   --chart-1: hsl(262 83% 65%);
   --chart-2: hsl(290 60% 65%);
@@ -87,14 +87,14 @@
   --chart-4: hsl(310 60% 75%);
   --chart-5: hsl(230 60% 60%);
 
-  --sidebar: hsl(270 50% 6%);
-  --sidebar-foreground: hsl(270 20% 98%);
-  --sidebar-primary: hsl(262 83% 65%);
+  --sidebar: hsl(230 45% 3%);
+  --sidebar-foreground: hsl(230 20% 96%);
+  --sidebar-primary: hsl(250 85% 65%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(270 30% 15%);
-  --sidebar-accent-foreground: hsl(270 20% 98%);
-  --sidebar-border: hsl(270 30% 15%);
-  --sidebar-ring: hsl(262 83% 65%);
+  --sidebar-accent: hsl(230 30% 10%);
+  --sidebar-accent-foreground: hsl(230 20% 98%);
+  --sidebar-border: hsl(230 30% 10%);
+  --sidebar-ring: hsl(250 85% 65%);
 }
 
 .catalog-light {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
   GripVertical, Trash2, Package, Image as ImageIcon,
   Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search, ChevronRight
@@ -256,7 +256,26 @@ export function CatalogEditor({
   }, [])
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [visibleCount, setVisibleCount] = useState(12)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Ekran boyutuna göre dinamik items per page (3 satır)
+  const [itemsPerPage, setItemsPerPage] = useState(15) // Varsayılan: 5 sütun × 3 satır
+
+  useEffect(() => {
+    const calculateItemsPerPage = () => {
+      const width = window.innerWidth
+      let cols = 5 // md+ default
+      if (width < 640) cols = 2 // mobile
+      else if (width < 768) cols = 3 // xs-sm arası
+      else if (width < 1024) cols = 4 // sm-md arası
+      setItemsPerPage(cols * 3) // 3 satır
+    }
+
+    calculateItemsPerPage()
+    window.addEventListener('resize', calculateItemsPerPage)
+    return () => window.removeEventListener('resize', calculateItemsPerPage)
+  }, [])
+
   const [activeTab, setActiveTab] = useState("content")
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -272,7 +291,15 @@ export function CatalogEditor({
     return matchesCategory && matchesSearch
   })
 
-  const visibleProducts = filteredProducts.slice(0, visibleCount)
+  // Sayfalama hesaplamaları
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const visibleProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage)
+
+  // Kategori veya arama değiştiğinde ilk sayfaya dön
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedCategory, searchQuery])
 
   const toggleProduct = (id: string) => {
     if (selectedProductIds.includes(id)) {
@@ -450,6 +477,14 @@ export function CatalogEditor({
 
       if (type === 'logo') {
         onLogoUrlChange?.(publicUrl)
+        // Profil logosuyla senkronize et
+        try {
+          const { updateUserLogo } = await import("@/lib/actions/auth")
+          await updateUserLogo(publicUrl)
+        } catch (syncError) {
+          console.warn("[CatalogEditor] Logo sync to profile failed:", syncError)
+          // Katalog logosu yine de güncellendi, sadece profil sync başarısız
+        }
       } else if (type === 'cover') {
         onCoverImageUrlChange?.(publicUrl)
       } else {
@@ -537,11 +572,11 @@ export function CatalogEditor({
 
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-slate-900/50 overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#080a12] dark:to-[#03040a] border-r border-slate-200 dark:border-white/5 overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         {/* Modern App-like Tab Navigation */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 border-b px-4 py-3 shrink-0">
-          <TabsList className="flex w-full max-w-[480px] mx-auto h-12 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/50 shadow-inner">
+        <div className="bg-white/80 dark:bg-[#080a12]/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200 dark:border-white/5 px-4 py-3 shrink-0">
+          <TabsList className="flex w-full max-w-[480px] mx-auto h-12 p-1 bg-slate-100/80 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner">
             <TabsTrigger
               value="content"
               className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
@@ -563,7 +598,7 @@ export function CatalogEditor({
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
               <Card className="relative bg-white/70 dark:bg-slate-900/40 backdrop-blur-sm border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50">
+                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
                       <Sparkles className="w-4 h-4" />
@@ -710,16 +745,67 @@ export function CatalogEditor({
                 })}
               </div>
 
-              {visibleCount < filteredProducts.length && (
-                <div className="flex justify-center py-4">
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 py-4">
+                  {/* Önceki Sayfa */}
                   <Button
                     variant="outline"
-                    onClick={() => setVisibleCount(v => v + 24)}
-                    className="rounded-2xl h-10 px-6 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 border-slate-200/60 transition-all hover:bg-indigo-50"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-xl h-9 px-3 text-xs font-bold border-slate-200/60 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
                   >
-                    {t('builder.loadMore', { count: filteredProducts.length - visibleCount })}
-                    <ChevronDown className="w-4 h-4 ml-2" />
+                    {t('common.back')}
                   </Button>
+
+                  {/* Sayfa Numaraları */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => {
+                        // İlk, son ve mevcut sayfanın etrafındaki 2 sayfayı göster
+                        if (page === 1 || page === totalPages) return true
+                        if (Math.abs(page - currentPage) <= 1) return true
+                        return false
+                      })
+                      .map((page, index, arr) => (
+                        <React.Fragment key={page}>
+                          {/* Atlanan sayfalar için ... göster */}
+                          {index > 0 && arr[index - 1] !== page - 1 && (
+                            <span className="px-1 text-slate-400">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={cn(
+                              "rounded-xl h-9 w-9 p-0 text-xs font-bold transition-all",
+                              currentPage === page
+                                ? "bg-indigo-600 text-white shadow-md"
+                                : "text-slate-600 hover:bg-slate-100"
+                            )}
+                          >
+                            {page}
+                          </Button>
+                        </React.Fragment>
+                      ))}
+                  </div>
+
+                  {/* Sonraki Sayfa */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded-xl h-9 px-3 text-xs font-bold border-slate-200/60 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                  >
+                    {t('common.next')}
+                  </Button>
+
+                  {/* Sayfa Bilgisi */}
+                  <span className="ml-3 text-xs text-slate-500 font-medium">
+                    {filteredProducts.length} üründen {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProducts.length)}
+                  </span>
                 </div>
               )}
             </div>

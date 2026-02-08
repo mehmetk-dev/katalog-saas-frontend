@@ -77,12 +77,18 @@ export async function getTemplatesFromAPI() {
   }
 }
 
-// Database'den template çek
+// Database'den template çek (fallback to API if empty)
 export async function getTemplates(): Promise<CatalogTemplate[]> {
   try {
     // Import dynamically to avoid circular imports
     const { getTemplates: getDatabaseTemplates } = await import("@/lib/actions/templates")
     const templates = await getDatabaseTemplates()
+
+    // Eğer database boşsa API'den çekmeyi deniyelim
+    if (!templates || templates.length === 0) {
+      console.log("No templates found in database, falling back to API...")
+      return await getTemplatesFromAPI()
+    }
 
     // Map database format to CatalogTemplate format
     return templates.map(t => ({
@@ -97,8 +103,8 @@ export async function getTemplates(): Promise<CatalogTemplate[]> {
       created_at: t.created_at
     }))
   } catch (error) {
-    console.error("Error fetching templates:", error)
-    return []
+    console.error("Error fetching templates, trying API fallback:", error)
+    return await getTemplatesFromAPI()
   }
 }
 

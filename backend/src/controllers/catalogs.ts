@@ -1,7 +1,5 @@
 import crypto from 'crypto';
-
 import { Request, Response } from 'express';
-
 import { supabase } from '../services/supabase';
 import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
@@ -65,18 +63,14 @@ const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequ
 export const getCatalogs = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const cacheKey = cacheKeys.catalogs(userId);
+        // DEBUG: Bypass cache to investigate stale data issues
+        const { data, error } = await supabase
+            .from('catalogs')
+            .select('*')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false });
 
-        const data = await getOrSetCache(cacheKey, cacheTTL.catalogs, async () => {
-            const { data, error } = await supabase
-                .from('catalogs')
-                .select('*')
-                .eq('user_id', userId)
-                .order('updated_at', { ascending: false });
-
-            if (error) throw error;
-            return data;
-        });
+        if (error) throw error;
 
         // Get user plan to mark disabled catalogs
         const user = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
@@ -87,7 +81,6 @@ export const getCatalogs = async (req: Request, res: Response) => {
         const plan = (user as { plan: string })?.plan || 'free';
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
 
-        // Mark catalogs beyond the limit as disabled
         // Mark catalogs beyond the limit as disabled
         const catalogsWithStatus = (data as Catalog[]).map((catalog: Catalog, index: number) => ({
             ...catalog,
@@ -402,9 +395,6 @@ export const updateCatalog = async (req: Request, res: Response) => {
 
         if (error) {
             console.error('Catalog update error:', error);
-            console.error('Error code:', error.code);
-            console.error('Error message:', error.message);
-            console.error('Error details:', error.details);
             // Unique constraint violation için özel hata mesajı
             if (error.code === '23505' && error.message.includes('share_slug')) {
                 return res.status(409).json({
@@ -413,8 +403,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
             }
             return res.status(500).json({
                 error: 'Katalog güncellenirken bir hata oluştu',
-                details: error.message,
-                code: error.code
+                details: error.message
             });
         }
 
@@ -443,8 +432,6 @@ export const updateCatalog = async (req: Request, res: Response) => {
     } catch (error: unknown) {
         console.error('Catalog update exception:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorStack = error instanceof Error ? error.stack : undefined;
-        console.error('Error stack:', errorStack);
         res.status(500).json({
             error: 'Katalog güncellenirken bir hata oluştu',
             message: errorMessage
@@ -639,8 +626,6 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             }
         }
 
-        // DEBUG: Analytics tracking info
-
         // Increment view count asynchronously to not block the request
         smartIncrementViewCount(data.id, ownerId, visitorInfo, isOwner).catch(err => {
             console.error('[PublicCatalog] View tracking failed:', err);
@@ -670,7 +655,6 @@ const getVisitorInfo = (req: Request) => {
     }
 
     // Creating a truly unique identifier per day for this visitor
-    // Adding date ensures daily uniqueness if needed, but for now we use global hash
     const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
 
     return { ip, userAgent, deviceType, visitorHash };
@@ -717,115 +701,110 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const timeRange = (req.query.timeRange as string) || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
 
-        const cacheKey = cacheKeys.stats(userId, { timeRange });
+        // Fetch Summary Stats
+        let summaryStats = {
+            totalCatalogs: 0,
+            publishedCatalogs: 0,
+            totalViews: 0,
+            totalProducts: 0,
+            topCatalogs: [],
+        };
 
-        const finalStats = await getOrSetCache(cacheKey, cacheTTL.adminStats, async () => {
-            // 1. Fetch Summary Stats
-            let stats = {
-                totalCatalogs: 0,
-                publishedCatalogs: 0,
-                totalViews: 0,
-                totalProducts: 0,
-                topCatalogs: [],
-            };
+        const [catalogsResult, productsResult] = await Promise.all([
+            supabase.from('catalogs').select('id, is_published, view_count, name, product_ids, updated_at, created_at').eq('user_id', userId),
+            supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
 
-            const [catalogsResult, productsResult] = await Promise.all([
-                supabase.from('catalogs').select('id, is_published, view_count, name').eq('user_id', userId),
-                supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-            ]);
+        if (catalogsResult.data) {
+            const catalogs = catalogsResult.data;
+            summaryStats.totalCatalogs = catalogs.length;
+            summaryStats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
+            summaryStats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
 
-            if (catalogsResult.data) {
-                const catalogs = catalogsResult.data;
-                stats.totalCatalogs = catalogs.length;
-                stats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
-                stats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
+            summaryStats.topCatalogs = [...catalogs]
+                .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+                .slice(0, 5)
+                .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
+        }
 
-                stats.topCatalogs = [...catalogs]
-                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
-                    .slice(0, 5)
-                    .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
-            }
+        summaryStats.totalProducts = productsResult.count || 0;
 
-            stats.totalProducts = productsResult.count || 0;
+        const detailedStats = {
+            uniqueVisitors: 0,
+            deviceStats: [] as { device_type: string; view_count: number; percentage: number }[],
+            dailyViews: [] as { view_date: string; view_count: number }[],
+        };
 
-            const detailedStats = {
-                uniqueVisitors: 0,
-                deviceStats: [] as { device_type: string; view_count: number; percentage: number }[],
-                dailyViews: [] as { view_date: string; view_count: number }[],
-            };
+        const catalogIds = catalogsResult.data?.map(c => c.id) || [];
 
-            const catalogIds = catalogsResult.data?.map(c => c.id) || [];
+        // Fetch Detailed Analytics
+        if (catalogIds.length > 0) {
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - days);
+            const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
 
-            // 2. Fetch Detailed Analytics
-            if (catalogIds.length > 0) {
-                const dateThreshold = new Date();
-                dateThreshold.setDate(dateThreshold.getDate() - days);
-                const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
+            // Unique Visitors
+            const { data: vCount, error: vError } = await supabase
+                .rpc('get_unique_visitors_multi', {
+                    p_catalog_ids: catalogIds,
+                    p_days: days
+                });
 
-                // a. Unique Visitors
-                const { data: vCount, error: vError } = await supabase
-                    .rpc('get_unique_visitors_multi', {
-                        p_catalog_ids: catalogIds,
-                        p_days: days
-                    });
-
-                if (!vError && vCount !== null && Number(vCount) > 0) {
-                    detailedStats.uniqueVisitors = Number(vCount);
-                } else {
-                    const { count: directUniqueCount } = await supabase
-                        .from('catalog_views')
-                        .select('visitor_hash', { count: 'exact', head: true })
-                        .in('catalog_id', catalogIds)
-                        .eq('is_owner', false)
-                        .gte('view_date', dateThresholdStr);
-
-                    if (directUniqueCount) detailedStats.uniqueVisitors = directUniqueCount;
-                }
-
-                // b. Device Stats
-                const { data: deviceData } = await supabase
+            if (!vError && vCount !== null && Number(vCount) > 0) {
+                detailedStats.uniqueVisitors = Number(vCount);
+            } else {
+                const { count: directUniqueCount } = await supabase
                     .from('catalog_views')
-                    .select('device_type')
+                    .select('visitor_hash', { count: 'exact', head: true })
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
                     .gte('view_date', dateThresholdStr);
 
-                if (deviceData && deviceData.length > 0) {
-                    const counts: Record<string, number> = {};
-                    deviceData.forEach(d => {
-                        const t = d.device_type || 'unkn';
-                        counts[t] = (counts[t] || 0) + 1;
-                    });
-                    const total = deviceData.length;
-                    detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
-                        device_type: type,
-                        view_count: count,
-                        percentage: Math.round((count / total) * 100)
-                    })).sort((a, b) => b.view_count - a.view_count);
-                }
-
-                // c. Daily Views
-                const { data: dailyData } = await supabase
-                    .from('catalog_views')
-                    .select('view_date')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false)
-                    .gte('view_date', dateThresholdStr);
-
-                if (dailyData) {
-                    const dCounts: Record<string, number> = {};
-                    dailyData.forEach(d => {
-                        dCounts[d.view_date] = (dCounts[d.view_date] || 0) + 1;
-                    });
-                    detailedStats.dailyViews = Object.entries(dCounts)
-                        .map(([date, count]) => ({ view_date: date, view_count: count }))
-                        .sort((a, b) => a.view_date.localeCompare(b.view_date));
-                }
+                if (directUniqueCount) detailedStats.uniqueVisitors = directUniqueCount;
             }
 
-            return { ...stats, ...detailedStats };
-        });
+            // Device Stats
+            const { data: deviceData } = await supabase
+                .from('catalog_views')
+                .select('device_type')
+                .in('catalog_id', catalogIds)
+                .eq('is_owner', false)
+                .gte('view_date', dateThresholdStr);
 
+            if (deviceData && deviceData.length > 0) {
+                const counts: Record<string, number> = {};
+                deviceData.forEach(d => {
+                    const t = d.device_type || 'unkn';
+                    counts[t] = (counts[t] || 0) + 1;
+                });
+                const total = deviceData.length;
+                detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
+                    device_type: type,
+                    view_count: count,
+                    percentage: Math.round((count / total) * 100)
+                }));
+            }
+
+            // Daily Views
+            const { data: dailyData } = await supabase
+                .from('catalog_views')
+                .select('view_date')
+                .in('catalog_id', catalogIds)
+                .eq('is_owner', false)
+                .gte('view_date', dateThresholdStr);
+
+            if (dailyData) {
+                const counts: Record<string, number> = {};
+                dailyData.forEach(d => {
+                    counts[d.view_date] = (counts[d.view_date] || 0) + 1;
+                });
+                detailedStats.dailyViews = Object.entries(counts)
+                    .map(([date, count]) => ({ view_date: date, view_count: count }))
+                    .sort((a, b) => a.view_date.localeCompare(b.view_date));
+            }
+        }
+
+        const finalStats = { ...summaryStats, ...detailedStats };
         res.json(finalStats);
     } catch (error: unknown) {
         console.error('[Stats] Critical Error:', error);

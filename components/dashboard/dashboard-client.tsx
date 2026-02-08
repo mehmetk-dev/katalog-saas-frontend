@@ -21,7 +21,9 @@ import { cn } from "@/lib/utils"
 interface DashboardClientProps {
     initialCatalogs: Catalog[]
     initialProducts: Product[]
+    totalProductCount: number
     initialStats: DashboardStats | null
+    allProductIds?: string[]
 }
 
 // Mini Sparkline Component
@@ -60,15 +62,39 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
     )
 }
 
-export function DashboardClient({ initialCatalogs, initialProducts, initialStats }: DashboardClientProps) {
+export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats, allProductIds = [] }: DashboardClientProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const { user, isLoading } = useUser()
 
-    // Güvenli fallback değerleri - undefined/null durumlarını ele al
-    const currentCatalogs = initialCatalogs ?? []
-    const currentProducts = initialProducts ?? []
+    // Veri normalizasyonu: Catalogs ve Products'ın her zaman array olmasını sağla
+    const currentCatalogs: Catalog[] = Array.isArray(initialCatalogs) ? initialCatalogs : (initialCatalogs as any)?.data || []
+    const currentProducts = Array.isArray(initialProducts) ? initialProducts : (initialProducts as any)?.products || []
     const recentCatalogs = currentCatalogs.slice(0, 3)
+
+    // Ürün sayısını güvenli hesapla (Deduplicate & Clean & Validate against Master List)
+    const getSafeProductCount = useCallback((catalog: any) => {
+        if (!catalog) return 0;
+        const rawIds = Array.isArray(catalog.product_ids) ? catalog.product_ids :
+            (catalog as any).productIds && Array.isArray((catalog as any).productIds) ? (catalog as any).productIds :
+                (typeof (catalog as any).product_ids === 'string' ? (catalog as any).product_ids.split(',') : []);
+
+        // Benzersiz ve boş olmayan ID'leri temizle
+        const uniqueIds = Array.from(new Set(
+            rawIds
+                .map((id: any) => String(id).trim())
+                .filter((id: string) => id.length > 0 && id !== 'undefined' && id !== 'null')
+        ));
+
+        // Eğer Master ID Listesi geldiyse (allProductIds), sadece gerçekten var olanları say (Hayalet ürünleri ele).
+        // Eğer liste boş geldiyse (örn: hata oldu), mevcut filtrelemeyi atla ve hepsini say (Eski davranış).
+        if (allProductIds && allProductIds.length > 0) {
+            const validIds = uniqueIds.filter((id: any) => allProductIds.includes(id));
+            return validIds.length;
+        }
+
+        return uniqueIds.length;
+    }, [allProductIds]);
 
     // User henüz yüklenmediyse basit bir skeleton göster
     if (isLoading) {
@@ -85,11 +111,6 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
         )
     }
 
-    // Sparkline verileri - gerçek değerlere dayalı
-    const totalViews = initialStats?.totalViews || 0
-    const productCount = currentProducts.length
-    const publishedCount = currentCatalogs.filter((c) => c.is_published).length
-
     // Gerçek veriye dayalı sparkline - son 10 güne benzetim (gerçek uygulamada API'den)
     const generateSparkline = (current: number) => {
         if (current === 0) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -98,13 +119,23 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
         return Array.from({ length: 10 }, (_, i) => Math.floor(base + (current - base) * (i / 9)))
     }
 
+    // Sparkline verileri ve İstatistikler - Gelişmiş çapraz doğrulama
+    const totalViews = initialStats?.totalViews || currentCatalogs.reduce((sum, c) => sum + (Number((c as any).view_count) || Number((c as any).views) || 0), 0)
+    const productCount = totalProductCount || currentProducts.length
+
+    // Yayınlanmış katalog sayısı - Hem stats hem listeden doğrula (Truthy kontrolü)
+    const publishedCount = initialStats?.publishedCatalogs ??
+        currentCatalogs.filter((c: any) => !!(c.is_published || c.published || c.status === 'published')).length
+
+    // ... (rest of the functions) ...
+
     const stats = [
         {
             label: t("dashboard.totalProducts"),
             value: productCount.toString(),
             icon: Package,
             change: user?.maxProducts === 999999 ? t("dashboard.unlimited") : t("dashboard.used", { current: productCount, max: user?.maxProducts || 0 }),
-            trend: null, // Ürün trendi gösterilmiyor - statik veri
+            trend: null,
             trendUp: true,
             color: "violet",
             sparkline: generateSparkline(productCount),
@@ -114,7 +145,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
             value: totalViews.toLocaleString(),
             icon: Eye,
             change: t("dashboard.allCatalogs"),
-            trend: totalViews > 0 ? null : null, // Görüntülenme trendi henüz hesaplanamıyor
+            trend: null,
             trendUp: true,
             color: "blue",
             sparkline: generateSparkline(totalViews),
@@ -124,7 +155,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
             value: publishedCount.toString(),
             icon: TrendingUp,
             change: t("dashboard.activeCatalogs"),
-            trend: null, // Yayın trendi henüz hesaplanamıyor
+            trend: null,
             trendUp: true,
             color: "emerald",
             sparkline: generateSparkline(publishedCount),
@@ -276,7 +307,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                         </div>
                     ) : (
                         <div className="divide-y">
-                            {recentCatalogs.map((catalog) => (
+                            {recentCatalogs.map((catalog: Catalog) => (
                                 <div
                                     key={catalog.id}
                                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 hover:bg-muted/50 transition-colors group"
@@ -326,25 +357,26 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                                 })()
                                             )}
                                         </div>
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 flex-1">
                                             <p className="font-semibold text-sm sm:text-base truncate group-hover:text-primary transition-colors">
-                                                {catalog.name}
+                                                {catalog.name || (catalog as any).title || t("common.untitled")}
                                             </p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-muted-foreground">
-                                                    {(catalog.product_ids || []).filter(id => initialProducts.some(p => String(p.id) === String(id))).length} {t('products.product').toLowerCase()}
+                                                    {getSafeProductCount(catalog)} {t('products.product').toLowerCase()}
                                                 </span>
                                                 <span className="text-muted-foreground/30">•</span>
                                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <UserPen className="w-3 h-3" />
                                                     {(() => {
                                                         const updateErrorText = t("common.updateError") || "Bilinmiyor";
-                                                        if (!catalog.updated_at) return "-";
+                                                        const dateStr = catalog.updated_at || catalog.created_at || (catalog as any).updatedAt || (catalog as any).createdAt || (catalog as any).updated_At;
+                                                        if (!dateStr) return "-";
                                                         try {
-                                                            const date = new Date(catalog.updated_at)
+                                                            const date = new Date(dateStr)
                                                             if (isNaN(date.getTime())) {
                                                                 // Alternatif parse denemesi (ISO olmayan formatlar için)
-                                                                const altDate = new Date(String(catalog.updated_at).replace(' ', 'T'));
+                                                                const altDate = new Date(String(dateStr).replace(' ', 'T'));
                                                                 if (isNaN(altDate.getTime())) return updateErrorText;
                                                                 const diffInSeconds = Math.floor((new Date().getTime() - altDate.getTime()) / 1000);
                                                                 if (diffInSeconds < 60) return "Az önce";

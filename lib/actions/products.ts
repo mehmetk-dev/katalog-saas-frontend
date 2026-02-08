@@ -482,5 +482,25 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
   // Add order field
   const dummyProductsWithOrder = dummyProducts.map((p, index) => ({ ...p, order: index }))
 
+
   return await bulkImportProducts(dummyProductsWithOrder);
 }
+
+export async function getAllProductIds(): Promise<string[]> {
+
+  try {
+    const response = await apiFetch<any>("/products?limit=9999&select=id")
+    if (Array.isArray(response)) {
+      return response.map(p => p.id)
+    }
+    // Eğer response formatı { products: [...] } şeklindeyse
+    if (response.products && Array.isArray(response.products)) {
+      return response.products.map((p: any) => p.id)
+    }
+    return []
+  } catch (error) {
+    console.error("Error fetching all product IDs:", error)
+    return []
+  }
+}
+

@@ -103,6 +103,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 ...fetchOptions,
                 headers: fetchHeaders,
                 signal: controller.signal,
+                cache: "no-store",
             });
 
             // Başarılı yanıt - timeout'u temizle

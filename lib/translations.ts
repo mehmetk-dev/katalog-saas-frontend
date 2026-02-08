@@ -61,6 +61,7 @@ export const translations = {
             siteDescription: "Dakikalar içinde profesyonel ürün katalogları oluşturun",
             wait: "Lütfen bekleyin...",
             updateError: "Güncelleme hatası",
+            untitled: "İsimsiz",
         },
         plans: {
             unlimited: "Sınırsız",

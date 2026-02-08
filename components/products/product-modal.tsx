@@ -325,9 +325,21 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     const currentAdditionalImages = [...additionalImages]
 
     if (currentPendingImages.length === 0) {
+      // Pending images yok - sadece mevcut URL'leri filtrele
+      const validUrls = currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
+
+      // DÜZELTME: activeImageUrl'i olduğu gibi döndür (boş string bile olsa)
+      // Eğer activeImageUrl blob ise veya boşsa, ilk geçerli URL'i kullan
+      let coverUrl: string | null = null
+      if (activeImageUrl && !activeImageUrl.startsWith('blob:')) {
+        coverUrl = activeImageUrl
+      } else if (validUrls.length > 0) {
+        coverUrl = validUrls[0]
+      }
+
       return {
-        finalUrls: currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5),
-        resolvedCoverUrl: activeImageUrl && !activeImageUrl.startsWith('blob:') ? activeImageUrl : (currentAdditionalImages[0] || null)
+        finalUrls: validUrls,
+        resolvedCoverUrl: coverUrl
       }
     }
 
@@ -638,8 +650,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     formData.append("stock", stock)
     formData.append("category", category.join(", "))
 
-    // activeImageUrl is the cover - use the resolved one or fallback
-    const finalActiveImageUrl = finalResolvedCoverUrl || (finalImageUrls.length > 0 ? finalImageUrls[0] : "")
+    // activeImageUrl is the cover - DÜZELTME: resolvedCoverUrl null değilse onu kullan,
+    // null ise mevcut activeImageUrl'i kullan (kullanıcı kapak değiştirmiş olabilir),
+    // o da boşsa ilk resmi kullan
+    const finalActiveImageUrl = finalResolvedCoverUrl !== null
+      ? finalResolvedCoverUrl
+      : (activeImageUrl || (finalImageUrls.length > 0 ? finalImageUrls[0] : ""))
     formData.append("image_url", finalActiveImageUrl)
 
     // finalImageUrls contains ALL images

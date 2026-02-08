@@ -1,519 +1,371 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo } from "react"
-import { ChevronLeft, ChevronRight, Layout, Monitor } from "lucide-react"
+import { FileText, List } from "lucide-react"
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
-import { ALL_TEMPLATES } from "../catalogs/templates/registry"
-import { CategoryDivider } from "../catalogs/category-divider"
-import { CoverPage } from "../catalogs/cover-page"
-// Lightbox support deleted here, managed by parents
+// Şablon bileşenleri - TÜM ŞABLONLAR GERİ GETİRİLDİ
+import { ModernGridTemplate } from "@/components/catalogs/templates/modern-grid"
+import { CompactListTemplate } from "@/components/catalogs/templates/compact-list"
+import { MagazineTemplate } from "@/components/catalogs/templates/magazine"
+import { MinimalistTemplate } from "@/components/catalogs/templates/minimalist"
+import { BoldTemplate } from "@/components/catalogs/templates/bold"
+import { ElegantCardsTemplate } from "@/components/catalogs/templates/elegant-cards"
+import { ClassicCatalogTemplate } from "@/components/catalogs/templates/classic-catalog"
+import { ShowcaseTemplate } from "@/components/catalogs/templates/showcase"
+import { CatalogProTemplate } from "@/components/catalogs/templates/catalog-pro"
+import { RetailTemplate } from "@/components/catalogs/templates/retail"
+import { TechModernTemplate } from "@/components/catalogs/templates/tech-modern"
+import { FashionLookbookTemplate } from "@/components/catalogs/templates/fashion-lookbook"
+import { IndustrialTemplate } from "@/components/catalogs/templates/industrial"
+import { LuxuryTemplate } from "@/components/catalogs/templates/luxury"
+import { CleanWhiteTemplate } from "@/components/catalogs/templates/clean-white"
+import { ProductTilesTemplate } from "@/components/catalogs/templates/product-tiles"
+
+// Sayfa Bileşenleri
+import { CoverPage } from "@/components/catalogs/cover-page"
+import { CategoryDivider } from "@/components/catalogs/category-divider"
+
+export type CatalogPage =
+  | { type: 'cover' }
+  | { type: 'divider'; categoryName: string; firstProductImage?: string }
+  | { type: 'products'; products: Product[] }
 
 interface CatalogPreviewProps {
   catalogName: string
   products: Product[]
   layout: string
-  primaryColor?: string
+  primaryColor: string
+  headerTextColor?: string
   showPrices?: boolean
   showDescriptions?: boolean
   showAttributes?: boolean
   showSku?: boolean
   showUrls?: boolean
-  // Yeni kişiselleştirme props
+  productImageFit?: string
   columnsPerRow?: number
+  logoUrl?: string
+  logoPosition?: string
+  logoSize?: string
+  titlePosition?: string
+  enableCoverPage?: boolean
+  coverImageUrl?: string
+  coverDescription?: string
+  enableCategoryDividers?: boolean
   backgroundColor?: string
   backgroundImage?: string | null
   backgroundImageFit?: 'cover' | 'contain' | 'fill'
   backgroundGradient?: string | null
-  logoUrl?: string | null
-  logoPosition?: string
-  logoSize?: string
-  titlePosition?: string
-  headerTextColor?: string
-  productImageFit?: 'cover' | 'contain' | 'fill'
-  isExporting?: boolean
-  // Storytelling Props
-  enableCoverPage?: boolean
-  coverImageUrl?: string | null
-  coverDescription?: string | null
-  enableCategoryDividers?: boolean
-  showControls?: boolean // Kontrolleri açıp kapatmak için yeni prop
   theme?: string
+  pages?: CatalogPage[]
+  showControls?: boolean
+  isExporting?: boolean
 }
 
-// Sayfa tipi için type-safe interface
-type CatalogPage =
-  | { type: 'cover' }
-  | { type: 'divider'; categoryName: string; firstProductImage: string | null }
-  | { type: 'products'; products: Product[] }
+const ALL_TEMPLATES: Record<string, any> = {
+  'modern-grid': ModernGridTemplate,
+  'compact-list': CompactListTemplate,
+  'list': CompactListTemplate,
+  'magazine': MagazineTemplate,
+  'minimalist': MinimalistTemplate,
+  'minimal-gallery': MinimalistTemplate,
+  'bold': BoldTemplate,
+  'bold-grid': BoldTemplate,
+  'elegant-cards': ElegantCardsTemplate,
+  'elegant-showcase': ElegantCardsTemplate,
+  'classic-catalog': ClassicCatalogTemplate,
+  'showcase': ShowcaseTemplate,
+  'catalog-pro': CatalogProTemplate,
+  'retail': RetailTemplate,
+  'tech-modern': TechModernTemplate,
+  'fashion-lookbook': FashionLookbookTemplate,
+  'industrial': IndustrialTemplate,
+  'luxury': LuxuryTemplate,
+  'clean-white': CleanWhiteTemplate,
+  'product-tiles': ProductTilesTemplate,
+}
+
+const A4_WIDTH = 794
+const A4_HEIGHT = 1123
 
 export function CatalogPreview(props: CatalogPreviewProps) {
   const { user } = useUser()
   const isFreeUser = user?.plan === "free"
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
   const [currentPage, setCurrentPage] = useState(0)
-  const [viewMode, setViewMode] = useState<"single" | "all">("single")
-  const { isExporting = false, showControls = true } = props
+  const [viewMode, setViewMode] = useState<"single" | "multi">("single")
+  const [scale] = useState(0.7)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // A4 boyutları (pixel - 96 DPI)
-  const A4_WIDTH = 794
-  const A4_HEIGHT = 1123
+  // Sayfa hesaplama mantığı
+  const pages = useMemo(() => {
+    if (props.pages && props.pages.length > 0) return props.pages
+    const calculatedPages: CatalogPage[] = []
 
-  // Kişiselleştirme değerleri (varsayılanlarla)
-  const columnsPerRow = props.columnsPerRow || 3
-  const backgroundColor = props.backgroundColor || '#ffffff'
-  const backgroundImage = props.backgroundImage
-  const backgroundImageFit = props.backgroundImageFit || 'cover'
-  const backgroundGradient = props.backgroundGradient
+    if (props.enableCoverPage) calculatedPages.push({ type: 'cover' })
 
-  // Container genişliğine göre scale hesapla
-  useEffect(() => {
-    const updateScale = () => {
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth
-        const padding = 48 // Her iki tarafta 24px padding
-        const availableWidth = containerWidth - padding
-        const newScale = Math.min(availableWidth / A4_WIDTH, 0.85)
-        setScale(newScale)
-      }
+    const products = props.products || []
+
+    // Şablona göre sayfa başına ürün sayısı
+    let itemsPerPage = 6
+    const layout = props.layout?.toLowerCase() || 'modern-grid'
+
+    if (layout === 'classic-list' || layout === 'classic-catalog') itemsPerPage = 3
+    else if (layout === 'minimal-gallery' || layout === 'minimalist') itemsPerPage = 4
+    else if (layout === 'magazine') itemsPerPage = 1 + (props.columnsPerRow || 3) * 2
+    else if (layout === 'showcase' || layout === 'fashion-lookbook') itemsPerPage = 5
+    else if (layout === 'industrial') itemsPerPage = 8
+    else if (layout === 'luxury') itemsPerPage = 6
+    else if (layout === 'compact-list' || layout === 'list') itemsPerPage = 10
+    else if (layout === 'retail') itemsPerPage = (props.columnsPerRow || 3) * 5
+    else if (layout === 'catalog-pro') itemsPerPage = (props.columnsPerRow || 3) * 3
+    else if (layout === 'product-tiles') itemsPerPage = props.columnsPerRow === 2 ? 4 : 9
+    else {
+      // Modern Grid ve Varsayılan
+      if (props.columnsPerRow === 2) itemsPerPage = 6
+      else if (props.columnsPerRow === 3) itemsPerPage = 9
+      else if (props.columnsPerRow === 4) itemsPerPage = 12
+      else itemsPerPage = 9
     }
 
-    updateScale()
-    window.addEventListener('resize', updateScale)
-    return () => window.removeEventListener('resize', updateScale)
-  }, [])
-
-  // Sütun sayısına göre sayfa başına ürün hesapla
-  const getItemsPerPage = () => {
-    switch (props.layout) {
-      case 'magazine':
-        return columnsPerRow === 2 ? 5 : 7;
-      case 'showcase':
-        return 5;
-      case 'fashion-lookbook':
-        return 5;
-      case 'industrial':
-        return 8;
-      case 'compact-list':
-        return 10;
-      case 'classic-catalog':
-        return 3;
-      case 'minimalist':
-        return 4;
-      case 'retail':
-        return 12;
-      case 'luxury':
-        return 6;
-      case 'product-tiles':
-        return columnsPerRow === 2 ? 4 : 9;
-      case 'catalog-pro':
-      case 'modern-grid':
-      case 'bold':
-      case 'tech-modern':
-      case 'clean-white':
-      case 'elegant-cards':
-        return columnsPerRow * 3;
-      default:
-        return columnsPerRow * 3;
-    }
-  }
-
-  const itemsPerPage = getItemsPerPage()
-
-  // === STORYTELLING & PAGINATION LOGIC (MEMOIZED) ===
-  const displayPages = useMemo(() => {
-    const pages: CatalogPage[] = []
-
-    // 1. Kapak sayfası (Prop ile kontrol edilir)
-    if (props.enableCoverPage) {
-      pages.push({ type: 'cover' })
-    }
-
-    // 2. Ürün sayfaları (Kategori bölücüleri ile birlikte)
-    if (props.enableCategoryDividers && props.products.length > 0) {
-      // Ürünleri kategorilerine göre grupla
-      const productsByCategory = new Map<string, Product[]>()
-      props.products.forEach(product => {
-        const category = product.category || 'Kategorisiz'
-        if (!productsByCategory.has(category)) {
-          productsByCategory.set(category, [])
-        }
-        productsByCategory.get(category)!.push(product)
-      })
-
-      // Her kategori için bölücü + ürün sayfaları ekle
-      productsByCategory.forEach((catProducts, categoryName) => {
-        // Kategori bölücü ekle
-        pages.push({
-          type: 'divider',
-          categoryName,
-          firstProductImage: catProducts[0]?.image_url || null
-        })
-
-        // Bu kategorideki ürünleri sayfalara böl
-        for (let i = 0; i < catProducts.length; i += itemsPerPage) {
-          pages.push({
-            type: 'products',
-            products: catProducts.slice(i, i + itemsPerPage)
+    if (props.enableCategoryDividers) {
+      const categories = Array.from(new Set(products.map(p => p.category || 'Diğer')))
+      categories.forEach(catName => {
+        const catProducts = products.filter(p => (p.category || 'Diğer') === catName)
+        if (catProducts.length > 0) {
+          calculatedPages.push({
+            type: 'divider',
+            categoryName: catName,
+            firstProductImage: catProducts[0].image_url ?? undefined
           })
+          for (let i = 0; i < catProducts.length; i += itemsPerPage) {
+            calculatedPages.push({ type: 'products', products: catProducts.slice(i, i + itemsPerPage) })
+          }
         }
       })
     } else {
-      // Kategori bölücü yoksa her zamanki gibi sayfalara böl
-      const basicPages = props.products.length > 0
-        ? Array.from({ length: Math.ceil(props.products.length / itemsPerPage) }, (_, i) =>
-          props.products.slice(i * itemsPerPage, (i + 1) * itemsPerPage)
-        )
-        : [[]]
-
-      basicPages.forEach(p => {
-        pages.push({ type: 'products', products: p })
-      })
+      for (let i = 0; i < products.length; i += itemsPerPage) {
+        calculatedPages.push({ type: 'products', products: products.slice(i, i + itemsPerPage) })
+      }
     }
+    if (calculatedPages.length === 0) calculatedPages.push({ type: 'products', products: [] })
+    return calculatedPages
+  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.pages])
 
-    return pages
-  }, [props.enableCoverPage, props.enableCategoryDividers, props.products, itemsPerPage])
+  const totalPages = pages.length
 
-  useEffect(() => {
-    if (displayPages.length > 0 && currentPage >= displayPages.length) {
-      setCurrentPage(Math.max(0, displayPages.length - 1))
-    }
-  }, [displayPages.length, currentPage])
+  // Sayfa indeksi güvenliği: Render sırasında geçersiz indeksi engelle
+  const safeCurrentPage = Math.min(currentPage, totalPages - 1 >= 0 ? totalPages - 1 : 0)
 
-  // Arka plan stili hesaplama (MEMOIZED)
-  const backgroundStyle = useMemo((): React.CSSProperties => {
-    const style: React.CSSProperties = {
-      backgroundColor: backgroundColor,
-    }
-
-    if (backgroundGradient && backgroundGradient !== 'none') {
-      // Shorthand 'background' yerine 'backgroundImage' kullanarak çakışmayı önle
-      style.backgroundImage = backgroundGradient
-    }
-
-    if (backgroundImage) {
-      // Eğer hem gradient hem image varsa, ikisini birden ( virgülle ayırarak) destekleyebiliriz
-      // Ancak şimdilik sadece görsel varsa görseli önceliklendir veya üstüne yaz
-      // React'te 'background' shorthand'i ile 'backgroundColor' karıştırmak hata verir.
-      style.backgroundImage = `url(${backgroundImage})`
-      style.backgroundSize = backgroundImageFit === 'fill' ? '100% 100%' : backgroundImageFit
-      style.backgroundPosition = 'center'
-      style.backgroundRepeat = 'no-repeat'
-    }
-
-    return style
-  }, [backgroundColor, backgroundGradient, backgroundImage, backgroundImageFit])
-
-  const goToPage = (page: number) => {
-    if (page >= 0 && page < displayPages.length) {
-      setCurrentPage(page)
-    }
+  // Sayfa indeksi değiştiğinde state'i de güncelle (useEffect yerine render sırasında kontrol)
+  if (currentPage > safeCurrentPage) {
+    setCurrentPage(safeCurrentPage)
   }
 
-  // Sayfa içeriğini render et - Logo bilgisi template'e geçirilir
-  const renderPage = (page: CatalogPage | undefined, pageIndex: number, isClickable: boolean = false) => {
-    // Null/undefined kontrolü
-    if (!page) {
-      return null
-    }
-
-    // 1. KAPAK SAYFASI
-    if (page.type === 'cover') {
-      return (
-        <div
-          key="cover"
-          className={`catalog-page shadow-2xl overflow-hidden relative shrink-0 ${isClickable ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
-          style={{
-            width: A4_WIDTH,
-            height: A4_HEIGHT,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top center',
-            ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {}),
-            backgroundColor: '#ffffff'
-          }}
-          onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
-        >
-          <CoverPage
-            catalogName={props.catalogName}
-            coverImageUrl={props.coverImageUrl}
-            coverDescription={props.coverDescription}
-            logoUrl={props.logoUrl}
-            primaryColor={props.primaryColor}
-            isExporting={isExporting}
-            theme={props.theme}
-          />
-
-          {/* Watermark for Free Users */}
-          {isFreeUser && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 mix-blend-multiply opacity-20">
-              <div className="text-8xl font-black text-gray-300 rotate-[-30deg] select-none border-8 border-gray-300 p-8">
-                PREVIEW ONLY
-              </div>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // 2. KATEGORİ BÖLÜCÜ SAYFASI
-    if (page.type === 'divider') {
-      return (
-        <div
-          key={`divider-${page.categoryName}`}
-          className={`catalog-page shadow-2xl overflow-hidden relative shrink-0 ${isClickable ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
-          style={{
-            width: A4_WIDTH,
-            height: A4_HEIGHT,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top center',
-            ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {})
-          }}
-          onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
-        >
-          <CategoryDivider
-            categoryName={page.categoryName}
-            firstProductImage={page.firstProductImage}
-            primaryColor={props.primaryColor}
-            theme={props.theme}
-          />
-
-          {/* Watermark for Free Users */}
-          {isFreeUser && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 mix-blend-multiply opacity-20">
-              <div className="text-8xl font-black text-gray-300 rotate-[-30deg] select-none border-8 border-gray-300 p-8">
-                PREVIEW ONLY
-              </div>
-            </div>
-          )}
-
-          {/* Page Number Badge */}
-          {isClickable && (
-            <div className="absolute top-3 right-3 z-50 bg-black/70 text-white text-xs px-2 py-1 rounded">
-              Sayfa {pageIndex + 1}
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // 3. ÜRÜN SAYFASI (page.type === 'products' olmalı - else bloğu olarak düşecek)
+  const renderPage = (page: CatalogPage | undefined, pageIndex: number) => {
+    if (!page) return null
     const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
-    const pageProducts = page.type === 'products' ? page.products : []
 
     return (
       <div
-        key={pageIndex}
-        className={`catalog-page bg-white shadow-2xl overflow-hidden relative shrink-0 flex flex-col ${isClickable ? 'cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all' : ''}`}
+        key={`page-container-${props.layout}-${pageIndex}`}
+        className="relative shrink-0"
         style={{
-          width: A4_WIDTH,
-          height: A4_HEIGHT,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top center',
-          ...(isClickable ? { marginBottom: (A4_HEIGHT * scale - A4_HEIGHT) + 16 } : {}),
-          ...backgroundStyle,
+          width: A4_WIDTH * scale,
+          height: A4_HEIGHT * scale,
+          marginBottom: viewMode === 'multi' ? 40 : 0
         }}
-        onClick={isClickable ? () => { setCurrentPage(pageIndex); setViewMode("single") } : undefined}
       >
-        {/* Watermark for Free Users */}
-        {isFreeUser && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 mix-blend-multiply opacity-20">
-            <div className="text-8xl font-black text-gray-300 rotate-[-30deg] select-none border-8 border-gray-300 p-8">
-              PREVIEW ONLY
+        <div
+          key={`page-${props.layout}-${pageIndex}`}
+          className="catalog-page catalog-light shadow-2xl overflow-hidden absolute top-0 left-1/2 -translate-x-1/2 bg-white"
+          style={{
+            width: A4_WIDTH,
+            height: A4_HEIGHT,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
+          }}
+        >
+          {page.type === 'cover' ? (
+            <CoverPage
+              catalogName={props.catalogName}
+              coverImageUrl={props.coverImageUrl}
+              coverDescription={props.coverDescription}
+              logoUrl={props.logoUrl}
+              primaryColor={props.primaryColor}
+              theme={props.theme}
+            />
+          ) : page.type === 'divider' ? (
+            <CategoryDivider
+              categoryName={page.categoryName}
+              firstProductImage={page.firstProductImage}
+              primaryColor={props.primaryColor}
+              theme={props.theme}
+            />
+          ) : (
+            <TemplateComponent
+              products={page.products}
+              primaryColor={props.primaryColor}
+              catalogName={props.catalogName}
+              pageNumber={pageIndex + 1}
+              totalPages={totalPages}
+              headerTextColor={props.headerTextColor}
+              showPrices={props.showPrices}
+              showDescriptions={props.showDescriptions}
+              showAttributes={props.showAttributes}
+              showSku={props.showSku}
+              showUrls={props.showUrls}
+              productImageFit={props.productImageFit}
+              columnsPerRow={props.columnsPerRow}
+              logoUrl={props.logoUrl}
+              logoPosition={props.logoPosition}
+              logoSize={props.logoSize}
+              titlePosition={props.titlePosition}
+            />
+          )}
+
+          {isFreeUser && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 mix-blend-multiply opacity-5">
+              <div className="text-8xl font-black text-gray-400 rotate-[-30deg] border-8 border-gray-400 p-8">FOGCATALOG</div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
+    )
+  }
 
-        {/* Sayfa numarası rozeti (sadece tüm sayfalar görünümünde) */}
-        {isClickable && (
-          <div className="absolute top-3 right-3 z-50 bg-black/70 text-white text-xs px-2 py-1 rounded">
-            Sayfa {pageIndex + 1}
-          </div>
-        )}
+  if (props.showControls === false) {
+    // Thumbnail'lar (Tasarım Ayarları Kartları) için sadece ilk sayfayı göster ve tam sığdır
+    // Eğer kapak varsa kapağı, yoksa ilk ürünlü sayfayı gösterir
+    const page = pages[0]
+    if (!page) return null
+    const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
 
-        {/* Template - Logo bilgisi template'e geçirilir */}
-        <TemplateComponent
-          catalogName={props.catalogName}
-          products={pageProducts}
-          primaryColor={props.primaryColor || '#4f46e5'}
-          headerTextColor={props.headerTextColor || '#ffffff'}
-          showPrices={props.showPrices ?? true}
-          showDescriptions={props.showDescriptions ?? true}
-          showAttributes={props.showAttributes ?? true}
-          showSku={props.showSku ?? true}
-          showUrls={props.showUrls ?? true}
-          productImageFit={props.productImageFit || 'cover'}
-          isFreeUser={isFreeUser}
-          pageNumber={pageIndex + 1}
-          totalPages={displayPages.length}
-          columnsPerRow={columnsPerRow}
-          backgroundColor={props.backgroundColor}
-          backgroundImage={props.backgroundImage ?? undefined}
-          backgroundImageFit={props.backgroundImageFit}
-          backgroundGradient={props.backgroundGradient ?? undefined}
-          logoUrl={props.logoUrl ?? undefined}
-          logoPosition={props.logoPosition}
-          logoSize={props.logoSize}
-          titlePosition={props.titlePosition as 'left' | 'center' | 'right' | undefined}
-        />
+    return (
+      <div className="w-full h-full flex items-start justify-center overflow-hidden bg-white">
+        <div
+          className="catalog-page catalog-light shadow-none overflow-hidden shrink-0"
+          style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+        >
+          {page.type === 'cover' ? (
+            <CoverPage
+              catalogName={props.catalogName}
+              coverImageUrl={props.coverImageUrl}
+              coverDescription={props.coverDescription}
+              logoUrl={props.logoUrl}
+              primaryColor={props.primaryColor}
+              theme={props.theme}
+            />
+          ) : page.type === 'divider' ? (
+            <CategoryDivider
+              categoryName={page.categoryName}
+              firstProductImage={page.firstProductImage}
+              primaryColor={props.primaryColor}
+              theme={props.theme}
+            />
+          ) : (
+            <TemplateComponent
+              products={page.products}
+              primaryColor={props.primaryColor}
+              catalogName={props.catalogName}
+              pageNumber={1}
+              totalPages={totalPages}
+              headerTextColor={props.headerTextColor}
+              showPrices={props.showPrices}
+              showDescriptions={props.showDescriptions}
+              showAttributes={props.showAttributes}
+              showSku={props.showSku}
+              showUrls={props.showUrls}
+              productImageFit={props.productImageFit}
+              columnsPerRow={props.columnsPerRow}
+              logoUrl={props.logoUrl}
+              logoPosition={props.logoPosition}
+              logoSize={props.logoSize}
+              titlePosition={props.titlePosition}
+            />
+          )}
+        </div>
       </div>
     )
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-white catalog-light">
+    <div ref={containerRef} className="flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-[#0a0c1a] dark:to-[#020308] relative isolate">
+      {/* Decorative Effects - Static for stability */}
+      <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[70%] bg-indigo-500/15 blur-[140px] rounded-full pointer-events-none hidden dark:block -z-10" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[70%] h-[70%] bg-violet-600/10 blur-[140px] rounded-full pointer-events-none hidden dark:block -z-10" />
 
-      {/* Sayfa Kontrolü - Sadece 'showControls' true ise göster */}
-      {showControls && (
-        <div className="flex items-center justify-between px-2 sm:px-4 py-2 bg-white border-b shrink-0 gap-1.5 sm:gap-4 shadow-sm z-10">
-          <div className="flex items-center gap-1 sm:gap-3 min-w-0">
-            <div className="flex xl:hidden">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 rounded-full border border-border/40 bg-muted/30 px-3 flex items-center gap-2 hover:bg-muted/50 transition-all active:scale-95"
-                onClick={() => setViewMode(viewMode === "single" ? "all" : "single")}
-              >
-                {viewMode === "single" ? (
-                  <>
-                    <Monitor className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[9px] font-black uppercase">TEK SAYFA</span>
-                  </>
-                ) : (
-                  <>
-                    <Layout className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-tight">TÜM SAYFALAR</span>
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="hidden xl:block">
-              <Tabs
-                value={viewMode}
-                onValueChange={(v) => setViewMode(v as "single" | "all")}
-                className="h-9"
-              >
-                <TabsList className="bg-muted/50 p-1 rounded-full border border-border/40">
-                  <TabsTrigger
-                    value="single"
-                    className="rounded-full px-4 py-1.5 h-7 text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
-                  >
-                    <Monitor className="h-3.5 w-3.5 mr-1.5 opacity-70" />
-                    TEK SAYFA
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="all"
-                    className="rounded-full px-4 py-1.5 h-7 text-[10px] font-black uppercase tracking-tight data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
-                  >
-                    <Layout className="h-3.5 w-3.5 mr-1.5 opacity-70" />
-                    TÜM SAYFALAR
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            <div className="h-5 w-px bg-border/40 mx-0.5 hidden xl:block" />
-
-            {/* Sütun sayısı - Sadece geniş ekranlarda */}
-            <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 bg-muted/40 rounded-full border border-border/20 shrink-0">
-              <span className="text-[9px] font-black text-muted-foreground uppercase opacity-80 tracking-widest">{columnsPerRow} SÜTUN</span>
-            </div>
+      {/* Ultra-Compact Responsive Control Bar */}
+      <div className="flex items-center justify-between px-2 md:px-4 py-1.5 md:py-2.5 bg-white/80 dark:bg-[#080a12]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 shrink-0 z-30 shadow-sm gap-1 md:gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200 dark:border-white/10">
+            <Button
+              variant={viewMode === 'single' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={cn(
+                "h-7 md:h-8 px-1.5 md:px-3 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all",
+                viewMode === 'single' && "bg-white dark:bg-indigo-600 shadow-sm text-slate-900 dark:text-white"
+              )}
+              onClick={() => setViewMode('single')}
+            >
+              <FileText className="w-3.5 h-3.5 lg:mr-1.5" />
+              <span className="hidden lg:inline">Tek Sayfa</span>
+            </Button>
+            <Button
+              variant={viewMode === 'multi' ? 'secondary' : 'ghost'}
+              size="sm"
+              className={cn(
+                "h-7 md:h-8 px-1.5 md:px-3 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all",
+                viewMode === 'multi' && "bg-white dark:bg-indigo-600 shadow-sm text-slate-900 dark:text-white"
+              )}
+              onClick={() => setViewMode('multi')}
+            >
+              <List className="w-3.5 h-3.5 lg:mr-1.5" />
+              <span className="hidden lg:inline">Tüm Sayfalar</span>
+            </Button>
           </div>
+        </div>
 
-          {viewMode === "single" && (
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-muted"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0}
-              >
-                <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </Button>
-
-              <div className="flex items-center justify-center bg-muted/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-border/30 min-w-[50px] sm:min-w-[80px]">
-                <span className="text-[10px] sm:text-xs font-black text-foreground tabular-nums">{currentPage + 1}</span>
-                <span className="text-[9px] font-bold text-muted-foreground mx-1">/</span>
-                <span className="text-[10px] sm:text-xs font-black text-muted-foreground tabular-nums">{displayPages.length}</span>
+        <div className="flex items-center gap-1 md:gap-4">
+          {viewMode === 'single' && totalPages > 1 && (
+            <div className="flex items-center gap-3 md:gap-4 bg-slate-100 dark:bg-white/5 px-4 py-1.5 rounded-2xl border border-slate-200 dark:border-white/10 min-w-[200px] md:min-w-[300px]">
+              <div className="text-[9px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
+                Sayfa {safeCurrentPage + 1}
               </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-muted"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === displayPages.length - 1}
-              >
-                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Sayfa Kaydırıcı - Sadece geniş ekranlarda */}
-          {displayPages.length > 1 && viewMode === "single" && (
-            <div className="hidden 2xl:flex items-center gap-3 flex-1 max-w-[200px] ml-4">
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-[8px] font-black text-muted-foreground uppercase">SAYFA GEZGİNİ</span>
-                </div>
-                <Slider
-                  value={[currentPage]}
-                  max={displayPages.length - 1}
-                  step={1}
-                  onValueChange={(vals) => goToPage(vals[0])}
-                  className="cursor-pointer"
-                />
+              <Slider
+                value={[safeCurrentPage]}
+                max={totalPages - 1}
+                step={1}
+                onValueChange={([val]) => setCurrentPage(val)}
+                className="flex-1 cursor-pointer"
+              />
+              <div className="text-[9px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">
+                {totalPages}
               </div>
-            </div>
-          )}
-
-          {viewMode === "all" && (
-            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hidden sm:flex items-center gap-1.5 bg-muted/30 px-2.5 py-1 rounded-full border border-border/20">
-              <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-              {displayPages.length} SAYFA
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Önizleme Alanı */}
+      {/* Preview Workspace */}
       <div
-        id="catalog-preview-container"
-        className="flex-1 overflow-auto p-6"
+        className="flex-1 overflow-auto p-12 relative z-10 custom-scrollbar"
+        style={{ overflowAnchor: 'none' }}
       >
-        {viewMode === "single" && !isExporting ? (
-          /* Tek Sayfa Görünümü */
-          <div
-            className="flex justify-center"
-            style={{
-              minHeight: A4_HEIGHT * scale + 32
-            }}
-          >
-            {/* Tek sayfa modunda wrapper'a gerek var mı? PDF için yok ama tutarlılık için ekleyelim */}
-            <div className="catalog-page-wrapper">
-              {renderPage(displayPages[currentPage], currentPage, false)}
+        <div className="min-h-full flex flex-col items-center w-full">
+          {viewMode === 'single' ? (
+            <div className="flex justify-center flex-1 w-full">
+              {renderPage(pages[safeCurrentPage], safeCurrentPage)}
             </div>
-          </div>
-        ) : (
-          /* Tüm Sayfalar Görünümü (veya Export Modu) */
-          <div className="flex flex-col items-center gap-8">
-            {displayPages.map((page, index) => (
-              <div key={index} className="catalog-page-wrapper">
-                {renderPage(page, index, !isExporting)}
-              </div>
-            ))}
-          </div>
-        )}
+          ) : (
+            <div className="flex flex-col items-center w-full">
+              {pages.map((page, index) => renderPage(page, index))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

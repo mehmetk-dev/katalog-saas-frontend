@@ -101,7 +101,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [backgroundImage, setBackgroundImage] = useState<string | null>(catalog?.background_image || null)
   const [backgroundImageFit, setBackgroundImageFit] = useState<NonNullable<Catalog['background_image_fit']>>(catalog?.background_image_fit || 'cover')
   const [backgroundGradient, setBackgroundGradient] = useState<string | null>(catalog?.background_gradient || null)
-  const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(catalog?.logo_url || user?.logo_url || null)
   const [logoPosition, setLogoPosition] = useState<Catalog['logo_position']>(catalog?.logo_position || 'header-left')
   const [logoSize, setLogoSize] = useState<Catalog['logo_size']>(catalog?.logo_size || 'medium')
   const [titlePosition, setTitlePosition] = useState<Catalog['title_position']>(catalog?.title_position || 'left')
@@ -210,7 +210,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       setBackgroundImage(catalog.background_image || null)
       setBackgroundImageFit(catalog.background_image_fit || 'cover')
       setBackgroundGradient(catalog.background_gradient || null)
-      setLogoUrl(catalog.logo_url || null)
+      setLogoUrl(catalog.logo_url || user?.logo_url || null)
       setLogoPosition(catalog.logo_position || 'header-left')
       setLogoSize(catalog.logo_size || 'medium')
       setTitlePosition(catalog.title_position || 'left')
@@ -1010,7 +1010,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           {(effectiveView === "split" || effectiveView === "preview") && (
             <div
               id="catalog-preview-container"
-              className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-50 overflow-auto catalog-light`}
+              className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-100 dark:bg-[#03040a] overflow-auto`}
             >
               <CatalogPreview
                 catalogName={catalogName}
@@ -1029,13 +1029,13 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
                 backgroundImage={backgroundImage}
                 backgroundImageFit={backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
                 backgroundGradient={backgroundGradient}
-                logoUrl={logoUrl}
+                logoUrl={logoUrl ?? undefined}
                 logoPosition={logoPosition ?? undefined}
                 logoSize={logoSize}
                 titlePosition={titlePosition}
                 enableCoverPage={enableCoverPage}
-                coverImageUrl={coverImageUrl}
-                coverDescription={coverDescription}
+                coverImageUrl={coverImageUrl ?? undefined}
+                coverDescription={coverDescription ?? undefined}
                 enableCategoryDividers={enableCategoryDividers}
                 theme={coverTheme}
               />
@@ -1116,14 +1116,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               backgroundImage={backgroundImage}
               backgroundImageFit={backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
               backgroundGradient={backgroundGradient}
-              logoUrl={logoUrl}
+              logoUrl={logoUrl ?? undefined}
               logoPosition={logoPosition ?? undefined}
               logoSize={logoSize}
               titlePosition={titlePosition}
               isExporting={true} // Her zaman tüm sayfalar
               enableCoverPage={enableCoverPage}
-              coverImageUrl={coverImageUrl}
-              coverDescription={coverDescription}
+              coverImageUrl={coverImageUrl ?? undefined}
+              coverDescription={coverDescription ?? undefined}
               enableCategoryDividers={enableCategoryDividers}
               theme={coverTheme}
             />

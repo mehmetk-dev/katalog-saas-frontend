@@ -72,8 +72,8 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('sidebar.templates')}</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">{t('common.selectTemplate')}</p>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Şablonlar</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Yeni bir katalog oluşturmak için bir şablon seçin.</p>
       </div>
 
       {templates.length === 0 ? (
@@ -147,7 +147,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="font-medium text-sm sm:text-base truncate text-foreground">{template.name}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground capitalize">{template.layout} düzeni</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{template.description || "Katalog Şablonu"}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {template.is_premium && <Badge variant="secondary" className="bg-gradient-to-r from-amber-200 to-yellow-400 dark:from-amber-900/30 dark:to-yellow-900/30 text-yellow-900 dark:text-yellow-200 border-0 text-xs">Premium</Badge>}

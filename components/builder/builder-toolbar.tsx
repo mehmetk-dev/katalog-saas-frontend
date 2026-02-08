@@ -168,21 +168,28 @@ export function BuilderToolbar({
                     {/* ACTIONS GROUP */}
                     <div className="flex items-center gap-1 sm:gap-2">
                         {/* Save Button */}
-                        <Button
-                            size="icon"
-                            onClick={onSave}
-                            disabled={isPending}
-                            variant="ghost"
-                            className={cn(
-                                "h-9 w-9 rounded-xl shrink-0 transition-all",
-                                hasUnsavedChanges
-                                    ? "bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200"
-                                    : "text-slate-400 hover:bg-slate-50"
-                            )}
-                            title="Değişiklikleri Kaydet"
-                        >
-                            <Save className={cn("w-4.5 h-4.5", hasUnsavedChanges ? "animate-pulse" : "")} />
-                        </Button>
+                        {hasUnsavedChanges ? (
+                            <Button
+                                size="sm"
+                                onClick={onSave}
+                                disabled={isPending}
+                                className="h-9 px-3 rounded-xl shrink-0 transition-all bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 animate-pulse gap-2"
+                                title="Değişiklikleri Kaydet"
+                            >
+                                <Save className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">Kaydet</span>
+                            </Button>
+                        ) : (
+                            <Button
+                                size="icon"
+                                disabled
+                                variant="ghost"
+                                className="h-9 w-9 rounded-xl shrink-0 text-slate-300 cursor-not-allowed"
+                                title="Kaydedilecek değişiklik yok"
+                            >
+                                <Save className="w-4.5 h-4.5" />
+                            </Button>
+                        )}
 
                         {/* DESKTOP ONLY: Direct Primary Actions */}
                         {!isMobile && (
