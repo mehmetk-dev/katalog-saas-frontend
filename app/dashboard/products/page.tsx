@@ -14,12 +14,13 @@ export const metadata: Metadata = {
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; limit?: string; category?: string; search?: string }
+  searchParams: Promise<{ page?: string; limit?: string; category?: string; search?: string }>
 }) {
-  const page = parseInt(searchParams.page || "1")
-  const limit = parseInt(searchParams.limit || "12")
-  const category = searchParams.category || "all"
-  const search = searchParams.search || ""
+  const params = await searchParams
+  const page = parseInt(params.page || "1")
+  const limit = parseInt(params.limit || "12")
+  const category = params.category || "all"
+  const search = params.search || ""
 
   const [productsResponse, user] = await Promise.all([
     getProducts({ page, limit, category, search }),

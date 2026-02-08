@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useTransition, useMemo, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 import { ProductsTable } from "./products-table"
 import { ProductModal } from "./product-modal"
@@ -110,7 +111,9 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
         params.set(key, value.toString())
       }
     })
-    router.push(`?${params.toString()}`)
+    startTransition(() => {
+      router.push(`?${params.toString()}`)
+    })
   }, [router, searchParams])
 
   const isFreeUser = userPlan === "free"
@@ -421,60 +424,65 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
           />
         </div>
 
-        {/* Ürün Listesi */}
-        <div className="mt-2">
-          <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{(t("products.deleteConfirmTitle") as string) || "Emin misiniz?"}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {(t("products.deleteConfirmDesc", { count: selectedIds.length }) as string) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz.Bu işlem geri alınamaz.`}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("common.cancel") as string}</AlertDialogCancel>
-                <AlertDialogAction onClick={executeBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {t("common.delete") as string}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        {/* Ürün Listesi ve Sayfalama */}
+        <div className={cn(
+          "transition-all duration-300",
+          isPending && "opacity-50 pointer-events-none grayscale-[0.5]"
+        )}>
+          <div className="mt-2">
+            <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{(t("products.deleteConfirmTitle") as string) || "Emin misiniz?"}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {(t("products.deleteConfirmDesc", { count: selectedIds.length }) as string) || `Seçili ${selectedIds.length} ürünü silmek üzeresiniz. Bu işlem geri alınamaz.`}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("common.cancel") as string}</AlertDialogCancel>
+                  <AlertDialogAction onClick={executeBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {t("common.delete") as string}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
-          <ProductsTable
-            products={paginatedProducts}
-            allProducts={products}
-            search=""
-            selectedIds={selectedIds}
-            onSelectedIdsChange={setSelectedIds}
-            onEdit={handleEditProduct}
-            onDeleted={handleProductDeleted}
-            viewMode={viewMode}
-            onProductsReorder={(newProducts) => {
-              setProducts(newProducts)
-              // Sürükle-bırak yapıldığında otomatik olarak manuel sıralamaya geç
-              if (sortField !== "order") {
-                setSortField("order")
-                setSortOrder("asc")
-                toast.info((t("products.switchedToManualSort") as string) || "Manuel sıralamaya geçildi")
-              }
+            <ProductsTable
+              products={paginatedProducts}
+              allProducts={products}
+              search=""
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
+              onEdit={handleEditProduct}
+              onDeleted={handleProductDeleted}
+              viewMode={viewMode}
+              onProductsReorder={(newProducts) => {
+                setProducts(newProducts)
+                // Sürükle-bırak yapıldığında otomatik olarak manuel sıralamaya geç
+                if (sortField !== "order") {
+                  setSortField("order")
+                  setSortOrder("asc")
+                  toast.info((t("products.switchedToManualSort") as string) || "Manuel sıralamaya geçildi")
+                }
+              }}
+            />
+          </div>
+
+          {/* Sayfalama */}
+          <ProductsPagination
+            currentPage={currentPage}
+            totalPages={totalPagesCount}
+            itemsPerPage={itemsPerPage}
+            totalItems={metadata.total}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={(size) => {
+              setItemsPerPage(size)
+              setCurrentPage(1)
+              updateUrl({ limit: size, page: 1 })
             }}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
           />
         </div>
-
-        {/* Sayfalama */}
-        <ProductsPagination
-          currentPage={currentPage}
-          totalPages={totalPagesCount}
-          itemsPerPage={itemsPerPage}
-          totalItems={metadata.total}
-          onPageChange={handlePageChange}
-          onItemsPerPageChange={(size) => {
-            setItemsPerPage(size)
-            setCurrentPage(1)
-            updateUrl({ limit: size, page: 1 })
-          }}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
-        />
 
         {/* Modallar */}
         <ProductModal
