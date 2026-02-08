@@ -7,6 +7,7 @@ interface LightboxState {
     images: string[]
     currentIndex: number
     productName?: string
+    allCatalogImages: string[]
 }
 
 interface LightboxContextType {
@@ -16,13 +17,15 @@ interface LightboxContextType {
     nextImage: () => void
     prevImage: () => void
     goToImage: (index: number) => void
+    setAllCatalogImages: (images: string[]) => void
 }
 
 const initialState: LightboxState = {
     isOpen: false,
     images: [],
     currentIndex: 0,
-    productName: undefined
+    productName: undefined,
+    allCatalogImages: []
 }
 
 const LightboxContext = createContext<LightboxContextType | null>(null)
@@ -30,20 +33,28 @@ const LightboxContext = createContext<LightboxContextType | null>(null)
 export function LightboxProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<LightboxState>(initialState)
 
+    const setAllCatalogImages = useCallback((images: string[]) => {
+        setState(prev => ({ ...prev, allCatalogImages: images }))
+    }, [])
+
     const openLightbox = useCallback((images: string[], startIndex = 0, productName?: string) => {
         if (images.length === 0) return
-        setState({
+        setState(prev => ({
+            ...prev,
             isOpen: true,
             images,
             currentIndex: startIndex,
             productName
-        })
+        }))
         // Body scroll'unu kapat
         document.body.style.overflow = 'hidden'
     }, [])
 
     const closeLightbox = useCallback(() => {
-        setState(initialState)
+        setState(prev => ({
+            ...initialState,
+            allCatalogImages: prev.allCatalogImages // Preload listesini koru
+        }))
         // Body scroll'unu aç
         document.body.style.overflow = ''
     }, [])
@@ -70,7 +81,15 @@ export function LightboxProvider({ children }: { children: ReactNode }) {
     }, [])
 
     return (
-        <LightboxContext.Provider value={{ state, openLightbox, closeLightbox, nextImage, prevImage, goToImage }}>
+        <LightboxContext.Provider value={{
+            state,
+            openLightbox,
+            closeLightbox,
+            nextImage,
+            prevImage,
+            goToImage,
+            setAllCatalogImages
+        }}>
             {children}
         </LightboxContext.Provider>
     )
@@ -86,8 +105,35 @@ export function useLightbox() {
             closeLightbox: () => { },
             nextImage: () => { },
             prevImage: () => { },
-            goToImage: () => { }
+            goToImage: () => { },
+            setAllCatalogImages: () => { }
         }
     }
     return context
+}
+
+/**
+ * Yardımcı bileşen: Katalogdaki tüm görselleri Lightbox context'ine yükler.
+ * Bu sayede görseller açıldığı an arka planda prefetch başlar.
+ */
+export function CatalogPreloader({ products, images: directImages }: { products?: any[], images?: string[] }) {
+    const { setAllCatalogImages } = useLightbox()
+
+    React.useEffect(() => {
+        let urls: string[] = []
+        if (directImages) {
+            urls = directImages
+        } else if (products) {
+            urls = products
+                .slice(0, 100)
+                .flatMap(p => [p.image_url, ...(p.images || [])])
+                .filter((url): url is string => !!url && url !== "/placeholder.svg")
+        }
+
+        if (urls.length > 0) {
+            setAllCatalogImages(urls)
+        }
+    }, [products, directImages, setAllCatalogImages])
+
+    return null
 }

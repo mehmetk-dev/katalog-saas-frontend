@@ -76,14 +76,22 @@ export function ImageLightbox() {
             className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300"
             onClick={handleBackdropClick}
         >
-            {/* Prefetch Next/Prev Images - hidden img for prefetch only */}
-            <div className="hidden" aria-hidden="true">
+            {/* Prefetch Image Queue - Start preloading catalog images when open */}
+            <div className="hidden" aria-hidden="true" key="prefetch-root">
+                {state.allCatalogImages?.length > 0 && (
+                    state.allCatalogImages.slice(0, 40).map((url, idx) => (
+                        <img
+                            key={`prefetch-${idx}`}
+                            src={getCloudinaryResizedUrl(url, 1200)}
+                            alt=""
+                        />
+                    ))
+                )}
+                {/* Specific Prefetch for Current Gallery Next/Prev (Higher Priority) */}
                 {images.length > 1 && (
                     <>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- prefetch only, not displayed */}
-                        <img src={images[nextIdx]} alt="" />
-                        {/* eslint-disable-next-line @next/next/no-img-element -- prefetch only, not displayed */}
-                        <img src={images[prevIdx]} alt="" />
+                        <img src={getCloudinaryResizedUrl(images[nextIdx], 1600)} alt="" />
+                        <img src={getCloudinaryResizedUrl(images[prevIdx], 1600)} alt="" />
                     </>
                 )}
             </div>

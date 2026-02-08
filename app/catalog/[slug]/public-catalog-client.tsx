@@ -39,7 +39,7 @@ import type { TemplateProps } from "@/components/catalogs/templates/types"
 import { CoverPage } from "@/components/catalogs/cover-page"
 import { CategoryDivider } from "@/components/catalogs/category-divider"
 // Image Gallery & Lightbox
-import { LightboxProvider } from "@/lib/lightbox-context"
+import { LightboxProvider, CatalogPreloader } from "@/lib/lightbox-context"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 
 interface PublicCatalogClientProps {
@@ -321,6 +321,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
 
     return (
         <LightboxProvider>
+            <CatalogPreloader products={initialProducts} />
             <div className={cn(
                 "min-h-screen flex flex-col transition-colors duration-500",
                 isFullscreen ? "bg-black" : "bg-slate-50"

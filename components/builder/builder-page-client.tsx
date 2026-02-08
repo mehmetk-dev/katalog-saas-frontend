@@ -12,6 +12,8 @@ import { useUser } from "@/lib/user-context"
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/i18n-provider"
+import { useLightbox, LightboxProvider, CatalogPreloader } from "@/lib/lightbox-context"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
 
 // Atomic Components
 import { BuilderToolbar } from "./builder-toolbar"
@@ -57,6 +59,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [catalogName, setCatalogName] = useState(catalog?.name || "")
   const [catalogDescription, setCatalogDescription] = useState(catalog?.description || "")
+  const { openLightbox } = useLightbox()
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(catalog?.product_ids || [])
   const [layout, setLayout] = useState(catalog?.layout || "grid")
   // Helper: Convert hex to rgba
@@ -902,109 +905,199 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const effectiveView = isMobile ? (view === "split" ? "editor" : view) : view
 
   return (
-    <div className="builder-page h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
-      {/* Header - Clean Single Row */}
-      {view !== "preview" && (
-        <BuilderToolbar
-          catalog={catalog}
-          catalogName={catalogName}
-          onCatalogNameChange={setCatalogName}
-          isMobile={isMobile}
-          isPublished={isPublished}
-          hasUnsavedChanges={hasUnsavedChanges}
-          hasUnpushedChanges={hasUnpushedChanges}
-          isUrlOutdated={isUrlOutdated}
-          isPending={isPending}
-          view={view}
-          onViewChange={setView}
-          onSave={handleSave}
-          onPublish={handlePublish}
-          onPushUpdates={handlePushUpdates}
-          onUpdateSlug={handleUpdateSlug}
-          onShare={handleShare}
-          onDownloadPDF={handleDownloadPDF}
-          onExit={() => {
-            if (hasUnsavedChanges) {
-              setShowExitDialog(true)
-            } else {
-              router.push('/dashboard')
-            }
-          }}
-        />
-      )}
-
-
-      {/* Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Editor */}
-        {(effectiveView === "split" || effectiveView === "editor") && (
-          <div className={`${effectiveView === "split" ? "w-1/2" : "w-full"} border-r overflow-auto`}>
-            <CatalogEditor
-              products={products}
-              selectedProductIds={selectedProductIds}
-              onSelectedProductIdsChange={setSelectedProductIds}
-              description={catalogDescription}
-              onDescriptionChange={setCatalogDescription}
-              layout={layout}
-              onLayoutChange={setLayout}
-              primaryColor={primaryColor}
-              onPrimaryColorChange={setPrimaryColor}
-              headerTextColor={headerTextColor}
-              onHeaderTextColorChange={setHeaderTextColor}
-              showPrices={showPrices}
-              onShowPricesChange={setShowPrices}
-              showDescriptions={showDescriptions}
-              onShowDescriptionsChange={setShowDescriptions}
-              showAttributes={showAttributes}
-              onShowAttributesChange={setShowAttributes}
-              showSku={showSku}
-              onShowSkuChange={setShowSku}
-              showUrls={showUrls}
-              onShowUrlsChange={setShowUrls}
-              productImageFit={productImageFit}
-              onProductImageFitChange={setProductImageFit}
-              userPlan={user?.plan || "free"}
-              onUpgrade={() => setShowUpgradeModal(true)}
-              columnsPerRow={columnsPerRow}
-              onColumnsPerRowChange={setColumnsPerRow}
-              backgroundColor={backgroundColor}
-              onBackgroundColorChange={setBackgroundColor}
-              backgroundImage={backgroundImage}
-              onBackgroundImageChange={setBackgroundImage}
-              backgroundImageFit={backgroundImageFit}
-              onBackgroundImageFitChange={(v) => setBackgroundImageFit(v)}
-              backgroundGradient={backgroundGradient}
-              onBackgroundGradientChange={setBackgroundGradient}
-              logoUrl={logoUrl}
-              onLogoUrlChange={setLogoUrl}
-              logoPosition={logoPosition}
-              onLogoPositionChange={(v) => setLogoPosition(v)}
-              logoSize={logoSize}
-              onLogoSizeChange={(v) => setLogoSize(v)}
-              titlePosition={titlePosition}
-              onTitlePositionChange={(v) => setTitlePosition(v)}
-              // Storytelling Catalog Props
-              enableCoverPage={enableCoverPage}
-              onEnableCoverPageChange={setEnableCoverPage}
-              coverImageUrl={coverImageUrl}
-              onCoverImageUrlChange={setCoverImageUrl}
-              coverDescription={coverDescription}
-              onCoverDescriptionChange={setCoverDescription}
-              enableCategoryDividers={enableCategoryDividers}
-              onEnableCategoryDividersChange={setEnableCategoryDividers}
-              coverTheme={coverTheme}
-              onCoverThemeChange={setCoverTheme}
-              showInSearch={showInSearch}
-              onShowInSearchChange={setShowInSearch}
-            />
-          </div>
+    <LightboxProvider>
+      <CatalogPreloader products={products} />
+      <ImageLightbox />
+      <div className="builder-page h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
+        {/* Header - Clean Single Row */}
+        {view !== "preview" && (
+          <BuilderToolbar
+            catalog={catalog}
+            catalogName={catalogName}
+            onCatalogNameChange={setCatalogName}
+            isMobile={isMobile}
+            isPublished={isPublished}
+            hasUnsavedChanges={hasUnsavedChanges}
+            hasUnpushedChanges={hasUnpushedChanges}
+            isUrlOutdated={isUrlOutdated}
+            isPending={isPending}
+            view={view}
+            onViewChange={setView}
+            onSave={handleSave}
+            onPublish={handlePublish}
+            onPushUpdates={handlePushUpdates}
+            onUpdateSlug={handleUpdateSlug}
+            onShare={handleShare}
+            onDownloadPDF={handleDownloadPDF}
+            onExit={() => {
+              if (hasUnsavedChanges) {
+                setShowExitDialog(true)
+              } else {
+                router.push('/dashboard')
+              }
+            }}
+          />
         )}
 
-        {/* Preview */}
-        {(effectiveView === "split" || effectiveView === "preview") && (
+
+        {/* Content */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Editor */}
+          {(effectiveView === "split" || effectiveView === "editor") && (
+            <div className={`${effectiveView === "split" ? "w-1/2" : "w-full"} border-r overflow-auto`}>
+              <CatalogEditor
+                products={products}
+                selectedProductIds={selectedProductIds}
+                onSelectedProductIdsChange={setSelectedProductIds}
+                description={catalogDescription}
+                onDescriptionChange={setCatalogDescription}
+                layout={layout}
+                onLayoutChange={setLayout}
+                primaryColor={primaryColor}
+                onPrimaryColorChange={setPrimaryColor}
+                headerTextColor={headerTextColor}
+                onHeaderTextColorChange={setHeaderTextColor}
+                showPrices={showPrices}
+                onShowPricesChange={setShowPrices}
+                showDescriptions={showDescriptions}
+                onShowDescriptionsChange={setShowDescriptions}
+                showAttributes={showAttributes}
+                onShowAttributesChange={setShowAttributes}
+                showSku={showSku}
+                onShowSkuChange={setShowSku}
+                showUrls={showUrls}
+                onShowUrlsChange={setShowUrls}
+                productImageFit={productImageFit}
+                onProductImageFitChange={setProductImageFit}
+                userPlan={user?.plan || "free"}
+                onUpgrade={() => setShowUpgradeModal(true)}
+                columnsPerRow={columnsPerRow}
+                onColumnsPerRowChange={setColumnsPerRow}
+                backgroundColor={backgroundColor}
+                onBackgroundColorChange={setBackgroundColor}
+                backgroundImage={backgroundImage}
+                onBackgroundImageChange={setBackgroundImage}
+                backgroundImageFit={backgroundImageFit}
+                onBackgroundImageFitChange={(v) => setBackgroundImageFit(v)}
+                backgroundGradient={backgroundGradient}
+                onBackgroundGradientChange={setBackgroundGradient}
+                logoUrl={logoUrl}
+                onLogoUrlChange={setLogoUrl}
+                logoPosition={logoPosition}
+                onLogoPositionChange={(v) => setLogoPosition(v)}
+                logoSize={logoSize}
+                onLogoSizeChange={(v) => setLogoSize(v)}
+                titlePosition={titlePosition}
+                onTitlePositionChange={(v) => setTitlePosition(v)}
+                // Storytelling Catalog Props
+                enableCoverPage={enableCoverPage}
+                onEnableCoverPageChange={setEnableCoverPage}
+                coverImageUrl={coverImageUrl}
+                onCoverImageUrlChange={setCoverImageUrl}
+                coverDescription={coverDescription}
+                onCoverDescriptionChange={setCoverDescription}
+                enableCategoryDividers={enableCategoryDividers}
+                onEnableCategoryDividersChange={setEnableCategoryDividers}
+                coverTheme={coverTheme}
+                onCoverThemeChange={setCoverTheme}
+                showInSearch={showInSearch}
+                onShowInSearchChange={setShowInSearch}
+              />
+            </div>
+          )}
+
+          {/* Preview */}
+          {(effectiveView === "split" || effectiveView === "preview") && (
+            <div
+              id="catalog-preview-container"
+              className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-50 overflow-auto catalog-light`}
+            >
+              <CatalogPreview
+                catalogName={catalogName}
+                products={selectedProducts}
+                layout={layout}
+                primaryColor={primaryColor}
+                headerTextColor={headerTextColor}
+                showPrices={showPrices}
+                showDescriptions={showDescriptions}
+                showAttributes={showAttributes}
+                showSku={showSku}
+                showUrls={showUrls}
+                productImageFit={productImageFit}
+                columnsPerRow={columnsPerRow}
+                backgroundColor={backgroundColor}
+                backgroundImage={backgroundImage}
+                backgroundImageFit={backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
+                backgroundGradient={backgroundGradient}
+                logoUrl={logoUrl}
+                logoPosition={logoPosition ?? undefined}
+                logoSize={logoSize}
+                titlePosition={titlePosition}
+                enableCoverPage={enableCoverPage}
+                coverImageUrl={coverImageUrl}
+                coverDescription={coverDescription}
+                enableCategoryDividers={enableCategoryDividers}
+                theme={coverTheme}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Preview Mode Floating Header (Switch Back) */}
+        <PreviewFloatingHeader
+          view={view}
+          onViewChange={setView}
+          catalogName={catalogName}
+          onPublish={handlePublish}
+          onDownloadPDF={handleDownloadPDF}
+        />
+
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          plan={user?.plan || "free"}
+        />
+
+        {/* Share Modal */}
+        <ShareModal
+          open={showShareModal}
+          onOpenChange={setShowShareModal}
+          catalog={catalog}
+          isPublished={isPublished}
+          shareUrl={catalog?.share_slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/catalog/${catalog.share_slug}` : ""}
+          onDownloadPdf={handleDownloadPDF}
+        />
+
+        {/* Exit Confirmation Dialog */}
+        <ExitDialog
+          open={showExitDialog}
+          onOpenChange={setShowExitDialog}
+          onExitWithoutSaving={() => {
+            setShowExitDialog(false)
+            router.push('/dashboard')
+          }}
+          onSaveAndExit={() => {
+            handleSave()
+            setShowExitDialog(false)
+            // Kayıt işlemi için yeterli süre bekle
+            setTimeout(() => router.push('/dashboard'), 1500)
+          }}
+        />
+
+        {/* GHOST CONTAINER (PDF Export için Gizli Alan) */}
+        {isExporting && (
           <div
-            id="catalog-preview-container"
-            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-50 overflow-auto catalog-light`}
+            id="catalog-export-container"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: '-9999px',
+              width: '1000px', // Yeterince geniş
+              zIndex: -100,
+              opacity: 0, // Görünmez ama render olur
+              pointerEvents: 'none',
+              overflow: 'visible' // Taşmaları engelleme
+            }}
           >
             <CatalogPreview
               catalogName={catalogName}
@@ -1027,6 +1120,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               logoPosition={logoPosition ?? undefined}
               logoSize={logoSize}
               titlePosition={titlePosition}
+              isExporting={true} // Her zaman tüm sayfalar
               enableCoverPage={enableCoverPage}
               coverImageUrl={coverImageUrl}
               coverDescription={coverDescription}
@@ -1036,93 +1130,6 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           </div>
         )}
       </div>
-
-      {/* Preview Mode Floating Header (Switch Back) */}
-      <PreviewFloatingHeader
-        view={view}
-        onViewChange={setView}
-        catalogName={catalogName}
-        onPublish={handlePublish}
-        onDownloadPDF={handleDownloadPDF}
-      />
-
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        plan={user?.plan || "free"}
-      />
-
-      {/* Share Modal */}
-      <ShareModal
-        open={showShareModal}
-        onOpenChange={setShowShareModal}
-        catalog={catalog}
-        isPublished={isPublished}
-        shareUrl={catalog?.share_slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/catalog/${catalog.share_slug}` : ""}
-        onDownloadPdf={handleDownloadPDF}
-      />
-
-      {/* Exit Confirmation Dialog */}
-      <ExitDialog
-        open={showExitDialog}
-        onOpenChange={setShowExitDialog}
-        onExitWithoutSaving={() => {
-          setShowExitDialog(false)
-          router.push('/dashboard')
-        }}
-        onSaveAndExit={() => {
-          handleSave()
-          setShowExitDialog(false)
-          // Kayıt işlemi için yeterli süre bekle
-          setTimeout(() => router.push('/dashboard'), 1500)
-        }}
-      />
-
-      {/* GHOST CONTAINER (PDF Export için Gizli Alan) */}
-      {isExporting && (
-        <div
-          id="catalog-export-container"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: '-9999px',
-            width: '1000px', // Yeterince geniş
-            zIndex: -100,
-            opacity: 0, // Görünmez ama render olur
-            pointerEvents: 'none',
-            overflow: 'visible' // Taşmaları engelleme
-          }}
-        >
-          <CatalogPreview
-            catalogName={catalogName}
-            products={selectedProducts}
-            layout={layout}
-            primaryColor={primaryColor}
-            headerTextColor={headerTextColor}
-            showPrices={showPrices}
-            showDescriptions={showDescriptions}
-            showAttributes={showAttributes}
-            showSku={showSku}
-            showUrls={showUrls}
-            productImageFit={productImageFit}
-            columnsPerRow={columnsPerRow}
-            backgroundColor={backgroundColor}
-            backgroundImage={backgroundImage}
-            backgroundImageFit={backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
-            backgroundGradient={backgroundGradient}
-            logoUrl={logoUrl}
-            logoPosition={logoPosition ?? undefined}
-            logoSize={logoSize}
-            titlePosition={titlePosition}
-            isExporting={true} // Her zaman tüm sayfalar
-            enableCoverPage={enableCoverPage}
-            coverImageUrl={coverImageUrl}
-            coverDescription={coverDescription}
-            enableCategoryDividers={enableCategoryDividers}
-            theme={coverTheme}
-          />
-        </div>
-      )}
-    </div>
+    </LightboxProvider>
   )
 }
