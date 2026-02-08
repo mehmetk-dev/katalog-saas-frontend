@@ -664,7 +664,13 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         finalActiveImageUrl,
         ...finalImageUrls.filter(url => url !== finalActiveImageUrl)
       ]
+    } else if (finalActiveImageUrl && !finalImageUrls.includes(finalActiveImageUrl)) {
+      // Ne olur ne olmaz, listeye ekle
+      finalImageUrls = [finalActiveImageUrl, ...finalImageUrls].slice(0, 5)
     }
+
+    console.log('[ProductModal] Saving product with Cover:', finalActiveImageUrl)
+    console.log('[ProductModal] Saving product with Images List:', finalImageUrls)
 
     const formData = new FormData()
     formData.append("name", name)
@@ -696,6 +702,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     try {
       if (isEditing) {
         await updateProduct(product.id, formData)
+
+        // Wait for DB consistency (Revalidation can be slow)
+        await new Promise(r => setTimeout(r, 500))
+
         onSaved({
           ...product,
           name,
