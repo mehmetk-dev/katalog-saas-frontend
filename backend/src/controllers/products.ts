@@ -107,20 +107,56 @@ const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequ
 export const getProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const cacheKey = cacheKeys.products(userId);
 
-        const data = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
-            const { data, error } = await supabase
+        // Pagination & Filter params
+        let page = parseInt(req.query.page as string) || 1;
+        let limit = parseInt(req.query.limit as string) || 50;
+        const category = req.query.category as string;
+        const search = req.query.search as string;
+
+        // Validation
+        if (page < 1) page = 1;
+        if (limit < 1) limit = 12;
+        if (limit > 100) limit = 100; // Max limit protection
+
+        const params = { page, limit, category, search };
+        const cacheKey = cacheKeys.products(userId, params);
+
+        const result = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+
+            let query = supabase
                 .from('products')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false });
+                .select('*', { count: 'exact' })
+                .eq('user_id', userId);
+
+            if (category && category !== 'all') {
+                query = query.ilike('category', `%${category}%`);
+            }
+
+            if (search) {
+                query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+            }
+
+            const { data, error, count } = await query
+                .order('created_at', { ascending: false })
+                .range(from, to);
 
             if (error) throw error;
-            return data;
+
+            return {
+                products: data || [],
+                metadata: {
+                    total: count || 0,
+                    page,
+                    limit,
+                    totalPages: Math.ceil((count || 0) / limit)
+                }
+            };
         });
 
-        res.json(data);
+        res.json(result);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ error: errorMessage });
@@ -132,20 +168,24 @@ export const getProduct = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const { id } = req.params;
 
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('id', id)
-            .eq('user_id', userId)
-            .single();
+        const cacheKey = cacheKeys.product(userId, id);
+        const product = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('id', id)
+                .eq('user_id', userId)
+                .single();
 
-        if (error) throw error;
+            if (error) throw error;
+            return data;
+        });
 
-        if (!data) {
+        if (!product) {
             return res.status(404).json({ error: 'Ürün bulunamadı veya yetkiniz yok.' });
         }
 
-        res.json(data);
+        res.json(product);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ error: errorMessage });
@@ -197,8 +237,11 @@ export const createProduct = async (req: Request, res: Response) => {
 
         if (error) throw error;
 
-        // Cache'i temizle
-        await deleteCache(cacheKeys.products(userId));
+        // Cache'i temizle (Tüm listeyi ve bu spesifik ürünü temizle)
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.product(userId, data.id))
+        ]);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -260,7 +303,10 @@ export const updateProduct = async (req: Request, res: Response) => {
         if (error) throw error;
 
         // Cache'i temizle
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.product(userId, id))
+        ]);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);

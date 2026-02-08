@@ -20,9 +20,9 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
   const params = await searchParams
   const catalogId = params.id
 
-  const [catalog, products] = await Promise.all([
+  const [catalog, productsResponse] = await Promise.all([
     catalogId ? getCatalog(catalogId) : null,
-    getProducts()
+    getProducts({ limit: 1000 })
   ])
 
   // Eğer ID verilmiş ama katalog bulunamıyorsa, yeni katalog sayfasına yönlendir
@@ -58,7 +58,7 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
 
   return (
     <Suspense fallback={<BuilderSkeleton />}>
-      <BuilderPageClient catalog={catalog} products={products} />
+      <BuilderPageClient catalog={catalog} products={productsResponse.products} />
     </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useCallback } from "react"
 import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ImageOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react"
 import NextImage from "next/image"
 import { toast } from "sonner"
@@ -70,6 +70,17 @@ export function ProductsTable({
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  // Yüklenemeyen resimleri takip et
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
+
+  // Resim yükleme hatası handler'ı - memoized
+  const handleImageError = useCallback((imageUrl: string) => {
+    setFailedImages((prev: Set<string>) => {
+      const newSet = new Set(prev)
+      newSet.add(imageUrl)
+      return newSet
+    })
+  }, [])
 
   // Reset image index when preview product changes
   useEffect(() => {
@@ -324,15 +335,22 @@ export function ProductsTable({
                     </div>
 
                     {/* Ürün resmi */}
-                    {(product.image_url || (product.images && product.images.length > 0)) && (
-                      <NextImage
-                        src={(product.image_url || product.images?.[0]) as string}
-                        alt={product.name}
-                        fill
-                        className="object-cover z-[1]"
-                        unoptimized
-                      />
-                    )}
+                    {(() => {
+                      const imageUrl = (product.image_url || product.images?.[0]) as string | undefined
+                      const hasValidImage = imageUrl && !failedImages.has(imageUrl)
+
+                      return hasValidImage ? (
+                        <NextImage
+                          src={imageUrl}
+                          alt={product.name}
+                          fill
+                          className="object-cover z-[1]"
+                          loading="lazy"
+                          unoptimized
+                          onError={() => handleImageError(imageUrl)}
+                        />
+                      ) : null
+                    })()}
 
                     {/* Checkbox - Mobilde küçük ve her zaman görünür, Masaüstünde hover/seçiliyken */}
                     <div className={cn(
@@ -459,37 +477,64 @@ export function ProductsTable({
                   {/* Content */}
                   <div className="overflow-y-auto max-h-[calc(85vh-130px)] p-6 space-y-5">
                     {/* Images */}
-                    {allImages.length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                          <NextImage src={(allImages[activeImageIndex] || allImages[0]) as string} alt={previewProduct.name} fill className="object-contain" unoptimized />
-                          {allImages.length > 1 && (
-                            <>
-                              <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => setActiveImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-                              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">{activeImageIndex + 1}/{allImages.length}</div>
-                            </>
+                    {(() => {
+                      // Failed imageları filtrele
+                      const validImages = allImages.filter((img: string) => !failedImages.has(img))
+
+                      if (validImages.length === 0) {
+                        return (
+                          <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <ImageOff className="w-10 h-10 text-gray-400" />
+                          </div>
+                        )
+                      }
+
+                      const currentImage = validImages[activeImageIndex] || validImages[0]
+
+                      return (
+                        <div className="space-y-2">
+                          <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                            <NextImage
+                              src={currentImage}
+                              alt={previewProduct.name}
+                              fill
+                              className="object-contain"
+                              loading="lazy"
+                              unoptimized
+                              onError={() => handleImageError(currentImage)}
+                            />
+                            {validImages.length > 1 && (
+                              <>
+                                <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : validImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setActiveImageIndex(prev => prev < validImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">{activeImageIndex + 1}/{validImages.length}</div>
+                              </>
+                            )}
+                          </div>
+                          {validImages.length > 1 && (
+                            <div className="flex gap-1.5 overflow-x-auto">
+                              {validImages.map((img, idx) => (
+                                <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("relative w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
+                                  <NextImage
+                                    src={img}
+                                    alt=""
+                                    fill
+                                    className="object-cover"
+                                    loading="lazy"
+                                    unoptimized
+                                    onError={() => handleImageError(img)}
+                                  />
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        {allImages.length > 1 && (
-                          <div className="flex gap-1.5 overflow-x-auto">
-                            {allImages.map((img, idx) => (
-                              <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("relative w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
-                                <NextImage src={img} alt="" fill className="object-cover" unoptimized />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                        <ImageOff className="w-10 h-10 text-gray-400" />
-                      </div>
-                    )}
+                      )
+                    })()}
 
                     {/* Price & Stock */}
                     <div className="grid grid-cols-2 gap-3">
@@ -635,15 +680,22 @@ export function ProductsTable({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Package className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                     </div>
-                    {product.image_url || (product.images && product.images.length > 0) ? (
-                      <NextImage
-                        src={(product.image_url || product.images?.[0]) as string}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : null}
+                    {(() => {
+                      const imageUrl = (product.image_url || product.images?.[0]) as string | undefined
+                      const hasValidImage = imageUrl && !failedImages.has(imageUrl)
+
+                      return hasValidImage ? (
+                        <NextImage
+                          src={imageUrl}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                          loading="lazy"
+                          unoptimized
+                          onError={() => handleImageError(imageUrl)}
+                        />
+                      ) : null
+                    })()}
                   </div>
                 </div>
 
@@ -806,11 +858,22 @@ function ProductPreviewContent({
   onClose: () => void
 }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
-  // Parse images
-  const allImages = (product.images && product.images.length > 0)
+  // Resim yükleme hatası handler'ı
+  const handleImageError = useCallback((imageUrl: string) => {
+    setFailedImages((prev: Set<string>) => {
+      const newSet = new Set(prev)
+      newSet.add(imageUrl)
+      return newSet
+    })
+  }, [])
+
+  // Parse images - failed olanları filtrele
+  const allImages = ((product.images && product.images.length > 0)
     ? product.images
-    : [product.image_url].filter(Boolean) as string[]
+    : [product.image_url].filter(Boolean) as string[])
+    .filter((img: string) => !failedImages.has(img))
 
   // Custom attributes
   const customAttrs = product.custom_attributes?.filter(
@@ -849,7 +912,9 @@ function ProductPreviewContent({
                 alt={product.name}
                 fill
                 className="object-contain bg-neutral-900/5 dark:bg-neutral-50/5"
+                loading="lazy"
                 unoptimized
+                onError={() => handleImageError((allImages[activeImageIndex] || allImages[0]) as string)}
               />
               {allImages.length > 1 && (
                 <>
@@ -867,7 +932,15 @@ function ProductPreviewContent({
               <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
                 {allImages.map((img, idx) => (
                   <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border-2 transition-all", activeImageIndex === idx ? "border-violet-500 ring-2 ring-violet-200 dark:ring-violet-900" : "border-transparent opacity-60 hover:opacity-100")}>
-                    <NextImage src={img} alt="" fill className="object-cover" unoptimized />
+                    <NextImage
+                      src={img}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      loading="lazy"
+                      unoptimized
+                      onError={() => handleImageError(img)}
+                    />
                   </button>
                 ))}
               </div>

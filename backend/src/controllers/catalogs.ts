@@ -257,7 +257,10 @@ export const createCatalog = async (req: Request, res: Response) => {
         }
 
         // Cache'i temizle
-        await deleteCache(cacheKeys.catalogs(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.catalogs(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
 
         // Bildirim gönder
         try {
@@ -417,14 +420,13 @@ export const updateCatalog = async (req: Request, res: Response) => {
 
 
         // Cache'leri temizle
-        await deleteCache(cacheKeys.catalogs(userId));
-        await deleteCache(cacheKeys.catalog(userId, id));
-        if (oldCatalog?.share_slug) {
-            await deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug));
-        }
-        if (share_slug && share_slug !== oldCatalog?.share_slug) {
-            await deleteCache(cacheKeys.publicCatalog(share_slug));
-        }
+        await Promise.all([
+            deleteCache(cacheKeys.catalogs(userId)),
+            deleteCache(cacheKeys.catalog(userId, id)),
+            deleteCache(cacheKeys.stats(userId)),
+            ...(oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug))] : []),
+            ...(share_slug && share_slug !== oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(share_slug))] : [])
+        ]);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -464,8 +466,11 @@ export const deleteCatalog = async (req: Request, res: Response) => {
         if (error) throw error;
 
         // Cache'leri temizle
-        await deleteCache(cacheKeys.catalogs(userId));
-        await deleteCache(cacheKeys.catalog(userId, id));
+        await Promise.all([
+            deleteCache(cacheKeys.catalogs(userId)),
+            deleteCache(cacheKeys.catalog(userId, id)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -509,11 +514,12 @@ export const publishCatalog = async (req: Request, res: Response) => {
         if (error) throw error;
 
         // Cache'leri temizle
-        await deleteCache(cacheKeys.catalogs(userId));
-        await deleteCache(cacheKeys.catalog(userId, id));
-        if (catalog?.share_slug) {
-            await deleteCache(cacheKeys.publicCatalog(catalog.share_slug));
-        }
+        await Promise.all([
+            deleteCache(cacheKeys.catalogs(userId)),
+            deleteCache(cacheKeys.catalog(userId, id)),
+            deleteCache(cacheKeys.stats(userId)),
+            ...(catalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(catalog.share_slug))] : [])
+        ]);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -711,64 +717,47 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const timeRange = (req.query.timeRange as string) || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
 
-        // 1. Fetch Summary Stats from user_dashboard_stats view
-        let stats = {
-            totalCatalogs: 0,
-            publishedCatalogs: 0,
-            totalViews: 0,
-            totalProducts: 0,
-            topCatalogs: [],
-        };
+        const cacheKey = cacheKeys.stats(userId, { timeRange });
 
-        const { data: summaryData, error: summaryError } = await supabase
-            .from('user_dashboard_stats')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        const finalStats = await getOrSetCache(cacheKey, cacheTTL.adminStats, async () => {
+            // 1. Fetch Summary Stats
+            let stats = {
+                totalCatalogs: 0,
+                publishedCatalogs: 0,
+                totalViews: 0,
+                totalProducts: 0,
+                topCatalogs: [],
+            };
 
-        if (summaryError) {
-            console.error('[Stats] API error or view missing, falling back to manual count:', summaryError.message);
-        }
+            const [catalogsResult, productsResult] = await Promise.all([
+                supabase.from('catalogs').select('id, is_published, view_count, name').eq('user_id', userId),
+                supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+            ]);
 
-        // ALWAYS PERFORM MANUAL COUNT FOR CORE STATS (More reliable than view triggers)
-        const [catalogsResult, productsResult] = await Promise.all([
-            supabase.from('catalogs').select('id, is_published, view_count, name').eq('user_id', userId),
-            supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
-        ]);
+            if (catalogsResult.data) {
+                const catalogs = catalogsResult.data;
+                stats.totalCatalogs = catalogs.length;
+                stats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
+                stats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
 
-        if (catalogsResult.data) {
-            const catalogs = catalogsResult.data;
-            stats.totalCatalogs = catalogs.length;
-            stats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
-            stats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
+                stats.topCatalogs = [...catalogs]
+                    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+                    .slice(0, 5)
+                    .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
+            }
 
-            // Get top 5 catalogs
-            stats.topCatalogs = [...catalogs]
-                .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
-                .slice(0, 5)
-                .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
-        }
+            stats.totalProducts = productsResult.count || 0;
 
-        stats.totalProducts = productsResult.count || 0;
+            const detailedStats = {
+                uniqueVisitors: 0,
+                deviceStats: [] as { device_type: string; view_count: number; percentage: number }[],
+                dailyViews: [] as { view_date: string; view_count: number }[],
+            };
 
-        // If view didn't have error, use it for anything we missed (though we covered most)
-        if (!summaryError && summaryData) {
-            // Optional: You could use additional view data here if needed
-        }
+            const catalogIds = catalogsResult.data?.map(c => c.id) || [];
 
-        const detailedStats = {
-            uniqueVisitors: 0,
-            deviceStats: [] as { device_type: string; view_count: number; percentage: number }[],
-            dailyViews: [] as { view_date: string; view_count: number }[],
-        };
-
-        // Reuse catalog ids if we already have them from fallback
-        const { data: catList } = await supabase.from('catalogs').select('id').eq('user_id', userId);
-        const catalogIds = catList?.map(c => c.id) || [];
-
-        // 2. Fetch Detailed Analytics (Zaman aralığına duyarlı)
-        if (catalogIds.length > 0) {
-            try {
+            // 2. Fetch Detailed Analytics
+            if (catalogIds.length > 0) {
                 const dateThreshold = new Date();
                 dateThreshold.setDate(dateThreshold.getDate() - days);
                 const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
@@ -783,8 +772,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                 if (!vError && vCount !== null && Number(vCount) > 0) {
                     detailedStats.uniqueVisitors = Number(vCount);
                 } else {
-                    // FALLBACK: Eğer RPC 0 dönüyorsa veya hata veriyorsa doğrudan tablodan say
-                    // Bu, RPC'nin yanlış sütunu (örn. visitor_id) sayma ihtimaline karşı bir sigortadır.
                     const { count: directUniqueCount } = await supabase
                         .from('catalog_views')
                         .select('visitor_hash', { count: 'exact', head: true })
@@ -792,12 +779,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                         .eq('is_owner', false)
                         .gte('view_date', dateThresholdStr);
 
-                    if (directUniqueCount) {
-                        detailedStats.uniqueVisitors = directUniqueCount;
-                    }
+                    if (directUniqueCount) detailedStats.uniqueVisitors = directUniqueCount;
                 }
 
-                // b. Device Stats (Using query directly for multi-catalog)
+                // b. Device Stats
                 const { data: deviceData } = await supabase
                     .from('catalog_views')
                     .select('device_type')
@@ -836,12 +821,12 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                         .map(([date, count]) => ({ view_date: date, view_count: count }))
                         .sort((a, b) => a.view_date.localeCompare(b.view_date));
                 }
-            } catch (err) {
-                console.error('[Stats] Detailed error:', err);
             }
-        }
 
-        res.json({ ...stats, ...detailedStats });
+            return { ...stats, ...detailedStats };
+        });
+
+        res.json(finalStats);
     } catch (error: unknown) {
         console.error('[Stats] Critical Error:', error);
         res.status(500).json({ error: 'İstatistikler alınamadı' });

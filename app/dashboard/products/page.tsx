@@ -11,13 +11,26 @@ export const metadata: Metadata = {
   description: "Ürün envanterinizi yönetin, düzenleyin ve kataloglara ekleyin.",
 }
 
-export default async function ProductsPage() {
-  const [products, user] = await Promise.all([getProducts(), getCurrentUser()])
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string; limit?: string; category?: string; search?: string }
+}) {
+  const page = parseInt(searchParams.page || "1")
+  const limit = parseInt(searchParams.limit || "12")
+  const category = searchParams.category || "all"
+  const search = searchParams.search || ""
+
+  const [productsResponse, user] = await Promise.all([
+    getProducts({ page, limit, category, search }),
+    getCurrentUser(),
+  ])
 
   return (
     <Suspense fallback={<ProductsPageSkeleton />}>
       <ProductsPageClient
-        initialProducts={products}
+        initialProducts={productsResponse.products}
+        initialMetadata={productsResponse.metadata}
         userPlan={(user?.plan as "free" | "plus" | "pro") || "free"}
         maxProducts={user?.maxProducts || 50}
       />

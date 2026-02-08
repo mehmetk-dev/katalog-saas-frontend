@@ -36,6 +36,12 @@ import { ProductsBulkActionsBar } from "./bulk-actions-bar"
 
 interface ProductsPageClientProps {
   initialProducts: Product[]
+  initialMetadata: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
   userPlan: "free" | "plus" | "pro"
   maxProducts: number
 }
@@ -50,19 +56,21 @@ const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
 import { useRouter, useSearchParams } from "next/navigation"
 
-export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: ProductsPageClientProps) {
+export function ProductsPageClient({ initialProducts, initialMetadata, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>(initialProducts)
+  const [metadata, setMetadata] = useState(initialMetadata)
 
   // Server-side güncellemeleri (revalidatePath sonrası) client state'e yansıt
   useEffect(() => {
     setProducts(initialProducts)
-  }, [initialProducts])
+    setMetadata(initialMetadata)
+  }, [initialProducts, initialMetadata])
 
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState(searchParams.get("search") || "")
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -77,23 +85,36 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
   const [showPriceModal, setShowPriceModal] = useState(false)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
-  // Filtreleme State
+  // Filtreleme State (URL'den al veya default)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [sortField, setSortField] = useState<SortField>("created_at")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   const [stockFilter, setStockFilter] = useState<StockFilter>("all")
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all")
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE)
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1"))
+  const [itemsPerPage, setItemsPerPage] = useState(parseInt(searchParams.get("limit") || DEFAULT_ITEMS_PER_PAGE.toString()))
 
   // Fiyat Güncelleme State
   const [priceChangeType, setPriceChangeType] = useState<"increase" | "decrease">("increase")
   const [priceChangeMode, setPriceChangeMode] = useState<"percentage" | "fixed">("percentage")
   const [priceChangeAmount, setPriceChangeAmount] = useState<number>(10)
 
+  // URL Güncelleme Yardımcısı
+  const updateUrl = useCallback((newParams: Record<string, string | number | null>) => {
+    const params = new URLSearchParams(searchParams.toString())
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === null || value === "all" || value === "") {
+        params.delete(key)
+      } else {
+        params.set(key, value.toString())
+      }
+    })
+    router.push(`?${params.toString()}`)
+  }, [router, searchParams])
+
   const isFreeUser = userPlan === "free"
-  const isAtLimit = isFreeUser && products.length >= maxProducts
+  const isAtLimit = isFreeUser && metadata.total >= maxProducts
 
   // URL'deki action parametrelerini kontrol et (import veya new)
   useEffect(() => {
@@ -114,6 +135,12 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     }
   }, [searchParams, isAtLimit])
 
+  // Sayfa değişiminde URL'yi güncelle
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page)
+    updateUrl({ page })
+  }, [updateUrl])
+
   // Kategorileri çıkar
   const categories = useMemo(() => {
     return [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
@@ -128,108 +155,31 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     }
   }, [products])
 
-  // Filtreleme ve sıralama mantığı
-  const filteredAndSortedProducts = useMemo(() => {
-    let result = [...products]
-
-    // Arama filtresi
-    if (search) {
-      const searchLower = search.toLowerCase()
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(searchLower) ||
-        p.sku?.toLowerCase().includes(searchLower) ||
-        p.category?.toLowerCase().includes(searchLower) ||
-        p.description?.toLowerCase().includes(searchLower)
-      )
-    }
-
-    // Kategori filtresi
-    if (selectedCategory !== "all") {
-      if (selectedCategory === "Kategorisiz" || selectedCategory === t("products.uncategorized")) {
-        result = result.filter(p => !p.category || p.category === "Kategorisiz" || p.category === t("products.uncategorized"))
-      } else {
-        result = result.filter(p => p.category === selectedCategory)
-      }
-    }
-
-    // Stok filtresi
-    if (stockFilter !== "all") {
-      result = result.filter(p => {
-        if (stockFilter === "out_of_stock") return p.stock === 0
-        if (stockFilter === "low_stock") return p.stock > 0 && p.stock < 10
-        if (stockFilter === "in_stock") return p.stock >= 10
-        return true
-      })
-    }
-
-    // Fiyat aralığı filtresi
-    result = result.filter(p => {
-      const price = Number(p.price) || 0
-      return price >= priceRange[0] && price <= priceRange[1]
-    })
-
-    // Sıralama
-    result.sort((a, b) => {
-      let comparison = 0
-      switch (sortField) {
-        case "name":
-          comparison = a.name.localeCompare(b.name)
-          break
-        case "price":
-          comparison = (Number(a.price) || 0) - (Number(b.price) || 0)
-          break
-        case "stock":
-          comparison = a.stock - b.stock
-          break
-        case "category":
-          comparison = (a.category || "").localeCompare(b.category || "")
-          break
-        case "created_at":
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          break
-        case "order":
-          comparison = (a.order || 0) - (b.order || 0)
-          break
-      }
-      return sortOrder === "asc" ? comparison : -comparison
-    })
-
-    return result
-  }, [products, search, selectedCategory, stockFilter, priceRange, sortField, sortOrder, t])
-
-  const hasActiveFilters = search !== "" || selectedCategory !== "all" || stockFilter !== "all" || priceRange[0] !== 0 || priceRange[1] !== priceStats.max
-
-  // Sayfalama
-  const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage)
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredAndSortedProducts.slice(start, start + itemsPerPage)
-  }, [filteredAndSortedProducts, currentPage, itemsPerPage])
-
-  // İstatistikler
+  // Filtreleme ve sıralama mantığı (Client-side'da sadece ek filtreler için kalabilir ama şimdilik sunucu verisini kullanıyoruz)
   const stats = useMemo(() => ({
-    total: products.length,
-    inStock: products.filter(p => p.stock >= 10).length,
+    total: metadata.total,
+    inStock: products.filter(p => p.stock >= 10).length, // Bu istatistikler tüm liste için değil sadece mevcut sayfa için olur, eğer tam istatistik istenirse backend'den gelmeli
     lowStock: products.filter(p => p.stock > 0 && p.stock < 10).length,
     outOfStock: products.filter(p => p.stock === 0).length,
     totalValue: products.reduce((sum, p) => sum + (Number(p.price) || 0) * p.stock, 0)
-  }), [products])
+  }), [products, metadata])
+
+  const hasActiveFilters = search !== "" || selectedCategory !== "all" || stockFilter !== "all" || priceRange[0] !== 0 || priceRange[1] !== priceStats.max
+
+  const paginatedProducts = products
+  const totalPagesCount = metadata.totalPages
 
   // Kategori bazlı istatistikler
   const categoryStats = useMemo(() => {
     const statsMap: Record<string, { count: number; totalValue: number }> = {}
     products.forEach(p => {
-      const cat = (p.category || t("products.uncategorized")) as string
+      const cat = (p.category || (t && t("products.uncategorized") ? t("products.uncategorized") : "Kategorisiz")) as string
       if (!statsMap[cat]) statsMap[cat] = { count: 0, totalValue: 0 }
       statsMap[cat].count++
       statsMap[cat].totalValue += (Number(p.price) || 0) * p.stock
     })
     return Object.entries(statsMap).sort((a, b) => b[1].count - a[1].count)
   }, [products, t])
-
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page)
-  }, [])
 
   const handleAddProduct = () => {
     if (isAtLimit) {
@@ -290,22 +240,25 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
 
     startTransition(async () => {
       try {
-        const updatedProducts = await bulkUpdatePrices(
+        const updatedResponse = await bulkUpdatePrices(
           selectedIds,
           priceChangeType,
           priceChangeMode,
           priceChangeAmount
         )
 
-        // Ürünleri güncelle
-        const updatedMap = new Map(updatedProducts.map((p: Product) => [p.id, p]))
+        // Ürünleri güncelle (yeni formatta gelmiş olabilir)
+        const responseData = updatedResponse as any;
+        const updatedList = (Array.isArray(responseData) ? responseData : (responseData.products || [])) as Product[];
+
+        const updatedMap = new Map(updatedList.map((p) => [p.id, p]))
         setProducts(products.map(p => updatedMap.get(p.id) || p))
 
         setShowPriceModal(false)
         setSelectedIds([])
 
         toast.success(t('toasts.operationComplete') as string)
-      } catch {
+      } catch (error) {
         toast.error(t('toasts.priceUpdateFailed') as string)
       }
     })
@@ -335,10 +288,11 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
     setStockFilter("all")
     setPriceRange([0, priceStats.max])
     setCurrentPage(1)
+    updateUrl({ search: "", category: "all", page: 1 })
   }
 
   const selectCurrentPage = () => {
-    const pageIds = paginatedProducts.map(p => p.id)
+    const pageIds = paginatedProducts.map((p: Product) => p.id)
     const newSelectedIds = Array.from(new Set([...selectedIds, ...pageIds]))
     setSelectedIds(newSelectedIds)
   }
@@ -408,10 +362,10 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           {/* Toolbar */}
           <ProductsToolbar
             selectedCount={selectedIds.length}
-            totalFilteredCount={filteredAndSortedProducts.length}
+            totalFilteredCount={metadata.total}
             onSelectAll={(checked) => {
               if (checked) {
-                setSelectedIds(filteredAndSortedProducts.map(p => p.id))
+                setSelectedIds(products.map(p => p.id))
               } else {
                 setSelectedIds([])
               }
@@ -420,6 +374,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             onSearchChange={(value) => {
               setSearch(value)
               setCurrentPage(1)
+              updateUrl({ search: value, page: 1 })
             }}
             onOpenFilters={() => setShowFilters(true)}
             hasActiveFilters={hasActiveFilters}
@@ -429,6 +384,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             onItemsPerPageChange={(size) => {
               setItemsPerPage(size)
               setCurrentPage(1)
+              updateUrl({ limit: size, page: 1 })
             }}
             pageSizeOptions={PAGE_SIZE_OPTIONS}
             onOpenImportExport={() => setShowImportModal(true)}
@@ -448,7 +404,11 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             onSortFieldChange={(field) => setSortField(field as SortField)}
             onSortOrderChange={setSortOrder}
             selectedCategory={selectedCategory}
-            onCategoryChange={(cat) => { setSelectedCategory(cat); setCurrentPage(1) }}
+            onCategoryChange={(cat) => {
+              setSelectedCategory(cat);
+              setCurrentPage(1);
+              updateUrl({ category: cat, page: 1 })
+            }}
             categories={categories}
             stockFilter={stockFilter}
             onStockFilterChange={(filter) => { setStockFilter(filter as StockFilter); setCurrentPage(1) }}
@@ -457,7 +417,7 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
             maxPrice={priceStats.max}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearAllFilters}
-            filteredCount={filteredAndSortedProducts.length}
+            filteredCount={metadata.total}
           />
         </div>
 
@@ -504,13 +464,14 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
         {/* Sayfalama */}
         <ProductsPagination
           currentPage={currentPage}
-          totalPages={totalPages}
+          totalPages={totalPagesCount}
           itemsPerPage={itemsPerPage}
-          totalItems={filteredAndSortedProducts.length}
+          totalItems={metadata.total}
           onPageChange={handlePageChange}
           onItemsPerPageChange={(size) => {
             setItemsPerPage(size)
             setCurrentPage(1)
+            updateUrl({ limit: size, page: 1 })
           }}
           pageSizeOptions={PAGE_SIZE_OPTIONS}
         />
@@ -551,9 +512,9 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           onImport={async (productsToImport) => {
             try {
               const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>)
-              // Optimistic update (optional now but good for perceived speed)
-              setProducts([...imported, ...products])
-              router.refresh() // Force server re-fetch to ensure sync
+              const importedList = Array.isArray(imported) ? imported : (imported as any).products || [];
+              setProducts([...importedList, ...products])
+              router.refresh()
               refreshUser()
             } catch (error) {
               console.error('Bulk import failed:', error)
@@ -594,8 +555,9 @@ export function ProductsPageClient({ initialProducts, userPlan, maxProducts }: P
           products={products}
           onSuccess={async () => {
             const { getProducts } = await import('@/lib/actions/products')
-            const updatedProducts = await getProducts()
-            setProducts(updatedProducts)
+            const response = await getProducts({ page: currentPage, limit: itemsPerPage, search, category: selectedCategory })
+            setProducts(response.products)
+            setMetadata(response.metadata)
             setShowBulkImageModal(false)
             toast.success(t('toasts.photosUpdated') as string)
           }}

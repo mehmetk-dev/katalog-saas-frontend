@@ -45,6 +45,9 @@ export const initRedis = () => {
     }
 };
 
+// In-memory cache fallback (Redis yoksa kullanılır)
+const memoryCache = new Map<string, { data: string; expires: number }>();
+
 // Cache key oluştur
 const createKey = (prefix: string, ...parts: string[]) => {
     return `katalog:${prefix}:${parts.join(':')}`;
@@ -52,49 +55,93 @@ const createKey = (prefix: string, ...parts: string[]) => {
 
 // Cache'den oku
 export const getCache = async <T>(key: string): Promise<T | null> => {
-    if (!redis) return null;
-    try {
-        const data = await redis.get(key);
-        return data ? JSON.parse(data) : null;
-    } catch (error) {
-        console.warn('Cache read error:', error);
-        return null;
+    // 1. Redis'ten dene
+    if (redis) {
+        try {
+            const data = await redis.get(key);
+            if (data) return JSON.parse(data);
+        } catch (error) {
+            console.warn('Redis read error:', error);
+        }
     }
+
+    // 2. Memory cache'den dene
+    const memCached = memoryCache.get(key);
+    if (memCached) {
+        if (Date.now() < memCached.expires) {
+            return JSON.parse(memCached.data);
+        }
+        memoryCache.delete(key);
+    }
+
+    return null;
 };
 
 // Cache'e yaz
 export const setCache = async (key: string, data: unknown, ttlSeconds: number = 300): Promise<void> => {
-    if (!redis) return;
-    try {
-        await redis.setex(key, ttlSeconds, JSON.stringify(data));
-    } catch (error) {
-        console.warn('Cache write error:', error);
+    const stringData = JSON.stringify(data);
+
+    // 1. Redis'e yaz
+    if (redis) {
+        try {
+            await redis.setex(key, ttlSeconds, stringData);
+        } catch (error) {
+            console.warn('Redis write error:', error);
+        }
     }
+
+    // 2. Memory cache'e yaz
+    memoryCache.set(key, {
+        data: stringData,
+        expires: Date.now() + (ttlSeconds * 1000)
+    });
 };
 
-// Cache'i sil (SCAN kullanarak performanslı silme)
+// Cache'i sil
 export const deleteCache = async (pattern: string): Promise<void> => {
-    if (!redis) return;
-    try {
-        const stream = redis.scanStream({
-            match: pattern,
-            count: 100
-        });
+    const searchPattern = pattern.endsWith('*') ? pattern : `${pattern}*`;
 
-        stream.on('data', async (keys: string[]) => {
-            if (keys.length > 0) {
-                const pipeline = redis?.pipeline();
-                keys.forEach((key: string) => pipeline?.del(key));
-                await pipeline?.exec();
-            }
-        });
+    // 1. Redis'ten sil
+    if (redis) {
+        try {
+            return new Promise((resolve, reject) => {
+                const stream = redis!.scanStream({
+                    match: searchPattern,
+                    count: 100
+                });
 
-        return new Promise((resolve, reject) => {
-            stream.on('end', resolve);
-            stream.on('error', reject);
-        });
-    } catch (error) {
-        console.warn('Cache delete error:', error);
+                stream.on('data', async (keys: string[]) => {
+                    if (keys.length > 0) {
+                        try {
+                            const pipeline = redis?.pipeline();
+                            keys.forEach((key: string) => pipeline?.del(key));
+                            await pipeline?.exec();
+                        } catch (err) {
+                            console.warn('Redis pipeline error:', err);
+                        }
+                    }
+                });
+
+                stream.on('error', (err) => {
+                    console.warn('Redis scan error:', err);
+                    reject(err);
+                });
+
+                stream.on('end', () => {
+                    resolve();
+                });
+            });
+        } catch (error) {
+            console.warn('Redis delete error:', error);
+        }
+    }
+
+    // 2. Memory cache'den sil
+    const regexPattern = new RegExp('^' + searchPattern.replace(/\*/g, '.*') + '$');
+    for (const key of memoryCache.keys()) {
+        if (regexPattern.test(key)) {
+            memoryCache.delete(key);
+        }
     }
 };
 
@@ -119,11 +166,25 @@ export const getOrSetCache = async <T>(
 // Cache key helper'ları
 export const cacheKeys = {
     // Ürünler
-    products: (userId: string) => createKey('products', userId),
+    products: (userId: string, params?: Record<string, unknown>) => {
+        if (!params) return createKey('products', userId);
+        const queryPart = Object.entries(params)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join(':');
+        return createKey('products', userId, queryPart);
+    },
     product: (userId: string, productId: string) => createKey('product', userId, productId),
 
     // Kataloglar
-    catalogs: (userId: string) => createKey('catalogs', userId),
+    catalogs: (userId: string, params?: Record<string, unknown>) => {
+        if (!params) return createKey('catalogs', userId);
+        const queryPart = Object.entries(params)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join(':');
+        return createKey('catalogs', userId, queryPart);
+    },
     catalog: (userId: string, catalogId: string) => createKey('catalog', userId, catalogId),
     publicCatalog: (slug: string) => createKey('public', slug),
 
@@ -135,6 +196,16 @@ export const cacheKeys = {
 
     // Admin
     adminStats: () => createKey('admin', 'stats'),
+
+    // Stats
+    stats: (userId: string, params?: Record<string, unknown>) => {
+        if (!params) return createKey('stats', userId);
+        const queryPart = Object.entries(params)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join(':');
+        return createKey('stats', userId, queryPart);
+    },
 };
 
 // TTL değerleri (saniye)

@@ -8,17 +8,19 @@ import { SEO_CONFIG } from "@/lib/seo"
 export const metadata = SEO_CONFIG.dashboard
 
 export default async function DashboardPage() {
-  const [, catalogs, products, stats] = await Promise.all([
+  const [, catalogs, productsResponse, stats] = await Promise.all([
     getCurrentUser(),
     getCatalogs(),
-    getProducts(),
+    getProducts({ limit: 4 }), // Dashboard'da sadece birkaç ürün göstermek yeterli olabilir
     getDashboardStats(),
   ])
 
-  return <DashboardClient
-    initialCatalogs={catalogs}
-    initialProducts={products}
-    initialStats={stats}
-  />
+  return (
+    <DashboardClient
+      initialCatalogs={catalogs}
+      initialProducts={productsResponse.products}
+      initialStats={stats}
+    />
+  )
 }
 

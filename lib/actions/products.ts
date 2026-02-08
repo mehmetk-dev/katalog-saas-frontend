@@ -28,8 +28,32 @@ export interface Product {
   order: number
 }
 
-export async function getProducts() {
-  return await apiFetch<Product[]>("/products")
+export interface ProductsResponse {
+  products: Product[]
+  metadata: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export async function getProducts(params?: {
+  page?: number
+  limit?: number
+  category?: string
+  search?: string
+}): Promise<ProductsResponse> {
+  const queryParams = new URLSearchParams()
+  if (params?.page) queryParams.set("page", params.page.toString())
+  if (params?.limit) queryParams.set("limit", params.limit.toString())
+  if (params?.category) queryParams.set("category", params.category)
+  if (params?.search) queryParams.set("search", params.search)
+
+  const queryString = queryParams.toString()
+  const path = `/products${queryString ? `?${queryString}` : ""}`
+
+  return await apiFetch<ProductsResponse>(path)
 }
 
 export async function createProduct(formData: FormData) {

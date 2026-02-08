@@ -1,19 +1,26 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
 import { redis } from '../services/redis';
 
 const router = Router();
 
-// ... (HealthStatus interface)
+// GET /health - Basic health check (Optimized: No DB query)
+router.get('/', (req: Request, res: Response) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
 
-// GET /health - Basic health check
-router.get('/', async (req, res) => {
+// GET /health/full - Full health check with DB and Redis checks
+router.get('/full', async (req: Request, res: Response) => {
     let dbStatus = false;
     let redisStatus = false;
 
     try {
-        // Quick DB check
         const { error } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
         dbStatus = !error;
     } catch {
@@ -21,7 +28,6 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        // Quick Redis check
         if (redis) {
             const pong = await redis.ping();
             redisStatus = pong === 'PONG';
@@ -33,7 +39,6 @@ router.get('/', async (req, res) => {
     const health = {
         status: dbStatus && redisStatus ? 'ok' : (dbStatus || redisStatus ? 'degraded' : 'error'),
         timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
         checks: {
             database: dbStatus,
             redis: redisStatus,
@@ -44,7 +49,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /health/ready - Readiness check (for Kubernetes)
-router.get('/ready', async (req, res) => {
+router.get('/ready', async (req: Request, res: Response) => {
     try {
         // Check if app is ready to receive traffic
         // Add your readiness checks here (DB connection, etc.)
@@ -55,7 +60,7 @@ router.get('/ready', async (req, res) => {
 });
 
 // GET /health/live - Liveness check (for Kubernetes)
-router.get('/live', (req, res) => {
+router.get('/live', (req: Request, res: Response) => {
     // Simple check - if we can respond, we're alive
     res.status(200).json({ alive: true });
 });
