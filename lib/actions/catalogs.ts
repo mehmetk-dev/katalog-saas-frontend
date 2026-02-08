@@ -41,6 +41,7 @@ export interface Catalog {
   cover_description?: string | null  // Cover page description (max 500 chars)
   enable_category_dividers?: boolean  // Enable category transition pages (default: false)
   cover_theme?: string // Theme for the cover page (e.g., 'modern', 'minimal', 'lux', etc.)
+  show_in_search?: boolean // New: Visibility in search engines (default: true)
   created_at: string
   updated_at: string
   // Public API'den gelen ürünler (opsiyonel)

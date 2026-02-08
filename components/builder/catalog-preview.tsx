@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect, useMemo } from "react"
 import { ChevronLeft, ChevronRight, Layout, Monitor } from "lucide-react"
-import { cn } from "@/lib/utils"
-
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
 import { Button } from "@/components/ui/button"

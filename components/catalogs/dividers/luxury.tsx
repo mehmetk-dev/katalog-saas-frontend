@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function LuxuryDivider({ categoryName, firstProductImage, primaryColor }: CategoryDividerProps) {
+export function LuxuryDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-[#050505] text-[#D4AF37] flex items-center justify-center overflow-hidden">
             {/* Pattern BG */}

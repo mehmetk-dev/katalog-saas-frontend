@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function BoldDivider({ categoryName, firstProductImage, primaryColor = '#ffffff' }: CategoryDividerProps) {
+export function BoldDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#ffffff' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-red-600 flex items-center justify-center overflow-hidden">
             {/* Giant diagonal text BG */}

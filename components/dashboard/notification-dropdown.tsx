@@ -25,7 +25,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 
 export function NotificationDropdown() {
     const { t: baseT, language } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)

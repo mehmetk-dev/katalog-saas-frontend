@@ -28,7 +28,7 @@ import { usePathname } from "next/navigation"
 export function DashboardHeader() {
   const { user, logout } = useUser()
   const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const { toggle, isMobile, isCollapsed } = useSidebar()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
@@ -61,9 +61,9 @@ export function DashboardHeader() {
       const successMsg = t("toasts.catalogCreated")
       toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
       window.location.href = `/dashboard/builder?id=${newCatalog.id}`
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Header creation error:", error)
-      toast.error(error.message || "Hata oluştu", { id: toastId })
+      toast.error(error instanceof Error ? error.message : "Hata oluştu", { id: toastId })
       setIsCreating(false)
     }
   }

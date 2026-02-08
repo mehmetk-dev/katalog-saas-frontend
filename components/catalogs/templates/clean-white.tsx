@@ -54,8 +54,8 @@ export function CleanWhiteTemplate({
             <div className={`flex-1 px-12 py-6 grid ${getGridCols()} ${getGridRows()} gap-x-8 gap-y-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 112px)' }}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
+                    const _Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const _wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',

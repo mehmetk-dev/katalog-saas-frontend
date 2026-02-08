@@ -35,7 +35,7 @@ export function SessionWatcher() {
                 console.error(`[SessionWatcher] ${source} refresh error:`, error)
             } else if (!session && pathname?.startsWith('/dashboard')) {
                 // Dashboard'dayız ama session yok, refresh yap ki middleware yakalasın
-                console.log(`[SessionWatcher] ${source} - Session lost, refreshing router`)
+                console.warn(`[SessionWatcher] ${source} - Session lost, refreshing router`)
                 router.refresh()
             } else {
                 // console.log(`[SessionWatcher] ${source} - Session active`)

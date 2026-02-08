@@ -748,29 +748,81 @@ export const translations = {
         },
 
         featuresPage: {
-            title: "Özellikler",
-            subtitle: "Profesyonel kataloglar oluşturmak için ihtiyacınız olan tüm araçlar.",
-            dragDropTitle: "Sürükle-Bırak Editör",
-            dragDropDesc: "Teknik bilgi gerektirmeden, görsel arayüz ile kataloglarınızı oluşturun.",
-            templatesTitle: "Profesyonel Şablonlar",
-            templatesDesc: "16+ farklı şablon arasından markanıza uygun olanı seçin.",
-            qrTitle: "QR Kod",
-            qrDesc: "Her katalog için otomatik QR kod oluşturma.",
-            analyticsTitle: "Detaylı Analitik",
-            analyticsDesc: "Görüntülenme ve etkileşim verilerini takip edin.",
-            shareTitle: "Kolay Paylaşım",
-            shareDesc: "Tek tıkla WhatsApp veya sosyal medyada paylaşın.",
-            pdfTitle: "PDF Dışa Aktarma",
-            pdfDesc: "Kataloglarınızı PDF olarak indirin.",
-            excelTitle: "Excel Import",
-            excelDesc: "Ürünlerinizi Excel'den toplu olarak içe aktarın.",
-            brandTitle: "Marka Özelleştirme",
-            brandDesc: "Logo ve renklerinizi ekleyin.",
-            mobileTitle: "Mobil Uyumlu",
-            mobileDesc: "Tüm cihazlarda mükemmel görünüm.",
-            ctaTitle: "Hemen başlayın",
-            ctaDesc: "İlk kataloğunuzu birkaç dakika içinde oluşturun.",
-            ctaButton: "Ücretsiz Hesap Oluştur",
+            // Hero
+            heroTitle: "İşinizi Büyüten",
+            heroTitleHighlight: "Süper Güçler.",
+            heroDesc: "Sadece bir katalog değil. Satışlarınızı artıran, müşterilerinizi etkileyen ve işinizi kolaylaştıran eksiksiz bir dijital dönüşüm aracı.",
+            heroBadge: "FogCatalog v2.0 Özellikleri",
+
+            // Bulk Upload
+            bulkTitle: "Binlerce Ürün,\nSaniyeler İçinde.",
+            bulkDesc: "Tek tek ürün girmekle uğraşmayın. Akıllı sürükle-bırak teknolojimizle yüzlerce fotoğrafı aynı anda yükleyin. Sistemimiz ürün isimlerini otomatik tanır, size sadece fiyatları girmek kalır.",
+            bulkList1: "Toplu Fotoğraf Yükle",
+            bulkList2: "Otomatik İsimlendirme",
+            bulkList3: "Hızlı Kategori Atama",
+            bulkDropTitle: "Fotoğrafları Buraya Bırakın",
+            bulkDropDesc: "veya seçmek için tıklayın",
+
+            // Link Sharing
+            shareTitle: "Katalogları\nHer Yerde Paylaşın.",
+            shareDesc: "Kataloğunuzu paylaşılabilir bir link ile sosyal medyada, e-postada veya WhatsApp'ta kolayca yayınlayın. QR kod ile fiziksel mekanlarda da erişilebilir hale getirin.",
+            shareList1: "Tek Link ile Tüm Platformlar",
+            shareList2: "WhatsApp, Instagram, Facebook",
+            shareList3: "E-posta İmzaları & Bio Linkleri",
+            shareBtn: "Hemen Deneyin",
+            shareCopy: "Kopyala",
+
+            // Publishing
+            publishTitle: "Tek Tıkla\nYayına Alın.",
+            publishDesc: "Teknik bilgiye, sunucu kurulumuna veya karmaşık ayarlara ihtiyacınız yok. Kataloğunuzu hazırlayın ve saniyeler içinde tüm dünyayla paylaşın.",
+            publishList1: "Ücretsiz Hosting & SSL",
+            publishList2: "Anlık Güncelleme",
+            publishList3: "7/24 Kesintisiz Erişim",
+            publishStatus: "YAYINDA",
+            publishUpdated: "Son Güncelleme:",
+            publishNow: "Şimdi",
+            publishQuick: "Hızlı İşlem",
+            publishQuickDesc: "Tüm değişiklikler anında müşterilerinize yansır.",
+
+            // QR & PDF Cards
+            qrTitle: "Akıllı QR Kod",
+            qrDesc: "Bastırdığınız QR kodu vitrininize veya kartvizitinize koyun. Kataloğunuzu güncellediğinizde QR kodunuz değişmez, her zaman en güncel ürünlerinizi gösterir.",
+            pdfTitle: "Tek Tıkla PDF",
+            pdfDesc: "Dijital kataloğunuzu anında baskıya hazır, yüksek çözünürlüklü bir PDF dosyasına dönüştürün. İnternetin olmadığı yerlerde bile sunum yapın.",
+
+            // Bento Grid Header
+            bentoHeader: "Ve Çok Daha Fazlası...",
+
+            // Bento Cards
+            analyticsTitle: "Gelişmiş Analitik",
+            analyticsDesc: "Ziyaretçi sayıları, tıklanan ürünler ve daha fazlası.",
+
+            securityTitle: "Güvenli\nAltyapı",
+            securityStatus: "Sistem OK",
+
+            globalTitle: "Dünyaya\nAçılın",
+            globalDesc: "Müşterileriniz nerede olursa olsun, ürünlerinize anında ulaşsın.",
+            globalBadge: "7/24 KESİNTİSİZ",
+
+            smartCatTitle: "Akıllı\nKategoriler",
+            smartCatTag1: "#Aksesuar",
+            smartCatTag2: "#Giyim",
+            smartCatTag3: "#Yeni Sezon",
+
+            variationsTitle: "Sınırsız Varyasyon",
+            variationsDesc: "Renk, beden, materyal... Ürünlerinizin tüm seçeneklerini en ince detayına kadar listeleyin.",
+
+            fastSetupTitle: "Hızlı\nKurulum",
+            fastSetupLoading: "Yükleniyor...",
+            fastSetupLive: "Yayında!",
+
+            // Final CTA
+            ctaMainTitle: "Markanızın",
+            ctaHighlight: "En Şık Hali.",
+            ctaMainDesc: "Ürünlerinizi sadece listelemeyin, onlara bir hikaye katın. Profesyonel kataloglar oluşturmak için tasarımcı olmanıza gerek yok.",
+            ctaButton: "Ücretsiz Başlayın",
+            ctaNoCard: "KREDİ KARTI GEREKMEZ",
+            ctaCollection: "Koleksiyon",
         },
         pricingPage: {
             title: "Fiyatlandırma",
@@ -859,6 +911,7 @@ export const translations = {
         header: {
             features: "Özellikler",
             pricing: "Fiyatlandırma",
+            blog: "Blog",
             contact: "İletişim",
             login: "Giriş Yap",
             createCatalog: "Katalog Oluştur",
@@ -868,6 +921,7 @@ export const translations = {
             product: "Ürün",
             features: "Özellikler",
             pricing: "Fiyatlandırma",
+            blog: "Blog",
             support: "Destek",
             contact: "İletişim",
             rights: "© 2025 FogCatalog. Tüm hakları saklıdır.",
@@ -2097,29 +2151,81 @@ export const translations = {
         },
 
         featuresPage: {
-            title: "Features",
-            subtitle: "All the tools you need to create professional catalogs.",
-            dragDropTitle: "Drag & Drop Editor",
-            dragDropDesc: "Create catalogs visually without technical skills.",
-            templatesTitle: "Professional Templates",
-            templatesDesc: "Choose from 16+ templates that fit your brand.",
-            qrTitle: "QR Code",
-            qrDesc: "Automatic QR code generation for every catalog.",
-            analyticsTitle: "Detailed Analytics",
-            analyticsDesc: "Track views and engagement data.",
-            shareTitle: "Easy Sharing",
-            shareDesc: "Share on WhatsApp or social media with one click.",
-            pdfTitle: "PDF Export",
-            pdfDesc: "Download your catalogs as PDF.",
-            excelTitle: "Excel Import",
-            excelDesc: "Import products in bulk from Excel.",
-            brandTitle: "Brand Customization",
-            brandDesc: "Add your logo and colors.",
-            mobileTitle: "Mobile Compatible",
-            mobileDesc: "Perfect look on all devices.",
-            ctaTitle: "Start Now",
-            ctaDesc: "Create your first catalog in minutes.",
-            ctaButton: "Create Free Account",
+            // Hero
+            heroTitle: "Superpowers for",
+            heroTitleHighlight: "Growing Your Business.",
+            heroDesc: "Not just a catalog. A complete digital transformation tool that boosts sales, impresses customers, and simplifies your work.",
+            heroBadge: "FogCatalog v2.0 Features",
+
+            // Bulk Upload
+            bulkTitle: "Thousands of Products,\nIn Seconds.",
+            bulkDesc: "Don't waste time entering products one by one. Upload hundreds of photos at once with our smart drag-and-drop technology. Our system automatically recognizes product names, leaving you only to enter prices.",
+            bulkList1: "Bulk Photo Upload",
+            bulkList2: "Automatic Naming",
+            bulkList3: "Fast Category Assignment",
+            bulkDropTitle: "Drop Photos Here",
+            bulkDropDesc: "or click to select",
+
+            // Link Sharing
+            shareTitle: "Share Catalogs\nEverywhere.",
+            shareDesc: "Easily publish your catalog via a shareable link on social media, email, or WhatsApp. Make it accessible in physical locations with QR codes.",
+            shareList1: "One Link for All Platforms",
+            shareList2: "WhatsApp, Instagram, Facebook",
+            shareList3: "Email Signatures & Bio Links",
+            shareBtn: "Try It Now",
+            shareCopy: "Copy",
+
+            // Publishing
+            publishTitle: "Publish with\nOne Click.",
+            publishDesc: "No technical knowledge, server setup, or complex settings needed. Prepare your catalog and share it with the world in seconds.",
+            publishList1: "Free Hosting & SSL",
+            publishList2: "Instant Updates",
+            publishList3: "24/7 Uninterrupted Access",
+            publishStatus: "LIVE",
+            publishUpdated: "Last Update:",
+            publishNow: "Just Now",
+            publishQuick: "Quick Action",
+            publishQuickDesc: "All changes reflect instantly to your customers.",
+
+            // QR & PDF Cards
+            qrTitle: "Smart QR Code",
+            qrDesc: "Place your printed QR code on your storefront or business card. When you update your catalog, your QR code doesn't change, always showing your latest products.",
+            pdfTitle: "One-Click PDF",
+            pdfDesc: "Instantly convert your digital catalog into a print-ready, high-resolution PDF file. Present even where there is no internet.",
+
+            // Bento Grid Header
+            bentoHeader: "And Much More...",
+
+            // Bento Cards
+            analyticsTitle: "Advanced Analytics",
+            analyticsDesc: "Visitor counts, clicked products, and more.",
+
+            securityTitle: "Secure\nInfrastructure",
+            securityStatus: "System OK",
+
+            globalTitle: "Go\nGlobal",
+            globalDesc: "Let customers access your products instantly, wherever they are.",
+            globalBadge: "24/7 ONLINE",
+
+            smartCatTitle: "Smart\nCategories",
+            smartCatTag1: "#Accessories",
+            smartCatTag2: "#Clothing",
+            smartCatTag3: "#New Season",
+
+            variationsTitle: "Unlimited Variations",
+            variationsDesc: "Color, size, material... List all options of your products down to the finest detail.",
+
+            fastSetupTitle: "Fast\nSetup",
+            fastSetupLoading: "Loading...",
+            fastSetupLive: "Live!",
+
+            // Final CTA
+            ctaMainTitle: "Your Brand at Its",
+            ctaHighlight: "Most Elegant.",
+            ctaMainDesc: "Don't just list your products, give them a story. You don't need to be a designer to create professional catalogs.",
+            ctaButton: "Start for Free",
+            ctaNoCard: "NO CREDIT CARD REQUIRED",
+            ctaCollection: "Collection",
         },
         pricingPage: {
             title: "Simple, transparent pricing",
@@ -2152,6 +2258,7 @@ export const translations = {
         header: {
             features: "Features",
             pricing: "Pricing",
+            blog: "Blog",
             contact: "Contact",
             login: "Sign In",
             createCatalog: "Create Catalog",
@@ -2161,6 +2268,7 @@ export const translations = {
             product: "Product",
             features: "Features",
             pricing: "Pricing",
+            blog: "Blog",
             support: "Support",
             contact: "Contact",
             rights: "© 2025 FogCatalog. All rights reserved.",

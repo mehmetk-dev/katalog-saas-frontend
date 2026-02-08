@@ -52,7 +52,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const router = useRouter()
   const { user, canExport, refreshUser } = useUser()
   const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const [isPending, startTransition] = useTransition()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [catalogName, setCatalogName] = useState(catalog?.name || "")
@@ -87,6 +87,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [showAttributes, setShowAttributes] = useState(catalog?.show_attributes ?? false)
   const [showSku, setShowSku] = useState(catalog?.show_sku ?? true)
   const [showUrls, setShowUrls] = useState(catalog?.show_urls ?? false)
+  const [showInSearch, setShowInSearch] = useState(catalog?.show_in_search ?? true)
   const [view, setView] = useState<"split" | "editor" | "preview">("split")
   const [currentCatalogId, setCurrentCatalogId] = useState(catalog?.id || null)
   const [isPublished, setIsPublished] = useState(catalog?.is_published || false)
@@ -133,6 +134,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     enableCoverPage: catalog?.enable_cover_page ?? false,
     enableCategoryDividers: catalog?.enable_category_dividers ?? false,
     coverTheme: catalog?.cover_theme || "modern",
+    showInSearch: catalog?.show_in_search ?? true,
   })
 
   // Değişiklik var mı kontrol et
@@ -153,7 +155,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     backgroundImage !== lastSavedState.backgroundImage ||
     logoUrl !== lastSavedState.logoUrl ||
     enableCoverPage !== lastSavedState.enableCoverPage ||
-    enableCategoryDividers !== lastSavedState.enableCategoryDividers
+    enableCategoryDividers !== lastSavedState.enableCategoryDividers ||
+    showInSearch !== lastSavedState.showInSearch
   )
 
   // Sayfa kapatma/yenileme uyarısı
@@ -189,6 +192,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       setShowAttributes(catalog.show_attributes ?? false)
       setShowSku(catalog.show_sku ?? true)
       setShowUrls(catalog.show_urls ?? false)
+      setShowInSearch(catalog.show_in_search ?? true)
       setColumnsPerRow(catalog.columns_per_row || 3)
       setBackgroundColor(catalog.background_color || '#ffffff')
       setBackgroundImage(catalog.background_image || null)
@@ -225,6 +229,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         enableCoverPage: catalog.enable_cover_page ?? false,
         enableCategoryDividers: catalog.enable_category_dividers ?? false,
         coverTheme: catalog.cover_theme || "modern",
+        showInSearch: catalog.show_in_search ?? true,
       })
       setIsDirty(false)
     }
@@ -243,7 +248,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (!isInitialRender) {
       setIsDirty(true)
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, columnsPerRow, backgroundColor, backgroundGradient, catalog?.background_gradient, catalog?.description, catalog?.name, catalog?.product_ids, enableCoverPage, coverImageUrl, coverDescription, enableCategoryDividers])
+  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, showInSearch, columnsPerRow, backgroundColor, backgroundGradient, catalog?.background_gradient, catalog?.description, catalog?.name, catalog?.product_ids, enableCoverPage, coverImageUrl, coverDescription, enableCategoryDividers])
 
   // Autosave state
   const [, setIsAutoSaving] = useState(false)
@@ -256,7 +261,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit,
     backgroundGradient, logoUrl, logoPosition, logoSize, titlePosition,
     productImageFit, headerTextColor, enableCoverPage, coverImageUrl,
-    coverDescription, enableCategoryDividers, coverTheme, isPublished
+    coverDescription, enableCategoryDividers, coverTheme, isPublished,
+    showInSearch
   })
 
   // Ref'i her render'da güncelle (dependency olmadan)
@@ -266,7 +272,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     columnsPerRow, backgroundColor, backgroundImage, backgroundImageFit,
     backgroundGradient, logoUrl, logoPosition, logoSize, titlePosition,
     productImageFit, headerTextColor, enableCoverPage, coverImageUrl,
-    coverDescription, enableCategoryDividers, coverTheme, isPublished
+    coverDescription, enableCategoryDividers, coverTheme, isPublished,
+    showInSearch
   }
 
   // Debounced Autosave - 3 saniye bekle, sonra kaydet
@@ -312,6 +319,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           cover_image_url: data.coverImageUrl,
           cover_description: data.coverDescription,
           enable_category_dividers: data.enableCategoryDividers,
+          show_in_search: data.showInSearch,
         })
 
         // Başarılı - state'leri güncelle
@@ -333,6 +341,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           enableCoverPage: data.enableCoverPage,
           enableCategoryDividers: data.enableCategoryDividers,
           coverTheme: data.coverTheme,
+          showInSearch: data.showInSearch,
         })
         setIsDirty(false)
         if (data.isPublished) {
@@ -421,6 +430,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             cover_description: coverDescription,
             enable_category_dividers: enableCategoryDividers,
             cover_theme: coverTheme,
+            show_in_search: showInSearch,
           })
 
           // Beklemeden başarılı mesajı ver (Optimistic)
@@ -456,6 +466,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             cover_description: coverDescription,
             enable_category_dividers: enableCategoryDividers,
             cover_theme: coverTheme,
+            show_in_search: showInSearch,
           })
 
           setCurrentCatalogId(newCatalog.id)
@@ -485,6 +496,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           enableCoverPage,
           enableCategoryDividers,
           coverTheme,
+          showInSearch,
         })
         setIsDirty(false)
         if (isPublished) {
@@ -532,6 +544,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           cover_description: coverDescription,
           enable_category_dividers: enableCategoryDividers,
           cover_theme: coverTheme,
+          show_in_search: showInSearch,
         })
 
         // 2. Cache temizle (Slug kullanarak)
@@ -647,6 +660,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           cover_description: coverDescription,
           enable_category_dividers: enableCategoryDividers,
           cover_theme: coverTheme,
+          show_in_search: showInSearch,
         })
 
         // 2. Şimdi yayın durumunu güncelle
@@ -948,6 +962,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               onEnableCategoryDividersChange={setEnableCategoryDividers}
               coverTheme={coverTheme}
               onCoverThemeChange={setCoverTheme}
+              showInSearch={showInSearch}
+              onShowInSearchChange={setShowInSearch}
             />
           </div>
         )}

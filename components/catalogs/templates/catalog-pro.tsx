@@ -27,7 +27,7 @@ export function CatalogProTemplate({
 }: TemplateProps) {
     const safeProducts = products || []
 
-    const getImageFitClass = () => {
+    const _getImageFitClass = () => {
         switch (productImageFit) {
             case 'contain': return 'object-contain'
             case 'fill': return 'object-fill'

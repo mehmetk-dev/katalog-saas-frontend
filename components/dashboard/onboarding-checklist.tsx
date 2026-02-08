@@ -18,7 +18,7 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChecklistProps) {
     const { t: baseT } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [isVisible, setIsVisible] = useState(true)
 
     if (!isVisible) return null

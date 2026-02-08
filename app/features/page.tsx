@@ -13,14 +13,17 @@ import {
     Globe,
     Zap,
     Image as ImageIcon,
-    ShieldCheck
+    ShieldCheck,
+    Sparkles
 } from "lucide-react"
 
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/i18n-provider"
 
 export default function FeaturesPage() {
+    const { t } = useTranslation()
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-indigo-100">
             <PublicHeader />
@@ -34,18 +37,18 @@ export default function FeaturesPage() {
 
                 {/* Hero Section */}
                 <div className="max-w-5xl mx-auto text-center mb-32 relative">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-100 bg-white shadow-sm mb-8 animate-in fade-in zoom-in duration-700">
-                        <Rocket className="w-4 h-4 text-indigo-600" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-indigo-900">FogCatalog v2.0 Özellikleri</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white shadow-sm mb-8 animate-in fade-in zoom-in duration-700">
+                        <Rocket className="w-4 h-4 text-sky-600" />
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-700">{t('featuresPage.heroBadge')}</span>
                     </div>
 
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 mb-8 leading-[0.95] tracking-tight">
-                        İşinizi Büyüten <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 animate-gradient-x">Süper Güçler.</span>
+                        {t('featuresPage.heroTitle')} <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-sky-600 animate-gradient-x">{t('featuresPage.heroTitleHighlight')}</span>
                     </h1>
 
                     <p className="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-light">
-                        Sadece bir katalog değil. Satışlarınızı artıran, müşterilerinizi etkileyen ve işinizi kolaylaştıran eksiksiz bir dijital dönüşüm aracı.
+                        {t('featuresPage.heroDesc')}
                     </p>
                 </div>
 
@@ -53,20 +56,20 @@ export default function FeaturesPage() {
                 <section className="max-w-7xl mx-auto mb-32 md:mb-48">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-[2rem] blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-                            <div className="relative bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-indigo-100/50 overflow-hidden min-h-[400px] flex flex-col items-center justify-center">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-sky-500 to-blue-600 rounded-[2rem] blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                            <div className="relative bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-sky-100/50 overflow-hidden min-h-[400px] flex flex-col items-center justify-center">
                                 {/* Visual Mockup for Drag & Drop */}
                                 <div className="absolute inset-0 bg-slate-50/50 [mask-image:radial-gradient(ellipse_at_center,white,transparent)]"></div>
-                                <div className="w-full max-w-sm border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-3xl p-10 text-center relative z-10 group-hover:scale-105 transition-transform duration-500">
+                                <div className="w-full max-w-sm border-2 border-dashed border-sky-200 bg-sky-50/50 rounded-3xl p-10 text-center relative z-10 group-hover:scale-105 transition-transform duration-500">
                                     <div className="w-20 h-20 bg-white rounded-full shadow-lg mx-auto flex items-center justify-center mb-6">
-                                        <ImageIcon className="w-10 h-10 text-indigo-600" />
+                                        <ImageIcon className="w-10 h-10 text-sky-600" />
                                     </div>
-                                    <p className="font-bold text-indigo-900 text-lg mb-2">Fotoğrafları Buraya Bırakın</p>
-                                    <p className="text-sm text-indigo-600/70">veya seçmek için tıklayın</p>
+                                    <p className="font-bold text-slate-900 text-lg mb-2">{t('featuresPage.bulkDropTitle')}</p>
+                                    <p className="text-sm text-slate-500">{t('featuresPage.bulkDropDesc')}</p>
 
                                     {/* Floating Badges */}
                                     <div className="absolute -right-8 -top-6 bg-white shadow-lg p-3 rounded-xl flex gap-3 animate-bounce">
-                                        <div className="w-10 h-10 bg-slate-100 rounded-lg bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100')] bg-cover"></div>
+                                        <div className="w-10 h-10 bg-slate-100 rounded-lg bg-[url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=100')] bg-cover"></div>
                                         <div>
                                             <div className="h-2 w-16 bg-slate-200 rounded mb-1"></div>
                                             <div className="h-2 w-10 bg-green-200 rounded"></div>
@@ -74,7 +77,7 @@ export default function FeaturesPage() {
                                         <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">✓</div>
                                     </div>
                                     <div className="absolute -left-8 bottom-10 bg-white shadow-lg p-3 rounded-xl flex gap-3 animate-bounce delay-150">
-                                        <div className="w-10 h-10 bg-slate-100 rounded-lg bg-[url('https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100')] bg-cover"></div>
+                                        <div className="w-10 h-10 bg-slate-100 rounded-lg bg-[url('https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100')] bg-cover"></div>
                                         <div>
                                             <div className="h-2 w-12 bg-slate-200 rounded mb-1"></div>
                                             <div className="h-2 w-8 bg-green-200 rounded"></div>
@@ -88,89 +91,200 @@ export default function FeaturesPage() {
                             <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center mb-8">
                                 <MousePointerClick className="w-6 h-6 text-indigo-600" />
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">Binlerce Ürün,<br />Saniyeler İçinde.</h2>
+                            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 whitespace-pre-line">{t('featuresPage.bulkTitle')}</h2>
                             <p className="text-xl text-slate-500 leading-relaxed mb-8">
-                                Tek tek ürün girmekle uğraşmayın. Akıllı sürükle-bırak teknolojimizle yüzlerce fotoğrafı aynı anda yükleyin. Sistemimiz ürün isimlerini otomatik tanır, size sadece fiyatları girmek kalır.
+                                {t('featuresPage.bulkDesc')}
                             </p>
                             <ul className="space-y-4">
                                 <li className="flex items-center gap-3 font-semibold text-slate-700">
                                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</div>
-                                    Toplu Fotoğraf Yükleme
+                                    {t('featuresPage.bulkList1')}
                                 </li>
                                 <li className="flex items-center gap-3 font-semibold text-slate-700">
                                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</div>
-                                    Otomatik İsimlendirme
+                                    {t('featuresPage.bulkList2')}
                                 </li>
                                 <li className="flex items-center gap-3 font-semibold text-slate-700">
                                     <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</div>
-                                    Excel ile Düzenleme (Yakında)
+                                    {t('featuresPage.bulkList3')}
                                 </li>
                             </ul>
                         </div>
                     </div>
                 </section>
 
-                {/* FEATURE 2: WhatsApp Orders (Right Image / Left Text) */}
+                {/* FEATURE 2: Link Sharing & Social (Right Image / Left Text) */}
                 <section className="max-w-7xl mx-auto mb-32 md:mb-48">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         <div className="order-2 lg:order-1">
-                            <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mb-8">
-                                <Smartphone className="w-6 h-6 text-green-600" />
+                            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mb-8">
+                                <Share2 className="w-6 h-6 text-blue-600" />
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">WhatsApp ile<br />Hızlı Satış.</h2>
+                            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 whitespace-pre-line">{t('featuresPage.shareTitle')}</h2>
                             <p className="text-xl text-slate-500 leading-relaxed mb-8">
-                                Müşterileriniz katalogda beğendikleri ürünleri sepete ekler ve tek tuşla WhatsApp üzerinden size gönderir. E-ticaret sitesi karmaşası yok, üyelik zorunluluğu yok.
+                                {t('featuresPage.shareDesc')}
                             </p>
+                            <ul className="space-y-4 mb-8">
+                                <li className="flex items-center gap-3 font-semibold text-slate-700">
+                                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</div>
+                                    {t('featuresPage.shareList1')}
+                                </li>
+                                <li className="flex items-center gap-3 font-semibold text-slate-700">
+                                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</div>
+                                    {t('featuresPage.shareList2')}
+                                </li>
+                                <li className="flex items-center gap-3 font-semibold text-slate-700">
+                                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs">✓</div>
+                                    {t('featuresPage.shareList3')}
+                                </li>
+                            </ul>
                             <Link href="/auth?plan=free">
-                                <Button className="h-14 px-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-lg font-bold shadow-lg shadow-green-200">
-                                    Hemen Deneyin
+                                <Button className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-bold shadow-lg shadow-blue-200">
+                                    {t('featuresPage.shareBtn')}
                                 </Button>
                             </Link>
                         </div>
                         <div className="order-1 lg:order-2 relative group">
-                            <div className="absolute inset-0 bg-green-200 rounded-[2rem] blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                            <div className="absolute inset-0 bg-blue-200 rounded-[2rem] blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
 
-                            {/* Phone Mockup */}
-                            <div className="relative mx-auto w-[300px] h-[600px] bg-slate-900 rounded-[3rem] border-8 border-slate-900 shadow-2xl overflow-hidden">
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-xl z-20"></div>
-                                <div className="w-full h-full bg-[#ECE5DD] flex flex-col pt-12 relative">
-                                    {/* Chat Header */}
-                                    <div className="h-16 bg-[#075E54] flex items-center px-4 gap-3 shadow-md z-10">
-                                        <div className="w-10 h-10 bg-white/20 rounded-full"></div>
-                                        <div>
-                                            <div className="h-2 w-24 bg-white/40 rounded mb-1"></div>
-                                            <div className="h-2 w-12 bg-white/20 rounded"></div>
+                            {/* Social Sharing Visual */}
+                            <div className="relative mx-auto w-full max-w-md bg-white rounded-[3rem] border-4 border-slate-200 shadow-2xl overflow-hidden p-8">
+                                {/* Browser Header */}
+                                <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                                    <div className="flex gap-1.5">
+                                        <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                    </div>
+                                    <div className="flex-1 h-7 bg-slate-50 rounded-lg flex items-center px-3">
+                                        <Globe className="w-3 h-3 text-slate-400 mr-2" />
+                                        <span className="text-xs text-slate-400">fogcatalog.com/catalog/...</span>
+                                    </div>
+                                </div>
+
+                                {/* Social Share Buttons */}
+                                <div className="space-y-3">
+                                    {/* WhatsApp */}
+                                    <div className="flex items-center gap-3 p-3 bg-[#25D366]/10 rounded-xl border-2 border-[#25D366]/20 hover:scale-105 transition-transform cursor-pointer">
+                                        <div className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white">
+                                            <Smartphone className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="h-2 w-20 bg-slate-300 rounded mb-1"></div>
+                                            <div className="h-2 w-16 bg-slate-200 rounded"></div>
                                         </div>
                                     </div>
 
-                                    {/* Chat Messages */}
-                                    <div className="flex-1 p-4 space-y-4">
-                                        <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm max-w-[80%] self-start">
-                                            <p className="text-xs text-slate-400 mb-1">Otomatik Mesaj</p>
-                                            <p className="text-sm font-medium text-slate-800">
-                                                Merhaba, kataloğunuzdan aşağıdaki ürünleri sipariş vermek istiyorum:
-                                            </p>
-                                            <div className="mt-3 space-y-2 border-l-2 border-green-500 pl-2">
-                                                <div className="text-xs text-slate-600">— Keten Gömlek (Mavi, L)</div>
-                                                <div className="text-xs text-slate-600">— Kot Pantolon (Siyah, 32)</div>
-                                            </div>
-                                            <div className="mt-3 font-bold text-green-700 text-sm">Toplam: 1.250 ₺</div>
+                                    {/* Instagram */}
+                                    <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border-2 border-purple-300/20 hover:scale-105 transition-transform cursor-pointer">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white">
+                                            <ImageIcon className="w-5 h-5" />
                                         </div>
-
-                                        <div className="bg-[#DCF8C6] p-3 rounded-lg rounded-tr-none shadow-sm max-w-[80%] ml-auto self-end">
-                                            <p className="text-sm text-slate-800">Harika! Siparişinizi aldım, hemen hazırlıyorum. 🚀</p>
+                                        <div className="flex-1">
+                                            <div className="h-2 w-24 bg-slate-300 rounded mb-1"></div>
+                                            <div className="h-2 w-20 bg-slate-200 rounded"></div>
                                         </div>
                                     </div>
 
-                                    {/* Input Area */}
-                                    <div className="h-16 bg-white p-2 flex items-center gap-2">
-                                        <div className="flex-1 h-10 bg-slate-100 rounded-full"></div>
-                                        <div className="w-10 h-10 bg-[#075E54] rounded-full flex items-center justify-center text-white">
-                                            <ArrowRight className="w-5 h-5" />
+                                    {/* Facebook */}
+                                    <div className="flex items-center gap-3 p-3 bg-[#1877F2]/10 rounded-xl border-2 border-[#1877F2]/20 hover:scale-105 transition-transform cursor-pointer">
+                                        <div className="w-10 h-10 bg-[#1877F2] rounded-full flex items-center justify-center text-white">
+                                            <Share2 className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="h-2 w-20 bg-slate-300 rounded mb-1"></div>
+                                            <div className="h-2 w-14 bg-slate-200 rounded"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Link Copy Section */}
+                                <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-400 font-mono">fogcatalog.com/c/abc123</span>
+                                        <div className="px-3 py-1 bg-violet-600 text-white text-xs font-bold rounded-lg">
+                                            {t('featuresPage.shareCopy')}
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* FEATURE 3: Publishing (Left Image / Right Text) */}
+                <section className="max-w-7xl mx-auto mb-32 md:mb-48">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-[2rem] blur-2xl opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                            <div className="relative bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-slate-100 overflow-hidden min-h-[400px] flex flex-col items-center justify-center">
+                                {/* Visual Mockup for Publishing */}
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-emerald-50/50 via-white to-white"></div>
+
+                                <div className="relative z-10 w-full max-w-sm">
+                                    {/* Dashboard Mini Mockup */}
+                                    <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 mb-6">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-lg bg-[url('https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=100')] bg-cover"></div>
+                                                <div>
+                                                    <div className="h-2 w-24 bg-slate-800 rounded mb-1.5"></div>
+                                                    <div className="h-2 w-16 bg-slate-300 rounded"></div>
+                                                </div>
+                                            </div>
+                                            <div className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200 flex items-center gap-1.5">
+                                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                                                YAYINDA
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center text-xs text-slate-500">
+                                                <span>Son Güncelleme:</span>
+                                                <span className="font-mono text-slate-900">Şimdi</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                <div className="h-full w-full bg-emerald-500 rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Card (Floating) */}
+                                    <div className="absolute -right-4 -bottom-4 bg-slate-900 text-white p-5 rounded-2xl shadow-2xl shadow-slate-900/20 w-48 group-hover:scale-105 transition-transform duration-500">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                                <Zap className="w-4 h-4 text-emerald-400" />
+                                            </div>
+                                            <span className="font-bold text-sm">{t('featuresPage.publishQuick')}</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mb-3">{t('featuresPage.publishQuickDesc')}</p>
+                                        <div className="h-1 w-12 bg-emerald-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center mb-8">
+                                <Rocket className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 whitespace-pre-line">{t('featuresPage.publishTitle')}</h2>
+                            <p className="text-xl text-slate-500 leading-relaxed mb-8">
+                                {t('featuresPage.publishDesc')}
+                            </p>
+                            <ul className="space-y-4">
+                                <li className="flex items-center gap-3 font-semibold text-slate-700">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">✓</div>
+                                    {t('featuresPage.publishList1')}
+                                </li>
+                                <li className="flex items-center gap-3 font-semibold text-slate-700">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">✓</div>
+                                    {t('featuresPage.publishList2')}
+                                </li>
+                                <li className="flex items-center gap-3 font-semibold text-slate-700">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">✓</div>
+                                    {t('featuresPage.publishList3')}
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </section>
@@ -180,13 +294,13 @@ export default function FeaturesPage() {
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Card 1: QR Code */}
                         <div className="bg-slate-950 rounded-[3rem] p-10 md:p-14 text-white relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/30 rounded-full blur-[80px] group-hover:bg-violet-600/50 transition-colors duration-500"></div>
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
 
                             <div className="relative z-10">
-                                <QrCode className="w-12 h-12 text-violet-400 mb-6" />
-                                <h3 className="text-3xl font-bold mb-4">Akıllı QR Kod</h3>
+                                <QrCode className="w-12 h-12 text-emerald-400 mb-6" />
+                                <h3 className="text-3xl font-bold mb-4">{t('featuresPage.qrTitle')}</h3>
                                 <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                                    Bastırdığınız QR kodu vitrininize veya kartvizitinize koyun. Kataloğunuzu güncellediğinizde QR kodunuz değişmez, her zaman en güncel ürünlerinizi gösterir.
+                                    {t('featuresPage.qrDesc')}
                                 </p>
                                 <div className="w-full max-w-[200px] aspect-square bg-white p-4 rounded-xl mx-auto shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
                                     <div className="w-full h-full bg-slate-900 rounded-lg flex items-center justify-center">
@@ -203,16 +317,16 @@ export default function FeaturesPage() {
                             <div className="relative z-10 h-full flex flex-col">
                                 <div className="mb-auto">
                                     <FileText className="w-12 h-12 text-rose-500 mb-6" />
-                                    <h3 className="text-3xl font-bold mb-4">Tek Tıkla PDF</h3>
+                                    <h3 className="text-3xl font-bold mb-4">{t('featuresPage.pdfTitle')}</h3>
                                     <p className="text-slate-500 text-lg mb-8 leading-relaxed">
-                                        Dijital kataloğunuzu anında baskıya hazır, yüksek çözünürlüklü bir PDF dosyasına dönüştürün. İnternetin olmadığı yerlerde bile sunum yapın.
+                                        {t('featuresPage.pdfDesc')}
                                     </p>
                                 </div>
 
                                 <div className="relative h-48 mt-8 perspective-[1000px]">
                                     <div className="absolute left-1/2 -translate-x-1/2 top-0 w-40 h-56 bg-white shadow-xl shadow-slate-200 border border-slate-200 rounded-lg rotate-x-12 group-hover:rotate-x-0 group-hover:-translate-y-4 transition-all duration-500 flex flex-col p-4 items-center">
                                         <div className="w-full h-24 bg-slate-100 rounded mb-2 overflow-hidden">
-                                            <div className="w-full h-full bg-[url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200')] bg-cover opacity-50"></div>
+                                            <div className="w-full h-full bg-[url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200')] bg-cover opacity-50"></div>
                                         </div>
                                         <div className="w-full h-2 bg-slate-100 rounded mb-1"></div>
                                         <div className="w-2/3 h-2 bg-slate-100 rounded mb-4"></div>
@@ -229,85 +343,237 @@ export default function FeaturesPage() {
 
                 {/* BENTO GRID: Other Features */}
                 <section className="max-w-7xl mx-auto mb-20">
-                    <h2 className="text-3xl font-bold text-center mb-16">Ve Çok Daha Fazlası...</h2>
-                    <div className="grid md:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px]">
+                    <h2 className="text-3xl font-bold text-center mb-16">{t('featuresPage.bentoHeader')}</h2>
+                    <div className="grid md:grid-cols-4 gap-4 md:gap-6 auto-rows-[280px]">
 
-                        <div className="md:col-span-2 bg-slate-50 rounded-3xl p-8 border border-slate-100 hover:border-slate-200 transition-colors flex flex-col justify-between group">
-                            <div>
-                                <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
-                                    <BarChart3 className="w-5 h-5" />
-                                </div>
-                                <h3 className="text-xl font-bold mb-2">Gelişmiş Analitik</h3>
-                                <p className="text-slate-500">Kataloğunuzu kaç kişi gezdi, en çok hangi ürünlere tıklandı? Tüm veriler elinizin altında.</p>
-                            </div>
-                            <div className="w-full h-24 flex items-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                                <div className="w-full bg-indigo-200 h-1/3 rounded-t-lg"></div>
-                                <div className="w-full bg-indigo-300 h-2/3 rounded-t-lg"></div>
-                                <div className="w-full bg-indigo-500 h-full rounded-t-lg"></div>
-                                <div className="w-full bg-indigo-400 h-1/2 rounded-t-lg"></div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-3xl p-8 border border-slate-100 flex flex-col justify-center items-center text-center shadow-lg hover:-translate-y-1 transition-transform">
-                            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 text-white shadow-lg shadow-purple-200">
-                                <ShieldCheck className="w-8 h-8" />
-                            </div>
-                            <h3 className="font-bold mb-1">Güvenli Altyapı</h3>
-                            <p className="text-xs text-slate-400">SSL Korumalı & Yedekli</p>
-                        </div>
-
-                        <div className="bg-slate-900 text-white rounded-3xl p-8 flex flex-col justify-between">
-                            <Globe className="w-8 h-8 text-emerald-400" />
-                            <div>
-                                <h3 className="font-bold text-lg mb-1">Global Erişim</h3>
-                                <p className="text-slate-400 text-sm">Dünyanın her yerinden kataloğunuza erişim.</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-3xl p-8 border border-slate-100 flex flex-col items-center justify-center text-center">
-                            <Share2 className="w-8 h-8 text-blue-500 mb-4" />
-                            <h3 className="font-bold mb-1">Tek Tıkla Paylaş</h3>
-                            <p className="text-sm text-slate-500">Instagram, Facebook, Email.</p>
-                        </div>
-
-                        <div className="md:col-span-2 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-3xl p-8 text-white flex flex-col justify-center relative overflow-hidden group">
-                            <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                        {/* Card 1: Advanced Analytics (Wide) */}
+                        <div className="md:col-span-2 bg-white rounded-3xl p-8 border border-slate-200 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
                             <div className="relative z-10">
-                                <h3 className="text-2xl font-bold mb-2">Sınırsız Varyasyon</h3>
-                                <p className="text-indigo-100 mb-6 max-w-sm">Renk, beden, materyal... Ürünlerinizin tüm seçeneklerini detaylıca listeleyin.</p>
-                                <div className="flex gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-red-500 border-2 border-white/20"></span>
-                                    <span className="w-6 h-6 rounded-full bg-blue-500 border-2 border-white/20"></span>
-                                    <span className="w-6 h-6 rounded-full bg-green-500 border-2 border-white/20"></span>
-                                    <span className="w-6 h-6 rounded-full bg-yellow-500 border-2 border-white/20"></span>
+                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6">
+                                    <BarChart3 className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('featuresPage.analyticsTitle')}</h3>
+                                <p className="text-slate-500 text-sm leading-relaxed max-w-xs">{t('featuresPage.analyticsDesc')}</p>
+                            </div>
+
+                            {/* Chart Visual */}
+                            <div className="absolute right-0 bottom-0 w-1/2 h-2/3 flex items-end gap-2 px-6 pb-6 opacity-30 group-hover:opacity-100 transition-opacity duration-500">
+                                <div className="w-full bg-blue-100 h-[40%] rounded-t-sm group-hover:h-[60%] transition-all duration-700 delay-100"></div>
+                                <div className="w-full bg-blue-200 h-[70%] rounded-t-sm group-hover:h-[85%] transition-all duration-700 delay-200"></div>
+                                <div className="w-full bg-blue-600 h-[50%] rounded-t-sm group-hover:h-[100%] transition-all duration-700 delay-300"></div>
+                                <div className="w-full bg-blue-400 h-[30%] rounded-t-sm group-hover:h-[50%] transition-all duration-700 delay-100"></div>
+                            </div>
+                        </div>
+
+                        {/* Card 2: Secure Infrastructure (Visual Rich) */}
+                        <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200 overflow-hidden relative group hover:bg-white hover:shadow-lg transition-all duration-500">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-100 transition-opacity duration-500">
+                                <ShieldCheck className="w-24 h-24 text-emerald-100 group-hover:text-emerald-500 rotate-12 transform transition-colors" />
+                            </div>
+
+                            <div className="relative z-10 h-full flex flex-col justify-between">
+                                <div>
+                                    <div className="w-10 h-10 bg-emerald-100/80 backdrop-blur-sm text-emerald-600 rounded-lg flex items-center justify-center mb-4">
+                                        <ShieldCheck className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 leading-tight whitespace-pre-line">{t('featuresPage.securityTitle')}</h3>
+                                </div>
+
+                                <div className="bg-white/80 backdrop-blur-md border border-emerald-100 rounded-xl p-3 mt-4 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">{t('featuresPage.securityStatus')}</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full w-[98%] bg-emerald-400 rounded-full"></div>
+                                        </div>
+                                        <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                                            <span>SSL: Active</span>
+                                            <span>256-bit</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100 flex flex-col justify-between hover:bg-slate-100 transition-colors">
-                            <Zap className="w-8 h-8 text-amber-500" />
+                        {/* Card 3: Global Access (White Theme) */}
+                        <div className="bg-white rounded-3xl p-6 border border-slate-200 hover:border-sky-300 hover:shadow-lg hover:shadow-sky-100/50 transition-all duration-500 relative overflow-hidden group">
+                            {/* Map Background */}
+                            <div className="absolute inset-0 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500 grayscale inverted">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.1),transparent)]"></div>
+                                <svg viewBox="0 0 200 100" className="w-full h-full text-slate-900 fill-current">
+                                    <path d="M20,50 Q50,20 80,50 T140,50 T200,50" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+                                    <circle cx="20" cy="50" r="2" className="animate-ping text-sky-500" />
+                                    <circle cx="80" cy="50" r="2" className="animate-ping delay-300 text-sky-500" />
+                                    <circle cx="140" cy="50" r="2" className="animate-ping delay-700 text-sky-500" />
+                                </svg>
+                            </div>
+
+                            <div className="relative z-10 h-full flex flex-col justify-between">
+                                <div className="w-10 h-10 bg-sky-50 text-sky-600 rounded-lg flex items-center justify-center border border-sky-100 mb-4">
+                                    <Globe className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 text-lg mb-1 leading-tight">Dünyaya<br />Açılın</h3>
+                                    <p className="text-slate-500 text-[10px] leading-relaxed mb-3">
+                                        Müşterileriniz nerede olursa olsun, ürünlerinize anında ulaşsın.
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[9px] font-bold tracking-wide flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            7/24 KESİNTİSİZ
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Card 4: Smart Categories (Replaced Quick Share) */}
+                        <div className="bg-white rounded-3xl p-6 border border-slate-200 flex flex-col justify-between hover:border-amber-200 hover:shadow-lg hover:shadow-amber-100/50 transition-all duration-500 group relative overflow-hidden">
+                            <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-50 rounded-full blur-2xl group-hover:bg-amber-100 transition-colors"></div>
+
                             <div>
-                                <h3 className="font-bold mb-1">Hızlı Kurulum</h3>
-                                <p className="text-sm text-slate-500">5 dakikada yayındasınız.</p>
+                                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" /><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" /><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" /></svg>
+                                </div>
+                                <h3 className="font-bold text-slate-900 leading-tight mb-1">Akıllı<br />Kategoriler</h3>
+                            </div>
+
+                            <div className="mt-4 relative h-12">
+                                {/* Stacked Tags Animation */}
+                                <div className="absolute left-0 bottom-0 bg-white border border-slate-200 text-[10px] font-medium text-slate-500 px-3 py-1.5 rounded-lg shadow-sm w-3/4 transform group-hover:-translate-y-8 group-hover:scale-95 transition-all duration-500 z-10">
+                                    #Aksesuar
+                                </div>
+                                <div className="absolute left-2 bottom-1 bg-white border border-slate-200 text-[10px] font-medium text-slate-500 px-3 py-1.5 rounded-lg shadow-sm w-3/4 transform group-hover:-translate-y-4 group-hover:scale-100 transition-all duration-500 z-20">
+                                    #Giyim
+                                </div>
+                                <div className="absolute left-4 bottom-2 bg-amber-500 border border-amber-500 text-[10px] font-bold text-white px-3 py-1.5 rounded-lg shadow-md w-3/4 flex items-center justify-between transform group-hover:translate-y-0 group-hover:scale-105 transition-all duration-500 z-30">
+                                    <span>#Yeni Sezon</span>
+                                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Card 5: Unlimited Variations (Wide - Replaced Purple Gradient) */}
+                        <div className="md:col-span-2 bg-slate-50 rounded-3xl p-8 border border-slate-200 relative overflow-hidden group hover:border-slate-300 transition-colors">
+                            {/* Abstract Pattern Background (Subtle) */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-200/50 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2"></div>
+
+                            <div className="relative z-10 flex flex-col h-full justify-center">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-3">Sınırsız Varyasyon</h3>
+                                <p className="text-slate-600 mb-8 max-w-sm">Renk, beden, materyal... Ürünlerinizin tüm seçeneklerini en ince detayına kadar listeleyin.</p>
+
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-rose-500 ring-4 ring-white shadow-lg group-hover:-translate-y-2 transition-transform duration-300 delay-0"></div>
+                                    <div className="w-8 h-8 rounded-full bg-blue-500 ring-4 ring-white shadow-lg group-hover:-translate-y-2 transition-transform duration-300 delay-75"></div>
+                                    <div className="w-8 h-8 rounded-full bg-amber-500 ring-4 ring-white shadow-lg group-hover:-translate-y-2 transition-transform duration-300 delay-150"></div>
+                                    <div className="w-8 h-8 rounded-full bg-emerald-500 ring-4 ring-white shadow-lg group-hover:-translate-y-2 transition-transform duration-300 delay-200"></div>
+                                    <div className="w-8 h-8 rounded-full bg-slate-900 ring-4 ring-white shadow-lg group-hover:-translate-y-2 transition-transform duration-300 delay-300 flex items-center justify-center text-[10px] text-white font-bold">+99</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Card 6: Fast Setup (Progress Bar) */}
+                        <div className="bg-white rounded-3xl p-6 border border-slate-200 flex flex-col justify-between hover:border-amber-200 hover:shadow-lg hover:shadow-amber-100/50 transition-all duration-500 group relative">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <Zap className="w-20 h-20 text-amber-500 -rotate-12" />
+                            </div>
+
+                            <div>
+                                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center mb-4">
+                                    <Zap className="w-5 h-5" />
+                                </div>
+                                <h3 className="font-bold text-slate-900 leading-tight mb-1 whitespace-pre-line">{t('featuresPage.fastSetupTitle')}</h3>
+                            </div>
+
+                            <div className="mt-4">
+                                <div className="flex justify-between text-[10px] text-slate-500 font-bold mb-1.5 uppercase tracking-wider">
+                                    <span>{t('featuresPage.fastSetupLoading')}</span>
+                                    <span className="text-amber-600">100%</span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-amber-500 w-0 group-hover:w-full transition-all duration-1000 ease-out rounded-full"></div>
+                                </div>
+                                <div className="mt-2 text-[10px] text-emerald-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity delay-700 flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                    {t('featuresPage.fastSetupLive')}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <div className="text-center mt-32">
-                    <h2 className="text-3xl font-bold mb-6">Denemeye Hazır mısınız?</h2>
-                    <Link href="/auth?tab=signup">
-                        <Button size="lg" className="h-16 px-12 rounded-full text-lg bg-slate-900 text-white hover:bg-indigo-600 transition-colors shadow-2xl shadow-indigo-900/20">
-                            Ücretsiz Hesabınızı Oluşturun
-                            <ArrowRight className="w-5 h-5 ml-2" />
-                        </Button>
-                    </Link>
-                    <p className="mt-4 text-slate-400 text-sm">Kredi kartı gerekmez • 14 gün ücretsiz deneme</p>
-                </div>
+                <section className="max-w-7xl mx-auto mt-32 mb-20">
+                    <div className="relative bg-slate-900 rounded-[3rem] overflow-hidden min-h-[400px] flex items-center">
+                        {/* Background Patterns */}
+                        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
+
+                        <div className="grid lg:grid-cols-2 gap-12 w-full p-8 md:p-20 relative z-10 items-center">
+                            {/* Text Content */}
+                            <div className="text-left relative z-20">
+                                <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                                    {t('featuresPage.ctaMainTitle')} <br />
+                                    <span className="text-sky-400">{t('featuresPage.ctaHighlight')}</span>
+                                </h2>
+                                <p className="text-slate-400 text-base md:text-lg mb-8 max-w-md leading-relaxed">
+                                    {t('featuresPage.ctaMainDesc')}
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                    <Link href="/auth?tab=signup" className="w-full sm:w-auto">
+                                        <Button size="lg" className="w-full sm:w-auto h-14 md:h-16 px-10 rounded-full text-base font-bold bg-white text-slate-900 hover:bg-slate-100 hover:scale-105 transition-all shadow-xl">
+                                            {t('featuresPage.ctaButton')}
+                                            <ArrowRight className="w-5 h-5 ml-2 text-slate-900" />
+                                        </Button>
+                                    </Link>
+                                    <div className="flex items-center h-14 md:h-16 px-0 md:px-4 text-slate-500 text-xs font-medium tracking-wide">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                                        {t('featuresPage.ctaNoCard')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Visual: Catalog Mockup (Responsive) */}
+                            <div className="relative flex h-[280px] md:h-[320px] items-center justify-center lg:perspective-[2000px]">
+                                <div className="relative w-full max-w-[300px] lg:w-[500px] h-full flex justify-center items-center transform-style-3d hover:scale-105 transition-transform duration-700">
+
+                                    {/* Left Page (Back Cover) - Hidden on Mobile */}
+                                    <div className="hidden lg:flex absolute left-[30px] w-[220px] h-[300px] bg-slate-800 rounded-l-2xl border border-slate-700 shadow-2xl transform rotate-y-6 origin-right z-10 flex-col p-6">
+                                        <div className="w-full h-32 bg-slate-700/50 rounded-lg mb-4 shimmer"></div>
+                                        <div className="space-y-2">
+                                            <div className="w-full h-2 bg-slate-700/50 rounded"></div>
+                                            <div className="w-full h-2 bg-slate-700/50 rounded"></div>
+                                            <div className="w-2/3 h-2 bg-slate-700/50 rounded"></div>
+                                        </div>
+                                        <div className="mt-auto flex gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-slate-700/50"></div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-700/50"></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Page (Front Cover) - Visible & Styled on Mobile */}
+                                    <div className="relative lg:absolute lg:right-[30px] w-full max-w-[240px] lg:w-[220px] h-[320px] lg:h-[300px] bg-gradient-to-br from-slate-700 to-slate-900 rounded-2xl lg:rounded-r-2xl shadow-2xl shadow-slate-900/50 lg:transform lg:-rotate-y-6 lg:origin-left z-20 flex flex-col p-8 items-center justify-center text-white border border-white/10 group">
+                                        <Sparkles className="w-12 h-12 lg:w-10 lg:h-10 mb-6 text-sky-200" />
+                                        <h3 className="font-serif text-4xl lg:text-3xl mb-3 lg:mb-2 tracking-tight">{t('featuresPage.ctaCollection')}</h3>
+                                        <div className="w-16 lg:w-12 h-1 bg-white/30 rounded-full mb-3 lg:mb-2"></div>
+                                        <p className="text-xs lg:text-[10px] text-sky-200 tracking-[0.3em] uppercase">2026 / 2027</p>
+
+                                        {/* Shine Effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent rounded-2xl lg:rounded-r-2xl pointer-events-none"></div>
+                                    </div>
+
+                                    {/* Spine - Hidden on Mobile */}
+                                    <div className="hidden lg:block absolute w-[60px] h-[300px] bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 z-0"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
             </main>
 
             <PublicFooter />
-        </div>
+        </div >
     )
 }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { CategoryDivider } from '@/components/catalogs/category-divider'
 
 describe('CategoryDivider Component', () => {

@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function TechDivider({ categoryName, firstProductImage, primaryColor = '#0ea5e9' }: CategoryDividerProps) {
+export function TechDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor = '#0ea5e9' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-[#020617] font-mono text-sky-400 flex items-center justify-center overflow-hidden">
             {/* Grid */}

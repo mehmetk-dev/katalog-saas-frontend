@@ -7,7 +7,7 @@ export function ArtisticCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#e11d48'
+    primaryColor: _primaryColor = '#e11d48'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#f8f5f2] overflow-hidden">

@@ -1,11 +1,6 @@
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 
-export const metadata = {
-  title: "Kullanım Koşulları | FogCatalog",
-  description: "FogCatalog kullanıcı sözleşmesi ve hizmet kullanım şartları.",
-}
-
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-slate-50">

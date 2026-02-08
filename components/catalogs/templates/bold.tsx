@@ -28,7 +28,7 @@ export function BoldTemplate({
 }: TemplateProps) {
     const HEADER_HEIGHT = "80px"
 
-    const getImageFitClass = () => {
+    const _getImageFitClass = () => {
         switch (productImageFit) {
             case 'cover': return 'object-cover'
             case 'fill': return 'object-fill'

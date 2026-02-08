@@ -7,7 +7,7 @@ export function IndustrialCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#facc15' // Yellow-400
+    primaryColor: _primaryColor = '#facc15'
 }: CoverPageProps) {
     const currentYear = new Date().getFullYear();
 

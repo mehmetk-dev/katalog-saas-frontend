@@ -1,9 +1,25 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { sendEmail } from "@/lib/services/email"
+import { feedbackSchema, validate } from "@/lib/validations"
+import {
+  checkRateLimit,
+  FEEDBACK_LIMIT,
+  FEEDBACK_WINDOW_MS,
+} from "@/lib/rate-limit"
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL
+
+async function requireAdmin(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.email !== ADMIN_EMAIL) {
+    throw new Error("Unauthorized")
+  }
+}
 
 export type Feedback = {
     id: string
@@ -24,6 +40,15 @@ export async function sendFeedback(data: {
     page_url?: string;
     attachments?: string[];
 }) {
+    // Rate limit: IP başına 10 dakikada en fazla 5 feedback
+    const headersList = await headers()
+    const rl = checkRateLimit(headersList, "feedback", FEEDBACK_LIMIT, FEEDBACK_WINDOW_MS)
+    if (!rl.allowed) {
+      throw new Error("Çok fazla deneme. Lütfen 10 dakika sonra tekrar deneyin.")
+    }
+
+    // Validate and sanitize input
+    const validatedData = validate(feedbackSchema, data)
 
     const supabase = await createServerSupabaseClient()
 
@@ -48,10 +73,10 @@ export async function sendFeedback(data: {
         user_id: user.id,
         user_name: userName,
         user_email: userEmail,
-        subject: data.subject,
-        message: data.message,
-        page_url: data.page_url,
-        attachments: data.attachments || [],
+        subject: validatedData.subject,
+        message: validatedData.message,
+        page_url: validatedData.page_url,
+        attachments: validatedData.attachments || [],
         status: 'pending'
     })
 
@@ -338,6 +363,7 @@ export async function sendFeedback(data: {
 
 export async function getFeedbacks() {
     const supabase = await createServerSupabaseClient()
+    await requireAdmin(supabase)
 
     const { data, error } = await supabase
         .from("feedbacks")
@@ -350,6 +376,7 @@ export async function getFeedbacks() {
 
 export async function updateFeedbackStatus(id: string, status: Feedback['status']) {
     const supabase = await createServerSupabaseClient()
+    await requireAdmin(supabase)
 
     const { error } = await supabase
         .from("feedbacks")
@@ -363,6 +390,7 @@ export async function updateFeedbackStatus(id: string, status: Feedback['status'
 
 export async function bulkUpdateFeedbackStatus(ids: string[], status: Feedback['status']) {
     const supabase = await createServerSupabaseClient()
+    await requireAdmin(supabase)
 
     const { error } = await supabase
         .from("feedbacks")
@@ -376,6 +404,7 @@ export async function bulkUpdateFeedbackStatus(ids: string[], status: Feedback['
 
 export async function bulkDeleteFeedbacks(ids: string[]) {
     const supabase = await createServerSupabaseClient()
+    await requireAdmin(supabase)
 
     let deletedCount = 0
     let errorCount = 0
@@ -447,6 +476,7 @@ export async function bulkDeleteFeedbacks(ids: string[]) {
 
 export async function deleteFeedback(id: string) {
     const supabase = await createServerSupabaseClient()
+    await requireAdmin(supabase)
 
     // Önce feedback'i al (attachments için)
     const { data: feedback, error: fetchError } = await supabase

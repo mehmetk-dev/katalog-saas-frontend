@@ -7,7 +7,7 @@ export function ModernCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#3b82f6'
+    primaryColor: _primaryColor = '#3b82f6'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-slate-50 overflow-hidden flex flex-col">

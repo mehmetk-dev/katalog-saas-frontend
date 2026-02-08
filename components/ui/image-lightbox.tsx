@@ -13,6 +13,14 @@ export function ImageLightbox() {
     const { isOpen, images, currentIndex, productName } = state
     const [zoom, setZoom] = React.useState(1)
     const [mounted, setMounted] = React.useState(false)
+    const [isLoading, setIsLoading] = React.useState(true)
+
+    const currentImage = images[currentIndex] || ""
+    // Optimize large image (limit to 2000px for 4K screens, but 1600px is safer for speed)
+    const displayImage = React.useMemo(() => {
+        if (!currentImage) return ""
+        return getCloudinaryResizedUrl(currentImage, 1600)
+    }, [currentImage])
 
     // Client-side only rendering için
     useEffect(() => {
@@ -48,8 +56,6 @@ export function ImageLightbox() {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [isOpen, closeLightbox, nextImage, prevImage])
 
-    const [isLoading, setIsLoading] = React.useState(true)
-
     // Reset loading on index change
     useEffect(() => {
         setIsLoading(true)
@@ -59,28 +65,24 @@ export function ImageLightbox() {
         closeLightbox()
     }, [closeLightbox])
 
-    if (!mounted || !isOpen) return null
-
-    const currentImage = images[currentIndex]
     const hasMultiple = images.length > 1
-    const nextIdx = (currentIndex + 1) % images.length
-    const prevIdx = (currentIndex - 1 + images.length) % images.length
+    const nextIdx = images.length > 0 ? (currentIndex + 1) % images.length : 0
+    const prevIdx = images.length > 0 ? (currentIndex - 1 + images.length) % images.length : 0
 
-    // Optimize large image (limit to 2000px for 4K screens, but 1600px is safer for speed)
-    const displayImage = React.useMemo(() => {
-        return getCloudinaryResizedUrl(currentImage, 1600)
-    }, [currentImage])
+    if (!mounted || !isOpen) return null
 
     const lightboxContent = (
         <div
             className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300"
             onClick={handleBackdropClick}
         >
-            {/* Prefetch Next/Prev Images */}
-            <div className="hidden">
+            {/* Prefetch Next/Prev Images - hidden img for prefetch only */}
+            <div className="hidden" aria-hidden="true">
                 {images.length > 1 && (
                     <>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- prefetch only, not displayed */}
                         <img src={images[nextIdx]} alt="" />
+                        {/* eslint-disable-next-line @next/next/no-img-element -- prefetch only, not displayed */}
                         <img src={images[prevIdx]} alt="" />
                     </>
                 )}

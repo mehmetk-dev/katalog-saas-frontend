@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: PublicCatalogPageProps): Prom
   return {
     title: catalog.name,
     description: catalog.description || `${catalog.name} kataloğunu görüntüleyin`,
+    robots: catalog.show_in_search === false ? { index: false, follow: true } : undefined,
     openGraph: {
       title: catalog.name,
       description: catalog.description || undefined,

@@ -28,7 +28,7 @@ export function FashionLookbookTemplate({
     const safeProducts = products || []
     const [hero, ...others] = safeProducts
 
-    const getImageFitClass = () => {
+    const _getImageFitClass = () => {
         switch (productImageFit) {
             case 'contain': return 'object-contain'
             case 'fill': return 'object-fill'
@@ -183,7 +183,7 @@ export function FashionLookbookTemplate({
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs font-light text-black">
                                                         {(() => {
-                                                            const currency = product.custom_attributes?.find((a: any) => a.name === "currency")?.value || "TRY"
+                                                            const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
                                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
                                                             return `${symbol}${Number(product.price).toFixed(2)}`
                                                         })()}

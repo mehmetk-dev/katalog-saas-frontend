@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function CorporateDivider({ categoryName, firstProductImage, primaryColor = '#1e293b' }: CategoryDividerProps) {
+export function CorporateDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor = '#1e293b' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-slate-50 flex items-center overflow-hidden">
             {/* Side Wave */}

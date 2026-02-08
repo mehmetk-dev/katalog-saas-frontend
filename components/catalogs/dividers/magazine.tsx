@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function MagazineDivider({ categoryName, firstProductImage, primaryColor = '#ef4444' }: CategoryDividerProps) {
+export function MagazineDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#ef4444' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-white flex flex-col justify-between p-8 overflow-hidden">
             {/* Top Strip */}

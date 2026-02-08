@@ -28,6 +28,7 @@ export function PublicFooter() {
                         <ul className="space-y-3 text-sm text-slate-500">
                             <li><Link href="/features" className="hover:text-violet-600 transition-colors">{t('footer.features')}</Link></li>
                             <li><Link href="/pricing" className="hover:text-violet-600 transition-colors">{t('footer.pricing')}</Link></li>
+                            <li><Link href="/blog" className="hover:text-violet-600 transition-colors">{t('footer.blog')}</Link></li>
                         </ul>
                     </div>
 

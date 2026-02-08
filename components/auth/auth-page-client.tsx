@@ -217,7 +217,7 @@ export function AuthPageClient() {
                 console.error("[AuthPageClient] Supabase error:", error)
 
                 // Daha açıklayıcı hata mesajları
-                let errorMessage: any = error.message || t("auth.errorGeneric")
+                let errorMessage: string = (error instanceof Error ? error.message : null) || t("auth.errorGeneric")
 
                 if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
                     errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
@@ -339,7 +339,7 @@ export function AuthPageClient() {
                     <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
                     </div>
-                    <p className="text-slate-500 font-medium">{t("auth.redirecting") as any}</p>
+                    <p className="text-slate-500 font-medium">{t("auth.redirecting") as string}</p>
                 </div>
             </div>
         )
@@ -372,20 +372,20 @@ export function AuthPageClient() {
 
                 <div className="relative z-10 max-w-lg">
                     <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-                        {t('landing.heroTitle') as any} {t('landing.heroTitleHighlight') as any} {t('landing.heroTitleEnd') as any}
+                        {t('landing.heroTitle') as string} {t('landing.heroTitleHighlight') as string} {t('landing.heroTitleEnd') as string}
                     </h2>
                     <ul className="space-y-4 mb-8">
                         <li className="flex items-center gap-3 text-white/80">
                             <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{(t('marketing.feature1') as any) || "Profesyonel şablonlar"}</span>
+                            <span>{(t('marketing.feature1') as string) || "Profesyonel şablonlar"}</span>
                         </li>
                         <li className="flex items-center gap-3 text-white/80">
                             <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{(t('marketing.feature2') as any) || "PDF ve Online paylaşım"}</span>
+                            <span>{(t('marketing.feature2') as string) || "PDF ve Online paylaşım"}</span>
                         </li>
                         <li className="flex items-center gap-3 text-white/80">
                             <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{(t('marketing.feature3') as any) || "Kolay yönetim paneli"}</span>
+                            <span>{(t('marketing.feature3') as string) || "Kolay yönetim paneli"}</span>
                         </li>
                     </ul>
                 </div>
@@ -399,14 +399,14 @@ export function AuthPageClient() {
                         <Star className="w-4 h-4 fill-current" />
                     </div>
                     <blockquote className="text-white/90 text-sm leading-relaxed mb-4">
-                        "{t('auth.testimonialQuote') as any}"
+                        "{t('auth.testimonialQuote') as string}"
                     </blockquote>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold">
                             AY
                         </div>
                         <div>
-                            <div className="font-semibold text-sm">{t('auth.testimonialAuthor') as any}</div>
+                            <div className="font-semibold text-sm">{t('auth.testimonialAuthor') as string}</div>
                             <div className="text-xs text-white/50">TechStore Kurucusu</div>
                         </div>
                     </div>
@@ -441,7 +441,7 @@ export function AuthPageClient() {
                         <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white/80 backdrop-blur-sm">
                             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                         </div>
-                        <span className="hidden sm:inline">{t("auth.backToHome") as any}</span>
+                        <span className="hidden sm:inline">{t("auth.backToHome") as string}</span>
                     </Link>
                 </div>
 
@@ -461,10 +461,10 @@ export function AuthPageClient() {
                                 </Link>
                             </div>
                             <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
-                                {mode === 'signup' ? (t("auth.signup") as any) : mode === 'forgot-password' ? (t("auth.forgotPasswordTitle") as any) : (t("auth.welcomeBack") as any)}
+                                {mode === 'signup' ? (t("auth.signup") as string) : mode === 'forgot-password' ? (t("auth.forgotPasswordTitle") as string) : (t("auth.welcomeBack") as string)}
                             </h1>
                             <p className="text-slate-500 text-[15px] leading-relaxed">
-                                {mode === 'signup' ? (t("auth.signupDesc") as any) : mode === 'forgot-password' ? (t("auth.forgotPasswordSubtitle") as any) : (t("auth.signinDesc") as any)}
+                                {mode === 'signup' ? (t("auth.signupDesc") as string) : mode === 'forgot-password' ? (t("auth.forgotPasswordSubtitle") as string) : (t("auth.signinDesc") as string)}
                             </p>
                         </div>
 
@@ -507,14 +507,14 @@ export function AuthPageClient() {
                                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                                     <div className="w-full h-12 bg-green-50 text-green-700 rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-green-100 italic">
                                         <CheckCircle2 className="w-5 h-5 animate-bounce-slow" />
-                                        <span>{(t("auth.emailSentTitle") as any) || "Bağlantı Gönderildi"}</span>
+                                        <span>{(t("auth.emailSentTitle") as string) || "Bağlantı Gönderildi"}</span>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => { setMode('signin'); setSuccess(false); }}
                                         className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg transition-all active:scale-[0.98]"
                                     >
-                                        {(t("auth.backToLogin") as any) || "Giriş Yapmaya Dön"}
+                                        {(t("auth.backToLogin") as string) || "Giriş Yapmaya Dön"}
                                     </button>
                                 </div>
                             ) : showGoogleWarning ? (
@@ -551,7 +551,7 @@ export function AuthPageClient() {
                                     {mode === 'signup' && (
                                         <div className="space-y-4">
                                             <div className="space-y-1.5">
-                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.fullName") as any}</label>
+                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.fullName") as string}</label>
                                                 <input
                                                     type="text"
                                                     value={name}
@@ -563,7 +563,7 @@ export function AuthPageClient() {
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.company") as any}</label>
+                                                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.company") as string}</label>
                                                 <input
                                                     type="text"
                                                     value={companyName}
@@ -577,7 +577,7 @@ export function AuthPageClient() {
                                     )}
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email") as any}</label>
+                                        <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email") as string}</label>
                                         <input
                                             type="email"
                                             value={email}
@@ -592,14 +592,14 @@ export function AuthPageClient() {
                                     {mode !== 'forgot-password' && (
                                         <div className="space-y-1.5">
                                             <div className="flex items-center justify-between px-1">
-                                                <label className="text-[13px] font-medium text-slate-900">{t("auth.password") as any}</label>
+                                                <label className="text-[13px] font-medium text-slate-900">{t("auth.password") as string}</label>
                                                 {mode === 'signin' && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setMode('forgot-password')}
                                                         className="text-[13px] font-medium text-slate-500 hover:text-violet-600 transition-colors"
                                                     >
-                                                        {t("auth.forgotPassword") as any}
+                                                        {t("auth.forgotPassword") as string}
                                                     </button>
                                                 )}
                                             </div>
@@ -631,7 +631,7 @@ export function AuthPageClient() {
                                         {isLoading ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
-                                            mode === 'signup' ? (t("auth.signup") as any) : mode === 'forgot-password' ? (t("auth.sendResetLink") as any) : (t("auth.signin") as any)
+                                            mode === 'signup' ? (t("auth.signup") as string) : mode === 'forgot-password' ? (t("auth.sendResetLink") as string) : (t("auth.signin") as string)
                                         )}
                                     </button>
 
@@ -643,7 +643,7 @@ export function AuthPageClient() {
                                                 </div>
                                                 <div className="relative flex justify-center">
                                                     <span className="bg-[#FDFDFD] px-4 text-xs font-medium text-slate-400 uppercase tracking-widest">
-                                                        {t("auth.or") as any}
+                                                        {t("auth.or") as string}
                                                     </span>
                                                 </div>
                                             </div>
@@ -664,7 +664,7 @@ export function AuthPageClient() {
                                                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                                                         </svg>
-                                                        {t("auth.continueWithGoogle") as any}
+                                                        {t("auth.continueWithGoogle") as string}
                                                     </>
                                                 )}
                                             </button>
@@ -678,17 +678,17 @@ export function AuthPageClient() {
                                                 onClick={() => setMode('signin')}
                                                 className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                                             >
-                                                {(t("auth.backToLogin") as any) || "Giriş Yap'a Dön"}
+                                                {(t("auth.backToLogin") as string) || "Giriş Yap'a Dön"}
                                             </button>
                                         ) : (
                                             <>
-                                                {mode === 'signup' ? (t("auth.alreadyHaveAccount") as any) : (t("auth.dontHaveAccount") as any)}{" "}
+                                                {mode === 'signup' ? (t("auth.alreadyHaveAccount") as string) : (t("auth.dontHaveAccount") as string)}{" "}
                                                 <button
                                                     type="button"
                                                     onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
                                                     className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                                                 >
-                                                    {mode === 'signup' ? (t("auth.signin") as any) : (t("auth.signup") as any)}
+                                                    {mode === 'signup' ? (t("auth.signin") as string) : (t("auth.signup") as string)}
                                                 </button>
                                             </>
                                         )}

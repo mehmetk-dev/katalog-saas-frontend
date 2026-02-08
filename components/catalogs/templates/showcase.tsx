@@ -29,7 +29,7 @@ export function ShowcaseTemplate({
     const safeProducts = products || []
     const [main, ...others] = safeProducts
 
-    const getImageFitClass = () => {
+    const _getImageFitClass = () => {
         switch (productImageFit) {
             case 'contain': return 'object-contain'
             case 'fill': return 'object-fill'

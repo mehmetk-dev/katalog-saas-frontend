@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function MinimalDivider({ categoryName, firstProductImage, primaryColor }: CategoryDividerProps) {
+export function MinimalDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-[#f3f4f6] text-black font-sans p-16 flex flex-col justify-center overflow-hidden">
             <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-black/5" />

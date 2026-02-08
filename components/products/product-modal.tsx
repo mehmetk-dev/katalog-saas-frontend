@@ -55,7 +55,7 @@ const MAGIC_DESCRIPTIONS_EN = [
 export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan: _userPlan = 'free' }: ProductModalProps) {
   const [isSaving, setIsSaving] = useState(false)
   const { t: baseT, language } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const isEditing = !!product
 
   const unitKeys = ["none", "kg", "g", "m", "cm", "mm", "L", "mL", "adet", "paket", "kutu"]
@@ -111,15 +111,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Listen for session changes
   useEffect(() => {
+    const abortControllers = uploadAbortControllers.current
+    const timeoutIds = uploadTimeoutIds.current
     // Component unmount olduğunda tüm toast'ları ve upload'ları temizle
     return () => {
-      // Bekleyen tüm upload'ları iptal et
-      uploadAbortControllers.current.forEach(controller => controller.abort())
-
-      // Tüm aktif timeout'ları temizle
-      uploadTimeoutIds.current.forEach(timeout => clearTimeout(timeout))
-
-      // UI temizliği
+      abortControllers.forEach(controller => controller.abort())
+      timeoutIds.forEach(timeout => clearTimeout(timeout))
       toast.dismiss()
     }
   }, [])

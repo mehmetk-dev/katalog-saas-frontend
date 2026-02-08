@@ -2,7 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function FashionDivider({ categoryName, firstProductImage, primaryColor }: CategoryDividerProps) {
+export function FashionDivider({ categoryName, firstProductImage, primaryColor: _primaryColor }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-black overflow-hidden flex items-center justify-center">
             {firstProductImage ? (

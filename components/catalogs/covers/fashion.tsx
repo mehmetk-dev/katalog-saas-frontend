@@ -7,7 +7,7 @@ export function FashionCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#000000'
+    primaryColor: _primaryColor = '#000000'
 }: CoverPageProps) {
     const currentYear = new Date().getFullYear();
     const season = new Date().getMonth() > 8 ? 'AUTUMN / WINTER' : 'SPRING / SUMMER';

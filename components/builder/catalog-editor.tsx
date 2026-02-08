@@ -82,6 +82,8 @@ interface CatalogEditorProps {
   onEnableCategoryDividersChange?: (enable: boolean) => void
   coverTheme?: string
   onCoverThemeChange?: (theme: string) => void
+  showInSearch?: boolean
+  onShowInSearchChange?: (show: boolean) => void
 }
 
 // Helper: Parse color to RGB
@@ -169,9 +171,11 @@ export function CatalogEditor({
   onEnableCategoryDividersChange,
   coverTheme = 'modern',
   onCoverThemeChange,
+  showInSearch = true,
+  onShowInSearchChange,
 }: CatalogEditorProps) {
   const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
@@ -293,7 +297,7 @@ export function CatalogEditor({
         const { createClient } = await import("@/lib/supabase/client")
         const supabase = createClient()
         await supabase.auth.refreshSession()
-      } catch (_e) {
+      } catch {
         // Silent error
       }
     }
@@ -320,13 +324,12 @@ export function CatalogEditor({
   ): Promise<string> => {
     const MAX_RETRIES = 3
     const TIMEOUT_MS = type === 'bg' ? 120000 : 30000 // Arka planlar için 120sn (2dk), diğerleri için 30sn
-    const typeLabel = type === 'logo' ? 'Logo' : (type === 'cover' ? 'Kapak' : 'Arka plan')
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       // 1. İptal kontrolü (Her deneme başında)
       if (parentSignal?.aborted) throw new Error('Upload cancelled')
 
-      let currentAttemptController = new AbortController()
+      const currentAttemptController = new AbortController()
       let timeoutId: NodeJS.Timeout | null = null
 
       try {
@@ -823,6 +826,7 @@ export function CatalogEditor({
                         { label: "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange, disabled: layout === 'magazine' },
                         { label: "Stok Kodlarını Göster", value: showSku, onChange: onShowSkuChange, disabled: layout === 'magazine' },
                         { label: "Ürün URL'leri", value: showUrls, onChange: onShowUrlsChange },
+                        { label: "Google'da Göster", value: showInSearch, onChange: onShowInSearchChange },
                       ].map((item, idx) => (
                         <div
                           key={idx}

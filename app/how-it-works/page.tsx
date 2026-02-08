@@ -11,7 +11,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 
 export default function HowItWorksPage() {
     const { t: baseT } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
     return (
         <div className="min-h-screen bg-slate-50">

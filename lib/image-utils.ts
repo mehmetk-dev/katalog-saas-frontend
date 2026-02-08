@@ -93,7 +93,7 @@ export function getCloudinaryResizedUrl(url: string, width: number): string {
         // We will prepend our params.
 
         return `${base}/upload/w_${width},c_limit,f_auto,q_auto/${rest}`;
-    } catch (e) {
+    } catch {
         return url;
     }
 }

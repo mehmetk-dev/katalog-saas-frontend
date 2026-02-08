@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function ArtisticDivider({ categoryName, firstProductImage, primaryColor = '#e11d48' }: CategoryDividerProps) {
+export function ArtisticDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#e11d48' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-[#f8f5f2] flex items-center justify-center overflow-hidden">
             {/* Texture */}

@@ -7,7 +7,7 @@ export function LuxuryCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#D4AF37'
+    primaryColor: _primaryColor = '#D4AF37'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#080808] text-[#e5d5b0] flex flex-col overflow-hidden font-serif">

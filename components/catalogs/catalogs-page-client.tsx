@@ -78,7 +78,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const isAtLimit = catalogs.length >= maxCatalogs
   const isFreeUser = userPlan === "free"
   const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
   const filteredCatalogs = catalogs.filter(
     (catalog) =>
@@ -129,9 +129,9 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       const successMsg = t('toasts.catalogCreated')
       toast.success(successMsg === 'toasts.catalogCreated' ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
       window.location.href = `/dashboard/builder?id=${newCatalog.id}`
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Catalog creation error:", error)
-      const message = error.message || t('catalogs.createFailed') || "Katalog oluşturulamadı"
+      const message = (error instanceof Error ? error.message : null) || t('catalogs.createFailed') || "Katalog oluşturulamadı"
       toast.error(message, { id: toastId })
     }
   }

@@ -1,0 +1,6 @@
+
+C:\Users\Mehme\.gemini\antigravity\scratch\katalog-app\components\ui\image-lightbox.tsx
+  70:26  error  React Hook "React.useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+✖ 1 problem (1 error, 0 warnings)
+

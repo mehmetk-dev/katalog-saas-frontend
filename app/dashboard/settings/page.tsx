@@ -33,7 +33,7 @@ import { storage } from "@/lib/storage"
 export default function SettingsPage() {
   const { user, setUser, isLoading, refreshUser } = useUser()
   const { language, setLanguage, t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const [isDeleting, setIsDeleting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)

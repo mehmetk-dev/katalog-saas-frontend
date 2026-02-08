@@ -7,7 +7,7 @@ export function MinimalCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#000000'
+    primaryColor: _primaryColor = '#000000'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#f3f4f6] text-black font-sans p-16 flex flex-col">

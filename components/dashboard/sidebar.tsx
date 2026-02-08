@@ -23,7 +23,7 @@ export function DashboardSidebar() {
   const pathname = usePathname()
   const { user, isLoading } = useUser()
   const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const { isOpen, isCollapsed, isMobile, close, toggle } = useSidebar()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 

@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Handle invalid refresh tokens (common after database resets or token expiry)
-    if (authError && (authError as any).code === 'refresh_token_not_found') {
+    if (authError && typeof authError === 'object' && authError !== null && 'code' in authError && (authError as { code: string }).code === 'refresh_token_not_found') {
       console.warn("Middleware: Invalid refresh token detected. Redirecting to login.")
       const url = request.nextUrl.clone()
       url.pathname = "/auth"

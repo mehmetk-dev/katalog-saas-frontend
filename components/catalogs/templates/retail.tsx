@@ -86,8 +86,8 @@ export function RetailTemplate({
             <div className={`flex-1 px-10 pb-10 grid ${getGridCols()} grid-rows-3 gap-8 overflow-hidden z-10`}>
                 {safeProducts.map((product) => {
                     const productUrl = product.product_url
-                    const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
-                    const wrapperProps = (showUrls && productUrl) ? {
+                    const _Wrapper = (showUrls && productUrl) ? 'a' : 'div'
+                    const _wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
                         target: '_blank',
                         rel: 'noopener noreferrer',

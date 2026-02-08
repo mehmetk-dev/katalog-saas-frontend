@@ -1,8 +1,7 @@
 import React from 'react'
-import Image from 'next/image'
 import type { CategoryDividerProps } from './index'
 
-export function ModernDivider({ categoryName, firstProductImage, primaryColor = '#3b82f6' }: CategoryDividerProps) {
+export function ModernDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#3b82f6' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-slate-50 flex items-center justify-center overflow-hidden">
             {/* Shapes */}

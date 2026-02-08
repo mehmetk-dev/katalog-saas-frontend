@@ -37,7 +37,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const pathname = usePathname()
     const { t: baseT } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
     // Upload işlemlerini iptal etmek için ref'ler
     const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())

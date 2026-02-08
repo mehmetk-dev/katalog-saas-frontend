@@ -110,7 +110,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     }, [])
 
     // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
-    const handleUploadClick = async () => {
+    const _handleUploadClick = async () => {
         try {
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()

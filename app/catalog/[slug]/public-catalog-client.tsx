@@ -49,7 +49,7 @@ interface PublicCatalogClientProps {
 
 export function PublicCatalogClient({ catalog, products: initialProducts }: PublicCatalogClientProps) {
     const { t: baseT } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("all")
 

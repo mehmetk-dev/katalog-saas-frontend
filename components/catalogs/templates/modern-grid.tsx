@@ -58,8 +58,8 @@ export function ModernGridTemplate({
     }
 
     // Header'da logo var mı?
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const _isHeaderLogo = logoPosition?.startsWith('header')
+    const _logoAlignment = logoPosition?.split('-')[1] || 'left'
 
     // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
     const renderHeaderContent = (_isFirstPage: boolean) => {

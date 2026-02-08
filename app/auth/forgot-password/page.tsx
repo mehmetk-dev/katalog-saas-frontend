@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [showGoogleWarning, setShowGoogleWarning] = useState(false)
   const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params as Record<string, any>) as string, [baseT])
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params as Record<string, unknown>) as string, [baseT])
 
   const checkProvider = async (email: string) => {
     try {

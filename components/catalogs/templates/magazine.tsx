@@ -37,7 +37,7 @@ export function MagazineTemplate({
         }
     }
 
-    const getImageFitClass = () => {
+    const _getImageFitClass = () => {
         switch (productImageFit) {
             case 'cover': return 'object-cover'
             case 'fill': return 'object-fill'

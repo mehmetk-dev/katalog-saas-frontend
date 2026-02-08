@@ -54,7 +54,7 @@ function calculateTrend(currentValue: number, previousValue: number) {
 
 export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClientProps) {
     const { t: baseT, language } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d")
     const [stats, setStats] = useState<DashboardStats | null>(initialStats)
     const [isLoading, setIsLoading] = useState(false)
@@ -294,7 +294,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             backgroundColor: 'white'
                                         }}
                                         labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1e293b' }}
-                                        formatter={(value: any) => [`${value} ${t("dashboard.analytics.views")}`, '']}
+                                        formatter={(value: unknown) => [`${value} ${t("dashboard.analytics.views")}`, '']}
                                     />
                                     <Bar
                                         dataKey="views"

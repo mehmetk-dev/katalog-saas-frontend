@@ -9,7 +9,7 @@ export type TranslationValue = string | number | boolean | null | undefined | { 
 interface I18nContextType {
     language: Language
     setLanguage: (lang: Language) => void
-    t: (key: string, params?: Record<string, unknown>) => TranslationValue
+    t: <T = string>(key: string, params?: Record<string, unknown>) => T
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
@@ -38,7 +38,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("language", lang)
     }
 
-    const t = (path: string, params?: Record<string, unknown>): TranslationValue => {
+    const t = <T = string>(path: string, params?: Record<string, unknown>): T => {
         const keys = path.split(".")
         let current: unknown = translations[language]
 
@@ -54,7 +54,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
                         fallback = (fallback as Record<string, unknown>)[k]
                     } else {
                         console.warn(`Translation missing for key: ${path}`)
-                        return path
+                        return path as unknown as T
                     }
                 }
                 current = fallback
@@ -64,7 +64,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
         // Return the value directly if it's not a string (e.g. array or object)
         if (typeof current !== 'string') {
-            return current as TranslationValue
+            return current as T
         }
 
         let result = current
@@ -78,7 +78,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
             })
         }
 
-        return result
+        return result as unknown as T
     }
 
     // Prevent hydration mismatch by not rendering until initialized
@@ -105,7 +105,7 @@ export function useTranslation() {
         return {
             language: "tr" as Language,
             setLanguage: () => { },
-            t: (key: string) => key as TranslationValue
+            t: <T = string>(key: string) => key as unknown as T
         }
     }
     return context

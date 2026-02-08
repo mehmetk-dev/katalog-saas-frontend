@@ -26,21 +26,14 @@ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.com'
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "FogCatalog - Profesyonel Ürün Katalog Oluşturucu",
+    default: "FogCatalog - Professional Product Catalog Builder | Katalog Oluşturucu",
     template: "%s | FogCatalog",
   },
-  description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. PDF indirme, QR kod, şablonlar ve daha fazlası. Ücretsiz başlayın!",
+  description: "Create stunning, professional digital product catalogs in minutes. 15+ premium templates, PDF export, QR codes, and interactive sharing. Start for free!",
   keywords: [
-    "katalog",
-    "ürün kataloğu",
-    "PDF katalog",
-    "e-ticaret",
-    "dijital katalog",
-    "online katalog",
-    "ürün listesi",
-    "katalog oluşturucu",
-    "B2B katalog",
-    "toptan katalog"
+    "katalog", "ürün kataloğu", "PDF katalog", "dijital katalog", "katalog oluşturma",
+    "catalog builder", "digital catalog", "product catalog", "online catalog", "PDF catalog creator",
+    "B2B catalog", "wholesale catalog builder", "whatsapp order catalog"
   ],
   authors: [{ name: "FogCatalog", url: siteUrl }],
   creator: "FogCatalog",
@@ -59,24 +52,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    alternateLocale: "en_US",
+    alternateLocale: ["en_US"],
     url: siteUrl,
     siteName: "FogCatalog",
-    title: "FogCatalog - Profesyonel Ürün Katalog Oluşturucu",
-    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. PDF indirme, QR kod, şablonlar ve daha fazlası.",
+    title: "FogCatalog - Professional Product Catalog Builder",
+    description: "Create stunning, professional digital product catalogs in minutes. 15+ premium templates, PDF export, QR codes, and interactive sharing.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "FogCatalog - Dijital Katalog Platformu",
+        alt: "FogCatalog - Digital Catalog Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "FogCatalog - Profesyonel Ürün Katalog Oluşturucu",
-    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.",
+    title: "FogCatalog - Professional Product Catalog Builder",
+    description: "Create stunning, professional digital product catalogs in minutes.",
     images: ["/og-image.png"],
     creator: "@fogcatalog",
   },
@@ -108,8 +101,8 @@ export const viewport: Viewport = {
   ],
 }
 
-// JSON-LD Structured Data
-const jsonLd = {
+// JSON-LD Structured Data - Software Application
+const softwareAppSchema = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'FogCatalog',
@@ -136,6 +129,27 @@ const jsonLd = {
   },
 }
 
+// JSON-LD Structured Data - Organization (for brand recognition & Knowledge Graph)
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'FogCatalog',
+  url: siteUrl,
+  logo: `${siteUrl}/icon.png`,
+  description: 'Professional digital product catalog builder for businesses. Create stunning catalogs in minutes.',
+  foundingDate: '2025',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'Customer Support',
+    email: 'support@fogcatalog.com',
+    availableLanguage: ['Turkish', 'English']
+  },
+  sameAs: [
+    'https://twitter.com/fogcatalog',
+    // Add other social media profiles when available
+  ]
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -144,10 +158,15 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
-        {/* JSON-LD Structured Data */}
+        {/* JSON-LD Structured Data - Software Application */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+        />
+        {/* JSON-LD Structured Data - Organization */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
         {/* PWA */}
         <link rel="manifest" href="/manifest.json" />

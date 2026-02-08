@@ -1,14 +1,11 @@
-import { Metadata } from "next"
-
 import { getCurrentUser } from "@/lib/actions/auth"
 import { getCatalogs, getDashboardStats } from "@/lib/actions/catalogs"
 import { getProducts } from "@/lib/actions/products"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 
-export const metadata: Metadata = {
-  title: "Panel",
-  description: "Kataloglarınızı, ürünlerinizi ve istatistiklerinizi yönetin.",
-}
+import { SEO_CONFIG } from "@/lib/seo"
+
+export const metadata = SEO_CONFIG.dashboard
 
 export default async function DashboardPage() {
   const [, catalogs, products, stats] = await Promise.all([

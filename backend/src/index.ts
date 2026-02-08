@@ -40,7 +40,15 @@ const apiLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// authLimiter removed as it was unused
+// Auth rate limiter - stricter limits for login/signup to prevent brute-force attacks
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: isDev ? 100 : 10, // 10 attempts per 15 min in production
+    message: { error: 'Too many login attempts, please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true, // Don't count successful logins
+});
 
 // Middleware
 app.use(cors({
@@ -63,7 +71,24 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: isDev ? false : undefined, // Disable CSP in dev for easier debugging
+    crossOriginEmbedderPolicy: false, // Allow embedding for catalog previews
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin image loading
+    hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    xContentTypeOptions: true, // nosniff
+    xDnsPrefetchControl: { allow: false },
+    xDownloadOptions: true, // noopen
+    xFrameOptions: { action: 'deny' }, // Prevent clickjacking
+    xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
+    xPoweredBy: false, // Remove X-Powered-By header
+    xXssProtection: true, // Enable XSS filter
+}));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -97,8 +122,8 @@ import authRoutes from './routes/auth';
 // Health check routes (no auth required)
 app.use('/health', healthRoutes);
 
-// Public auth routes (no auth required)
-app.use('/api/v1/auth', authRoutes);
+// Public auth routes (no auth required) - with stricter rate limiting for brute-force protection
+app.use('/api/v1/auth', authLimiter, authRoutes);
 
 // API Routes
 app.use('/api/v1/products', productRoutes);

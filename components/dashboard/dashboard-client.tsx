@@ -62,7 +62,7 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
 
 export function DashboardClient({ initialCatalogs, initialProducts, initialStats }: DashboardClientProps) {
     const { t: baseT } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, any>) => baseT(key, params) as string, [baseT])
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const { user, isLoading } = useUser()
 
     // Güvenli fallback değerleri - undefined/null durumlarını ele al
@@ -264,8 +264,8 @@ export function DashboardClient({ initialCatalogs, initialProducts, initialStats
                                         const successMsg = t("toasts.catalogCreated")
                                         toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
                                         window.location.href = `/dashboard/builder?id=${newCatalog.id}`
-                                    } catch (error: any) {
-                                        toast.error(error.message || "Hata oluştu", { id: toastId })
+                                    } catch (error: unknown) {
+                                        toast.error(error instanceof Error ? error.message : "Hata oluştu", { id: toastId })
                                     }
                                 }}
                                 className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/20"

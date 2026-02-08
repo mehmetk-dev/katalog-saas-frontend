@@ -31,7 +31,7 @@ export function MinimalistTemplate({
     const FOOTER_HEIGHT = "48px"
     const PRODUCTS_PER_PAGE = 4
 
-    const getImageFitClass = () => {
+    const _getImageFitClass = () => {
         switch (productImageFit) {
             case 'cover': return 'object-cover'
             case 'fill': return 'object-fill'

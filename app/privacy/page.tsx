@@ -1,11 +1,6 @@
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 
-export const metadata = {
-  title: "Gizlilik Politikası | FogCatalog",
-  description: "FogCatalog gizlilik politikası, veri güvenliği ve üçüncü taraf paylaşımları hakkında detaylı bilgiler.",
-}
-
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-slate-50">
