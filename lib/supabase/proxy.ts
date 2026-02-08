@@ -35,32 +35,49 @@ export async function updateSession(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser()
 
-    // Handle invalid refresh tokens (common after database resets or token expiry)
-    if (authError && typeof authError === 'object' && authError !== null && 'code' in authError && (authError as { code: string }).code === 'refresh_token_not_found') {
-      console.warn("Middleware: Invalid refresh token detected. Redirecting to login.")
-      const url = request.nextUrl.clone()
-      url.pathname = "/auth"
-      const response = NextResponse.redirect(url)
-      response.cookies.delete("auth_session_timer")
-      return response
-    }
-
-    // --- Session Expiry Logic ---
-    // User wants to be asked for login again if a certain time has passed.
-    // Default Supabase sessions can be very long. We implement a custom 12-hour limit.
+    // --- Session Expiry Logic & Redirection Helpers ---
     const MAX_SESSION_AGE = 12 * 60 * 60 * 1000; // 12 Hours in ms
     const sessionAgeCookie = request.cookies.get("auth_session_timer")?.value;
     const now = Date.now();
 
+    const redirectToLogin = () => {
+      const url = request.nextUrl.clone()
+      url.pathname = "/auth"
+
+      // If it's an API request or Server Action, return 401 instead of redirecting
+      // this prevents the browser from trying to POST to the login page
+      const isApiOrAction = request.nextUrl.pathname.startsWith('/api') ||
+        request.headers.get('accept')?.includes('application/json') ||
+        request.headers.has('next-action') ||
+        request.method !== 'GET';
+
+      if (isApiOrAction && request.method !== 'GET') {
+        return new NextResponse(
+          JSON.stringify({ error: 'Unauthorized', message: 'Session expired' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // For standard navigations, use 303 See Other to ensure the browser performs a GET
+      return NextResponse.redirect(url, 303)
+    }
+
+    // 1. Handle invalid refresh tokens (common after database resets or token expiry)
+    if (authError && typeof authError === 'object' && authError !== null && 'code' in authError && (authError as { code: string }).code === 'refresh_token_not_found') {
+      console.warn("Middleware: Invalid refresh token detected. Redirecting to login.")
+      const response = redirectToLogin()
+      response.cookies.delete("auth_session_timer")
+      return response
+    }
+
+    // 2. Session Expiry Logic
     if (user) {
       if (sessionAgeCookie) {
         const lastAuth = parseInt(sessionAgeCookie);
         if (now - lastAuth > MAX_SESSION_AGE) {
           // Session too old, force logout
           await supabase.auth.signOut();
-          const url = request.nextUrl.clone();
-          url.pathname = "/auth";
-          const response = NextResponse.redirect(url);
+          const response = redirectToLogin();
           response.cookies.delete("auth_session_timer");
           return response;
         }
@@ -80,13 +97,10 @@ export async function updateSession(request: NextRequest) {
       // No user, clear the timer
       supabaseResponse.cookies.delete("auth_session_timer");
     }
-    // ----------------------------
 
-    // Redirect to login if accessing dashboard without auth
+    // 3. Redirect to login if accessing dashboard without auth
     if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/auth"
-      return NextResponse.redirect(url)
+      return redirectToLogin()
     }
 
     return supabaseResponse
@@ -98,7 +112,7 @@ export async function updateSession(request: NextRequest) {
     if (request.nextUrl.pathname.startsWith("/dashboard")) {
       const url = request.nextUrl.clone()
       url.pathname = "/auth"
-      return NextResponse.redirect(url)
+      return NextResponse.redirect(url, 303)
     }
 
     return supabaseResponse

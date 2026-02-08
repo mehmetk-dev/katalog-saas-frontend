@@ -320,12 +320,15 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   }
 
   // --- ANA UPLOAD FONKSİYONU ---
-  const uploadPendingImages = async (): Promise<string[]> => {
+  const uploadPendingImages = async (): Promise<{ finalUrls: string[], resolvedCoverUrl: string | null }> => {
     const currentPendingImages = [...pendingImages]
     const currentAdditionalImages = [...additionalImages]
 
     if (currentPendingImages.length === 0) {
-      return currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
+      return {
+        finalUrls: currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5),
+        resolvedCoverUrl: activeImageUrl && !activeImageUrl.startsWith('blob:') ? activeImageUrl : (currentAdditionalImages[0] || null)
+      }
     }
 
     setIsUploading(true)
@@ -419,14 +422,22 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       // State güncelle
       setAdditionalImages(finalAllUrls)
 
-      // Kapak fotoğrafı blob ise ve yüklendiyse güncelle
+      // Kapak fotoğrafı mantığı
+      let resolvedCoverUrl: string | null = null
+
       if (activeImageUrl.startsWith('blob:')) {
         const mapped = previewToPublic.get(activeImageUrl)
         if (mapped) {
+          resolvedCoverUrl = mapped
           setActiveImageUrl(mapped)
         } else if (uploadedUrls.length > 0) {
+          // Fallback: Blob ama map edilemedi (örn. yüklenemedi ama bir şeyler yüklendi)
+          resolvedCoverUrl = finalAllUrls[0]
           setActiveImageUrl(finalAllUrls[0])
         }
+      } else {
+        // Zaten public URL
+        resolvedCoverUrl = activeImageUrl
       }
 
       if (uploadedUrls.length > 0) {
@@ -440,7 +451,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         throw new Error(msg)
       }
 
-      return finalAllUrls
+      return { finalUrls: finalAllUrls, resolvedCoverUrl }
 
     } catch (err: unknown) {
       const error = err as Error
@@ -600,8 +611,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     // ÖNCE: Pending fotoğrafları Cloudinary'ye yükle
     let finalImageUrls: string[] = []
+    let finalResolvedCoverUrl: string | null = null
+
     try {
-      finalImageUrls = await uploadPendingImages()
+      const result = await uploadPendingImages()
+      finalImageUrls = result.finalUrls
+      finalResolvedCoverUrl = result.resolvedCoverUrl
     } catch (uploadError: unknown) {
       const err = uploadError as Error
       console.error("[ProductModal] Upload error in handleSubmit:", err.message)
@@ -611,8 +626,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     // State'i güncelle (yüklenen URL'lerle)
     setAdditionalImages(finalImageUrls)
-    if (finalImageUrls.length > 0 && !finalImageUrls.includes(activeImageUrl)) {
-      setActiveImageUrl(finalImageUrls[0])
+    if (finalResolvedCoverUrl) {
+      setActiveImageUrl(finalResolvedCoverUrl)
     }
 
     const formData = new FormData()
@@ -623,8 +638,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     formData.append("stock", stock)
     formData.append("category", category.join(", "))
 
-    // activeImageUrl is the cover
-    const finalActiveImageUrl = finalImageUrls[0] || activeImageUrl || ""
+    // activeImageUrl is the cover - use the resolved one or fallback
+    const finalActiveImageUrl = finalResolvedCoverUrl || (finalImageUrls.length > 0 ? finalImageUrls[0] : "")
     formData.append("image_url", finalActiveImageUrl)
 
     // finalImageUrls contains ALL images
