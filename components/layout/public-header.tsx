@@ -14,7 +14,7 @@ export function PublicHeader() {
     return (
         <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/70 border-b border-slate-200/50">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <Link href="/" className="flex items-center group">
+                <Link href="/" className="flex items-center group" aria-label="FogCatalog Ana Sayfa">
                     <span className="font-montserrat text-3xl tracking-tighter flex items-center">
                         <span className="font-black text-[#cf1414] uppercase">Fog</span>
                         <span className="font-light text-slate-900">Catalog</span>
@@ -42,12 +42,14 @@ export function PublicHeader() {
                         <button
                             onClick={() => setLanguage('tr')}
                             className={`px-3 py-1 text-xs font-bold rounded-full transition-all duration-300 ${language === 'tr' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900'}`}
+                            aria-label="Türkçe"
                         >
                             TR
                         </button>
                         <button
                             onClick={() => setLanguage('en')}
                             className={`px-3 py-1 text-xs font-bold rounded-full transition-all duration-300 ${language === 'en' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900'}`}
+                            aria-label="English"
                         >
                             EN
                         </button>
@@ -72,6 +74,7 @@ export function PublicHeader() {
                     <button
                         className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label={isMobileMenuOpen ? "Menüyü kapat" : "Menüyü aç"}
                     >
                         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
@@ -94,6 +97,7 @@ export function PublicHeader() {
                         <button
                             onClick={() => setIsMobileMenuOpen(false)}
                             className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                            aria-label="Kapat"
                         >
                             <X className="w-6 h-6 text-slate-600" />
                         </button>
@@ -147,12 +151,14 @@ export function PublicHeader() {
                                 <button
                                     onClick={() => setLanguage('tr')}
                                     className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${language === 'tr' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                                    aria-label="Türkçe Dili Seç"
                                 >
                                     Türkçe
                                 </button>
                                 <button
                                     onClick={() => setLanguage('en')}
                                     className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${language === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                                    aria-label="Select English Language"
                                 >
                                     English
                                 </button>

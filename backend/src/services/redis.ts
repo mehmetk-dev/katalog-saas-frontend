@@ -110,12 +110,14 @@ export const deleteCache = async (pattern: string): Promise<void> => {
                     count: 100
                 });
 
-                stream.on('data', async (keys: string[]) => {
+                const deletionPromises: Promise<any>[] = [];
+
+                stream.on('data', (keys: string[]) => {
                     if (keys.length > 0) {
                         try {
                             const pipeline = redis?.pipeline();
                             keys.forEach((key: string) => pipeline?.del(key));
-                            await pipeline?.exec();
+                            deletionPromises.push(pipeline?.exec() || Promise.resolve());
                         } catch (err) {
                             console.warn('Redis pipeline error:', err);
                         }
@@ -127,8 +129,13 @@ export const deleteCache = async (pattern: string): Promise<void> => {
                     reject(err);
                 });
 
-                stream.on('end', () => {
-                    resolve();
+                stream.on('end', async () => {
+                    try {
+                        await Promise.all(deletionPromises);
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
                 });
             });
         } catch (error) {
