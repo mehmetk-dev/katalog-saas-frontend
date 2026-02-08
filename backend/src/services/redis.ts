@@ -1,20 +1,39 @@
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
-// Redis bağlantısı - Upstash veya lokal Redis
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+// Redis bağlantısı - Upstash (rediss://) veya lokal Redis (redis://)
+const REDIS_URL = (process.env.REDIS_URL || 'redis://localhost:6379').trim();
+const isTls = REDIS_URL.startsWith('rediss://');
 
 let redis: Redis | null = null;
 let redisWarningShown = false;
 
+function getRedisOptions(): RedisOptions {
+    const base = {
+        maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
+        lazyConnect: true,
+        retryStrategy: () => null,
+    };
+    // rediss:// (TLS) kullanıyorsa hostname'i TLS servername olarak ver (Upstash vb. için)
+    if (isTls) {
+        try {
+            const hostname = new URL(REDIS_URL).hostname;
+            return { ...base, tls: { servername: hostname, rejectUnauthorized: true } };
+        } catch {
+            return { ...base, tls: {} };
+        }
+    }
+    return base;
+}
+
 // Redis bağlantısını başlat
 export const initRedis = () => {
+    if (!REDIS_URL) {
+        redis = null;
+        return;
+    }
     try {
-        redis = new Redis(REDIS_URL, {
-            maxRetriesPerRequest: 1,
-            enableReadyCheck: false,
-            lazyConnect: true,
-            retryStrategy: () => null, // Don't retry
-        });
+        redis = new Redis(REDIS_URL, getRedisOptions());
 
         redis.on('error', () => {
             if (!redisWarningShown) {
@@ -56,7 +75,32 @@ const createKey = (prefix: string, ...parts: string[]) => {
 // Production'da Redis yoksa ürün cache'i kullanma (çok instance'da kapak/güncelleme eski kalmasın)
 const isProductKey = (key: string) => key.startsWith('katalog:product');
 
+/** Ürün mutation (PUT/POST/DELETE) sonrası bu kullanıcı için cache'i kısa süre atla (race / eski veri önleme) */
+const productsInvalidatedUntil = new Map<string, number>();
+const PRODUCTS_INVALIDATE_MS = 5000;
+
+export function setProductsInvalidated(userId: string, ms: number = PRODUCTS_INVALIDATE_MS): void {
+    productsInvalidatedUntil.set(userId, Date.now() + ms);
+}
+
+function isProductsInvalidated(key: string): boolean {
+    if (!isProductKey(key)) return false;
+    const parts = key.split(':');
+    const userId = parts[2]; // katalog:products:userId:... veya katalog:product:userId:...
+    if (!userId) return false;
+    const until = productsInvalidatedUntil.get(userId);
+    if (!until) return false;
+    if (Date.now() >= until) {
+        productsInvalidatedUntil.delete(userId);
+        return false;
+    }
+    return true;
+}
+
 export const getCache = async <T>(key: string): Promise<T | null> => {
+    // 0. Ürün key'i ise ve yeni mutation sonrası penceredeyse cache atla (PUT sonrası eski veri dönmesin)
+    if (isProductsInvalidated(key)) return null;
+
     // 1. Redis'ten dene
     if (redis) {
         try {

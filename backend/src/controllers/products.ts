@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
-import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../services/redis';
+import { deleteCache, cacheKeys, cacheTTL, getOrSetCache, setProductsInvalidated } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 import { movePhotosToDeletedFolder } from '../services/cloudinary';
 
@@ -249,6 +249,7 @@ export const createProduct = async (req: Request, res: Response) => {
             deleteCache(cacheKeys.products(userId)),
             deleteCache(cacheKeys.product(userId, data.id))
         ]);
+        setProductsInvalidated(userId);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -314,6 +315,7 @@ export const updateProduct = async (req: Request, res: Response) => {
             deleteCache(cacheKeys.products(userId)),
             deleteCache(cacheKeys.product(userId, id))
         ]);
+        setProductsInvalidated(userId);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -412,6 +414,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -519,6 +522,7 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         res.json({
             success: true,
@@ -573,6 +577,7 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -617,6 +622,7 @@ export const reorderProducts = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         res.json({ success: true, updated: order.length });
     } catch (error: unknown) {
@@ -694,6 +700,7 @@ export const bulkUpdatePrices = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         // RPC'den dönen data formatını uyumlu hale getir
         const updatedProducts = (data || []).map((item: { id: string; price: number }) => ({
@@ -729,6 +736,7 @@ export const renameCategory = async (req: Request, res: Response) => {
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         res.json(data || []);
     } catch (error: unknown) {
@@ -786,6 +794,7 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
 
         // Cache'i temizle
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -908,6 +917,7 @@ export const bulkUpdateImages = async (req: Request, res: Response) => {
 
         // Cache'i sadece bir kez temizle!
         await deleteCache(cacheKeys.products(userId));
+        setProductsInvalidated(userId);
 
         res.json({ success: true, count: updates.length, results });
     } catch (error: unknown) {
