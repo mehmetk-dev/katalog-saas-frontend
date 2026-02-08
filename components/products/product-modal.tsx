@@ -130,8 +130,18 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
   // Resim sil - YENİ: Pending ve kaydedilmiş fotoğrafları destekler
   const handleRemoveImage = (index: number) => {
+    const urlToRemove = additionalImages[index]
+
+    // Pending images'den de sil (eğer varsa)
+    setPendingImages(prev => prev.filter(p => p.previewUrl !== urlToRemove))
+
+    // Blob ise temizle
+    if (urlToRemove && urlToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(urlToRemove)
+      blobUrlsRef.current = blobUrlsRef.current.filter(u => u !== urlToRemove)
+    }
+
     setAdditionalImages(prevImages => {
-      const urlToRemove = prevImages[index]
       const next = prevImages.filter((_, i) => i !== index)
 
       // Active image (kapak) siliniyorsa, yeni listeden birini seç
@@ -140,6 +150,20 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       return next
     })
   }
+
+  // DEBUG: Monitor activeImageUrl changes
+  useEffect(() => {
+    if (open) {
+      console.log('[ProductModal] 📸 Cover Image updated:', activeImageUrl)
+    }
+  }, [activeImageUrl, open])
+
+  // DEBUG: Monitor reset
+  useEffect(() => {
+    if (open && product?.id) {
+      console.log('[ProductModal] 🔄 Modal opened for product:', product.id, 'Initial Cover:', product.image_url)
+    }
+  }, [open, product])
 
   // UPLOAD ON SAVE: Fotoğraf seçilince sadece preview oluştur, Cloudinary'ye yükleme
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
