@@ -182,8 +182,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     if (catalog) {
       setCatalogName(catalog.name || "")
       setCatalogDescription(catalog.description || "")
-      const validIds = (catalog.product_ids || []).filter(id => products.some(p => p.id === id))
-      setSelectedProductIds(validIds)
+      setSelectedProductIds(catalog.product_ids || [])
       setLayout(catalog.layout || "grid")
       setPrimaryColor(getInitialPrimaryColor())
       setHeaderTextColor(catalog.header_text_color || "#ffffff")
@@ -818,8 +817,8 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
           const { toJpeg } = await import("html-to-image")
           const imgData = await toJpeg(clone, {
-            quality: 1.0, // %100 Kalite (Maksimum)
-            pixelRatio: 4, // 4x Ultra HD Çözünürlük (Herkes için)
+            quality: 0.85, // Optimized quality (significant size reduction, minimal visual loss)
+            pixelRatio: 2, // 2x HD resolution (perfect for print and screen, much faster than 4x)
             backgroundColor: '#ffffff',
             cacheBust: true,
           })

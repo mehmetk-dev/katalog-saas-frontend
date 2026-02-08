@@ -4,8 +4,8 @@ import type { CategoryDividerProps } from './index'
 export function ArtisticDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#e11d48' }: CategoryDividerProps) {
     return (
         <div className="relative w-full h-full bg-[#f8f5f2] flex items-center justify-center overflow-hidden">
-            {/* Texture */}
-            <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] mix-blend-multiply" />
+            {/* Texture - CSS Pattern for stability */}
+            <div className="absolute inset-0 opacity-[0.15] mix-blend-multiply bg-[radial-gradient(#444_0.5px,transparent_0.5px)] [background-size:10px_10px]" />
 
             {/* Paint Splashes */}
             <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-rose-300/30 rounded-full blur-3xl mix-blend-multiply" />

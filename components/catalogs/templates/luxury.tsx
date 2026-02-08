@@ -62,9 +62,8 @@ export function LuxuryTemplate({
 
     return (
         <div className="h-full flex flex-col overflow-hidden bg-[#0a0a0a] text-[#d4af37] relative selection:bg-[#d4af37] selection:text-black">
-            {/* Subtle Texture Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] grayscale transition-opacity"
-                style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/dark-leather.png")` }} />
+            {/* Subtle Texture Overlay - Removed external dependency for stability */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.4] mix-blend-soft-light transition-opacity bg-[radial-gradient(#1a1a1a_1px,transparent_1px)] [background-size:16px_16px]" />
 
             {/* Top Ornate Border */}
             <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#d4af37] to-transparent shrink-0 opacity-70" />

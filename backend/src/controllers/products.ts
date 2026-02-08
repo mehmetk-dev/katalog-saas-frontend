@@ -117,7 +117,7 @@ export const getProducts = async (req: Request, res: Response) => {
         // Validation
         if (page < 1) page = 1;
         if (limit < 1) limit = 12;
-        if (limit > 100) limit = 100; // Max limit protection
+        if (limit > 2000) limit = 2000; // Max limit protection (increased for builder support)
 
         const params = { page, limit, category, search };
         const cacheKey = cacheKeys.products(userId, params);

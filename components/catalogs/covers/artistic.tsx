@@ -11,8 +11,8 @@ export function ArtisticCover({
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#f8f5f2] overflow-hidden">
-            {/* Paper Texture Effect */}
-            <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] pointer-events-none mix-blend-multiply" />
+            {/* Paper Texture Effect - CSS Pattern for stability */}
+            <div className="absolute inset-0 opacity-[0.15] pointer-events-none mix-blend-multiply bg-[radial-gradient(#444_0.5px,transparent_0.5px)] [background-size:10px_10px]" />
 
             {/* Abstract Paint Blobs (CSS Shapes) */}
             <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-rose-300/30 rounded-full blur-3xl mix-blend-multiply pointer-events-none" />
