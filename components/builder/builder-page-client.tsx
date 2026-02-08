@@ -135,29 +135,39 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     enableCategoryDividers: catalog?.enable_category_dividers ?? false,
     coverTheme: catalog?.cover_theme || "modern",
     showInSearch: catalog?.show_in_search ?? true,
+    backgroundGradient: catalog?.background_gradient || null,
   })
 
-  // Değişiklik var mı kontrol et
-  const hasUnsavedChanges = isDirty || (
-    catalogName !== lastSavedState.name ||
-    catalogDescription !== lastSavedState.description ||
-    JSON.stringify(selectedProductIds) !== JSON.stringify(lastSavedState.productIds) ||
-    layout !== lastSavedState.layout ||
-    coverTheme !== lastSavedState.coverTheme ||
-    primaryColor !== lastSavedState.primaryColor ||
-    showPrices !== lastSavedState.showPrices ||
-    showDescriptions !== lastSavedState.showDescriptions ||
-    showAttributes !== lastSavedState.showAttributes ||
-    showSku !== lastSavedState.showSku ||
-    showUrls !== lastSavedState.showUrls ||
-    columnsPerRow !== lastSavedState.columnsPerRow ||
-    backgroundColor !== lastSavedState.backgroundColor ||
-    backgroundImage !== lastSavedState.backgroundImage ||
-    logoUrl !== lastSavedState.logoUrl ||
-    enableCoverPage !== lastSavedState.enableCoverPage ||
-    enableCategoryDividers !== lastSavedState.enableCategoryDividers ||
-    showInSearch !== lastSavedState.showInSearch
-  )
+  // Değişiklik var mı kontrol et - MEMOIZED & ROBUST
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      catalogName !== lastSavedState.name ||
+      catalogDescription !== lastSavedState.description ||
+      JSON.stringify(selectedProductIds) !== JSON.stringify(lastSavedState.productIds) ||
+      layout !== lastSavedState.layout ||
+      coverTheme !== lastSavedState.coverTheme ||
+      primaryColor !== lastSavedState.primaryColor ||
+      showPrices !== lastSavedState.showPrices ||
+      showDescriptions !== lastSavedState.showDescriptions ||
+      showAttributes !== lastSavedState.showAttributes ||
+      showSku !== lastSavedState.showSku ||
+      showUrls !== lastSavedState.showUrls ||
+      columnsPerRow !== lastSavedState.columnsPerRow ||
+      backgroundColor !== lastSavedState.backgroundColor ||
+      backgroundImage !== lastSavedState.backgroundImage ||
+      logoUrl !== lastSavedState.logoUrl ||
+      enableCoverPage !== lastSavedState.enableCoverPage ||
+      enableCategoryDividers !== lastSavedState.enableCategoryDividers ||
+      showInSearch !== lastSavedState.showInSearch ||
+      backgroundGradient !== lastSavedState.backgroundGradient
+    )
+  }, [
+    catalogName, catalogDescription, selectedProductIds, layout, coverTheme,
+    primaryColor, showPrices, showDescriptions, showAttributes, showSku,
+    showUrls, columnsPerRow, backgroundColor, backgroundImage, logoUrl,
+    enableCoverPage, enableCategoryDividers, showInSearch, lastSavedState,
+    backgroundGradient
+  ])
 
   // Sayfa kapatma/yenileme uyarısı
   useEffect(() => {
@@ -229,25 +239,22 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
         enableCategoryDividers: catalog.enable_category_dividers ?? false,
         coverTheme: catalog.cover_theme || "modern",
         showInSearch: catalog.show_in_search ?? true,
+        backgroundGradient: catalog.background_gradient || null,
       })
       setIsDirty(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalog?.id]) // SADECE catalog.id değiştiğinde tetiklenir - diğer catalog prop'ları değişince DEĞİL!
 
-  // Herhangi bir değişiklikte isDirty'i true yap
+  // backgroundGradient için lastSavedState'e ekleme yapalım (initial render'da)
   useEffect(() => {
-    // İlk render'da değil, sonraki değişikliklerde dirty yap
-    const isInitialRender =
-      catalogName === (catalog?.name || "") &&
-      catalogDescription === (catalog?.description || "") &&
-      JSON.stringify(selectedProductIds) === JSON.stringify(catalog?.product_ids || []) &&
-      backgroundGradient === (catalog?.background_gradient || null)
-
-    if (!isInitialRender) {
-      setIsDirty(true)
+    if (catalog) {
+      setLastSavedState(prev => ({
+        ...prev,
+        backgroundGradient: catalog.background_gradient || null
+      }))
     }
-  }, [catalogName, catalogDescription, selectedProductIds, layout, primaryColor, showPrices, showDescriptions, showAttributes, showSku, showUrls, showInSearch, columnsPerRow, backgroundColor, backgroundGradient, catalog?.background_gradient, catalog?.description, catalog?.name, catalog?.product_ids, enableCoverPage, coverImageUrl, coverDescription, enableCategoryDividers])
+  }, [catalog?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Autosave state
   const [, setIsAutoSaving] = useState(false)
@@ -279,7 +286,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   // OPTIMIZED: Sadece isDirty değiştiğinde effect yeniden oluşturulur
   useEffect(() => {
     // Sadece varolan kataloglar için autosave (yeni katalog = ilk manuel kayıt gerekli)
-    if (!currentCatalogId || !isDirty) return
+    if (!currentCatalogId || !hasUnsavedChanges) return
 
     // Önceki timeout'u temizle
     if (autoSaveTimeoutRef.current) {
@@ -341,13 +348,14 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           enableCategoryDividers: data.enableCategoryDividers,
           coverTheme: data.coverTheme,
           showInSearch: data.showInSearch,
+          backgroundGradient: data.backgroundGradient,
         })
         setIsDirty(false)
         if (data.isPublished) {
           setHasUnpushedChanges(true)
         }
+        router.refresh() // Prop'ları güncelle (eventually)
       } catch (error) {
-
         console.error('Autosave failed:', error)
         // Sessizce fail - kullanıcıyı rahatsız etme
       } finally {
@@ -496,11 +504,13 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
           enableCategoryDividers,
           coverTheme,
           showInSearch,
+          backgroundGradient,
         })
         setIsDirty(false)
         if (isPublished) {
           setHasUnpushedChanges(true)
         }
+        router.refresh()
       } catch (error) {
         console.error('Catalog save error:', error)
         const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
@@ -555,7 +565,30 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
 
         setHasUnpushedChanges(false)
         setIsDirty(false)
+        // lastSavedState'i güncelle ki hasUnsavedChanges false olsun
+        setLastSavedState({
+          name: catalogName,
+          description: catalogDescription,
+          productIds: selectedProductIds,
+          layout,
+          primaryColor,
+          showPrices,
+          showDescriptions,
+          showAttributes,
+          showSku,
+          showUrls,
+          columnsPerRow,
+          backgroundColor,
+          backgroundImage,
+          logoUrl,
+          enableCoverPage,
+          enableCategoryDividers,
+          coverTheme,
+          showInSearch,
+          backgroundGradient,
+        })
         toast.success("Yayındaki katalog güncellendi! 🚀")
+        router.refresh()
       } catch (error) {
         console.error('Catalog publish/push error:', error)
         const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
