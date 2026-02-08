@@ -85,6 +85,17 @@ const getPostCategoryColor = (categoryId: string) => {
 // ELLERİNİZLE YÖNETEBİLECEĞİNİZ STATİK LİSTE
 const POSTS = [
     {
+        slug: 'dijital-katalog-ile-satis-artirma',
+        title: 'Dijital Katalog ile Satışlarınızı Artırmanın 5 Yolu',
+        excerpt: 'Doğru kurgulanmış bir dijital katalog, satış ekibinizin en büyük yardımcısıdır. İşte ciroyu artıracak taktikler.',
+        date: '2026-02-08',
+        author: 'Mehmet K.',
+        category: 'ecommerce-tips',
+        readingTime: '5 dk okuma',
+        coverImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&q=80',
+        language: 'tr'
+    },
+    {
         slug: 'neden-dijital-katalog-kullanmalisiniz',
         title: 'Üretkenliğin Yeni Dijital Yüzü',
         excerpt: 'Geleneksel kağıt kataloglar artık tarih oluyor. Dijitalin kazandıracağı kritik avantajları keşfedin.',
