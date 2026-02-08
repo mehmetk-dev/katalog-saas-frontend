@@ -139,14 +139,21 @@ export const getProducts = async (req: Request, res: Response) => {
                 query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
             }
 
+            // Sıralama: display_order (manuel sıra), yoksa created_at
             const { data, error, count } = await query
+                .order('display_order', { ascending: true, nullsFirst: false })
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
             if (error) throw error;
 
+            const products = (data || []).map((p: Record<string, unknown>) => ({
+                ...p,
+                order: p.display_order ?? (p as Record<string, unknown>).order ?? 0
+            }));
+
             return {
-                products: data || [],
+                products,
                 metadata: {
                     total: count || 0,
                     page,

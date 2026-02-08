@@ -47,6 +47,7 @@ interface ProductsTableProps {
   onDeleted: (id: string) => void
   viewMode?: "grid" | "list"
   onProductsReorder?: (products: Product[]) => void
+  onReorderSuccess?: () => void
 }
 
 export function ProductsTable({
@@ -59,6 +60,7 @@ export function ProductsTable({
   onDeleted,
   viewMode = "list",
   onProductsReorder,
+  onReorderSuccess,
 }: ProductsTableProps) {
   const { t } = useTranslation()
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -226,6 +228,7 @@ export function ProductsTable({
         try {
           const orderData = newProducts.map((p, index) => ({ id: p.id, order: index }))
           await updateProductOrder(orderData)
+          onReorderSuccess?.()
         } catch {
           console.error("Sıralama kaydedilemedi")
         }

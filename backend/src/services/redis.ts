@@ -53,7 +53,9 @@ const createKey = (prefix: string, ...parts: string[]) => {
     return `katalog:${prefix}:${parts.join(':')}`;
 };
 
-// Cache'den oku
+// Production'da Redis yoksa ürün cache'i kullanma (çok instance'da kapak/güncelleme eski kalmasın)
+const isProductKey = (key: string) => key.startsWith('katalog:product');
+
 export const getCache = async <T>(key: string): Promise<T | null> => {
     // 1. Redis'ten dene
     if (redis) {
@@ -65,7 +67,12 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
         }
     }
 
-    // 2. Memory cache'den dene
+    // 2. Production'da Redis yokken ürün cache'i kullanma (kapak/güncelleme tüm instance'larda görünsün)
+    if (process.env.NODE_ENV === 'production' && !redis && isProductKey(key)) {
+        return null;
+    }
+
+    // 3. Memory cache'den dene
     const memCached = memoryCache.get(key);
     if (memCached) {
         if (Date.now() < memCached.expires) {
@@ -90,7 +97,12 @@ export const setCache = async (key: string, data: unknown, ttlSeconds: number = 
         }
     }
 
-    // 2. Memory cache'e yaz
+    // 2. Production'da Redis yokken ürün cache'ine yazma (tek instance memory cache kapak sorununa yol açar)
+    if (process.env.NODE_ENV === 'production' && !redis && isProductKey(key)) {
+        return;
+    }
+
+    // 3. Memory cache'e yaz
     memoryCache.set(key, {
         data: stringData,
         expires: Date.now() + (ttlSeconds * 1000)

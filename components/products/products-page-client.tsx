@@ -465,6 +465,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
                   toast.info((t("products.switchedToManualSort") as string) || "Manuel sıralamaya geçildi")
                 }
               }}
+              onReorderSuccess={() => router.refresh()}
             />
           </div>
 
