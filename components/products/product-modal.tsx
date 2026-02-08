@@ -344,7 +344,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   }
 
   // --- ANA UPLOAD FONKSİYONU ---
-  const uploadPendingImages = async (): Promise<{ finalUrls: string[], resolvedCoverUrl: string | null }> => {
+  const uploadPendingImages = async (): Promise<{ finalUrls: string[], urlMap: Map<string, string> }> => {
     const currentPendingImages = [...pendingImages]
     const currentAdditionalImages = [...additionalImages]
 
@@ -352,18 +352,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       // Pending images yok - sadece mevcut URL'leri filtrele
       const validUrls = currentAdditionalImages.filter(url => !url.startsWith('blob:')).slice(0, 5)
 
-      // DÜZELTME: activeImageUrl'i olduğu gibi döndür (boş string bile olsa)
-      // Eğer activeImageUrl blob ise veya boşsa, ilk geçerli URL'i kullan
-      let coverUrl: string | null = null
-      if (activeImageUrl && !activeImageUrl.startsWith('blob:')) {
-        coverUrl = activeImageUrl
-      } else if (validUrls.length > 0) {
-        coverUrl = validUrls[0]
-      }
-
       return {
         finalUrls: validUrls,
-        resolvedCoverUrl: coverUrl
+        urlMap: new Map()
       }
     }
 
@@ -458,24 +449,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       // State güncelle
       setAdditionalImages(finalAllUrls)
 
-      // Kapak fotoğrafı mantığı
-      let resolvedCoverUrl: string | null = null
-
-      if (activeImageUrl.startsWith('blob:')) {
-        const mapped = previewToPublic.get(activeImageUrl)
-        if (mapped) {
-          resolvedCoverUrl = mapped
-          setActiveImageUrl(mapped)
-        } else if (uploadedUrls.length > 0) {
-          // Fallback: Blob ama map edilemedi (örn. yüklenemedi ama bir şeyler yüklendi)
-          resolvedCoverUrl = finalAllUrls[0]
-          setActiveImageUrl(finalAllUrls[0])
-        }
-      } else {
-        // Zaten public URL
-        resolvedCoverUrl = activeImageUrl
-      }
-
       if (uploadedUrls.length > 0) {
         toast.success(`${uploadedUrls.length} fotoğraf yüklendi.`, { id: toastId })
         toastUpdated = true
@@ -487,7 +460,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
         throw new Error(msg)
       }
 
-      return { finalUrls: finalAllUrls, resolvedCoverUrl }
+      return { finalUrls: finalAllUrls, urlMap: previewToPublic }
 
     } catch (err: unknown) {
       const error = err as Error
@@ -647,12 +620,12 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     // ÖNCE: Pending fotoğrafları Cloudinary'ye yükle
     let finalImageUrls: string[] = []
-    let finalResolvedCoverUrl: string | null = null
+    let urlMap = new Map<string, string>()
 
     try {
       const result = await uploadPendingImages()
       finalImageUrls = result.finalUrls
-      finalResolvedCoverUrl = result.resolvedCoverUrl
+      urlMap = result.urlMap
     } catch (uploadError: unknown) {
       const err = uploadError as Error
       console.error("[ProductModal] Upload error in handleSubmit:", err.message)
@@ -662,8 +635,35 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
     // State'i güncelle (yüklenen URL'lerle)
     setAdditionalImages(finalImageUrls)
-    if (finalResolvedCoverUrl) {
-      setActiveImageUrl(finalResolvedCoverUrl)
+
+    // COVER RESOLUTION LOGIC
+    let finalActiveImageUrl = activeImageUrl
+
+    // Eğer mevcut kapak bir Blob ise, map'ten gerçeğini bul
+    if (activeImageUrl && activeImageUrl.startsWith('blob:')) {
+      const mappedUrl = urlMap.get(activeImageUrl)
+      console.log('[ProductModal] Resolving blob cover:', activeImageUrl, '->', mappedUrl)
+
+      if (mappedUrl) {
+        finalActiveImageUrl = mappedUrl
+      } else {
+        // Fallback: Blob idi ama yüklenenler arasında yok? (Hata durumu)
+        // İlk geçerli resmi seç
+        finalActiveImageUrl = finalImageUrls.length > 0 ? finalImageUrls[0] : ""
+        console.warn('[ProductModal] Blob cover not found in map, fallback to:', finalActiveImageUrl)
+      }
+    }
+
+    // State'i güncelle ki modal kapanmadan önce doğru görünsün (gerçi kapanacak)
+    setActiveImageUrl(finalActiveImageUrl)
+
+    // SİGORTA: Seçilen kapak fotoğrafını listenin en başına al
+    // Backend veya UI ilk resmi kapak olarak varsayıyor olabilir.
+    if (finalActiveImageUrl && finalImageUrls.includes(finalActiveImageUrl)) {
+      finalImageUrls = [
+        finalActiveImageUrl,
+        ...finalImageUrls.filter(url => url !== finalActiveImageUrl)
+      ]
     }
 
     const formData = new FormData()
@@ -674,15 +674,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     formData.append("stock", stock)
     formData.append("category", category.join(", "))
 
-    // activeImageUrl is the cover - DÜZELTME: resolvedCoverUrl null değilse onu kullan,
-    // null ise mevcut activeImageUrl'i kullan (kullanıcı kapak değiştirmiş olabilir),
-    // o da boşsa ilk resmi kullan
-    const finalActiveImageUrl = finalResolvedCoverUrl !== null
-      ? finalResolvedCoverUrl
-      : (activeImageUrl || (finalImageUrls.length > 0 ? finalImageUrls[0] : ""))
+    // activeImageUrl is the cover
     formData.append("image_url", finalActiveImageUrl)
 
-    // finalImageUrls contains ALL images
+    // finalImageUrls contains ALL images (Sorted: Cover is first)
     formData.append("images", JSON.stringify(finalImageUrls))
 
     formData.append("product_url", productUrl)
