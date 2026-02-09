@@ -125,11 +125,11 @@ const updateProductSchema = z.object({
     name: z.string().trim().min(2).max(200).optional().nullable(),
     sku: z.string().max(100).optional().nullable(),
     description: z.string().max(5000).optional().nullable(),
-    price: z.union([z.number(), z.string()]).refine((v) => {
+    price: z.union([z.number(), z.string()]).refine((v: string | number) => {
         const n = Number(v);
         return Number.isFinite(n) && n >= 0 && n <= 1_000_000_000;
     }, 'price must be a valid non-negative number').optional().nullable(),
-    stock: z.union([z.number(), z.string()]).refine((v) => {
+    stock: z.union([z.number(), z.string()]).refine((v: string | number) => {
         const n = Number(v);
         return Number.isInteger(n) && n >= 0 && n <= 10_000_000;
     }, 'stock must be a valid non-negative integer').optional().nullable(),
