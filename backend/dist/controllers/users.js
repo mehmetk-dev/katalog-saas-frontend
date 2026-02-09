@@ -34,12 +34,22 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.upgradeToPro = exports.incrementExportsUsed = exports.deleteMe = exports.updateMe = exports.sendWelcomeNotification = exports.getMe = void 0;
+const zod_1 = require("zod");
 const supabase_1 = require("../services/supabase");
 const activity_logger_1 = require("../services/activity-logger");
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req) => req.user.id;
 const getUserEmail = (req) => req.user.email;
 const getUserMeta = (req) => req.user.user_metadata;
+const updateMeSchema = zod_1.z.object({
+    full_name: zod_1.z.string().trim().min(2).max(100).optional().nullable(),
+    company: zod_1.z.string().trim().max(120).optional().nullable(),
+    avatar_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+    logo_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+});
+const incrementExportsSchema = zod_1.z.object({
+    catalogName: zod_1.z.string().max(200).optional().nullable(),
+});
 const getMe = async (req, res) => {
     try {
         const userId = getUserId(req);
@@ -140,15 +150,19 @@ exports.sendWelcomeNotification = sendWelcomeNotification;
 const updateMe = async (req, res) => {
     try {
         const userId = getUserId(req);
-        // Sadece full_name, company, avatar_url ve logo_url alanlarının güncellenmesine izin ver
-        const { full_name, company, avatar_url, logo_url } = req.body;
+        const parsed = updateMeSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
+        const { full_name, company, avatar_url, logo_url } = parsed.data;
         const { error } = await supabase_1.supabase
             .from('users')
             .update({
             full_name,
             company,
-            avatar_url,
-            logo_url,
+            avatar_url: avatar_url === '' ? null : avatar_url,
+            logo_url: logo_url === '' ? null : logo_url,
             updated_at: new Date().toISOString()
         })
             .eq('id', userId);
@@ -199,51 +213,67 @@ exports.deleteMe = deleteMe;
 const incrementExportsUsed = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { catalogName } = req.body; // Frontend'den katalog adı gelecek
-        // First get current
-        const { data: profile, error: fetchError } = await supabase_1.supabase
-            .from('users')
-            .select('exports_used, plan')
-            .eq('id', userId)
-            .single();
-        if (fetchError)
-            throw fetchError;
-        const plan = profile.plan || 'free';
-        const used = profile.exports_used || 0;
-        let limit = 1; // free
-        if (plan === 'plus')
-            limit = 50;
-        if (plan === 'pro')
-            limit = 999999999; // unlimited
-        if (used >= limit) {
-            return res.status(403).json({ error: 'Export limit reached' });
+        const parsed = incrementExportsSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
         }
-        const { error: updateError } = await supabase_1.supabase.from('users')
-            .update({ exports_used: used + 1 })
-            .eq('id', userId);
-        if (updateError)
-            throw updateError;
-        // Log activity
-        const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
-        await (0, activity_logger_1.logActivity)({
-            userId,
-            activityType: 'pdf_downloaded',
-            description: activity_logger_1.ActivityDescriptions.pdfDownloaded(catalogName || 'Katalog'),
-            metadata: { catalogName },
-            ipAddress,
-            userAgent
-        });
-        // Bildirim gönder
-        try {
-            const { createNotification } = await Promise.resolve().then(() => __importStar(require('./notifications')));
-            await createNotification(userId, 'catalog_downloaded', 'Katalog İndirildi 📥', catalogName
-                ? `"${catalogName}" kataloğunuz PDF olarak indirildi.`
-                : 'Kataloğunuz PDF olarak indirildi.', '/dashboard/catalogs');
+        const catalogName = parsed.data.catalogName ?? undefined;
+        // Small retry loop to handle race conditions safely (compare-and-swap)
+        for (let attempt = 0; attempt < 3; attempt++) {
+            // First get current
+            const { data: profile, error: fetchError } = await supabase_1.supabase
+                .from('users')
+                .select('exports_used, plan')
+                .eq('id', userId)
+                .single();
+            if (fetchError)
+                throw fetchError;
+            const plan = profile.plan || 'free';
+            const used = profile.exports_used || 0;
+            let limit = 1; // free
+            if (plan === 'plus')
+                limit = 50;
+            if (plan === 'pro')
+                limit = 999999999; // unlimited
+            if (used >= limit) {
+                return res.status(403).json({ error: 'Export limit reached' });
+            }
+            // CAS-style update: only update if the counter is still the same
+            const { data: updatedRows, error: updateError } = await supabase_1.supabase
+                .from('users')
+                .update({ exports_used: used + 1 })
+                .eq('id', userId)
+                .eq('exports_used', used)
+                .select('id')
+                .limit(1);
+            if (updateError)
+                throw updateError;
+            if (updatedRows && updatedRows.length > 0) {
+                // Log activity
+                const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
+                await (0, activity_logger_1.logActivity)({
+                    userId,
+                    activityType: 'pdf_downloaded',
+                    description: activity_logger_1.ActivityDescriptions.pdfDownloaded(catalogName || 'Katalog'),
+                    metadata: { catalogName },
+                    ipAddress,
+                    userAgent
+                });
+                // Bildirim gönder
+                try {
+                    const { createNotification } = await Promise.resolve().then(() => __importStar(require('./notifications')));
+                    await createNotification(userId, 'catalog_downloaded', 'Katalog İndirildi 📥', catalogName
+                        ? `"${catalogName}" kataloğunuz PDF olarak indirildi.`
+                        : 'Kataloğunuz PDF olarak indirildi.', '/dashboard/catalogs');
+                }
+                catch (notifError) {
+                    console.error('Notification error:', notifError);
+                }
+                return res.json({ success: true });
+            }
         }
-        catch (notifError) {
-            console.error('Notification error:', notifError);
-        }
-        res.json({ success: true });
+        return res.status(409).json({ error: 'Export counter update conflict, please retry' });
     }
     catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';

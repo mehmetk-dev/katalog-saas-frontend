@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bulkUpdateImages = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProduct = exports.getProducts = void 0;
+const zod_1 = require("zod");
 const supabase_1 = require("../services/supabase");
 const redis_1 = require("../services/redis");
 const activity_logger_1 = require("../services/activity-logger");
@@ -70,23 +71,108 @@ async function deletePhotosFromSupabase(photoUrls, bucketName = 'product-images'
         return { success: 0, failed: paths.length };
     }
 }
+const customAttributeSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1),
+    value: zod_1.z.string(),
+    unit: zod_1.z.string().optional(),
+}).passthrough();
+const createProductSchema = zod_1.z.object({
+    name: zod_1.z.string().trim().min(2).max(200),
+    sku: zod_1.z.string().max(100).optional().nullable(),
+    description: zod_1.z.string().max(5000).optional().nullable(),
+    price: zod_1.z.number().finite().min(0).max(1000000000),
+    stock: zod_1.z.number().int().min(0).max(10000000),
+    category: zod_1.z.string().max(200).optional().nullable(),
+    image_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+    images: zod_1.z.array(zod_1.z.string().url()).max(20).optional(),
+    product_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+    custom_attributes: zod_1.z.array(customAttributeSchema).optional().nullable(),
+});
+const updateProductSchema = zod_1.z.object({
+    name: zod_1.z.string().trim().min(2).max(200).optional().nullable(),
+    sku: zod_1.z.string().max(100).optional().nullable(),
+    description: zod_1.z.string().max(5000).optional().nullable(),
+    price: zod_1.z.union([zod_1.z.number(), zod_1.z.string()]).refine((v) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 && n <= 1000000000;
+    }, 'price must be a valid non-negative number').optional().nullable(),
+    stock: zod_1.z.union([zod_1.z.number(), zod_1.z.string()]).refine((v) => {
+        const n = Number(v);
+        return Number.isInteger(n) && n >= 0 && n <= 10000000;
+    }, 'stock must be a valid non-negative integer').optional().nullable(),
+    category: zod_1.z.string().max(200).optional().nullable(),
+    image_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+    images: zod_1.z.array(zod_1.z.string().url()).max(20).optional(),
+    product_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+    custom_attributes: zod_1.z.array(customAttributeSchema).optional().nullable(),
+    display_order: zod_1.z.number().int().optional().nullable(),
+    is_active: zod_1.z.boolean().optional().nullable(),
+});
+const normalizeCoverAndImages = (rawImages, rawCover) => {
+    const uniqueImages = Array.from(new Set((rawImages || []).filter(Boolean)));
+    const cover = (rawCover && rawCover.trim() !== '')
+        ? rawCover
+        : (uniqueImages[0] || null);
+    if (!cover) {
+        return { image_url: null, images: uniqueImages };
+    }
+    const ordered = [cover, ...uniqueImages.filter((img) => img !== cover)].slice(0, 20);
+    return { image_url: cover, images: ordered };
+};
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req) => req.user.id;
 const getProducts = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const cacheKey = redis_1.cacheKeys.products(userId);
-        const data = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.products, async () => {
-            const { data, error } = await supabase_1.supabase
+        // Pagination & Filter params
+        let page = parseInt(req.query.page) || 1;
+        let limit = parseInt(req.query.limit) || 50;
+        const category = req.query.category;
+        const search = req.query.search;
+        // Validation
+        if (page < 1)
+            page = 1;
+        if (limit < 1)
+            limit = 12;
+        if (limit > 2000)
+            limit = 2000; // Max limit protection (increased for builder support)
+        const params = { page, limit, category, search };
+        const cacheKey = redis_1.cacheKeys.products(userId, params);
+        const result = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.products, async () => {
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+            let query = supabase_1.supabase
                 .from('products')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false });
+                .select('*', { count: 'exact' })
+                .eq('user_id', userId);
+            if (category && category !== 'all') {
+                query = query.ilike('category', `%${category}%`);
+            }
+            if (search) {
+                query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+            }
+            // Sıralama: display_order (manuel sıra), yoksa created_at
+            const { data, error, count } = await query
+                .order('display_order', { ascending: true, nullsFirst: false })
+                .order('created_at', { ascending: false })
+                .range(from, to);
             if (error)
                 throw error;
-            return data;
+            const products = (data || []).map((p) => ({
+                ...p,
+                order: p.display_order ?? p.order ?? 0
+            }));
+            return {
+                products,
+                metadata: {
+                    total: count || 0,
+                    page,
+                    limit,
+                    totalPages: Math.ceil((count || 0) / limit)
+                }
+            };
         });
-        res.json(data);
+        res.json(result);
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -98,18 +184,22 @@ const getProduct = async (req, res) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { data, error } = await supabase_1.supabase
-            .from('products')
-            .select('*')
-            .eq('id', id)
-            .eq('user_id', userId)
-            .single();
-        if (error)
-            throw error;
-        if (!data) {
+        const cacheKey = redis_1.cacheKeys.product(userId, id);
+        const product = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.products, async () => {
+            const { data, error } = await supabase_1.supabase
+                .from('products')
+                .select('*')
+                .eq('id', id)
+                .eq('user_id', userId)
+                .single();
+            if (error)
+                throw error;
+            return data;
+        });
+        if (!product) {
             return res.status(404).json({ error: 'Ürün bulunamadı veya yetkiniz yok.' });
         }
-        res.json(data);
+        res.json(product);
     }
     catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -120,7 +210,12 @@ exports.getProduct = getProduct;
 const createProduct = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes } = req.body;
+        const parsed = createProductSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
+        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes } = parsed.data;
         // Limit kontrolü
         const [user, productsCountResult] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
@@ -148,17 +243,21 @@ const createProduct = async (req, res) => {
             price,
             stock,
             category,
-            image_url,
+            image_url: image_url === '' ? null : image_url,
             images: images || [],
-            product_url,
-            custom_attributes
+            product_url: product_url === '' ? null : product_url,
+            custom_attributes: custom_attributes || []
         })
             .select()
             .single();
         if (error)
             throw error;
-        // Cache'i temizle
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        // Cache'i temizle (Tüm listeyi ve bu spesifik ürünü temizle)
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.product(userId, data.id))
+        ]);
+        (0, redis_1.setProductsInvalidated)(userId);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -181,30 +280,64 @@ const updateProduct = async (req, res) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes, display_order, is_active } = req.body;
+        const parsed = updateProductSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
+        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes, display_order, is_active } = parsed.data;
+        const { data: existingProduct, error: existingProductError } = await supabase_1.supabase
+            .from('products')
+            .select('images, image_url')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+        if (existingProductError)
+            throw existingProductError;
+        const mergedImages = images ?? existingProduct?.images ?? [];
+        const mergedCover = image_url === undefined
+            ? (existingProduct?.image_url ?? null)
+            : (image_url === '' ? null : image_url);
+        const normalizedMedia = normalizeCoverAndImages(mergedImages, mergedCover);
+        const updateData = {
+            updated_at: new Date().toISOString(),
+            image_url: normalizedMedia.image_url,
+            images: normalizedMedia.images,
+        };
+        if (name !== undefined)
+            updateData.name = name;
+        if (sku !== undefined)
+            updateData.sku = sku;
+        if (description !== undefined)
+            updateData.description = description;
+        if (price !== undefined)
+            updateData.price = Number(price);
+        if (stock !== undefined)
+            updateData.stock = Number(stock);
+        if (category !== undefined)
+            updateData.category = category;
+        if (product_url !== undefined)
+            updateData.product_url = product_url === '' ? null : product_url;
+        if (custom_attributes !== undefined)
+            updateData.custom_attributes = custom_attributes || [];
+        if (display_order !== undefined)
+            updateData.display_order = display_order;
+        if (is_active !== undefined)
+            updateData.is_active = is_active;
         const { error } = await supabase_1.supabase
             .from('products')
-            .update({
-            name,
-            sku,
-            description,
-            price: Number(price) || 0,
-            stock: Number(stock) || 0,
-            category,
-            image_url,
-            images: images || [],
-            product_url,
-            custom_attributes,
-            display_order,
-            is_active,
-            updated_at: new Date().toISOString()
-        })
+            .update(updateData)
             .eq('id', id)
             .eq('user_id', userId);
         if (error)
             throw error;
+        // Cache bypass penceresini önce aç (eski cache yarışını engelle)
+        (0, redis_1.setProductsInvalidated)(userId);
         // Cache'i temizle
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.product(userId, id))
+        ]);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -295,6 +428,7 @@ const deleteProduct = async (req, res) => {
             throw error;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -393,6 +527,7 @@ const bulkDeleteProducts = async (req, res) => {
             throw error;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         res.json({
             success: true,
             deletedPhotosCount: photoUrls.length
@@ -441,6 +576,7 @@ const bulkImportProducts = async (req, res) => {
             throw error;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -478,6 +614,7 @@ const reorderProducts = async (req, res) => {
         await Promise.all(updatePromises);
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         res.json({ success: true, updated: order.length });
     }
     catch (error) {
@@ -543,6 +680,7 @@ const bulkUpdatePrices = async (req, res) => {
             throw rpcError;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         // RPC'den dönen data formatını uyumlu hale getir
         const updatedProducts = (data || []).map((item) => ({
             id: item.id,
@@ -574,6 +712,7 @@ const renameCategory = async (req, res) => {
             throw rpcError;
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         res.json(data || []);
     }
     catch (error) {
@@ -622,6 +761,7 @@ const deleteCategoryFromProducts = async (req, res) => {
             .map(r => r.data);
         // Cache'i temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -729,6 +869,7 @@ const bulkUpdateImages = async (req, res) => {
         const results = await Promise.all(updatePromises);
         // Cache'i sadece bir kez temizle!
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        (0, redis_1.setProductsInvalidated)(userId);
         res.json({ success: true, count: updates.length, results });
     }
     catch (error) {

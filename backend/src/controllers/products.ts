@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 
 import { supabase } from '../services/supabase';
 import { deleteCache, cacheKeys, cacheTTL, getOrSetCache, setProductsInvalidated } from '../services/redis';
@@ -101,6 +102,64 @@ interface ProductUpdatePayload {
     is_active?: boolean;
 }
 
+const customAttributeSchema = z.object({
+    name: z.string().min(1),
+    value: z.string(),
+    unit: z.string().optional(),
+}).passthrough();
+
+const createProductSchema = z.object({
+    name: z.string().trim().min(2).max(200),
+    sku: z.string().max(100).optional().nullable(),
+    description: z.string().max(5000).optional().nullable(),
+    price: z.number().finite().min(0).max(1_000_000_000),
+    stock: z.number().int().min(0).max(10_000_000),
+    category: z.string().max(200).optional().nullable(),
+    image_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+    images: z.array(z.string().url()).max(20).optional(),
+    product_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+    custom_attributes: z.array(customAttributeSchema).optional().nullable(),
+});
+
+const updateProductSchema = z.object({
+    name: z.string().trim().min(2).max(200).optional().nullable(),
+    sku: z.string().max(100).optional().nullable(),
+    description: z.string().max(5000).optional().nullable(),
+    price: z.union([z.number(), z.string()]).refine((v) => {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 && n <= 1_000_000_000;
+    }, 'price must be a valid non-negative number').optional().nullable(),
+    stock: z.union([z.number(), z.string()]).refine((v) => {
+        const n = Number(v);
+        return Number.isInteger(n) && n >= 0 && n <= 10_000_000;
+    }, 'stock must be a valid non-negative integer').optional().nullable(),
+    category: z.string().max(200).optional().nullable(),
+    image_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+    images: z.array(z.string().url()).max(20).optional(),
+    product_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+    custom_attributes: z.array(customAttributeSchema).optional().nullable(),
+    display_order: z.number().int().optional().nullable(),
+    is_active: z.boolean().optional().nullable(),
+});
+
+const normalizeCoverAndImages = (
+    rawImages: string[] | null | undefined,
+    rawCover: string | null | undefined
+): { image_url: string | null; images: string[] } => {
+    const uniqueImages = Array.from(new Set((rawImages || []).filter(Boolean)));
+
+    const cover = (rawCover && rawCover.trim() !== '')
+        ? rawCover
+        : (uniqueImages[0] || null);
+
+    if (!cover) {
+        return { image_url: null, images: uniqueImages };
+    }
+
+    const ordered = [cover, ...uniqueImages.filter((img) => img !== cover)].slice(0, 20);
+    return { image_url: cover, images: ordered };
+};
+
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequest).user.id;
 
@@ -202,7 +261,12 @@ export const getProduct = async (req: Request, res: Response) => {
 export const createProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes }: ProductUpdatePayload = req.body;
+        const parsed = createProductSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
+        const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes } = parsed.data;
 
         // Limit kontrolü
         const [user, productsCountResult] = await Promise.all([
@@ -234,10 +298,10 @@ export const createProduct = async (req: Request, res: Response) => {
                 price,
                 stock,
                 category,
-                image_url,
+                image_url: image_url === '' ? null : image_url,
                 images: images || [],
-                product_url,
-                custom_attributes
+                product_url: product_url === '' ? null : product_url,
+                custom_attributes: custom_attributes || []
             })
             .select()
             .single();
@@ -273,6 +337,11 @@ export const updateProduct = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
+        const parsed = updateProductSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
         const {
             name,
             sku,
@@ -286,36 +355,57 @@ export const updateProduct = async (req: Request, res: Response) => {
             custom_attributes,
             display_order,
             is_active
-        }: ProductUpdatePayload = req.body;
+        } = parsed.data;
+
+        const { data: existingProduct, error: existingProductError } = await supabase
+            .from('products')
+            .select('images, image_url')
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+
+        if (existingProductError) throw existingProductError;
+
+        const mergedImages = images ?? existingProduct?.images ?? [];
+        const mergedCover = image_url === undefined
+            ? (existingProduct?.image_url ?? null)
+            : (image_url === '' ? null : image_url);
+
+        const normalizedMedia = normalizeCoverAndImages(mergedImages, mergedCover);
+
+        const updateData: Record<string, unknown> = {
+            updated_at: new Date().toISOString(),
+            image_url: normalizedMedia.image_url,
+            images: normalizedMedia.images,
+        };
+
+        if (name !== undefined) updateData.name = name;
+        if (sku !== undefined) updateData.sku = sku;
+        if (description !== undefined) updateData.description = description;
+        if (price !== undefined) updateData.price = Number(price);
+        if (stock !== undefined) updateData.stock = Number(stock);
+        if (category !== undefined) updateData.category = category;
+        if (product_url !== undefined) updateData.product_url = product_url === '' ? null : product_url;
+        if (custom_attributes !== undefined) updateData.custom_attributes = custom_attributes || [];
+        if (display_order !== undefined) updateData.display_order = display_order;
+        if (is_active !== undefined) updateData.is_active = is_active;
 
         const { error } = await supabase
             .from('products')
-            .update({
-                name,
-                sku,
-                description,
-                price: Number(price) || 0,
-                stock: Number(stock) || 0,
-                category,
-                image_url,
-                images: images || [],
-                product_url,
-                custom_attributes,
-                display_order,
-                is_active,
-                updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', id)
             .eq('user_id', userId);
 
         if (error) throw error;
+
+        // Cache bypass penceresini önce aç (eski cache yarışını engelle)
+        setProductsInvalidated(userId);
 
         // Cache'i temizle
         await Promise.all([
             deleteCache(cacheKeys.products(userId)),
             deleteCache(cacheKeys.product(userId, id))
         ]);
-        setProductsInvalidated(userId);
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);

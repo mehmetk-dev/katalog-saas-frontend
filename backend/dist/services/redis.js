@@ -4,21 +4,41 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.redis = exports.cacheTTL = exports.cacheKeys = exports.getOrSetCache = exports.deleteCache = exports.setCache = exports.getCache = exports.initRedis = void 0;
+exports.setProductsInvalidated = setProductsInvalidated;
 const ioredis_1 = __importDefault(require("ioredis"));
-// Redis bağlantısı - Upstash veya lokal Redis
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+// Redis bağlantısı - Upstash (rediss://) veya lokal Redis (redis://)
+const REDIS_URL = (process.env.REDIS_URL || 'redis://localhost:6379').trim();
+const isTls = REDIS_URL.startsWith('rediss://');
 let redis = null;
 exports.redis = redis;
 let redisWarningShown = false;
+function getRedisOptions() {
+    const base = {
+        maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
+        lazyConnect: true,
+        retryStrategy: () => null,
+    };
+    // rediss:// (TLS) kullanıyorsa hostname'i TLS servername olarak ver (Upstash vb. için)
+    if (isTls) {
+        try {
+            const hostname = new URL(REDIS_URL).hostname;
+            return { ...base, tls: { servername: hostname, rejectUnauthorized: true } };
+        }
+        catch {
+            return { ...base, tls: {} };
+        }
+    }
+    return base;
+}
 // Redis bağlantısını başlat
 const initRedis = () => {
+    if (!REDIS_URL) {
+        exports.redis = redis = null;
+        return;
+    }
     try {
-        exports.redis = redis = new ioredis_1.default(REDIS_URL, {
-            maxRetriesPerRequest: 1,
-            enableReadyCheck: false,
-            lazyConnect: true,
-            retryStrategy: () => null, // Don't retry
-        });
+        exports.redis = redis = new ioredis_1.default(REDIS_URL, getRedisOptions());
         redis.on('error', () => {
             if (!redisWarningShown) {
                 console.warn('⚠️ Redis not available - running without cache');
@@ -46,59 +66,138 @@ const initRedis = () => {
     }
 };
 exports.initRedis = initRedis;
+// In-memory cache fallback (Redis yoksa kullanılır)
+const memoryCache = new Map();
 // Cache key oluştur
 const createKey = (prefix, ...parts) => {
     return `katalog:${prefix}:${parts.join(':')}`;
 };
-// Cache'den oku
+// Production'da Redis yoksa ürün cache'i kullanma (çok instance'da kapak/güncelleme eski kalmasın)
+const isProductKey = (key) => key.startsWith('katalog:product');
+/** Ürün mutation (PUT/POST/DELETE) sonrası bu kullanıcı için cache'i kısa süre atla (race / eski veri önleme) */
+const productsInvalidatedUntil = new Map();
+const PRODUCTS_INVALIDATE_MS = 5000;
+function setProductsInvalidated(userId, ms = PRODUCTS_INVALIDATE_MS) {
+    productsInvalidatedUntil.set(userId, Date.now() + ms);
+}
+function isProductsInvalidated(key) {
+    if (!isProductKey(key))
+        return false;
+    const parts = key.split(':');
+    const userId = parts[2]; // katalog:products:userId:... veya katalog:product:userId:...
+    if (!userId)
+        return false;
+    const until = productsInvalidatedUntil.get(userId);
+    if (!until)
+        return false;
+    if (Date.now() >= until) {
+        productsInvalidatedUntil.delete(userId);
+        return false;
+    }
+    return true;
+}
 const getCache = async (key) => {
-    if (!redis)
+    // 0. Ürün key'i ise ve yeni mutation sonrası penceredeyse cache atla (PUT sonrası eski veri dönmesin)
+    if (isProductsInvalidated(key))
         return null;
-    try {
-        const data = await redis.get(key);
-        return data ? JSON.parse(data) : null;
+    // 1. Redis'ten dene
+    if (redis) {
+        try {
+            const data = await redis.get(key);
+            if (data)
+                return JSON.parse(data);
+        }
+        catch (error) {
+            console.warn('Redis read error:', error);
+        }
     }
-    catch (error) {
-        console.warn('Cache read error:', error);
+    // 2. Production'da Redis yokken ürün cache'i kullanma (kapak/güncelleme tüm instance'larda görünsün)
+    if (process.env.NODE_ENV === 'production' && !redis && isProductKey(key)) {
         return null;
     }
+    // 3. Memory cache'den dene
+    const memCached = memoryCache.get(key);
+    if (memCached) {
+        if (Date.now() < memCached.expires) {
+            return JSON.parse(memCached.data);
+        }
+        memoryCache.delete(key);
+    }
+    return null;
 };
 exports.getCache = getCache;
 // Cache'e yaz
 const setCache = async (key, data, ttlSeconds = 300) => {
-    if (!redis)
+    const stringData = JSON.stringify(data);
+    // 1. Redis'e yaz
+    if (redis) {
+        try {
+            await redis.setex(key, ttlSeconds, stringData);
+        }
+        catch (error) {
+            console.warn('Redis write error:', error);
+        }
+    }
+    // 2. Production'da Redis yokken ürün cache'ine yazma (tek instance memory cache kapak sorununa yol açar)
+    if (process.env.NODE_ENV === 'production' && !redis && isProductKey(key)) {
         return;
-    try {
-        await redis.setex(key, ttlSeconds, JSON.stringify(data));
     }
-    catch (error) {
-        console.warn('Cache write error:', error);
-    }
+    // 3. Memory cache'e yaz
+    memoryCache.set(key, {
+        data: stringData,
+        expires: Date.now() + (ttlSeconds * 1000)
+    });
 };
 exports.setCache = setCache;
-// Cache'i sil (SCAN kullanarak performanslı silme)
+// Cache'i sil
 const deleteCache = async (pattern) => {
-    if (!redis)
-        return;
-    try {
-        const stream = redis.scanStream({
-            match: pattern,
-            count: 100
-        });
-        stream.on('data', async (keys) => {
-            if (keys.length > 0) {
-                const pipeline = redis?.pipeline();
-                keys.forEach((key) => pipeline?.del(key));
-                await pipeline?.exec();
-            }
-        });
-        return new Promise((resolve, reject) => {
-            stream.on('end', resolve);
-            stream.on('error', reject);
-        });
+    const searchPattern = pattern.endsWith('*') ? pattern : `${pattern}*`;
+    // 1. Redis'ten sil
+    if (redis) {
+        try {
+            return new Promise((resolve, reject) => {
+                const stream = redis.scanStream({
+                    match: searchPattern,
+                    count: 100
+                });
+                const deletionPromises = [];
+                stream.on('data', (keys) => {
+                    if (keys.length > 0) {
+                        try {
+                            const pipeline = redis?.pipeline();
+                            keys.forEach((key) => pipeline?.del(key));
+                            deletionPromises.push(pipeline?.exec() || Promise.resolve());
+                        }
+                        catch (err) {
+                            console.warn('Redis pipeline error:', err);
+                        }
+                    }
+                });
+                stream.on('error', (err) => {
+                    console.warn('Redis scan error:', err);
+                    reject(err);
+                });
+                stream.on('end', async () => {
+                    try {
+                        await Promise.all(deletionPromises);
+                        resolve();
+                    }
+                    catch (err) {
+                        reject(err);
+                    }
+                });
+            });
+        }
+        catch (error) {
+            console.warn('Redis delete error:', error);
+        }
     }
-    catch (error) {
-        console.warn('Cache delete error:', error);
+    // 2. Memory cache'den sil
+    const regexPattern = new RegExp('^' + searchPattern.replace(/\*/g, '.*') + '$');
+    for (const key of memoryCache.keys()) {
+        if (regexPattern.test(key)) {
+            memoryCache.delete(key);
+        }
     }
 };
 exports.deleteCache = deleteCache;
@@ -119,10 +218,26 @@ exports.getOrSetCache = getOrSetCache;
 // Cache key helper'ları
 exports.cacheKeys = {
     // Ürünler
-    products: (userId) => createKey('products', userId),
+    products: (userId, params) => {
+        if (!params)
+            return createKey('products', userId);
+        const queryPart = Object.entries(params)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join(':');
+        return createKey('products', userId, queryPart);
+    },
     product: (userId, productId) => createKey('product', userId, productId),
     // Kataloglar
-    catalogs: (userId) => createKey('catalogs', userId),
+    catalogs: (userId, params) => {
+        if (!params)
+            return createKey('catalogs', userId);
+        const queryPart = Object.entries(params)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join(':');
+        return createKey('catalogs', userId, queryPart);
+    },
     catalog: (userId, catalogId) => createKey('catalog', userId, catalogId),
     publicCatalog: (slug) => createKey('public', slug),
     // Şablonlar (global)
@@ -131,6 +246,16 @@ exports.cacheKeys = {
     user: (userId) => createKey('user', userId),
     // Admin
     adminStats: () => createKey('admin', 'stats'),
+    // Stats
+    stats: (userId, params) => {
+        if (!params)
+            return createKey('stats', userId);
+        const queryPart = Object.entries(params)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join(':');
+        return createKey('stats', userId, queryPart);
+    },
 };
 // TTL değerleri (saniye)
 exports.cacheTTL = {

@@ -6,6 +6,10 @@ import { PublicFooter } from "@/components/layout/public-footer"
 
 export function DistanceSalesContent() {
     const { t } = useTranslation()
+    const sellerAddressRaw = t("legal.distanceSales.parties.seller.address")
+    const sellerAddressSafe = String(sellerAddressRaw)
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]*>/g, "")
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans">
@@ -71,10 +75,9 @@ export function DistanceSalesContent() {
                                                 <span className="text-[#999]">{t("legal.distanceSales.parties.seller.phoneLabel")}</span>
                                                 <span className="font-medium text-right">{t("legal.distanceSales.parties.seller.phone")}</span>
                                             </div>
-                                            <div
-                                                className="pt-2 text-[11px] leading-tight text-[#777] text-center"
-                                                dangerouslySetInnerHTML={{ __html: t("legal.distanceSales.parties.seller.address") }}
-                                            />
+                                            <div className="pt-2 text-[11px] leading-tight text-[#777] text-center whitespace-pre-line">
+                                                {sellerAddressSafe}
+                                            </div>
                                         </div>
                                     </div>
 

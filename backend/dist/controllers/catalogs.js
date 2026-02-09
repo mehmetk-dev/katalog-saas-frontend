@@ -46,17 +46,14 @@ const getUserId = (req) => req.user.id;
 const getCatalogs = async (req, res) => {
     try {
         const userId = getUserId(req);
-        const cacheKey = redis_1.cacheKeys.catalogs(userId);
-        const data = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.catalogs, async () => {
-            const { data, error } = await supabase_1.supabase
-                .from('catalogs')
-                .select('*')
-                .eq('user_id', userId)
-                .order('updated_at', { ascending: false });
-            if (error)
-                throw error;
-            return data;
-        });
+        // DEBUG: Bypass cache to investigate stale data issues
+        const { data, error } = await supabase_1.supabase
+            .from('catalogs')
+            .select('*')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false });
+        if (error)
+            throw error;
         // Get user plan to mark disabled catalogs
         const user = await (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
             const { data } = await supabase_1.supabase.from('users').select('plan').eq('id', userId).single();
@@ -64,7 +61,6 @@ const getCatalogs = async (req, res) => {
         });
         const plan = user?.plan || 'free';
         const maxCatalogs = plan === 'pro' ? 999999 : (plan === 'plus' ? 10 : 1);
-        // Mark catalogs beyond the limit as disabled
         // Mark catalogs beyond the limit as disabled
         const catalogsWithStatus = data.map((catalog, index) => ({
             ...catalog,
@@ -191,9 +187,10 @@ const createCatalog = async (req, res) => {
             .replace(/[öÖ]/g, 'o')
             .replace(/[çÇ]/g, 'c')
             .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
+            .replace(/^-+|-+$/g, "")
+            .substring(0, 50); // Uzun isimleri kırp
         // Eğer kullanıcı adı "fogcatalog" ise slug'a ekleme (URL tekrarını önlemek için)
-        const slugPrefix = cleanUserName === 'fogcatalog' ? '' : `${cleanUserName}-`;
+        const slugPrefix = cleanUserName === 'fogcatalog' ? '' : `${cleanUserName.substring(0, 30)}-`;
         const shareSlug = `${slugPrefix}${cleanCatalogName || 'katalog'}-${Date.now().toString(36)}`;
         const { data, error } = await supabase_1.supabase
             .from('catalogs')
@@ -218,7 +215,10 @@ const createCatalog = async (req, res) => {
             throw error;
         }
         // Cache'i temizle
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         // Bildirim gönder
         try {
             const { NotificationTemplates } = await Promise.resolve().then(() => __importStar(require('./notifications')));
@@ -250,7 +250,26 @@ const updateCatalog = async (req, res) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { name, description, layout, primary_color, is_published, share_slug, product_ids, show_prices, show_descriptions, show_attributes, show_sku, show_urls, columns_per_row, background_color, background_gradient, background_image, background_image_fit, logo_url, logo_position, logo_size, title_position, product_image_fit, header_text_color } = req.body;
+        const { name, description, layout, primary_color, is_published, share_slug, product_ids, show_prices, show_descriptions, show_attributes, show_sku, show_urls, columns_per_row, background_color, background_gradient, background_image, background_image_fit, logo_url, logo_position, logo_size, title_position, product_image_fit, header_text_color, enable_cover_page, cover_image_url, cover_description, enable_category_dividers, cover_theme } = req.body;
+        // Validate cover_description length (max 500 chars)
+        if (cover_description !== undefined && cover_description !== null && cover_description.length > 500) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: 'Kapak açıklaması maksimum 500 karakter olabilir.'
+            });
+        }
+        // Validate cover_image_url format (basic URL check)
+        if (cover_image_url !== undefined && cover_image_url !== null && cover_image_url.trim() !== '') {
+            try {
+                new URL(cover_image_url);
+            }
+            catch {
+                return res.status(400).json({
+                    error: 'Validation Error',
+                    message: 'Geçersiz kapak görsel URL formatı.'
+                });
+            }
+        }
         // Eski slug'ı bul (cache temizlemek için)
         const { data: oldCatalog } = await supabase_1.supabase
             .from('catalogs')
@@ -307,6 +326,17 @@ const updateCatalog = async (req, res) => {
             updateData.product_image_fit = product_image_fit;
         if (header_text_color !== undefined && header_text_color !== null)
             updateData.header_text_color = header_text_color;
+        // Storytelling Catalog Features
+        if (enable_cover_page !== undefined && enable_cover_page !== null)
+            updateData.enable_cover_page = enable_cover_page;
+        if (cover_image_url !== undefined)
+            updateData.cover_image_url = cover_image_url;
+        if (cover_description !== undefined)
+            updateData.cover_description = cover_description;
+        if (enable_category_dividers !== undefined && enable_category_dividers !== null)
+            updateData.enable_category_dividers = enable_category_dividers;
+        if (cover_theme !== undefined)
+            updateData.cover_theme = cover_theme;
         const { error, data } = await supabase_1.supabase
             .from('catalogs')
             .update(updateData)
@@ -315,9 +345,6 @@ const updateCatalog = async (req, res) => {
             .select();
         if (error) {
             console.error('Catalog update error:', error);
-            console.error('Error code:', error.code);
-            console.error('Error message:', error.message);
-            console.error('Error details:', error.details);
             // Unique constraint violation için özel hata mesajı
             if (error.code === '23505' && error.message.includes('share_slug')) {
                 return res.status(409).json({
@@ -326,19 +353,17 @@ const updateCatalog = async (req, res) => {
             }
             return res.status(500).json({
                 error: 'Katalog güncellenirken bir hata oluştu',
-                details: error.message,
-                code: error.code
+                details: error.message
             });
         }
         // Cache'leri temizle
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id));
-        if (oldCatalog?.share_slug) {
-            await (0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(oldCatalog.share_slug));
-        }
-        if (share_slug && share_slug !== oldCatalog?.share_slug) {
-            await (0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(share_slug));
-        }
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId)),
+            ...(oldCatalog?.share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(oldCatalog.share_slug))] : []),
+            ...(share_slug && share_slug !== oldCatalog?.share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(share_slug))] : [])
+        ]);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -354,8 +379,6 @@ const updateCatalog = async (req, res) => {
     catch (error) {
         console.error('Catalog update exception:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorStack = error instanceof Error ? error.stack : undefined;
-        console.error('Error stack:', errorStack);
         res.status(500).json({
             error: 'Katalog güncellenirken bir hata oluştu',
             message: errorMessage
@@ -375,8 +398,11 @@ const deleteCatalog = async (req, res) => {
         if (error)
             throw error;
         // Cache'leri temizle
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -416,11 +442,12 @@ const publishCatalog = async (req, res) => {
         if (error)
             throw error;
         // Cache'leri temizle
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId));
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id));
-        if (catalog?.share_slug) {
-            await (0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(catalog.share_slug));
-        }
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId)),
+            ...(catalog?.share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(catalog.share_slug))] : [])
+        ]);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -518,7 +545,6 @@ const getPublicCatalog = async (req, res) => {
                 // Ignore auth error in public route
             }
         }
-        // DEBUG: Analytics tracking info
         // Increment view count asynchronously to not block the request
         smartIncrementViewCount(data.id, ownerId, visitorInfo, isOwner).catch(err => {
             console.error('[PublicCatalog] View tracking failed:', err);
@@ -533,12 +559,12 @@ const getPublicCatalog = async (req, res) => {
 };
 exports.getPublicCatalog = getPublicCatalog;
 const getVisitorInfo = (req) => {
-    // Forwarded IP takes precedence
-    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-        req.headers['x-real-ip']?.toString() ||
-        req.socket?.remoteAddress ||
-        '0.0.0.0';
-    // User Agent
+    // Forwarded IP takes precedence - handle multiple IPs in chain
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = forwarded
+        ? forwarded.split(',')[0].trim()
+        : (req.headers['x-real-ip'] || req.socket?.remoteAddress || '0.0.0.0');
+    // User Agent - clean and cap
     const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 500);
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
@@ -546,7 +572,6 @@ const getVisitorInfo = (req) => {
     }
     // Creating a truly unique identifier per day for this visitor
     const visitorHash = crypto_1.default.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
-    // DEBUG LOG
     return { ip, userAgent, deviceType, visitorHash };
 };
 const smartIncrementViewCount = async (catalogId, ownerId, visitorInfo, isOwner) => {
@@ -581,87 +606,98 @@ const getDashboardStats = async (req, res) => {
         const userId = getUserId(req);
         const timeRange = req.query.timeRange || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
-        // 1. Fetch Summary Stats from user_dashboard_stats view
-        const { data: summaryData, error: summaryError } = await supabase_1.supabase
-            .from('user_dashboard_stats')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-        if (summaryError) {
-            console.error('[Stats] Error fetching summary view:', summaryError);
-            // Fallback will happen below if needed, but summary is preferred
-        }
-        const stats = {
-            totalCatalogs: summaryData?.total_catalogs || 0,
-            publishedCatalogs: summaryData?.published_catalogs || 0,
-            totalViews: summaryData?.total_views || 0,
-            totalProducts: summaryData?.total_products || 0,
-            topCatalogs: summaryData?.top_catalogs || [],
+        // Fetch Summary Stats
+        let summaryStats = {
+            totalCatalogs: 0,
+            publishedCatalogs: 0,
+            totalViews: 0,
+            totalProducts: 0,
+            topCatalogs: [],
         };
+        const [catalogsResult, productsResult] = await Promise.all([
+            supabase_1.supabase.from('catalogs').select('id, is_published, view_count, name, product_ids, updated_at, created_at').eq('user_id', userId),
+            supabase_1.supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
+        if (catalogsResult.data) {
+            const catalogs = catalogsResult.data;
+            summaryStats.totalCatalogs = catalogs.length;
+            summaryStats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
+            summaryStats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
+            summaryStats.topCatalogs = [...catalogs]
+                .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+                .slice(0, 5)
+                .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 }));
+        }
+        summaryStats.totalProducts = productsResult.count || 0;
         const detailedStats = {
             uniqueVisitors: 0,
             deviceStats: [],
             dailyViews: [],
         };
-        const { data: catalogs } = await supabase_1.supabase.from('catalogs').select('id').eq('user_id', userId);
-        const catalogIds = catalogs?.map(c => c.id) || [];
-        // 2. Fetch Detailed Analytics (Zaman aralığına duyarlı)
+        const catalogIds = catalogsResult.data?.map(c => c.id) || [];
+        // Fetch Detailed Analytics
         if (catalogIds.length > 0) {
-            try {
-                const dateThreshold = new Date();
-                dateThreshold.setDate(dateThreshold.getDate() - days);
-                const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
-                // a. Unique Visitors
-                const { data: vCount, error: vError } = await supabase_1.supabase
-                    .rpc('get_unique_visitors_multi', {
-                    p_catalog_ids: catalogIds,
-                    p_days: days
-                });
-                if (!vError) {
-                    detailedStats.uniqueVisitors = Number(vCount);
-                }
-                // b. Device Stats (Using query directly for multi-catalog)
-                const { data: deviceData } = await supabase_1.supabase
-                    .from('catalog_views')
-                    .select('device_type')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false)
-                    .gte('view_date', dateThresholdStr);
-                if (deviceData && deviceData.length > 0) {
-                    const counts = {};
-                    deviceData.forEach(d => {
-                        const t = d.device_type || 'unkn';
-                        counts[t] = (counts[t] || 0) + 1;
-                    });
-                    const total = deviceData.length;
-                    detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
-                        device_type: type,
-                        view_count: count,
-                        percentage: Math.round((count / total) * 100)
-                    })).sort((a, b) => b.view_count - a.view_count);
-                }
-                // c. Daily Views
-                const { data: dailyData } = await supabase_1.supabase
-                    .from('catalog_views')
-                    .select('view_date')
-                    .in('catalog_id', catalogIds)
-                    .eq('is_owner', false)
-                    .gte('view_date', dateThresholdStr);
-                if (dailyData) {
-                    const dCounts = {};
-                    dailyData.forEach(d => {
-                        dCounts[d.view_date] = (dCounts[d.view_date] || 0) + 1;
-                    });
-                    detailedStats.dailyViews = Object.entries(dCounts)
-                        .map(([date, count]) => ({ view_date: date, view_count: count }))
-                        .sort((a, b) => a.view_date.localeCompare(b.view_date));
-                }
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - days);
+            const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
+            // Unique Visitors
+            const { data: vCount, error: vError } = await supabase_1.supabase
+                .rpc('get_unique_visitors_multi', {
+                p_catalog_ids: catalogIds,
+                p_days: days
+            });
+            if (!vError && vCount !== null && Number(vCount) > 0) {
+                detailedStats.uniqueVisitors = Number(vCount);
             }
-            catch (err) {
-                console.error('[Stats] Detailed error:', err);
+            else {
+                const { count: directUniqueCount } = await supabase_1.supabase
+                    .from('catalog_views')
+                    .select('visitor_hash', { count: 'exact', head: true })
+                    .in('catalog_id', catalogIds)
+                    .eq('is_owner', false)
+                    .gte('view_date', dateThresholdStr);
+                if (directUniqueCount)
+                    detailedStats.uniqueVisitors = directUniqueCount;
+            }
+            // Device Stats
+            const { data: deviceData } = await supabase_1.supabase
+                .from('catalog_views')
+                .select('device_type')
+                .in('catalog_id', catalogIds)
+                .eq('is_owner', false)
+                .gte('view_date', dateThresholdStr);
+            if (deviceData && deviceData.length > 0) {
+                const counts = {};
+                deviceData.forEach(d => {
+                    const t = d.device_type || 'unkn';
+                    counts[t] = (counts[t] || 0) + 1;
+                });
+                const total = deviceData.length;
+                detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
+                    device_type: type,
+                    view_count: count,
+                    percentage: Math.round((count / total) * 100)
+                }));
+            }
+            // Daily Views
+            const { data: dailyData } = await supabase_1.supabase
+                .from('catalog_views')
+                .select('view_date')
+                .in('catalog_id', catalogIds)
+                .eq('is_owner', false)
+                .gte('view_date', dateThresholdStr);
+            if (dailyData) {
+                const counts = {};
+                dailyData.forEach(d => {
+                    counts[d.view_date] = (counts[d.view_date] || 0) + 1;
+                });
+                detailedStats.dailyViews = Object.entries(counts)
+                    .map(([date, count]) => ({ view_date: date, view_count: count }))
+                    .sort((a, b) => a.view_date.localeCompare(b.view_date));
             }
         }
-        res.json({ ...stats, ...detailedStats });
+        const finalStats = { ...summaryStats, ...detailedStats };
+        res.json(finalStats);
     }
     catch (error) {
         console.error('[Stats] Critical Error:', error);

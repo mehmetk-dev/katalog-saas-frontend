@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 
 import { supabase } from '../services/supabase';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
@@ -7,6 +8,17 @@ import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/a
 const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
 const getUserEmail = (req: Request) => (req as unknown as { user: { email: string } }).user.email;
 const getUserMeta = (req: Request) => (req as unknown as { user: { user_metadata: any } }).user.user_metadata;
+
+const updateMeSchema = z.object({
+    full_name: z.string().trim().min(2).max(100).optional().nullable(),
+    company: z.string().trim().max(120).optional().nullable(),
+    avatar_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+    logo_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+});
+
+const incrementExportsSchema = z.object({
+    catalogName: z.string().max(200).optional().nullable(),
+});
 
 export const getMe = async (req: Request, res: Response) => {
     try {
@@ -129,16 +141,21 @@ export const sendWelcomeNotification = async (req: Request, res: Response) => {
 export const updateMe = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        // Sadece full_name, company, avatar_url ve logo_url alanlarının güncellenmesine izin ver
-        const { full_name, company, avatar_url, logo_url } = req.body;
+        const parsed = updateMeSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
+
+        const { full_name, company, avatar_url, logo_url } = parsed.data;
 
         const { error } = await supabase
             .from('users')
             .update({
                 full_name,
                 company,
-                avatar_url,
-                logo_url,
+                avatar_url: avatar_url === '' ? null : avatar_url,
+                logo_url: logo_url === '' ? null : logo_url,
                 updated_at: new Date().toISOString()
             })
             .eq('id', userId);
@@ -192,62 +209,78 @@ export const deleteMe = async (req: Request, res: Response) => {
 export const incrementExportsUsed = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { catalogName } = req.body; // Frontend'den katalog adı gelecek
-
-        // First get current
-        const { data: profile, error: fetchError } = await supabase
-            .from('users')
-            .select('exports_used, plan')
-            .eq('id', userId)
-            .single();
-
-        if (fetchError) throw fetchError;
-
-        const plan = profile.plan || 'free';
-        const used = profile.exports_used || 0;
-
-        let limit = 1; // free
-        if (plan === 'plus') limit = 50;
-        if (plan === 'pro') limit = 999999999; // unlimited
-
-        if (used >= limit) {
-            return res.status(403).json({ error: 'Export limit reached' });
+        const parsed = incrementExportsSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
         }
+        const catalogName = parsed.data.catalogName ?? undefined;
 
-        const { error: updateError } = await supabase.from('users')
-            .update({ exports_used: used + 1 })
-            .eq('id', userId);
+        // Small retry loop to handle race conditions safely (compare-and-swap)
+        for (let attempt = 0; attempt < 3; attempt++) {
+            // First get current
+            const { data: profile, error: fetchError } = await supabase
+                .from('users')
+                .select('exports_used, plan')
+                .eq('id', userId)
+                .single();
 
-        if (updateError) throw updateError;
+            if (fetchError) throw fetchError;
 
-        // Log activity
-        const { ipAddress, userAgent } = getRequestInfo(req);
-        await logActivity({
-            userId,
-            activityType: 'pdf_downloaded',
-            description: ActivityDescriptions.pdfDownloaded(catalogName || 'Katalog'),
-            metadata: { catalogName },
-            ipAddress,
-            userAgent
-        });
+            const plan = profile.plan || 'free';
+            const used = profile.exports_used || 0;
 
-        // Bildirim gönder
-        try {
-            const { createNotification } = await import('./notifications');
-            await createNotification(
-                userId,
-                'catalog_downloaded',
-                'Katalog İndirildi 📥',
-                catalogName
-                    ? `"${catalogName}" kataloğunuz PDF olarak indirildi.`
-                    : 'Kataloğunuz PDF olarak indirildi.',
-                '/dashboard/catalogs'
-            );
-        } catch (notifError) {
-            console.error('Notification error:', notifError);
+            let limit = 1; // free
+            if (plan === 'plus') limit = 50;
+            if (plan === 'pro') limit = 999999999; // unlimited
+
+            if (used >= limit) {
+                return res.status(403).json({ error: 'Export limit reached' });
+            }
+
+            // CAS-style update: only update if the counter is still the same
+            const { data: updatedRows, error: updateError } = await supabase
+                .from('users')
+                .update({ exports_used: used + 1 })
+                .eq('id', userId)
+                .eq('exports_used', used)
+                .select('id')
+                .limit(1);
+
+            if (updateError) throw updateError;
+
+            if (updatedRows && updatedRows.length > 0) {
+                // Log activity
+                const { ipAddress, userAgent } = getRequestInfo(req);
+                await logActivity({
+                    userId,
+                    activityType: 'pdf_downloaded',
+                    description: ActivityDescriptions.pdfDownloaded(catalogName || 'Katalog'),
+                    metadata: { catalogName },
+                    ipAddress,
+                    userAgent
+                });
+
+                // Bildirim gönder
+                try {
+                    const { createNotification } = await import('./notifications');
+                    await createNotification(
+                        userId,
+                        'catalog_downloaded',
+                        'Katalog İndirildi 📥',
+                        catalogName
+                            ? `"${catalogName}" kataloğunuz PDF olarak indirildi.`
+                            : 'Kataloğunuz PDF olarak indirildi.',
+                        '/dashboard/catalogs'
+                    );
+                } catch (notifError) {
+                    console.error('Notification error:', notifError);
+                }
+
+                return res.json({ success: true });
+            }
         }
-
-        res.json({ success: true });
+        return res.status(409).json({ error: 'Export counter update conflict, please retry' });
 
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';

@@ -36,7 +36,15 @@ const apiLimiter = (0, express_rate_limit_1.default)({
     standardHeaders: true,
     legacyHeaders: false,
 });
-// authLimiter removed as it was unused
+// Auth rate limiter - stricter limits for login/signup to prevent brute-force attacks
+const authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: isDev ? 100 : 10, // 10 attempts per 15 min in production
+    message: { error: 'Too many login attempts, please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true, // Don't count successful logins
+});
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
@@ -58,7 +66,24 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use((0, helmet_1.default)());
+app.use((0, helmet_1.default)({
+    contentSecurityPolicy: isDev ? false : undefined, // Disable CSP in dev for easier debugging
+    crossOriginEmbedderPolicy: false, // Allow embedding for catalog previews
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin image loading
+    hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    xContentTypeOptions: true, // nosniff
+    xDnsPrefetchControl: { allow: false },
+    xDownloadOptions: true, // noopen
+    xFrameOptions: { action: 'deny' }, // Prevent clickjacking
+    xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
+    xPoweredBy: false, // Remove X-Powered-By header
+    xXssProtection: true, // Enable XSS filter
+}));
 app.use((0, morgan_1.default)('dev'));
 app.use(express_1.default.json({ limit: '10mb' })); // Limit body size
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
@@ -87,8 +112,8 @@ const notifications_1 = __importDefault(require("./routes/notifications"));
 const auth_1 = __importDefault(require("./routes/auth"));
 // Health check routes (no auth required)
 app.use('/health', health_1.default);
-// Public auth routes (no auth required)
-app.use('/api/v1/auth', auth_1.default);
+// Public auth routes (no auth required) - with stricter rate limiting for brute-force protection
+app.use('/api/v1/auth', authLimiter, auth_1.default);
 // API Routes
 app.use('/api/v1/products', products_1.default);
 app.use('/api/v1/catalogs', catalogs_1.default);

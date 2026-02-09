@@ -4,13 +4,20 @@ const express_1 = require("express");
 const supabase_1 = require("../services/supabase");
 const redis_1 = require("../services/redis");
 const router = (0, express_1.Router)();
-// ... (HealthStatus interface)
-// GET /health - Basic health check
-router.get('/', async (req, res) => {
+// GET /health - Basic health check (Optimized: No DB query)
+router.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+// GET /health/full - Full health check with DB and Redis checks
+router.get('/full', async (req, res) => {
     let dbStatus = false;
     let redisStatus = false;
     try {
-        // Quick DB check
         const { error } = await supabase_1.supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
         dbStatus = !error;
     }
@@ -18,7 +25,6 @@ router.get('/', async (req, res) => {
         dbStatus = false;
     }
     try {
-        // Quick Redis check
         if (redis_1.redis) {
             const pong = await redis_1.redis.ping();
             redisStatus = pong === 'PONG';
@@ -30,7 +36,6 @@ router.get('/', async (req, res) => {
     const health = {
         status: dbStatus && redisStatus ? 'ok' : (dbStatus || redisStatus ? 'degraded' : 'error'),
         timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
         checks: {
             database: dbStatus,
             redis: redisStatus,
