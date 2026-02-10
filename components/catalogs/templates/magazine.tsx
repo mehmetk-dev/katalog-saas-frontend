@@ -8,7 +8,7 @@ export function MagazineTemplate({
     catalogName,
     products,
     primaryColor,
-    headerTextColor,
+    headerTextColor = '#020617', // slate-950 default
     showPrices,
     showDescriptions,
     showAttributes: _showAttributes,
@@ -22,6 +22,11 @@ export function MagazineTemplate({
     logoSize: _logoSize,
     titlePosition = 'left',
     productImageFit = 'cover',
+    // New Props for Customization
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
 }: TemplateProps) {
     const HEADER_HEIGHT = "120px"
     const safeProducts = products || []
@@ -48,12 +53,28 @@ export function MagazineTemplate({
 
     const isHeaderLogo = logoPosition?.startsWith('header')
 
+    // Arka plan stili oluştur
+    const containerStyle: React.CSSProperties = {
+        backgroundColor: backgroundColor || '#ffffff',
+        ...(backgroundImage ? {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: backgroundImageFit || 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        } : {}),
+        ...(backgroundGradient ? {
+            background: backgroundGradient
+        } : {})
+    }
+
+    const borderColor = headerTextColor ? `${headerTextColor}20` : 'rgba(2, 6, 23, 0.1)' // slate-950/10
+
     return (
-        <div className="bg-white h-full flex flex-col relative overflow-hidden font-serif">
+        <div className="h-full flex flex-col relative overflow-hidden font-serif" style={containerStyle}>
             {/* Editorial Header - Extra Tall & Bold */}
             <header
-                className="shrink-0 relative z-20 flex items-center px-10 border-b-2 border-slate-950"
-                style={{ height: HEADER_HEIGHT }}
+                className="shrink-0 relative z-20 flex items-center px-10 border-b-2"
+                style={{ height: HEADER_HEIGHT, borderColor: headerTextColor || '#020617' }}
             >
                 <div className={cn(
                     "w-full flex items-center gap-10",
@@ -82,13 +103,13 @@ export function MagazineTemplate({
                             titlePosition === 'center' ? "items-center" : titlePosition === 'right' ? "items-end" : "items-start"
                         )}>
                             <h1
-                                className="text-5xl font-black italic tracking-tighter text-slate-950 leading-none uppercase"
+                                className="text-5xl font-black italic tracking-tighter leading-none uppercase"
                                 style={{ color: headerTextColor }}
                             >
                                 {catalogName || "EDITORIAL"}
                             </h1>
                             <div className="flex items-center gap-3 mt-1">
-                                <span className="text-[11px] font-bold tracking-[0.5em] uppercase text-slate-500">
+                                <span className="text-[11px] font-bold tracking-[0.5em] uppercase" style={{ color: headerTextColor ? `${headerTextColor}80` : '#64748b' }}>
                                     Issue {new Date().getFullYear()} / {pageNumber}
                                 </span>
                             </div>
@@ -96,7 +117,7 @@ export function MagazineTemplate({
                     </div>
 
                     {/* Editorial Sidebar Info */}
-                    <div className="hidden lg:flex flex-col border-l border-slate-200 pl-6 text-slate-400 font-sans font-bold uppercase tracking-widest text-[9px]">
+                    <div className="hidden lg:flex flex-col border-l pl-6 font-sans font-bold uppercase tracking-widest text-[9px]" style={{ borderColor: borderColor, color: headerTextColor ? `${headerTextColor}66` : '#94a3b8' }}>
                         <span>Autumn Winter</span>
                         <span>Selection Portfolio</span>
                     </div>
@@ -196,7 +217,7 @@ export function MagazineTemplate({
 
                                     {/* Price Tag Overlay */}
                                     {showPrices && (
-                                        <div className="absolute top-2 left-2 bg-slate-950 text-white px-2 py-1 text-[11px] font-black italic shadow-lg z-10 flex items-center gap-2">
+                                        <div className="absolute top-2 left-2 px-2 py-1 text-[11px] font-black italic shadow-lg z-10 flex items-center gap-2" style={{ backgroundColor: headerTextColor || '#020617', color: backgroundColor || '#ffffff' }}>
                                             <span>
                                                 {(() => {
                                                     const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
@@ -205,7 +226,7 @@ export function MagazineTemplate({
                                                 })()}
                                             </span>
                                             {showUrls && product.product_url && (
-                                                <ShoppingBag className="w-3 h-3 text-white/70" />
+                                                <ShoppingBag className="w-3 h-3 opacity-70" />
                                             )}
                                         </div>
                                     )}
@@ -213,11 +234,11 @@ export function MagazineTemplate({
 
                                 {/* Minimal Info */}
                                 <div className="mt-3 overflow-hidden">
-                                    <h4 className="font-black italic text-sm uppercase text-slate-900 truncate">
+                                    <h4 className="font-black italic text-sm uppercase truncate" style={{ color: headerTextColor || '#020617' }}>
                                         {product.name}
                                     </h4>
                                     {showDescriptions && product.description && (
-                                        <p className="text-[10px] text-slate-500 font-sans font-bold leading-tight line-clamp-2 mt-1">
+                                        <p className="text-[10px] font-sans font-bold leading-tight line-clamp-2 mt-1" style={{ color: headerTextColor ? `${headerTextColor}80` : '#64748b' }}>
                                             {product.description}
                                         </p>
                                     )}
@@ -229,12 +250,12 @@ export function MagazineTemplate({
             </div>
 
             {/* Editorial Footer */}
-            <footer className="h-10 px-10 flex items-center justify-between border-t border-slate-100 shrink-0">
-                <span className="text-[9px] font-bold uppercase tracking-[0.4em] text-slate-300">
+            <footer className="h-10 px-10 flex items-center justify-between border-t shrink-0" style={{ borderColor: borderColor }}>
+                <span className="text-[9px] font-bold uppercase tracking-[0.4em]" style={{ color: headerTextColor ? `${headerTextColor}4D` : '#cbd5e1' }}>
                     {catalogName} · Selection Portfolio · Edition {new Date().getFullYear()}
                 </span>
-                <div className="h-full w-[1px] bg-slate-100 mx-10" />
-                <span className="text-[11px] font-black italic tracking-[0.4em]">{pageNumber}</span>
+                <div className="h-full w-[1px] mx-10" style={{ backgroundColor: borderColor }} />
+                <span className="text-[11px] font-black italic tracking-[0.4em]" style={{ color: headerTextColor || '#020617' }}>{pageNumber}</span>
             </footer>
         </div>
     )

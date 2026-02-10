@@ -28,14 +28,14 @@ export function CorporateCover({
                 {/* Header Info */}
                 <div className="flex justify-between items-center text-white mb-20">
                     <div className="text-sm font-semibold tracking-wide opacity-90 uppercase">
-                        Annual Product Overview
+                        Yıllık Ürün Genel Bakışı
                     </div>
                     {logoUrl ? (
                         <div className="relative w-32 h-12 bg-white/10 rounded px-2 backdrop-blur">
                             <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                         </div>
                     ) : (
-                        <div className="font-bold text-xl tracking-tight">BRAND CORP.</div>
+                        <div className="font-bold text-xl tracking-tight">KURUMSAL MARKA.</div>
                     )}
                 </div>
 
@@ -47,11 +47,11 @@ export function CorporateCover({
                             <Image src={coverImageUrl} alt="Corporate" fill className="object-cover" />
                         ) : (
                             <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                                <span className="text-slate-400 font-bold">IMAGE</span>
+                                <span className="text-slate-400 font-bold">GÖRSEL</span>
                             </div>
                         )}
                         <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur px-6 py-3 rounded-lg shadow-sm">
-                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Fiscal Year 2024</span>
+                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Mali Yıl 2024</span>
                         </div>
                     </div>
 
@@ -62,17 +62,17 @@ export function CorporateCover({
                             {catalogName}
                         </h1>
                         <p className="text-slate-500 text-lg leading-relaxed mb-8">
-                            {coverDescription || "Providing innovative solutions for modern businesses. Detailed specifications and product roadmap inside."}
+                            {coverDescription || "Modern işletmeler için yenilikçi çözümler sunuyoruz. Detaylı teknik özellikler ve ürün yol haritası içeride."}
                         </p>
 
                         <div className="mt-auto pt-8 border-t border-slate-100 flex gap-12">
                             <div>
                                 <div className="text-2xl font-bold text-slate-900">100%</div>
-                                <div className="text-xs text-slate-500 font-medium uppercase mt-1">Satisfaction</div>
+                                <div className="text-xs text-slate-500 font-medium uppercase mt-1">Memnuniyet</div>
                             </div>
                             <div>
                                 <div className="text-2xl font-bold text-slate-900">50+</div>
-                                <div className="text-xs text-slate-500 font-medium uppercase mt-1">Countries</div>
+                                <div className="text-xs text-slate-500 font-medium uppercase mt-1">Ülke</div>
                             </div>
                         </div>
                     </div>
@@ -81,7 +81,7 @@ export function CorporateCover({
                 {/* Footer */}
                 <div className="mt-auto flex justify-between items-center text-slate-400 text-sm font-medium">
                     <div>www.brandcorp.com</div>
-                    <div>Confidential • Internal Use Only</div>
+                    <div>Gizli • Sadece Dahili Kullanım İçin</div>
                 </div>
             </div>
         </div>

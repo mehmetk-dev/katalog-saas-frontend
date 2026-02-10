@@ -10,7 +10,7 @@ export function FashionCover({
     primaryColor: _primaryColor = '#000000'
 }: CoverPageProps) {
     const currentYear = new Date().getFullYear();
-    const season = new Date().getMonth() > 8 ? 'AUTUMN / WINTER' : 'SPRING / SUMMER';
+    const season = new Date().getMonth() > 8 ? 'SONBAHAR / KIŞ' : 'İLKBAHAR / YAZ';
 
     return (
         <div className="relative w-full h-full bg-white flex flex-col group overflow-hidden">
@@ -22,7 +22,7 @@ export function FashionCover({
                 </div>
             ) : (
                 <div className="absolute inset-0 z-0 bg-neutral-200 flex items-center justify-center">
-                    <span className="text-9xl text-neutral-300 font-serif italic opacity-40">MUSE MODE</span>
+                    <span className="text-9xl text-neutral-300 font-serif italic opacity-40">MODA İKONU</span>
                 </div>
             )}
 
@@ -34,7 +34,7 @@ export function FashionCover({
                         <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                     </div>
                 ) : (
-                    <h2 className="text-white text-xs font-bold tracking-[0.5em] uppercase drop-shadow-md mb-2">The Official Collection</h2>
+                    <h2 className="text-white text-xs font-bold tracking-[0.5em] uppercase drop-shadow-md mb-2">Resmi Koleksiyon</h2>
                 )}
 
                 {/* Giant Title Overlapping Image */}
@@ -46,7 +46,7 @@ export function FashionCover({
             {/* Floating Elements on Sides */}
             <div className="absolute left-8 top-1/3 flex flex-col gap-8 z-10">
                 <div className="w-12 h-12 rounded-full border border-white/50 flex items-center justify-center text-white/80 text-[10px] backdrop-blur-md">
-                    NEW
+                    YENİ
                 </div>
                 <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center text-[10px] font-bold shadow-lg transform -rotate-12">
                     {currentYear}
@@ -55,7 +55,7 @@ export function FashionCover({
 
             <div className="absolute right-0 top-1/4 h-64 w-12 bg-black/80 backdrop-blur text-white flex items-center justify-center z-10">
                 <span className="writing-vertical rotate-180 text-xs font-bold tracking-widest whitespace-nowrap px-2">
-                    {season} COLLECTION
+                    {season} KOLEKSİYONU
                 </span>
             </div>
 

@@ -15,7 +15,7 @@ export function FashionDivider({ categoryName, firstProductImage, primaryColor: 
             )}
 
             <div className="relative z-10 w-full px-8 text-center border-y border-white/30 py-12 backdrop-blur-sm bg-black/20">
-                <span className="text-white/80 text-[10px] tracking-[0.5em] uppercase block mb-4">Collection</span>
+                <span className="text-white/80 text-[10px] tracking-[0.5em] uppercase block mb-4">Koleksiyon</span>
                 <h2 className="font-serif text-8xl text-white italic tracking-tighter mix-blend-overlay opacity-90 break-words">
                     {categoryName}
                 </h2>

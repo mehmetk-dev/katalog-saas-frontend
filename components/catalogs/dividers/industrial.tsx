@@ -22,7 +22,7 @@ export function IndustrialDivider({ categoryName, firstProductImage: _firstProdu
                 <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-400" />
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-yellow-400" />
 
-                <div className="text-xs text-yellow-400 font-mono mb-2">SECTION HEADER</div>
+                <div className="text-xs text-yellow-400 font-mono mb-2">BÖLÜM BAŞLIĞI</div>
                 <h2 className="text-6xl font-black uppercase tracking-tighter text-white mb-4">
                     {categoryName}
                 </h2>

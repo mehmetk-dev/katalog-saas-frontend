@@ -37,7 +37,7 @@ export function TechCover({
                 <div className="w-full h-12 border-b border-sky-500/30 flex items-center justify-between mb-20 bg-[#020617]/50 backdrop-blur">
                     <div className="flex items-center gap-4">
                         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]" />
-                        <span className="text-xs tracking-widest text-sky-500">SYSTEM_READY</span>
+                        <span className="text-xs tracking-widest text-sky-500">SİSTEM_HAZIR</span>
                     </div>
                     <span className="text-xs text-slate-600">V.2.0.24</span>
                 </div>
@@ -54,7 +54,7 @@ export function TechCover({
                         <div className="h-2 flex-1 bg-slate-800 rounded-full overflow-hidden">
                             <div className="w-2/3 h-full bg-gradient-to-r from-sky-500 to-purple-500" />
                         </div>
-                        <span className="text-xs text-sky-500">LOADING DATA...</span>
+                        <span className="text-xs text-sky-500">VERİ YÜKLENİYOR...</span>
                     </div>
 
                     {coverDescription && (
@@ -74,7 +74,7 @@ export function TechCover({
                             {/* Scanning line animation */}
                             <div className="absolute inset-0 z-20 border-b border-sky-400/50 animate-[scan_3s_linear_infinite]" style={{ height: '0%' }} />
                             <Image src={coverImageUrl} alt="Tech" fill className="object-cover opacity-60 grayscale hover:grayscale-0 transition-all" />
-                            <div className="absolute bottom-1 right-1 bg-sky-500 text-[#020617] text-[10px] font-bold px-1">IMG_SRC_01</div>
+                            <div className="absolute bottom-1 right-1 bg-sky-500 text-[#020617] text-[10px] font-bold px-1">GÖRSEL_01</div>
                         </div>
                     )}
 

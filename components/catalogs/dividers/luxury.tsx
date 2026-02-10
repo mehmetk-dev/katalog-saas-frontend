@@ -18,7 +18,7 @@ export function LuxuryDivider({ categoryName, firstProductImage: _firstProductIm
 
                 <div className="text-center">
                     <div className="w-1 bg-[#D4AF37]/50 h-12 mx-auto mb-6" />
-                    <span className="font-serif italic text-lg opacity-80 mb-2 block">Collection</span>
+                    <span className="font-serif italic text-lg opacity-80 mb-2 block">Koleksiyon</span>
                     <h2 className="font-serif text-6xl tracking-[0.2em] uppercase mb-6 text-[#F5E6C4]">
                         {categoryName}
                     </h2>

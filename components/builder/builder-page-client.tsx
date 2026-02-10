@@ -1002,6 +1002,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
                 onCoverThemeChange={setCoverTheme}
                 showInSearch={showInSearch}
                 onShowInSearchChange={setShowInSearch}
+                catalogName={catalogName}
               />
             </div>
           )}

@@ -14,7 +14,7 @@ export function ModernDivider({ categoryName, firstProductImage: _firstProductIm
             {/* Content */}
             <div className="relative z-10 text-center">
                 <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider rounded-full mb-6">
-                    Category
+                    Kategori
                 </div>
                 <h2 className="text-7xl font-black text-slate-900 mb-6 tracking-tight">
                     {categoryName}

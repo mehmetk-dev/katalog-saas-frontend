@@ -16,7 +16,7 @@ export function ArtisticDivider({ categoryName, firstProductImage: _firstProduct
                     {categoryName}
                 </h2>
                 <div className="inline-block bg-white px-6 py-2 shadow-lg transform rotate-2">
-                    <span className="font-serif italic text-2xl text-rose-500">Curated Selection</span>
+                    <span className="font-serif italic text-2xl text-rose-500">Özel Seçki</span>
                 </div>
             </div>
         </div>

@@ -30,7 +30,7 @@ export function ArtisticCover({
                     ) : (
                         <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold italic text-xl">A.</div>
                     )}
-                    <span className="font-serif italic text-slate-400 text-lg rotate-3 decoration-wavy underline">The Art of Living</span>
+                    <span className="font-serif italic text-slate-400 text-lg rotate-3 decoration-wavy underline">Yaşama Sanatı</span>
                 </div>
 
                 {/* Central Composition */}
@@ -77,7 +77,7 @@ export function ArtisticCover({
 
                 {/* Footer Signature */}
                 <div className="text-right mt-8">
-                    <span className="font-serif italic text-4xl text-slate-300">Curated 2024</span>
+                    <span className="font-serif italic text-4xl text-slate-300">Seçki 2024</span>
                 </div>
             </div>
         </div>

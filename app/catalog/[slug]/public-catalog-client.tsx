@@ -521,6 +521,7 @@ export function PublicCatalogClient({ catalog, products: initialProducts }: Publ
                                                         coverDescription={catalog.cover_description}
                                                         logoUrl={catalog.logo_url}
                                                         primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                        productCount={filteredProducts.length}
                                                         isExporting={isExporting}
                                                         theme={catalog.cover_theme}
                                                     />

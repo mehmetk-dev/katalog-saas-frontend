@@ -24,6 +24,12 @@ export function FashionLookbookTemplate({
     logoPosition,
     logoSize,
     productImageFit = 'cover',
+    // New Props for Customization
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
     const [hero, ...others] = safeProducts
@@ -48,8 +54,23 @@ export function FashionLookbookTemplate({
     const isHeaderLogo = logoPosition?.startsWith('header')
     const logoAlignment = logoPosition?.split('-')[1] || 'left'
 
+    // Arka plan stili oluştur
+    const containerStyle: React.CSSProperties = {
+        backgroundColor: backgroundColor || '#fdfdfd',
+        ...(backgroundImage ? {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: backgroundImageFit || 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        } : {}),
+        ...(backgroundGradient ? {
+            background: backgroundGradient
+        } : {}),
+        borderLeftColor: primaryColor
+    }
+
     return (
-        <div className="h-full bg-[#fdfdfd] flex border-l-[40px] relative overflow-hidden selection:bg-black selection:text-white" style={{ borderLeftColor: primaryColor }}>
+        <div className="h-full flex border-l-[40px] relative overflow-hidden selection:bg-black selection:text-white" style={containerStyle}>
             {/* Side Page Indicator - Vertical */}
             <div className="absolute left-[-30px] top-0 h-full flex items-center justify-center pointer-events-none">
                 <span className="rotate-[-90deg] text-white text-[10px] font-black tracking-[1em] uppercase whitespace-nowrap opacity-50">
@@ -59,17 +80,17 @@ export function FashionLookbookTemplate({
 
             <div className="flex-1 flex flex-col p-10 pr-14 relative z-10 w-full">
                 {/* Editorial Header */}
-                <div className="mb-12 flex justify-between items-end border-b-2 border-black/5 pb-6">
+                <div className="mb-12 flex justify-between items-end border-b-2 pb-6" style={{ borderColor: headerTextColor ? `${headerTextColor}10` : 'rgba(0,0,0,0.05)' }}>
                     <div>
                         {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
                             <div className="mb-4">
                                 <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </div>
                         )}
-                        <h1 className="text-4xl font-serif italic tracking-tighter leading-none text-black">
+                        <h1 className="text-4xl font-serif italic tracking-tighter leading-none" style={{ color: headerTextColor || '#000000' }}>
                             {catalogName || "The Look"}
                         </h1>
-                        <p className="text-[10px] tracking-[0.4em] uppercase text-black/40 mt-2 font-bold">
+                        <p className="text-[10px] tracking-[0.4em] uppercase mt-2 font-bold" style={{ color: headerTextColor ? `${headerTextColor}66` : 'rgba(0,0,0,0.4)' }}>
                             Editorial Lookbook / Series {pageNumber}
                         </p>
                     </div>
@@ -80,7 +101,7 @@ export function FashionLookbookTemplate({
                                 <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
                             </div>
                         )}
-                        <span className="text-[60px] font-serif italic text-black/5 leading-none absolute top-4 right-10 pointer-events-none">
+                        <span className="text-[60px] font-serif italic leading-none absolute top-4 right-10 pointer-events-none" style={{ color: headerTextColor ? `${headerTextColor}0D` : 'rgba(0,0,0,0.05)' }}>
                             {String(pageNumber).padStart(2, '0')}
                         </span>
                     </div>
@@ -114,10 +135,10 @@ export function FashionLookbookTemplate({
                                 </div>
                                 <div className="mt-6">
                                     <div className="flex justify-between items-start">
-                                        <h2 className="text-2xl font-serif text-black italic line-clamp-1">{hero.name}</h2>
+                                        <h2 className="text-2xl font-serif italic line-clamp-1" style={{ color: headerTextColor || '#000000' }}>{hero.name}</h2>
                                         {showPrices && (
                                             <div className="flex items-center gap-3">
-                                                <span className="text-xl font-light text-black/60">
+                                                <span className="text-xl font-light" style={{ color: headerTextColor ? `${headerTextColor}99` : 'rgba(0,0,0,0.6)' }}>
                                                     {(() => {
                                                         const currency = hero.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                                         const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
@@ -125,18 +146,18 @@ export function FashionLookbookTemplate({
                                                     })()}
                                                 </span>
                                                 {showUrls && hero.product_url && (
-                                                    <ShoppingBag className="w-5 h-5 text-black/20" />
+                                                    <ShoppingBag className="w-5 h-5" style={{ color: headerTextColor ? `${headerTextColor}33` : 'rgba(0,0,0,0.2)' }} />
                                                 )}
                                             </div>
                                         )}
                                     </div>
                                     {showDescriptions && hero.description && (
-                                        <p className="text-[11px] text-black/50 leading-relaxed mt-2 italic font-serif">
+                                        <p className="text-[11px] leading-relaxed mt-2 italic font-serif" style={{ color: headerTextColor ? `${headerTextColor}80` : 'rgba(0,0,0,0.5)' }}>
                                             {hero.description}
                                         </p>
                                     )}
                                     {showSku && hero.sku && (
-                                        <p className="text-[9px] text-black/20 font-mono mt-3 uppercase tracking-tighter">SKU_REF: {hero.sku}</p>
+                                        <p className="text-[9px] font-mono mt-3 uppercase tracking-tighter" style={{ color: headerTextColor ? `${headerTextColor}33` : 'rgba(0,0,0,0.2)' }}>SKU_REF: {hero.sku}</p>
                                     )}
                                 </div>
                             </div>
@@ -153,7 +174,8 @@ export function FashionLookbookTemplate({
                                 <Wrapper
                                     key={product.id}
                                     {...(showUrls && productUrl ? { href: productUrl, target: '_blank', rel: 'noopener noreferrer' } : {})}
-                                    className="flex gap-4 group cursor-pointer flex-1 items-center border-b border-black/5 last:border-0"
+                                    className="flex gap-4 group cursor-pointer flex-1 items-center border-b last:border-0"
+                                    style={{ borderColor: headerTextColor ? `${headerTextColor}10` : 'rgba(0,0,0,0.05)' }}
                                 >
                                     <div className="w-[80px] h-[100px] relative bg-[#f5f5f5] shrink-0 overflow-hidden">
                                         <ProductImageGallery
@@ -165,15 +187,15 @@ export function FashionLookbookTemplate({
                                         />
                                     </div>
                                     <div className="flex flex-col justify-center flex-1 min-w-0">
-                                        <div className="text-[8px] font-bold tracking-[0.2em] text-black/40 mb-1 uppercase truncate">
+                                        <div className="text-[8px] font-bold tracking-[0.2em] mb-1 uppercase truncate" style={{ color: headerTextColor ? `${headerTextColor}66` : 'rgba(0,0,0,0.4)' }}>
                                             {idx === 0 ? '01' : idx === 1 ? '02' : idx === 2 ? '03' : '04'}
                                         </div>
-                                        <h3 className="text-sm font-serif italic text-black mb-1 group-hover:text-black/60 transition-colors truncate">
+                                        <h3 className="text-sm font-serif italic mb-1 transition-colors truncate" style={{ color: headerTextColor || '#000000' }}>
                                             {product.name}
                                         </h3>
 
                                         {showDescriptions && product.description && (
-                                            <p className="text-[9px] text-black/50 font-serif leading-tight line-clamp-2 mb-2 pr-2">
+                                            <p className="text-[9px] font-serif leading-tight line-clamp-2 mb-2 pr-2" style={{ color: headerTextColor ? `${headerTextColor}80` : 'rgba(0,0,0,0.5)' }}>
                                                 {product.description}
                                             </p>
                                         )}
@@ -181,7 +203,7 @@ export function FashionLookbookTemplate({
                                         <div className="flex items-center gap-2 mt-auto">
                                             {showPrices && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-light text-black">
+                                                    <span className="text-xs font-light" style={{ color: headerTextColor || '#000000' }}>
                                                         {(() => {
                                                             const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
                                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
@@ -189,7 +211,7 @@ export function FashionLookbookTemplate({
                                                         })()}
                                                     </span>
                                                     {showUrls && productUrl && (
-                                                        <ShoppingBag className="w-3 h-3 text-black/20" />
+                                                        <ShoppingBag className="w-3 h-3" style={{ color: headerTextColor ? `${headerTextColor}33` : 'rgba(0,0,0,0.2)' }} />
                                                     )}
                                                 </div>
                                             )}
@@ -203,16 +225,16 @@ export function FashionLookbookTemplate({
 
                 {/* Creative Footer */}
                 <div className="mt-12 flex items-center gap-8 pl-4">
-                    <div className="text-[10px] font-black tracking-[0.3em] uppercase text-black italic">
+                    <div className="text-[10px] font-black tracking-[0.3em] uppercase italic" style={{ color: headerTextColor || '#000000' }}>
                         PAGE {pageNumber.toString().padStart(2, '0')}
                     </div>
-                    <div className="h-[2px] flex-1 bg-black/10 relative overflow-hidden">
+                    <div className="h-[2px] flex-1 relative overflow-hidden" style={{ backgroundColor: headerTextColor ? `${headerTextColor}1A` : 'rgba(0,0,0,0.1)' }}>
                         <div
-                            className="absolute left-0 top-0 h-full bg-black transition-all duration-1000"
-                            style={{ width: `${(pageNumber / totalPages) * 100}%` }}
+                            className="absolute left-0 top-0 h-full transition-all duration-1000"
+                            style={{ width: `${(pageNumber / totalPages) * 100}%`, backgroundColor: headerTextColor || '#000000' }}
                         />
                     </div>
-                    <div className="text-[10px] font-serif italic text-black/30">
+                    <div className="text-[10px] font-serif italic" style={{ color: headerTextColor ? `${headerTextColor}4D` : 'rgba(0,0,0,0.3)' }}>
                         {catalogName} • Lookbook Archive
                     </div>
                 </div>

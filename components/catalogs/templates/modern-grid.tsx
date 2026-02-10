@@ -29,6 +29,11 @@ export function ModernGridTemplate({
     // 'contain': Fotoğraf tamamen görünür, boşluklar olabilir
     // 'fill': Fotoğraf alanı doldurur, oran bozulabilir
     productImageFit = 'cover',
+    // New Props for Customization
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
 }: TemplateProps) {
     const HEADER_HEIGHT = "56px"
 
@@ -137,8 +142,22 @@ export function ModernGridTemplate({
         )
     }
 
+    // Arka plan stili oluştur
+    const containerStyle: React.CSSProperties = {
+        backgroundColor: backgroundColor || 'transparent',
+        ...(backgroundImage ? {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: backgroundImageFit || 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        } : {}),
+        ...(backgroundGradient ? {
+            background: backgroundGradient
+        } : {})
+    }
+
     return (
-        <div className="bg-transparent h-full flex flex-col relative overflow-hidden">
+        <div className="h-full flex flex-col relative overflow-hidden" style={containerStyle}>
             {/* Header */}
             <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
                 <div

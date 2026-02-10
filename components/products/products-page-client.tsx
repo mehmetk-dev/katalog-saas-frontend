@@ -101,6 +101,11 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
   const [priceChangeMode, setPriceChangeMode] = useState<"percentage" | "fixed">("percentage")
   const [priceChangeAmount, setPriceChangeAmount] = useState<number>(10)
 
+  // Ürünler sayfası açıldığında varsayılan görünümü her zaman liste (normal) yap
+  useEffect(() => {
+    setViewMode("list")
+  }, [])
+
   // URL Güncelleme Yardımcısı
   const updateUrl = useCallback((newParams: Record<string, string | number | null>) => {
     const params = new URLSearchParams(searchParams.toString())

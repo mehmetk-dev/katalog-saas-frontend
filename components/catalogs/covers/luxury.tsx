@@ -28,7 +28,7 @@ export function LuxuryCover({
 
             {/* Side Labels */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-[10px] tracking-[0.8em] font-sans text-[#D4AF37]/40 uppercase whitespace-nowrap hidden lg:block">
-                Limited Edition Collection
+                Sınırlı Üretim Koleksiyonu
             </div>
 
             <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-12 text-center">
@@ -50,7 +50,7 @@ export function LuxuryCover({
                     </div>
                 ) : (
                     <div className="text-sm font-sans font-black tracking-[0.5em] mb-12 text-[#D4AF37] uppercase">
-                        — Private Select —
+                        — Özel Seçim —
                     </div>
                 )}
 
@@ -61,7 +61,7 @@ export function LuxuryCover({
 
                 <div className="flex items-center gap-8 mb-16 px-4">
                     <div className="h-[1px] flex-1 min-w-[40px] bg-[#D4AF37]/40" />
-                    <span className="text-xs font-sans font-bold tracking-[0.4em] text-[#D4AF37] uppercase shrink-0">Est. {new Date().getFullYear()}</span>
+                    <span className="text-xs font-sans font-bold tracking-[0.4em] text-[#D4AF37] uppercase shrink-0">Kuruluş {new Date().getFullYear()}</span>
                     <div className="h-[1px] flex-1 min-w-[40px] bg-[#D4AF37]/40" />
                 </div>
 
@@ -79,7 +79,7 @@ export function LuxuryCover({
                         </div>
                         {/* Decorative Badge */}
                         <div className="absolute -bottom-4 -right-4 bg-[#D4AF37] text-black w-14 h-14 rounded-full flex items-center justify-center text-[10px] font-bold shadow-xl">
-                            ORIGIN
+                            KÖKEN
                         </div>
                     </div>
                 )}

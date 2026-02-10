@@ -9,7 +9,7 @@ export function CorporateDivider({ categoryName, firstProductImage: _firstProduc
 
             <div className="relative w-full px-20 flex items-center justify-between z-10">
                 <div className="text-white font-bold opacity-20 text-9xl absolute left-0 rotate-90 origin-bottom-left translate-x-20">
-                    SECTION
+                    BÖLÜM
                 </div>
 
                 <div className="ml-auto w-2/3">
@@ -18,7 +18,7 @@ export function CorporateDivider({ categoryName, firstProductImage: _firstProduc
                         {categoryName}
                     </h2>
                     <p className="text-slate-500 text-lg">
-                        Comprehensive product listing for {categoryName}.
+                        {categoryName} için kapsamlı ürün listesi.
                     </p>
                 </div>
             </div>

@@ -18,6 +18,7 @@ export interface CoverPageProps {
     primaryColor?: string
     isExporting?: boolean
     titleFont?: string
+    productCount?: number
 }
 
 interface CoverRegistry {
@@ -30,54 +31,54 @@ interface CoverRegistry {
 
 export const COVER_THEMES: CoverRegistry = {
     'modern': {
-        name: 'Modern Architectural',
+        name: 'Modern Mimari',
         component: ModernCover,
-        description: 'Large typography with grid textures and glassmorphism.'
+        description: 'Izgara dokular ve glassmorphism ile büyük tipografi.'
     },
     'minimal': {
-        name: 'Clean Minimalist',
+        name: 'Sade Minimalist',
         component: MinimalCover,
-        description: 'Lots of white space, subtle typography, clean look.'
+        description: 'Bol beyaz alan, ince tipografi, temiz görünüm.'
     },
     'fashion': {
-        name: 'Fashion Editorial',
+        name: 'Moda Editoryal',
         component: FashionCover,
-        description: 'Vogue-style typography, full image focus.'
+        description: 'Vogue tarzı tipografi, tam görsel odağı.'
     },
     'magazine': {
-        name: 'Lifestyle Magazine',
+        name: 'Yaşam Tarzı Dergisi',
         component: MagazineCover,
-        description: 'Classic magazine layout with barcode and issue date details.'
+        description: 'Barkod ve sayı tarihi detaylarıyla klasik dergi düzeni.'
     },
     'industrial': {
-        name: 'Industrial Bold',
+        name: 'Endüstriyel Kalın',
         component: IndustrialCover,
-        description: 'Heavy fonts, yellow accents, caution tape aesthetics.'
+        description: 'Ağır fontlar, sarı vurgular, dikkat bandı estetiği.'
     },
     'corporate': {
-        name: 'Corporate Trust',
+        name: 'Kurumsal Güven',
         component: CorporateCover,
-        description: 'Professional blue tones, structured grid layout.'
+        description: 'Profesyonel mavi tonlar, yapılandırılmış ızgara düzeni.'
     },
     'luxury': {
-        name: 'Luxury Gold',
+        name: 'Lüks Altın',
         component: LuxuryCover,
-        description: 'Black and gold palette, serif fonts, elegant borders.'
+        description: 'Siyah ve altın paleti, serif fontlar, zarif kenarlıklar.'
     },
     'tech': {
-        name: 'Tech Future',
+        name: 'Gelecek Teknoloji',
         component: TechCover,
-        description: 'Dark mode, neon accents, digital data patterns.'
+        description: 'Karanlık mod, neon vurgular, dijital veri desenleri.'
     },
     'artistic': {
-        name: 'Abstract Art',
+        name: 'Soyut Sanat',
         component: ArtisticCover,
-        description: 'Asymmetric layout, brush strokes, creative vibe.'
+        description: 'Asimetrik düzen, fırça darbeleri, yaratıcı hava.'
     },
     'bold': {
-        name: 'Ultra Bold',
+        name: 'Ultra Kalın',
         component: BoldCover,
-        description: 'Maximum impact typography, high contrast.'
+        description: 'Maksimum etki tipografisi, yüksek kontrast.'
     }
 };
 

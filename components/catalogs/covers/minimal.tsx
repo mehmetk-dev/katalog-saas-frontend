@@ -22,7 +22,7 @@ export function MinimalCover({
             {/* Header */}
             <div className="flex justify-between items-start mb-24 relative z-10">
                 <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Volume</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Sayı</span>
                     <span className="text-4xl font-light font-serif">01</span>
                 </div>
                 {logoUrl ? (
@@ -32,7 +32,7 @@ export function MinimalCover({
                 ) : (
                     <div className="flex items-center gap-3">
                         <div className="w-2 h-2 bg-red-600 rounded-full" />
-                        <span className="font-bold tracking-widest text-sm">MINIMALIST.</span>
+                        <span className="font-bold tracking-widest text-sm">MİNİMALİST.</span>
                     </div>
                 )}
             </div>
@@ -64,7 +64,7 @@ export function MinimalCover({
                             </div>
                         ) : (
                             <div className="w-full h-full bg-gray-100 flex items-center justify-center border border-dashed border-gray-300">
-                                <span className="text-xs font-mono text-gray-400">FIG. 1.0</span>
+                                <span className="text-xs font-mono text-gray-400">ŞEKİL 1.0</span>
                             </div>
                         )}
 
@@ -78,12 +78,12 @@ export function MinimalCover({
             {/* Footer */}
             <div className="mt-auto pt-12 border-t border-black/5 flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
                 <div className="flex items-center gap-8">
-                    <span>Index</span>
-                    <span className="text-black">Preface</span>
-                    <span>Catalog</span>
+                    <span>İndeks</span>
+                    <span className="text-black">Önsöz</span>
+                    <span>Katalog</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span>Design System</span>
+                    <span>Tasarım Sistemi</span>
                     <div className="w-4 h-[1px] bg-gray-400" />
                     <span>2024</span>
                 </div>

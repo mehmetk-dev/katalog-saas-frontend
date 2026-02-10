@@ -196,6 +196,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
               coverDescription={props.coverDescription}
               logoUrl={props.logoUrl}
               primaryColor={props.primaryColor}
+              productCount={props.products?.length || 0}
               theme={props.theme}
             />
           ) : page.type === 'divider' ? (
@@ -257,6 +258,7 @@ export function CatalogPreview(props: CatalogPreviewProps) {
               coverDescription={props.coverDescription}
               logoUrl={props.logoUrl}
               primaryColor={props.primaryColor}
+              productCount={props.products?.length || 0}
               theme={props.theme}
             />
           ) : page.type === 'divider' ? (

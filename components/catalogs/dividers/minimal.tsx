@@ -9,7 +9,7 @@ export function MinimalDivider({ categoryName, firstProductImage: _firstProductI
 
             <div className="relative z-10 flex items-center gap-12">
                 <div className="text-right flex-1">
-                    <span className="text-xs font-bold uppercase tracking-[0.3em] block mb-2 text-gray-400">Section</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.3em] block mb-2 text-gray-400">Bölüm</span>
                     <h2 className="text-6xl font-medium tracking-tight">
                         {categoryName}
                         <span className="text-red-500">.</span>
@@ -25,7 +25,7 @@ export function MinimalDivider({ categoryName, firstProductImage: _firstProductI
 
             {/* Page Number Placeholder */}
             <div className="absolute bottom-12 right-12 text-[10px] uppercase tracking-widest text-gray-400">
-                Index / {categoryName.substring(0, 3).toUpperCase()}
+                İndeks / {categoryName.substring(0, 3).toUpperCase()}
             </div>
         </div>
     )

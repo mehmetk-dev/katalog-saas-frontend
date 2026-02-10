@@ -43,11 +43,11 @@ export function IndustrialCover({
                 <div className="flex justify-between items-start mb-16">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
-                            <span className="bg-yellow-400 text-black px-2 py-0.5 text-[10px] font-black tracking-tighter">AUTHENTIC IND.</span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic">SERIES v2.4</span>
+                            <span className="bg-yellow-400 text-black px-2 py-0.5 text-[10px] font-black tracking-tighter">OTANTİK END.</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic">SERİ v2.4</span>
                         </div>
                         <div className="text-2xl font-black text-white tracking-widest mt-1">
-                            SPECIFICATION <span className="text-yellow-400">DOC</span>
+                            TEKNİK <span className="text-yellow-400">DOKÜMAN</span>
                         </div>
                     </div>
 
@@ -65,7 +65,7 @@ export function IndustrialCover({
                     </h1>
                     <div className="mt-6 flex items-center gap-4">
                         <div className="h-0.5 w-24 bg-yellow-400" />
-                        <span className="text-xs font-black tracking-[0.4em] text-yellow-400/80 uppercase">Structural Overview // {currentYear}</span>
+                        <span className="text-xs font-black tracking-[0.4em] text-yellow-400/80 uppercase">Yapısal Genel Bakış // {currentYear}</span>
                     </div>
                 </div>
 
@@ -88,8 +88,8 @@ export function IndustrialCover({
                                 </>
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-white/10">
-                                    <div className="text-white/5 text-[100px] font-black rotate-[-15deg]">IND-TECH</div>
-                                    <span className="text-[10px] text-yellow-400/30 uppercase tracking-[0.5em] mt-8">Schematic Area</span>
+                                    <div className="text-white/5 text-[100px] font-black rotate-[-15deg]">END-TEK</div>
+                                    <span className="text-[10px] text-yellow-400/30 uppercase tracking-[0.5em] mt-8">Şematik Alan</span>
                                 </div>
                             )}
                         </div>
@@ -98,16 +98,16 @@ export function IndustrialCover({
                     {/* Technical Side Details - Vertical Layout */}
                     <div className="hidden lg:flex w-64 flex-col gap-6">
                         <div className="p-4 border-l-2 border-yellow-400 bg-white/5">
-                            <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-1">Status</h4>
-                            <p className="text-xs font-bold text-slate-300">PRODUCTION READY</p>
+                            <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-1">Durum</h4>
+                            <p className="text-xs font-bold text-slate-300">ÜRETİME HAZIR</p>
                         </div>
                         <div className="p-4 border-l-2 border-white/10 bg-white/5">
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Verification</h4>
-                            <p className="text-xs font-bold text-slate-300 italic">ISO-9001 CERTIFIED</p>
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Doğrulama</h4>
+                            <p className="text-xs font-bold text-slate-300 italic">ISO-9001 SERTİFİKALI</p>
                         </div>
                         <div className="mt-auto">
                             <div className="text-[40px] font-black text-white/10 tracking-widest transform rotate-90 origin-right translate-x-12 translate-y-12 select-none">
-                                Q1.REPORT
+                                Ç1.RAPOR
                             </div>
                         </div>
                     </div>
@@ -115,9 +115,9 @@ export function IndustrialCover({
 
                 {/* Footer Description */}
                 <div className="mt-12 max-w-2xl bg-white/[0.03] p-8 border-t border-white/10 backdrop-blur-md">
-                    <span className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.5em] mb-4 block italic">Technical Summary</span>
+                    <span className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.5em] mb-4 block italic">Teknik Özet</span>
                     <p className="text-lg font-bold leading-relaxed text-slate-300 uppercase italic tracking-wide">
-                        {coverDescription || "Complete systems documentation defining architectural standards and modular component selections for large scale industrial implementations."}
+                        {coverDescription || "Büyük ölçekli endüstriyel uygulamalar için mimari standartları ve modüler bileşen seçimlerini tanımlayan eksiksiz sistem belgeleri."}
                     </p>
                 </div>
             </div>
@@ -130,8 +130,8 @@ export function IndustrialCover({
                     }}
                 />
                 <div className="relative flex justify-between w-full text-black text-xs font-black italic tracking-tighter uppercase px-4 py-1 bg-yellow-400 border-2 border-black shadow-[4px_4px_0px_#000]">
-                    <span>SYSTEM IDENTIFICATION: CLASS-III CORE</span>
-                    <span>TIMESTAMP: {new Date().toISOString().split('T')[0]}</span>
+                    <span>SİSTEM KİMLİĞİ: CLASS-III ÇEKİRDEK</span>
+                    <span>ZAMAN DAMGASI: {new Date().toISOString().split('T')[0]}</span>
                 </div>
             </div>
         </div>

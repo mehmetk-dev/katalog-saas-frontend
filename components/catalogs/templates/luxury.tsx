@@ -25,6 +25,12 @@ export function LuxuryTemplate({
     logoPosition,
     logoSize,
     productImageFit = 'cover',
+    // New Props for Customization
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor, // Optional override, defaults to gold/white theme
 }: TemplateProps) {
     const { t } = useTranslation()
     const safeProducts = products || []
@@ -60,8 +66,26 @@ export function LuxuryTemplate({
     const isHeaderLogo = logoPosition?.startsWith('header')
     const _logoAlignment = logoPosition?.split('-')[1] || 'center'
 
+    // Arka plan stili oluştur
+    const containerStyle: React.CSSProperties = {
+        backgroundColor: backgroundColor || '#0a0a0a',
+        ...(backgroundImage ? {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: backgroundImageFit || 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        } : {}),
+        ...(backgroundGradient ? {
+            background: backgroundGradient
+        } : {}),
+        color: '#d4af37' // Default gold text base
+    }
+
+    const primaryTextColor = headerTextColor || '#f3eacb' // Cream/Gold or user override
+    const accentColor = '#d4af37' // Gold accent
+
     return (
-        <div className="h-full flex flex-col overflow-hidden bg-[#0a0a0a] text-[#d4af37] relative selection:bg-[#d4af37] selection:text-black">
+        <div className="h-full flex flex-col overflow-hidden relative selection:bg-[#d4af37] selection:text-black" style={containerStyle}>
             {/* Subtle Texture Overlay - Removed external dependency for stability */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.4] mix-blend-soft-light transition-opacity bg-[radial-gradient(#1a1a1a_1px,transparent_1px)] [background-size:16px_16px]" />
 
@@ -89,10 +113,10 @@ export function LuxuryTemplate({
                                 />
                             </div>
                         )}
-                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase text-[#f3eacb] drop-shadow-sm truncate max-w-[400px]">
+                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate max-w-[400px]" style={{ color: primaryTextColor }}>
                             {catalogName || (t('catalogs.luxury') as string)}
                         </h1>
-                        <div className="text-[9px] uppercase tracking-[0.5em] text-[#d4af37]/60 mt-1">
+                        <div className="text-[9px] uppercase tracking-[0.5em] mt-1" style={{ color: `${accentColor}99` }}>
                             {(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}
                         </div>
                     </div>
@@ -129,20 +153,20 @@ export function LuxuryTemplate({
 
                             {/* Product Info - All Text Made Pure White as Requested */}
                             <div className="mt-5 flex flex-col items-center text-center relative px-2">
-                                <h3 className="font-serif text-[13px] tracking-[0.2em] text-white uppercase line-clamp-1 mb-1 group-hover:text-[#d4af37] transition-colors duration-500">
+                                <h3 className="font-serif text-[13px] tracking-[0.2em] uppercase line-clamp-1 mb-1 transition-colors duration-500" style={{ color: headerTextColor || '#ffffff' }}>
                                     {product.name}
                                 </h3>
 
                                 {showDescriptions && product.description && (
-                                    <p className="text-[10px] text-white italic line-clamp-2 mb-2 font-serif font-light tracking-wide max-w-[200px] leading-relaxed">
+                                    <p className="text-[10px] italic line-clamp-2 mb-2 font-serif font-light tracking-wide max-w-[200px] leading-relaxed" style={{ color: headerTextColor ? `${headerTextColor}CC` : '#ffffff' }}>
                                         {product.description}
                                     </p>
                                 )}
 
-                                <div className="w-8 h-[1px] bg-[#d4af37]/60 my-2 group-hover:w-16 transition-all duration-700" />
+                                <div className="w-8 h-[1px] my-2 group-hover:w-16 transition-all duration-700" style={{ backgroundColor: `${accentColor}99` }} />
 
                                 {showPrices && (
-                                    <div className="text-base font-serif text-[#d4af37] font-medium tracking-[0.1em]">
+                                    <div className="text-base font-serif font-medium tracking-[0.1em]" style={{ color: accentColor }}>
                                         {(() => {
                                             const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
                                             const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
@@ -154,9 +178,9 @@ export function LuxuryTemplate({
                                 {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
                                     <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 opacity-80 group-hover:opacity-100 transition-opacity duration-500 pb-8">
                                         {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
-                                            <div key={aidx} className="flex items-center text-[8px] tracking-[0.15em] uppercase text-white font-medium">
-                                                <span className="text-white/60 mr-1">{attr.name}:</span>
-                                                <span className="text-white">{attr.value}{attr.unit}</span>
+                                            <div key={aidx} className="flex items-center text-[8px] tracking-[0.15em] uppercase font-medium" style={{ color: headerTextColor || '#ffffff' }}>
+                                                <span className="mr-1" style={{ color: headerTextColor ? `${headerTextColor}99` : 'rgba(255,255,255,0.6)' }}>{attr.name}:</span>
+                                                <span>{attr.value}{attr.unit}</span>
                                             </div>
                                         ))}
                                     </div>

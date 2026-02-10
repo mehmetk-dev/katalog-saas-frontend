@@ -17,7 +17,7 @@ export function BoldDivider({ categoryName, firstProductImage: _firstProductImag
                         {categoryName}
                     </h2>
                     <div className="h-2 w-full bg-white mb-2" />
-                    <span className="text-xl font-bold uppercase">Section Start</span>
+                    <span className="text-xl font-bold uppercase">Bölüm Başlangıcı</span>
                 </div>
             </div>
         </div>

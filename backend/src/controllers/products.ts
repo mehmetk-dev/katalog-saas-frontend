@@ -208,7 +208,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
             const products = (data || []).map((p: Record<string, unknown>) => ({
                 ...p,
-                order: p.display_order ?? (p as Record<string, unknown>).order ?? 0
+                order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
             }));
 
             return {
@@ -387,7 +387,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         if (category !== undefined) updateData.category = category;
         if (product_url !== undefined) updateData.product_url = product_url === '' ? null : product_url;
         if (custom_attributes !== undefined) updateData.custom_attributes = custom_attributes || [];
-        if (display_order !== undefined) updateData.display_order = display_order;
+        if (display_order !== undefined) updateData.display_order = display_order; // Migration sonrası display_order
         if (is_active !== undefined) updateData.is_active = is_active;
 
         const { error } = await supabase

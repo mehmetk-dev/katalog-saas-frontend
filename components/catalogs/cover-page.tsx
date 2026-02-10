@@ -7,6 +7,7 @@ interface CoverPageProps {
     coverDescription?: string | null
     logoUrl?: string | null
     primaryColor?: string
+    productCount?: number
     isExporting?: boolean
     /** Selected cover theme key (e.g., 'modern', 'fashion') */
     theme?: string

@@ -17,7 +17,7 @@ export function TechDivider({ categoryName, firstProductImage: _firstProductImag
 
             <div className="relative z-10 bg-[#020617]/90 border border-sky-500 p-12 backdrop-blur-sm max-w-2xl w-full text-center">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#020617] px-4 text-xs text-sky-500 border border-sky-500/50">
-                    SYSTEM PARTITION
+                    SİSTEM BÖLÜMÜ
                 </div>
 
                 <div className="flex items-center justify-center gap-4 mb-6 opacity-70">

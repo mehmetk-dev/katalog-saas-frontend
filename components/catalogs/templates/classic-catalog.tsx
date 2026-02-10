@@ -23,6 +23,12 @@ export function ClassicCatalogTemplate({
     logoPosition,
     logoSize,
     productImageFit = 'cover',
+    // New Props for Customization
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
 
@@ -46,41 +52,25 @@ export function ClassicCatalogTemplate({
     const isHeaderLogo = logoPosition?.startsWith('header')
     const logoAlignment = logoPosition?.split('-')[1] || 'center'
 
+    // Arka plan stili oluştur
+    const containerStyle: React.CSSProperties = {
+        backgroundColor: backgroundColor || '#fdfdfd',
+        ...(backgroundImage ? {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: backgroundImageFit || 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        } : {}),
+        ...(backgroundGradient ? {
+            background: backgroundGradient
+        } : {})
+    }
+
     return (
-        <div className="h-full bg-[#fdfdfd] flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12">
+        <div className="h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12" style={containerStyle}>
             {/* Header - Classic & Time-Honored */}
-            <div className="h-32 px-16 flex items-center justify-between shrink-0 border-b border-black/5 relative z-10">
-                <div className="flex-1">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                    )}
-                    {logoAlignment !== 'left' && (
-                        <span className="text-xs font-serif tracking-[0.2em] uppercase text-black/40">Vol. {pageNumber}</span>
-                    )}
-                </div>
 
-                <div className="flex-1 flex flex-col items-center justify-center">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
-                        <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                    ) : (
-                        <h1 className="text-4xl font-serif italic tracking-tight text-black text-center">
-                            {catalogName || "The Collection"}
-                        </h1>
-                    )}
-                    <div className="w-12 h-[1px] bg-black mt-4" />
-                </div>
 
-                <div className="flex-1 flex justify-end">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                        <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                    )}
-                    {logoAlignment !== 'right' && (
-                        <span className="text-xs font-serif tracking-[0.2em] uppercase text-black/40 text-right">
-                            {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                        </span>
-                    )}
-                </div>
-            </div>
 
             {/* Content - Vertical Flow (Max 3 Items Per Page usually appropriate for this style) */}
             <div className="flex-1 px-16 py-12 flex flex-col gap-12 overflow-hidden items-center">

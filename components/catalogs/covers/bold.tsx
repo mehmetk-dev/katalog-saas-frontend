@@ -33,7 +33,7 @@ export function BoldCover({
                     </div>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                        <div className="text-white/5 font-black text-[12vw] tracking-tighter italic">GALLERY.OBJ</div>
+                        <div className="text-white/5 font-black text-[12vw] tracking-tighter italic">GALERİ.OBJ</div>
                     </div>
                 )}
 
@@ -53,7 +53,7 @@ export function BoldCover({
                     <div
                         className="text-white px-4 py-2 font-black text-xl lg:text-2xl uppercase border-4 border-white shadow-[10px_10px_0px_rgba(0,0,0,0.3)] bg-slate-950 -rotate-3"
                     >
-                        NEW ED.
+                        YENİ BAS.
                     </div>
                 </div>
 
@@ -80,7 +80,7 @@ export function BoldCover({
                 <div className="relative z-10">
                     <div className="flex flex-col gap-2 mb-8">
                         <h2 className="text-4xl lg:text-6xl font-black italic uppercase leading-none tracking-tight">
-                            The New<br />Perspective.
+                            Yeni<br />Perspektif.
                         </h2>
                         <div className="h-4 w-32" style={{ backgroundColor: primaryColor }} />
                     </div>
@@ -95,11 +95,11 @@ export function BoldCover({
                 {/* Small Prints */}
                 <div className="relative z-10 flex justify-between items-end border-t border-slate-200 pt-6">
                     <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        <span>EST. {currentYear}</span>
-                        <span>DESIGN.SYS v3</span>
+                        <span>KUR. {currentYear}</span>
+                        <span>TASARIM.SIS v3</span>
                     </div>
                     <div className="font-mono text-[10px] font-bold text-slate-400">
-                        CAT-REF // {currentYear}-ALPHA
+                        KAT-REF // {currentYear}-ALPHA
                     </div>
                 </div>
             </section>
