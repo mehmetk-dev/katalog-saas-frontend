@@ -244,9 +244,9 @@ export function DashboardSidebar() {
             {isCollapsed && !isMobile ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center justify-center p-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors">
+                  <button className="flex items-center justify-center w-full p-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors outline-none focus:ring-2 focus:ring-sidebar-ring">
                     <HelpCircle className="w-5 h-5 shrink-0" />
-                  </div>
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">{t('feedback.trigger')}</TooltipContent>
               </Tooltip>

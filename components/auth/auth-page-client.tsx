@@ -668,26 +668,9 @@ export function AuthPageClient() {
                                     </div>
 
                                     {mode !== 'forgot-password' && (
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-1.5 relative">
                                             <div className="flex items-center justify-between px-1">
                                                 <label className="text-[13px] font-medium text-slate-900">{t("auth.password") as string}</label>
-                                                {mode === 'signin' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setMode('forgot-password');
-                                                            setError(null);
-                                                            setFieldErrors({});
-                                                            setEmail("");
-                                                            setPassword("");
-                                                            setName("");
-                                                            setCompanyName("");
-                                                        }}
-                                                        className="text-[13px] font-medium text-slate-500 hover:text-violet-600 transition-colors"
-                                                    >
-                                                        {t("auth.forgotPassword") as string}
-                                                    </button>
-                                                )}
                                             </div>
                                             <div className="relative">
                                                 <input
@@ -709,6 +692,23 @@ export function AuthPageClient() {
                                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                 </button>
                                             </div>
+                                            {mode === 'signin' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setMode('forgot-password');
+                                                        setError(null);
+                                                        setFieldErrors({});
+                                                        setEmail("");
+                                                        setPassword("");
+                                                        setName("");
+                                                        setCompanyName("");
+                                                    }}
+                                                    className="absolute top-0 right-1 text-[13px] font-medium text-slate-500 hover:text-violet-600 transition-colors"
+                                                >
+                                                    {t("auth.forgotPassword") as string}
+                                                </button>
+                                            )}
                                             {fieldErrors.password && (
                                                 <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.password}</p>
                                             )}
