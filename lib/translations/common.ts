@@ -74,6 +74,7 @@ const common = {
             productDeleted: "Ürün silindi",
             productsDeleted: "{count} ürün silindi",
             productNameRequired: "Ürün adı gereklidir",
+            productLimitReached: "Ürün limiti aşılıyor. Mevcut: {current}, eklenecek: {incoming}, limit: {max}",
             selectProductFirst: "Önce ürün seçmelisiniz",
             // Categories
             categoryCreated: "Kategori oluşturuldu",
@@ -203,6 +204,7 @@ const common = {
             productDeleted: "Product deleted",
             productsDeleted: "{count} products deleted",
             productNameRequired: "Product name is required",
+            productLimitReached: "Product limit would be exceeded. Current: {current}, incoming: {incoming}, limit: {max}",
             selectProductFirst: "Please select products first",
             // Categories
             categoryCreated: "Category created",

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ProductModal } from '@/components/products/product-modal'
+import { ProductModal } from '@/components/products/modals/product-modal'
 
 // Mock dependencies
 vi.mock('@/lib/i18n-provider', () => ({
@@ -33,7 +33,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
             imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }

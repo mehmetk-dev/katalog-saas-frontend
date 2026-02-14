@@ -1,9 +1,10 @@
 name: Deploy to Server
 
-on:
-  push:
-    branches:
-      - main  # Hangi branch'e kod atınca çalışsın?
+# on:
+#   push:
+#     branches:
+#       - main
+on: workflow_dispatch  # Otomatik çalışmayı kapattık. Sadece elle tetiklenebilir.
 
 jobs:
   deploy:

@@ -17,6 +17,9 @@ export type ActivityType =
     | 'product_deleted'
     | 'products_imported'
     | 'products_exported'
+    | 'products_bulk_deleted'
+    | 'products_prices_bulk_updated'
+    | 'products_reordered'
     | 'category_created'
     | 'category_deleted'
     | 'pdf_downloaded'
@@ -105,6 +108,9 @@ export const ActivityDescriptions = {
     productDeleted: (name: string) => `"${name}" ürününü sildi`,
     productsImported: (count: number) => `${count} ürün içe aktardı`,
     productsExported: (count: number) => `${count} ürün dışa aktardı`,
+    productsBulkDeleted: (count: number) => `${count} ürünü toplu sildi`,
+    productsPricesBulkUpdated: (count: number) => `${count} ürünün fiyatını toplu güncelledi`,
+    productsReordered: (count: number) => `${count} ürünün sırasını güncelledi`,
     categoryCreated: (name: string) => `"${name}" kategorisi oluşturdu`,
     categoryDeleted: (name: string) => `"${name}" kategorisini sildi`,
     pdfDownloaded: (name: string) => `"${name}" kataloğunu PDF indirdi`,

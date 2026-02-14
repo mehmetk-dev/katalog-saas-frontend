@@ -1,4 +1,8 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -6,10 +10,7 @@ const nextConfig = {
     // Temporarily ignore TypeScript errors for production build
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Temporarily ignore ESLint errors for production build
-    ignoreDuringBuilds: true,
-  },
+  // Turbopack config removed to fix path resolution issues
   // Standalone output is required for Docker but buggy on Windows during local builds
   output: process.platform === "win32" ? undefined : "standalone",
   images: {

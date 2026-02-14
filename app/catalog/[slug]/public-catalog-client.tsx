@@ -47,7 +47,12 @@ interface PublicCatalogClientProps {
     products: Product[]
 }
 
-export function PublicCatalogClient({ catalog, products: initialProducts }: PublicCatalogClientProps) {
+export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
+    console.log('[PublicCatalogClient] Received catalog:', catalog.name)
+    console.log('[PublicCatalogClient] Products prop length:', products?.length)
+    console.log('[PublicCatalogClient] Catalog.products length:', catalog.products?.length)
+
+    const [initialProducts, setInitialProducts] = useState<Product[]>(products || [])
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [searchQuery, setSearchQuery] = useState("")

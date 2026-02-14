@@ -1,0 +1,560 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Registration Success",
+    "description": "Verify that a new user can register successfully with valid email and password.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the registration page."
+      },
+      {
+        "type": "action",
+        "description": "Enter a valid email address and a strong password."
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that the registration is successful and a verification email is sent."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Login Success",
+    "description": "Verify user can log in with correct email and password credentials.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Input registered email and correct password."
+      },
+      {
+        "type": "action",
+        "description": "Click on login button."
+      },
+      {
+        "type": "assertion",
+        "description": "User is logged in successfully and redirected to dashboard."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Login Failure With Incorrect Credentials",
+    "description": "Verify login failure when invalid email or password is used.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid or unregistered email and/or incorrect password."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to log in."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure error message is displayed, and login is denied."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Password Reset Workflow",
+    "description": "Verify password reset can be initiated and completed successfully.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to password reset page."
+      },
+      {
+        "type": "action",
+        "description": "Enter registered email address and submit reset request."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that password reset email is sent."
+      },
+      {
+        "type": "action",
+        "description": "Follow the password reset link and set a new password."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user can log in with the new password."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Catalog Creation with Template Selection",
+    "description": "Verify that user can create a new catalog by selecting a template.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in and navigate to Catalogs page."
+      },
+      {
+        "type": "action",
+        "description": "Click 'New Catalog' button."
+      },
+      {
+        "type": "action",
+        "description": "Select a catalog template from available options."
+      },
+      {
+        "type": "action",
+        "description": "Confirm creation of the catalog."
+      },
+      {
+        "type": "assertion",
+        "description": "Catalog is created and accessible for editing."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Drag-and-Drop Catalog Builder Functionality",
+    "description": "Verify that users can add and arrange products and layout elements using drag-and-drop in real-time.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open an existing catalog in the catalog builder/editor."
+      },
+      {
+        "type": "action",
+        "description": "Drag product elements onto pages and rearrange layout blocks."
+      },
+      {
+        "type": "assertion",
+        "description": "Changes reflect immediately in the catalog preview."
+      },
+      {
+        "type": "action",
+        "description": "Save the catalog."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify persisted changes by reloading the catalog."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Product CRUD Operations - Create",
+    "description": "Verify creating a new product with required and optional fields including image upload.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the product management page."
+      },
+      {
+        "type": "action",
+        "description": "Initiate new product creation."
+      },
+      {
+        "type": "action",
+        "description": "Fill product name, SKU, price, stock, category, and custom attributes."
+      },
+      {
+        "type": "action",
+        "description": "Upload product image and complete creation."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product is listed with correct details and optimized image URL."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Product CRUD Operations - Update",
+    "description": "Verify updating existing product details including image replacement.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select a product to edit."
+      },
+      {
+        "type": "action",
+        "description": "Modify product information fields and replace image."
+      },
+      {
+        "type": "action",
+        "description": "Save the product."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated details and new image appear correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Product CRUD Operations - Delete",
+    "description": "Verify product can be deleted and removed from product list and catalog.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select a product for deletion."
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion action."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product is removed from product list and any catalogs where it was used."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Bulk Product Import via Excel/CSV",
+    "description": "Verify bulk import of products from well-formed Excel/CSV files including mandatory validations.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to product import feature."
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid Excel or CSV file with multiple product entries."
+      },
+      {
+        "type": "assertion",
+        "description": "All valid products are imported and listed with correct details."
+      },
+      {
+        "type": "assertion",
+        "description": "Invalid or incomplete entries are flagged and not imported."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Bulk Product Export to Excel/CSV",
+    "description": "Verify ability to export all products to Excel/CSV format correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to product export feature."
+      },
+      {
+        "type": "action",
+        "description": "Request export of all products."
+      },
+      {
+        "type": "assertion",
+        "description": "Excel/CSV file is generated containing accurate product data matching the current catalog."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Image Upload and Optimization via Cloudinary",
+    "description": "Verify product image uploads succeed, optimized WebP/AVIF URLs are returned and accessible.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Upload product images through the Cloudinary integration."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure images are uploaded successfully and optimization formats are applied."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that returned image URLs are accessible and images display correctly in the app."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Catalog Publishing and Shareable URL/QR Code Generation",
+    "description": "Verify catalog publishing generates a unique slug, shareable URL, and QR code.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Publish a completed catalog."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that a unique slug is generated and appended to public URL."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify QR code corresponds to the unique catalog URL."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Public Catalog Viewing with Interactive Page-Flip Animations",
+    "description": "Verify that the public catalog viewer loads correctly with page-flip animations and interactive product elements.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access the published catalog URL as a public user."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure page-flip animations work smoothly."
+      },
+      {
+        "type": "assertion",
+        "description": "Validate that all interactive product details (e.g., product info popups) function correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Multi-language Support in Editor and Public View",
+    "description": "Verify that Turkish and English translations appear correctly in the catalog editor and public catalog views.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Switch language between Turkish and English in the catalog editor."
+      },
+      {
+        "type": "assertion",
+        "description": "All UI text and catalog content reflect the selected language."
+      },
+      {
+        "type": "action",
+        "description": "Publish the catalog and access the public view, switching language as applicable."
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure all catalog elements and interface text are localized correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "High-Quality PDF Export of Catalogs",
+    "description": "Verify that exporting a catalog to PDF preserves layout, images, and product details without errors.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open a completed catalog in the editor."
+      },
+      {
+        "type": "action",
+        "description": "Use the export feature to generate a PDF version."
+      },
+      {
+        "type": "assertion",
+        "description": "Download and open PDF to validate layout, images, text, and product details are correct."
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Subscription Plan Limits Enforcement",
+    "description": "Verify that the system enforces catalog and product limits per subscription plan and prompts upgrade modal when limits are reached.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in with an account on a Free or Plus subscription plan."
+      },
+      {
+        "type": "action",
+        "description": "Create catalogs and add products until plan limits are reached."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that attempts to exceed limits are blocked and upgrade modal is shown."
+      },
+      {
+        "type": "action",
+        "description": "Open subscription management UI and verify plan details and upgrade options."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that manual payment upgrade workflow starts correctly when triggered."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Role-Based Access Control for Catalog and Product Management",
+    "description": "Verify that users with different roles can or cannot access and perform CRUD operations according to permissions.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as a user with viewer-only role."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to create, edit, or delete catalogs and products."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that unauthorized actions are blocked and appropriate error messages display."
+      },
+      {
+        "type": "action",
+        "description": "Log in as an admin user."
+      },
+      {
+        "type": "action",
+        "description": "Perform full CRUD operations on catalogs and products."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all actions succeed with permissions."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Analytics Dashboard Accuracy and Data Tracking",
+    "description": "Verify that catalog views, device types, and geographic metrics are tracked accurately and displayed correctly in the analytics dashboard.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access published catalogs from various devices and locations."
+      },
+      {
+        "type": "action",
+        "description": "Open analytics dashboard in user account."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that view counts, device category breakdowns, and geographic data reflect recent activity accurately."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Input Validation on Product Fields",
+    "description": "Verify that mandatory fields such as name and price are validated during product creation and editing, including boundary and invalid inputs.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to create a product without a name."
+      },
+      {
+        "type": "assertion",
+        "description": "Validation error prevents submission."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to input invalid price values such as negative numbers or non-numeric input."
+      },
+      {
+        "type": "assertion",
+        "description": "Appropriate error messages displayed; submission blocked."
+      },
+      {
+        "type": "action",
+        "description": "Test boundary conditions for stock quantity (0, very high values)."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify valid inputs accepted and stored; invalid values rejected."
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Catalog Editing Persistence",
+    "description": "Verify that changes made in the catalog builder persist correctly and are reflected after reload.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Make several edits in a catalog including layout changes and product details."
+      },
+      {
+        "type": "action",
+        "description": "Save and close the editor."
+      },
+      {
+        "type": "action",
+        "description": "Reopen the catalog editor."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all changes remain intact and display accurately."
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Error Handling for Failed Image Uploads",
+    "description": "Verify proper error handling and user notification when image upload fails.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to upload an invalid or corrupted image file."
+      },
+      {
+        "type": "assertion",
+        "description": "Check that upload is rejected and an informative error message is shown."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to upload image when network is unavailable or server returns error."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error is handled gracefully and user is informed without app crash."
+      }
+    ]
+  }
+]

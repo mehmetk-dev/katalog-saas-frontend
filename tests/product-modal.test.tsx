@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ProductModal } from '@/components/products/product-modal'
+import { ProductModal } from '@/components/products/modals/product-modal'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock dependencies

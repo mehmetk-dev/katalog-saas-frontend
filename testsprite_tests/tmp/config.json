@@ -1,0 +1,19 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000/dashboard",
+  "loginUser": "test12345@gmail.com",
+  "loginPassword": "test12345",
+  "executionArgs": {
+    "projectName": "katalog-app",
+    "projectPath": "c:\\Users\\Mehme\\.gemini\\antigravity\\scratch\\katalog-app",
+    "testIds": [],
+    "additionalInstruction": "Focus on testing the main catalog builder flow, product adding, and template switching. Make sure to bypass or handle authentication if necessary (use existing session if possible).",
+    "envs": {
+      "API_KEY": "sk-user-NPduK70jIJHqMYyWejwV9QKwvShiBMjRnmnLqlP4HgndqwBf89ja3FipeytdIYqnng8SN3rtJHeFQU99Rn7vLySca2NwN-O794rpbpOVDrpgHrTAF-zZIO23CAdQOWfHCAw"
+    }
+  },
+  "serverPort": 59253,
+  "proxy": "http://0740b4cc-5370-4063-bc00-854bfdd7af89:NUNDGTqYqGrgm9pbemzaQPXF2kuTevG5@tun.testsprite.com:8080"
+}

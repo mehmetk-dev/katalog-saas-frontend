@@ -1,0 +1,66 @@
+{
+    "tech_stack": [
+        "TypeScript",
+        "Next.js 16",
+        "React 19",
+        "Express 5.x",
+        "Tailwind CSS 4.x",
+        "PostgreSQL (Supabase)",
+        "Cloudinary",
+        "Radix UI",
+        "jsPDF",
+        "Vitest"
+    ],
+    "features": [
+        {
+            "name": "Catalog Builder",
+            "description": "Real-time editor for creating and customizing product catalogs with drag-and-drop support.",
+            "files": [
+                "components/builder/catalog-editor.tsx",
+                "components/builder/builder-page-client.tsx",
+                "components/builder/catalog-preview.tsx"
+            ]
+        },
+        {
+            "name": "Product Management",
+            "description": "CRUD operations for products, including SKU, price, category, and image handling.",
+            "files": [
+                "components/products/products-table.tsx",
+                "components/products/product-modal.tsx",
+                "backend/src/controllers/products.ts"
+            ]
+        },
+        {
+            "name": "Public Catalog Viewer",
+            "description": "Public-facing view for catalogs with page-flip animation and interactive elements.",
+            "files": [
+                "app/catalog/[slug]/page.tsx",
+                "app/catalog/[slug]/public-catalog-client.tsx",
+                "components/catalogs/templates/"
+            ]
+        },
+        {
+            "name": "PDF Export",
+            "description": "Generates high-quality PDF versions of the catalogs for offline viewing.",
+            "files": [
+                "components/builder/catalog-preview.tsx"
+            ]
+        },
+        {
+            "name": "Authentication & Authorization",
+            "description": "User login, registration, and permission management using Supabase Auth and RLS.",
+            "files": [
+                "app/auth/",
+                "lib/supabase/server.ts",
+                "middleware.ts"
+            ]
+        },
+        {
+            "name": "Multi-language Support",
+            "description": "Translation system for Turkish and English catalogs.",
+            "files": [
+                "lib/translations.ts"
+            ]
+        }
+    ]
+}

@@ -1,33 +1,19 @@
 "use client"
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import {
-  GripVertical, Trash2, Package, Image as ImageIcon,
-  Upload, ChevronDown, CheckSquare, Layout, Sparkles, Search, ChevronRight
-} from "lucide-react"
-import NextImage from "next/image"
-import { toast } from "sonner"
-import { HexColorPicker } from "react-colorful"
-
-import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
-import { cn } from "@/lib/utils"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslation } from "@/lib/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
-import { TEMPLATES } from "@/lib/constants"
-import { COVER_THEMES, CoverPageRenderer } from "@/components/catalogs/covers"
-
-import { storage } from "@/lib/storage"
-import { TemplatePreviewCard } from "./template-preview-card"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
+import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
 
-interface CatalogEditorProps {
+import { EditorContentTab } from "./editor-content-tab"
+import { EditorDesignTab } from "./editor-design-tab"
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface CatalogEditorProps {
   products: Product[]
   selectedProductIds: string[]
   onSelectedProductIdsChange: (ids: string[]) => void
@@ -87,8 +73,10 @@ interface CatalogEditorProps {
   catalogName: string
 }
 
-// Helper: Parse color to RGB
-const parseColor = (color: string) => {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Parse color string to RGB components */
+export const parseColor = (color: string) => {
   if (color.startsWith('rgba')) {
     const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
     if (match) {
@@ -109,13 +97,42 @@ const parseColor = (color: string) => {
   return { r: 124, g: 58, b: 237, a: 1 }
 }
 
-// Helper: RGB to hex
-const rgbToHex = (r: number, g: number, b: number) => {
+/** Convert RGB values to hex string */
+export const rgbToHex = (r: number, g: number, b: number) => {
   return `#${[r, g, b].map(x => {
     const hex = x.toString(16)
     return hex.length === 1 ? '0' + hex : hex
   }).join('')}`
 }
+
+/** Get available column options per layout/template */
+const getAvailableColumns = (layout: string) => {
+  switch (layout) {
+    case 'bold':
+    case 'luxury':
+    case 'minimalist':
+    case 'clean-white':
+    case 'elegant-cards':
+    case 'magazine':
+    case 'fashion-lookbook':
+      return [2]
+    case 'modern-grid':
+    case 'product-tiles':
+    case 'catalog-pro':
+    case 'retail':
+    case 'tech-modern':
+      return [2, 3]
+    case 'compact-list':
+    case 'industrial':
+    case 'classic-catalog':
+    case 'showcase':
+      return [1]
+    default:
+      return [2, 3]
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CatalogEditor({
   products,
@@ -149,8 +166,8 @@ export function CatalogEditor({
   onLogoPositionChange,
   logoSize: _logoSize = 'medium',
   onLogoSizeChange: _onLogoSizeChange,
-  titlePosition: _titlePosition = 'left',
-  onTitlePositionChange: _onTitlePositionChange,
+  titlePosition = 'left',
+  onTitlePositionChange,
   showAttributes = false,
   onShowAttributesChange,
   showSku = true,
@@ -161,7 +178,6 @@ export function CatalogEditor({
   onHeaderTextColorChange,
   productImageFit = 'cover',
   onProductImageFitChange,
-  // Storytelling Catalog Features
   enableCoverPage = false,
   onEnableCoverPageChange,
   coverImageUrl = null,
@@ -178,12 +194,16 @@ export function CatalogEditor({
 }: CatalogEditorProps) {
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+
+  // ─── Local State ──────────────────────────────────────────────────────────
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ appearance: true, branding: true })
   const toggleSection = useCallback((key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
   }, [])
+
+  // Color pickers
   const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
   const [showHeaderTextColorPicker, setShowHeaderTextColorPicker] = useState(false)
   const [showBackgroundColorPicker, setShowBackgroundColorPicker] = useState(false)
@@ -191,7 +211,6 @@ export function CatalogEditor({
   const headerTextColorPickerRef = useRef<HTMLDivElement>(null)
   const backgroundColorPickerRef = useRef<HTMLDivElement>(null)
 
-  // Optimize: Parse primaryColor once
   const primaryColorParsed = useMemo(() => {
     const rgb = parseColor(primaryColor)
     const hexColor = rgbToHex(rgb.r, rgb.g, rgb.b)
@@ -199,33 +218,27 @@ export function CatalogEditor({
     return { rgb, hexColor, opacity }
   }, [primaryColor])
 
-  // Debounced color change callbacks - Renk seçicideki her piksel değişikliğinde değil, 50ms bekledikten sonra güncelle
+  // Debounced color change callbacks
   const debouncedPrimaryColorChange = useDebouncedCallback(
-    (color: string) => onPrimaryColorChange(color),
-    50
+    (color: string) => onPrimaryColorChange(color), 50
   )
   const debouncedHeaderTextColorChange = useDebouncedCallback(
-    (color: string) => onHeaderTextColorChange?.(color),
-    50
+    (color: string) => onHeaderTextColorChange?.(color), 50
   )
   const debouncedBackgroundColorChange = useDebouncedCallback(
-    (color: string) => onBackgroundColorChange?.(color),
-    50
+    (color: string) => onBackgroundColorChange?.(color), 50
   )
 
   // Close color pickers when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
-
       if (showPrimaryColorPicker && primaryColorPickerRef.current && !primaryColorPickerRef.current.contains(target)) {
         setShowPrimaryColorPicker(false)
       }
-
       if (showHeaderTextColorPicker && headerTextColorPickerRef.current && !headerTextColorPickerRef.current.contains(target)) {
         setShowHeaderTextColorPicker(false)
       }
-
       if (showBackgroundColorPicker && backgroundColorPickerRef.current && !backgroundColorPickerRef.current.contains(target)) {
         setShowBackgroundColorPicker(false)
       }
@@ -236,47 +249,35 @@ export function CatalogEditor({
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showPrimaryColorPicker, showHeaderTextColorPicker, showBackgroundColorPicker])
-  const logoInputRef = useRef<HTMLInputElement>(null)
-  const bgInputRef = useRef<HTMLInputElement>(null)
-  const coverInputRef = useRef<HTMLInputElement>(null)
 
-  // Upload işlemlerini iptal etmek için ref'ler
-  const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
-  const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  // ─── Upload Hook ──────────────────────────────────────────────────────────
+  const {
+    logoInputRef,
+    bgInputRef,
+    coverInputRef,
+    handleUploadClick,
+    handleFileUpload,
+  } = useEditorUpload({
+    onLogoUrlChange,
+    onCoverImageUrlChange,
+    onBackgroundImageChange,
+    backgroundImage,
+  })
 
-  // YENİ: Component unmount olduğunda tüm toast'ları ve upload'ları temizle
-  useEffect(() => {
-    const controllers = uploadAbortControllers.current
-    const timeouts = uploadTimeoutIds.current
-
-    return () => {
-      // Bekleyen tüm upload'ları iptal et
-      controllers.forEach(controller => controller.abort())
-
-      // Tüm aktif timeout'ları temizle
-      timeouts.forEach(timeout => clearTimeout(timeout))
-
-      // UI temizliği
-      toast.dismiss()
-    }
-  }, [])
-
+  // ─── Search & Pagination ──────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
-
-  // Ekran boyutuna göre dinamik items per page (3 satır)
-  const [itemsPerPage, setItemsPerPage] = useState(15) // Varsayılan: 5 sütun × 3 satır
+  const [itemsPerPage, setItemsPerPage] = useState(15)
 
   useEffect(() => {
     const calculateItemsPerPage = () => {
       const width = window.innerWidth
-      let cols = 5 // md+ default
-      if (width < 640) cols = 2 // mobile
-      else if (width < 768) cols = 3 // xs-sm arası
-      else if (width < 1024) cols = 4 // sm-md arası
-      setItemsPerPage(cols * 3) // 3 satır
+      let cols = 5
+      if (width < 640) cols = 2
+      else if (width < 768) cols = 3
+      else if (width < 1024) cols = 4
+      setItemsPerPage(cols * 3)
     }
-
     calculateItemsPerPage()
     window.addEventListener('resize', calculateItemsPerPage)
     return () => window.removeEventListener('resize', calculateItemsPerPage)
@@ -284,299 +285,102 @@ export function CatalogEditor({
 
   const [activeTab, setActiveTab] = useState("content")
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
 
-  const categories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
+  const debouncedSearchUpdate = useDebouncedCallback(
+    (query: string) => setDebouncedSearchQuery(query), 200
+  )
 
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setSearchQuery(val)
+    debouncedSearchUpdate(val)
+  }, [debouncedSearchUpdate])
+
+  // ─── Derived Data ─────────────────────────────────────────────────────────
+  const selectedProductIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds])
+
+  const categories = useMemo(() =>
+    [...new Set(products.map(p => p.category).filter(Boolean))] as string[],
+    [products]
+  )
+
+  const productIdSet = useMemo(() => new Set(products.map(p => p.id)), [products])
   const validProductIds = useMemo(() => {
-    return selectedProductIds.filter(id => products.some(p => p.id === id))
-  }, [selectedProductIds, products])
+    return selectedProductIds.filter(id => productIdSet.has(id))
+  }, [selectedProductIds, productIdSet])
 
-  const filteredProducts = products.filter(p => {
-    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
+  const filteredProducts = useMemo(() => {
+    const query = debouncedSearchQuery.toLowerCase()
+    return products.filter(p => {
+      const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
+      const matchesSearch = !query || p.name.toLowerCase().includes(query)
+      return matchesCategory && matchesSearch
+    })
+  }, [products, selectedCategory, debouncedSearchQuery])
 
-  // Sayfalama hesaplamaları
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
-  const visibleProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage)
+  const visibleProducts = useMemo(() =>
+    filteredProducts.slice(startIndex, startIndex + itemsPerPage),
+    [filteredProducts, startIndex, itemsPerPage]
+  )
 
-  // Kategori veya arama değiştiğinde ilk sayfaya dön
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [selectedCategory, searchQuery])
+  useEffect(() => { setCurrentPage(1) }, [selectedCategory, debouncedSearchQuery])
 
-  const toggleProduct = (id: string) => {
-    if (selectedProductIds.includes(id)) {
-      onSelectedProductIdsChange(selectedProductIds.filter((i) => i !== id))
-    } else {
-      onSelectedProductIdsChange([...selectedProductIds, id])
-    }
-  }
+  // ─── Product Selection & Sorting ──────────────────────────────────────────
+  const toggleProduct = useCallback((id: string) => {
+    onSelectedProductIdsChange(
+      selectedProductIdSet.has(id)
+        ? selectedProductIds.filter((i) => i !== id)
+        : [...selectedProductIds, id]
+    )
+  }, [selectedProductIds, selectedProductIdSet, onSelectedProductIdsChange])
 
-  const handleTemplateSelect = (templateId: string, isPro: boolean) => {
-    if (isPro && userPlan === "free") {
-      onUpgrade()
-      return
-    }
-    onLayoutChange(templateId)
-  }
+  const productMap = useMemo(() => {
+    const map = new Map<string, Product>()
+    for (const p of products) map.set(p.id, p)
+    return map
+  }, [products])
 
-  // Sayfa açıldığında oturumu arka planda tazele (Kullanıcı upload yapana kadar hazır olsun)
-  useEffect(() => {
-    const refreshSessionInBackground = async () => {
-      try {
-        const { createClient } = await import("@/lib/supabase/client")
-        const supabase = createClient()
-        await supabase.auth.refreshSession()
-      } catch {
-        // Silent error
-      }
-    }
-    refreshSessionInBackground()
+  const handleSortDragStart = useCallback((e: React.DragEvent, index: number) => {
+    e.stopPropagation()
+    e.dataTransfer.setData("text", index.toString())
+    setDraggingIndex(index)
   }, [])
 
-  // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) hızlı bir kontrol yap
-  const handleUploadClick = async () => {
-    try {
-      const { createClient } = await import("@/lib/supabase/client")
-      const supabase = createClient()
-      await supabase.auth.getSession()
-    } catch (e) {
-      console.error('[CatalogEditor] handleUploadClick session check error:', e)
-    }
-  }
+  const handleSortDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDropIndex(index)
+  }, [])
 
-  // YENİ: Tekil dosya yükleme ve Retry (Yeniden Deneme) mantığı
-  const uploadFileWithRetry = async (
-    file: File,
-    type: 'logo' | 'bg' | 'cover',
-    parentSignal?: AbortSignal,
-    onProgress?: (status: string) => void
-  ): Promise<string> => {
-    const MAX_RETRIES = 3
-    const TIMEOUT_MS = type === 'bg' ? 120000 : 30000 // Arka planlar için 120sn (2dk), diğerleri için 30sn
+  const handleSortDrop = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const from = Number(e.dataTransfer.getData("text"))
+    const newList = [...selectedProductIds]
+    const [moved] = newList.splice(from, 1)
+    newList.splice(index, 0, moved)
+    onSelectedProductIdsChange(newList)
+    setDraggingIndex(null)
+    setDropIndex(null)
+  }, [selectedProductIds, onSelectedProductIdsChange])
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      // 1. İptal kontrolü (Her deneme başında)
-      if (parentSignal?.aborted) throw new Error('Upload cancelled')
+  const handleRemoveProduct = useCallback((id: string) => {
+    onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))
+  }, [selectedProductIds, onSelectedProductIdsChange])
 
-      const currentAttemptController = new AbortController()
-      let timeoutId: NodeJS.Timeout | null = null
-
-      try {
-        // 2. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
-        if (attempt > 0) {
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000) // Max 5sn bekle
-          onProgress?.(`Tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
-
-          await new Promise<void>((resolve, reject) => {
-            const checkInterval = setInterval(() => {
-              if (parentSignal?.aborted) {
-                clearInterval(checkInterval)
-                reject(new Error('Upload cancelled'))
-              }
-            }, 100)
-            setTimeout(() => { clearInterval(checkInterval); resolve(); }, waitTime)
-          })
-        }
-
-        // İptal kontrolü (bekleme sonrası)
-        if (parentSignal?.aborted) {
-          throw new Error('Upload cancelled')
-        }
-        onProgress?.(attempt > 0 ? `Yükleniyor (Deneme ${attempt + 1})...` : 'Yükleniyor...')
-
-        // 3. Dosya adı oluştur
-        const fileExtension = file.name.split('.').pop() || 'jpg'
-        const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExtension}`
-        const folder = type === 'logo' ? 'company-logos' : (type === 'cover' ? 'catalog-covers' : 'catalog-backgrounds')
-
-        // 4. YARIŞ: Yükleme vs Zaman Aşımı
-        const uploadPromise = storage.upload(file, {
-          path: folder,
-          contentType: file.type || 'image/jpeg',
-          cacheControl: '3600',
-          fileName,
-          signal: currentAttemptController.signal,
-        })
-
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutId = setTimeout(() => {
-            console.warn(`[CatalogEditor] ⏱️ Attempt ${attempt + 1} timeout (${TIMEOUT_MS / 1000}s)`)
-            currentAttemptController.abort() // Zaman aşımı olunca fetch'i de kes
-            reject(new Error('UPLOAD_TIMEOUT'))
-          }, TIMEOUT_MS)
-        })
-
-        // Hem ebeveyn sinyali hem de yerel timeout sinyali ile çalış
-        if (parentSignal) {
-          parentSignal.addEventListener('abort', () => currentAttemptController.abort())
-        }
-
-        const result = (await Promise.race([uploadPromise, timeoutPromise])) as { url: string }
-
-        if (timeoutId) clearTimeout(timeoutId)
-
-        if (result?.url) return result.url
-        throw new Error('URL dönmedi')
-
-      } catch (error: unknown) {
-        if (timeoutId) clearTimeout(timeoutId)
-        currentAttemptController.abort()
-
-        const errorMessage = error instanceof Error ? error.message : String(error)
-
-        if (errorMessage === 'Upload cancelled' || parentSignal?.aborted) {
-          throw new Error('Upload cancelled')
-        }
-
-        if (attempt === MAX_RETRIES - 1) throw error
-      }
-    }
-    throw new Error("Yükleme başarıyla tamamlanamadı.")
-  }
-
-  // Logo/BG Upload Logic
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg' | 'cover') => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const limit = type === 'logo' ? 2 : 10 // Arka planlar için 10MB limit
-    if (file.size > limit * 1024 * 1024) {
-      toast.error(`Dosya çok büyük. Maksimum ${limit}MB yüklenebilir.`)
-      if (e.target) e.target.value = ''
-      return
-    }
-
-    const uploadKey = `${type}-upload`
-    const existingController = uploadAbortControllers.current.get(uploadKey)
-    if (existingController) {
-      existingController.abort()
-    }
-
-    const abortController = new AbortController()
-    uploadAbortControllers.current.set(uploadKey, abortController)
-
-    const existingTimeout = uploadTimeoutIds.current.get(uploadKey)
-    if (existingTimeout) {
-      clearTimeout(existingTimeout)
-      uploadTimeoutIds.current.delete(uploadKey)
-    }
-
-    const typeLabel = type === 'logo' ? 'Logo' : (type === 'cover' ? 'Kapak' : 'Arka plan')
-    const toastId = `upload-${type}-${Date.now()}`
-    toast.loading(`${typeLabel} hazırlanıyor...`, { id: toastId })
-
-    try {
-      // 1. Session check removed - Cloudinary upload is client-side and doesn't depend on Supabase session immediately.
-      // Access control is handled at the page level and during the final "Save" action.
-
-      // 2. Upload (Yeniden deneme mekanizması ile)
-      toast.loading(`${typeLabel} gönderiliyor...`, { id: toastId })
-
-      const publicUrl = await uploadFileWithRetry(file, type, abortController.signal, (status) => {
-        toast.loading(`${typeLabel}: ${status}`, { id: toastId })
-      })
-
-
-      if (type === 'logo') {
-        onLogoUrlChange?.(publicUrl)
-        // Profil logosuyla senkronize et
-        try {
-          const { updateUserLogo } = await import("@/lib/actions/auth")
-          await updateUserLogo(publicUrl)
-        } catch (syncError) {
-          console.warn("[CatalogEditor] Logo sync to profile failed:", syncError)
-          // Katalog logosu yine de güncellendi, sadece profil sync başarısız
-        }
-      } else if (type === 'cover') {
-        onCoverImageUrlChange?.(publicUrl)
-      } else {
-        onBackgroundImageChange?.(publicUrl)
-      }
-
-      toast.success(`${typeLabel} yüklendi.`, { id: toastId })
-    } catch (error: unknown) {
-      console.error(`[CatalogEditor] ❌ Error:`, error)
-
-      const errorMessage = error instanceof Error ? error.message : String(error)
-
-      if (errorMessage === 'Upload cancelled' || abortController.signal.aborted) {
-        toast.dismiss(toastId)
-        return
-      }
-
-      let userMessage = "Yükleme başarısız."
-      if (errorMessage === 'SESSION_TIMEOUT') userMessage = "Oturum doğrulanamadı, lütfen tekrar deneyin."
-      else if (errorMessage === 'UPLOAD_TIMEOUT') userMessage = "İşlem çok uzun sürdü, bağlantınızı kontrol edin."
-      else if (errorMessage.includes('too large')) userMessage = "Dosya boyutu çok büyük."
-      else userMessage = `Hata: ${errorMessage.substring(0, 40)}`
-
-      toast.error(userMessage, { id: toastId })
-    } finally {
-      uploadAbortControllers.current.delete(uploadKey)
-      if (e.target) e.target.value = ''
-    }
-  }
-
-  // Arka plan resmi kaldırıldığında devam eden upload'ları iptal et
-  useEffect(() => {
-    if (backgroundImage === null) {
-      const bgUploadKey = 'bg-upload'
-      const controller = uploadAbortControllers.current.get(bgUploadKey)
-      if (controller) {
-        controller.abort()
-        uploadAbortControllers.current.delete(bgUploadKey)
-      }
-
-      // Timeout'ları da temizle
-      const timeout = uploadTimeoutIds.current.get(bgUploadKey)
-      if (timeout) {
-        clearTimeout(timeout)
-        uploadTimeoutIds.current.delete(bgUploadKey)
-      }
-    }
-  }, [backgroundImage])
-
-  // Sütun kısıtlamaları
-  const getAvailableColumns = (layout: string) => {
-    switch (layout) {
-      case 'bold':
-      case 'luxury':
-      case 'minimalist':
-      case 'clean-white':
-      case 'elegant-cards':
-      case 'magazine':
-      case 'fashion-lookbook':
-        return [2]
-      case 'modern-grid':
-      case 'product-tiles':
-      case 'catalog-pro':
-      case 'retail':
-      case 'tech-modern':
-        return [2, 3]
-      case 'compact-list':
-      case 'industrial':
-      case 'classic-catalog':
-      case 'showcase':
-        return [1] // Bu şablonlar genellikle tek sütun veya dikey liste
-      default:
-        return [2, 3]
-    }
-  }
-
+  // ─── Column Constraints ───────────────────────────────────────────────────
   const availableColumns = getAvailableColumns(layout)
 
-  // Otomatik sütun düzeltme
   useEffect(() => {
     if (availableColumns.length > 0 && !availableColumns.includes(columnsPerRow!) && onColumnsPerRowChange) {
       onColumnsPerRowChange(availableColumns[0])
     }
   }, [layout, availableColumns, columnsPerRow, onColumnsPerRowChange])
 
-
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#080a12] dark:to-[#03040a] border-r border-slate-200 dark:border-white/5 overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
@@ -599,983 +403,112 @@ export function CatalogEditor({
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-12 px-3 sm:px-6 custom-scrollbar space-y-6">
-          <TabsContent value="content" className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* CATALOG DETAILS - COMPACT VERSION */}
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-              <Card className="relative bg-white/70 dark:bg-slate-900/40 backdrop-blur-sm border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                      {t('builder.catalogDetails')}
-                    </span>
-                  </div>
-                  {validProductIds.length > 0 && (
-                    <div className="bg-indigo-600 text-[10px] font-black text-white px-2 py-0.5 rounded-full shadow-sm shadow-indigo-200">
-                      {validProductIds.length} {t('builder.productsSelected')}
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <textarea
-                      className="w-full min-h-[90px] p-3 text-sm bg-transparent border-none rounded-xl focus:ring-0 transition-all outline-none resize-none placeholder:text-muted-foreground font-medium text-slate-700 dark:text-slate-300"
-                      placeholder={t('builder.descriptionPlaceholder')}
-                      value={description}
-                      onChange={(e) => onDescriptionChange(e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* SEARCH & FILTERS SECTION */}
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3">
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                  <Input
-                    placeholder={t('builder.searchProducts')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-12 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="h-11 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm text-xs font-bold px-4">
-                        <SelectValue placeholder={t('common.category')} />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-border shadow-xl">
-                        <SelectItem value="all">{t('common.all')}</SelectItem>
-                        {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-11 rounded-2xl border border-slate-200/60 bg-white font-black text-[10px] uppercase px-4 transition-all",
-                      filteredProducts.every(p => selectedProductIds.includes(p.id))
-                        ? "text-destructive hover:bg-destructive/5"
-                        : "text-indigo-600 hover:bg-indigo-50"
-                    )}
-                    onClick={() => {
-                      const allIds = filteredProducts.map(p => p.id)
-                      const isAllSelected = allIds.every(id => selectedProductIds.includes(id))
-                      if (isAllSelected) {
-                        onSelectedProductIdsChange(selectedProductIds.filter(id => !allIds.includes(id)))
-                      } else {
-                        onSelectedProductIdsChange([...new Set([...selectedProductIds, ...allIds])])
-                      }
-                    }}
-                  >
-                    {filteredProducts.every(p => selectedProductIds.includes(p.id)) ? t('builder.clearSelection') : t('builder.selectAll')}
-                  </Button>
-                </div>
-              </div>
-
-              {/* PRODUCTS GRID - PREMIUM CARDS */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {visibleProducts.map(product => {
-                  const isSelected = selectedProductIds.includes(product.id);
-                  return (
-                    <div
-                      key={product.id}
-                      onClick={() => toggleProduct(product.id)}
-                      className={cn(
-                        "relative group cursor-pointer transition-all duration-300",
-                        isSelected ? "scale-[0.98]" : "hover:scale-[1.02]"
-                      )}
-                    >
-                      <div className={cn(
-                        "aspect-[4/5] rounded-[1.25rem] overflow-hidden border transition-all duration-300 shadow-sm bg-white dark:bg-slate-900 relative",
-                        isSelected
-                          ? "border-indigo-600 ring-2 ring-indigo-600/20"
-                          : "border-slate-100 dark:border-slate-800 hover:shadow-md"
-                      )}>
-                        <div className="absolute inset-0">
-                          <NextImage
-                            src={product.image_url || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className={cn(
-                              "object-cover transition-all duration-500",
-                              isSelected ? "scale-105" : "group-hover:scale-110"
-                            )}
-                            unoptimized
-                          />
-                          <div className={cn(
-                            "absolute inset-0 transition-opacity duration-300",
-                            isSelected ? "bg-indigo-600/10 opacity-100" : "bg-black/0 group-hover:bg-black/10 opacity-0"
-                          )} />
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent h-1/2 opacity-70" />
-                        </div>
-
-                        {/* Top Indicator */}
-                        <div className="absolute top-2 right-2">
-                          <div className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 shadow-md",
-                            isSelected
-                              ? "bg-indigo-600 text-white scale-110"
-                              : "bg-white/90 dark:bg-slate-800/90 text-transparent opacity-0 group-hover:opacity-100"
-                          )}>
-                            <CheckSquare className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-
-                        {/* Info Overlay */}
-                        <div className="absolute bottom-2 left-2 right-2 flex flex-col gap-0.5">
-                          <p className="text-[10px] sm:text-xs font-black text-white truncate drop-shadow-sm uppercase tracking-tight">
-                            {product.name}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] sm:text-[10px] font-bold text-white/90 drop-shadow-sm">
-                              {product.price ? `₺${product.price}` : "-"}
-                            </span>
-                            {product.sku && (
-                              <span className="text-[8px] font-medium text-white/60 bg-black/20 px-1 rounded truncate max-w-[50px]">
-                                {product.sku}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 py-4">
-                  {/* Önceki Sayfa */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="rounded-xl h-9 px-3 text-xs font-bold border-slate-200/60 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
-                  >
-                    {t('common.back')}
-                  </Button>
-
-                  {/* Sayfa Numaraları */}
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter(page => {
-                        // İlk, son ve mevcut sayfanın etrafındaki 2 sayfayı göster
-                        if (page === 1 || page === totalPages) return true
-                        if (Math.abs(page - currentPage) <= 1) return true
-                        return false
-                      })
-                      .map((page, index, arr) => (
-                        <React.Fragment key={page}>
-                          {/* Atlanan sayfalar için ... göster */}
-                          {index > 0 && arr[index - 1] !== page - 1 && (
-                            <span className="px-1 text-slate-400">...</span>
-                          )}
-                          <Button
-                            variant={currentPage === page ? "default" : "ghost"}
-                            size="sm"
-                            onClick={() => setCurrentPage(page)}
-                            className={cn(
-                              "rounded-xl h-9 w-9 p-0 text-xs font-bold transition-all",
-                              currentPage === page
-                                ? "bg-indigo-600 text-white shadow-md"
-                                : "text-slate-600 hover:bg-slate-100"
-                            )}
-                          >
-                            {page}
-                          </Button>
-                        </React.Fragment>
-                      ))}
-                  </div>
-
-                  {/* Sonraki Sayfa */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="rounded-xl h-9 px-3 text-xs font-bold border-slate-200/60 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
-                  >
-                    {t('common.next')}
-                  </Button>
-
-                  {/* Sayfa Bilgisi */}
-                  <span className="ml-3 text-xs text-slate-500 font-medium">
-                    {filteredProducts.length} üründen {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProducts.length)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <Separator className="opacity-50" />
-
-            {/* SORTING AREA */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{t('builder.selectedProducts', { count: validProductIds.length })}</h3>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder')}</p>
-                </div>
-                {selectedProductIds.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={() => onSelectedProductIdsChange([])} className="h-8 text-xs font-bold text-destructive hover:bg-destructive/5 px-3 rounded-lg">
-                    {t('builder.clearSelection')}
-                  </Button>
-                )}
-              </div>
-
-              <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-3">
-                <div className="max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selectedProductIds.map((id, index) => {
-                      const product = products.find(p => p.id === id)
-                      if (!product) return null
-                      return (
-                        <div
-                          key={id}
-                          draggable
-                          onDragStart={(e) => {
-                            e.stopPropagation();
-                            e.dataTransfer.setData("text", index.toString());
-                            setDraggingIndex(index)
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setDropIndex(index)
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            const from = Number(e.dataTransfer.getData("text"))
-                            const newList = [...selectedProductIds]
-                            const [moved] = newList.splice(from, 1)
-                            newList.splice(index, 0, moved)
-                            onSelectedProductIdsChange(newList)
-                            setDraggingIndex(null); setDropIndex(null)
-                          }}
-                          className={cn(
-                            "flex items-center gap-3 p-2 bg-card rounded-lg border border-border shadow-sm transition-all group",
-                            draggingIndex === index && "opacity-50 scale-95 border-dashed border-primary pre-drag",
-                            dropIndex === index && draggingIndex !== index && "border-primary ring-2 ring-primary/10"
-                          )}
-                        >
-                          <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 group-hover:text-muted-foreground shrink-0">
-                            <GripVertical className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="w-8 h-8 rounded shrink-0 border border-border overflow-hidden relative">
-                            <NextImage src={product.image_url || "/placeholder.svg"} alt={product.name} fill className="object-cover" unoptimized />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-bold truncate text-foreground">{product.name}</p>
-                          </div>
-                          <Button variant="ghost" size="icon" onClick={() => onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))} className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      )
-                    })}
-                    {selectedProductIds.length === 0 && (
-                      <div className="col-span-full py-10 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl bg-card">
-                        <Package className="w-8 h-8 mb-2 opacity-20" />
-                        <p className="text-xs font-medium">Henüz ürün seçilmedi</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <TabsContent value="content" className="m-0">
+            <EditorContentTab
+              t={t}
+              description={description}
+              onDescriptionChange={onDescriptionChange}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              categories={categories}
+              filteredProducts={filteredProducts}
+              visibleProducts={visibleProducts}
+              selectedProductIds={selectedProductIds}
+              selectedProductIdSet={selectedProductIdSet}
+              validProductIds={validProductIds}
+              onSelectedProductIdsChange={onSelectedProductIdsChange}
+              toggleProduct={toggleProduct}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              startIndex={startIndex}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              productMap={productMap}
+              draggingIndex={draggingIndex}
+              dropIndex={dropIndex}
+              onSortDragStart={handleSortDragStart}
+              onSortDragOver={handleSortDragOver}
+              onSortDrop={handleSortDrop}
+              onRemoveProduct={handleRemoveProduct}
+            />
           </TabsContent>
 
-          <TabsContent value="design" className="m-0 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
-            {/* DESIGN SECTIONS - STACKED VERTICALLY */}
-            <div className="space-y-3">
-
-              {/* 1. APPEARANCE SETTINGS */}
-              <div className="space-y-4">
-                <button onClick={() => toggleSection('appearance')} className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-300 group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
-                      <Layout className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.designSettings')}</h3>
-                  </div>
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", openSections.appearance && "rotate-180")} />
-                </button>
-
-                <div className="grid transition-[grid-template-rows] duration-300 ease-in-out" style={{ gridTemplateRows: openSections.appearance ? '1fr' : '0fr' }}>
-                  <div className="overflow-hidden">
-                    <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
-                      <CardContent className="p-5 space-y-6">
-                        {/* Premium Toggles List - Spacious */}
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange, icon: <Sparkles className="w-3.5 h-3.5" /> },
-                            { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
-                            { label: "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange, disabled: layout === 'magazine' },
-                            { label: "Ürün Stoklarını Göster", value: showSku, onChange: onShowSkuChange },
-                            { label: "Ürün URL'leri", value: showUrls, onChange: onShowUrlsChange },
-                          ].map((item, idx) => (
-                            <div
-                              key={idx}
-                              className={cn(
-                                "flex items-center justify-between p-3 rounded-2xl transition-all duration-300 border border-slate-100/50 dark:border-slate-800/50",
-                                item.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:bg-white dark:hover:bg-slate-800/50 hover:shadow-sm group",
-                                item.label === "Ürün URL'leri" && "col-span-2 sm:col-span-1"
-                              )}
-                              onClick={() => !item.disabled && item.onChange?.(!item.value)}
-                            >
-                              <div className="flex flex-col gap-0.5 min-w-0">
-                                <span className={cn(
-                                  "text-[10px] font-black uppercase tracking-tight transition-colors truncate",
-                                  item.disabled ? "text-slate-400" : "text-slate-600 dark:text-slate-400"
-                                )}>
-                                  {item.label as string}
-                                </span>
-                                {item.disabled && <span className="text-[8px] font-medium italic opacity-60">Dergide yok</span>}
-                              </div>
-                              <div className={cn(
-                                "w-9 h-[18px] rounded-full relative transition-all duration-500 shrink-0",
-                                item.value && !item.disabled ? "bg-indigo-600 shadow-sm" : "bg-slate-200 dark:bg-slate-700"
-                              )}>
-                                <div className={cn(
-                                  "absolute top-0.5 left-0.5 w-[14px] h-[14px] rounded-full bg-white transition-all duration-500 shadow-sm",
-                                  item.value && !item.disabled && "translate-x-[18px]"
-                                )} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Product Image & Layout Settings Grid */}
-                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          {/* Image Alignment Pill */}
-                          <div className="space-y-2.5">
-                            <Label className="text-[10px] font-black uppercase text-slate-500 block tracking-widest text-center">{(t('builder.productImages') || "Ürün Fotoğrafları") as string}</Label>
-                            <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
-                              {[
-                                { value: 'cover' as const, label: 'Kırp' },
-                                { value: 'contain' as const, label: 'Sığdır' },
-                                { value: 'fill' as const, label: 'Doldur' }
-                              ].map((option) => (
-                                <button
-                                  key={option.value}
-                                  onClick={() => onProductImageFitChange?.(option.value)}
-                                  className={cn(
-                                    "flex-1 py-1.5 text-[9px] font-black uppercase rounded-xl transition-all duration-300",
-                                    productImageFit === option.value
-                                      ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-md scale-[1.02]"
-                                      : "text-slate-500 hover:text-slate-700"
-                                  )}
-                                >
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Column Count Pill */}
-                          {availableColumns.length > 1 ? (
-                            <div className="space-y-2.5">
-                              <Label className="text-[10px] font-black uppercase text-slate-500 block tracking-widest text-center">Görünüm Düzeni</Label>
-                              <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
-                                {availableColumns.map((num) => (
-                                  <button
-                                    key={num}
-                                    onClick={() => onColumnsPerRowChange?.(num)}
-                                    className={cn(
-                                      "flex-1 py-1.5 text-[9px] font-black uppercase rounded-xl transition-all duration-300",
-                                      columnsPerRow === num
-                                        ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-md scale-[1.02]"
-                                        : "text-slate-500 hover:text-slate-700"
-                                    )}
-                                  >
-                                    {num} Sütun
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center text-[10px] text-slate-400 font-bold italic pt-4 leading-tight text-center">
-                              Seçili şablon için düzen sabit.
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. LOGO & BRANDING */}
-              <div className="space-y-4">
-                <button onClick={() => toggleSection('branding')} className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-300 group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.logoBranding') as string}</h3>
-                  </div>
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", openSections.branding && "rotate-180")} />
-                </button>
-
-                <div className="grid transition-[grid-template-rows] duration-300 ease-in-out" style={{ gridTemplateRows: openSections.branding ? '1fr' : '0fr' }}>
-                  <div className="overflow-hidden">
-                    <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
-                      <CardContent className="p-5 space-y-5">
-                        {/* Logo Upload + Settings - Side by side on larger screens */}
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          {/* Logo Upload Area - Compact */}
-                          <div
-                            className={cn(
-                              "relative w-full sm:w-40 h-32 sm:h-auto sm:aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden shrink-0",
-                              logoUrl
-                                ? "border-slate-100 bg-white dark:bg-slate-900 dark:border-slate-800"
-                                : "border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-400 group"
-                            )}
-                            onClick={() => {
-                              handleUploadClick()
-                              logoInputRef.current?.click()
-                            }}
-                          >
-                            {logoUrl ? (
-                              <div className="relative w-[80%] h-[80%] group">
-                                <NextImage src={logoUrl} alt="Logo" fill className="object-contain" unoptimized />
-                                <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 rounded-xl">
-                                  <span className="text-[8px] font-black uppercase text-slate-800 bg-white/90 px-2 py-1 rounded-full shadow-lg">DEĞİŞTİR</span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="text-center p-3 space-y-1.5">
-                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-center mx-auto transition-transform group-hover:-translate-y-1">
-                                  <Upload className="w-5 h-5 text-indigo-500" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">{t('builder.logoUpload') as string}</p>
-                                  <p className="text-[8px] text-slate-400 font-bold">PNG, WEBP (2MB)</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
-                        </div>
-
-                        {/* Logo Position + Title Settings */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest pl-1">Logo Konumu</Label>
-                            <Select value={logoPosition || 'none'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
-                              <SelectTrigger className="h-9 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[11px] font-bold">
-                                <SelectValue placeholder="Gösterme" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-2xl shadow-2xl">
-                                <SelectItem value="none">Gösterme</SelectItem>
-                                <SelectItem value="header-left">Sol Üst</SelectItem>
-                                <SelectItem value="header-center">Orta Üst</SelectItem>
-                                <SelectItem value="header-right">Sağ Üst</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest pl-1">Başlık Hizalama</Label>
-                            <Select value={_titlePosition || 'left'} onValueChange={(v) => _onTitlePositionChange?.(v as NonNullable<Catalog['title_position']>)}>
-                              <SelectTrigger className="h-9 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[11px] font-bold">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-2xl shadow-2xl">
-                                <SelectItem value="left">Sola Dayalı</SelectItem>
-                                <SelectItem value="center">Ortala</SelectItem>
-                                <SelectItem value="right">Sağa Dayalı</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {/* Branding Colors */}
-                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest pl-1">Renk Paleti</span>
-                            <div className="flex gap-1.5">
-                              {['#4f46e5', '#9333ea', '#c026d3', '#0f172a'].map((color) => (
-                                <button
-                                  key={color}
-                                  className="w-5 h-5 rounded-full border border-white shadow-sm transition-transform hover:scale-125"
-                                  style={{ backgroundColor: color }}
-                                  onClick={() => onPrimaryColorChange(`rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 1)`)}
-                                />
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Primary Color Picker */}
-                            <div className="space-y-2 relative" ref={primaryColorPickerRef}>
-                              <Label className="text-[10px] font-bold text-slate-500">Üst Kart Rengi</Label>
-                              <div
-                                className="h-12 w-full rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex items-center px-3 gap-2 cursor-pointer transition-all hover:border-indigo-400"
-                                onClick={() => setShowPrimaryColorPicker(!showPrimaryColorPicker)}
-                              >
-                                <div className="w-6 h-6 rounded-lg shadow-sm ring-1 ring-black/5" style={{ backgroundColor: primaryColor }} />
-                                <span className="text-[10px] font-mono font-bold uppercase">{primaryColorParsed.hexColor}</span>
-                              </div>
-                              {showPrimaryColorPicker && (
-                                <div className="absolute bottom-full left-0 mb-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in slide-in-from-bottom-4 duration-300">
-                                  <HexColorPicker
-                                    color={primaryColorParsed.hexColor}
-                                    onChange={(hex) => {
-                                      const r = parseInt(hex.substring(1, 3), 16), g = parseInt(hex.substring(3, 5), 16), b = parseInt(hex.substring(5, 7), 16)
-                                      debouncedPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
-                                    }}
-                                    style={{ width: '220px', height: '140px' }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Text Color Picker */}
-                            <div className="space-y-2 relative" ref={headerTextColorPickerRef}>
-                              <Label className="text-[10px] font-bold text-slate-500">Üst Yazı Rengi</Label>
-                              <div
-                                className="h-12 w-full rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex items-center px-3 gap-2 cursor-pointer transition-all hover:border-indigo-400"
-                                onClick={() => setShowHeaderTextColorPicker(!showHeaderTextColorPicker)}
-                              >
-                                <div className="w-6 h-6 rounded-lg shadow-sm ring-1 ring-black/5" style={{ backgroundColor: headerTextColor || '#ffffff' }} />
-                                <span className="text-[10px] font-mono font-bold uppercase">{headerTextColor || '#FFFFFF'}</span>
-                              </div>
-                              {showHeaderTextColorPicker && (
-                                <div className="absolute bottom-full right-0 mb-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in slide-in-from-bottom-4 duration-300">
-                                  <HexColorPicker
-                                    color={headerTextColor || '#ffffff'}
-                                    onChange={(hex) => debouncedHeaderTextColorChange(hex)}
-                                    style={{ width: '220px', height: '140px' }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. BACKGROUND SETTINGS - FULL WIDTH ON LG */}
-              <div className="space-y-4">
-                <button onClick={() => toggleSection('background')} className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-300 group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                      <ImageIcon className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">{t('builder.backgroundSettings') as string}</h3>
-                  </div>
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", openSections.background && "rotate-180")} />
-                </button>
-
-                <div className="grid transition-[grid-template-rows] duration-300 ease-in-out" style={{ gridTemplateRows: openSections.background ? '1fr' : '0fr' }}>
-                  <div className="overflow-hidden">
-                    <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden">
-                      <CardContent className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                          {/* BG Color & Gradient */}
-                          <div className="space-y-6">
-                            <div className="space-y-2 relative" ref={backgroundColorPickerRef}>
-                              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Arka Plan Rengi</Label>
-                              <div
-                                className="h-14 w-full rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-4 gap-3 cursor-pointer transition-all hover:border-indigo-300"
-                                onClick={() => setShowBackgroundColorPicker(!showBackgroundColorPicker)}
-                              >
-                                <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white" style={{ backgroundColor: backgroundColor || '#ffffff' }} />
-                                <span className="text-xs font-mono font-bold uppercase tracking-tight">{backgroundColor || '#FFFFFF'}</span>
-                              </div>
-                              {showBackgroundColorPicker && (
-                                <div className="absolute top-full left-0 mt-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
-                                  <HexColorPicker
-                                    color={backgroundColor || '#ffffff'}
-                                    onChange={(hex) => debouncedBackgroundColorChange(hex)}
-                                    style={{ width: '240px', height: '160px' }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Gradyan Efekti</Label>
-                              <Select value={backgroundGradient || 'none'} onValueChange={(v) => onBackgroundGradientChange?.(v === 'none' ? null : v)}>
-                                <SelectTrigger className="h-14 rounded-2xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-xs font-bold">
-                                  <SelectValue placeholder="Yok" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl shadow-2xl">
-                                  <SelectItem value="none">Düz Renk</SelectItem>
-                                  <SelectItem value="linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)">Yumuşak Slate</SelectItem>
-                                  <SelectItem value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">Indigo Gece</SelectItem>
-                                  <SelectItem value="linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)">Pembe Bulut</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          {/* BG Image Upload */}
-                          <div className="space-y-3 lg:col-span-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Fon Görseli</Label>
-                            <div className="flex flex-col sm:flex-row gap-4 h-full min-h-[140px]">
-                              <div
-                                className={cn(
-                                  "flex-1 rounded-[1.5rem] border-2 border-dashed flex flex-col items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden",
-                                  backgroundImage
-                                    ? "border-indigo-100 bg-white shadow-inner"
-                                    : "border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 group"
-                                )}
-                                onClick={() => {
-                                  handleUploadClick()
-                                  bgInputRef.current?.click()
-                                }}
-                              >
-                                {backgroundImage ? (
-                                  <div className="relative w-full h-full p-2 group">
-                                    <NextImage src={backgroundImage} alt="BG" fill className="object-contain" unoptimized />
-                                    <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 rounded-xl">
-                                      <span className="text-[9px] font-black text-slate-800 bg-white/90 px-3 py-1.5 rounded-full shadow-lg">DEĞİŞTİR</span>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="text-center p-4 space-y-2">
-                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
-                                      <ImageIcon className="w-5 h-5 text-blue-500" />
-                                    </div>
-                                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-tight">Görsel Seç</p>
-                                  </div>
-                                )}
-                                <input type="file" ref={bgInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'bg')} />
-                              </div>
-
-                              {backgroundImage && (
-                                <div className="flex-1 flex flex-col gap-3 animate-in slide-in-from-right-4 duration-500">
-                                  <div className="space-y-1.5">
-                                    <Label className="text-[9px] font-black text-slate-400 px-1">Görünüm</Label>
-                                    <Select value={backgroundImageFit} onValueChange={(v) => onBackgroundImageFitChange?.(v as NonNullable<Catalog['background_image_fit']>)}>
-                                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold"><SelectValue /></SelectTrigger>
-                                      <SelectContent className="rounded-2xl">
-                                        <SelectItem value="cover">Kapla (Cover)</SelectItem>
-                                        <SelectItem value="contain">Sığdır (Contain)</SelectItem>
-                                        <SelectItem value="fill">Doldur (Stretch)</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => onBackgroundImageChange?.(null)}
-                                    className="mt-auto h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-50 text-red-600 hover:bg-red-100 border-none shadow-none"
-                                  >
-                                    Görseli Kaldır
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. STORYTELLING CATALOG SETTINGS */}
-              <div className="space-y-4">
-                <button onClick={() => toggleSection('storytelling')} className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/80 dark:bg-slate-900/40 border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-300 group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Hikaye Kataloğu</h3>
-                  </div>
-                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", openSections.storytelling && "rotate-180")} />
-                </button>
-
-                <div className="grid transition-[grid-template-rows] duration-300 ease-in-out" style={{ gridTemplateRows: openSections.storytelling ? '1fr' : '0fr' }}>
-                  <div className="overflow-hidden">
-                    <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden">
-                      <CardContent className="p-6 space-y-6">
-                        {/* Cover Page Toggle */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-wide">Kapak Sayfası</Label>
-                              <p className="text-[10px] text-slate-500">Katalogda profesyonel bir kapak sayfası göster</p>
-                            </div>
-                            <button
-                              onClick={() => onEnableCoverPageChange?.(!enableCoverPage)}
-                              className={cn(
-                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out",
-                                enableCoverPage ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                                  enableCoverPage ? "translate-x-5" : "translate-x-0"
-                                )}
-                              />
-                            </button>
-                          </div>
-
-                          {/* Cover Page Options (only visible when enabled) */}
-                          {enableCoverPage && (
-                            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-500">
-
-                              {/* THEME SELECTOR - PROFESSIONAL GRID */}
-                              <div className="space-y-3">
-                                <Label className="text-[11px] font-black uppercase text-slate-500 tracking-[0.1em] pl-1">Kapak Tasarımı</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {Object.entries(COVER_THEMES).map(([key, theme]) => {
-                                    const isSelected = coverTheme === key || (!coverTheme && key === 'modern');
-                                    return (
-                                      <button
-                                        key={key}
-                                        onClick={() => onCoverThemeChange?.(key)}
-                                        className={cn(
-                                          "flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border transition-all duration-300 group relative overflow-hidden",
-                                          isSelected
-                                            ? "border-indigo-600 bg-indigo-50/40 shadow-sm shadow-indigo-100"
-                                            : "border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-600"
-                                        )}
-                                      >
-                                        {/* Mini Accent Dot/Icon */}
-                                        <div className={cn(
-                                          "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300",
-                                          isSelected
-                                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-110"
-                                            : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
-                                        )}>
-                                          <Layout className="w-3 h-3" />
-                                        </div>
-
-                                        <div className="flex flex-col min-w-0">
-                                          <span className={cn(
-                                            "text-[10px] font-bold truncate leading-tight transition-colors",
-                                            isSelected ? "text-indigo-700 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300"
-                                          )}>
-                                            {theme.name}
-                                          </span>
-                                        </div>
-
-                                        {isSelected && (
-                                          <div className="absolute right-0 top-0 h-full w-1 bg-indigo-600" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {/* Cover Image Upload - Professional Dropzone */}
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between px-1">
-                                  <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kapak Görseli</Label>
-                                  <span className="text-[9px] text-slate-400 font-bold italic">Önerilen: 1920x1080px</span>
-                                </div>
-
-                                <div className="space-y-3">
-                                  {coverImageUrl ? (
-                                    <div className="group relative aspect-video rounded-3xl overflow-hidden border-2 border-slate-100 dark:border-slate-800 shadow-sm transition-all duration-300 hover:shadow-md">
-                                      <NextImage src={coverImageUrl} alt="Cover" fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
-                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          onClick={() => coverInputRef.current?.click()}
-                                          className="h-8 rounded-xl bg-white/20 backdrop-blur-md hover:bg-white/40 text-white border-white/20 text-[10px] font-bold uppercase transition-all"
-                                        >
-                                          <Upload className="w-3.5 h-3.5 mr-1.5" />
-                                          Değiştir
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          onClick={() => onCoverImageUrlChange?.(null)}
-                                          className="h-8 rounded-xl bg-red-500/80 backdrop-blur-md hover:bg-red-600 text-white border-none text-[10px] font-bold uppercase transition-all"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                          Kaldır
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => coverInputRef.current?.click()}
-                                      className="w-full aspect-video rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 hover:bg-slate-50 dark:hover:bg-slate-900/50 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all duration-300 flex flex-col items-center justify-center group"
-                                    >
-                                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-indigo-50 transition-all duration-300">
-                                        <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-indigo-500" />
-                                      </div>
-                                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-700">Görsel Seç</span>
-                                      <span className="text-[9px] text-slate-400 font-bold mt-1">Sürükle bırak veya tıkla</span>
-                                    </button>
-                                  )}
-                                  <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} />
-                                </div>
-                              </div>
-
-                              {/* Cover Description */}
-                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kapak Açıklaması</Label>
-                                <textarea
-                                  value={coverDescription || ''}
-                                  onChange={(e) => onCoverDescriptionChange?.(e.target.value || null)}
-                                  placeholder="Katalog hakkında kısa bir açıklama (maksimum 500 karakter)"
-                                  maxLength={500}
-                                  className="w-full min-h-[100px] p-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none"
-                                />
-                                <p className="text-[9px] text-slate-400 text-right">{(coverDescription || '').length}/500</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Cover Page Preview Trigger - Visual Toggle */}
-                        {enableCoverPage && (
-                          <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6 animate-in fade-in zoom-in duration-500">
-                            <div className="aspect-[1/1.414] w-full max-w-[320px] mx-auto bg-white shadow-2xl rounded-[2.5rem] overflow-hidden border border-slate-200/50 scale-[0.9] origin-top transition-transform hover:scale-100 duration-500">
-                              <CoverPageRenderer
-                                theme={coverTheme}
-                                catalogName={catalogName}
-                                coverImageUrl={coverImageUrl}
-                                coverDescription={coverDescription}
-                                logoUrl={logoUrl}
-                                primaryColor={primaryColor}
-                                productCount={products.length}
-                              />
-                            </div>
-                            <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest mt-4">Kapak Önizlemesi</p>
-                          </div>
-                        )}
-
-                        {/* Category Dividers Toggle */}
-                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-wide">Kategori Geçiş Sayfaları</Label>
-                              <p className="text-[10px] text-slate-500">Kategoriler arası geçişlerde görsel ayraç sayfaları göster</p>
-                            </div>
-                            <button
-                              onClick={() => onEnableCategoryDividersChange?.(!enableCategoryDividers)}
-                              className={cn(
-                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out",
-                                enableCategoryDividers ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                                  enableCategoryDividers ? "translate-x-5" : "translate-x-0"
-                                )}
-                              />
-                            </button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-
-
-
-              {/* NEW: VISUAL STRUCTURE PREVIEW (SAYFA YAPISI) */}
-              <div className="space-y-6 pt-6 animate-in fade-in duration-700">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
-                  <div className="flex items-center gap-2 px-6">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-500 shadow-lg shadow-amber-200 flex items-center justify-center text-white">
-                      <Layout className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">SAYFA YAPISI</h3>
-                  </div>
-                  <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
-                </div>
-
-                <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x px-4 items-center justify-center max-w-full">
-                  {/* 1. Cover Page Card */}
-                  <div className={cn(
-                    "flex-shrink-0 w-24 h-32 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-500",
-                    enableCoverPage
-                      ? "border-indigo-600 bg-indigo-50/50 shadow-lg scale-105"
-                      : "border-slate-200 border-dashed bg-slate-50/50 opacity-40"
-                  )}>
-                    <div className={cn(
-                      "w-7 h-7 rounded-xl flex items-center justify-center text-white text-[10px] font-black shadow-sm",
-                      enableCoverPage ? "bg-indigo-600" : "bg-slate-300"
-                    )}>01</div>
-                    <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">Kapak</span>
-                  </div>
-
-                  {/* Arrow */}
-                  <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
-
-                  {/* 2. Intro/Products Card */}
-                  <div className="flex-shrink-0 w-24 h-32 rounded-2xl border-2 border-slate-200 bg-white shadow-sm flex flex-col items-center justify-center gap-2">
-                    <div className="w-8 h-10 bg-slate-100 rounded-lg border border-slate-200 flex flex-col gap-1 p-1">
-                      <div className="w-full h-1/2 bg-slate-200/50 rounded-sm"></div>
-                      <div className="w-full h-1/2 bg-slate-200/50 rounded-sm"></div>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">Ürünler</span>
-                    <span className="text-[8px] text-slate-400 font-bold">{selectedProductIds.length} Ürün</span>
-                  </div>
-
-                  {/* Arrow */}
-                  {enableCategoryDividers && (
-                    <>
-                      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
-                      {/* 3. Category Divider Card */}
-                      <div className="flex-shrink-0 w-24 h-32 rounded-2xl border-2 border-violet-500 bg-violet-50/50 shadow-lg scale-105 flex flex-col items-center justify-center gap-2 animate-in zoom-in-50 duration-500">
-                        <div className="w-7 h-7 rounded-xl bg-violet-600 shadow-sm flex items-center justify-center text-white">
-                          <Layout className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-[9px] font-black uppercase tracking-tight text-slate-600 text-center px-1">Geçişler</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* 4. TEMPLATE SELECTOR - STUNNING GRID */}
-              <div className="space-y-6 pt-6 animate-in fade-in duration-700">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
-                  <div className="flex items-center gap-2 px-6">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-200 flex items-center justify-center text-white">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">{t('builder.templateStyle') as string}</h3>
-                  </div>
-                  <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
-                </div>
-
-                <div className="flex overflow-x-auto pb-8 gap-6 snap-x px-4 -mx-4 scrollbar-hide">
-                  {TEMPLATES.map((tmpl) => (
-                    <div key={tmpl.id} className="flex-shrink-0 w-64 snap-center">
-                      <TemplatePreviewCard
-                        templateId={tmpl.id}
-                        templateName={tmpl.name}
-                        isPro={tmpl.isPro}
-                        isSelected={layout === tmpl.id}
-                        onSelect={() => handleTemplateSelect(tmpl.id, tmpl.isPro)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <TabsContent value="design" className="m-0">
+            <EditorDesignTab
+              t={t}
+              openSections={openSections}
+              toggleSection={toggleSection}
+              layout={layout}
+              onLayoutChange={onLayoutChange}
+              showPrices={showPrices}
+              onShowPricesChange={onShowPricesChange}
+              showDescriptions={showDescriptions}
+              onShowDescriptionsChange={onShowDescriptionsChange}
+              showAttributes={showAttributes}
+              onShowAttributesChange={onShowAttributesChange}
+              showSku={showSku}
+              onShowSkuChange={onShowSkuChange}
+              showUrls={showUrls}
+              onShowUrlsChange={onShowUrlsChange}
+              productImageFit={productImageFit}
+              onProductImageFitChange={onProductImageFitChange}
+              columnsPerRow={columnsPerRow}
+              onColumnsPerRowChange={onColumnsPerRowChange}
+              availableColumns={availableColumns}
+              primaryColor={primaryColor}
+              onPrimaryColorChange={onPrimaryColorChange}
+              primaryColorParsed={primaryColorParsed}
+              showPrimaryColorPicker={showPrimaryColorPicker}
+              setShowPrimaryColorPicker={setShowPrimaryColorPicker}
+              primaryColorPickerRef={primaryColorPickerRef}
+              debouncedPrimaryColorChange={debouncedPrimaryColorChange}
+              headerTextColor={headerTextColor}
+              onHeaderTextColorChange={onHeaderTextColorChange}
+              showHeaderTextColorPicker={showHeaderTextColorPicker}
+              setShowHeaderTextColorPicker={setShowHeaderTextColorPicker}
+              headerTextColorPickerRef={headerTextColorPickerRef}
+              debouncedHeaderTextColorChange={debouncedHeaderTextColorChange}
+              backgroundColor={backgroundColor}
+              onBackgroundColorChange={onBackgroundColorChange}
+              showBackgroundColorPicker={showBackgroundColorPicker}
+              setShowBackgroundColorPicker={setShowBackgroundColorPicker}
+              backgroundColorPickerRef={backgroundColorPickerRef}
+              debouncedBackgroundColorChange={debouncedBackgroundColorChange}
+              backgroundImage={backgroundImage}
+              onBackgroundImageChange={onBackgroundImageChange}
+              backgroundImageFit={backgroundImageFit}
+              onBackgroundImageFitChange={onBackgroundImageFitChange}
+              backgroundGradient={backgroundGradient}
+              onBackgroundGradientChange={onBackgroundGradientChange}
+              logoUrl={logoUrl}
+              onLogoUrlChange={onLogoUrlChange}
+              logoPosition={logoPosition}
+              onLogoPositionChange={onLogoPositionChange}
+              titlePosition={titlePosition}
+              onTitlePositionChange={onTitlePositionChange}
+              enableCoverPage={enableCoverPage}
+              onEnableCoverPageChange={onEnableCoverPageChange}
+              coverImageUrl={coverImageUrl}
+              onCoverImageUrlChange={onCoverImageUrlChange}
+              coverDescription={coverDescription}
+              onCoverDescriptionChange={onCoverDescriptionChange}
+              enableCategoryDividers={enableCategoryDividers}
+              onEnableCategoryDividersChange={onEnableCategoryDividersChange}
+              coverTheme={coverTheme}
+              onCoverThemeChange={onCoverThemeChange}
+              catalogName={catalogName}
+              products={products}
+              handleUploadClick={handleUploadClick}
+              handleFileUpload={handleFileUpload}
+              logoInputRef={logoInputRef}
+              bgInputRef={bgInputRef}
+              coverInputRef={coverInputRef}
+              userPlan={userPlan}
+              onUpgrade={onUpgrade}
+              selectedProductIds={selectedProductIds}
+            />
           </TabsContent>
         </div>
       </Tabs>

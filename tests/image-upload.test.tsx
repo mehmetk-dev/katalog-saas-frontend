@@ -1,8 +1,8 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { ProductModal } from '@/components/products/product-modal'
-import { BulkImageUploadModal } from '@/components/products/bulk-image-upload-modal'
+import { ProductModal } from '@/components/products/modals/product-modal'
+import { BulkImageUploadModal } from '@/components/products/bulk/bulk-image-upload-modal'
 import { FeedbackModal } from '@/components/dashboard/feedback-modal'
 import { Product } from '@/lib/actions/products'
 
@@ -61,7 +61,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
             imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }

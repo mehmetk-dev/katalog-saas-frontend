@@ -57,7 +57,7 @@ const CATALOG_LIMITS = {
 export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "free" }: CatalogsPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { refreshUser } = useUser()
+  const { refreshUser, adjustCatalogsCount } = useUser()
   const [catalogs, setCatalogs] = useState(initialCatalogs)
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -125,6 +125,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
         name: `${baseName} - ${currentDate}`,
         layout: "modern-grid"
       })
+
+      adjustCatalogsCount(1)
 
       const successMsg = t('toasts.catalogCreated')
       toast.success(successMsg === 'toasts.catalogCreated' ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })

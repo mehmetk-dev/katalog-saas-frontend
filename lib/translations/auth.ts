@@ -40,7 +40,7 @@ const auth = {
             authFailed: "Kimlik doğrulama başarısız oldu. Lütfen tekrar deneyin.",
             retry: "Tekrar Dene",
             testimonialQuote: "\"FogCatalog ile ürünlerimizi müşterilerimize sunmak hiç bu kadar kolay olmamıştı. Profesyonel şablonlar işimizi bir üst seviyeye taşıdı.\"",
-            testimonialAuthor: "Ahmet Yılmaz, TechStore Kurucusu",
+            testimonialAuthor: "Ahmet Yılmaz",
             // Error messages
             sessionExpired: "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
             invalidCode: "Geçersiz doğrulama kodu. Lütfen tekrar deneyin.",
@@ -60,6 +60,7 @@ const auth = {
             loginError: "Giriş yapılırken bir hata oluştu",
             signupError: "Kayıt olurken bir hata oluştu",
             googleAuthError: "Google ile giriş yapılırken bir hata oluştu",
+            errorGeneric: "Bir hata oluştu. Lütfen bilgilerinizi kontrol edip tekrar deneyin.",
             // Forgot/Reset Password
             forgotPasswordTitle: "Şifremi Unuttum",
             forgotPasswordSubtitle: "E-posta adresinizi girin, size şifre sıfırlama linki gönderelim",
@@ -140,6 +141,7 @@ const auth = {
             loginError: "An error occurred during sign in",
             signupError: "An error occurred during sign up",
             googleAuthError: "An error occurred during Google sign in",
+            errorGeneric: "An error occurred. Please check your information and try again.",
             // Forgot/Reset Password
             forgotPasswordTitle: "Forgot Password",
             forgotPasswordSubtitle: "Enter your email address and we'll send you a password reset link",

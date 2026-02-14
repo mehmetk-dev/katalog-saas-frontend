@@ -26,7 +26,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { usePathname } from "next/navigation"
 
 export function DashboardHeader() {
-  const { user, logout } = useUser()
+  const { user, logout, adjustCatalogsCount } = useUser()
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const { toggle, isMobile, isCollapsed } = useSidebar()
@@ -57,6 +57,8 @@ export function DashboardHeader() {
         name: `${baseName} - ${currentDate}`,
         layout: "modern-grid"
       })
+
+      adjustCatalogsCount(1)
 
       const successMsg = t("toasts.catalogCreated")
       toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })

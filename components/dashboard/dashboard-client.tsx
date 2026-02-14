@@ -65,7 +65,7 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
 export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats, allProductIds = [] }: DashboardClientProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-    const { user, isLoading } = useUser()
+    const { user, isLoading, adjustCatalogsCount } = useUser()
 
     // Veri normalizasyonu: Catalogs ve Products'ın her zaman array olmasını sağla
     const currentCatalogs: Catalog[] = Array.isArray(initialCatalogs) ? initialCatalogs : (initialCatalogs as any)?.data || []
@@ -291,6 +291,8 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                             name: `${baseName} - ${currentDate}`,
                                             layout: "modern-grid"
                                         })
+
+                                        adjustCatalogsCount(1)
 
                                         const successMsg = t("toasts.catalogCreated")
                                         toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import React, { useState, useRef, useEffect, useMemo } from "react"
 import { FileText, List } from "lucide-react"
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
@@ -92,7 +92,7 @@ const ALL_TEMPLATES: Record<string, any> = {
 const A4_WIDTH = 794
 const A4_HEIGHT = 1123
 
-export function CatalogPreview(props: CatalogPreviewProps) {
+export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogPreviewProps) {
   const { user } = useUser()
   const isFreeUser = user?.plan === "free"
   const [currentPage, setCurrentPage] = useState(0)
@@ -371,4 +371,4 @@ export function CatalogPreview(props: CatalogPreviewProps) {
       </div>
     </div>
   )
-}
+})

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
-@import "tw-animate-css";
+/* @import "tw-animate-css"; */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -203,7 +203,7 @@
   color: #ffffff !important;
 }
 
-@theme inline {
+@theme {
   --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
   --font-montserrat: "Montserrat", "Montserrat Fallback", sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
@@ -530,4 +530,15 @@
   body:has(.builder-page) [data-sonner-toaster] {
     --offset: calc(env(safe-area-inset-bottom, 0px) + 94px) !important;
   }
+}
+
+/* Validation Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }

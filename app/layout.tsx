@@ -26,7 +26,7 @@ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.com'
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "FogCatalog - Professional Product Catalog Builder | Katalog Oluşturucu",
+    default: "FogCatalog - Professional Product Catalog Builder",
     template: "%s | FogCatalog",
   },
   description: "Create stunning, professional digital product catalogs in minutes. 15+ premium templates, PDF export, QR codes, and interactive sharing. Start for free!",

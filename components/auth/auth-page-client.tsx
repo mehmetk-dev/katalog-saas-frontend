@@ -23,10 +23,12 @@ export function AuthPageClient() {
     const [isLoading, setIsLoading] = useState(false)
     const [isGoogleLoading, setIsGoogleLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [success, setSuccess] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
     const [showGoogleWarning, setShowGoogleWarning] = useState(false)
+    const [shakingFields, setShakingFields] = useState<Record<string, boolean>>({})
 
     // Form state
     const [name, setName] = useState("")
@@ -184,8 +186,20 @@ export function AuthPageClient() {
 
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault()
-        setIsLoading(true)
         setError(null)
+
+        // Manual Validation
+        if (!email) {
+            setError(t("auth.invalidEmail") as string)
+            return
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email)) {
+            setError(t("auth.invalidEmail") as string)
+            return
+        }
+
+        setIsLoading(true)
         setShowGoogleWarning(false)
 
         const providerInfo = await checkProvider(email)
@@ -241,10 +255,59 @@ export function AuthPageClient() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setError(null)
+        setFieldErrors({})
+
+        let hasError = false
+        const newFieldErrors: Record<string, string> = {}
+
+        // Custom Validation
+        if (!email) {
+            newFieldErrors.email = t("auth.invalidEmail") as string
+            hasError = true
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (!emailRegex.test(email)) {
+                newFieldErrors.email = t("auth.invalidEmail") as string
+                hasError = true
+            }
+        }
+
+        if (mode !== 'forgot-password') {
+            if (!password) {
+                newFieldErrors.password = "Lütfen şifrenizi giriniz."
+                hasError = true
+            } else if (password.length < 6) {
+                newFieldErrors.password = t("auth.passwordLength") as string
+                hasError = true
+            }
+        }
+
+        if (mode === 'signup' && !name) {
+            newFieldErrors.name = "Lütfen adınızı ve soyadınızı giriniz."
+            hasError = true
+        }
+
+        if (hasError) {
+            setFieldErrors(newFieldErrors)
+
+            // Shake the specific fields that have errors
+            const newShakingFields: Record<string, boolean> = {}
+            Object.keys(newFieldErrors).forEach(key => {
+                newShakingFields[key] = true
+            })
+            setShakingFields(newShakingFields)
+
+            // Remove shake class after animation
+            setTimeout(() => {
+                setShakingFields({})
+            }, 500)
+            return
+        }
+
         if (mode === 'forgot-password') return handleForgotPassword(e)
 
         setIsLoading(true)
-        setError(null)
         const supabase = createClient()
 
         try {
@@ -279,8 +342,26 @@ export function AuthPageClient() {
                 router.push("/dashboard")
                 router.refresh()
             }
-        } catch {
-            setError(String(t("auth.errorGeneric")) || "Bir hata oluştu. Lütfen tekrar deneyin.")
+        } catch (err: any) {
+            console.error("[AuthPageClient] Submit error:", err)
+            let errorMessage = t("auth.errorGeneric") as string
+
+            // Supabase specific error handling
+            const message = err?.message?.toLowerCase() || ""
+
+            if (message.includes("invalid login credentials") || message.includes("invalid credentials")) {
+                errorMessage = t("auth.invalidCredentials") as string
+            } else if (message.includes("user already registered") || message.includes("already registered")) {
+                errorMessage = t("auth.alreadyRegistered") as string
+            } else if (message.includes("email not confirmed")) {
+                errorMessage = t("auth.emailNotConfirmed") as string
+            } else if (message.includes("rate limit") || message.includes("too many requests")) {
+                errorMessage = "Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyiniz."
+            } else if (err?.message) {
+                errorMessage = err.message
+            }
+
+            setError(errorMessage)
             setIsLoading(false)
         }
     }
@@ -348,7 +429,7 @@ export function AuthPageClient() {
     return (
         <div className="min-h-screen w-full flex">
             {/* Left Side - Visual & Branding (Desktop Only) */}
-            <div className="hidden lg:flex w-1/2 relative overflow-hidden flex-col justify-between p-12 text-white">
+            <div className="hidden lg:flex w-1/2 relative overflow-hidden flex-col p-12 text-white">
                 <div className="absolute inset-0 z-0">
                     <NextImage
                         src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
@@ -361,56 +442,41 @@ export function AuthPageClient() {
                     <div className="absolute inset-0 bg-violet-900/20 mix-blend-overlay" />
                 </div>
 
-                <div className="relative z-10">
+                <div className="relative z-20">
                     <Link href="/" className="flex items-center group">
                         <span className="font-montserrat text-3xl tracking-tighter flex items-center">
-                            <span className="font-black text-white uppercase">Fog</span>
-                            <span className="font-light text-white/80">Catalog</span>
+                            <span className="font-black text-[#cf1414] uppercase">Fog</span>
+                            <span className="font-light text-white">Catalog</span>
                         </span>
                     </Link>
                 </div>
 
-                <div className="relative z-10 max-w-lg">
-                    <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-                        {t('landing.heroTitle') as string} {t('landing.heroTitleHighlight') as string} {t('landing.heroTitleEnd') as string}
+                <div className="relative z-10 flex-1 flex flex-col justify-center max-w-lg">
+                    <h2 className="text-4xl font-bold tracking-tight mb-4 leading-tight">
+                        Müşterilerinizi Etkileyen Kataloglar Hazırlayın
                     </h2>
-                    <ul className="space-y-4 mb-8">
-                        <li className="flex items-center gap-3 text-white/80">
-                            <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{(t('marketing.feature1') as string) || "Profesyonel şablonlar"}</span>
-                        </li>
-                        <li className="flex items-center gap-3 text-white/80">
-                            <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{(t('marketing.feature2') as string) || "PDF ve Online paylaşım"}</span>
-                        </li>
-                        <li className="flex items-center gap-3 text-white/80">
-                            <CheckCircle2 className="w-5 h-5 text-violet-400" />
-                            <span>{(t('marketing.feature3') as string) || "Kolay yönetim paneli"}</span>
-                        </li>
+                    <p className="text-lg text-white/70 mb-10 leading-relaxed">
+                        {t('landing.heroSubtitle') as string}
+                    </p>
+                    <ul className="space-y-5">
+                        {[
+                            t('marketing.feature1'),
+                            t('marketing.feature2'),
+                            t('marketing.feature3'),
+                            "Excel ile Toplu Ürün Yükleme",
+                            "WhatsApp Sipariş Entegrasyonu"
+                        ].map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-3 text-white/90">
+                                <div className="w-6 h-6 rounded-full bg-[#cf1414] flex items-center justify-center shadow-lg shadow-red-900/20">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                </div>
+                                <span className="font-medium text-[17px]">{feature}</span>
+                            </li>
+                        ))}
                     </ul>
                 </div>
 
-                <div className="relative z-10 bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl p-6">
-                    <div className="flex items-center gap-1 text-yellow-500 mb-3">
-                        <Star className="w-4 h-4 fill-current" />
-                        <Star className="w-4 h-4 fill-current" />
-                        <Star className="w-4 h-4 fill-current" />
-                        <Star className="w-4 h-4 fill-current" />
-                        <Star className="w-4 h-4 fill-current" />
-                    </div>
-                    <blockquote className="text-white/90 text-sm leading-relaxed mb-4">
-                        "{t('auth.testimonialQuote') as string}"
-                    </blockquote>
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold">
-                            AY
-                        </div>
-                        <div>
-                            <div className="font-semibold text-sm">{t('auth.testimonialAuthor') as string}</div>
-                            <div className="text-xs text-white/50">TechStore Kurucusu</div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
 
             {/* Right Side - Form */}
@@ -468,7 +534,7 @@ export function AuthPageClient() {
                             </p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                             {error && (
                                 <div className={`p-4 rounded-xl text-sm font-medium animate-in shake border-2 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
                                     ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
@@ -555,12 +621,18 @@ export function AuthPageClient() {
                                                 <input
                                                     type="text"
                                                     value={name}
-                                                    onChange={(e) => setName(e.target.value)}
-                                                    className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
+                                                    onChange={(e) => {
+                                                        setName(e.target.value)
+                                                        if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: "" }))
+                                                    }}
+                                                    className={`w-full h-12 px-4 bg-white border ${fieldErrors.name ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.name ? 'animate-shake' : ''}`}
                                                     placeholder={t("auth.placeholderName") as string}
                                                     required
                                                     suppressHydrationWarning
                                                 />
+                                                {fieldErrors.name && (
+                                                    <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.name}</p>
+                                                )}
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.company") as string}</label>
@@ -581,12 +653,18 @@ export function AuthPageClient() {
                                         <input
                                             type="email"
                                             value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
+                                            onChange={(e) => {
+                                                setEmail(e.target.value)
+                                                if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: "" }))
+                                            }}
+                                            className={`w-full h-12 px-4 bg-white border ${fieldErrors.email ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.email ? 'animate-shake' : ''}`}
                                             placeholder={t("auth.placeholderEmail") as string}
                                             required
                                             suppressHydrationWarning
                                         />
+                                        {fieldErrors.email && (
+                                            <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.email}</p>
+                                        )}
                                     </div>
 
                                     {mode !== 'forgot-password' && (
@@ -596,7 +674,15 @@ export function AuthPageClient() {
                                                 {mode === 'signin' && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setMode('forgot-password')}
+                                                        onClick={() => {
+                                                            setMode('forgot-password');
+                                                            setError(null);
+                                                            setFieldErrors({});
+                                                            setEmail("");
+                                                            setPassword("");
+                                                            setName("");
+                                                            setCompanyName("");
+                                                        }}
                                                         className="text-[13px] font-medium text-slate-500 hover:text-violet-600 transition-colors"
                                                     >
                                                         {t("auth.forgotPassword") as string}
@@ -607,8 +693,11 @@ export function AuthPageClient() {
                                                 <input
                                                     type={showPassword ? "text" : "password"}
                                                     value={password}
-                                                    onChange={(e) => setPassword(e.target.value)}
-                                                    className="w-full h-12 px-4 pr-12 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
+                                                    onChange={(e) => {
+                                                        setPassword(e.target.value)
+                                                        if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: "" }))
+                                                    }}
+                                                    className={`w-full h-12 pl-4 pr-12 bg-white border ${fieldErrors.password ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.password ? 'animate-shake' : ''}`}
                                                     placeholder={t("auth.placeholderPassword") as string}
                                                     required
                                                 />
@@ -620,6 +709,9 @@ export function AuthPageClient() {
                                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                 </button>
                                             </div>
+                                            {fieldErrors.password && (
+                                                <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.password}</p>
+                                            )}
                                         </div>
                                     )}
 
@@ -675,7 +767,15 @@ export function AuthPageClient() {
                                         {mode === 'forgot-password' ? (
                                             <button
                                                 type="button"
-                                                onClick={() => setMode('signin')}
+                                                onClick={() => {
+                                                    setMode('signin');
+                                                    setError(null);
+                                                    setFieldErrors({});
+                                                    setEmail("");
+                                                    setPassword("");
+                                                    setName("");
+                                                    setCompanyName("");
+                                                }}
                                                 className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                                             >
                                                 {(t("auth.backToLogin") as string) || "Giriş Yap'a Dön"}
@@ -685,7 +785,15 @@ export function AuthPageClient() {
                                                 {mode === 'signup' ? (t("auth.alreadyHaveAccount") as string) : (t("auth.dontHaveAccount") as string)}{" "}
                                                 <button
                                                     type="button"
-                                                    onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+                                                    onClick={() => {
+                                                        setMode(mode === 'signup' ? 'signin' : 'signup');
+                                                        setError(null);
+                                                        setFieldErrors({});
+                                                        setEmail("");
+                                                        setPassword("");
+                                                        setName("");
+                                                        setCompanyName("");
+                                                    }}
                                                     className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                                                 >
                                                     {mode === 'signup' ? (t("auth.signin") as string) : (t("auth.signup") as string)}

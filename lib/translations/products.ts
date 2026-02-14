@@ -63,8 +63,8 @@ const products = {
             },
             limits: {
                 title: "Ürün Limitine Ulaşıldı",
-                description: "Ücretsiz planda maksimum {max} ürün ekleyebilirsiniz. Sınırsız ürün için Pro'ya yükseltin.",
-                upgrade: "Pro'ya Yükselt"
+                description: "Mevcut planınızda maksimum {max} ürün ekleyebilirsiniz. Daha fazla ürün için üst bir plana geçin.",
+                upgrade: "Planı Yükselt"
             },
             // Product Modal
             basicInfo: "Temel Bilgiler",
@@ -238,8 +238,8 @@ const products = {
             },
             limits: {
                 title: "Product Limit Reached",
-                description: "You can add up to {max} products on the Free plan. Upgrade to Pro for unlimited products.",
-                upgrade: "Upgrade to Pro"
+                description: "You can add up to {max} products on your current plan. Upgrade for a higher limit.",
+                upgrade: "Upgrade Plan"
             },
             // Product Modal
             basicInfo: "Basic Info",

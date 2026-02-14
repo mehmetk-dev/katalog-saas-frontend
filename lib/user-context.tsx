@@ -29,6 +29,7 @@ export interface UserContextType {
   user: User | null
   supabaseUser: SupabaseUser | null
   setUser: (user: User | null) => void
+  adjustCatalogsCount: (delta: number) => void
   isAuthenticated: boolean
   isLoading: boolean
   logout: () => Promise<void>
@@ -138,6 +139,17 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     }
   }
 
+  const adjustCatalogsCount = useCallback((delta: number) => {
+    if (!delta) return
+    setUser((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        catalogsCount: Math.max(0, (prev.catalogsCount || 0) + delta),
+      }
+    })
+  }, [])
+
   useEffect(() => {
     // Sentry User Identification
     if (user) {
@@ -236,6 +248,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         user,
         supabaseUser,
         setUser,
+        adjustCatalogsCount,
         isAuthenticated: !!user,
         isLoading,
         logout,

@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "project": "FogCatalog",
+    "date": "2026-02-10",
+    "prepared_by": "Antigravity (Senior Full-Stack Architect)"
+  },
+  "product_overview": "FogCatalog is a modern SaaS platform enabling businesses to create, customize, and share professional digital product catalogs. It supports real-time editing, multi-language catalogs, PDF export, and interactive digital viewing to serve SMEs, e-commerce, B2B firms, and retailers.",
+  "core_goals": [
+    "Enable users to create, edit, and publish professional digital product catalogs with a streamlined drag-and-drop interface.",
+    "Support multi-language (Turkish and English) catalogs with customizable templates and branding.",
+    "Provide public catalog viewing with interactive page-flip animations and shareable URLs and QR codes.",
+    "Allow product management with CRUD operations including bulk import/export and image handling.",
+    "Enable high-quality PDF export of catalogs for offline use.",
+    "Implement user authentication and authorization with role-based access control using Supabase Auth and RLS.",
+    "Offer subscription plans with tiered features and support manual payment upgrade workflows.",
+    "Ensure a scalable architecture using Next.js frontend and Express.js backend with PostgreSQL and Cloudinary integration."
+  ],
+  "key_features": [
+    "Real-time drag-and-drop catalog builder with customizable layouts, colors, and product details.",
+    "15+ professional catalog templates inspired by design trends like Bauhaus and Modern HUD.",
+    "Product management system with SKU, price, stock, category, images, and custom attributes support.",
+    "Public catalog viewer implementing digital page-flip animations and interactive product elements.",
+    "PDF export facility generating high-quality offline catalogs using jsPDF and html-to-image libraries.",
+    "Authentication and authorization flows integrated with Supabase Auth, supporting email/password, password reset, and email verification.",
+    "Multi-language support with full Turkish and English translations and localization.",
+    "Image upload and storage handled via Cloudinary with automatic image optimization formats (WebP/AVIF).",
+    "Analytics dashboard for tracking catalog views, device types, and geographic metrics.",
+    "Subscription plans (Free, Plus, Pro) with catalog and product limits, and upgrade modal for manual payments.",
+    "Excel/CSV import/export features for bulk product data management."
+  ],
+  "user_flow_summary": [
+    "User visits the website and registers or logs in via email/password authentication powered by Supabase.",
+    "From the dashboard, user navigates to the Catalogs page and clicks 'New Catalog' to start a new catalog creation.",
+    "User selects a template and uses the real-time catalog builder with drag-and-drop support to add products, customize layout, colors, branding, and storytelling elements.",
+    "User can upload product images via the integrated Cloudinary uploader with automatic image optimization.",
+    "Once editing is complete, user publishes the catalog, generating a unique shareable slug and URL with QR code for distribution.",
+    "Public users can view published catalogs with interactive page-flip animations and product details in multiple languages.",
+    "User can export the catalog as a high-quality PDF for offline viewing via the export feature.",
+    "User manages products through a CRUD interface supporting bulk import via Excel/CSV and image uploads.",
+    "User accesses subscription management UI to view plan limits and upgrade via a modal facilitating manual payment processing.",
+    "The platform collects analytics on catalog views, users, and devices to provide insights on dashboard."
+  ],
+  "validation_criteria": [
+    "Catalogs can be created, updated, and deleted using the catalog builder with changes persisting correctly in the database.",
+    "Product CRUD operations validate mandatory fields (e.g., name and price) and handle image uploads and deletions robustly.",
+    "Authentication flows perform successfully including registration, login, password reset, and email verification with secure JWT session management.",
+    "Published catalogs generate unique share slugs and URLs accessible to public users with correct localization applied.",
+    "PDF exports preserve catalog layout, images, and product details in generated documents without errors.",
+    "Image uploads through Cloudinary use unsigned presets and return accessible optimized URLs.",
+    "Multi-language translation strings are complete and reflected correctly in both the editor and public views.",
+    "Subscription plans enforce feature limits such as catalogs and products per plan, and display upgrade modal when limits reached.",
+    "Analytics data accurately tracks catalog views, devices, and geolocation in the dashboard.",
+    "No critical bugs or crashes occur in main workflows; error handling and toast notifications are functional and informative."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "Next.js 16",
+      "React 19",
+      "Express 5.x",
+      "Tailwind CSS 4.x",
+      "PostgreSQL (Supabase)",
+      "Cloudinary",
+      "Radix UI",
+      "jsPDF",
+      "Vitest"
+    ],
+    "features": [
+      {
+        "name": "Catalog Builder",
+        "description": "Real-time editor for creating and customizing product catalogs with drag-and-drop support.",
+        "files": [
+          "components/builder/catalog-editor.tsx",
+          "components/builder/builder-page-client.tsx",
+          "components/builder/catalog-preview.tsx"
+        ]
+      },
+      {
+        "name": "Product Management",
+        "description": "CRUD operations for products, including SKU, price, category, and image handling.",
+        "files": [
+          "components/products/products-table.tsx",
+          "components/products/product-modal.tsx",
+          "backend/src/controllers/products.ts"
+        ]
+      },
+      {
+        "name": "Public Catalog Viewer",
+        "description": "Public-facing view for catalogs with page-flip animation and interactive elements.",
+        "files": [
+          "app/catalog/[slug]/page.tsx",
+          "app/catalog/[slug]/public-catalog-client.tsx",
+          "components/catalogs/templates/"
+        ]
+      },
+      {
+        "name": "PDF Export",
+        "description": "Generates high-quality PDF versions of the catalogs for offline viewing.",
+        "files": [
+          "components/builder/catalog-preview.tsx"
+        ]
+      },
+      {
+        "name": "Authentication & Authorization",
+        "description": "User login, registration, and permission management using Supabase Auth and RLS.",
+        "files": [
+          "app/auth/",
+          "lib/supabase/server.ts",
+          "middleware.ts"
+        ]
+      },
+      {
+        "name": "Multi-language Support",
+        "description": "Translation system for Turkish and English catalogs.",
+        "files": [
+          "lib/translations.ts"
+        ]
+      }
+    ]
+  }
+}

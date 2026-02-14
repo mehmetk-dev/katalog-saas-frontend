@@ -56,6 +56,7 @@ interface CatalogUpdatePayload {
     cover_description?: string;
     enable_category_dividers?: boolean;
     cover_theme?: string;
+    show_in_search?: boolean;
 }
 
 const getUserId = (req: Request): string => (req as unknown as AuthenticatedRequest).user.id;
@@ -180,7 +181,35 @@ export const getTemplates = async (req: Request, res: Response) => {
 export const createCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name: rawName, description, layout }: { name: string; description?: string; layout?: string } = req.body;
+        const {
+            name: rawName,
+            description,
+            layout,
+            product_ids,
+            primary_color,
+            show_prices,
+            show_descriptions,
+            show_attributes,
+            show_sku,
+            show_urls,
+            columns_per_row,
+            background_color,
+            background_image,
+            background_image_fit,
+            background_gradient,
+            logo_url,
+            logo_position,
+            logo_size,
+            title_position,
+            product_image_fit,
+            header_text_color,
+            enable_cover_page,
+            cover_image_url,
+            cover_description,
+            enable_category_dividers,
+            cover_theme,
+            show_in_search,
+        } = req.body;
 
         // Varsayılan isim ataması: Eğer isim belirtilmemişse 'Yeni Katalog' veya 'Katalog-[zamandamgası]' kullan
         const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
@@ -225,17 +254,45 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         const shareSlug = `${slugPrefix}${cleanCatalogName || 'katalog'}-${Date.now().toString(36)}`;
 
+        // Build insert data with all provided fields
+        const insertData: Record<string, unknown> = {
+            user_id: userId,
+            name,
+            description: description || null,
+            layout: layout || 'modern-grid',
+            share_slug: shareSlug,
+            product_ids: Array.isArray(product_ids) ? product_ids : [],
+            is_published: false,
+        };
+
+        // Include optional fields only if provided
+        if (primary_color !== undefined) insertData.primary_color = primary_color;
+        if (show_prices !== undefined) insertData.show_prices = show_prices;
+        if (show_descriptions !== undefined) insertData.show_descriptions = show_descriptions;
+        if (show_attributes !== undefined) insertData.show_attributes = show_attributes;
+        if (show_sku !== undefined) insertData.show_sku = show_sku;
+        if (show_urls !== undefined) insertData.show_urls = show_urls;
+        if (columns_per_row !== undefined) insertData.columns_per_row = columns_per_row;
+        if (background_color !== undefined) insertData.background_color = background_color;
+        if (background_image !== undefined) insertData.background_image = background_image;
+        if (background_image_fit !== undefined) insertData.background_image_fit = background_image_fit;
+        if (background_gradient !== undefined) insertData.background_gradient = background_gradient;
+        if (logo_url !== undefined) insertData.logo_url = logo_url;
+        if (logo_position !== undefined) insertData.logo_position = logo_position;
+        if (logo_size !== undefined) insertData.logo_size = logo_size;
+        if (title_position !== undefined) insertData.title_position = title_position;
+        if (product_image_fit !== undefined) insertData.product_image_fit = product_image_fit;
+        if (header_text_color !== undefined) insertData.header_text_color = header_text_color;
+        if (enable_cover_page !== undefined) insertData.enable_cover_page = enable_cover_page;
+        if (cover_image_url !== undefined) insertData.cover_image_url = cover_image_url;
+        if (cover_description !== undefined) insertData.cover_description = cover_description;
+        if (enable_category_dividers !== undefined) insertData.enable_category_dividers = enable_category_dividers;
+        if (cover_theme !== undefined) insertData.cover_theme = cover_theme;
+        // if (show_in_search !== undefined) insertData.show_in_search = show_in_search;
+
         const { data, error } = await supabase
             .from('catalogs')
-            .insert({
-                user_id: userId,
-                name,
-                description: description || null,
-                layout: layout || 'modern-grid',
-                share_slug: shareSlug,
-                product_ids: [],
-                is_published: false
-            })
+            .insert(insertData)
             .select()
             .single();
 
@@ -320,7 +377,8 @@ export const updateCatalog = async (req: Request, res: Response) => {
             cover_image_url,
             cover_description,
             enable_category_dividers,
-            cover_theme
+            cover_theme,
+            show_in_search
         }: CatalogUpdatePayload = req.body;
 
         // Validate cover_description length (max 500 chars)
@@ -384,7 +442,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
         if (cover_description !== undefined) updateData.cover_description = cover_description;
         if (enable_category_dividers !== undefined && enable_category_dividers !== null) updateData.enable_category_dividers = enable_category_dividers;
         if (cover_theme !== undefined) updateData.cover_theme = cover_theme;
-
+        // if (show_in_search !== undefined) updateData.show_in_search = show_in_search;
 
         const { error, data } = await supabase
             .from('catalogs')
@@ -414,7 +472,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
             deleteCache(cacheKeys.catalog(userId, id)),
             deleteCache(cacheKeys.stats(userId)),
             ...(oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug))] : []),
-            ...(share_slug && share_slug !== oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(share_slug))] : [])
+            ...(share_slug ? [deleteCache(cacheKeys.publicCatalog(share_slug))] : [])
         ]);
 
         // Log activity
@@ -586,18 +644,41 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'Bu katalog şu an erişime kapalıdır. (Limit aşımı)' });
         }
 
+        let productIds = data.product_ids;
+        // Robust parsing for product_ids in case it returns as a string "{id,id}" from DB driver
+        if (typeof productIds === 'string') {
+            productIds = (productIds as string).replace('{', '').replace('}', '').split(',').map(s => s.trim()).filter(Boolean);
+        }
+
         let products: Record<string, unknown>[] = [];
-        if (data.product_ids && data.product_ids.length > 0) {
-            const { data: productData } = await supabase
+        if (Array.isArray(productIds) && productIds.length > 0) {
+            console.log(`[Debug] Fetching ${productIds.length} products for catalog ${slug}`);
+            const { data: productData, error: productError } = await supabase
                 .from('products')
                 .select('*')
-                .in('id', data.product_ids);
+                .in('id', productIds);
+
+            if (productError) {
+                console.error('[Debug] Product fetch error:', productError);
+            }
 
             if (productData) {
-                products = data.product_ids
-                    .map((pid: string) => productData.find((p: { id: string }) => p.id === pid))
+                products = productIds
+                    .map((pid: string) => productData.find((p: { id: string }) => p.id.toLowerCase() === pid.toLowerCase()))
                     .filter(Boolean);
             }
+        }
+
+        // DEBUG: Inject dummy product if empty to test frontend
+        if (products.length === 0) {
+            products.push({
+                id: 'debug-product-1',
+                name: 'Start Debug Product',
+                price: 999,
+                description: 'If you see this, Frontend is OK. DB is returning 0 products.',
+                image_url: 'https://placehold.co/600x400/indigo/white?text=Debug',
+                category: 'Debug'
+            });
         }
 
         // --- OWNERSHIP & VIEW TRACKING ---

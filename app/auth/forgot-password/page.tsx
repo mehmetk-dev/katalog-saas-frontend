@@ -19,8 +19,10 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState(false)
   const [showGoogleWarning, setShowGoogleWarning] = useState(false)
+  const [shakingFields, setShakingFields] = useState<Record<string, boolean>>({})
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params as Record<string, unknown>) as string, [baseT])
 
@@ -40,8 +42,23 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError(null)
+    setFieldErrors({})
+
+    // Manual Validation
+    if (!email) {
+      setFieldErrors({ email: t("auth.invalidEmail") })
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setFieldErrors({ email: t("auth.invalidEmail") })
+      setShakingFields({ email: true })
+      setTimeout(() => setShakingFields({}), 500)
+      return
+    }
+
+    setIsLoading(true)
     setShowGoogleWarning(false)
 
     const providerInfo = await checkProvider(email)
@@ -68,12 +85,13 @@ export default function ForgotPasswordPage() {
 
         // Daha açıklayıcı hata mesajları
         let errorMessage = error.message || t("auth.errorGeneric")
+        const message = error.message?.toLowerCase() || ""
 
-        if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        if (message.includes('rate limit') || message.includes('too many')) {
           errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
-        } else if (error.message?.includes('email')) {
+        } else if (message.includes('email')) {
           errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
-        } else if (error.message?.includes('redirect')) {
+        } else if (message.includes('redirect')) {
           errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
         }
 
@@ -107,12 +125,13 @@ export default function ForgotPasswordPage() {
 
         // Daha açıklayıcı hata mesajları
         let errorMessage = error.message || t("auth.errorGeneric")
+        const message = error.message?.toLowerCase() || ""
 
-        if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        if (message.includes('rate limit') || message.includes('too many')) {
           errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
-        } else if (error.message?.includes('email')) {
+        } else if (message.includes('email')) {
           errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
-        } else if (error.message?.includes('redirect')) {
+        } else if (message.includes('redirect')) {
           errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
         }
 
@@ -173,10 +192,13 @@ export default function ForgotPasswordPage() {
       </div>
 
       <div className="w-full max-w-[420px] p-6 relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-violet-600 to-fuchsia-600 rounded-xl mx-auto mb-6 shadow-xl shadow-violet-500/20 flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-white" />
-          </div>
+        <div className="text-center mb-10">
+          <Link href="/" className="inline-flex items-center mb-8 hover:opacity-80 transition-opacity">
+            <span className="font-montserrat text-4xl tracking-tighter flex items-center">
+              <span className="font-black text-[#cf1414] uppercase">Fog</span>
+              <span className="font-light text-slate-900">Catalog</span>
+            </span>
+          </Link>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
             {success ? t("auth.emailSentTitle") :
               showGoogleWarning ? "Google Hesabı" : t("auth.forgotPasswordTitle")}
@@ -235,7 +257,7 @@ export default function ForgotPasswordPage() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+          <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-2" noValidate>
             {error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg border border-red-100">
                 {error}
@@ -247,11 +269,17 @@ export default function ForgotPasswordPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: "" }))
+                }}
                 disabled={isLoading}
-                className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300"
+                className={`w-full h-12 px-4 bg-white border ${fieldErrors.email ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.email ? 'animate-shake' : ''}`}
                 placeholder={t("auth.placeholderEmail")}
               />
+              {fieldErrors.email && (
+                <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.email}</p>
+              )}
             </div>
             <button
               type="submit"

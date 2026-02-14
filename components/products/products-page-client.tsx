@@ -6,9 +6,9 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-import { ProductsTable } from "./products-table"
-import { ProductModal } from "./product-modal"
-import { ImportExportModal } from "./import-export-modal"
+import { ProductsTable } from "./table/products-table"
+import { ProductModal } from "./modals/product-modal"
+import { ImportExportModal } from "./modals/import-export-modal"
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -24,16 +24,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { BulkImageUploadModal } from "@/components/products/bulk-image-upload-modal"
+import { BulkImageUploadModal } from "@/components/products/bulk/bulk-image-upload-modal"
 import { useUser } from "@/lib/user-context"
 
 // Atomic Components
-import { ProductStatsCards } from "./stats-cards"
-import { ProductsToolbar } from "./toolbar"
-import { ProductsFilterSheet } from "./filter-sheet"
-import { ProductsPagination } from "./pagination"
-import { ProductsBulkPriceModal } from "./bulk-price-modal"
-import { ProductsBulkActionsBar } from "./bulk-actions-bar"
+import { ProductStatsCards } from "./toolbar/stats-cards"
+import { ProductsToolbar } from "./toolbar/toolbar"
+import { ProductsFilterSheet } from "./filters/filter-sheet"
+import { ProductsPagination } from "./table/pagination"
+import { ProductsBulkPriceModal } from "./bulk/bulk-price-modal"
+import { ProductsBulkActionsBar } from "./toolbar/bulk-actions-bar"
 
 interface ProductsPageClientProps {
   initialProducts: Product[]
@@ -101,6 +101,18 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
   const [priceChangeMode, setPriceChangeMode] = useState<"percentage" | "fixed">("percentage")
   const [priceChangeAmount, setPriceChangeAmount] = useState<number>(10)
 
+  const adjustMetadataTotal = useCallback((delta: number) => {
+    setMetadata((prev) => {
+      const nextTotal = Math.max(0, prev.total + delta)
+      const pageLimit = prev.limit || itemsPerPage || DEFAULT_ITEMS_PER_PAGE
+      return {
+        ...prev,
+        total: nextTotal,
+        totalPages: Math.max(1, Math.ceil(nextTotal / pageLimit)),
+      }
+    })
+  }, [itemsPerPage])
+
   // Ürünler sayfası açıldığında varsayılan görünümü her zaman liste (normal) yap
   useEffect(() => {
     setViewMode("list")
@@ -121,8 +133,19 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
     })
   }, [router, searchParams])
 
-  const isFreeUser = userPlan === "free"
-  const isAtLimit = isFreeUser && metadata.total >= maxProducts
+  const isAtLimit = metadata.total >= maxProducts
+
+  const getLimitErrorMessage = useCallback((incomingCount: number) => {
+    return t("toasts.productLimitReached", {
+      current: metadata.total.toString(),
+      incoming: incomingCount.toString(),
+      max: maxProducts.toString(),
+    }) as string
+  }, [t, metadata.total, maxProducts])
+
+  const willExceedProductLimit = useCallback((incomingCount: number) => {
+    return metadata.total + incomingCount > maxProducts
+  }, [metadata.total, maxProducts])
 
   // URL'deki action parametrelerini kontrol et (import veya new)
   useEffect(() => {
@@ -190,7 +213,8 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
   }, [products, t])
 
   const handleAddProduct = () => {
-    if (isAtLimit) {
+    if (willExceedProductLimit(1)) {
+      toast.error(getLimitErrorMessage(1))
       setShowLimitModal(true)
     } else {
       setEditingProduct(null)
@@ -208,6 +232,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
       setProducts(products.map((p) => (p.id === savedProduct.id ? savedProduct : p)))
     } else {
       setProducts([savedProduct, ...products])
+      adjustMetadataTotal(1)
       refreshUser()
     }
     setShowProductModal(false)
@@ -217,6 +242,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
   const handleProductDeleted = (id: string) => {
     setProducts(products.filter((p) => p.id !== id))
     setSelectedIds(selectedIds.filter((i) => i !== id))
+    adjustMetadataTotal(-1)
     refreshUser()
   }
 
@@ -230,6 +256,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
       try {
         await deleteProducts(selectedIds)
         setProducts(products.filter((p) => !selectedIds.includes(p.id)))
+        adjustMetadataTotal(-selectedIds.length)
         setSelectedIds([])
         toast.success(t('toasts.productsDeleted', { count: selectedIds.length }) as string)
         setShowDeleteAlert(false)
@@ -256,8 +283,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
         )
 
         // Ürünleri güncelle (yeni formatta gelmiş olabilir)
-        const responseData = updatedResponse as any;
-        const updatedList = (Array.isArray(responseData) ? responseData : (responseData.products || [])) as Product[];
+        const updatedList = Array.isArray(updatedResponse) ? updatedResponse : []
 
         const updatedMap = new Map(updatedList.map((p) => [p.id, p]))
         setProducts(products.map(p => updatedMap.get(p.id) || p))
@@ -266,14 +292,16 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
         setSelectedIds([])
 
         toast.success(t('toasts.operationComplete') as string)
-      } catch (error) {
+      } catch {
         toast.error(t('toasts.priceUpdateFailed') as string)
       }
     })
   }
 
   const handleTestImport = () => {
-    if (isAtLimit) {
+    const TEST_PRODUCTS_BATCH_COUNT = 10
+    if (willExceedProductLimit(TEST_PRODUCTS_BATCH_COUNT)) {
+      toast.error(getLimitErrorMessage(TEST_PRODUCTS_BATCH_COUNT))
       setShowLimitModal(true)
       return
     }
@@ -282,6 +310,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
       try {
         const addedProducts = await addDummyProducts(language as 'tr' | 'en', userPlan)
         setProducts([...addedProducts, ...products])
+        adjustMetadataTotal(addedProducts.length)
         toast.success(t('toasts.testProductsAdded') as string)
         refreshUser()
       } catch {
@@ -498,6 +527,8 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
           onSaved={handleProductSaved}
           allCategories={categories}
           userPlan={userPlan === 'pro' ? 'pro' : userPlan === 'plus' ? 'plus' : 'free'}
+          maxProducts={maxProducts}
+          currentProductCount={metadata.total}
         />
 
         <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
@@ -525,9 +556,15 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
           hideTrigger
           onImport={async (productsToImport) => {
             try {
+              const incomingCount = Array.isArray(productsToImport) ? productsToImport.length : 0
+              if (willExceedProductLimit(incomingCount)) {
+                throw new Error(getLimitErrorMessage(incomingCount))
+              }
+
               const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>>)
-              const importedList = Array.isArray(imported) ? imported : (imported as any).products || [];
+              const importedList = Array.isArray(imported) ? imported : []
               setProducts([...importedList, ...products])
+              adjustMetadataTotal(importedList.length)
               router.refresh()
               refreshUser()
             } catch (error) {
@@ -537,6 +574,8 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
           }}
           onExport={downloadAllProducts}
           productCount={products.length}
+          currentProductCount={metadata.total}
+          maxProducts={maxProducts}
           isLoading={isPending}
           userPlan={userPlan === 'pro' ? 'pro' : userPlan === 'free' ? 'free' : 'plus'}
         />

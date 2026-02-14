@@ -1,9 +1,8 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { Lock, Palette } from "lucide-react"
 import { toast } from "sonner"
-import { useState, useTransition } from "react"
+import { useState } from "react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,10 +23,8 @@ interface TemplatesPageClientProps {
 }
 
 export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
-  const router = useRouter()
-  const { user, refreshUser } = useUser()
+  const { user, refreshUser, adjustCatalogsCount } = useUser()
   const { t } = useTranslation()
-  const [isPending, startTransition] = useTransition()
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const isFreeUser = user?.plan === "free"
@@ -50,23 +47,28 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
     }
 
     setLoadingId(template.id)
-    startTransition(async () => {
+    void (async () => {
       try {
         const catalog = await createCatalog({
           name: t('builder.newCatalog'),
           template_id: template.id,
           layout: template.layout,
         })
-        // Katalog oluşturulduğu anda kullanıcı bilgilerini güncelle
-        await refreshUser()
+
+        adjustCatalogsCount(1)
         toast.success(t('toasts.catalogCreated'))
-        router.push(`/dashboard/builder?id=${catalog.id}`)
+
+        // Kullanıcı limit bilgilerini arka planda güncelle; navigasyonu bekletme
+        refreshUser().catch(() => { })
+
+        // Bu akışta zaman zaman push beklemede kalabildiği için hard navigation
+        window.location.href = `/dashboard/builder?id=${catalog.id}`
       } catch (error) {
         console.error("Template create error:", error)
         toast.error((error instanceof Error ? error.message : typeof error === 'string' ? error : t('toasts.catalogSaveFailed')))
+        setLoadingId(null)
       }
-      setLoadingId(null)
-    })
+    })()
   }
 
   return (
@@ -115,7 +117,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                         "rounded-full px-8 font-bold shadow-2xl transition-all",
                         (isLimitReached || (template.is_premium && isFreeUser)) && "bg-white/10 text-white border border-white/20 hover:bg-white/20"
                       )}
-                      disabled={isPending}
+                      disabled={loadingId === template.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleUseTemplate(template)

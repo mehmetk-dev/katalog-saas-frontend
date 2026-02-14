@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2, CheckCircle2, BookOpen } from "lucide-react"
 
@@ -102,16 +103,15 @@ export default function ResetPasswordPage() {
       </div>
 
       <div className="w-full max-w-[420px] p-6 relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-[#B01E2E] rounded-xl mx-auto mb-6 shadow-xl shadow-[#B01E2E]/20 flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-white" />
-          </div>
+        <div className="text-center mb-10">
+          <Link href="/" className="inline-flex items-center mb-8 hover:opacity-80 transition-opacity">
+            <span className="font-montserrat text-4xl tracking-tighter flex items-center">
+              <span className="font-black text-[#cf1414] uppercase">Fog</span>
+              <span className="font-light text-slate-900">Catalog</span>
+            </span>
+          </Link>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
-            {isChecking ? "Doğrulanıyor" : success ? "Şifre Güncellendi" :
-              <span className="uppercase tracking-tighter">
-                <span className="font-black text-[#B01E2E]">Fog</span><span className="font-light text-slate-900">Catalog</span>
-              </span>
-            }
+            {isChecking ? "Doğrulanıyor" : success ? "Şifre Güncellendi" : "Yeni Şifre Belirle"}
           </h1>
           <p className="text-slate-500 text-[15px] leading-relaxed">
             {isChecking ? "Güvenli oturumunuz kontrol ediliyor..." :
