@@ -35,6 +35,25 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
     useEffect(() => {
         const checkSession = async () => {
             const supabase = createClient()
+
+            // Logout sonrası güvenli yönlendirme:
+            // ?logged_out=1 geldiğinde önce session'ı kapat, sonra normal akışa dön.
+            if (searchParams.get("logged_out") === "1") {
+                try {
+                    await supabase.auth.signOut()
+                } catch (e) {
+                    console.warn("[AuthPageClient] logged_out signOut warning:", e)
+                }
+
+                if (typeof window !== "undefined") {
+                    const cleanUrl = new URL(window.location.href)
+                    cleanUrl.searchParams.delete("logged_out")
+                    window.history.replaceState({}, "", cleanUrl.toString())
+                }
+
+                return
+            }
+
             const { data: { session } } = await supabase.auth.getSession()
             if (session) {
                 setIsRedirecting(true)
