@@ -6,6 +6,10 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Monorepo / çoklu lockfile ortamlarında Turbopack kökünü sabitle
+  turbopack: {
+    root: projectRoot,
+  },
   typescript: {
     // Temporarily ignore TypeScript errors for production build
     ignoreBuildErrors: true,
@@ -55,11 +59,7 @@ const nextConfig = {
   },
   // Experimental optimizations
   experimental: {
-    optimizePackageImports: [
-      'lucide-react',
-      '@radix-ui/react-icons',
-      'date-fns',
-    ],
+    // optimizePackageImports removed to prevent compilation hangs
   },
   // Production optimizations
   poweredByHeader: false,

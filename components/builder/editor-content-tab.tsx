@@ -20,6 +20,9 @@ interface EditorContentTabProps {
     // Catalog details
     description: string
     onDescriptionChange: (desc: string) => void
+    availableProductCount: number
+    totalProductCount?: number
+    isProductListTruncated?: boolean
 
     // Search & Filter
     searchQuery: string
@@ -58,6 +61,9 @@ export function EditorContentTab({
     t,
     description,
     onDescriptionChange,
+    availableProductCount,
+    totalProductCount,
+    isProductListTruncated = false,
     searchQuery,
     onSearchChange,
     selectedCategory,
@@ -83,27 +89,68 @@ export function EditorContentTab({
     onSortDrop,
     onRemoveProduct,
 }: EditorContentTabProps) {
-    const INITIAL_SORT_RENDER_COUNT = 120
-    const SORT_RENDER_STEP = 120
+    const SORT_VIRTUALIZATION_THRESHOLD = 120
+    const SORT_ROW_HEIGHT = 56 // Yaklaşık kart yüksekliği + gap
+    const SORT_OVERSCAN_ROWS = 4
 
-    const [sortVisibleCount, setSortVisibleCount] = React.useState(INITIAL_SORT_RENDER_COUNT)
+    const sortListRef = React.useRef<HTMLDivElement>(null)
+    const [sortScrollTop, setSortScrollTop] = React.useState(0)
+    const [sortViewportHeight, setSortViewportHeight] = React.useState(320)
+    const [sortColumns, setSortColumns] = React.useState(2)
 
-    React.useEffect(() => {
-        if (validProductIds.length <= INITIAL_SORT_RENDER_COUNT) {
-            setSortVisibleCount(INITIAL_SORT_RENDER_COUNT)
-            return
-        }
+    const hasVirtualizedSorting = validProductIds.length > SORT_VIRTUALIZATION_THRESHOLD
 
-        // Seçim azaldığında görünür sınırın listeden daha büyük kalmamasını sağla
-        setSortVisibleCount((prev) => Math.min(Math.max(INITIAL_SORT_RENDER_COUNT, prev), validProductIds.length))
-    }, [validProductIds.length])
-
-    const visibleSortedIds = React.useMemo(
-        () => validProductIds.slice(0, sortVisibleCount),
-        [validProductIds, sortVisibleCount]
+    const sortableEntries = React.useMemo(
+        () => validProductIds.map((id, index) => ({ id, index })),
+        [validProductIds]
     )
 
-    const hasMoreSortedItems = validProductIds.length > visibleSortedIds.length
+    const sortableRows = React.useMemo(() => {
+        const rows: Array<Array<{ id: string; index: number }>> = []
+        for (let i = 0; i < sortableEntries.length; i += sortColumns) {
+            rows.push(sortableEntries.slice(i, i + sortColumns))
+        }
+        return rows
+    }, [sortableEntries, sortColumns])
+
+    const visibleRowCount = Math.max(1, Math.ceil(sortViewportHeight / SORT_ROW_HEIGHT))
+    const virtualStartRow = hasVirtualizedSorting
+        ? Math.max(0, Math.floor(sortScrollTop / SORT_ROW_HEIGHT) - SORT_OVERSCAN_ROWS)
+        : 0
+    const virtualEndRow = hasVirtualizedSorting
+        ? Math.min(sortableRows.length, virtualStartRow + visibleRowCount + SORT_OVERSCAN_ROWS * 2)
+        : sortableRows.length
+    const virtualRows = sortableRows.slice(virtualStartRow, virtualEndRow)
+    const virtualOffsetY = virtualStartRow * SORT_ROW_HEIGHT
+    const virtualTotalHeight = sortableRows.length * SORT_ROW_HEIGHT
+    const approxRenderedItems = Math.min(
+        validProductIds.length,
+        (visibleRowCount + SORT_OVERSCAN_ROWS * 2) * sortColumns
+    )
+
+    const updateSortViewportMetrics = React.useCallback(() => {
+        setSortColumns(window.innerWidth >= 640 ? 2 : 1)
+        if (sortListRef.current) {
+            setSortViewportHeight(sortListRef.current.clientHeight || 320)
+        }
+    }, [])
+
+    React.useEffect(() => {
+        updateSortViewportMetrics()
+        window.addEventListener('resize', updateSortViewportMetrics)
+        return () => window.removeEventListener('resize', updateSortViewportMetrics)
+    }, [updateSortViewportMetrics])
+
+    React.useEffect(() => {
+        if (sortListRef.current && hasVirtualizedSorting) {
+            setSortViewportHeight(sortListRef.current.clientHeight || 320)
+        }
+    }, [hasVirtualizedSorting])
+
+    const handleSortListScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+        if (!hasVirtualizedSorting) return
+        setSortScrollTop(e.currentTarget.scrollTop)
+    }, [hasVirtualizedSorting])
 
     return (
         <div className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -142,6 +189,13 @@ export function EditorContentTab({
             {/* SEARCH & FILTERS SECTION */}
             <div className="space-y-4">
                 <div className="flex flex-col gap-3">
+                    {isProductListTruncated && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                            Büyük katalog modu aktif: {availableProductCount} ürün yüklendi
+                            {totalProductCount ? ` / toplam ${totalProductCount}` : ""}. Performans için ilk 5000 ürün üzerinde çalışılıyor.
+                        </div>
+                    )}
+
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <Input
@@ -265,45 +319,74 @@ export function EditorContentTab({
                 </div>
 
                 <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-3">
-                    {validProductIds.length > INITIAL_SORT_RENDER_COUNT && (
+                    {hasVirtualizedSorting && (
                         <div className="mb-2 flex items-center justify-between gap-2 px-1">
                             <p className="text-[10px] text-muted-foreground font-medium">
-                                {validProductIds.length} seçili üründen {visibleSortedIds.length} tanesi listeleniyor
+                                Sanal liste modu: {validProductIds.length} üründen yaklaşık {approxRenderedItems} tanesi render ediliyor
                             </p>
-                            {hasMoreSortedItems && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-[10px] px-2"
-                                    onClick={() => setSortVisibleCount((prev) => prev + SORT_RENDER_STEP)}
-                                >
-                                    Daha Fazla Göster
-                                </Button>
-                            )}
                         </div>
                     )}
 
-                    <div className="max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {visibleSortedIds.map((id, index) => {
-                                const product = productMap.get(id)
-                                if (!product) return null
-                                return (
-                                    <SortableProductItem
-                                        key={id}
-                                        product={product}
-                                        index={index}
-                                        draggingIndex={draggingIndex}
-                                        dropIndex={dropIndex}
-                                        onDragStart={onSortDragStart}
-                                        onDragOver={onSortDragOver}
-                                        onDrop={onSortDrop}
-                                        onRemove={onRemoveProduct}
-                                    />
-                                )
-                            })}
-                            {validProductIds.length === 0 && <EmptySortingState />}
-                        </div>
+                    <div
+                        ref={sortListRef}
+                        onScroll={handleSortListScroll}
+                        className="max-h-[320px] overflow-y-auto pr-2 custom-scrollbar"
+                    >
+                        {hasVirtualizedSorting ? (
+                            <div style={{ height: `${virtualTotalHeight}px`, position: 'relative' }}>
+                                <div
+                                    className={cn(
+                                        "absolute left-0 right-0 top-0 grid gap-2",
+                                        sortColumns === 2 ? "grid-cols-2" : "grid-cols-1"
+                                    )}
+                                    style={{ transform: `translateY(${virtualOffsetY}px)` }}
+                                >
+                                    {virtualRows.flat().map(({ id, index }) => {
+                                        const product = productMap.get(id)
+                                        if (!product) return null
+                                        return (
+                                            <SortableProductItem
+                                                key={id}
+                                                product={product}
+                                                index={index}
+                                                draggingIndex={draggingIndex}
+                                                dropIndex={dropIndex}
+                                                onDragStart={onSortDragStart}
+                                                onDragOver={onSortDragOver}
+                                                onDrop={onSortDrop}
+                                                onRemove={onRemoveProduct}
+                                            />
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {validProductIds.map((id, index) => {
+                                    const product = productMap.get(id)
+                                    if (!product) return null
+                                    return (
+                                        <SortableProductItem
+                                            key={id}
+                                            product={product}
+                                            index={index}
+                                            draggingIndex={draggingIndex}
+                                            dropIndex={dropIndex}
+                                            onDragStart={onSortDragStart}
+                                            onDragOver={onSortDragOver}
+                                            onDrop={onSortDrop}
+                                            onRemove={onRemoveProduct}
+                                        />
+                                    )
+                                })}
+                            </div>
+                        )}
+
+                        {validProductIds.length === 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <EmptySortingState />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

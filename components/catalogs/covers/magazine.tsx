@@ -7,130 +7,81 @@ export function MagazineCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
+    productCount = 0,
     primaryColor = '#ef4444'
 }: CoverPageProps) {
-    const currentYear = new Date().getFullYear();
-
     return (
-        <div className="relative w-full h-full bg-[#fcfcfc] flex flex-col overflow-hidden font-sans text-slate-900">
-            {/* Top Magazine Header - High End Label */}
-            <header className="px-10 pt-8 pb-4 flex justify-between items-baseline border-b border-black/10 z-20">
-                <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Aylık Sayı</span>
-                    <div className="h-[1px] w-12 bg-black/10" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Cilt {currentYear % 100} — Sayı 04</span>
-                </div>
-
-                {/* Brand Logo Integration */}
+        <div className="relative w-full h-full bg-[#FAFAF9] text-[#1c1917] overflow-hidden font-serif">
+            {/* Masthead */}
+            <div className="absolute top-12 w-full text-center z-20">
                 {logoUrl ? (
-                    <div className="relative h-8 w-24">
+                    <div className="relative w-64 h-24 mx-auto mb-2 mix-blend-multiply">
                         <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                     </div>
                 ) : (
-                    <div className="font-serif italic text-xl font-black tracking-tighter">
-                        YAŞAM TARZI <span className="not-italic text-sm font-light tracking-widest ml-1 text-slate-400">PRO</span>
+                    <h1 className="text-9xl font-medium tracking-tighter text-black mix-blend-multiply opacity-90">
+                        KINFOLK
+                    </h1>
+                )}
+
+                <div className="flex justify-center gap-8 text-xs font-sans font-medium tracking-widest uppercase border-t border-black/10 mt-4 pt-4 w-fit mx-auto px-12">
+                    <span>Vol. {new Date().getFullYear()}</span>
+                    <span>•</span>
+                    <span>The {productCount} Issue</span>
+                    <span>•</span>
+                    <span>Spring</span>
+                </div>
+            </div>
+
+            {/* Main Image */}
+            <div className="absolute inset-x-12 inset-y-32 z-10">
+                {coverImageUrl ? (
+                    <div className="w-full h-full relative shadow-sm">
+                        <Image src={coverImageUrl} alt="Cover" fill className="object-cover grayscale-[0.2] contrast-[.95] brightness-105" />
+                    </div>
+                ) : (
+                    <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-4xl text-gray-400 italic">
+                        Visual
                     </div>
                 )}
-            </header>
+            </div>
 
-            <main className="flex-1 relative flex flex-col p-10">
-                {/* Background Image Container */}
-                <div className="absolute inset-0 z-0">
-                    {coverImageUrl ? (
-                        <div className="w-full h-full relative">
-                            <Image
-                                src={coverImageUrl}
-                                alt="Cover"
-                                fill
-                                className="object-cover"
-                                priority
-                            />
-                            {/* Sophisticated Gradients */}
-                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-white via-white/80 to-transparent" />
-                            <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/20 to-transparent opacity-40" />
-                        </div>
-                    ) : (
-                        <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                            <div className="text-slate-200 font-serif italic text-8xl -rotate-12 opacity-50">YAŞAM TARZI</div>
-                        </div>
-                    )}
+            {/* Headlines */}
+            <div className="absolute bottom-40 left-20 z-20 max-w-sm">
+                <h2 className="text-5xl font-light italic leading-tight text-white drop-shadow-md mb-4 mix-blend-hard-light">
+                    {catalogName}
+                </h2>
+            </div>
+
+            <div className="absolute bottom-40 right-20 z-20 max-w-xs text-right text-black">
+                {coverDescription && (
+                    <div className="bg-white/90 p-6 backdrop-blur-sm shadow-sm">
+                        <span className="text-[10px] font-sans font-bold uppercase tracking-widest mb-2 block text-gray-500">
+                            Featured Story
+                        </span>
+                        <p className="text-lg leading-relaxed font-light">
+                            {coverDescription}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Barcode Footer */}
+            <div className="absolute bottom-12 left-12 right-12 flex justify-between items-end border-t border-black/10 pt-4">
+                <div className="flex flex-col text-[10px] font-sans font-bold uppercase tracking-widest text-gray-500">
+                    <span>Design & Lifestyle</span>
+                    <span>Printed in Istanbul</span>
                 </div>
 
-                {/* Main Heading - Modern Magazine Style */}
-                <div className="relative z-10 flex-1 flex flex-col justify-between">
-                    <div className="pt-4">
-                        <h1
-                            className="text-[clamp(60px,12vh,110px)] font-black leading-[0.85] tracking-[-0.05em] uppercase text-slate-900 max-w-2xl"
-                            style={{
-                                textShadow: '0 10px 30px rgba(255,255,255,0.5)',
-                                mixBlendMode: coverImageUrl ? 'normal' : 'normal'
-                            }}
-                        >
-                            {catalogName}
-                        </h1>
-                        <div className="h-2 w-24 mt-6" style={{ backgroundColor: primaryColor }} />
+                <div className="flex flex-col items-end">
+                    <div className="h-8 w-32 flex justify-end gap-[2px]">
+                        {Array.from({ length: 40 }).map((_, i) => (
+                            <div key={i} className="bg-black w-[1px] h-full" style={{ width: Math.random() > 0.5 ? '2px' : '1px' }} />
+                        ))}
                     </div>
-
-                    {/* Secondary Headlines - Typical Magazine Covers */}
-                    <div className="flex justify-between items-end gap-12">
-                        {/* Left Side: Headlines */}
-                        <div className="flex flex-col gap-6 max-w-xs">
-                            <article className="border-l-2 pl-4 py-1" style={{ borderColor: primaryColor }}>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Trendler</h4>
-                                <h3 className="text-xl font-bold leading-tight uppercase tracking-tight">Modern Tasarımın Geleceği</h3>
-                            </article>
-                            <article className="border-l-2 pl-4 py-1 border-slate-300">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Özel</h4>
-                                <h3 className="text-xl font-bold leading-tight uppercase tracking-tight">Küratörlü Koleksiyonun Arkası</h3>
-                            </article>
-                        </div>
-
-                        {/* Right Side: Cover Description Box */}
-                        <div className="flex flex-col items-end text-right">
-                            {coverDescription && (
-                                <div className="bg-white p-8 shadow-[20px_20px_60px_-15px_rgba(0,0,0,0.1)] border-t-8 border-slate-900 max-w-sm">
-                                    <span className="inline-block text-[10px] font-black uppercase tracking-[0.4em] mb-4 py-1 px-2 bg-slate-100 italic">Öne Çıkan Hikaye</span>
-                                    <p className="text-2xl font-serif italic leading-[1.1] text-slate-900">
-                                        "{coverDescription}"
-                                    </p>
-                                    <div className="mt-6 flex justify-end gap-2 text-[10px] font-bold uppercase tracking-widest">
-                                        <span>Devamını Oku</span>
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <span className="text-[8px] font-mono mt-1">9 771234 567003</span>
                 </div>
-            </main>
-
-            {/* Footer Bar */}
-            <footer className="px-10 py-6 bg-white border-t border-black/5 flex justify-between items-center z-20">
-                <div className="flex items-center gap-8 text-[11px] font-black uppercase tracking-widest">
-                    <span>Premium Baskı</span>
-                    <span className="text-slate-300">/</span>
-                    <span style={{ color: primaryColor }}>İç Mekanlar</span>
-                    <span className="text-slate-300">/</span>
-                    <span>Stil</span>
-                </div>
-
-                {/* Price & Barcode Area */}
-                <div className="flex items-center gap-6">
-                    <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-bold">$12.99 USD</span>
-                        <span className="text-[10px] font-bold">14.00 EUR</span>
-                    </div>
-                    <div className="bg-white p-2 border border-slate-100">
-                        <div className="h-6 w-24 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAABCAYAAAD5g7RNAAAAAXNSR0IArs4c6QAAABJJREFUGFdj/P///38GKgI0jAAApM4PwRyt7QoAAAAASUVORK5CYII=')] bg-repeat-x opacity-60" />
-                        <div className="flex justify-between text-[7px] font-mono mt-0.5 tracking-tighter">
-                            <span>071486</span>
-                            <span>012345</span>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            </div>
         </div>
     )
 }

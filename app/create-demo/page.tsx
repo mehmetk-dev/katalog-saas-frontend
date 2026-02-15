@@ -324,6 +324,7 @@ export default function CreateDemoPage() {
                                 showAttributes={true}
                                 showSku={true}
                                 showUrls={false}
+                                isFreeUser={false}
                                 pageNumber={1}
                                 totalPages={1}
                                 columnsPerRow={2}

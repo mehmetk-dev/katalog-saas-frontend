@@ -50,7 +50,10 @@ export function SessionWatcher() {
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event) => {
-            if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+            // USER_UPDATED / SIGNED_IN olayları bazı akışlarda fazladan refresh üretebilir.
+            // Dashboard SSR çağrılarını gereksiz tekrarlatmamak için burada sadece
+            // gerçekten kritik event olan SIGNED_OUT'ta refresh yapıyoruz.
+            if (event === "SIGNED_OUT") {
                 router.refresh()
             }
         })
@@ -65,10 +68,10 @@ export function SessionWatcher() {
         }
     }, [router, supabase.auth, refreshSession])
 
-    // 3. Her Sayfa Değişiminde (Pathname değiştiğinde)
-    useEffect(() => {
-        refreshSession('navigation')
-    }, [pathname, refreshSession])
+    // 3. Not:
+    // Navigasyon bazlı session kontrolü bazı akışlarda gereksiz router.refresh
+    // zinciri oluşturup dashboard SSR isteklerini (catalogs/stats/products)
+    // tekrar ettirebiliyor. Bu yüzden burada navigation check kapatıldı.
 
     return null // Bu bileşen bir şey render etmez, sadece arka planda çalışır
 }

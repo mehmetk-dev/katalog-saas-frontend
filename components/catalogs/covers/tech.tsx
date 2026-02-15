@@ -7,91 +7,90 @@ export function TechCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#0ea5e9' // Sky-500
+    productCount = 0,
+    primaryColor = '#00ff41'
 }: CoverPageProps) {
     return (
-        <div className="relative w-full h-full bg-[#020617] font-mono text-sky-400 overflow-hidden">
-            {/* Grid Background */}
-            <div className="absolute inset-0 opacity-30"
-                style={{
-                    backgroundImage: `linear-gradient(${primaryColor}22 1px, transparent 1px), linear-gradient(90deg, ${primaryColor}22 1px, transparent 1px)`,
-                    backgroundSize: '40px 40px',
-                    maskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)'
-                }}
-            />
+        <div className="relative w-full h-full bg-black text-[#00ff41] overflow-hidden font-mono text-sm selection:bg-[#003B00] selection:text-white">
+            {/* CRT Scanline Effect */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none z-50" />
 
-            {/* Glowing Orbs */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[100px]" />
-            <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px]" />
-
-            {/* Code/Data Rain Effect - Static Decoration */}
-            <div className="absolute top-0 right-10 w-48 h-full opacity-20 flex flex-col text-[10px] items-end pt-20 leading-tight select-none">
-                {Array.from({ length: 40 }).map((_, i) => (
-                    <span key={i} style={{ opacity: 0.1 + (i % 5) * 0.1 }}>01001010 1101 ({i})</span>
-                ))}
-            </div>
-
-            {/* Main Content Card */}
-            <div className="absolute inset-0 z-10 flex flex-col p-16">
-                {/* Header Status Bar */}
-                <div className="w-full h-12 border-b border-sky-500/30 flex items-center justify-between mb-20 bg-[#020617]/50 backdrop-blur">
-                    <div className="flex items-center gap-4">
-                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]" />
-                        <span className="text-xs tracking-widest text-sky-500">SİSTEM_HAZIR</span>
+            <div className="relative z-10 w-full h-full flex flex-col p-8 border-[20px] border-[#0a0a0a] shadow-[inset_0_0_100px_rgba(0,255,65,0.1)]">
+                {/* Header Terminal */}
+                <div className="border-b border-[#00ff41]/30 pb-4 mb-4 flex justify-between items-end">
+                    <div>
+                        <span className="block opacity-50">root@system:~/catalog# ./init_sequence.sh</span>
+                        <h1 className="text-4xl font-bold tracking-tighter uppercase mt-2 glow-text">
+                            {catalogName}
+                        </h1>
                     </div>
-                    <span className="text-xs text-slate-600">V.2.0.24</span>
+                    <div className="text-right">
+                        <span className="block opacity-70">UPTIME: 99.99%</span>
+                        <span className="font-bold">{new Date().toISOString().split('T')[0]}</span>
+                    </div>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center max-w-4xl relative">
-                    {/* Bracket Decorations */}
-                    <div className="absolute -left-8 -top-8 w-16 h-16 border-t-2 border-l-2 border-sky-500/50" />
-                    <div className="absolute -right-8 -bottom-8 w-16 h-16 border-b-2 border-r-2 border-sky-500/50" />
-
-                    <h1 className="text-8xl font-black text-white mb-6 tracking-tighter mix-blend-screen drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]">
-                        {catalogName}
-                    </h1>
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="h-2 flex-1 bg-slate-800 rounded-full overflow-hidden">
-                            <div className="w-2/3 h-full bg-gradient-to-r from-sky-500 to-purple-500" />
+                {/* Main Content Areas */}
+                <div className="flex-1 grid grid-cols-12 gap-4">
+                    {/* Left Data Column */}
+                    <div className="col-span-4 border-r border-[#00ff41]/30 pr-4 flex flex-col justify-between">
+                        <div className="space-y-4 text-xs opacity-80">
+                            <p>&gt; MOUNTING ASSETS...</p>
+                            <p>&gt; VERIFYING CHECKSUMS...</p>
+                            <p>&gt; DECRYPTING SECURE DATA...</p>
+                            <p className="text-white bg-[#00ff41]/20 p-1">&gt; STATUS: ONLINE</p>
                         </div>
-                        <span className="text-xs text-sky-500">VERİ YÜKLENİYOR...</span>
+
+                        <div className="border border-[#00ff41] p-2 mt-auto">
+                            <div className="flex justify-between border-b border-[#00ff41]/50 mb-2">
+                                <span>SKU_COUNT</span>
+                                <span>{productCount}</span>
+                            </div>
+                            <div className="h-16 w-full bg-[#00ff41]/10 flex items-end gap-1">
+                                {Array.from({ length: 10 }).map((_, i) => (
+                                    <div key={i} className="bg-[#00ff41]" style={{ width: '10%', height: `${Math.random() * 100}%` }} />
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
-                    {coverDescription && (
-                        <div className="bg-sky-500/5 border-l-4 border-sky-500 p-6 backdrop-blur-sm max-w-2xl">
-                            <p className="text-sky-200/80 text-lg leading-relaxed">
-                                <span className="text-sky-500 mr-2">{`>`}</span>
-                                {coverDescription}
-                            </p>
-                        </div>
-                    )}
+                    {/* Right Visual Area */}
+                    <div className="col-span-8 relative">
+                        {coverImageUrl ? (
+                            <div className="w-full h-full relative border border-[#00ff41]/50 p-1">
+                                <Image src={coverImageUrl} alt="Tech" fill className="object-cover grayscale contrast-150 brightness-75 sepia-[.5] hue-rotate-[90deg]" />
+                                <div className="absolute inset-0 bg-[#00ff41]/10 mix-blend-hard-light" />
+
+                                {/* HUD overlay */}
+                                <div className="absolute top-4 right-4 text-xs border border-[#00ff41] px-2 py-1 bg-black/80">TARGET_LOCKED</div>
+                                <div className="absolute bottom-4 left-4 w-12 h-12 border-l-2 border-b-2 border-[#00ff41]" />
+                                <div className="absolute bottom-4 right-4 w-12 h-12 border-r-2 border-b-2 border-[#00ff41]" />
+                            </div>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center flex-col border border-dashed border-[#00ff41]/50">
+                                <span className="text-6xl animate-pulse">NO_SIGNAL</span>
+                                <span className="text-xs mt-4 opacity-50">CHECK CONNECTION CABLE</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Footer Image & Logo */}
-                <div className="mt-auto flex items-end justify-between">
-                    {coverImageUrl && (
-                        <div className="relative w-64 h-40 border border-sky-500/30 p-1 bg-[#020617]/80">
-                            {/* Scanning line animation */}
-                            <div className="absolute inset-0 z-20 border-b border-sky-400/50 animate-[scan_3s_linear_infinite]" style={{ height: '0%' }} />
-                            <Image src={coverImageUrl} alt="Tech" fill className="object-cover opacity-60 grayscale hover:grayscale-0 transition-all" />
-                            <div className="absolute bottom-1 right-1 bg-sky-500 text-[#020617] text-[10px] font-bold px-1">GÖRSEL_01</div>
-                        </div>
-                    )}
-
-                    {logoUrl && (
-                        <div className="relative w-40 h-20 opacity-80 grayscale hover:grayscale-0 transition-all">
-                            <Image src={logoUrl} alt="Logo" fill className="object-contain object-right" />
-                        </div>
-                    )}
-                </div>
+                {/* Footer Description */}
+                {coverDescription && (
+                    <div className="mt-4 border-t border-[#00ff41]/30 pt-4">
+                        <p className="text-sm font-bold opacity-90 max-w-3xl">
+                            <span className="mr-2 text-white bg-[#00ff41]/50 px-1">&gt; INFO:</span>
+                            {coverDescription}
+                        </p>
+                    </div>
+                )}
             </div>
 
-            {/* Background Image overlay if exists for texture */}
-            {coverImageUrl && (
-                <div className="absolute inset-0 opacity-10 mix-blend-overlay pointer-events-none">
-                    <Image src={coverImageUrl} alt="Texture" fill className="object-cover" />
-                </div>
-            )}
+            <style jsx>{`
+                .glow-text {
+                    text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41;
+                }
+            `}</style>
         </div>
     )
 }

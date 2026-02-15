@@ -85,8 +85,8 @@ export function CatalogPreview({
             case 'compact-list': return 10
             case 'classic-catalog': return 3
             case 'retail': return columnsPerRow * 5
-            case 'catalog-pro': return columnsPerRow * 3
-            case 'product-tiles': return columnsPerRow === 2 ? 4 : 9
+            case 'catalog-pro': return 4
+            case 'product-tiles': return 6
             default:
                 if (columnsPerRow === 2) return 6
                 if (columnsPerRow === 3) return 9
@@ -98,7 +98,7 @@ export function CatalogPreview({
     // Minimalist için tüm ürünleri gönder, diğerleri için sınırlı
     // Minimalist için tüm ürünleri gönder, diğerleri için sınırlı
     const safeProducts = products || []
-    const previewProducts = (isExporting || normalizedLayout === 'minimalist')
+    const previewProducts = (isExporting || normalizedLayout === 'minimalist' || normalizedLayout === 'product-tiles')
         ? safeProducts
         : (safeProducts.length > 0 ? safeProducts.slice(0, getPreviewCount()) : [])
 
@@ -189,14 +189,36 @@ export function CatalogPreview({
             case "clean-white":
                 return <CleanWhiteTemplate {...templateProps} />
             case "product-tiles":
-                return <ProductTilesTemplate {...templateProps} />
+                // FORCE RECOMPILE - HARDCODED SIZE 6
+                const forcedSize = 6
+                const derivedTotalPages = Math.ceil((templateProps.products?.length || 0) / forcedSize) || 1
+                console.log("DEBUG: ProductTiles Rendering. Size:", forcedSize, "TotalPages:", derivedTotalPages)
+
+                return (
+                    <div className="flex flex-col gap-8 bg-slate-100 p-4 -m-4">
+                        {Array.from({ length: derivedTotalPages }).map((_, i) => (
+                            <div
+                                key={`page-${i}-${derivedTotalPages}`}
+                                className="w-[794px] h-[1123px] relative overflow-hidden shadow-md mx-auto bg-white"
+                                style={getBackgroundStyle()}
+                            >
+                                <ProductTilesTemplate
+                                    {...templateProps}
+                                    products={templateProps.products?.slice(i * forcedSize, (i + 1) * forcedSize) || []}
+                                    pageNumber={i + 1}
+                                    totalPages={derivedTotalPages}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )
             default:
                 return <ModernGridTemplate {...templateProps} />
         }
     }
 
-    // Minimalist şablonu veya Export modu için dinamik yükseklik
-    const isMultiPage = normalizedLayout === 'minimalist' || isExporting;
+    // Minimalist şablonu veya Export modu veya tek sayfa sınırı olanlar için dinamik yükseklik
+    const isMultiPage = normalizedLayout === 'minimalist' || normalizedLayout === 'product-tiles' || isExporting;
 
     return (
         <div

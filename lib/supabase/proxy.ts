@@ -26,10 +26,6 @@ export async function updateSession(request: NextRequest) {
       },
     )
 
-    // IMPORTANT: Avoid writing any logic between createServerClient and
-    // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-    // issues with users being randomly logged out.
-
     const {
       data: { user },
       error: authError,
@@ -44,8 +40,6 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = "/auth"
 
-      // If it's an API request or Server Action, return 401 instead of redirecting
-      // this prevents the browser from trying to POST to the login page
       const isApiOrAction = request.nextUrl.pathname.startsWith('/api') ||
         request.headers.get('accept')?.includes('application/json') ||
         request.headers.has('next-action') ||
@@ -58,16 +52,50 @@ export async function updateSession(request: NextRequest) {
         )
       }
 
-      // For standard navigations, use 303 See Other to ensure the browser performs a GET
       return NextResponse.redirect(url, 303)
     }
 
     // 1. Handle invalid refresh tokens (common after database resets or token expiry)
+    // Simplified logic to avoid Edge Runtime hangs or infinite loops
     if (authError && typeof authError === 'object' && authError !== null && 'code' in authError && (authError as { code: string }).code === 'refresh_token_not_found') {
-      console.warn("Middleware: Invalid refresh token detected. Redirecting to login.")
-      const response = redirectToLogin()
-      response.cookies.delete("auth_session_timer")
-      return response
+
+      // If we are already on the auth page, proceed (clearing cookies via response if needed)
+      // preventing infinite redirect loop.
+      if (request.nextUrl.pathname.startsWith("/auth")) {
+        // Just force clear cookies on the existing response object
+        supabaseResponse.cookies.delete("auth_session_timer");
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          try {
+            const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
+            const projectId = url.hostname.split('.')[0]
+            const name = `sb-${projectId}-auth-token`;
+            supabaseResponse.cookies.delete(name);
+            supabaseResponse.cookies.delete(`${name}.0`);
+            supabaseResponse.cookies.delete(`${name}.1`);
+          } catch { }
+        }
+        return supabaseResponse
+      }
+
+      // Otherwise, redirect to /auth and clear cookies on the redirect response
+      const loginUrl = request.nextUrl.clone()
+      loginUrl.pathname = "/auth"
+      const redirectResponse = NextResponse.redirect(loginUrl, 307)
+
+      redirectResponse.cookies.delete("auth_session_timer")
+
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        try {
+          const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
+          const projectId = url.hostname.split('.')[0]
+          const name = `sb-${projectId}-auth-token`;
+          redirectResponse.cookies.delete(name);
+          redirectResponse.cookies.delete(`${name}.0`);
+          redirectResponse.cookies.delete(`${name}.1`);
+        } catch { }
+      }
+
+      return redirectResponse
     }
 
     // 2. Session Expiry Logic
@@ -76,9 +104,20 @@ export async function updateSession(request: NextRequest) {
         const lastAuth = parseInt(sessionAgeCookie);
         if (now - lastAuth > MAX_SESSION_AGE) {
           // Session too old, force logout
-          await supabase.auth.signOut();
+          // Avoid signOut() network call here too if possible, but legal sessions usually allow it.
+          // For safety, let's just use manual clear + redirect for this too.
           const response = redirectToLogin();
           response.cookies.delete("auth_session_timer");
+          if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            try {
+              const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
+              const projectId = url.hostname.split('.')[0]
+              const name = `sb-${projectId}-auth-token`;
+              response.cookies.delete(name);
+              response.cookies.delete(`${name}.0`);
+              response.cookies.delete(`${name}.1`);
+            } catch { }
+          }
           return response;
         }
       }
@@ -108,7 +147,6 @@ export async function updateSession(request: NextRequest) {
     // Catch any other unexpected errors during auth check
     console.error("Middleware Unexpected Auth Error:", err)
 
-    // If accessing a protected route and something blew up, send to login
     if (request.nextUrl.pathname.startsWith("/dashboard")) {
       const url = request.nextUrl.clone()
       url.pathname = "/auth"

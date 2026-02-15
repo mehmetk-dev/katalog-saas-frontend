@@ -7,102 +7,77 @@ export function BoldCover({
     coverImageUrl,
     coverDescription,
     logoUrl,
-    primaryColor = '#e11d48' // rose-600
+    productCount = 0,
+    primaryColor = '#000000'
 }: CoverPageProps) {
-    const currentYear = new Date().getFullYear();
-
     return (
-        <div className="relative w-full h-full bg-slate-950 text-white flex flex-col font-sans overflow-hidden group">
+        <div className="relative w-full h-full bg-[#E5E5E5] text-black overflow-hidden font-sans selection:bg-black selection:text-white">
+            {/* Massive Swiss Typography Background */}
+            <div className="absolute top-[-10%] left-[-10%] text-[400px] font-black leading-none opacity-[0.03] select-none pointer-events-none rotate-12">
+                BOLD
+            </div>
 
-            {/* Main Visual Section (70%) */}
-            <section className="relative h-[65%] w-full overflow-hidden bg-slate-900">
-                {coverImageUrl ? (
-                    <div className="w-full h-full relative">
-                        <Image
-                            src={coverImageUrl}
-                            alt="Visual"
-                            fill
-                            className="object-cover grayscale hover:grayscale-0 transition-all duration-[2s] scale-105 group-hover:scale-110"
-                        />
-                        {/* Dynamic Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                        <div
-                            className="absolute inset-0 opacity-40 mix-blend-multiply"
-                            style={{ backgroundColor: primaryColor }}
-                        />
-                    </div>
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                        <div className="text-white/5 font-black text-[12vw] tracking-tighter italic">GALERİ.OBJ</div>
-                    </div>
-                )}
-
-                {/* LOGO - Top Left (floating) */}
-                {logoUrl && (
-                    <div className="absolute top-10 left-10 z-30">
-                        <div className="bg-white p-4 shadow-2xl relative">
-                            <div className="relative w-24 h-10 lg:w-32 lg:h-12">
-                                <Image src={logoUrl} alt="Logo" fill className="object-contain" />
-                            </div>
+            <div className="relative z-10 w-full h-full grid grid-cols-12 grid-rows-12 p-8 gap-4">
+                {/* Header */}
+                <div className="col-span-12 row-span-2 flex justify-between items-start border-b-4 border-black pb-4">
+                    {logoUrl ? (
+                        <div className="relative w-48 h-16">
+                            <Image src={logoUrl} alt="Logo" fill className="object-contain object-left grayscale contrast-125" />
                         </div>
-                    </div>
-                )}
-
-                {/* ISSUE BADGE - Top Right */}
-                <div className="absolute top-10 right-10 z-30">
-                    <div
-                        className="text-white px-4 py-2 font-black text-xl lg:text-2xl uppercase border-4 border-white shadow-[10px_10px_0px_rgba(0,0,0,0.3)] bg-slate-950 -rotate-3"
-                    >
-                        YENİ BAS.
+                    ) : (
+                        <h1 className="text-6xl font-black tracking-tighter uppercase">HELVETIC</h1>
+                    )}
+                    <div className="flex flex-col items-end">
+                        <span className="bg-black text-white px-4 py-1 text-xl font-bold uppercase">Vol. {new Date().getFullYear()}</span>
+                        <span className="text-xs font-bold mt-1 tracking-widest uppercase">International Edition</span>
                     </div>
                 </div>
 
-                {/* MASSIVE RESPONSIVE TITLE */}
-                <div className="absolute bottom-0 left-0 w-full p-10 lg:p-16 z-20">
-                    <h1
-                        className="text-[clamp(48px,9vw,160px)] font-black italic tracking-tighter leading-[0.85] text-white uppercase drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
-                    >
+                {/* Main Content Block */}
+                <div className="col-span-8 row-span-8 relative flex flex-col justify-center pr-12 z-20">
+                    <div className="w-24 h-24 bg-[#FF4400] rounded-full absolute -top-12 -left-12 mix-blend-multiply opacity-80 animate-pulse-slow" />
+
+                    <h2 className="text-[100px] leading-[0.85] font-black uppercase tracking-[-0.05em] break-words z-10">
                         {catalogName}
-                    </h1>
-                </div>
-            </section>
-
-            {/* Content & Details Section (35%) */}
-            <section className="flex-1 bg-white text-slate-950 p-10 lg:p-16 flex flex-col justify-between relative overflow-hidden">
-
-                {/* Visual Flair: Giant Arrow */}
-                <div className="absolute -right-8 -bottom-8 w-48 h-48 lg:w-72 lg:h-72 bg-slate-950 rounded-full flex items-start justify-start p-10 z-0">
-                    <svg className="w-24 h-24 lg:w-32 lg:h-32 text-white -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                </div>
-
-                <div className="relative z-10">
-                    <div className="flex flex-col gap-2 mb-8">
-                        <h2 className="text-4xl lg:text-6xl font-black italic uppercase leading-none tracking-tight">
-                            Yeni<br />Perspektif.
-                        </h2>
-                        <div className="h-4 w-32" style={{ backgroundColor: primaryColor }} />
-                    </div>
+                    </h2>
 
                     {coverDescription && (
-                        <p className="max-w-2xl text-xl lg:text-2xl font-bold leading-tight uppercase tracking-tight text-slate-700">
+                        <p className="mt-8 text-2xl font-bold leading-tight max-w-lg border-l-8 border-black pl-6">
                             {coverDescription}
                         </p>
                     )}
                 </div>
 
-                {/* Small Prints */}
-                <div className="relative z-10 flex justify-between items-end border-t border-slate-200 pt-6">
-                    <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        <span>KUR. {currentYear}</span>
-                        <span>TASARIM.SIS v3</span>
+                {/* Image Composition */}
+                <div className="col-span-4 row-span-10 relative">
+                    {coverImageUrl ? (
+                        <div className="w-full h-full relative">
+                            {/* Main Image */}
+                            <div className="absolute inset-4 z-10 border-4 border-black bg-white">
+                                <Image src={coverImageUrl} alt="Cover" fill className="object-cover grayscale contrast-125 transition-all duration-500 hover:grayscale-0" />
+                            </div>
+                            {/* Offset Decor */}
+                            <div className="absolute inset-0 bg-black z-0 transform translate-x-4 translate-y-4" />
+                        </div>
+                    ) : (
+                        <div className="w-full h-full bg-black flex items-center justify-center p-8">
+                            <span className="text-white font-black text-8xl -rotate-90">VISUAL</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Big Stats */}
+                <div className="col-span-8 row-span-2 flex items-end gap-12 border-t-4 border-black pt-4">
+                    <div>
+                        <span className="block text-sm font-bold uppercase tracking-widest text-gray-500">Total SKU</span>
+                        <span className="text-8xl font-black leading-none tracking-tighter">{productCount}</span>
                     </div>
-                    <div className="font-mono text-[10px] font-bold text-slate-400">
-                        KAT-REF // {currentYear}-ALPHA
+                    <div className="flex-1 bg-black text-white p-4 flex items-center justify-between">
+                        <span className="font-bold text-xl uppercase">Design System</span>
+                        <span className="text-4xl">→</span>
                     </div>
                 </div>
-            </section>
+            </div>
         </div>
     )
 }

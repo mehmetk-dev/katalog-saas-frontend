@@ -23,7 +23,6 @@ interface DashboardClientProps {
     initialProducts: Product[]
     totalProductCount: number
     initialStats: DashboardStats | null
-    allProductIds?: string[]
 }
 
 // Mini Sparkline Component
@@ -62,7 +61,7 @@ function Sparkline({ data, color = "violet" }: { data: number[], color?: string 
     )
 }
 
-export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats, allProductIds = [] }: DashboardClientProps) {
+export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats }: DashboardClientProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const { user, isLoading, adjustCatalogsCount } = useUser()
@@ -71,6 +70,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
     const currentCatalogs: Catalog[] = Array.isArray(initialCatalogs) ? initialCatalogs : (initialCatalogs as any)?.data || []
     const currentProducts = Array.isArray(initialProducts) ? initialProducts : (initialProducts as any)?.products || []
     const recentCatalogs = currentCatalogs.slice(0, 3)
+    const productCount = totalProductCount || currentProducts.length
 
     // Ürün sayısını güvenli hesapla (Deduplicate & Clean & Validate against Master List)
     const getSafeProductCount = useCallback((catalog: any) => {
@@ -86,15 +86,8 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                 .filter((id: string) => id.length > 0 && id !== 'undefined' && id !== 'null')
         ));
 
-        // Eğer Master ID Listesi geldiyse (allProductIds), sadece gerçekten var olanları say (Hayalet ürünleri ele).
-        // Eğer liste boş geldiyse (örn: hata oldu), mevcut filtrelemeyi atla ve hepsini say (Eski davranış).
-        if (allProductIds && allProductIds.length > 0) {
-            const validIds = uniqueIds.filter((id: any) => allProductIds.includes(id));
-            return validIds.length;
-        }
-
         return uniqueIds.length;
-    }, [allProductIds]);
+    }, []);
 
     // User henüz yüklenmediyse basit bir skeleton göster
     if (isLoading) {
@@ -121,7 +114,6 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
 
     // Sparkline verileri ve İstatistikler - Gelişmiş çapraz doğrulama
     const totalViews = initialStats?.totalViews || currentCatalogs.reduce((sum, c) => sum + (Number((c as any).view_count) || Number((c as any).views) || 0), 0)
-    const productCount = totalProductCount || currentProducts.length
 
     // Yayınlanmış katalog sayısı - Hem stats hem listeden doğrula (Truthy kontrolü)
     const publishedCount = initialStats?.publishedCatalogs ??
@@ -256,7 +248,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                     </div>
                     {currentCatalogs.length > 0 && (
                         <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary" asChild>
-                            <Link href="/dashboard/catalogs">
+                            <Link href="/dashboard/catalogs" prefetch={false}>
                                 {t("catalogs.view")}
                                 <ArrowRight className="w-4 h-4" />
                             </Link>
@@ -411,7 +403,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                             asChild
                                             className="opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                            <Link href={`/dashboard/builder?id=${catalog.id}`}>
+                                            <Link href={`/dashboard/builder?id=${catalog.id}`} prefetch={false}>
                                                 {t("dashboard.edit")}
                                                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
                                             </Link>
@@ -454,7 +446,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                             asChild
                             className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
                         >
-                            <Link href="/dashboard/products?action=import" className="gap-2">
+                            <Link href="/dashboard/products?action=import" className="gap-2" prefetch={false}>
                                 <Plus className="w-4 h-4" />
                                 {t("products.addProduct")}
                             </Link>
@@ -491,7 +483,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                             asChild
                             className="w-full sm:w-auto bg-white/80 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 shadow-md hover:shadow-lg transition-all border-0"
                         >
-                            <Link href="/dashboard/templates" className="gap-2">
+                            <Link href="/dashboard/templates" className="gap-2" prefetch={false}>
                                 <Sparkles className="w-4 h-4" />
                                 {t("sidebar.templates")}
                             </Link>

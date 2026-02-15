@@ -63,18 +63,6 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             }
         }
 
-        // DEBUG: Inject dummy product if empty to test frontend
-        if (products.length === 0) {
-            products.push({
-                id: 'debug-product-1',
-                name: 'Start Debug Product',
-                price: 999,
-                description: 'If you see this, Frontend is OK. DB is returning 0 products.',
-                image_url: 'https://placehold.co/600x400/indigo/white?text=Debug',
-                category: 'Debug'
-            });
-        }
-
         // Ownership & view tracking
         const visitorInfo = getVisitorInfo(req);
         const ownerId = data.user_id;

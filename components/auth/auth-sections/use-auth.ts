@@ -57,8 +57,7 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
             const { data: { session } } = await supabase.auth.getSession()
             if (session) {
                 setIsRedirecting(true)
-                router.push("/dashboard")
-                router.refresh()
+                router.replace("/dashboard")
             }
         }
         checkSession()
@@ -309,8 +308,7 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
                 if (data.session) {
                     setIsRedirecting(true)
                     await new Promise(r => setTimeout(r, 800))
-                    router.push("/dashboard")
-                    router.refresh()
+                    router.replace("/dashboard")
                 } else if (data.user) {
                     router.push("/auth/verify")
                 }
@@ -320,8 +318,7 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
 
                 setIsRedirecting(true)
                 await new Promise(r => setTimeout(r, 800))
-                router.push("/dashboard")
-                router.refresh()
+                router.replace("/dashboard")
             }
         } catch (err: any) {
             console.error("[AuthPageClient] Submit error:", err)

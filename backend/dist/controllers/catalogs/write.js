@@ -1,0 +1,270 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteCatalog = exports.updateCatalog = exports.createCatalog = void 0;
+const supabase_1 = require("../../services/supabase");
+const redis_1 = require("../../services/redis");
+const activity_logger_1 = require("../../services/activity-logger");
+const notifications_1 = require("../notifications");
+const helpers_1 = require("./helpers");
+// Fields that require both undefined AND null checks before writing
+const FIELDS_WITH_NULL_CHECK = [
+    'name', 'layout', 'primary_color', 'is_published', 'share_slug',
+    'product_ids', 'show_prices', 'show_descriptions', 'show_attributes',
+    'show_sku', 'show_urls', 'columns_per_row', 'background_color',
+    'background_image_fit', 'logo_size', 'title_position',
+    'product_image_fit', 'header_text_color', 'enable_cover_page',
+    'enable_category_dividers',
+];
+// Fields that only need undefined check (null is a valid value to clear)
+const FIELDS_WITHOUT_NULL_CHECK = [
+    'description', 'background_gradient', 'background_image',
+    'logo_url', 'logo_position', 'cover_image_url',
+    'cover_description', 'cover_theme',
+];
+// All insertable optional fields
+const INSERT_OPTIONAL_FIELDS = [
+    'primary_color', 'show_prices', 'show_descriptions', 'show_attributes',
+    'show_sku', 'show_urls', 'columns_per_row', 'background_color',
+    'background_image', 'background_image_fit', 'background_gradient',
+    'logo_url', 'logo_position', 'logo_size', 'title_position',
+    'product_image_fit', 'header_text_color', 'enable_cover_page',
+    'cover_image_url', 'cover_description', 'enable_category_dividers',
+    'cover_theme',
+];
+const createCatalog = async (req, res) => {
+    try {
+        const userId = (0, helpers_1.getUserId)(req);
+        const { name: rawName, description, layout, product_ids } = req.body;
+        const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
+        // Limit kontrolü ve kullanıcı bilgileri
+        const [userData, catalogsCountResult] = await Promise.all([
+            (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
+                const { data } = await supabase_1.supabase.from('users').select('plan, full_name, company').eq('id', userId).single();
+                return data;
+            }),
+            supabase_1.supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
+        const typedUserData = userData;
+        const plan = typedUserData?.plan || 'free';
+        const userName = typedUserData?.company || typedUserData?.full_name || 'user';
+        const currentCount = catalogsCountResult.count || 0;
+        const { maxCatalogs } = (0, helpers_1.getPlanLimits)(plan);
+        if (currentCount >= maxCatalogs) {
+            return res.status(403).json({
+                error: 'Limit Reached',
+                message: `Katalog oluşturma limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxCatalogs} adet). Daha fazla oluşturmak için paketinizi yükseltin.`
+            });
+        }
+        const shareSlug = (0, helpers_1.generateShareSlug)(userName, name);
+        // Build insert data
+        const insertData = {
+            user_id: userId,
+            name,
+            description: description || null,
+            layout: layout || 'modern-grid',
+            share_slug: shareSlug,
+            product_ids: Array.isArray(product_ids) ? product_ids : [],
+            is_published: false,
+        };
+        // Include optional fields only if provided
+        for (const key of INSERT_OPTIONAL_FIELDS) {
+            if (req.body[key] !== undefined) {
+                insertData[key] = req.body[key];
+            }
+        }
+        const { data, error } = await supabase_1.supabase
+            .from('catalogs')
+            .insert(insertData)
+            .select()
+            .single();
+        if (error) {
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({
+                    error: 'Bu slug zaten kullanılıyor. Lütfen tekrar deneyin.'
+                });
+            }
+            throw error;
+        }
+        // Cache'i temizle
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
+        // Bildirim gönder
+        try {
+            const { NotificationTemplates } = await Promise.resolve().then(() => __importStar(require('../notifications')));
+            const template = NotificationTemplates.catalogCreated(name, data.id);
+            await (0, notifications_1.createNotification)(userId, 'catalog_created', template.title, template.message, template.actionUrl);
+        }
+        catch {
+            // Bildirim hatası sessizce geçilir
+        }
+        // Log activity
+        const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
+        await (0, activity_logger_1.logActivity)({
+            userId,
+            activityType: 'catalog_created',
+            description: activity_logger_1.ActivityDescriptions.catalogCreated(name),
+            metadata: { catalogId: data.id, catalogName: name },
+            ipAddress,
+            userAgent
+        });
+        res.status(201).json(data);
+    }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
+    }
+};
+exports.createCatalog = createCatalog;
+const updateCatalog = async (req, res) => {
+    try {
+        const userId = (0, helpers_1.getUserId)(req);
+        const { id } = req.params;
+        const { name, cover_description, cover_image_url, share_slug, } = req.body;
+        // Validate cover_description length (max 500 chars)
+        if (cover_description !== undefined && cover_description !== null && cover_description.length > 500) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: 'Kapak açıklaması maksimum 500 karakter olabilir.'
+            });
+        }
+        // Validate cover_image_url format
+        if (cover_image_url !== undefined && cover_image_url !== null && cover_image_url.trim() !== '') {
+            try {
+                new URL(cover_image_url);
+            }
+            catch {
+                return res.status(400).json({
+                    error: 'Validation Error',
+                    message: 'Geçersiz kapak görsel URL formatı.'
+                });
+            }
+        }
+        // Eski slug'ı bul (cache temizlemek için)
+        const { data: oldCatalog } = await supabase_1.supabase
+            .from('catalogs')
+            .select('share_slug')
+            .eq('id', id)
+            .single();
+        // Build update data dynamically
+        const updateData = {
+            updated_at: new Date().toISOString(),
+            ...(0, helpers_1.pickDefinedFields)(req.body, FIELDS_WITH_NULL_CHECK, FIELDS_WITHOUT_NULL_CHECK),
+        };
+        const { error, data } = await supabase_1.supabase
+            .from('catalogs')
+            .update(updateData)
+            .eq('id', id)
+            .eq('user_id', userId)
+            .select();
+        if (error) {
+            console.error('Catalog update error:', error);
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({
+                    error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.'
+                });
+            }
+            return res.status(500).json({
+                error: 'Katalog güncellenirken bir hata oluştu',
+                details: error.message
+            });
+        }
+        // Cache'leri temizle
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId)),
+            ...(oldCatalog?.share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(oldCatalog.share_slug))] : []),
+            ...(share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(share_slug))] : [])
+        ]);
+        // Log activity
+        const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
+        await (0, activity_logger_1.logActivity)({
+            userId,
+            activityType: 'catalog_updated',
+            description: activity_logger_1.ActivityDescriptions.catalogUpdated(name || 'Katalog'),
+            metadata: { catalogId: id, updates: Object.keys(req.body) },
+            ipAddress,
+            userAgent
+        });
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Catalog update exception:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({
+            error: 'Katalog güncellenirken bir hata oluştu',
+            message: errorMessage
+        });
+    }
+};
+exports.updateCatalog = updateCatalog;
+const deleteCatalog = async (req, res) => {
+    try {
+        const userId = (0, helpers_1.getUserId)(req);
+        const { id } = req.params;
+        const { error } = await supabase_1.supabase
+            .from('catalogs')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', userId);
+        if (error)
+            throw error;
+        // Cache'leri temizle
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
+        // Log activity
+        const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
+        await (0, activity_logger_1.logActivity)({
+            userId,
+            activityType: 'catalog_deleted',
+            description: 'Bir katalog sildi',
+            metadata: { catalogId: id },
+            ipAddress,
+            userAgent
+        });
+        res.json({ success: true });
+    }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
+    }
+};
+exports.deleteCatalog = deleteCatalog;

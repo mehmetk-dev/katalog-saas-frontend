@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { cache } from "react"
 
 import { apiFetch } from "@/lib/api"
 import type { Product } from "@/lib/actions/products"
@@ -158,13 +159,13 @@ export async function revalidateCatalogPublic(slug: string) {
 }
 
 
-export async function getPublicCatalog(slug: string) {
+export const getPublicCatalog = cache(async (slug: string) => {
   try {
     return await apiFetch<Catalog>(`/catalogs/public/${slug}`)
   } catch {
     return null
   }
-}
+})
 
 export interface DashboardStats {
   totalCatalogs: number

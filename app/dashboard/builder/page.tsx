@@ -7,6 +7,44 @@ import { getProducts } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 
+const BUILDER_MAX_PRODUCTS = 5000
+const BUILDER_PAGE_SIZE = 1000
+
+async function getBuilderProducts(maxProducts: number = BUILDER_MAX_PRODUCTS) {
+  const firstPage = await getProducts({ page: 1, limit: Math.min(BUILDER_PAGE_SIZE, maxProducts) })
+
+  const firstProducts = firstPage.products || []
+  const totalAvailable = firstPage.metadata?.total || firstProducts.length
+  const effectivePageSize = firstPage.metadata?.limit || Math.min(BUILDER_PAGE_SIZE, maxProducts)
+  const targetCount = Math.min(totalAvailable, maxProducts)
+  const totalPagesToFetch = Math.ceil(targetCount / effectivePageSize)
+
+  if (totalPagesToFetch <= 1) {
+    return {
+      products: firstProducts.slice(0, targetCount),
+      totalAvailable,
+      isTruncated: totalAvailable > maxProducts,
+    }
+  }
+
+  const remainingPageRequests = []
+  for (let page = 2; page <= totalPagesToFetch; page += 1) {
+    remainingPageRequests.push(getProducts({ page, limit: effectivePageSize }))
+  }
+
+  const remainingPages = await Promise.all(remainingPageRequests)
+  const mergedProducts = [
+    ...firstProducts,
+    ...remainingPages.flatMap((res) => res.products || []),
+  ].slice(0, targetCount)
+
+  return {
+    products: mergedProducts,
+    totalAvailable,
+    isTruncated: totalAvailable > maxProducts,
+  }
+}
+
 export const metadata: Metadata = {
   title: "Katalog Oluşturucu",
   description: "Sürükle-bırak editörü ile profesyonel kataloglar oluşturun.",
@@ -20,9 +58,9 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
   const params = await searchParams
   const catalogId = params.id
 
-  const [catalog, productsResponse] = await Promise.all([
+  const [catalog, productsPayload] = await Promise.all([
     catalogId ? getCatalog(catalogId) : null,
-    getProducts({ limit: 1000 })
+    getBuilderProducts()
   ])
 
   // Eğer ID verilmiş ama katalog bulunamıyorsa, yeni katalog sayfasına yönlendir
@@ -58,7 +96,12 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
 
   return (
     <Suspense fallback={<BuilderSkeleton />}>
-      <BuilderPageClient catalog={catalog} products={productsResponse.products} />
+      <BuilderPageClient
+        catalog={catalog}
+        products={productsPayload.products}
+        productTotalCount={productsPayload.totalAvailable}
+        isProductListTruncated={productsPayload.isTruncated}
+      />
     </Suspense>
   )
 }

@@ -487,7 +487,6 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
 }
 
 export async function getAllProductIds(): Promise<string[]> {
-
   try {
     const response = await apiFetch<any>("/products?limit=9999&select=id")
     if (Array.isArray(response)) {
@@ -503,4 +502,5 @@ export async function getAllProductIds(): Promise<string[]> {
     return []
   }
 }
+
 

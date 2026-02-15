@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -26,7 +26,11 @@ import { PreviewFloatingHeader } from "./preview-floating-header"
 interface BuilderPageClientProps {
   catalog: Catalog | null
   products: Product[]
+  productTotalCount?: number
+  isProductListTruncated?: boolean
 }
+
+const SPLIT_PREVIEW_SOFT_LIMIT = 1500
 
 const normalizeLogoPosition = (
   position: Catalog['logo_position'] | null | undefined,
@@ -47,7 +51,12 @@ const normalizeLogoPosition = (
   return 'header-left'
 }
 
-export function BuilderPageClient({ catalog, products }: BuilderPageClientProps) {
+export function BuilderPageClient({
+  catalog,
+  products,
+  productTotalCount,
+  isProductListTruncated = false,
+}: BuilderPageClientProps) {
   const router = useRouter()
   const { user, canExport, refreshUser } = useUser()
   const { t: baseT } = useTranslation()
@@ -59,6 +68,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [view, setView] = useState<"split" | "editor" | "preview">("split")
   const [isMobile, setIsMobile] = useState(false)
+  const [isSelectionUpdatePending, startSelectionTransition] = useTransition()
 
   // ─── Catalog Identity ─────────────────────────────────────────────
   const [currentCatalogId, setCurrentCatalogId] = useState(catalog?.id || null)
@@ -241,6 +251,7 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
       .filter((p): p is Product => p !== undefined),
     [selectedProductIds, productMap]
   )
+  const deferredSelectedProducts = useDeferredValue(selectedProducts)
 
   const { isExporting, handleDownloadPDF } = usePdfExport({
     catalogName,
@@ -361,7 +372,22 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
     setShowShareModal(true)
   }, [currentCatalogId, catalog?.share_slug, t])
 
+  const handleSelectedProductIdsChange = useCallback((ids: string[]) => {
+    startSelectionTransition(() => {
+      setSelectedProductIds(ids)
+    })
+  }, [])
+
   const effectiveView = isMobile ? (view === "split" ? "editor" : view) : view
+
+  const shouldUseSplitPreviewSampling = useMemo(() => {
+    return effectiveView !== "preview" && deferredSelectedProducts.length > SPLIT_PREVIEW_SOFT_LIMIT
+  }, [effectiveView, deferredSelectedProducts.length])
+
+  const previewProducts = useMemo(() => {
+    if (!shouldUseSplitPreviewSampling) return deferredSelectedProducts
+    return deferredSelectedProducts.slice(0, SPLIT_PREVIEW_SOFT_LIMIT)
+  }, [deferredSelectedProducts, shouldUseSplitPreviewSampling])
 
   // ─── Render ───────────────────────────────────────────────────────
   return (
@@ -406,8 +432,10 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
             <div className={`${effectiveView === "split" ? "w-1/2" : "w-full"} border-r overflow-auto`}>
               <CatalogEditor
                 products={products}
+                totalProductCount={productTotalCount}
+                isProductListTruncated={isProductListTruncated}
                 selectedProductIds={selectedProductIds}
-                onSelectedProductIdsChange={setSelectedProductIds}
+                onSelectedProductIdsChange={handleSelectedProductIdsChange}
                 description={catalogDescription}
                 onDescriptionChange={setCatalogDescription}
                 layout={layout}
@@ -471,9 +499,18 @@ export function BuilderPageClient({ catalog, products }: BuilderPageClientProps)
               id="catalog-preview-container"
               className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-100 dark:bg-[#03040a] overflow-auto`}
             >
+
+
+              {shouldUseSplitPreviewSampling && (
+                <div className="sticky top-0 z-20 px-3 py-2 text-xs border-b border-amber-200 bg-amber-50 text-amber-800">
+                  Performans modu: bölünmüş görünümde ilk {SPLIT_PREVIEW_SOFT_LIMIT} ürün gösteriliyor.
+                  Tam önizleme için "Önizleme" moduna geç.
+                </div>
+              )}
+
               <CatalogPreview
                 catalogName={catalogName}
-                products={selectedProducts}
+                products={previewProducts}
                 layout={layout}
                 primaryColor={primaryColor}
                 headerTextColor={headerTextColor}

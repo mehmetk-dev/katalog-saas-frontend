@@ -123,9 +123,8 @@ export function useCatalogActions({
                 data.catalogName = finalName!
 
                 if (currentCatalogId) {
-                    const updatePromise = updateCatalog(currentCatalogId, buildCatalogPayload(data))
+                    await updateCatalog(currentCatalogId, buildCatalogPayload(data))
                     toast.success(t('toasts.catalogSaved') as string)
-                    await updatePromise
                 } else {
                     const newCatalog = await createCatalog(buildCatalogPayload(data))
                     setCurrentCatalogId(newCatalog.id)

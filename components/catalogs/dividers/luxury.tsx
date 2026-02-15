@@ -1,28 +1,45 @@
 import React from 'react'
-import type { CategoryDividerProps } from './index'
+import type { DividerPageProps } from './index'
 
-export function LuxuryDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor }: CategoryDividerProps) {
+export function LuxuryDivider({
+    categoryName,
+    productCount = 0,
+    description,
+    primaryColor = '#D4AF37'
+}: DividerPageProps) {
     return (
-        <div className="relative w-full h-full bg-[#050505] text-[#D4AF37] flex items-center justify-center overflow-hidden">
-            {/* Pattern BG */}
-            <div className="absolute inset-0 opacity-5"
-                style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #D4AF37 1px, transparent 0)', backgroundSize: '32px 32px' }}>
+        <div className="relative w-full h-full bg-[#0F0F0F] text-[#D4AF37] font-serif overflow-hidden flex flex-col items-center justify-center p-24">
+            {/* Ornate Border */}
+            <div className="absolute inset-8 border border-[#D4AF37]/30">
+                <div className="absolute inset-1 border border-[#D4AF37]/10" />
+                {/* Corner Diamonds */}
+                <div className="absolute top-0 left-0 w-4 h-4 bg-[#D4AF37] transform -translate-x-2 -translate-y-2 rotate-45" />
+                <div className="absolute top-0 right-0 w-4 h-4 bg-[#D4AF37] transform translate-x-2 -translate-y-2 rotate-45" />
+                <div className="absolute bottom-0 left-0 w-4 h-4 bg-[#D4AF37] transform -translate-x-2 translate-y-2 rotate-45" />
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#D4AF37] transform translate-x-2 translate-y-2 rotate-45" />
             </div>
 
-            <div className="border border-[#D4AF37]/50 p-20 relative">
-                {/* Corner Flourishes */}
-                <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-[#D4AF37]" />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-[#D4AF37]" />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-[#D4AF37]" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-[#D4AF37]" />
+            <div className="text-center max-w-3xl z-10 space-y-12">
+                <span className="text-xs uppercase tracking-[0.4em] text-white/40">
+                    Collection &#8470; {Math.floor(Math.random() * 50)}
+                </span>
 
-                <div className="text-center">
-                    <div className="w-1 bg-[#D4AF37]/50 h-12 mx-auto mb-6" />
-                    <span className="font-serif italic text-lg opacity-80 mb-2 block">Koleksiyon</span>
-                    <h2 className="font-serif text-6xl tracking-[0.2em] uppercase mb-6 text-[#F5E6C4]">
-                        {categoryName}
-                    </h2>
-                    <div className="w-1 bg-[#D4AF37]/50 h-12 mx-auto mt-6" />
+                <h2 className="text-8xl font-light italic text-[#FDFCF5] leading-tight">
+                    {categoryName}
+                </h2>
+
+                <div className="w-32 h-px bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mx-auto" />
+
+                {description && (
+                    <p className="text-xl text-[#D4AF37]/80 font-light italic leading-relaxed">
+                        {description}
+                    </p>
+                )}
+
+                <div className="mt-12 inline-block border border-[#D4AF37]/50 px-8 py-3 transform rotate-45">
+                    <span className="block transform -rotate-45 text-sm font-sans uppercase tracking-widest text-white">
+                        {productCount} Items
+                    </span>
                 </div>
             </div>
         </div>

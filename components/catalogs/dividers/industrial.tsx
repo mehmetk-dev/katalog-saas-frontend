@@ -1,35 +1,52 @@
 import React from 'react'
-import type { CategoryDividerProps } from './index'
+import type { DividerPageProps } from './index'
 
-export function IndustrialDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#facc15' }: CategoryDividerProps) {
+export function IndustrialDivider({
+    categoryName,
+    productCount = 0,
+    description,
+    primaryColor = '#FACC15'
+}: DividerPageProps) {
     return (
-        <div className="relative w-full h-full bg-[#1a1a1a] text-white font-sans overflow-hidden flex flex-col justify-center items-center">
-            {/* Grid BG */}
+        <div className="relative w-full h-full bg-[#1F2937] text-white font-mono overflow-hidden p-16 flex flex-col justify-between">
+            {/* Technical Grid Background */}
             <div className="absolute inset-0 opacity-10"
-                style={{
-                    backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)',
-                    backgroundSize: '40px 40px'
-                }}
+                style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '50px 50px' }}
             />
 
-            {/* Diagonal Stripes */}
-            <div className="absolute top-0 right-0 w-64 h-full bg-yellow-400/10 skew-x-12 border-l border-yellow-400" />
-
-            <div className="relative z-10 border-2 border-yellow-400 p-8 bg-black/80 backdrop-blur-sm max-w-lg text-center transform -rotate-1">
-                {/* Corner Screws */}
-                <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-400" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400" />
-                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-400" />
-                <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-yellow-400" />
-
-                <div className="text-xs text-yellow-400 font-mono mb-2">BÖLÜM BAŞLIĞI</div>
-                <h2 className="text-6xl font-black uppercase tracking-tighter text-white mb-4">
-                    {categoryName}
-                </h2>
-                <div className="h-1 w-full bg-yellow-400/50 flex gap-2">
-                    <div className="h-full w-1/3 bg-yellow-400" />
-                    <div className="h-full w-1/6 bg-yellow-400/50" />
+            {/* Top Bar */}
+            <div className="w-full border-b-2 border-white/20 pb-4 flex justify-between items-end">
+                <div className="flex gap-4">
+                    <div className="w-4 h-4 bg-[#FACC15]" />
+                    <span className="text-xs tracking-[0.2em] font-bold">SECTION ID: {Math.random().toString(36).substring(7).toUpperCase()}</span>
                 </div>
+                <span className="text-4xl font-bold text-[#FACC15]">items: {productCount}</span>
+            </div>
+
+            {/* Main Center */}
+            <div className="flex-1 flex flex-col justify-center relative">
+                {/* Diagonal Stripe */}
+                <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.05)_10px,rgba(255,255,255,0.05)_20px)] pointer-events-none" />
+
+                <div className="relative z-10 bg-[#1F2937]/90 border border-white/20 p-12 max-w-4xl">
+                    <span className="text-[#FACC15] font-bold text-sm tracking-widest uppercase block mb-4">
+                         // Technical Specification
+                    </span>
+                    <h2 className="text-8xl font-bold uppercase leading-none tracking-tighter mb-8">
+                        {categoryName}
+                    </h2>
+                    {description && (
+                        <p className="text-lg text-gray-400 font-light border-l-2 border-[#FACC15] pl-6 py-2">
+                            {description}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Bottom Warning Bar */}
+            <div className="w-full h-12 bg-[#FACC15] text-black flex items-center justify-between px-8 font-bold uppercase tracking-wider">
+                <span>Authorized Personnel Only</span>
+                <span>Production Line A</span>
             </div>
         </div>
     )

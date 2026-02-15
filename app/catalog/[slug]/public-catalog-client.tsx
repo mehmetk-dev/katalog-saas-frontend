@@ -97,7 +97,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         if (layout === 'showcase') return 5 // 1 Hero + 4 Sidebar
         if (layout === 'luxury') return 6 // 2x3 Grid
 
-        if (layout === 'product-tiles' && columns === 2) return 4
+        if (layout === 'product-tiles') return columns * 2
+        if (layout === 'catalog-pro') return 4
 
         return columns * 3
     }

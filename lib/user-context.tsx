@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
@@ -50,6 +50,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
   const [user, setUser] = useState<User | null>(initialUser)
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(initialSupabaseUser)
   const [isLoading, setIsLoading] = useState(!initialUser)
+  const isLoggingOutRef = useRef(false)
   const supabase = createClient()
 
   const fetchUserProfile = useCallback(async (authUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
@@ -175,11 +176,16 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
 
         if (authUser) {
           setSupabaseUser(authUser)
-          const success = await fetchUserProfile(authUser)
 
+          // OPTIMIZATION: initialUser zaten varsa ve aynı user'sa, client-side fetch ATMA
+          if (initialUser && initialUser.id === authUser.id) {
+            console.log("✅ Using SSR initial user data (skipping client fetch)")
+            setIsLoading(false)
+            return
+          }
+
+          const success = await fetchUserProfile(authUser)
           if (!success) {
-            // Profil alınamadı ama auth var - temel bilgilerle user oluştur
-            // Plan bilgisi olmadan! (undefined/unknown state)
             console.warn("Could not fetch user profile, showing limited info")
           }
         }
@@ -190,16 +196,40 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
       }
     }
 
-    initAuth()
+    // OPTIMIZATION: initialUser varsa initAuth'u atla
+    if (initialUser) {
+      console.log("✅ Using SSR initial user (skipping initAuth)")
+      setIsLoading(false)
+    } else {
+      initAuth()
+    }
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
+        if (isLoggingOutRef.current && event === "SIGNED_IN") {
+          return
+        }
+
+        if (event === "SIGNED_OUT") {
+          setSupabaseUser(null)
+          setUser(null)
+          return
+        }
+
         if (session?.user) {
+          // OPTIMIZATION: Sadece user değiştiyse fetch yap
+          const currentUserId = supabaseUser?.id || initialUser?.id
+          if (currentUserId && currentUserId === session.user.id && event !== 'SIGNED_IN') {
+            console.log("✅ Same user, skipping profile refetch (event:", event + ")")
+            setSupabaseUser(session.user)
+            return
+          }
+
+          console.log("🔄 Auth state changed, fetching profile (event:", event + ")")
           setSupabaseUser(session.user)
-          // fetchUserProfile zaten retry mekanizmalı
           await fetchUserProfile(session.user)
         } else {
           setSupabaseUser(null)
@@ -213,18 +243,25 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     return () => {
       subscription.unsubscribe()
     }
-  }, [fetchUserProfile, supabase.auth])
+  }, [fetchUserProfile, supabase.auth, initialUser, supabaseUser?.id])
 
   const logout = async () => {
-    // Önce yönlendir, böylece UI state değişiminden kaynaklı çökmez
-    window.location.href = "/auth"
+    if (isLoggingOutRef.current) return
+    isLoggingOutRef.current = true
+
+    setIsLoading(true)
+    setUser(null)
+    setSupabaseUser(null)
 
     try {
-      setUser(null)
-      setSupabaseUser(null)
-      await supabase.auth.signOut()
+      const signOutPromise = supabase.auth.signOut()
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000))
+      await Promise.race([signOutPromise, timeoutPromise])
     } catch (error) {
       console.error("Çıkış hatası:", error)
+    } finally {
+      setIsLoading(false)
+      window.location.replace("/auth?logged_out=1")
     }
   }
 

@@ -26,10 +26,10 @@ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.com'
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "FogCatalog - Professional Product Catalog Builder",
+    default: "FogCatalog - Ürün Katalog Oluşturucu",
     template: "%s | FogCatalog",
   },
-  description: "Create stunning, professional digital product catalogs in minutes. 15+ premium templates, PDF export, QR codes, and interactive sharing. Start for free!",
+  description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. 15+ premium şablon, PDF dışa aktarma, QR kod ve etkileşimli paylaşım.",
   keywords: [
     "katalog", "ürün kataloğu", "PDF katalog", "dijital katalog", "katalog oluşturma",
     "catalog builder", "digital catalog", "product catalog", "online catalog", "PDF catalog creator",
@@ -55,8 +55,8 @@ export const metadata: Metadata = {
     alternateLocale: ["en_US"],
     url: siteUrl,
     siteName: "FogCatalog",
-    title: "FogCatalog - Professional Product Catalog Builder",
-    description: "Create stunning, professional digital product catalogs in minutes. 15+ premium templates, PDF export, QR codes, and interactive sharing.",
+    title: "FogCatalog - Ürün Katalog Oluşturucu",
+    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. 15+ premium şablon, PDF dışa aktarma, QR kod ve etkileşimli paylaşım.",
     images: [
       {
         url: "/og-image.png",
@@ -68,8 +68,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FogCatalog - Professional Product Catalog Builder",
-    description: "Create stunning, professional digital product catalogs in minutes.",
+    title: "FogCatalog - Ürün Katalog Oluşturucu",
+    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.",
     images: ["/og-image.png"],
     creator: "@fogcatalog",
   },
@@ -189,4 +189,7 @@ export default function RootLayout({
     </html>
   )
 }
+
+
+
 

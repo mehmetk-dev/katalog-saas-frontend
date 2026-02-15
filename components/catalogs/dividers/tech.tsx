@@ -1,41 +1,93 @@
 import React from 'react'
-import type { CategoryDividerProps } from './index'
+import type { DividerPageProps } from './index'
 
-export function TechDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor = '#0ea5e9' }: CategoryDividerProps) {
+export function TechDivider({
+    categoryName,
+    productCount = 0,
+    description,
+    primaryColor = '#00ff41'
+}: DividerPageProps) {
     return (
-        <div className="relative w-full h-full bg-[#020617] font-mono text-sky-400 flex items-center justify-center overflow-hidden">
-            {/* Grid */}
-            <div className="absolute inset-0 opacity-20"
-                style={{
-                    backgroundImage: `linear-gradient(${primaryColor}22 1px, transparent 1px), linear-gradient(90deg, ${primaryColor}22 1px, transparent 1px)`,
-                    backgroundSize: '40px 40px'
-                }}
-            />
+        <div className="relative w-full h-full bg-black text-[#00ff41] font-mono overflow-hidden flex flex-col p-12">
+            {/* Matrix Rain Background */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden select-none text-[10px] leading-none break-all">
+                {Array.from({ length: 5000 }).map(() => Math.random() > 0.5 ? '1' : '0').join('')}
+            </div>
 
-            {/* Scanning Line */}
-            <div className="absolute top-0 w-full h-1 bg-sky-500/50 shadow-[0_0_15px_#0ea5e9] animate-[scan_3s_linear_infinite]" />
+            {/* Header Status */}
+            <div className="w-full flex justify-between border-b border-[#00ff41]/50 pb-4 z-10">
+                <span className="uppercase text-xs font-bold">&gt; SYSTEM_CHECK: OK</span>
+                <span className="uppercase text-xs font-bold animate-pulse">LOADING_MODULE...</span>
+            </div>
 
-            <div className="relative z-10 bg-[#020617]/90 border border-sky-500 p-12 backdrop-blur-sm max-w-2xl w-full text-center">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#020617] px-4 text-xs text-sky-500 border border-sky-500/50">
-                    SİSTEM BÖLÜMÜ
-                </div>
+            {/* Main Content */}
+            <div className="flex-1 flex items-center justify-center relative z-10">
+                <div className="border-[2px] border-[#00ff41] p-16 shadow-[0_0_20px_rgba(0,255,65,0.2)] bg-black/80 max-w-5xl w-full">
+                    <h2 className="text-8xl font-black uppercase tracking-tighter mb-8 glitched-text" data-text={categoryName}>
+                        {categoryName}
+                    </h2>
 
-                <div className="flex items-center justify-center gap-4 mb-6 opacity-70">
-                    <span>001</span>
-                    <div className="h-px w-20 bg-sky-500" />
-                    <span>002</span>
-                </div>
-
-                <h2 className="text-6xl font-black text-white mb-2 tracking-tighter shadow-sky-500 drop-shadow-[0_0_5px_rgba(14,165,233,0.8)]">
-                    {categoryName}
-                </h2>
-
-                <div className="mt-8 flex justify-center gap-2">
-                    <span className="w-2 h-2 bg-sky-500 animate-pulse" />
-                    <span className="w-2 h-2 bg-sky-500 animate-pulse delay-75" />
-                    <span className="w-2 h-2 bg-sky-500 animate-pulse delay-150" />
+                    <div className="grid grid-cols-2 gap-8 border-t border-[#00ff41]/30 pt-8 mt-8">
+                        <div>
+                            <span className="text-xs text-[#00ff41]/60 block mb-2">&gt; DESCRIPTION_LOG</span>
+                            {description && (
+                                <p className="text-lg leading-relaxed font-bold">
+                                    {description}
+                                </p>
+                            )}
+                        </div>
+                        <div className="text-right">
+                            <span className="text-xs text-[#00ff41]/60 block mb-2">&gt; OBJECT_COUNT</span>
+                            <span className="text-6xl font-bold">{productCount}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Ascii Art / Footer */}
+            <div className="border-t border-[#00ff41]/50 pt-4 flex justify-between text-[10px] z-10">
+                <pre>
+                    {`   /\\
+  /  \\
+ /____\\`}
+                </pre>
+                <span className="self-end block">SECURE CONNECTION ESTABLISHED</span>
+            </div>
+
+            <style jsx>{`
+                .glitched-text {
+                    position: relative;
+                }
+                .glitched-text::before,
+                .glitched-text::after {
+                    content: attr(data-text);
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                }
+                .glitched-text::before {
+                    left: 2px;
+                    text-shadow: -1px 0 red;
+                    clip: rect(24px, 550px, 90px, 0);
+                    animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+                }
+                .glitched-text::after {
+                    left: -2px;
+                    text-shadow: -1px 0 blue;
+                    clip: rect(85px, 550px, 140px, 0);
+                    animation: glitch-anim-2 3s infinite linear alternate-reverse;
+                }
+                @keyframes glitch-anim-1 {
+                    0% { clip: rect(20px, 9999px, 80px, 0); }
+                    100% { clip: rect(60px, 9999px, 120px, 0); }
+                }
+                @keyframes glitch-anim-2 {
+                    0% { clip: rect(100px, 9999px, 160px, 0); }
+                    100% { clip: rect(10px, 9999px, 60px, 0); }
+                }
+            `}</style>
         </div>
     )
 }

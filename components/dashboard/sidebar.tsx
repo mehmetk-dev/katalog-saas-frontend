@@ -80,7 +80,7 @@ export function DashboardSidebar() {
           "h-16 flex items-center border-b border-sidebar-border shrink-0",
           isCollapsed && !isMobile ? "justify-center px-2" : "justify-between px-4"
         )}>
-          <Link href="/dashboard" className={cn(
+          <Link href="/dashboard" prefetch={false} className={cn(
             "flex items-center overflow-hidden",
             isCollapsed && !isMobile && "justify-center"
           )}>
@@ -148,6 +148,7 @@ export function DashboardSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={handleNavClick}
+                prefetch={false}
                 className={cn(
                   "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                   isCollapsed && !isMobile ? "justify-center p-2.5" : "px-3 py-2.5",
@@ -201,6 +202,7 @@ export function DashboardSidebar() {
                     key={item.href}
                     href={item.href}
                     onClick={handleNavClick}
+                    prefetch={false}
                     className={cn(
                       "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                       isCollapsed && !isMobile ? "justify-center p-2.5" : "px-3 py-2.5",

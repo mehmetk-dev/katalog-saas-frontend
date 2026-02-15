@@ -15,6 +15,8 @@ import { EditorDesignTab } from "./editor-design-tab"
 
 export interface CatalogEditorProps {
   products: Product[]
+  totalProductCount?: number
+  isProductListTruncated?: boolean
   selectedProductIds: string[]
   onSelectedProductIdsChange: (ids: string[]) => void
   description: string
@@ -109,6 +111,7 @@ export const rgbToHex = (r: number, g: number, b: number) => {
 const getAvailableColumns = (layout: string) => {
   switch (layout) {
     case 'bold':
+    case 'catalog-pro':
     case 'luxury':
     case 'minimalist':
     case 'clean-white':
@@ -117,8 +120,7 @@ const getAvailableColumns = (layout: string) => {
     case 'fashion-lookbook':
       return [2]
     case 'modern-grid':
-    case 'product-tiles':
-    case 'catalog-pro':
+    case 'product-tiles': return [3]
     case 'retail':
     case 'tech-modern':
       return [2, 3]
@@ -136,6 +138,8 @@ const getAvailableColumns = (layout: string) => {
 
 export function CatalogEditor({
   products,
+  totalProductCount,
+  isProductListTruncated = false,
   selectedProductIds,
   onSelectedProductIdsChange,
   description,
@@ -188,8 +192,8 @@ export function CatalogEditor({
   onEnableCategoryDividersChange,
   coverTheme = 'modern',
   onCoverThemeChange,
-  showInSearch = true,
-  onShowInSearchChange,
+  showInSearch: _showInSearch = true,
+  onShowInSearchChange: _onShowInSearchChange,
   catalogName,
 }: CatalogEditorProps) {
   const { t: baseT } = useTranslation()
@@ -408,6 +412,9 @@ export function CatalogEditor({
               t={t}
               description={description}
               onDescriptionChange={onDescriptionChange}
+              availableProductCount={products.length}
+              totalProductCount={totalProductCount}
+              isProductListTruncated={isProductListTruncated}
               searchQuery={searchQuery}
               onSearchChange={handleSearchChange}
               selectedCategory={selectedCategory}

@@ -5,6 +5,7 @@ import { Toaster } from "sonner"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { UserProvider } from "@/lib/user-context"
 import { SidebarProvider } from "@/lib/sidebar-context"
+import { QueryProvider } from "@/lib/query-provider"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -48,18 +49,20 @@ export default async function DashboardLayout({
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
-        <SidebarProvider>
-          <div className="h-screen flex bg-background overflow-hidden">
-            <DashboardSidebar />
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-              <DashboardHeader />
-              <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden">{children}</main>
+      <QueryProvider>
+        <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
+          <SidebarProvider>
+            <div className="h-screen flex bg-background overflow-hidden">
+              <DashboardSidebar />
+              <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+                <DashboardHeader />
+                <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden">{children}</main>
+              </div>
             </div>
-          </div>
-          <Toaster position="bottom-right" richColors />
-        </SidebarProvider>
-      </UserProvider>
+            <Toaster position="bottom-right" richColors />
+          </SidebarProvider>
+        </UserProvider>
+      </QueryProvider>
     </ThemeProvider>
   )
 }

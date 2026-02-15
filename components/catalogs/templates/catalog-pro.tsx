@@ -26,6 +26,8 @@ export function CatalogProTemplate({
     productImageFit = 'cover',
 }: TemplateProps) {
     const safeProducts = products || []
+    // FORCE 2x2 Grid (4 items)
+    const itemsPerPage = 4
 
     const _getImageFitClass = () => {
         switch (productImageFit) {
@@ -37,12 +39,7 @@ export function CatalogProTemplate({
     }
 
     const getGridCols = () => {
-        switch (columnsPerRow) {
-            case 2: return "grid-cols-2"
-            case 3: return "grid-cols-3"
-            case 4: return "grid-cols-4"
-            default: return "grid-cols-3"
-        }
+        return "grid-cols-2"
     }
 
     const getLogoHeight = () => {
@@ -89,8 +86,8 @@ export function CatalogProTemplate({
             </div>
 
             {/* Brutalist Grid */}
-            <div className={`flex-1 p-8 grid ${getGridCols()} grid-rows-3 gap-8 overflow-hidden relative z-10`}>
-                {safeProducts.slice(0, 9).map((product, idx) => {
+            <div className={`flex-1 p-8 grid ${getGridCols()} grid-rows-2 gap-8 overflow-hidden relative z-10`}>
+                {safeProducts.slice(0, itemsPerPage).map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
@@ -120,7 +117,7 @@ export function CatalogProTemplate({
 
                                 {/* Corner Number Badge */}
                                 <div className="absolute -top-3 -left-3 w-8 h-8 bg-black text-white flex items-center justify-center text-[10px] font-black italic">
-                                    {(idx + 1 + (pageNumber - 1) * 9).toString().padStart(2, '0')}
+                                    {(idx + 1 + (pageNumber - 1) * itemsPerPage).toString().padStart(2, '0')}
                                 </div>
 
                                 {(showUrls && productUrl) && (

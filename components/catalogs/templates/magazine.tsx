@@ -234,11 +234,11 @@ export function MagazineTemplate({
 
                                 {/* Minimal Info */}
                                 <div className="mt-3 overflow-hidden">
-                                    <h4 className="font-black italic text-sm uppercase truncate" style={{ color: headerTextColor || '#020617' }}>
+                                    <h4 className="font-black italic text-sm uppercase truncate text-slate-900">
                                         {product.name}
                                     </h4>
                                     {showDescriptions && product.description && (
-                                        <p className="text-[10px] font-sans font-bold leading-tight line-clamp-2 mt-1" style={{ color: headerTextColor ? `${headerTextColor}80` : '#64748b' }}>
+                                        <p className="text-[10px] font-sans font-bold leading-tight line-clamp-2 mt-1 text-slate-500">
                                             {product.description}
                                         </p>
                                     )}

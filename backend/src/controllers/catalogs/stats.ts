@@ -7,6 +7,11 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const timeRange = (req.query.timeRange as string) || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
+        const dateThreshold = new Date();
+        dateThreshold.setDate(dateThreshold.getDate() - days);
+        const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
+
+        const catalogViewCounts: Record<string, number> = {};
 
         // Fetch summary stats
         let summaryStats = {
@@ -14,7 +19,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             publishedCatalogs: 0,
             totalViews: 0,
             totalProducts: 0,
-            topCatalogs: [],
+            topCatalogs: [] as { id: string; name: string; views: number }[],
         };
 
         const [catalogsResult, productsResult] = await Promise.all([
@@ -26,12 +31,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             const catalogs = catalogsResult.data;
             summaryStats.totalCatalogs = catalogs.length;
             summaryStats.publishedCatalogs = catalogs.filter(c => c.is_published).length;
-            summaryStats.totalViews = catalogs.reduce((sum, c) => sum + (c.view_count || 0), 0);
-
-            summaryStats.topCatalogs = [...catalogs]
-                .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
-                .slice(0, 5)
-                .map(c => ({ id: c.id, name: c.name, views: c.view_count || 0 })) as any;
         }
 
         summaryStats.totalProducts = productsResult.count || 0;
@@ -46,9 +45,38 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const catalogIds = catalogsResult.data?.map(c => c.id) || [];
 
         if (catalogIds.length > 0) {
-            const dateThreshold = new Date();
-            dateThreshold.setDate(dateThreshold.getDate() - days);
-            const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
+            const { data: periodViewRows } = await supabase
+                .from('catalog_views')
+                .select('catalog_id, device_type, view_date')
+                .in('catalog_id', catalogIds)
+                .eq('is_owner', false)
+                .gte('view_date', dateThresholdStr);
+
+            if (periodViewRows && periodViewRows.length > 0) {
+                const deviceCounts: Record<string, number> = {};
+                const dailyCounts: Record<string, number> = {};
+
+                periodViewRows.forEach((row) => {
+                    const catalogId = row.catalog_id;
+                    const deviceType = row.device_type || 'unkn';
+                    const viewDate = row.view_date;
+
+                    catalogViewCounts[catalogId] = (catalogViewCounts[catalogId] || 0) + 1;
+                    deviceCounts[deviceType] = (deviceCounts[deviceType] || 0) + 1;
+                    dailyCounts[viewDate] = (dailyCounts[viewDate] || 0) + 1;
+                });
+
+                const totalDeviceViews = periodViewRows.length;
+                detailedStats.deviceStats = Object.entries(deviceCounts).map(([type, count]) => ({
+                    device_type: type,
+                    view_count: count,
+                    percentage: Math.round((count / totalDeviceViews) * 100)
+                }));
+
+                detailedStats.dailyViews = Object.entries(dailyCounts)
+                    .map(([date, count]) => ({ view_date: date, view_count: count }))
+                    .sort((a, b) => a.view_date.localeCompare(b.view_date));
+            }
 
             // Unique Visitors
             const { data: vCount, error: vError } = await supabase
@@ -57,58 +85,39 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                     p_days: days
                 });
 
-            if (!vError && vCount !== null && Number(vCount) > 0) {
+            if (!vError && vCount !== null) {
                 detailedStats.uniqueVisitors = Number(vCount);
             } else {
-                const { count: directUniqueCount } = await supabase
+                const { data: fallbackUniqueRows } = await supabase
                     .from('catalog_views')
-                    .select('visitor_hash', { count: 'exact', head: true })
+                    .select('visitor_hash')
                     .in('catalog_id', catalogIds)
                     .eq('is_owner', false)
                     .gte('view_date', dateThresholdStr);
 
-                if (directUniqueCount) detailedStats.uniqueVisitors = directUniqueCount;
+                if (fallbackUniqueRows && fallbackUniqueRows.length > 0) {
+                    detailedStats.uniqueVisitors = new Set(
+                        fallbackUniqueRows
+                            .map((row) => row.visitor_hash)
+                            .filter(Boolean)
+                    ).size;
+                }
             }
+        }
 
-            // Device Stats
-            const { data: deviceData } = await supabase
-                .from('catalog_views')
-                .select('device_type')
-                .in('catalog_id', catalogIds)
-                .eq('is_owner', false)
-                .gte('view_date', dateThresholdStr);
+        if (catalogsResult.data) {
+            const catalogs = catalogsResult.data;
+            const catalogsWithRangeViews = catalogs.map(c => ({
+                id: c.id,
+                name: c.name,
+                views: catalogViewCounts[c.id] || 0,
+            }));
 
-            if (deviceData && deviceData.length > 0) {
-                const counts: Record<string, number> = {};
-                deviceData.forEach(d => {
-                    const t = d.device_type || 'unkn';
-                    counts[t] = (counts[t] || 0) + 1;
-                });
-                const total = deviceData.length;
-                detailedStats.deviceStats = Object.entries(counts).map(([type, count]) => ({
-                    device_type: type,
-                    view_count: count,
-                    percentage: Math.round((count / total) * 100)
-                }));
-            }
-
-            // Daily Views
-            const { data: dailyData } = await supabase
-                .from('catalog_views')
-                .select('view_date')
-                .in('catalog_id', catalogIds)
-                .eq('is_owner', false)
-                .gte('view_date', dateThresholdStr);
-
-            if (dailyData) {
-                const counts: Record<string, number> = {};
-                dailyData.forEach(d => {
-                    counts[d.view_date] = (counts[d.view_date] || 0) + 1;
-                });
-                detailedStats.dailyViews = Object.entries(counts)
-                    .map(([date, count]) => ({ view_date: date, view_count: count }))
-                    .sort((a, b) => a.view_date.localeCompare(b.view_date));
-            }
+            summaryStats.totalViews = catalogsWithRangeViews.reduce((sum, c) => sum + c.views, 0);
+            summaryStats.topCatalogs = catalogsWithRangeViews
+                .sort((a, b) => b.views - a.views)
+                .slice(0, 5)
+                .map(c => ({ id: c.id, name: c.name, views: c.views }));
         }
 
         const finalStats = { ...summaryStats, ...detailedStats };

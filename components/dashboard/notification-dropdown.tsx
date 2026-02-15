@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { Bell, Check, CheckCheck, Trash2, ExternalLink, Package, Download, CreditCard, Sparkles, X } from "lucide-react"
 import Link from "next/link"
 
@@ -13,79 +13,34 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
-    getNotifications,
-    markNotificationAsRead,
-    markAllNotificationsAsRead,
-    deleteNotification,
-    deleteAllNotifications,
-    type Notification,
-} from "@/lib/actions/notifications"
+    useNotifications,
+    useMarkNotificationAsRead,
+    useMarkAllNotificationsAsRead,
+    useDeleteNotification,
+    useDeleteAllNotifications,
+} from "@/lib/hooks/use-notifications"
 
 import { useTranslation } from "@/lib/i18n-provider"
 
 export function NotificationDropdown() {
     const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-    const [notifications, setNotifications] = useState<Notification[]>([])
-    const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
 
-    const fetchNotifications = async () => {
-        setIsLoading(true)
-        try {
-            const data = await getNotifications(20)
-            setNotifications(data.notifications)
-            setUnreadCount(data.unreadCount)
-        } catch (error) {
-            console.error("Failed to fetch notifications:", error)
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    // React Query hooks — auto-refetch, dedup, optimistic updates hepsi built-in
+    const { data, isLoading } = useNotifications()
+    const notifications = data?.notifications ?? []
+    const unreadCount = data?.unreadCount ?? 0
 
-    useEffect(() => {
-        fetchNotifications()
-        // Her 60 saniyede bir kontrol et
-        const interval = setInterval(fetchNotifications, 60000)
-        return () => clearInterval(interval)
-    }, [])
+    const markAsRead = useMarkNotificationAsRead()
+    const markAllAsRead = useMarkAllNotificationsAsRead()
+    const deleteOne = useDeleteNotification()
+    const deleteAll = useDeleteAllNotifications()
 
-    // Dropdown açıldığında yenile
-    useEffect(() => {
-        if (isOpen) {
-            fetchNotifications()
-        }
-    }, [isOpen])
-
-    const handleMarkAsRead = async (id: string) => {
-        await markNotificationAsRead(id)
-        setNotifications(prev =>
-            prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-        )
-        setUnreadCount(prev => Math.max(0, prev - 1))
-    }
-
-    const handleMarkAllAsRead = async () => {
-        await markAllNotificationsAsRead()
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
-        setUnreadCount(0)
-    }
-
-    const handleDelete = async (id: string) => {
-        await deleteNotification(id)
-        const wasUnread = notifications.find(n => n.id === id)?.is_read === false
-        setNotifications(prev => prev.filter(n => n.id !== id))
-        if (wasUnread) {
-            setUnreadCount(prev => Math.max(0, prev - 1))
-        }
-    }
-
-    const handleDeleteAll = async () => {
-        await deleteAllNotifications()
-        setNotifications([])
-        setUnreadCount(0)
-    }
+    const handleMarkAsRead = (id: string) => markAsRead.mutate(id)
+    const handleMarkAllAsRead = () => markAllAsRead.mutate()
+    const handleDelete = (id: string) => deleteOne.mutate(id)
+    const handleDeleteAll = () => deleteAll.mutate()
 
     const getNotificationIcon = (type: string) => {
         switch (type) {

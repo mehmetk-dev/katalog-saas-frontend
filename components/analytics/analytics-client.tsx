@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import {
     Users,
     Eye,
@@ -30,12 +30,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/i18n-provider"
-import { DashboardStats, Catalog, getDashboardStats } from "@/lib/actions/catalogs"
+import { DashboardStats, Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
+import { useDashboardStats } from "@/lib/hooks/use-catalogs"
 
 interface AnalyticsClientProps {
     stats: DashboardStats | null
     catalogs: Catalog[]
+}
+
+function useElementSize<T extends HTMLElement>() {
+    const ref = useRef<T | null>(null)
+    const [size, setSize] = useState({ width: 0, height: 0 })
+
+    useEffect(() => {
+        const element = ref.current
+        if (!element) return
+
+        const updateSize = () => {
+            const rect = element.getBoundingClientRect()
+            setSize({
+                width: Math.max(0, Math.floor(rect.width)),
+                height: Math.max(0, Math.floor(rect.height)),
+            })
+        }
+
+        updateSize()
+
+        const observer = new ResizeObserver(() => {
+            updateSize()
+        })
+
+        observer.observe(element)
+        return () => observer.disconnect()
+    }, [])
+
+    return { ref, size }
 }
 
 // Gerçek Trend Hesaplama Fonksiyonu
@@ -56,27 +86,11 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
     const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d")
-    const [stats, setStats] = useState<DashboardStats | null>(initialStats)
-    const [isLoading, setIsLoading] = useState(false)
+    const { ref: barChartRef, size: barChartSize } = useElementSize<HTMLDivElement>()
+    const { ref: pieChartRef, size: pieChartSize } = useElementSize<HTMLDivElement>()
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            setIsLoading(true)
-            try {
-                const newStats = await getDashboardStats(timeRange)
-                if (newStats) setStats(newStats)
-            } catch (error) {
-                console.error("Error fetching stats:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-        fetchStats()
-    }, [timeRange])
-
-    useEffect(() => {
-        if (initialStats) setStats(initialStats)
-    }, [initialStats])
+    // React Query — timeRange değişince otomatik refetch, cache ile dedup
+    const { data: stats, isLoading } = useDashboardStats(timeRange, initialStats)
 
     const validatedStats = useMemo(() => stats || {
         totalViews: 0,
@@ -260,51 +274,53 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <div className="h-[300px] w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                <BarChart data={barChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                                            <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.1} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                    <XAxis
-                                        dataKey="name"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 10, fill: '#64748B' }}
-                                        dy={10}
-                                        interval={timeRange === '7d' ? 0 : (timeRange === '30d' ? 5 : 14)}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        allowDecimals={false}
-                                        tick={{ fontSize: 10, fill: '#64748B' }}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }}
-                                        contentStyle={{
-                                            borderRadius: '12px',
-                                            border: 'none',
-                                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                                            fontSize: '12px',
-                                            backgroundColor: 'white'
-                                        }}
-                                        labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1e293b' }}
-                                        formatter={(value: unknown) => [`${value} ${t("dashboard.analytics.views")}`, '']}
-                                    />
-                                    <Bar
-                                        dataKey="views"
-                                        fill="url(#barGradient)"
-                                        radius={[6, 6, 0, 0]}
-                                        barSize={32}
-                                        animationDuration={1500}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div ref={barChartRef} className="h-[300px] w-full min-w-0">
+                            {barChartSize.width > 0 && barChartSize.height > 0 && (
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                                    <BarChart data={barChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.8} />
+                                                <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.1} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 10, fill: '#64748B' }}
+                                            dy={10}
+                                            interval={timeRange === '7d' ? 0 : (timeRange === '30d' ? 5 : 14)}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            allowDecimals={false}
+                                            tick={{ fontSize: 10, fill: '#64748B' }}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }}
+                                            contentStyle={{
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                                fontSize: '12px',
+                                                backgroundColor: 'white'
+                                            }}
+                                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1e293b' }}
+                                            formatter={(value: unknown) => [`${value} ${t("dashboard.analytics.views")}`, '']}
+                                        />
+                                        <Bar
+                                            dataKey="views"
+                                            fill="url(#barGradient)"
+                                            radius={[6, 6, 0, 0]}
+                                            barSize={32}
+                                            animationDuration={1500}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -318,26 +334,28 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-center gap-6 pt-6">
-                        <div className="h-[180px] w-full relative min-w-0">
+                        <div ref={pieChartRef} className="h-[180px] w-full relative min-w-0">
                             {devicePieData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <RechartsPieChart>
-                                        <Pie
-                                            data={devicePieData}
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            animationBegin={0}
-                                            animationDuration={1500}
-                                        >
-                                            {devicePieData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </RechartsPieChart>
-                                </ResponsiveContainer>
+                                pieChartSize.width > 0 && pieChartSize.height > 0 && (
+                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={140}>
+                                        <RechartsPieChart>
+                                            <Pie
+                                                data={devicePieData}
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                                animationBegin={0}
+                                                animationDuration={1500}
+                                            >
+                                                {devicePieData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                        </RechartsPieChart>
+                                    </ResponsiveContainer>
+                                )
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30">
                                     <LucidePieChart className="w-12 h-12 mb-2" />

@@ -104,7 +104,7 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
                         </div>
                         {!step.completed && (
                             <Button size="sm" variant="outline" className="mt-auto w-full group border-violet-200 dark:border-violet-800/50 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:text-violet-700 dark:hover:text-violet-300" asChild>
-                                <Link href={step.href}>
+                                <Link href={step.href} prefetch={false}>
                                     {step.cta}
                                     <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                                 </Link>

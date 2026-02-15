@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useMemo } from "react"
+import React, { useState, useRef, useMemo, useEffect, useCallback } from "react"
 import { FileText, List } from "lucide-react"
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
@@ -66,7 +66,28 @@ interface CatalogPreviewProps {
   isExporting?: boolean
 }
 
-const ALL_TEMPLATES: Record<string, any> = {
+type TemplateComponentProps = {
+  products: Product[]
+  primaryColor: string
+  catalogName: string
+  pageNumber: number
+  totalPages: number
+  headerTextColor?: string
+  showPrices?: boolean
+  showDescriptions?: boolean
+  showAttributes?: boolean
+  showSku?: boolean
+  showUrls?: boolean
+  productImageFit?: string
+  columnsPerRow?: number
+  logoUrl?: string
+  logoPosition?: string
+  logoSize?: string
+  titlePosition?: string
+  isFreeUser: boolean
+}
+
+const ALL_TEMPLATES = {
   'modern-grid': ModernGridTemplate,
   'compact-list': CompactListTemplate,
   'list': CompactListTemplate,
@@ -99,6 +120,9 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
   const [viewMode, setViewMode] = useState<"single" | "multi">("single")
   const [scale] = useState(0.7)
   const containerRef = useRef<HTMLDivElement>(null)
+  const workspaceScrollRef = useRef<HTMLDivElement>(null)
+  const [multiScrollTop, setMultiScrollTop] = useState(0)
+  const [multiViewportHeight, setMultiViewportHeight] = useState(0)
 
   // Sayfa hesaplama mantığı
   const pages = useMemo(() => {
@@ -132,20 +156,28 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     }
 
     if (props.enableCategoryDividers) {
-      const categories = Array.from(new Set(products.map(p => p.category || 'Diğer')))
-      categories.forEach(catName => {
-        const catProducts = products.filter(p => (p.category || 'Diğer') === catName)
-        if (catProducts.length > 0) {
-          calculatedPages.push({
-            type: 'divider',
-            categoryName: catName,
-            firstProductImage: catProducts[0].image_url ?? undefined
-          })
-          for (let i = 0; i < catProducts.length; i += itemsPerPage) {
-            calculatedPages.push({ type: 'products', products: catProducts.slice(i, i + itemsPerPage) })
-          }
+      const groupedByCategory = new Map<string, Product[]>()
+      for (const product of products) {
+        const categoryName = product.category || 'Diğer'
+        const current = groupedByCategory.get(categoryName)
+        if (current) {
+          current.push(product)
+        } else {
+          groupedByCategory.set(categoryName, [product])
         }
-      })
+      }
+
+      for (const [catName, catProducts] of groupedByCategory.entries()) {
+        calculatedPages.push({
+          type: 'divider',
+          categoryName: catName,
+          firstProductImage: catProducts[0]?.image_url ?? undefined,
+        })
+
+        for (let i = 0; i < catProducts.length; i += itemsPerPage) {
+          calculatedPages.push({ type: 'products', products: catProducts.slice(i, i + itemsPerPage) })
+        }
+      }
     } else {
       for (let i = 0; i < products.length; i += itemsPerPage) {
         calculatedPages.push({ type: 'products', products: products.slice(i, i + itemsPerPage) })
@@ -157,6 +189,43 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
 
   const totalPages = pages.length
 
+  const MULTI_VIRTUALIZATION_THRESHOLD = 30
+  const MULTI_OVERSCAN_PAGES = 2
+  const estimatedMultiPageHeight = A4_HEIGHT * scale + 40
+  const shouldVirtualizeMultiPages = viewMode === 'multi' && totalPages > MULTI_VIRTUALIZATION_THRESHOLD
+
+  const updateMultiViewportMetrics = useCallback(() => {
+    if (!workspaceScrollRef.current) return
+    setMultiViewportHeight(workspaceScrollRef.current.clientHeight)
+  }, [])
+
+  useEffect(() => {
+    if (viewMode !== 'multi') return
+    updateMultiViewportMetrics()
+    const handleResize = () => updateMultiViewportMetrics()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [viewMode, updateMultiViewportMetrics])
+
+  const handleWorkspaceScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    if (!shouldVirtualizeMultiPages) return
+    setMultiScrollTop(event.currentTarget.scrollTop)
+  }, [shouldVirtualizeMultiPages])
+
+  const virtualVisiblePageCount = Math.max(
+    1,
+    Math.ceil((multiViewportHeight || estimatedMultiPageHeight) / estimatedMultiPageHeight)
+  )
+  const virtualStartPage = shouldVirtualizeMultiPages
+    ? Math.max(0, Math.floor(multiScrollTop / estimatedMultiPageHeight) - MULTI_OVERSCAN_PAGES)
+    : 0
+  const virtualEndPage = shouldVirtualizeMultiPages
+    ? Math.min(totalPages, virtualStartPage + virtualVisiblePageCount + MULTI_OVERSCAN_PAGES * 2)
+    : totalPages
+  const virtualPages = pages.slice(virtualStartPage, virtualEndPage)
+  const virtualOffsetY = virtualStartPage * estimatedMultiPageHeight
+  const virtualTotalHeight = totalPages * estimatedMultiPageHeight
+
   // Sayfa indeksi güvenliği: Render sırasında geçersiz indeksi engelle
   const safeCurrentPage = Math.min(currentPage, totalPages - 1 >= 0 ? totalPages - 1 : 0)
 
@@ -167,7 +236,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
 
   const renderPage = (page: CatalogPage | undefined, pageIndex: number) => {
     if (!page) return null
-    const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
+    const TemplateComponent = (ALL_TEMPLATES[props.layout as keyof typeof ALL_TEMPLATES] || ALL_TEMPLATES['modern-grid']) as React.ComponentType<TemplateComponentProps>
 
     return (
       <div
@@ -213,6 +282,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
               catalogName={props.catalogName}
               pageNumber={pageIndex + 1}
               totalPages={totalPages}
+              isFreeUser={isFreeUser}
               headerTextColor={props.headerTextColor}
               showPrices={props.showPrices}
               showDescriptions={props.showDescriptions}
@@ -243,7 +313,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     // Eğer kapak varsa kapağı, yoksa ilk ürünlü sayfayı gösterir
     const page = pages[0]
     if (!page) return null
-    const TemplateComponent = ALL_TEMPLATES[props.layout] || ALL_TEMPLATES['modern-grid']
+    const TemplateComponent = (ALL_TEMPLATES[props.layout as keyof typeof ALL_TEMPLATES] || ALL_TEMPLATES['modern-grid']) as React.ComponentType<TemplateComponentProps>
 
     return (
       <div className="w-full h-full flex items-start justify-center overflow-hidden bg-white">
@@ -275,6 +345,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
               catalogName={props.catalogName}
               pageNumber={1}
               totalPages={totalPages}
+              isFreeUser={isFreeUser}
               headerTextColor={props.headerTextColor}
               showPrices={props.showPrices}
               showDescriptions={props.showDescriptions}
@@ -354,6 +425,8 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
 
       {/* Preview Workspace */}
       <div
+        ref={workspaceScrollRef}
+        onScroll={handleWorkspaceScroll}
         className="flex-1 overflow-auto p-12 relative z-10 custom-scrollbar"
         style={{ overflowAnchor: 'none' }}
       >
@@ -363,9 +436,20 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
               {renderPage(pages[safeCurrentPage], safeCurrentPage)}
             </div>
           ) : (
-            <div className="flex flex-col items-center w-full">
-              {pages.map((page, index) => renderPage(page, index))}
-            </div>
+            shouldVirtualizeMultiPages ? (
+              <div className="w-full" style={{ height: `${virtualTotalHeight}px`, position: 'relative' }}>
+                <div
+                  className="absolute left-0 right-0 top-0 flex flex-col items-center w-full"
+                  style={{ transform: `translateY(${virtualOffsetY}px)` }}
+                >
+                  {virtualPages.map((page, localIndex) => renderPage(page, virtualStartPage + localIndex))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center w-full">
+                {pages.map((page, index) => renderPage(page, index))}
+              </div>
+            )
           )}
         </div>
       </div>
