@@ -108,7 +108,7 @@ export default function HomePage() {
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link href="#demo">
+              <Link href="/create-demo">
                 <Button
                   variant="outline"
                   size="lg"
