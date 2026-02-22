@@ -88,8 +88,10 @@ export default function ForgotPasswordPage() {
         let errorMessage = error.message || t("auth.errorGeneric")
         const message = error.message?.toLowerCase() || ""
 
-        if (message.includes('rate limit') || message.includes('too many')) {
-          errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
+        if (message.includes('rate limit') || message.includes('too many') || message.includes('security purposes')) {
+          const match = message.match(/(\d+) seconds/i)
+          const waitTime = match ? match[1] : "birkaç"
+          errorMessage = `Güvenlik nedeniyle ${waitTime} saniye beklemelisiniz. Lütfen daha sonra tekrar deneyin.`
         } else if (message.includes('email')) {
           errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
         } else if (message.includes('redirect')) {

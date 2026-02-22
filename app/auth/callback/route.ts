@@ -30,7 +30,15 @@ function getAllowedRedirectHosts(): string[] {
 }
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const urlObj = new URL(request.url)
+  const searchParams = urlObj.searchParams
+  let origin = urlObj.origin
+
+  // Fix for invalid 0.0.0.0 redirect issues
+  if (origin.includes("0.0.0.0")) {
+    origin = origin.replace("0.0.0.0", "localhost")
+  }
+
   const code = searchParams.get("code")
   const error = searchParams.get("error")
   const errorDescription = searchParams.get("error_description")
