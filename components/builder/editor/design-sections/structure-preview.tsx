@@ -5,7 +5,7 @@ import type { StructurePreviewProps } from "./types"
 export function StructurePreview({
     enableCoverPage,
     enableCategoryDividers,
-    selectedProductIds,
+    selectedProductCount,
 }: StructurePreviewProps) {
     return (
         <div className="space-y-6 pt-6 animate-in fade-in duration-700">
@@ -44,7 +44,7 @@ export function StructurePreview({
                         <div className="w-full h-1/2 bg-slate-200/50 rounded-sm"></div>
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">Ürünler</span>
-                    <span className="text-[8px] text-slate-400 font-bold">{selectedProductIds.length} Ürün</span>
+                    <span className="text-[8px] text-slate-400 font-bold">{selectedProductCount} Ürün</span>
                 </div>
 
                 {enableCategoryDividers && (

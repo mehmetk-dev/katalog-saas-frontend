@@ -66,9 +66,9 @@ Object.defineProperty(window, 'location', {
 describe('Forgot Password Sayfası Testleri', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        mockResetPasswordForEmail.mockReset()
-        mockSignInWithOAuth.mockReset()
-        ;(global.fetch as unknown as { mockReset: () => void }).mockReset()
+        mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null })
+        mockSignInWithOAuth.mockResolvedValue({ data: { url: '' }, error: null })
+            ; (global.fetch as any).mockReset()
     })
 
     describe('Form Render ve Temel İşlevsellik', () => {
@@ -102,12 +102,11 @@ describe('Forgot Password Sayfası Testleri', () => {
     describe('Şifre Sıfırlama İşlemi', () => {
         it('Başarılı şifre sıfırlama email gönderimi', async () => {
             const user = userEvent.setup()
-            
-            // Check provider API mock - normal user
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             mockResetPasswordForEmail.mockResolvedValueOnce({
                 data: {},
@@ -126,7 +125,7 @@ describe('Forgot Password Sayfası Testleri', () => {
                 expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
                     'test@example.com',
                     expect.objectContaining({
-                        redirectTo: expect.stringContaining('/auth/reset-password'),
+                        redirectTo: expect.stringContaining('/auth/confirm-recovery'),
                     })
                 )
             })
@@ -139,11 +138,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Email bulunamadı hatası gösterir', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             mockResetPasswordForEmail.mockResolvedValueOnce({
                 data: null,
@@ -165,11 +164,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Rate limit hatası gösterir', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             mockResetPasswordForEmail.mockResolvedValueOnce({
                 data: null,
@@ -191,11 +190,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Loading state gösterir', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             // Async işlemi yavaşlat
             mockResetPasswordForEmail.mockImplementation(
@@ -223,12 +222,11 @@ describe('Forgot Password Sayfası Testleri', () => {
     describe('Google OAuth Kullanıcı Kontrolü', () => {
         it('Google kullanıcısı için uyarı gösterir', async () => {
             const user = userEvent.setup()
-            
-            // Check provider API - Google user
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: true, provider: 'google' }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: true, provider: 'google' }),
+                })
 
             render(<ForgotPasswordPage />)
 
@@ -246,11 +244,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Google ile giriş butonu çalışır', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: true, provider: 'google' }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: true, provider: 'google' }),
+                })
 
             mockSignInWithOAuth.mockResolvedValueOnce({
                 data: { url: 'https://accounts.google.com/oauth' },
@@ -286,11 +284,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Yine de şifre belirle butonu çalışır', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: true, provider: 'google' }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: true, provider: 'google' }),
+                })
 
             mockResetPasswordForEmail.mockResolvedValueOnce({
                 data: {},
@@ -318,7 +316,7 @@ describe('Forgot Password Sayfası Testleri', () => {
                 expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
                     'google@example.com',
                     expect.objectContaining({
-                        redirectTo: expect.stringContaining('/auth/reset-password'),
+                        redirectTo: expect.stringContaining('/auth/confirm-recovery'),
                     })
                 )
             })
@@ -328,11 +326,11 @@ describe('Forgot Password Sayfası Testleri', () => {
     describe('Success State', () => {
         it('Başarılı email gönderimi sonrası success state gösterir', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             mockResetPasswordForEmail.mockResolvedValueOnce({
                 data: {},
@@ -355,11 +353,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Success state\'de geri dön butonu görünür', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             mockResetPasswordForEmail.mockResolvedValueOnce({
                 data: {},
@@ -385,8 +383,8 @@ describe('Forgot Password Sayfası Testleri', () => {
     describe('Error Handling', () => {
         it('API hatası durumunda hata mesajı gösterir', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockRejectedValueOnce: (error: Error) => typeof global.fetch }).mockRejectedValueOnce(new Error('Network error'))
+
+                ; (global.fetch as any).mockRejectedValueOnce(new Error('Network error'))
 
             render(<ForgotPasswordPage />)
 
@@ -404,11 +402,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
         it('Form submit sırasında buton disabled olur', async () => {
             const user = userEvent.setup()
-            
-            ;(global.fetch as unknown as { mockResolvedValueOnce: (value: Response | Promise<Response>) => typeof global.fetch }).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ isOAuth: false, provider: null }),
-            })
+
+                ; (global.fetch as any).mockResolvedValueOnce({
+                    ok: true,
+                    json: async () => ({ isOAuth: false, provider: null }),
+                })
 
             mockResetPasswordForEmail.mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve({
@@ -447,10 +445,10 @@ describe('Forgot Password Sayfası Testleri', () => {
             render(<ForgotPasswordPage />)
 
             const backLinks = screen.getAllByText(/Giriş Sayfasına Dön/i)
-            const formBackLink = backLinks.find(link => 
+            const formBackLink = backLinks.find(link =>
                 link.closest('form') !== null
             )
-            
+
             if (formBackLink) {
                 expect(formBackLink.closest('a')).toHaveAttribute('href', '/auth')
             }

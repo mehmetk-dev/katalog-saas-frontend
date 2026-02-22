@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next'
+import { getAllPosts } from '@/lib/blog'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.app'
@@ -86,7 +87,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
     ]
 
-    // Blog Yazıları
+    // Blog Yazıları - Dinamik olarak lib/blog'dan çekiyoruz
+    const posts = getAllPosts()
     const blogPosts: MetadataRoute.Sitemap = [
         {
             url: `${baseUrl}/blog`,
@@ -94,35 +96,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'daily',
             priority: 0.9,
         },
-        {
-            url: `${baseUrl}/blog/neden-dijital-katalog-kullanmalisiniz`,
-            lastModified: new Date('2026-02-04'),
-            changeFrequency: 'monthly',
+        ...posts.map((post) => ({
+            url: `${baseUrl}/blog/${post.slug}`,
+            lastModified: new Date(post.lastModified || post.date),
+            changeFrequency: 'monthly' as const,
             priority: 0.8,
-        },
-        {
-            url: `${baseUrl}/blog/dijital-katalog-ile-satis-artirma`,
-            lastModified: new Date('2026-02-08'),
-            changeFrequency: 'monthly',
-            priority: 0.8,
-        },
-        {
-            url: `${baseUrl}/blog/why-digital-catalog`,
-            lastModified: new Date('2026-02-04'),
-            changeFrequency: 'monthly',
-            priority: 0.8,
-        },
+        }))
     ]
-
-    // Örnek SEO Katalog (Showcase)
-    const featuredCatalogs: MetadataRoute.Sitemap = [
-        {
-            url: `${baseUrl}/catalog/modern-urun-katalogu-ornegi`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.7,
-        }
-    ]
-
-    return [...staticPages, ...blogPosts, ...featuredCatalogs]
+    return [...staticPages, ...blogPosts]
 }

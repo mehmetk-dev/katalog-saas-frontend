@@ -132,15 +132,27 @@ export default function FAQPage() {
                 {/* HERO SECTION */}
                 <section className="relative pt-16 pb-20 px-6 text-center overflow-hidden">
                     {/* Background decoration */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] bg-gradient-to-b from-indigo-50 via-white to-transparent -z-10 rounded-full blur-3xl opacity-70" />
+                    <div className={cn(
+                        "absolute top-0 left-1/2 -translate-x-1/2 w-full",
+                        "max-w-7xl h-[600px] bg-gradient-to-b",
+                        "from-indigo-50 via-white to-transparent",
+                        "-z-10 rounded-full blur-3xl opacity-70"
+                    )} />
 
                     <div className="max-w-3xl mx-auto relative z-10">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white shadow-sm border border-slate-200 text-slate-600 text-sm font-medium mb-8">
+                        <div className={cn(
+                            "inline-flex items-center gap-2 px-4 py-1.5 rounded-full",
+                            "bg-white shadow-sm border border-slate-200",
+                            "text-slate-600 text-sm font-medium mb-8"
+                        )}>
                             <span className="flex h-2 w-2 rounded-full bg-indigo-500"></span>
                             Yardım Merkezi & Destek
                         </div>
 
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 tracking-tight">
+                        <h1 className={cn(
+                            "text-4xl md:text-5xl lg:text-6xl font-black",
+                            "text-slate-900 mb-6 tracking-tight"
+                        )}>
                             Nasıl yardımcı olabiliriz?
                         </h1>
 
@@ -150,13 +162,24 @@ export default function FAQPage() {
                         </p>
 
                         <div className="relative max-w-xl mx-auto group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                            <div className={cn(
+                                "absolute inset-y-0 left-0 pl-4",
+                                "flex items-center pointer-events-none",
+                                "text-slate-400 group-focus-within:text-indigo-500",
+                                "transition-colors"
+                            )}>
                                 <Search className="h-5 w-5" />
                             </div>
                             <Input
                                 type="text"
                                 placeholder="Bir soru arayın..."
-                                className="pl-12 h-14 rounded-2xl border-slate-200 shadow-lg shadow-slate-200/50 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 text-lg transition-all bg-white"
+                                className={cn(
+                                    "pl-12 h-14 rounded-2xl border-slate-200",
+                                    "shadow-lg shadow-slate-200/50",
+                                    "focus:ring-4 focus:ring-indigo-100",
+                                    "focus:border-indigo-500 text-lg",
+                                    "transition-all bg-white"
+                                )}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -180,13 +203,23 @@ export default function FAQPage() {
                                                 setOpenQuestion(null)
                                             }}
                                             className={cn(
-                                                "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                                                "w-full flex items-center gap-3 px-4 py-3.5",
+                                                "rounded-xl text-sm font-semibold",
+                                                "transition-all duration-200",
                                                 activeCategory === cat.id
-                                                    ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                                                    ? cn(
+                                                        "bg-indigo-50 text-indigo-700",
+                                                        "shadow-sm ring-1 ring-indigo-100"
+                                                    )
                                                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                                             )}
                                         >
-                                            <cat.icon className={cn("w-5 h-5", activeCategory === cat.id ? "text-indigo-600" : "text-slate-400")} />
+                                            <cat.icon className={cn(
+                                                "w-5 h-5",
+                                                activeCategory === cat.id
+                                                    ? "text-indigo-600"
+                                                    : "text-slate-400"
+                                            )} />
                                             {cat.label}
                                         </button>
                                     ))}
@@ -199,7 +232,11 @@ export default function FAQPage() {
                                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-600 rounded-full blur-[60px] opacity-30" />
 
                                 <div className="relative z-10 flex flex-col items-start">
-                                    <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-6 border border-white/10">
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md",
+                                        "flex items-center justify-center mb-6",
+                                        "border border-white/10"
+                                    )}>
                                         <MessageCircle className="w-6 h-6 text-white" />
                                     </div>
 
@@ -247,8 +284,14 @@ export default function FAQPage() {
                                             className={cn(
                                                 "group rounded-2xl bg-white transition-all duration-300 border",
                                                 isOpen
-                                                    ? "border-indigo-200 shadow-xl shadow-indigo-100/50 ring-1 ring-indigo-50"
-                                                    : "border-slate-100 hover:border-indigo-100 hover:shadow-md hover:shadow-slate-200/50"
+                                                    ? cn(
+                                                        "border-indigo-200 shadow-xl",
+                                                        "shadow-indigo-100/50 ring-1 ring-indigo-50"
+                                                    )
+                                                    : cn(
+                                                        "border-slate-100 hover:border-indigo-100",
+                                                        "hover:shadow-md hover:shadow-slate-200/50"
+                                                    )
                                             )}
                                         >
                                             <button
@@ -262,8 +305,15 @@ export default function FAQPage() {
                                                     {item.q}
                                                 </span>
                                                 <span className={cn(
-                                                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 bg-slate-50",
-                                                    isOpen ? "bg-indigo-100 text-indigo-600 rotate-180" : "text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500"
+                                                    "flex-shrink-0 w-8 h-8 rounded-full",
+                                                    "flex items-center justify-center",
+                                                    "transition-all duration-300 bg-slate-50",
+                                                    isOpen
+                                                        ? "bg-indigo-100 text-indigo-600 rotate-180"
+                                                        : cn(
+                                                            "text-slate-400 group-hover:bg-indigo-50",
+                                                            "group-hover:text-indigo-500"
+                                                        )
                                                 )}>
                                                     <ChevronDown className="w-5 h-5" />
                                                 </span>
@@ -276,7 +326,10 @@ export default function FAQPage() {
                                                 )}
                                             >
                                                 <div className="overflow-hidden px-6">
-                                                    <div className="pt-2 border-t border-indigo-50/50 text-slate-600 leading-relaxed font-medium">
+                                                    <div className={cn(
+                                                        "pt-2 border-t border-indigo-50/50",
+                                                        "text-slate-600 leading-relaxed font-medium"
+                                                    )}>
                                                         {item.a}
                                                     </div>
                                                 </div>

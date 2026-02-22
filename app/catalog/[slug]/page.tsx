@@ -1,49 +1,46 @@
+import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { Metadata } from "next"
 
-import { getPublicCatalog } from "@/lib/actions/catalogs"
+import { getPublicCatalog, getPublicCatalogMeta } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
 
 import { PublicCatalogClient } from "./public-catalog-client"
+import CatalogLoading from "./loading"
 
 
 interface PublicCatalogPageProps {
   params: Promise<{ slug: string }>
 }
 
+// Lightweight metadata — only fetches catalog name/description, no products
 export async function generateMetadata({ params }: PublicCatalogPageProps): Promise<Metadata> {
   const { slug } = await params
-  const catalog = await getPublicCatalog(slug)
+  const meta = await getPublicCatalogMeta(slug)
 
-  if (!catalog) {
+  if (!meta) {
     return { title: "Katalog Bulunamadı" }
   }
 
   return {
-    title: catalog.name,
-    description: catalog.description || `${catalog.name} kataloğunu görüntüleyin`,
-    robots: catalog.show_in_search === false ? { index: false, follow: true } : undefined,
+    title: meta.name,
+    description: meta.description || `${meta.name} kataloğunu görüntüleyin`,
+    robots: meta.show_in_search === false ? { index: false, follow: true } : undefined,
     openGraph: {
-      title: catalog.name,
-      description: catalog.description || undefined,
+      title: meta.name,
+      description: meta.description || undefined,
     },
   }
 }
 
-export default async function PublicCatalogPage({ params }: PublicCatalogPageProps) {
-  const { slug } = await params
+// Heavy component — fetches full catalog with products
+async function CatalogContent({ slug }: { slug: string }) {
   const catalog = await getPublicCatalog(slug)
 
-  if (!catalog) {
+  if (!catalog || !catalog.is_published) {
     notFound()
   }
 
-  // Katalog yayınlanmamışsa 404
-  if (!catalog.is_published) {
-    notFound()
-  }
-
-  // Tipi burada kesinleştirerek derleyiciyi rahatlatalım (Explicit casting)
   const products = (catalog.products as Product[]) || []
 
   return (
@@ -51,5 +48,15 @@ export default async function PublicCatalogPage({ params }: PublicCatalogPagePro
       catalog={catalog}
       products={products}
     />
+  )
+}
+
+export default async function PublicCatalogPage({ params }: PublicCatalogPageProps) {
+  const { slug } = await params
+
+  return (
+    <Suspense fallback={<CatalogLoading />}>
+      <CatalogContent slug={slug} />
+    </Suspense>
   )
 }

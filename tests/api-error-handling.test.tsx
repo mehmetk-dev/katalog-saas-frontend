@@ -24,7 +24,7 @@ describe('API Error Handling Testleri', () => {
                 })
             })
 
-            const result = await apiFetch('/test')
+            const result = await apiFetch('/test', { retries: 2, retryDelay: 10 })
 
             expect(callCount).toBe(3) // 3 deneme yapmalı
             expect(result).toEqual({ data: 'success' })
@@ -75,28 +75,38 @@ describe('API Error Handling Testleri', () => {
                 json: async () => ({ error: 'Internal Server Error' }),
             })
 
-            await expect(apiFetch('/test')).rejects.toThrow(/server error|500/i)
+            await expect(apiFetch('/test')).rejects.toThrow(/internal|serverError|500/i)
         })
 
         it('429 Rate Limit hatası doğru işlenir', async () => {
             ; (global.fetch as Mock).mockResolvedValueOnce({
                 ok: false,
                 status: 429,
+                headers: { get: vi.fn(() => '30') },
                 json: async () => ({ error: 'Too Many Requests' }),
             })
 
-            await expect(apiFetch('/test')).rejects.toThrow(/rate limit|429|too many/i)
+            await expect(apiFetch('/test')).rejects.toThrow(/rateLimit|429|too many/i)
         })
     })
 
     describe('Timeout Handling', () => {
         it('Timeout durumunda hata fırlatır', async () => {
-            ; (global.fetch as Mock).mockImplementation(
-                () => new Promise(resolve => setTimeout(resolve, 10000))
-            )
+            ; (global.fetch as Mock).mockImplementation((_url, options) => {
+                return new Promise((_, reject) => {
+                    const signal = options?.signal
+                    const timeout = setTimeout(() => reject(new Error('Fetch timeout')), 60000)
+                    signal?.addEventListener('abort', () => {
+                        clearTimeout(timeout)
+                        const abortError = new Error('The user aborted a request.')
+                        abortError.name = 'AbortError'
+                        reject(abortError)
+                    })
+                })
+            })
 
-            await expect(apiFetch('/test', { timeout: 1000 })).rejects.toThrow(/timeout/i)
-        })
+            await expect(apiFetch('/test', { timeout: 100 })).rejects.toThrow(/timeout/i)
+        }, 10000)
 
         it('Timeout süresi içinde yanıt gelirse başarılı olur', async () => {
             ; (global.fetch as Mock).mockResolvedValueOnce({

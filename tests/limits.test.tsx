@@ -58,7 +58,7 @@ vi.mock('@/lib/actions/catalogs', () => ({
     getCatalogs: vi.fn(),
 }))
 
-vi.mock('@/components/builder/upgrade-modal', () => ({
+vi.mock('@/components/builder/modals/upgrade-modal', () => ({
     UpgradeModal: () => null,
 }))
 

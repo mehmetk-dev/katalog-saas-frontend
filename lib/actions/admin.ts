@@ -3,28 +3,28 @@
 import { createClient } from "@/lib/supabase/server"
 import { apiFetch } from "@/lib/api"
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL
-
+/**
+ * Admin check — DB'deki is_admin alanını kontrol eder.
+ * ADMIN_EMAIL env variable artık kullanılmıyor.
+ */
 export async function checkIsAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Security: Don't log sensitive environment variables
-    if (user?.email !== ADMIN_EMAIL) {
-        console.warn("Admin access denied for user")
-    }
+    if (!user) return false
 
-    return user?.email === ADMIN_EMAIL
+    const { data: profile } = await supabase
+        .from('users')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
+
+    return profile?.is_admin === true
 }
 
 export async function getAdminStats() {
-    const supabase = await createClient()
-
-    // Verify Admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== ADMIN_EMAIL) {
-        throw new Error("Unauthorized")
-    }
+    const isAdmin = await checkIsAdmin()
+    if (!isAdmin) throw new Error("Unauthorized")
 
     try {
         return await apiFetch<{
@@ -47,13 +47,8 @@ export async function getAdminStats() {
 }
 
 export async function getAdminUsers() {
-    const supabase = await createClient()
-
-    // Verify Admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== ADMIN_EMAIL) {
-        throw new Error("Unauthorized")
-    }
+    const isAdmin = await checkIsAdmin()
+    if (!isAdmin) throw new Error("Unauthorized")
 
     try {
         return await apiFetch<unknown[]>("/admin/users")
@@ -64,13 +59,8 @@ export async function getAdminUsers() {
 }
 
 export async function getDeletedUsers() {
-    const supabase = await createClient()
-
-    // Verify Admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== ADMIN_EMAIL) {
-        throw new Error("Unauthorized")
-    }
+    const isAdmin = await checkIsAdmin()
+    if (!isAdmin) throw new Error("Unauthorized")
 
     try {
         return await apiFetch<unknown[]>("/admin/deleted-users")
@@ -81,13 +71,8 @@ export async function getDeletedUsers() {
 }
 
 export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'pro') {
-    const supabase = await createClient()
-
-    // Verify Admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== ADMIN_EMAIL) {
-        throw new Error("Unauthorized")
-    }
+    const isAdmin = await checkIsAdmin()
+    if (!isAdmin) throw new Error("Unauthorized")
 
     await apiFetch(`/admin/users/${userId}/plan`, {
         method: "PUT",
@@ -95,4 +80,3 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'plus' | 'pr
     })
     return { success: true }
 }
-

@@ -4,7 +4,7 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'rea
 import { FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { UpgradeModal } from '@/components/builder/upgrade-modal'
+import { UpgradeModal } from '@/components/builder/modals/upgrade-modal'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useAsyncTimeout } from '@/lib/hooks/use-async-timeout'

@@ -95,7 +95,7 @@ vi.mock('@/lib/actions/user', () => ({
 }))
 
 // Mock Complex Sub-Components
-vi.mock('@/components/builder/catalog-editor', () => ({
+vi.mock('@/components/builder/editor/catalog-editor', () => ({
     CatalogEditor: ({ onLayoutChange }: { onLayoutChange: (layout: string) => void }) => (
         <div data-testid="catalog-editor">
             <button onClick={() => onLayoutChange('list')}>Change Layout</button>
@@ -103,7 +103,7 @@ vi.mock('@/components/builder/catalog-editor', () => ({
     )
 }))
 
-vi.mock('@/components/builder/catalog-preview', () => ({
+vi.mock('@/components/builder/preview/catalog-preview', () => ({
     CatalogPreview: ({ isExporting }: { isExporting: boolean }) => (
         <div data-testid="catalog-preview">
             {isExporting && (

@@ -114,7 +114,7 @@ export interface StructurePreviewProps {
     t: TranslateFn
     enableCoverPage: boolean
     enableCategoryDividers: boolean
-    selectedProductIds: string[]
+    selectedProductCount: number
 }
 
 export interface TemplateSectionProps {

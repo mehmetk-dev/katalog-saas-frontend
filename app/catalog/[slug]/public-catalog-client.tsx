@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n-provider"
 import {
@@ -48,11 +48,7 @@ interface PublicCatalogClientProps {
 }
 
 export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
-    console.log('[PublicCatalogClient] Received catalog:', catalog.name)
-    console.log('[PublicCatalogClient] Products prop length:', products?.length)
-    console.log('[PublicCatalogClient] Catalog.products length:', catalog.products?.length)
-
-    const [initialProducts, setInitialProducts] = useState<Product[]>(products || [])
+    const [initialProducts] = useState<Product[]>(products || [])
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [searchQuery, setSearchQuery] = useState("")
@@ -73,15 +69,22 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
 
-    const categories = ["all", ...new Set(initialProducts.map(p => p.category).filter((c): c is string => c !== null))]
+    const categories = useMemo(
+        () => ["all", ...new Set(initialProducts.map(p => p.category).filter((c): c is string => c !== null))],
+        [initialProducts]
+    )
 
-    const filteredProducts = initialProducts.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.sku?.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
-        return matchesSearch && matchesCategory
-    })
+    const filteredProducts = useMemo(() => {
+        const lowerSearch = searchQuery.toLowerCase()
+        return initialProducts.filter(product => {
+            const matchesSearch = !searchQuery ||
+                product.name.toLowerCase().includes(lowerSearch) ||
+                product.description?.toLowerCase().includes(lowerSearch) ||
+                product.sku?.toLowerCase().includes(lowerSearch)
+            const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
+            return matchesSearch && matchesCategory
+        })
+    }, [initialProducts, searchQuery, selectedCategory])
 
     // Ürünleri sayfalara böl - layout'a ve columns_per_row'a göre dinamik hesapla
     const columnsPerRow = catalog.columns_per_row || 3
@@ -112,68 +115,96 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         | { type: 'divider'; categoryName: string; firstProductImage: string | null }
         | { type: 'products'; products: Product[]; pageNumber: number; totalPages: number }
 
-    const catalogPages: CatalogPage[] = []
+    const catalogPages = useMemo(() => {
+        const pages: CatalogPage[] = []
 
-    // 1. Add Cover Page (if enabled)
-    if (catalog.enable_cover_page) {
-        catalogPages.push({ type: 'cover' })
-    }
+        // 1. Add Cover Page (if enabled)
+        if (catalog.enable_cover_page) {
+            pages.push({ type: 'cover' })
+        }
 
-    // 2. Group products by category and create pages
-    if (catalog.enable_category_dividers && filteredProducts.length > 0) {
-        // Group products by category
-        const productsByCategory = new Map<string, Product[]>()
-        filteredProducts.forEach(product => {
-            const category = product.category || 'Kategorisiz'
-            if (!productsByCategory.has(category)) {
-                productsByCategory.set(category, [])
-            }
-            productsByCategory.get(category)!.push(product)
-        })
-
-        // For each category, add divider + product pages
-        productsByCategory.forEach((products, categoryName) => {
-            // Add category divider
-            const firstProductImage = products[0]?.image_url || null
-            catalogPages.push({
-                type: 'divider',
-                categoryName,
-                firstProductImage
+        // 2. Group products by category and create pages
+        if (catalog.enable_category_dividers && filteredProducts.length > 0) {
+            const productsByCategory = new Map<string, Product[]>()
+            filteredProducts.forEach(product => {
+                const category = product.category || 'Kategorisiz'
+                if (!productsByCategory.has(category)) {
+                    productsByCategory.set(category, [])
+                }
+                productsByCategory.get(category)!.push(product)
             })
 
-            // Paginate products in this category
-            for (let i = 0; i < products.length; i += productsPerPage) {
-                catalogPages.push({
+            productsByCategory.forEach((prods, categoryName) => {
+                const firstProductImage = prods[0]?.image_url || null
+                pages.push({ type: 'divider', categoryName, firstProductImage })
+
+                for (let i = 0; i < prods.length; i += productsPerPage) {
+                    pages.push({
+                        type: 'products',
+                        products: prods.slice(i, i + productsPerPage),
+                        pageNumber: 0,
+                        totalPages: 0
+                    })
+                }
+            })
+        } else {
+            for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
+                pages.push({
                     type: 'products',
-                    products: products.slice(i, i + productsPerPage),
-                    pageNumber: 0, // Will be updated later
-                    totalPages: 0  // Will be updated later
+                    products: filteredProducts.slice(i, i + productsPerPage),
+                    pageNumber: 0,
+                    totalPages: 0
                 })
             }
+        }
+
+        // 3. Update page numbers
+        let counter = 1
+        const totalProductPages = pages.filter(p => p.type === 'products').length
+        pages.forEach(page => {
+            if (page.type === 'products') {
+                page.pageNumber = counter
+                page.totalPages = totalProductPages
+                counter++
+            }
         })
-    } else {
-        // No category dividers, just paginate all products
-        for (let i = 0; i < filteredProducts.length; i += productsPerPage) {
-            catalogPages.push({
-                type: 'products',
-                products: filteredProducts.slice(i, i + productsPerPage),
-                pageNumber: 0,
-                totalPages: 0
-            })
-        }
-    }
 
-    // 3. Update page numbers for product pages
-    let productPageCounter = 1
-    const totalProductPages = catalogPages.filter(p => p.type === 'products').length
-    catalogPages.forEach(page => {
-        if (page.type === 'products') {
-            page.pageNumber = productPageCounter
-            page.totalPages = totalProductPages
-            productPageCounter++
-        }
-    })
+        return pages
+    }, [filteredProducts, productsPerPage, catalog.enable_cover_page, catalog.enable_category_dividers])
 
+    // === LAZY PAGE COMPONENT ===
+    // Only render pages near the viewport to avoid 150+ DOM pages at once
+    const LazyPage = useCallback(({ children, index }: { children: React.ReactNode; index: number }) => {
+        const ref = useRef<HTMLDivElement>(null)
+        const [isVisible, setIsVisible] = useState(index < 3) // First 3 pages always visible
+
+        useEffect(() => {
+            // During PDF export, render everything
+            if (isExporting) { setIsVisible(true); return; }
+            if (index < 3) return; // First 3 always visible
+
+            const el = ref.current
+            if (!el) return
+
+            const observer = new IntersectionObserver(
+                ([entry]) => { if (entry.isIntersecting) setIsVisible(true) },
+                { rootMargin: '2000px 0px' } // Start rendering 2000px before visible
+            )
+            observer.observe(el)
+            return () => observer.disconnect()
+        }, [index])
+
+        return (
+            <div ref={ref}>
+                {isVisible ? children : (
+                    <div
+                        className="bg-slate-100 rounded-lg animate-pulse"
+                        style={{ width: '794px', height: '1123px', margin: '0 auto' }}
+                    />
+                )}
+            </div>
+        )
+    }, [isExporting])
 
 
     const toggleFullscreen = () => {
@@ -259,7 +290,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         }
     }
 
-    const getBackgroundStyle = () => {
+    const backgroundStyle = useMemo((): React.CSSProperties => {
         const baseStyle: React.CSSProperties = {
             backgroundColor: catalog.background_color || '#ffffff'
         }
@@ -280,7 +311,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             }
         }
         return baseStyle
-    }
+    }, [catalog.background_color, catalog.background_image, catalog.background_image_fit, catalog.background_gradient])
 
     const renderTemplate = (pageProds: Product[], pageNumber: number, totalPages: number) => {
         const props: TemplateProps = {
@@ -463,14 +494,59 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                             >
                                 <div className="w-full flex flex-col gap-6 items-center">
                                     {catalogPages.map((page, index) => (
+                                        <LazyPage key={index} index={index}>
+                                            <div
+                                                data-pdf-page="true"
+                                                className="shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white shrink-0"
+                                                style={{
+                                                    width: '794px',
+                                                    height: '1123px',
+                                                    ...backgroundStyle
+                                                }}
+                                            >
+                                                <div className="w-full h-full" style={{ height: '1123px' }}>
+                                                    <div style={{ width: '100%', height: '100%' }}>
+                                                        {page.type === 'cover' ? (
+                                                            <CoverPage
+                                                                catalogName={catalog.name}
+                                                                coverImageUrl={catalog.cover_image_url}
+                                                                coverDescription={catalog.cover_description}
+                                                                logoUrl={catalog.logo_url}
+                                                                primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                                isExporting={isExporting}
+                                                                theme={catalog.cover_theme}
+                                                            />
+                                                        ) : page.type === 'divider' ? (
+                                                            <CategoryDivider
+                                                                categoryName={page.categoryName}
+                                                                firstProductImage={page.firstProductImage}
+                                                                primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                                theme={catalog.cover_theme}
+                                                            />
+                                                        ) : (
+                                                            renderTemplate(page.products, page.pageNumber, page.totalPages)
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </LazyPage>
+                                    ))}
+                                </div>
+                            </TransformComponent>
+                        </TransformWrapper>
+                    ) : (
+                        <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
+                            {catalogPages.length > 0 ? (
+                                catalogPages.map((page, index) => (
+                                    <LazyPage key={index} index={index}>
                                         <div
-                                            key={index}
                                             data-pdf-page="true"
-                                            className="shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white shrink-0"
+                                            className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
                                             style={{
                                                 width: '794px',
                                                 height: '1123px',
-                                                ...getBackgroundStyle()
+                                                margin: '0 auto',
+                                                ...backgroundStyle
                                             }}
                                         >
                                             <div className="w-full h-full" style={{ height: '1123px' }}>
@@ -482,6 +558,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                                             coverDescription={catalog.cover_description}
                                                             logoUrl={catalog.logo_url}
                                                             primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
+                                                            productCount={filteredProducts.length}
                                                             isExporting={isExporting}
                                                             theme={catalog.cover_theme}
                                                         />
@@ -498,52 +575,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </TransformComponent>
-                        </TransformWrapper>
-                    ) : (
-                        <div className="w-full min-h-full flex flex-col gap-6 px-4 sm:px-6 py-6">
-                            {catalogPages.length > 0 ? (
-                                catalogPages.map((page, index) => (
-                                    <div
-                                        key={index}
-                                        data-pdf-page="true"
-                                        className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white"
-                                        style={{
-                                            width: '794px',
-                                            height: '1123px',
-                                            margin: '0 auto',
-                                            ...getBackgroundStyle()
-                                        }}
-                                    >
-                                        {/* Sayfa İçeriği - Logo template içinde gösteriliyor */}
-                                        <div className="w-full h-full" style={{ height: '1123px' }}>
-                                            <div style={{ width: '100%', height: '100%' }}>
-                                                {page.type === 'cover' ? (
-                                                    <CoverPage
-                                                        catalogName={catalog.name}
-                                                        coverImageUrl={catalog.cover_image_url}
-                                                        coverDescription={catalog.cover_description}
-                                                        logoUrl={catalog.logo_url}
-                                                        primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
-                                                        productCount={filteredProducts.length}
-                                                        isExporting={isExporting}
-                                                        theme={catalog.cover_theme}
-                                                    />
-                                                ) : page.type === 'divider' ? (
-                                                    <CategoryDivider
-                                                        categoryName={page.categoryName}
-                                                        firstProductImage={page.firstProductImage}
-                                                        primaryColor={catalog.primary_color || 'rgba(124, 58, 237, 1)'}
-                                                        theme={catalog.cover_theme}
-                                                    />
-                                                ) : (
-                                                    renderTemplate(page.products, page.pageNumber, page.totalPages)
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    </LazyPage>
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">

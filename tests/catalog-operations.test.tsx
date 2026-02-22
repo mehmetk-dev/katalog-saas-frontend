@@ -52,7 +52,7 @@ vi.mock('@/lib/actions/products', () => ({
     getProducts: vi.fn().mockResolvedValue([]),
 }))
 
-vi.mock('@/components/builder/upgrade-modal', () => ({
+vi.mock('@/components/builder/modals/upgrade-modal', () => ({
     UpgradeModal: () => null,
 }))
 

@@ -32,7 +32,7 @@ import {
 import { deleteCatalog, type Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
-import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { useTranslation } from "@/lib/i18n-provider"
 import { useUser } from "@/lib/user-context"
 

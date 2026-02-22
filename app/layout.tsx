@@ -180,7 +180,10 @@ export default function RootLayout({
         {/* Preconnect to Supabase */}
         <link rel="preconnect" href="https://supabase.co" />
       </head>
-      <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <SessionWatcher />
         <I18nProvider>
           {children}

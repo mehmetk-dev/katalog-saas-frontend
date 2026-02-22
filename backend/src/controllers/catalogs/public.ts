@@ -40,26 +40,58 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
 
         // Product IDs parsing
         let productIds = data.product_ids;
+
         if (typeof productIds === 'string') {
             productIds = (productIds as string).replace('{', '').replace('}', '').split(',').map(s => s.trim()).filter(Boolean);
+
         }
+
 
         let products: Record<string, unknown>[] = [];
         if (Array.isArray(productIds) && productIds.length > 0) {
-            console.log(`[Debug] Fetching ${productIds.length} products for catalog ${slug}`);
-            const { data: productData, error: productError } = await supabase
-                .from('products')
-                .select('*')
-                .in('id', productIds);
 
-            if (productError) {
-                console.error('[Debug] Product fetch error:', productError);
+            // Batch fetch: Supabase .in() sends IDs as URL query params.
+            // Node.js has a 16KB header limit — 100 UUIDs (~3.7KB) is safe per request.
+            const CHUNK_SIZE = 100;
+            const CONCURRENCY = 3; // Max parallel requests to Supabase
+            const chunks: string[][] = [];
+            for (let i = 0; i < productIds.length; i += CHUNK_SIZE) {
+                chunks.push(productIds.slice(i, i + CHUNK_SIZE));
             }
 
-            if (productData) {
+            // Only select fields the frontend actually needs (not select('*'))
+            const PRODUCT_FIELDS = 'id,name,description,price,image_url,images,sku,category,custom_attributes,product_url,currency';
+
+            // Concurrency-limited parallel fetch
+            const allResults: Record<string, unknown>[][] = [];
+            for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+                const batch = chunks.slice(i, i + CONCURRENCY);
+                const batchResults = await Promise.all(
+                    batch.map(async (chunk) => {
+                        const { data, error } = await supabase
+                            .from('products')
+                            .select(PRODUCT_FIELDS)
+                            .in('id', chunk);
+                        if (error) {
+                            console.error(`[PublicCatalog] Batch fetch error (${chunk.length} items):`, error);
+                            return [];
+                        }
+                        return data || [];
+                    })
+                );
+                allResults.push(...batchResults);
+            }
+
+            const allProductData = allResults.flat();
+
+            if (allProductData.length > 0) {
+                // Preserve original order from product_ids
+                const productMap = new Map<string, Record<string, unknown>>(
+                    allProductData.map((p) => [(p.id as string).toLowerCase(), p])
+                );
                 products = productIds
-                    .map((pid: string) => productData.find((p: { id: string }) => p.id.toLowerCase() === pid.toLowerCase()))
-                    .filter(Boolean);
+                    .map((pid: string) => productMap.get(pid.toLowerCase()))
+                    .filter((p): p is Record<string, unknown> => p !== undefined);
             }
         }
 
@@ -93,6 +125,8 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             console.error('[PublicCatalog] View tracking failed:', err);
         });
 
+        // Cache headers — stale-while-revalidate for fast repeat visits
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
         res.json({ ...data, products });
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -147,5 +181,35 @@ const smartIncrementViewCount = async (
         }
     } catch (err) {
         console.error('[Analytics] Critical error:', err);
+    }
+};
+
+/**
+ * Lightweight metadata endpoint — returns only catalog name/description/SEO fields.
+ * No product fetching, no view tracking. Used by generateMetadata for fast page loads.
+ */
+export const getPublicCatalogMeta = async (req: Request, res: Response) => {
+    try {
+        const { slug } = req.params;
+        const metaCacheKey = `${cacheKeys.publicCatalog(slug)}:meta`;
+
+        const meta = await getOrSetCache(metaCacheKey, cacheTTL.publicCatalog, async () => {
+            const { data, error } = await supabase
+                .from('catalogs')
+                .select('id, name, description, is_published, show_in_search')
+                .eq('share_slug', slug)
+                .eq('is_published', true)
+                .single();
+
+            if (error || !data) throw new Error('Catalog not found');
+            return data;
+        });
+
+        res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+        res.json(meta);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const status = errorMessage === 'Catalog not found' ? 404 : 500;
+        res.status(status).json({ error: errorMessage });
     }
 };

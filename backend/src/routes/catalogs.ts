@@ -6,6 +6,7 @@ import * as CatalogController from '../controllers/catalogs';
 const router = Router();
 
 // Public routes (No Auth Required)
+router.get('/public/:slug/meta', CatalogController.getPublicCatalogMeta);
 router.get('/public/:slug', CatalogController.getPublicCatalog);
 
 // Protected routes (Auth Required)

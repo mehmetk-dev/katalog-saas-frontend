@@ -60,22 +60,41 @@ describe('User Context Testleri', () => {
         vi.clearAllMocks()
 
         mockApiFetch = vi.fn()
-        vi.mocked(apiFetch).mockImplementation(mockApiFetch)
+        vi.mocked(apiFetch).mockImplementation(mockApiFetch as any)
+
+        const mockUsersBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: { id: 'user-1', plan: 'free' }, error: null }),
+        }
+
+        const mockCountBuilder = (count: number) => ({
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockResolvedValue({ count, error: null }),
+        })
 
         mockSupabaseClient = {
             auth: {
-                getUser: vi.fn(),
+                getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null }),
                 onAuthStateChange: vi.fn(() => ({
                     data: { subscription: { unsubscribe: vi.fn() } }
                 })),
-                signOut: vi.fn(),
+                signOut: vi.fn().mockResolvedValue({ error: null }),
             },
-            from: vi.fn(() => ({
-                select: vi.fn(),
-            })),
-        }
+            from: vi.fn((table: string) => {
+                if (table === 'users') return mockUsersBuilder
+                if (table === 'products') return mockCountBuilder(0)
+                if (table === 'catalogs') return mockCountBuilder(0)
+                return mockUsersBuilder
+            }),
+        } as any
 
         vi.mocked(createClient).mockReturnValue(mockSupabaseClient)
+
+            // Helper to update mock data in tests
+            ; (mockSupabaseClient as any).setMockProfile = (data: any) => {
+                mockUsersBuilder.single.mockResolvedValue({ data, error: null })
+            }
     })
 
     describe('User Loading', () => {
@@ -106,7 +125,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'free',
-                exportsUsed: 0,
+                exports_used: 0,
                 maxExports: 10,
             }
 
@@ -115,7 +134,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -136,7 +155,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'free',
-                exportsUsed: 0,
+                exports_used: 0,
                 maxExports: 0,
             }
 
@@ -145,7 +164,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -163,7 +182,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'plus',
-                exportsUsed: 5,
+                exports_used: 5,
                 maxExports: 50,
             }
 
@@ -172,7 +191,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -190,7 +209,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'pro',
-                exportsUsed: 100,
+                exports_used: 100,
                 maxExports: -1, // Unlimited
             }
 
@@ -199,7 +218,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -219,7 +238,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'pro',
-                exportsUsed: 1000,
+                exports_used: 1000,
                 maxExports: -1,
             }
 
@@ -228,7 +247,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -246,7 +265,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'free',
-                exportsUsed: 0,
+                exports_used: 0,
                 maxExports: 0,
             }
 
@@ -255,7 +274,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -273,7 +292,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'plus',
-                exportsUsed: 5,
+                exports_used: 5,
                 maxExports: 50,
             }
 
@@ -282,7 +301,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -300,7 +319,7 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'plus',
-                exportsUsed: 50,
+                exports_used: 50,
                 maxExports: 50,
             }
 
@@ -309,7 +328,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -338,7 +357,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
             mockSupabaseClient.auth.signOut.mockResolvedValueOnce({ error: null })
 
             // window.location.href mock
@@ -388,7 +407,7 @@ describe('User Context Testleri', () => {
 
             // Auth state change simüle et
             if (authStateChangeCallback) {
-                mockApiFetch.mockResolvedValueOnce({
+                ; (mockSupabaseClient as any).setMockProfile({
                     id: 'user-1',
                     email: 'test@example.com',
                     plan: 'free',
@@ -425,7 +444,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-            mockApiFetch.mockResolvedValueOnce(mockUser)
+                ; (mockSupabaseClient as any).setMockProfile(mockUser)
 
             render(
                 <UserProvider>

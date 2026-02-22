@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, CheckCircle2, BookOpen } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
 import { useTranslation } from "@/lib/i18n-provider"
+import { cn } from "@/lib/utils"
 
 const getSiteUrl = () => {
   if (typeof window !== "undefined") return window.location.origin
@@ -157,7 +158,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-violet-100 via-violet-50/50 to-white relative overflow-hidden font-sans">
+    <div className={cn(
+      "min-h-screen w-full flex items-center justify-center",
+      "bg-gradient-to-b from-violet-100 via-violet-50/50 to-white",
+      "relative overflow-hidden font-sans"
+    )}>
       {/* Background Decorations (Matching Auth Page) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <svg
@@ -178,13 +183,28 @@ export default function ForgotPasswordPage() {
           />
         </svg>
         <div className="absolute top-20 right-6 w-24 h-24 rounded-full border-[3px] border-violet-300/60" />
-        <div className="absolute -bottom-32 -left-16 w-72 h-72 bg-gradient-to-tr from-violet-500/40 via-purple-400/30 to-fuchsia-400/20 rounded-full blur-3xl opacity-50" />
+        <div className={cn(
+          "absolute -bottom-32 -left-16 w-72 h-72",
+          "bg-gradient-to-tr from-violet-500/40 via-purple-400/30 to-fuchsia-400/20",
+          "rounded-full blur-3xl opacity-50"
+        )} />
       </div>
 
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link href="/auth" className="group flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-violet-700 transition-colors">
-          <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white/80 backdrop-blur-sm">
+        <Link
+          href="/auth"
+          className={cn(
+            "group flex items-center gap-2 text-sm font-medium",
+            "text-slate-500 hover:text-violet-700 transition-colors"
+          )}
+        >
+          <div className={cn(
+            "w-8 h-8 rounded-full border border-slate-200",
+            "flex items-center justify-center",
+            "group-hover:border-violet-600 group-hover:bg-violet-50",
+            "transition-all bg-white/80 backdrop-blur-sm"
+          )}>
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
           </div>
           <span>{t("auth.backToLogin")}</span>
@@ -193,7 +213,13 @@ export default function ForgotPasswordPage() {
 
       <div className="w-full max-w-[420px] p-6 relative z-10">
         <div className="text-center mb-10">
-          <Link href="/" className="inline-flex items-center mb-8 hover:opacity-80 transition-opacity">
+          <Link
+            href="/"
+            className={cn(
+              "inline-flex items-center mb-8",
+              "hover:opacity-80 transition-opacity"
+            )}
+          >
             <span className="font-montserrat text-4xl tracking-tighter flex items-center">
               <span className="font-black text-[#cf1414] uppercase">Fog</span>
               <span className="font-light text-slate-900">Catalog</span>
@@ -221,7 +247,11 @@ export default function ForgotPasswordPage() {
               </p>
             </div>
             <Link href="/auth" className="block w-full">
-              <button className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg shadow-violet-600/20 transition-all">
+              <button className={cn(
+                "w-full h-12 bg-violet-600 hover:bg-violet-700",
+                "text-white font-medium rounded-xl",
+                "shadow-lg shadow-violet-600/20 transition-all"
+              )}>
                 {t("auth.backToLogin")}
               </button>
             </Link>
@@ -230,7 +260,13 @@ export default function ForgotPasswordPage() {
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
             <button
               onClick={handleGoogleSignIn}
-              className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-3 hover:border-slate-300"
+              className={cn(
+                "w-full h-12 bg-white border border-slate-200",
+                "hover:bg-slate-50 text-slate-900 font-medium",
+                "rounded-xl transition-all duration-200",
+                "flex items-center justify-center gap-3",
+                "hover:border-slate-300"
+              )}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -245,13 +281,20 @@ export default function ForgotPasswordPage() {
                 <div className="w-full border-t border-slate-200" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-[#FDFDFD] px-4 text-xs font-medium text-slate-400 uppercase tracking-widest">Veya</span>
+                <span className={cn(
+                  "bg-[#FDFDFD] px-4 text-xs font-medium",
+                  "text-slate-400 uppercase tracking-widest"
+                )}>Veya</span>
               </div>
             </div>
             <button
               onClick={handleContinueAnyway}
               disabled={isLoading}
-              className="w-full h-12 bg-transparent border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium rounded-xl transition-all"
+              className={cn(
+                "w-full h-12 bg-transparent border border-slate-200",
+                "hover:bg-slate-50 text-slate-600 font-medium",
+                "rounded-xl transition-all"
+              )}
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Yine de şifre sıfırla"}
             </button>
@@ -274,17 +317,34 @@ export default function ForgotPasswordPage() {
                   if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: "" }))
                 }}
                 disabled={isLoading}
-                className={`w-full h-12 px-4 bg-white border ${fieldErrors.email ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.email ? 'animate-shake' : ''}`}
+                className={cn(
+                  "w-full h-12 px-4 bg-white border rounded-xl text-[15px]",
+                  "outline-none transition-all placeholder:text-slate-300 hover:border-slate-300",
+                  fieldErrors.email
+                    ? "border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]"
+                    : "border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+                  shakingFields.email && "animate-shake"
+                )}
                 placeholder={t("auth.placeholderEmail")}
               />
               {fieldErrors.email && (
-                <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.email}</p>
+                <p className={cn(
+                  "text-[12px] text-[#cf1414] font-medium",
+                  "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
+                )}>
+                  {fieldErrors.email}
+                </p>
               )}
             </div>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 transition-all flex items-center justify-center gap-2"
+              className={cn(
+                "w-full h-12 bg-violet-600 hover:bg-violet-700",
+                "text-white font-medium rounded-xl",
+                "shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30",
+                "transition-all flex items-center justify-center gap-2"
+              )}
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t("auth.sendResetLink")}
             </button>

@@ -14,16 +14,17 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
     const menuItems = [
         { href: "/features", label: t('header.features'), index: "01", desc: "Sektörün en güçlü araçları" },
         { href: "/pricing", label: t('header.pricing'), index: "02", desc: "Her işletmeye uygun planlar" },
-        { href: "/blog", label: t('header.blog'), index: "03", desc: "Katalog dünyasından haberler" },
-        { href: "/contact", label: t('header.contact'), index: "04", desc: "Bize her zaman ulaşın" },
+        { href: "/create-demo", label: t('header.demo'), index: "03", desc: "Saniyeler içinde katalog oluşturun" },
+        { href: "/blog", label: t('header.blog'), index: "04", desc: "Katalog dünyasından haberler" },
+        { href: "/contact", label: t('header.contact'), index: "05", desc: "Bize her zaman ulaşın" },
     ]
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/80 border-b border-slate-200/50">
             <div className={`${fullWidth ? 'w-full' : 'max-w-7xl mx-auto'} px-6 h-16 flex items-center justify-between`}>
                 {/* Left: Logo */}
-                <div className="flex-1 flex items-center">
-                    <Link href="/" className="flex items-center group relative z-[110]" aria-label="FogCatalog Ana Sayfa">
+                <div className="flex items-center shrink-0">
+                    <Link href="/" className="flex items-center group" aria-label="FogCatalog Ana Sayfa">
                         <span className="font-montserrat text-3xl tracking-tighter flex items-center">
                             <span className="font-black text-[#cf1414] uppercase">Fog</span>
                             <span className="font-light text-slate-900">Catalog</span>
@@ -31,8 +32,8 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                     </Link>
                 </div>
 
-                {/* Center: Navigation - Absolutely Centered */}
-                <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+                {/* Center: Navigation */}
+                <nav className="hidden md:flex items-center gap-8">
                     {menuItems.map((item) => (
                         <Link key={item.href} href={item.href} className="text-sm font-medium text-slate-600 hover:text-[#cf1414] transition-colors">
                             {item.label}
@@ -41,7 +42,7 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                 </nav>
 
                 {/* Right: Actions */}
-                <div className={`flex-1 flex items-center justify-end gap-3 relative z-[110] ${fullWidth ? 'ml-8' : ''}`}>
+                <div className={`flex items-center gap-3 shrink-0 ${fullWidth ? 'ml-8' : ''}`}>
                     {/* Language Switcher (Desktop) */}
                     <div className="hidden md:flex items-center bg-slate-100 rounded-full p-1 mr-2 border border-slate-200 shadow-inner">
                         <button

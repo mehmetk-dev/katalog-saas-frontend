@@ -109,7 +109,7 @@ export function AppearanceSection({
                             <div className="space-y-2.5">
                                 <Label className="text-[10px] font-black uppercase text-slate-500 block tracking-widest text-center">Görünüm Düzeni</Label>
                                 <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
-                                    {availableColumns.map((num) => (
+                                    {availableColumns.map((num: number) => (
                                         <button
                                             key={num}
                                             onClick={() => onColumnsPerRowChange?.(num)}

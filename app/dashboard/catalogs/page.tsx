@@ -19,19 +19,25 @@ export default async function CatalogsPage() {
   }
 
   // CRITICAL: Filter by user_id for data isolation!
-  const { data: catalogs } = await supabase
-    .from("catalogs")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
+  // PERF: Run all 3 queries in parallel instead of sequentially
+  const [catalogsResult, productsResult, profileResult] = await Promise.all([
+    supabase
+      .from("catalogs")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("products")
+      .select("*")
+      .eq("user_id", user.id),
+    supabase
+      .from("users")
+      .select("plan")
+      .eq("id", user.id)
+      .single(),
+  ])
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .eq("user_id", user.id)
+  const userPlan = (profileResult.data?.plan || "free") as "free" | "plus" | "pro"
 
-  const { data: profile } = await supabase.from("users").select("plan").eq("id", user.id).single()
-  const userPlan = (profile?.plan || "free") as "free" | "plus" | "pro"
-
-  return <CatalogsPageClient initialCatalogs={catalogs || []} userProducts={products || []} userPlan={userPlan} />
+  return <CatalogsPageClient initialCatalogs={catalogsResult.data || []} userProducts={productsResult.data || []} userPlan={userPlan} />
 }

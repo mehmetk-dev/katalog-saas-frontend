@@ -41,10 +41,10 @@ vi.mock('@/lib/actions/user', () => ({
 }))
 
 // Mock CatalogEditor and CatalogPreview to simplify rendering
-vi.mock('@/components/builder/catalog-editor', () => ({
+vi.mock('@/components/builder/editor/catalog-editor', () => ({
     CatalogEditor: () => <div data-testid="catalog-editor" />
 }))
-vi.mock('@/components/builder/catalog-preview', () => ({
+vi.mock('@/components/builder/preview/catalog-preview', () => ({
     CatalogPreview: ({ isExporting }: { isExporting?: boolean }) => (
         <div data-testid="catalog-preview">
             {isExporting && (

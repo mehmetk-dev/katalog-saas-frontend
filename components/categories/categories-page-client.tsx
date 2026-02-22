@@ -31,7 +31,7 @@ import {
     DialogTitle,
     DialogFooter
 } from "@/components/ui/dialog"
-import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { useTranslation } from "@/lib/i18n-provider"
 
 interface Category {

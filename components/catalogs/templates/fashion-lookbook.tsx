@@ -3,6 +3,7 @@ import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { cn } from "@/lib/utils"
 
 /**
  * Fashion Lookbook Template - "The Couture Editorial"
@@ -78,6 +79,14 @@ export function FashionLookbookTemplate({
                 </span>
             </div>
 
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-20" style={{ backgroundColor: primaryColor }} />
+            <div
+                className={cn(
+                    "absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%]",
+                    "rounded-full blur-[120px] opacity-[0.15]"
+                )}
+                style={{ backgroundColor: primaryColor }}
+            />
             <div className="flex-1 flex flex-col p-10 pr-14 relative z-10 w-full">
                 {/* Editorial Header */}
                 <div className="mb-12 flex justify-between items-end border-b-2 pb-6" style={{ borderColor: headerTextColor ? `${headerTextColor}10` : 'rgba(0,0,0,0.05)' }}>
@@ -90,6 +99,14 @@ export function FashionLookbookTemplate({
                         <h1 className="text-4xl font-serif italic tracking-tighter leading-none" style={{ color: headerTextColor || '#000000' }}>
                             {catalogName || "The Look"}
                         </h1>
+                        {logoAlignment !== 'left' && (
+                            <div className={cn(
+                                "text-[10px] uppercase tracking-[0.5em]",
+                                "text-neutral-400 font-medium whitespace-nowrap"
+                            )}>
+                                LOOKBOOK — VOL.{String(pageNumber).padStart(2, '0')}
+                            </div>
+                        )}
                         <p className="text-[10px] tracking-[0.4em] uppercase mt-2 font-bold" style={{ color: headerTextColor ? `${headerTextColor}66` : 'rgba(0,0,0,0.4)' }}>
                             Editorial Lookbook / Series {pageNumber}
                         </p>
@@ -98,10 +115,24 @@ export function FashionLookbookTemplate({
                     <div className="text-right">
                         {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
                             <div className="mb-4">
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                                <NextImage
+                                    src={logoUrl}
+                                    alt="Logo"
+                                    width={120}
+                                    height={getLogoHeight()}
+                                    unoptimized
+                                    style={{ height: getLogoHeight() }}
+                                    className="object-contain"
+                                />
                             </div>
                         )}
-                        <span className="text-[60px] font-serif italic leading-none absolute top-4 right-10 pointer-events-none" style={{ color: headerTextColor ? `${headerTextColor}0D` : 'rgba(0,0,0,0.05)' }}>
+                        <span
+                            className={cn(
+                                "text-[60px] font-serif italic leading-none",
+                                "absolute top-4 right-10 pointer-events-none"
+                            )}
+                            style={{ color: headerTextColor ? `${headerTextColor}0D` : 'rgba(0,0,0,0.05)' }}
+                        >
                             {String(pageNumber).padStart(2, '0')}
                         </span>
                     </div>
@@ -121,12 +152,26 @@ export function FashionLookbookTemplate({
                                         imageClassName="group-hover:scale-105 transition-all duration-[2s]"
                                     />
                                     {/* Overlay label */}
-                                    <div className="absolute top-6 right-[-20px] rotate-90 origin-center bg-black text-white px-4 py-1 text-[10px] font-bold tracking-[0.3em] uppercase">
+                                    <div className={cn(
+                                        "absolute top-6 right-[-20px] rotate-90 origin-center",
+                                        "bg-black text-white px-4 py-1",
+                                        "text-[10px] font-bold tracking-[0.3em] uppercase"
+                                    )}>
                                         FEATURED PIECE
                                     </div>
 
                                     {(showUrls && hero.product_url) && (
-                                        <a href={hero.product_url} target="_blank" rel="noopener noreferrer" className="absolute bottom-6 left-6 w-10 h-10 bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center rounded-full hover:bg-white hover:text-black transition-all">
+                                        <a
+                                            href={hero.product_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={cn(
+                                                "absolute bottom-6 left-6 w-10 h-10",
+                                                "bg-white/20 backdrop-blur-md border border-white/40",
+                                                "flex items-center justify-center rounded-full",
+                                                "hover:bg-white hover:text-black transition-all"
+                                            )}
+                                        >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                             </svg>
@@ -174,7 +219,10 @@ export function FashionLookbookTemplate({
                                 <Wrapper
                                     key={product.id}
                                     {...(showUrls && productUrl ? { href: productUrl, target: '_blank', rel: 'noopener noreferrer' } : {})}
-                                    className="flex gap-4 group cursor-pointer flex-1 items-center border-b last:border-0"
+                                    className={cn(
+                                        "flex gap-4 group cursor-pointer flex-1",
+                                        "items-center border-b last:border-0"
+                                    )}
                                     style={{ borderColor: headerTextColor ? `${headerTextColor}10` : 'rgba(0,0,0,0.05)' }}
                                 >
                                     <div className="w-[80px] h-[100px] relative bg-[#f5f5f5] shrink-0 overflow-hidden">
@@ -195,7 +243,13 @@ export function FashionLookbookTemplate({
                                         </h3>
 
                                         {showDescriptions && product.description && (
-                                            <p className="text-[9px] font-serif leading-tight line-clamp-2 mb-2 pr-2" style={{ color: headerTextColor ? `${headerTextColor}80` : 'rgba(0,0,0,0.5)' }}>
+                                            <p
+                                                className={cn(
+                                                    "text-[9px] font-serif leading-tight",
+                                                    "line-clamp-2 mb-2 pr-2"
+                                                )}
+                                                style={{ color: headerTextColor ? `${headerTextColor}80` : 'rgba(0,0,0,0.5)' }}
+                                            >
                                                 {product.description}
                                             </p>
                                         )}

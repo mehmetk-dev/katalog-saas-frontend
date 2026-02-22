@@ -35,6 +35,7 @@ interface ApiError extends Error {
     status?: number;
     isRateLimit?: boolean;
     retryAfter?: number;
+    details?: any;
 }
 
 export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
@@ -76,7 +77,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     const fetchHeaders = headersList;
     let lastError: ApiError | null = null;
     let attempts = 0;
-    // ... rest of the logic remains the same
+
     let timeoutId: NodeJS.Timeout | null = null;
     let controller: AbortController | null = null;
 
@@ -112,43 +113,32 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 timeoutId = null;
             }
 
-            // Rate Limit kontrolü (429 Too Many Requests)
-            if (response.status === 429) {
-                const retryAfter = parseInt(response.headers.get('Retry-After') || '30', 10);
-                const error: ApiError = new Error(
-                    `Çok fazla istek gönderildi. Lütfen ${retryAfter} saniye bekleyin.`
-                );
-                error.status = 429;
-                error.isRateLimit = true;
-                error.retryAfter = retryAfter * 1000;
-
-                // Retry varsa bekle ve tekrar dene
-                if (attempts < retries) {
-                    await new Promise(resolve => setTimeout(resolve, error.retryAfter));
-                    attempts++;
-                    continue;
-                }
-
-                throw error;
-            }
-
             // Diğer HTTP hataları
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const error: ApiError = new Error(
-                    getErrorMessage(response.status, errorData.error || response.statusText)
+                const connectionError: ApiError = new Error(
+                    errorData.error || getErrorMessage(response.status)
                 );
-                error.status = response.status;
+                connectionError.status = response.status;
+                connectionError.details = errorData;
 
-                // 5xx hatalar için retry
-                if (response.status >= 500 && attempts < retries) {
-                    await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
+                // 429 Rate Limit
+                if (response.status === 429) {
+                    connectionError.isRateLimit = true;
+                    const retryAfterHeader = response.headers?.get?.('Retry-After');
+                    connectionError.retryAfter = parseInt(retryAfterHeader || '30', 10) * 1000;
+                }
+
+                // 5xx hatalar veya 429 için retry
+                if ((response.status >= 500 || response.status === 429) && attempts < retries) {
+                    const delay = response.status === 429 ? connectionError.retryAfter || 30000 : retryDelay * (attempts + 1);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                     attempts++;
-                    lastError = error;
+                    lastError = connectionError;
                     continue;
                 }
 
-                throw error;
+                throw connectionError;
             }
 
             // Some endpoints might return empty body (e.g. 204 No Content)
@@ -158,44 +148,18 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
             return response.json();
 
-        } catch (error: unknown) {
+        } catch (error: any) {
             // Her durumda timeout'u temizle
             if (timeoutId) {
                 clearTimeout(timeoutId);
                 timeoutId = null;
             }
 
-            // Fetch failed - backend sunucusu çalışmıyor olabilir
-            if (error instanceof Error && (
-                error.message.includes('fetch failed') ||
-                error.message.includes('ECONNREFUSED') ||
-                error.message.includes('ENOTFOUND') ||
-                error.cause?.toString().includes('ECONNREFUSED')
-            )) {
-                const connectionError: ApiError = new Error(
-                    `Backend sunucusuna bağlanılamıyor (${BASE_URL}). Lütfen backend sunucusunun çalıştığından emin olun.`
-                );
-                connectionError.status = 503;
-
-                // Retry varsa ve son deneme değilse devam et
-                if (attempts < retries) {
-                    await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
-                    attempts++;
-                    lastError = connectionError;
-                    continue;
-                }
-
-                throw connectionError;
-            }
-
-            // AbortError kontrolü - type guard ile
-            if (error instanceof Error && error.name === 'AbortError') {
-                const timeoutError: ApiError = new Error(
-                    `İstek zaman aşımına uğradı (${Math.round(timeout / 1000)}s). Lütfen tekrar deneyin.`
-                );
+            // AbortError kontrolü
+            if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+                const timeoutError: ApiError = new Error('api.error.gatewayTimeout');
                 timeoutError.status = 408;
 
-                // Retry varsa ve son deneme değilse devam et
                 if (attempts < retries) {
                     await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
                     attempts++;
@@ -208,15 +172,16 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
             // Network hatası - retry
             if (isNetworkError(error) && attempts < retries) {
+                const networkError: ApiError = new Error('api.error.serviceUnavailable');
+                networkError.status = 503;
                 await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
                 attempts++;
-                lastError = error as ApiError;
+                lastError = networkError;
                 continue;
             }
 
             throw error;
         } finally {
-            // Her durumda timeout'u temizle (ekstra güvenlik)
             if (timeoutId) {
                 clearTimeout(timeoutId);
                 timeoutId = null;
@@ -224,36 +189,32 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
         }
     }
 
-    // Tüm retry'lar tükendi - son cleanup
-    if (timeoutId) {
-        clearTimeout(timeoutId);
-    }
-    if (controller) {
-        controller.abort();
-    }
+    // Tüm retry'lar tükendi
+    if (timeoutId) clearTimeout(timeoutId);
+    if (controller) controller.abort();
 
     throw lastError || new Error('İstek başarısız oldu.');
 }
 
 /**
- * HTTP status koduna göre kullanıcı dostu hata mesajı
+ * HTTP status koduna göre kullanıcı dostu hata mesajı anahtarı
  */
-function getErrorMessage(status: number, defaultMessage: string): string {
+function getErrorMessage(status?: number): string {
     const messages: Record<number, string> = {
-        400: 'Geçersiz istek. Lütfen bilgileri kontrol edin.',
-        401: 'Oturum süresi dolmuş. Lütfen tekrar giriş yapın.',
-        403: 'Bu işlem için yetkiniz yok.',
-        404: 'İstenen kaynak bulunamadı.',
-        409: 'Bu kayıt zaten mevcut.',
-        422: 'Girilen veriler geçersiz.',
-        429: 'Çok fazla istek. Lütfen biraz bekleyin.',
-        500: 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.',
-        502: 'Sunucu geçici olarak kullanılamıyor.',
-        503: 'Hizmet geçici olarak kullanılamıyor.',
-        504: 'Sunucu yanıt vermedi. Lütfen tekrar deneyin.',
+        400: 'api.error.badRequest',
+        401: 'api.error.unauthorized',
+        403: 'api.error.forbidden',
+        404: 'api.error.notFound',
+        409: 'api.error.conflict',
+        422: 'api.error.validationError',
+        429: 'api.error.rateLimit',
+        500: 'api.error.serverError',
+        502: 'api.error.serverUnavailable',
+        503: 'api.error.serviceUnavailable',
+        504: 'api.error.gatewayTimeout',
     };
 
-    return messages[status] || defaultMessage;
+    return (status && messages[status]) || 'api.error.unknown';
 }
 
 /**
@@ -272,6 +233,6 @@ function isNetworkError(error: unknown): boolean {
         'Failed to fetch'
     ];
 
-    const message = (error instanceof Error ? error.message : '').toLowerCase();
+    const message = (error && typeof error === 'object' && 'message' in error ? String(error.message) : '').toLowerCase();
     return networkIndicators.some(indicator => message.includes(indicator.toLowerCase()));
 }

@@ -68,7 +68,10 @@ export function ProductGridView({
     return (
         <TooltipProvider>
             <div className="space-y-4 p-1">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                <div className={cn(
+                    "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4",
+                    "lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4"
+                )}>
                     {filteredProducts.map((product) => {
                         const stockStatus = getStockStatus(product.stock)
                         const isSelected = selectedIds.includes(product.id)
@@ -85,12 +88,17 @@ export function ProductGridView({
                                 onDrop={(e: React.DragEvent<HTMLDivElement>) => handleDrop(e, product.id)}
                                 onDragEnd={handleDragEnd}
                                 onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                                    if (isMobile && !e.defaultPrevented && (e.target as HTMLElement).tagName !== 'BUTTON' && (e.target as HTMLElement).tagName !== 'INPUT') {
+                                    const target = e.target as HTMLElement
+                                    if (isMobile && !e.defaultPrevented
+                                        && target.tagName !== 'BUTTON'
+                                        && target.tagName !== 'INPUT') {
                                         setPreviewProduct(product)
                                     }
                                 }}
                                 className={cn(
-                                    "group overflow-hidden cursor-move transition-all duration-200 hover:shadow-md border border-gray-100 dark:border-gray-800 shadow-sm bg-white dark:bg-gray-900 relative",
+                                    "group overflow-hidden cursor-move transition-all duration-200",
+                                    "hover:shadow-md border border-gray-100 dark:border-gray-800",
+                                    "shadow-sm bg-white dark:bg-gray-900 relative",
                                     isSelected && "border-violet-400 bg-violet-50/50 dark:bg-violet-950/20",
                                     isDragging && "opacity-50 scale-95",
                                     isDragOver && "border-dashed border-violet-400"
@@ -104,9 +112,8 @@ export function ProductGridView({
 
                                     {(() => {
                                         const imageUrl = (product.image_url || product.images?.[0]) as string | undefined
-                                        const hasValidImage = imageUrl && !failedImages.has(imageUrl)
-
-                                        return hasValidImage ? (
+                                        if (!imageUrl || failedImages.has(imageUrl)) return null
+                                        return (
                                             <NextImage
                                                 src={imageUrl}
                                                 alt={product.name}
@@ -116,12 +123,16 @@ export function ProductGridView({
                                                 unoptimized
                                                 onError={() => handleImageError(imageUrl)}
                                             />
-                                        ) : null
+                                        )
                                     })()}
 
                                     <div className={cn(
                                         "absolute top-1.5 left-1.5 z-[5] transition-opacity",
-                                        isSelected ? "opacity-100" : (isMobile ? "opacity-70" : "opacity-0 group-hover:opacity-100")
+                                        isSelected
+                                            ? "opacity-100"
+                                            : isMobile
+                                                ? "opacity-70"
+                                                : "opacity-0 group-hover:opacity-100"
                                     )}>
                                         <Checkbox
                                             checked={isSelected}
@@ -156,8 +167,12 @@ export function ProductGridView({
 
                                 {/* İçerik alanı */}
                                 <div className="p-3">
-                                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{product.name}</h3>
-                                    <p className="text-base font-bold text-violet-600 mt-1">{getCurrencySymbol(product)}</p>
+                                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                                        {product.name}
+                                    </h3>
+                                    <p className="text-base font-bold text-violet-600 mt-1">
+                                        {getCurrencySymbol(product)}
+                                    </p>
                                     <div className="flex items-center justify-between mt-2">
                                         <span className={cn(
                                             "text-xs",
@@ -198,11 +213,13 @@ export function ProductGridView({
                         <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
                         <p className="font-medium">Aramanızla eşleşen ürün bulunamadı</p>
                     </div>
-                )}
-            </div>
+                )
+                }
+            </div >
 
             {/* Preview Dialog */}
-            <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
+            < Dialog open={!!previewProduct
+            } onOpenChange={() => setPreviewProduct(null)}>
                 <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden">
                     {previewProduct ? (() => {
                         const allImagesArr = (previewProduct.images && previewProduct.images.length > 0)
@@ -218,7 +235,9 @@ export function ProductGridView({
                             <>
                                 <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600">
                                     <DialogHeader>
-                                        <DialogTitle className="text-white text-lg font-bold pr-8">{previewProduct.name || "Ürün Önizleme"}</DialogTitle>
+                                        <DialogTitle className="text-white text-lg font-bold pr-8">
+                                            {previewProduct.name || "Ürün Önizleme"}
+                                        </DialogTitle>
                                         {previewProduct.sku && <p className="text-white/70 text-sm font-mono">SKU: {previewProduct.sku}</p>}
                                     </DialogHeader>
                                 </div>
@@ -230,7 +249,10 @@ export function ProductGridView({
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                            <div className={cn(
+                                                "relative aspect-video rounded-lg overflow-hidden",
+                                                "bg-gray-100 dark:bg-gray-800"
+                                            )}>
                                                 <NextImage
                                                     src={validImages[activeImageIndex] || validImages[0]}
                                                     alt={previewProduct.name}
@@ -238,21 +260,66 @@ export function ProductGridView({
                                                     className="object-contain"
                                                     loading="lazy"
                                                     unoptimized
-                                                    onError={() => handlePreviewImageError(validImages[activeImageIndex] || validImages[0])}
+                                                    onError={() => handlePreviewImageError(
+                                                        validImages[activeImageIndex] || validImages[0]
+                                                    )}
                                                 />
                                                 {validImages.length > 1 && (
                                                     <>
-                                                        <button onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : validImages.length - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70"><ChevronLeft className="w-4 h-4" /></button>
-                                                        <button onClick={() => setActiveImageIndex(prev => prev < validImages.length - 1 ? prev + 1 : 0)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70"><ChevronRight className="w-4 h-4" /></button>
-                                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">{activeImageIndex + 1}/{validImages.length}</div>
+                                                        <button
+                                                            onClick={() => setActiveImageIndex(prev =>
+                                                                prev > 0 ? prev - 1 : validImages.length - 1
+                                                            )}
+                                                            className={cn(
+                                                                "absolute left-2 top-1/2 -translate-y-1/2 p-1.5",
+                                                                "rounded-full bg-black/50 text-white hover:bg-black/70"
+                                                            )}
+                                                        >
+                                                            <ChevronLeft className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setActiveImageIndex(prev =>
+                                                                prev < validImages.length - 1 ? prev + 1 : 0
+                                                            )}
+                                                            className={cn(
+                                                                "absolute right-2 top-1/2 -translate-y-1/2 p-1.5",
+                                                                "rounded-full bg-black/50 text-white hover:bg-black/70"
+                                                            )}
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </button>
+                                                        <div className={cn(
+                                                            "absolute bottom-2 left-1/2 -translate-x-1/2",
+                                                            "bg-black/60 text-white text-xs px-2 py-0.5 rounded"
+                                                        )}>
+                                                            {activeImageIndex + 1}/{validImages.length}
+                                                        </div>
                                                     </>
                                                 )}
                                             </div>
                                             {validImages.length > 1 && (
                                                 <div className="flex gap-1.5 overflow-x-auto">
                                                     {validImages.map((img, idx) => (
-                                                        <button key={idx} onClick={() => setActiveImageIndex(idx)} className={cn("relative w-12 h-12 rounded overflow-hidden shrink-0 border-2", activeImageIndex === idx ? "border-violet-500" : "border-transparent opacity-60 hover:opacity-100")}>
-                                                            <NextImage src={img} alt="" fill className="object-cover" loading="lazy" unoptimized onError={() => handlePreviewImageError(img)} />
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => setActiveImageIndex(idx)}
+                                                            className={cn(
+                                                                "relative w-12 h-12 rounded overflow-hidden",
+                                                                "shrink-0 border-2",
+                                                                activeImageIndex === idx
+                                                                    ? "border-violet-500"
+                                                                    : "border-transparent opacity-60 hover:opacity-100"
+                                                            )}
+                                                        >
+                                                            <NextImage
+                                                                src={img}
+                                                                alt=""
+                                                                fill
+                                                                className="object-cover"
+                                                                loading="lazy"
+                                                                unoptimized
+                                                                onError={() => handlePreviewImageError(img)}
+                                                            />
                                                         </button>
                                                     ))}
                                                 </div>
@@ -261,20 +328,36 @@ export function ProductGridView({
                                     )}
 
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
+                                        <div className={cn(
+                                            "p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30",
+                                            "border border-violet-200 dark:border-violet-800"
+                                        )}>
                                             <p className="text-xs text-violet-600 dark:text-violet-400">Fiyat</p>
                                             <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{getCurrencySymbol(previewProduct)}</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border">
                                             <p className="text-xs text-muted-foreground">Stok</p>
-                                            <p className={cn("text-xl font-bold", stockStatus.variant === "destructive" && "text-red-500", stockStatus.variant === "secondary" && "text-amber-500", stockStatus.variant === "default" && "text-emerald-500")}>{previewProduct.stock} adet</p>
+                                            <p className={cn(
+                                                "text-xl font-bold",
+                                                stockStatus.variant === "destructive" && "text-red-500",
+                                                stockStatus.variant === "secondary" && "text-amber-500",
+                                                stockStatus.variant === "default" && "text-emerald-500"
+                                            )}>
+                                                {previewProduct.stock} adet
+                                            </p>
                                         </div>
                                     </div>
 
                                     <div>
                                         <p className="text-xs font-medium text-muted-foreground mb-1.5">Kategori</p>
                                         {previewProduct.category ? (
-                                            <div className="flex flex-wrap gap-1">{previewProduct.category.split(',').map((cat, idx) => <Badge key={idx} variant="secondary" className="text-xs">{cat.trim()}</Badge>)}</div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {previewProduct.category.split(',').map((cat, idx) => (
+                                                    <Badge key={idx} variant="secondary" className="text-xs">
+                                                        {cat.trim()}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         ) : <p className="text-sm text-muted-foreground">—</p>}
                                     </div>
 
@@ -286,8 +369,18 @@ export function ProductGridView({
                                     {previewProduct.product_url && (
                                         <div>
                                             <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
-                                            <a href={previewProduct.product_url} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 hover:underline flex items-center gap-1">
-                                                {previewProduct.product_url.slice(0, 50)}{previewProduct.product_url.length > 50 && "..."} <ExternalLink className="w-3 h-3" />
+                                            <a
+                                                href={previewProduct.product_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={cn(
+                                                    "text-sm text-violet-600 hover:underline",
+                                                    "flex items-center gap-1"
+                                                )}
+                                            >
+                                                {previewProduct.product_url.slice(0, 50)}
+                                                {previewProduct.product_url.length > 50 && "..."}
+                                                <ExternalLink className="w-3 h-3" />
                                             </a>
                                         </div>
                                     )}
@@ -297,7 +390,10 @@ export function ProductGridView({
                                             <p className="text-xs font-medium text-muted-foreground mb-1.5">Özellikler</p>
                                             <div className="grid grid-cols-2 gap-1.5">
                                                 {customAttrs.map((attr, idx) => (
-                                                    <div key={idx} className="flex justify-between p-2 rounded bg-gray-50 dark:bg-gray-800 text-xs">
+                                                    <div key={idx} className={cn(
+                                                        "flex justify-between p-2 rounded",
+                                                        "bg-gray-50 dark:bg-gray-800 text-xs"
+                                                    )}>
                                                         <span className="text-muted-foreground">{attr.name}</span>
                                                         <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
                                                     </div>
@@ -308,7 +404,14 @@ export function ProductGridView({
                                 </div>
 
                                 <div className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-900 flex gap-2">
-                                    <Button size="sm" className="flex-1 bg-violet-600 hover:bg-violet-700" onClick={() => { setPreviewProduct(null); onEdit(previewProduct) }}>
+                                    <Button
+                                        size="sm"
+                                        className="flex-1 bg-violet-600 hover:bg-violet-700"
+                                        onClick={() => {
+                                            setPreviewProduct(null)
+                                            onEdit(previewProduct)
+                                        }}
+                                    >
                                         <Pencil className="w-3.5 h-3.5 mr-1.5" /> Düzenle
                                     </Button>
                                     <Button size="sm" variant="outline" onClick={() => setPreviewProduct(null)}>Kapat</Button>
@@ -321,7 +424,7 @@ export function ProductGridView({
                         </DialogHeader>
                     )}
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             <DeleteAlertDialog
                 deleteId={deleteId}
@@ -331,6 +434,6 @@ export function ProductGridView({
                 onConfirm={handleDelete}
                 t={t}
             />
-        </TooltipProvider>
+        </TooltipProvider >
     )
 }

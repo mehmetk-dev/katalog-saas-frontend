@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react"
 
 import { translations, Language } from "./translations"
 
@@ -33,12 +33,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         setIsInitialized(true)
     }, [])
 
-    const setLanguage = (lang: Language) => {
+    const setLanguage = useCallback((lang: Language) => {
         setLanguageState(lang)
         localStorage.setItem("language", lang)
-    }
+    }, [])
 
-    const t = <T = string>(path: string, params?: Record<string, unknown>): T => {
+    const t = useCallback(<T = string>(path: string, params?: Record<string, unknown>): T => {
         const keys = path.split(".")
         let current: unknown = translations[language]
 
@@ -79,19 +79,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         }
 
         return result as unknown as T
-    }
+    }, [language])
 
-    // Prevent hydration mismatch by not rendering until initialized
-    if (!isInitialized) {
-        return (
-            <I18nContext.Provider value={{ language: "tr", setLanguage, t }}>
-                {children}
-            </I18nContext.Provider>
-        )
-    }
+    const contextValue = useMemo(() => ({
+        language: isInitialized ? language : "tr",
+        setLanguage,
+        t
+    }), [isInitialized, language, setLanguage, t])
 
     return (
-        <I18nContext.Provider value={{ language, setLanguage, t }}>
+        <I18nContext.Provider value={contextValue}>
             {children}
         </I18nContext.Provider>
     )

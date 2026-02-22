@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react"
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
 import { useTranslation } from "@/lib/i18n-provider"
@@ -290,9 +290,14 @@ export function CatalogEditor({
   const [activeTab, setActiveTab] = useState("content")
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [_isFilterPending, startFilterTransition] = useTransition()
 
   const debouncedSearchUpdate = useDebouncedCallback(
-    (query: string) => setDebouncedSearchQuery(query), 200
+    (query: string) => {
+      startFilterTransition(() => {
+        setDebouncedSearchQuery(query)
+      })
+    }, 200
   )
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,6 +305,12 @@ export function CatalogEditor({
     setSearchQuery(val)
     debouncedSearchUpdate(val)
   }, [debouncedSearchUpdate])
+
+  const handleCategoryChange = useCallback((category: string) => {
+    startFilterTransition(() => {
+      setSelectedCategory(category)
+    })
+  }, [])
 
   // ─── Derived Data ─────────────────────────────────────────────────────────
   const selectedProductIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds])
@@ -333,12 +344,15 @@ export function CatalogEditor({
   useEffect(() => { setCurrentPage(1) }, [selectedCategory, debouncedSearchQuery])
 
   // ─── Product Selection & Sorting ──────────────────────────────────────────
+  // PERFORMANCE: Set-based toggle — O(1) add/delete instead of O(n) filter/spread
   const toggleProduct = useCallback((id: string) => {
-    onSelectedProductIdsChange(
-      selectedProductIdSet.has(id)
-        ? selectedProductIds.filter((i) => i !== id)
-        : [...selectedProductIds, id]
-    )
+    if (selectedProductIdSet.has(id)) {
+      // Remove: filter is unavoidable but we avoid unnecessary copies
+      onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))
+    } else {
+      // Add: push to end, no full-copy needed (spread is still O(n) but unavoidable for immutability)
+      onSelectedProductIdsChange([...selectedProductIds, id])
+    }
   }, [selectedProductIds, selectedProductIdSet, onSelectedProductIdsChange])
 
   const productMap = useMemo(() => {
@@ -418,7 +432,7 @@ export function CatalogEditor({
               searchQuery={searchQuery}
               onSearchChange={handleSearchChange}
               selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
+              onCategoryChange={handleCategoryChange}
               categories={categories}
               filteredProducts={filteredProducts}
               visibleProducts={visibleProducts}

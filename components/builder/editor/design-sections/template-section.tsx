@@ -1,7 +1,7 @@
 import React from 'react'
 import { Sparkles } from "lucide-react"
 import { TEMPLATES } from "@/lib/constants"
-import { TemplatePreviewCard } from "../template-preview-card"
+import { TemplatePreviewCard } from "@/components/builder/preview/template-preview-card"
 import type { TemplateSectionProps } from "./types"
 
 export function TemplateSection({

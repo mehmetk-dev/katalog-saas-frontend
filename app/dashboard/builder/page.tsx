@@ -7,8 +7,8 @@ import { getProducts } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const BUILDER_MAX_PRODUCTS = 5000
-const BUILDER_PAGE_SIZE = 1000
+const BUILDER_MAX_PRODUCTS = 10_000
+const BUILDER_PAGE_SIZE = 2000
 
 async function getBuilderProducts(maxProducts: number = BUILDER_MAX_PRODUCTS) {
   const firstPage = await getProducts({ page: 1, limit: Math.min(BUILDER_PAGE_SIZE, maxProducts) })

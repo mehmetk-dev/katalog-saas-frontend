@@ -227,6 +227,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -241,6 +242,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -255,6 +257,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -270,6 +273,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -289,6 +293,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -303,6 +308,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -316,6 +322,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -329,6 +336,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -342,6 +350,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -357,6 +366,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={[]}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -371,12 +381,13 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={[]}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
-            // Link'i bul - translation key veya text olabilir
-            const createLink = screen.getByText(/Katalog Oluştur|dashboard.createCatalog/i).closest('a')
-            expect(createLink).toHaveAttribute('href', '/dashboard/builder')
+            // Artık bir button
+            const createButton = screen.getByRole('button', { name: /Katalog Oluştur|dashboard.createCatalog/i })
+            expect(createButton).toBeInTheDocument()
         })
     })
 
@@ -387,11 +398,12 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
-            // Translation key'leri kontrol et
-            expect(screen.getByText(/Ürün Ekle|dashboard.addProduct/i)).toBeInTheDocument()
+            // Heading olarak kontrol et
+            expect(screen.getByRole('heading', { name: /Ürün Ekle|dashboard.addProduct/i })).toBeInTheDocument()
             expect(screen.getByText(/Excel ile toplu ürün ekle|dashboard.importExcel/i)).toBeInTheDocument()
         })
 
@@ -401,11 +413,12 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
-            // Translation key kontrolü
-            expect(screen.getByText(/Şablonlar|catalogs.template|sidebar.templates/i)).toBeInTheDocument()
+            // Heading olarak kontrol et
+            expect(screen.getByRole('heading', { name: /Şablonlar|catalogs.template|sidebar.templates/i })).toBeInTheDocument()
         })
 
         it('Ürün ekle butonu doğru linke yönlendirir', () => {
@@ -414,13 +427,13 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
-            // Tüm linkleri bul ve products linkini kontrol et
-            const allLinks = screen.getAllByRole('link')
-            const productsLink = allLinks.find(link => link.getAttribute('href') === '/dashboard/products')
-            expect(productsLink).toBeInTheDocument()
+            // Link'i tam text veya role ile bul
+            const addProductLink = screen.getByRole('link', { name: /Ürün Ekle|dashboard.addProduct|products.addProduct/i })
+            expect(addProductLink).toHaveAttribute('href', '/dashboard/products?action=import')
         })
 
         it('Şablonlar butonu doğru linke yönlendirir', () => {
@@ -429,13 +442,13 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
             // Templates linkini bul
-            const allLinks = screen.getAllByRole('link')
-            const templatesLink = allLinks.find(link => link.getAttribute('href') === '/dashboard/templates')
-            expect(templatesLink).toBeInTheDocument()
+            const templatesLink = screen.getByRole('link', { name: /Şablonlar|catalogs.template|sidebar.templates/i })
+            expect(templatesLink).toHaveAttribute('href', '/dashboard/templates')
         })
     })
 
@@ -446,6 +459,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -458,6 +472,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -472,6 +487,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={[]}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -485,7 +501,7 @@ describe('Dashboard Client Testleri', () => {
         it('Loading state gösterilir', () => {
             // useUser mock'unu değiştir
             mockUseUser.mockReturnValueOnce({
-                user: null as User | null,
+                user: null as any,
                 isLoading: true,
                 refreshUser: vi.fn(),
             })
@@ -495,6 +511,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -511,6 +528,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={null as unknown as Catalog[]}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -523,6 +541,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={null as unknown as Product[]}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -535,6 +554,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={null}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -550,6 +570,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -564,6 +585,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -579,6 +601,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 
@@ -594,6 +617,7 @@ describe('Dashboard Client Testleri', () => {
                     initialCatalogs={mockCatalogs}
                     initialProducts={mockProducts}
                     initialStats={mockStats}
+                    totalProductCount={mockProducts.length}
                 />
             )
 

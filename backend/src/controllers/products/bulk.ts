@@ -15,19 +15,26 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'ids must be an array' });
         }
 
-        const { data: products, error: fetchError } = await supabase
-            .from('products')
-            .select('id, name, image_url, images')
-            .in('id', ids)
-            .eq('user_id', userId);
+        // Batch fetch & delete: .in() has URL length limits for large arrays
+        const CHUNK_SIZE = 100;
+        const idChunks: string[][] = [];
+        for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+            idChunks.push(ids.slice(i, i + CHUNK_SIZE));
+        }
 
-        if (fetchError) throw fetchError;
+        const fetchResults = await Promise.all(
+            idChunks.map(chunk =>
+                supabase.from('products').select('id, name, image_url, images').in('id', chunk).eq('user_id', userId)
+            )
+        );
+        const products = fetchResults.flatMap(r => r.data || []);
 
-        const { error } = await supabase
-            .from('products')
-            .delete()
-            .in('id', ids)
-            .eq('user_id', userId);
+        const deleteResults = await Promise.all(
+            idChunks.map(chunk =>
+                supabase.from('products').delete().in('id', chunk).eq('user_id', userId)
+            )
+        );
+        const error = deleteResults.find(r => r.error)?.error;
 
         if (error) throw error;
 
@@ -204,13 +211,21 @@ export const bulkUpdatePrices = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'amount must be a positive number' });
         }
 
-        const { data: products, error: fetchError } = await supabase
-            .from('products')
-            .select('*')
-            .in('id', productIds)
-            .eq('user_id', userId);
+        // Batch fetch: .in() has URL length limits for large arrays
+        const CHUNK_SIZE = 100;
+        const idChunks: string[][] = [];
+        for (let i = 0; i < productIds.length; i += CHUNK_SIZE) {
+            idChunks.push(productIds.slice(i, i + CHUNK_SIZE));
+        }
 
+        const fetchResults = await Promise.all(
+            idChunks.map(chunk =>
+                supabase.from('products').select('*').in('id', chunk).eq('user_id', userId)
+            )
+        );
+        const fetchError = fetchResults.find(r => r.error)?.error;
         if (fetchError) throw fetchError;
+        const products = fetchResults.flatMap(r => r.data || []);
 
         if (!products || products.length === 0) {
             return res.status(404).json({ error: 'No products found' });

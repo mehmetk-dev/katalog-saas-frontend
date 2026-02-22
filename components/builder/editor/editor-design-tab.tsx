@@ -206,7 +206,7 @@ export function EditorDesignTab(props: EditorDesignTabProps) {
                     t={props.t}
                     enableCoverPage={props.enableCoverPage}
                     enableCategoryDividers={props.enableCategoryDividers}
-                    selectedProductIds={props.selectedProductIds}
+                    selectedProductCount={props.selectedProductIds.length}
                 />
 
                 <TemplateSection

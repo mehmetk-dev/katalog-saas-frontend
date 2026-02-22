@@ -59,7 +59,7 @@ const nextConfig = {
   },
   // Experimental optimizations
   experimental: {
-    // optimizePackageImports removed to prevent compilation hangs
+    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts', '@radix-ui/react-icons'],
   },
   // Production optimizations
   poweredByHeader: false,

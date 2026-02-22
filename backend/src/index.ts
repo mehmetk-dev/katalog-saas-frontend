@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import client from 'prom-client';
 
 import { initRedis } from './services/redis';
@@ -90,6 +91,7 @@ app.use(helmet({
     xXssProtection: true, // Enable XSS filter
 }));
 app.use(morgan('dev'));
+app.use(compression()); // gzip/brotli response compression
 app.use(express.json({ limit: '10mb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

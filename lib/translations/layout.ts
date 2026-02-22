@@ -7,6 +7,7 @@ const layout = {
             contact: "İletişim",
             login: "Giriş Yap",
             createCatalog: "Katalog Oluştur",
+            demo: "Demo Oluştur",
         },
         footer: {
             description: "Modern işletmeler için yeni nesil katalog oluşturma platformu.",
@@ -49,6 +50,7 @@ const layout = {
             contact: "Contact",
             login: "Sign In",
             createCatalog: "Create Catalog",
+            demo: "Create Demo",
         },
         footer: {
             description: "Next generation catalog creation platform for modern businesses.",

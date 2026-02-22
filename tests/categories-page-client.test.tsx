@@ -83,16 +83,16 @@ vi.mock('@/lib/actions/products', () => ({
     deleteCategory: vi.fn().mockResolvedValue({ success: true }),
 }))
 
-vi.mock('@/components/builder/upgrade-modal', () => ({
+vi.mock('@/components/builder/modals/upgrade-modal', () => ({
     UpgradeModal: ({ open, onOpenChange: _onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
         open ? <div data-testid="upgrade-modal">Upgrade Modal</div> : null
     ),
 }))
 
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
-        if (fill) imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+        if (fill) imgProps.style = { ...(imgProps.style as any || {}), position: 'absolute', width: '100%', height: '100%' }
         if (unoptimized !== undefined) imgProps.unoptimized = String(unoptimized)
         // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />
@@ -172,11 +172,11 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={[]} userPlan="pro" />)
 
-            const createButton = screen.getByText('İlk Kategoriyi Oluştur')
+            const createButton = screen.getByRole('button', { name: /İlk Kategoriyi Oluştur|categories.createFirst/i })
             await user.click(createButton)
 
             await waitFor(() => {
-                expect(screen.getByText('Yeni Kategori')).toBeInTheDocument()
+                expect(screen.getByRole('heading', { name: /Yeni Kategori|categories.newCategory/i })).toBeInTheDocument()
             })
         })
     })
@@ -193,7 +193,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="free" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
@@ -221,11 +221,11 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
-                expect(screen.getByText('Yeni Kategori')).toBeInTheDocument()
+                expect(screen.getByRole('heading', { name: /Yeni Kategori|categories.newCategory/i })).toBeInTheDocument()
             })
         })
 
@@ -233,7 +233,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
@@ -251,7 +251,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
@@ -302,7 +302,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
@@ -317,7 +317,7 @@ describe('Categories Page Client Testleri', () => {
 
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
@@ -343,7 +343,7 @@ describe('Categories Page Client Testleri', () => {
 
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
@@ -442,11 +442,11 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const addButton = screen.getByText('Yeni Kategori')
+            const addButton = screen.getByRole('button', { name: /Yeni Kategori|categories.newCategory/i })
             await user.click(addButton)
 
             await waitFor(() => {
-                expect(screen.getByText('Yeni Kategori')).toBeInTheDocument()
+                expect(screen.getByRole('heading', { name: /Yeni Kategori|categories.newCategory/i })).toBeInTheDocument()
             })
 
             const cancelButton = screen.getByText('İptal')

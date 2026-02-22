@@ -1,10 +1,10 @@
 name: Deploy to Server
 
-# on:
-#   push:
-#     branches:
-#       - main
-on: workflow_dispatch  # Otomatik çalışmayı kapattık. Sadece elle tetiklenebilir.
+on:
+  push:
+    branches:
+      - main  # Buradaki '#' işaretlerini kaldırdık, artık otomatik.
+  workflow_dispatch: # Bunu da bırakmanı öneririm, bazen manuel tetiklemek gerekebilir.
 
 jobs:
   deploy:
@@ -18,16 +18,14 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
-            # 1. Tam yolu kullanarak klasöre git (Hata alırsan 'exit' yap ki sonraki komutlar yanlış yerde çalışmasın)
+            # 1. Klasöre git
             cd /opt/www/fogcatalog/katalog-saas-frontend/ || { echo "Klasör bulunamadı!"; exit 1; }
             
             # 2. Kodu Güncelle
             git fetch --all
             git reset --hard origin/main
             
-            # 3. Docker komutunu tam yoluyla çağır (Path hatasını engeller)
-            # Not: Eğer 'which docker-compose' çıktın farklıysa orayı güncelle. 
-            # Modern sistemlerde 'docker compose' (boşluklu) kullanılır.
+            # 3. Docker Build ve Restart
             docker compose up -d --build --remove-orphans || /usr/local/bin/docker-compose up -d --build --remove-orphans
             
             # 4. Temizlik

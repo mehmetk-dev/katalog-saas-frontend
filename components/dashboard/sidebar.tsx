@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, Shield, BarChart3, HelpCircle } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, BarChart3, HelpCircle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useTranslation } from "@/lib/i18n-provider"
 import { useSidebar } from "@/lib/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 
 import { FeedbackModal } from "./feedback-modal"
 
@@ -36,11 +36,6 @@ export function DashboardSidebar() {
     { href: "/dashboard/templates", label: t("sidebar.templates"), icon: Palette },
     { href: "/dashboard/settings", label: t("common.settings"), icon: Settings },
   ]
-
-  // Admin menu items - only for admin users
-  const adminItems = user?.isAdmin ? [
-    { href: "/dashboard/admin", label: "Admin Panel", icon: Shield, isAdmin: true },
-  ] : []
 
 
   // Mobilde link tıklandığında sidebar'ı kapat
@@ -186,55 +181,8 @@ export function DashboardSidebar() {
             return navLink
           })}
 
-          {/* Admin Section - only for admin users */}
-          {adminItems.length > 0 && (
-            <>
-              <div className={cn(
-                "my-2 border-t border-sidebar-border",
-                isCollapsed && !isMobile && "mx-2"
-              )} />
-              {adminItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href || pathname.startsWith(item.href)
 
-                const adminLink = (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={handleNavClick}
-                    prefetch={false}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
-                      isCollapsed && !isMobile ? "justify-center p-2.5" : "px-3 py-2.5",
-                      isActive
-                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                        : "text-red-600/80 hover:bg-red-50 hover:text-red-700 dark:text-red-400/80 dark:hover:bg-red-900/20",
-                    )}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    {(!isCollapsed || isMobile) && (
-                      <span className="truncate flex-1">{item.label}</span>
-                    )}
-                  </Link>
-                )
 
-                if (isCollapsed && !isMobile) {
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>
-                        {adminLink}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="font-medium">
-                        {item.label}
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                }
-
-                return adminLink
-              })}
-            </>
-          )}
         </nav>
 
         {/* Spacer - Pro paket kartını en alta iter */}

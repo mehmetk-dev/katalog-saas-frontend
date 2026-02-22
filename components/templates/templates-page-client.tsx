@@ -12,7 +12,7 @@ import { useUser } from "@/lib/user-context"
 import { type CatalogTemplate, createCatalog } from "@/lib/actions/catalogs"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { useTranslation } from "@/lib/i18n-provider"
-import { UpgradeModal } from "../builder/upgrade-modal"
+import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 
 import { CatalogPreview } from "../catalogs/catalog-preview"
 

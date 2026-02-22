@@ -85,6 +85,17 @@ const getPostCategoryColor = (categoryId: string) => {
 // ELLERİNİZLE YÖNETEBİLECEĞİNİZ STATİK LİSTE
 const POSTS = [
     {
+        slug: 'b2b-dijital-katalog-rehberi-2026',
+        title: 'B2B Dijital Katalog Rehberi: 2026\'da Toptan Satışta Öne Çıkmanın Yolları',
+        excerpt: 'Toptan satış ve B2B sektöründe dijital katalogların gücünü keşfedin. Müşteri sadakatini artıran, siparişleri kolaylaştıran kapsamlı rehber.',
+        date: '2026-02-22',
+        author: 'Mehmet K.',
+        category: 'guides',
+        readingTime: '8 dk okuma',
+        coverImage: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&q=80',
+        language: 'tr'
+    },
+    {
         slug: 'dijital-katalog-ile-satis-artirma',
         title: 'Dijital Katalog ile Satışlarınızı Artırmanın 5 Yolu',
         excerpt: 'Doğru kurgulanmış bir dijital katalog, satış ekibinizin en büyük yardımcısıdır. İşte ciroyu artıracak taktikler.',

@@ -125,7 +125,7 @@ export function CatalogPreloader({ products, images: directImages }: { products?
             urls = directImages
         } else if (products) {
             urls = products
-                .slice(0, 100)
+                .slice(0, 30)
                 .flatMap(p => [p.image_url, ...(p.images || [])])
                 .filter((url): url is string => !!url && url !== "/placeholder.svg")
         }

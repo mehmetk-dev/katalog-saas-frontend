@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
@@ -51,7 +51,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(initialSupabaseUser)
   const [isLoading, setIsLoading] = useState(!initialUser)
   const isLoggingOutRef = useRef(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const fetchUserProfile = useCallback(async (authUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
     const MAX_RETRIES = 3
@@ -113,7 +113,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         productsCount: productsCount || 0,
         catalogsCount: catalogsCount || 0,
         maxProducts: plan === "pro" ? 999999 : plan === "plus" ? 1000 : 50,
-        maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 1,
+        maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 0,
         exportsUsed: profile?.exports_used || 0,
         isAdmin: profile?.is_admin || false,
       })
@@ -131,14 +131,14 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     }
   }, [supabase])
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser()
     if (authUser) {
       await fetchUserProfile(authUser)
     }
-  }
+  }, [supabase.auth, fetchUserProfile])
 
   const adjustCatalogsCount = useCallback((delta: number) => {
     if (!delta) return
@@ -245,7 +245,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     }
   }, [fetchUserProfile, supabase.auth, initialUser, supabaseUser?.id])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (isLoggingOutRef.current) return
     isLoggingOutRef.current = true
 
@@ -261,39 +261,41 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
       console.error("Çıkış hatası:", error)
     } finally {
       setIsLoading(false)
-      window.location.replace("/auth?logged_out=1")
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth?logged_out=1"
+      }
     }
-  }
+  }, [supabase.auth])
 
-  const canExport = () => {
+  const canExport = useCallback(() => {
     if (!user) return false
     if (user.plan === "pro") return true
     return user.exportsUsed < user.maxExports
-  }
+  }, [user])
 
-  const incrementExports = (): boolean => {
+  const incrementExports = useCallback((): boolean => {
     if (!user) return false
     if (user.plan === "pro") return true
     if (user.exportsUsed >= user.maxExports) return false
     setUser({ ...user, exportsUsed: user.exportsUsed + 1 })
     return true
-  }
+  }, [user])
+
+  const contextValue = useMemo(() => ({
+    user,
+    supabaseUser,
+    setUser,
+    adjustCatalogsCount,
+    isAuthenticated: !!user,
+    isLoading,
+    logout,
+    refreshUser,
+    incrementExports,
+    canExport,
+  }), [user, supabaseUser, adjustCatalogsCount, isLoading, logout, refreshUser, incrementExports, canExport])
 
   return (
-    <UserContext.Provider
-      value={{
-        user,
-        supabaseUser,
-        setUser,
-        adjustCatalogsCount,
-        isAuthenticated: !!user,
-        isLoading,
-        logout,
-        refreshUser,
-        incrementExports,
-        canExport,
-      }}
-    >
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   )

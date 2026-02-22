@@ -5,7 +5,7 @@ import { CheckSquare } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { CatalogPreview } from "./catalog-preview"
-import { getPreviewProductsByLayout } from "../templates/preview-data"
+import { getPreviewProductsByLayout } from "@/components/templates/preview-data"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 
 interface TemplatePreviewCardProps {

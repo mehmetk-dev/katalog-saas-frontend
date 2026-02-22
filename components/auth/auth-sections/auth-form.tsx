@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Loader2, ArrowLeft, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react"
 import type { AuthState, AuthHandlers, TranslateFn } from "./types"
+import { cn } from "@/lib/utils"
 
 interface AuthFormProps {
     t: TranslateFn
@@ -20,11 +21,36 @@ function GoogleIcon() {
 }
 
 export function AuthForm({ t, state, handlers }: AuthFormProps) {
-    const { mode, isLoading, isGoogleLoading, error, fieldErrors, success, showPassword, showGoogleWarning, shakingFields, name, companyName, email, password } = state
-    const { setMode, setName, setCompanyName, setEmail, setPassword, setShowPassword, setError, setFieldErrors, handleSubmit, handleGoogleAuth, handleContinueAnyway, resetForm } = handlers
+    const {
+        mode, isLoading, isGoogleLoading, error, fieldErrors,
+        success, showPassword, showGoogleWarning, shakingFields,
+        name, companyName, email, password,
+    } = state
+    const {
+        setMode, setName, setCompanyName, setEmail, setPassword,
+        setShowPassword, setError, setFieldErrors,
+        handleSubmit, handleGoogleAuth, handleContinueAnyway, resetForm,
+    } = handlers
+
+    const inputCls = (hasError: boolean, isShaking: boolean, extra?: string) =>
+        cn(
+            "w-full h-12 px-4 bg-white border rounded-xl text-[15px]",
+            "outline-none transition-all placeholder:text-slate-300 hover:border-slate-300",
+            hasError
+                ? "border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]"
+                : "border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+            isShaking && "animate-shake",
+            extra
+        )
+
+    const isExpiredError = error?.includes("süresi dolmuş") ?? false
 
     return (
-        <div className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-b from-violet-100 via-violet-50/50 to-white relative overflow-hidden">
+        <div className={cn(
+            "w-full lg:w-1/2 flex items-center justify-center",
+            "bg-gradient-to-b from-violet-100 via-violet-50/50 to-white",
+            "relative overflow-hidden"
+        )}>
             {/* Background Decorations */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <svg
@@ -49,8 +75,19 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
 
             {/* Back Button */}
             <div className="absolute top-6 left-6 z-20">
-                <Link href="/" className="group flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-violet-700 transition-colors">
-                    <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-violet-600 group-hover:bg-violet-50 transition-all bg-white/80 backdrop-blur-sm">
+                <Link
+                    href="/"
+                    className={cn(
+                        "group flex items-center gap-2 text-sm font-medium",
+                        "text-slate-500 hover:text-violet-700 transition-colors"
+                    )}
+                >
+                    <div className={cn(
+                        "w-8 h-8 rounded-full border border-slate-200",
+                        "flex items-center justify-center",
+                        "group-hover:border-violet-600 group-hover:bg-violet-50",
+                        "transition-all bg-white/80 backdrop-blur-sm"
+                    )}>
                         <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                     </div>
                     <span className="hidden sm:inline">{t("auth.backToHome") as string}</span>
@@ -72,41 +109,60 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                 </span>
                             </Link>
                         </div>
-                        <h1 className="text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
-                            {mode === 'signup' ? (t("auth.signup") as string) : mode === 'forgot-password' ? (t("auth.forgotPasswordTitle") as string) : (t("auth.welcomeBack") as string)}
+                        <h1 className={cn(
+                            "text-3xl lg:text-4xl font-semibold",
+                            "tracking-tight text-slate-900 mb-3"
+                        )}>
+                            {mode === 'signup'
+                                ? (t("auth.signup") as string)
+                                : mode === 'forgot-password'
+                                    ? (t("auth.forgotPasswordTitle") as string)
+                                    : (t("auth.welcomeBack") as string)
+                            }
                         </h1>
                         <p className="text-slate-500 text-[15px] leading-relaxed">
-                            {mode === 'signup' ? (t("auth.signupDesc") as string) : mode === 'forgot-password' ? (t("auth.forgotPasswordSubtitle") as string) : (t("auth.signinDesc") as string)}
+                            {mode === 'signup'
+                                ? (t("auth.signupDesc") as string)
+                                : mode === 'forgot-password'
+                                    ? (t("auth.forgotPasswordSubtitle") as string)
+                                    : (t("auth.signinDesc") as string)
+                            }
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         {/* Error Alert */}
                         {error && (
-                            <div className={`p-4 rounded-xl text-sm font-medium animate-in shake border-2 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
-                                ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
-                                : "bg-red-50 text-red-600 border-red-300 shadow-lg"
-                                }`}>
+                            <div className={cn(
+                                "p-4 rounded-xl text-sm font-medium animate-in shake border-2",
+                                isExpiredError
+                                    ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
+                                    : "bg-red-50 text-red-600 border-red-300 shadow-lg"
+                            )}>
                                 <div className="flex items-start gap-2">
-                                    <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
-                                        ? "text-amber-600"
-                                        : "text-red-500"
-                                        }`} />
+                                    <AlertCircle className={cn(
+                                        "w-5 h-5 flex-shrink-0 mt-0.5",
+                                        isExpiredError ? "text-amber-600" : "text-red-500"
+                                    )} />
                                     <div className="flex-1">
                                         <p className="font-bold mb-2 text-base">
-                                            {error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")
+                                            {isExpiredError
                                                 ? "⚠️ Link Süresi Dolmuş"
                                                 : "❌ Hata"}
                                         </p>
                                         <p className="mb-3">{error}</p>
-                                        {(error.includes("Şifre sıfırlama linkinizin süresi dolmuş") || error.includes("süresi dolmuş")) && (
+                                        {isExpiredError && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setError(null)
                                                     setMode('forgot-password')
                                                 }}
-                                                className="mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                                className={cn(
+                                                    "mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700",
+                                                    "text-white text-sm font-medium",
+                                                    "rounded-lg transition-colors"
+                                                )}
                                             >
                                                 Yeni şifre sıfırlama linki iste →
                                             </button>
@@ -119,14 +175,22 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                         {/* Success state for forgot-password */}
                         {success && mode === 'forgot-password' ? (
                             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                <div className="w-full h-12 bg-green-50 text-green-700 rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-green-100 italic">
+                                <div className={cn(
+                                    "w-full h-12 bg-green-50 text-green-700 rounded-xl",
+                                    "flex items-center justify-center gap-2 px-4",
+                                    "text-sm font-medium border border-green-100 italic"
+                                )}>
                                     <CheckCircle2 className="w-5 h-5 animate-bounce-slow" />
                                     <span>{(t("auth.emailSentTitle") as string) || "Bağlantı Gönderildi"}</span>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => { setMode('signin'); handlers.setSuccess(false); }}
-                                    className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                                    className={cn(
+                                        "w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825]",
+                                        "text-white font-medium rounded-xl",
+                                        "shadow-lg transition-all active:scale-[0.98]"
+                                    )}
                                 >
                                     {(t("auth.backToLogin") as string) || "Giriş Yapmaya Dön"}
                                 </button>
@@ -142,7 +206,12 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                 <button
                                     type="button"
                                     onClick={handleGoogleAuth}
-                                    className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-3 active:scale-[0.98]"
+                                    className={cn(
+                                        "w-full h-12 bg-white border border-slate-200",
+                                        "hover:bg-slate-50 text-slate-900 font-medium",
+                                        "rounded-xl transition-all duration-200",
+                                        "flex items-center justify-center gap-3 active:scale-[0.98]"
+                                    )}
                                 >
                                     <GoogleIcon />
                                     Google ile Giriş Yap
@@ -169,14 +238,22 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                                     setName(e.target.value)
                                                     if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: "" })
                                                 }}
-                                                className={`w-full h-12 px-4 bg-white border ${fieldErrors.name ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.name ? 'animate-shake' : ''}`}
+                                                className={inputCls(
+                                                    !!fieldErrors.name,
+                                                    !!shakingFields.name
+                                                )}
                                                 placeholder={t("auth.placeholderName") as string}
                                                 required
                                                 suppressHydrationWarning
                                                 tabIndex={1}
                                             />
                                             {fieldErrors.name && (
-                                                <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.name}</p>
+                                                <p className={cn(
+                                                    "text-[12px] text-[#cf1414] font-medium",
+                                                    "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
+                                                )}>
+                                                    {fieldErrors.name}
+                                                </p>
                                             )}
                                         </div>
                                         <div className="space-y-1.5">
@@ -185,7 +262,12 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                                 type="text"
                                                 value={companyName}
                                                 onChange={(e) => setCompanyName(e.target.value)}
-                                                className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600 transition-all placeholder:text-slate-300 hover:border-slate-300"
+                                                className={cn(
+                                                    "w-full h-12 px-4 bg-white border border-slate-200",
+                                                    "rounded-xl text-[15px] outline-none",
+                                                    "focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+                                                    "transition-all placeholder:text-slate-300 hover:border-slate-300"
+                                                )}
                                                 placeholder={t("auth.placeholderCompany") as string}
                                                 suppressHydrationWarning
                                                 tabIndex={2}
@@ -204,14 +286,22 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                             setEmail(e.target.value)
                                             if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: "" })
                                         }}
-                                        className={`w-full h-12 px-4 bg-white border ${fieldErrors.email ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.email ? 'animate-shake' : ''}`}
+                                        className={inputCls(
+                                            !!fieldErrors.email,
+                                            !!shakingFields.email
+                                        )}
                                         placeholder={t("auth.placeholderEmail") as string}
                                         required
                                         suppressHydrationWarning
                                         tabIndex={3}
                                     />
                                     {fieldErrors.email && (
-                                        <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.email}</p>
+                                        <p className={cn(
+                                            "text-[12px] text-[#cf1414] font-medium",
+                                            "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
+                                        )}>
+                                            {fieldErrors.email}
+                                        </p>
                                     )}
                                 </div>
 
@@ -229,7 +319,11 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                                     setPassword(e.target.value)
                                                     if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: "" })
                                                 }}
-                                                className={`w-full h-12 pl-4 pr-12 bg-white border ${fieldErrors.password ? 'border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]' : 'border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600'} rounded-xl text-[15px] outline-none transition-all placeholder:text-slate-300 hover:border-slate-300 ${shakingFields.password ? 'animate-shake' : ''}`}
+                                                className={inputCls(
+                                                    !!fieldErrors.password,
+                                                    !!shakingFields.password,
+                                                    "pl-4 pr-12"
+                                                )}
                                                 placeholder={t("auth.placeholderPassword") as string}
                                                 required
                                                 tabIndex={4}
@@ -237,7 +331,10 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                                className={cn(
+                                                    "absolute right-4 top-1/2 -translate-y-1/2",
+                                                    "text-slate-400 hover:text-slate-600 transition-colors"
+                                                )}
                                                 tabIndex={-1}
                                             >
                                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -250,14 +347,22 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                                     setMode('forgot-password');
                                                     resetForm();
                                                 }}
-                                                className="absolute top-0 right-1 text-[13px] font-medium text-slate-500 hover:text-violet-600 transition-colors"
+                                                className={cn(
+                                                    "absolute top-0 right-1 text-[13px] font-medium",
+                                                    "text-slate-500 hover:text-violet-600 transition-colors"
+                                                )}
                                                 tabIndex={6}
                                             >
                                                 {t("auth.forgotPassword") as string}
                                             </button>
                                         )}
                                         {fieldErrors.password && (
-                                            <p className="text-[12px] text-[#cf1414] font-medium mt-1 ml-1 animate-in fade-in slide-in-from-top-1">{fieldErrors.password}</p>
+                                            <p className={cn(
+                                                "text-[12px] text-[#cf1414] font-medium",
+                                                "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
+                                            )}>
+                                                {fieldErrors.password}
+                                            </p>
                                         )}
                                     </div>
                                 )}
@@ -266,13 +371,24 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                 <button
                                     type="submit"
                                     disabled={isLoading || isGoogleLoading}
-                                    className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg shadow-[#B01E2E]/20 hover:shadow-[#B01E2E]/30 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-70 flex items-center justify-center gap-2 mt-4"
+                                    className={cn(
+                                        "w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825]",
+                                        "text-white font-medium rounded-xl",
+                                        "shadow-lg shadow-[#B01E2E]/20 hover:shadow-[#B01E2E]/30",
+                                        "hover:scale-[1.01] active:scale-[0.99]",
+                                        "transition-all duration-200 disabled:opacity-70",
+                                        "flex items-center justify-center gap-2 mt-4"
+                                    )}
                                     tabIndex={5}
                                 >
                                     {isLoading ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
-                                        mode === 'signup' ? (t("auth.signup") as string) : mode === 'forgot-password' ? (t("auth.sendResetLink") as string) : (t("auth.signin") as string)
+                                        mode === 'signup'
+                                            ? (t("auth.signup") as string)
+                                            : mode === 'forgot-password'
+                                                ? (t("auth.sendResetLink") as string)
+                                                : (t("auth.signin") as string)
                                     )}
                                 </button>
 
@@ -284,7 +400,10 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                                 <div className="w-full border-t border-slate-200" />
                                             </div>
                                             <div className="relative flex justify-center">
-                                                <span className="bg-[#FDFDFD] px-4 text-xs font-medium text-slate-400 uppercase tracking-widest">
+                                                <span className={cn(
+                                                    "bg-[#FDFDFD] px-4 text-xs font-medium",
+                                                    "text-slate-400 uppercase tracking-widest"
+                                                )}>
                                                     {t("auth.or") as string}
                                                 </span>
                                             </div>
@@ -294,7 +413,13 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                             type="button"
                                             onClick={handleGoogleAuth}
                                             disabled={isLoading || isGoogleLoading}
-                                            className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-medium rounded-xl transition-all duration-200 flex items-center justify-center gap-3 hover:border-slate-300 active:scale-[0.98]"
+                                            className={cn(
+                                                "w-full h-12 bg-white border border-slate-200",
+                                                "hover:bg-slate-50 text-slate-900 font-medium",
+                                                "rounded-xl transition-all duration-200",
+                                                "flex items-center justify-center gap-3",
+                                                "hover:border-slate-300 active:scale-[0.98]"
+                                            )}
                                         >
                                             {isGoogleLoading ? (
                                                 <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
@@ -323,7 +448,10 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
                                         </button>
                                     ) : (
                                         <>
-                                            {mode === 'signup' ? (t("auth.alreadyHaveAccount") as string) : (t("auth.dontHaveAccount") as string)}{" "}
+                                            {mode === 'signup'
+                                                ? (t("auth.alreadyHaveAccount") as string)
+                                                : (t("auth.dontHaveAccount") as string)
+                                            }{" "}
                                             <button
                                                 type="button"
                                                 onClick={() => {

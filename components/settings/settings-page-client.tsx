@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useUser } from "@/lib/user-context"
 import { useTranslation } from "@/lib/i18n-provider"
 import { updateProfile, deleteAccount } from "@/lib/actions/auth"
-import { UpgradeModal } from "@/components/builder/upgrade-modal"
+import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     AlertDialog,
@@ -29,6 +29,7 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { storage } from "@/lib/storage"
+import { cn } from "@/lib/utils"
 
 export default function SettingsPageClient() {
     const { user, setUser, isLoading, refreshUser } = useUser()
@@ -382,24 +383,50 @@ export default function SettingsPageClient() {
             </div>
 
             <Tabs defaultValue="profile" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[480px] h-12 bg-slate-100/80 dark:bg-slate-950/50 p-1 rounded-full border border-slate-200/50 dark:border-slate-800/50 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
+                <TabsList className={cn(
+                    "grid w-full grid-cols-3 lg:w-[480px] h-12",
+                    "bg-slate-100/80 dark:bg-slate-950/50 p-1 rounded-full",
+                    "border border-slate-200/50 dark:border-slate-800/50",
+                    "shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]"
+                )}>
                     <TabsTrigger
                         value="profile"
-                        className="h-full rounded-full gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-tight transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        className={cn(
+                            "h-full rounded-full gap-2 font-bold",
+                            "text-[11px] sm:text-xs uppercase tracking-tight",
+                            "transition-all duration-300",
+                            "data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800",
+                            "data-[state=active]:shadow-sm data-[state=active]:text-indigo-600",
+                            "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
                     >
                         <User className="w-4 h-4" />
                         <span className="truncate">{t("settings.profile")}</span>
                     </TabsTrigger>
                     <TabsTrigger
                         value="subscription"
-                        className="h-full rounded-full gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-tight transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        className={cn(
+                            "h-full rounded-full gap-2 font-bold",
+                            "text-[11px] sm:text-xs uppercase tracking-tight",
+                            "transition-all duration-300",
+                            "data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800",
+                            "data-[state=active]:shadow-sm data-[state=active]:text-indigo-600",
+                            "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
                     >
                         <CreditCard className="w-4 h-4" />
                         <span className="truncate">{t("settings.subscription")}</span>
                     </TabsTrigger>
                     <TabsTrigger
                         value="preferences"
-                        className="h-full rounded-full gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-tight transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        className={cn(
+                            "h-full rounded-full gap-2 font-bold",
+                            "text-[11px] sm:text-xs uppercase tracking-tight",
+                            "transition-all duration-300",
+                            "data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800",
+                            "data-[state=active]:shadow-sm data-[state=active]:text-indigo-600",
+                            "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
                     >
                         <Globe className="w-4 h-4" />
                         <span className="truncate">{t("settings.preferences")}</span>
@@ -411,7 +438,10 @@ export default function SettingsPageClient() {
                     <Card className="border-0 shadow-md ring-1 ring-border bg-card">
                         <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                                <div className={cn(
+                                    "p-2 bg-blue-100 dark:bg-blue-500/10",
+                                    "text-blue-600 dark:text-blue-400 rounded-lg"
+                                )}>
                                     <User className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -427,14 +457,21 @@ export default function SettingsPageClient() {
                                     <div className="relative group">
                                         <Avatar className="w-20 h-20 border-4 border-white dark:border-background shadow-lg">
                                             <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} className="dark:brightness-100" />
-                                            <AvatarFallback className="text-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
+                                            <AvatarFallback className={cn(
+                                                "text-xl bg-gradient-to-br",
+                                                "from-violet-500 to-indigo-600 text-white"
+                                            )}>
                                                 {user?.name?.charAt(0).toUpperCase() || "U"}
                                             </AvatarFallback>
                                         </Avatar>
                                         <label
                                             htmlFor="avatar-upload"
                                             onClick={handleUploadClick}
-                                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            className={cn(
+                                                "absolute inset-0 flex items-center justify-center",
+                                                "bg-black/50 rounded-full opacity-0",
+                                                "group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            )}
                                         >
                                             {isUploadingAvatar ? (
                                                 <Loader2 className="w-6 h-6 text-white animate-spin" />
@@ -464,20 +501,31 @@ export default function SettingsPageClient() {
                                         <Label htmlFor="fullName" className="flex items-center gap-2 text-foreground">
                                             <User className="w-3.5 h-3.5" /> {t("auth.name")}
                                         </Label>
-                                        <Input id="fullName" name="fullName" defaultValue={user?.name} className="bg-background border-input focus:bg-background transition-colors" />
+                                        <Input id="fullName" name="fullName" defaultValue={user?.name} className={cn(
+                                            "bg-background border-input",
+                                            "focus:bg-background transition-colors"
+                                        )} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="company" className="flex items-center gap-2 text-foreground">
                                             <Building2 className="w-3.5 h-3.5" /> {t("auth.company")}
                                         </Label>
-                                        <Input id="company" name="company" defaultValue={user?.company} className="bg-background border-input focus:bg-background transition-colors" />
+                                        <Input id="company" name="company" defaultValue={user?.company} className={cn(
+                                            "bg-background border-input",
+                                            "focus:bg-background transition-colors"
+                                        )} />
                                     </div>
                                 </div>
 
                                 {/* Company Logo Upload */}
                                 <div className="flex items-center gap-6 pb-6 border-b">
                                     <div className="relative group">
-                                        <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/20 overflow-hidden group-hover:border-primary/50 transition-colors relative">
+                                        <div className={cn(
+                                            "w-20 h-20 rounded-lg border-2 border-dashed",
+                                            "border-border flex items-center justify-center",
+                                            "bg-muted/20 overflow-hidden",
+                                            "group-hover:border-primary/50 transition-colors relative"
+                                        )}>
                                             {displayLogoUrl ? (
                                                 <NextImage src={displayLogoUrl} alt="Company Logo" fill className="object-contain" unoptimized />
                                             ) : (
@@ -487,7 +535,11 @@ export default function SettingsPageClient() {
                                         <label
                                             htmlFor="logo-upload"
                                             onClick={handleUploadClick}
-                                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            className={cn(
+                                                "absolute inset-0 flex items-center justify-center",
+                                                "bg-black/50 rounded-lg opacity-0",
+                                                "group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            )}
                                         >
                                             {isUploadingLogo ? (
                                                 <Loader2 className="w-6 h-6 text-white animate-spin" />
@@ -526,7 +578,10 @@ export default function SettingsPageClient() {
                                     <Button type="submit" disabled={isSaving} className="min-w-[120px]">
                                         {isSaving ? (
                                             <div className="flex items-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span className={cn(
+                                                    "w-4 h-4 border-2 border-white/30 border-t-white",
+                                                    "rounded-full animate-spin"
+                                                )} />
                                                 {t("settings.saving")}
                                             </div>
                                         ) : (
@@ -582,12 +637,20 @@ export default function SettingsPageClient() {
                         <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
                             <CreditCard className="w-64 h-64 -rotate-12 transform translate-x-16 -translate-y-16" />
                         </div>
-                        <CardHeader className="bg-gradient-to-r from-muted/50 via-muted/30 to-background dark:from-muted/20 dark:to-transparent border-b">
+                        <CardHeader className={cn(
+                            "bg-gradient-to-r from-muted/50 via-muted/30 to-background",
+                            "dark:from-muted/20 dark:to-transparent border-b"
+                        )}>
                             <CardTitle className="flex items-center gap-2 text-xl text-foreground">
                                 {t("settings.currentPlanTitle")}
-                                <span className={`px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${user?.plan === "pro" ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white" :
-                                    user?.plan === "plus" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white" :
-                                        "bg-secondary text-secondary-foreground"}`}>
+                                <span className={cn(
+                                    "px-3 py-1 rounded-full text-sm font-semibold shadow-sm",
+                                    user?.plan === "pro"
+                                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                                        : user?.plan === "plus"
+                                            ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                                            : "bg-secondary text-secondary-foreground"
+                                )}>
                                     {user?.plan === "pro" ? t("plans.pro") : user?.plan === "plus" ? t("plans.plus") : t("plans.free")}
                                 </span>
                             </CardTitle>
@@ -608,46 +671,100 @@ export default function SettingsPageClient() {
                                     </h3>
                                     <ul className="space-y-3 pl-2">
                                         <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <div className={`w-2 h-2 rounded-full ${user?.plan === "pro" ? "bg-green-500" : user?.plan === "plus" ? "bg-green-500" : "bg-yellow-500"}`} />
-                                            {user?.plan === "pro" ? t("plans.features.unlimitedCatalogs") : user?.plan === "plus" ? t("plans.features.catalogsCount", { count: 10 }) : t("plans.features.catalogsCount", { count: 1 })}
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"
+                                            )} />
+                                            {user?.plan === "pro"
+                                                ? t("plans.features.unlimitedCatalogs")
+                                                : user?.plan === "plus"
+                                                    ? t("plans.features.catalogsCount", { count: 10 })
+                                                    : t("plans.features.catalogsCount", { count: 1 })}
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"}`} />
-                                            {user?.plan !== "free" ? t("plans.features.unlimitedProducts") : t("plans.features.productLimit", { count: 50 })}
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"
+                                            )} />
+                                            {user?.plan !== "free"
+                                                ? t("plans.features.unlimitedProducts")
+                                                : t("plans.features.productLimit", { count: 50 })}
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-muted"}`} />
-                                            {user?.plan !== "free" ? t("plans.features.categoryManagement") : t("plans.features.noCategoryManagement")}
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                user?.plan !== "free" ? "bg-green-500" : "bg-muted"
+                                            )} />
+                                            {user?.plan !== "free"
+                                                ? t("plans.features.categoryManagement")
+                                                : t("plans.features.noCategoryManagement")}
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <div className={`w-2 h-2 rounded-full ${user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"}`} />
-                                            {user?.plan !== "free" ? t("plans.features.premiumTemplates") : t("plans.features.basicTemplates")}
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500"
+                                            )} />
+                                            {user?.plan !== "free"
+                                                ? t("plans.features.premiumTemplates")
+                                                : t("plans.features.basicTemplates")}
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                                            <div className={`w-2 h-2 rounded-full ${user?.plan === "pro" ? "bg-green-500" : user?.plan === "plus" ? "bg-green-500" : "bg-muted"}`} />
-                                            {user?.plan === "pro" ? t("plans.features.advancedAnalytics") : user?.plan === "plus" ? t("plans.features.basicExport") : t("plans.features.noAnalytics")}
+                                            <div className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                user?.plan === "pro"
+                                                    ? "bg-green-500"
+                                                    : user?.plan === "plus" ? "bg-green-500" : "bg-muted"
+                                            )} />
+                                            {user?.plan === "pro"
+                                                ? t("plans.features.advancedAnalytics")
+                                                : user?.plan === "plus"
+                                                    ? t("plans.features.basicExport")
+                                                    : t("plans.features.noAnalytics")}
                                         </li>
                                     </ul>
                                 </div>
 
                                 {(user?.plan === "free" || user?.plan === "plus") && (
-                                    <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl border border-indigo-100 dark:border-indigo-500/20 text-center space-y-4">
+                                    <div className={cn(
+                                        "flex flex-col items-center justify-center p-6",
+                                        "bg-gradient-to-br from-indigo-50 to-purple-50",
+                                        "dark:from-indigo-950/20 dark:to-purple-950/20",
+                                        "rounded-xl border border-indigo-100",
+                                        "dark:border-indigo-500/20 text-center space-y-4"
+                                    )}>
                                         <h3 className="font-bold text-indigo-900 dark:text-indigo-300 text-lg">
                                             {user?.plan === "plus" ? t("plans.upgradeToPro") : t("plans.upgrade")}
                                         </h3>
                                         <p className="text-sm text-indigo-700/80 dark:text-indigo-200/60">
                                             {user?.plan === "plus" ? t("plans.upgradeDescPro") : t("plans.upgradeDescPlus")}
                                         </p>
-                                        <Button size="lg" onClick={() => setShowUpgrade(true)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/20 text-white font-semibold">
+                                        <Button
+                                            size="lg"
+                                            onClick={() => setShowUpgrade(true)}
+                                            className={cn(
+                                                "w-full bg-gradient-to-r from-indigo-600 to-purple-600",
+                                                "hover:from-indigo-700 hover:to-purple-700",
+                                                "shadow-lg shadow-indigo-500/20 text-white font-semibold"
+                                            )}
+                                        >
                                             {user?.plan === "plus" ? t("plans.upgradeToProBtn") : t("plans.viewPlans")}
                                         </Button>
                                     </div>
                                 )}
                                 {user?.plan === "pro" && (
-                                    <div className="flex flex-col items-center justify-center p-6 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-100 dark:border-green-500/20 text-center space-y-4">
+                                    <div className={cn(
+                                        "flex flex-col items-center justify-center p-6",
+                                        "bg-green-50 dark:bg-green-950/20 rounded-xl",
+                                        "border border-green-100 dark:border-green-500/20",
+                                        "text-center space-y-4"
+                                    )}>
                                         <h3 className="font-bold text-green-900 dark:text-green-300 text-lg">{t("settings.greatChoice")}</h3>
                                         <p className="text-sm text-green-700/80 dark:text-green-200/60">{t("settings.planDescPro")}</p>
-                                        <Button variant="outline" className="w-full border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40">
+                                        <Button variant="outline" className={cn(
+                                            "w-full border-green-200 dark:border-green-500/30",
+                                            "text-green-700 dark:text-green-400",
+                                            "hover:bg-green-100 dark:hover:bg-green-900/40"
+                                        )}>
                                             {t("settings.billingHistory")}
                                         </Button>
                                     </div>
@@ -662,7 +779,10 @@ export default function SettingsPageClient() {
                     <Card className="border-0 shadow-md ring-1 ring-border bg-card">
                         <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">
+                                <div className={cn(
+                                    "p-2 bg-orange-100 dark:bg-orange-500/10",
+                                    "text-orange-600 dark:text-orange-400 rounded-lg"
+                                )}>
                                     <Globe className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -676,15 +796,24 @@ export default function SettingsPageClient() {
                                 <Button
                                     variant={language === 'tr' ? 'default' : 'outline'}
                                     onClick={() => setLanguage('tr')}
-                                    className={`flex-1 h-auto py-4 justify-start px-4 gap-3 relative overflow-hidden transition-all duration-300 ${language === 'tr'
-                                        ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
-                                        : 'hover:bg-muted/50 dark:hover:bg-muted/20'
-                                        }`}
+                                    className={cn(
+                                        "flex-1 h-auto py-4 justify-start px-4 gap-3",
+                                        "relative overflow-hidden transition-all duration-300",
+                                        language === 'tr'
+                                            ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
+                                            : 'hover:bg-muted/50 dark:hover:bg-muted/20'
+                                    )}
                                 >
                                     <span className="text-2xl">🇹🇷</span>
                                     <div className="flex flex-col items-start">
-                                        <span className={`font-semibold ${language === 'tr' ? 'text-primary-foreground' : 'text-foreground'}`}>Türkçe</span>
-                                        <span className={`text-xs opacity-70 ${language === 'tr' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{t("settings.defaultLanguage")}</span>
+                                        <span className={cn(
+                                            "font-semibold",
+                                            language === 'tr' ? 'text-primary-foreground' : 'text-foreground'
+                                        )}>Türkçe</span>
+                                        <span className={cn(
+                                            "text-xs opacity-70",
+                                            language === 'tr' ? 'text-primary-foreground' : 'text-muted-foreground'
+                                        )}>{t("settings.defaultLanguage")}</span>
                                     </div>
                                     {language === 'tr' && <CheckCircle2 className="w-5 h-5 ml-auto text-primary-foreground" />}
                                 </Button>
@@ -692,15 +821,24 @@ export default function SettingsPageClient() {
                                 <Button
                                     variant={language === 'en' ? 'default' : 'outline'}
                                     onClick={() => setLanguage('en')}
-                                    className={`flex-1 h-auto py-4 justify-start px-4 gap-3 relative overflow-hidden transition-all duration-300 ${language === 'en'
-                                        ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
-                                        : 'hover:bg-muted/50 dark:hover:bg-muted/20'
-                                        }`}
+                                    className={cn(
+                                        "flex-1 h-auto py-4 justify-start px-4 gap-3",
+                                        "relative overflow-hidden transition-all duration-300",
+                                        language === 'en'
+                                            ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-background'
+                                            : 'hover:bg-muted/50 dark:hover:bg-muted/20'
+                                    )}
                                 >
                                     <span className="text-2xl">🇺🇸</span>
                                     <div className="flex flex-col items-start">
-                                        <span className={`font-semibold ${language === 'en' ? 'text-primary-foreground' : 'text-foreground'}`}>English</span>
-                                        <span className={`text-xs opacity-70 ${language === 'en' ? 'text-primary-foreground' : 'text-muted-foreground'}`}>{t("settings.international")}</span>
+                                        <span className={cn(
+                                            "font-semibold",
+                                            language === 'en' ? 'text-primary-foreground' : 'text-foreground'
+                                        )}>English</span>
+                                        <span className={cn(
+                                            "text-xs opacity-70",
+                                            language === 'en' ? 'text-primary-foreground' : 'text-muted-foreground'
+                                        )}>{t("settings.international")}</span>
                                     </div>
                                     {language === 'en' && <CheckCircle2 className="w-5 h-5 ml-auto text-primary-foreground" />}
                                 </Button>
