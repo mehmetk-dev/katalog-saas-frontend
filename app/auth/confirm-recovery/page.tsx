@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { RefreshCw, ShieldCheck, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,18 +14,73 @@ export default function ConfirmRecoveryPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isRedirecting, setIsRedirecting] = useState(false)
+    const [pageError, setPageError] = useState<string | null>(null)
+
+    // Check for errors immediately on mount
+    useEffect(() => {
+        const queryError = searchParams.get('error')
+        const queryErrorDesc = searchParams.get('error_description')
+
+        // Hash also contains error in Supabase implicit flow
+        const hashParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.hash.replace('#', '?')) : null
+        const hashError = hashParams?.get('error') || hashParams?.get('?error')
+        const hashErrorDesc = hashParams?.get('error_description')
+
+        if (queryError || hashError) {
+            setPageError(queryErrorDesc || hashErrorDesc || 'Geçersiz veya süresi dolmuş link.')
+        }
+    }, [searchParams])
 
     const handleConfirm = () => {
         setIsRedirecting(true)
         const code = searchParams.get('code')
         const next = searchParams.get('next') || '/auth/reset-password'
 
-        // Asıl onay rotasına (callback) yönlendir
+        // Supabase implicit flow puts tokens in hash. If hash has access_token, we can go to reset-password
+        const hash = typeof window !== 'undefined' ? window.location.hash : ''
+
         if (code) {
             router.push(`/auth/callback?code=${code}&next=${next}&type=recovery`)
+        } else if (hash.includes('access_token')) {
+            router.push(`/auth/reset-password${hash}`)
+        } else if (pageError) {
+            router.push(`/auth/forgot-password?error=invalid_link`)
         } else {
-            router.push('/auth')
+            // No code, no hash, no error - likely PKCE flow handled differently or missing data
+            router.push('/auth/forgot-password?error=invalid_link')
         }
+    }
+
+    if (pageError) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-red-600 rounded-2xl overflow-hidden bg-white">
+                    <CardHeader className="text-center pb-0 pt-10">
+                        <div className="mx-auto w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-6">
+                            <ShieldCheck className="w-10 h-10 text-red-600" />
+                        </div>
+                        <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-slate-900 leading-none uppercase">
+                            Hata <span className="text-red-600">Oluştu</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6 pb-12">
+                        <div className="text-center space-y-4 px-4">
+                            <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                                Şifre sıfırlama linkiniz geçersiz veya süresi dolmuş. Lütfen yeni bir link talep edin.
+                            </p>
+                        </div>
+                        <div className="px-6">
+                            <Button
+                                onClick={() => router.push('/auth/forgot-password')}
+                                className="w-full h-14 bg-slate-900 hover:bg-black text-white font-montserrat font-bold shadow-xl transition-all rounded-xl text-lg uppercase tracking-wider"
+                            >
+                                Yeni Link İste
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
 
     return (
