@@ -276,7 +276,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                     <CardContent className="pt-6">
                         <div ref={barChartRef} className="h-[300px] w-full min-w-0">
                             {barChartSize.width > 0 && barChartSize.height > 0 && (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                                <ResponsiveContainer width={barChartSize.width} height={barChartSize.height} minWidth={0}>
                                     <BarChart data={barChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -337,7 +337,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         <div ref={pieChartRef} className="h-[180px] w-full relative min-w-0">
                             {devicePieData.length > 0 ? (
                                 pieChartSize.width > 0 && pieChartSize.height > 0 && (
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={140}>
+                                    <ResponsiveContainer width={pieChartSize.width} height={pieChartSize.height} minWidth={0}>
                                         <RechartsPieChart>
                                             <Pie
                                                 data={devicePieData}

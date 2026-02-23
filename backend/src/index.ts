@@ -92,8 +92,8 @@ app.use(helmet({
 }));
 app.use(morgan('dev'));
 app.use(compression()); // gzip/brotli response compression
-app.use(express.json({ limit: '10mb' })); // Limit body size
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' })); // 50MB for large catalogs (10K+ products)
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Prometheus'un verileri okuyacağı endpoint
 app.get('/metrics', async (req: Request, res: Response) => {

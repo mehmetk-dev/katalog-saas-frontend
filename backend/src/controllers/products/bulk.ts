@@ -247,21 +247,26 @@ export const bulkUpdatePrices = async (req: Request, res: Response) => {
             return { id: product.id, price: newPrice };
         });
 
-        const { data, error: rpcError } = await supabase.rpc('batch_update_product_prices', {
-            p_user_id: userId,
-            p_updates: priceUpdates
-        });
+        const updatePromises = priceUpdates.map(update =>
+            supabase
+                .from('products')
+                .update({ price: update.price })
+                .eq('id', update.id)
+                .eq('user_id', userId)
+                .select()
+                .single()
+        );
 
+        const updateResults = await Promise.all(updatePromises);
+        const rpcError = updateResults.find(r => r.error)?.error;
         if (rpcError) throw rpcError;
 
         await deleteCache(cacheKeys.products(userId));
         setProductsInvalidated(userId);
 
-        const updatedProducts = (data || []).map((item: { id: string; price: number }) => ({
-            id: item.id,
-            price: item.price,
-            ...products.find(p => p.id === item.id)
-        }));
+        const updatedProducts = updateResults
+            .filter(r => !r.error && r.data)
+            .map(r => r.data);
 
         const { ipAddress, userAgent } = getRequestInfo(req);
         await logActivity({
@@ -414,3 +419,4 @@ export const bulkUpdateImages = async (req: Request, res: Response) => {
         res.status(500).json({ error: errorMessage });
     }
 };
+

@@ -1,4 +1,4 @@
-export { getProducts, getProduct, checkProductInCatalogs, checkProductsInCatalogs } from './products/read';
+export { getProducts, getProduct, checkProductInCatalogs, checkProductsInCatalogs, getProductStats } from './products/read';
 export { createProduct, updateProduct, deleteProduct } from './products/write';
 export {
     bulkDeleteProducts,
@@ -7,5 +7,5 @@ export {
     bulkUpdatePrices,
     renameCategory,
     deleteCategoryFromProducts,
-    bulkUpdateImages
+    bulkUpdateImages,
 } from './products/bulk';

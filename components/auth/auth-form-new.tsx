@@ -42,7 +42,11 @@ export function AuthFormNew({ isSignUp, onSignUpComplete: _onSignUpComplete }: A
 
     const getSiteUrl = () => {
         if (typeof window !== "undefined") {
-            return window.location.origin
+            const origin = window.location.origin
+            if (origin.includes("0.0.0.0")) {
+                return origin.replace("0.0.0.0", "localhost")
+            }
+            return origin
         }
         return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
     }

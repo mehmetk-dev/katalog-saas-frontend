@@ -71,7 +71,7 @@ export function ProductsToolbar({
             </div>
 
             {/* Arama - Compact */}
-            <div className="relative flex-1 max-w-[200px] group transition-all focus-within:max-w-[280px]">
+            <div className="relative flex-1 min-w-0 max-w-[200px] group transition-all focus-within:max-w-[280px]">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground transition-colors group-focus-within:text-violet-500" />
                 <Input
                     placeholder={t("products.searchPlaceholder") as string}
@@ -89,11 +89,11 @@ export function ProductsToolbar({
                 )}
             </div>
 
-            {/* Ayırıcı */}
+            {/* Ayırıcı - sadece desktop */}
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 hidden sm:block mx-1" />
 
-            {/* Desktop Kontroller */}
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            {/* Desktop Kontroller (Görünüm + Sayfa Boyutu + Filtre) */}
+            <div className="hidden sm:flex items-center gap-1.5 min-w-0">
                 {/* Görünüm Seçici */}
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-0.5 h-8">
                     <Button
@@ -132,72 +132,72 @@ export function ProductsToolbar({
                         </SelectContent>
                     </Select>
                 </div>
-
-                {/* Filtre Butonu */}
-                <Button
-                    variant={hasActiveFilters ? "secondary" : "ghost"}
-                    size="sm"
-                    className={cn(
-                        "gap-1 h-8 px-2 transition-all shrink-0",
-                        hasActiveFilters ? "bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" : "text-muted-foreground"
-                    )}
-                    onClick={onOpenFilters}
-                >
-                    <Filter className="w-3.5 h-3.5" />
-                    <span className="hidden xl:inline text-[11px] font-semibold">{t("products.filterBy") as string}</span>
-                    {hasActiveFilters && (
-                        <Badge variant="default" className="h-4 min-w-[16px] px-0.5 bg-violet-600 text-[8px] flex items-center justify-center">
-                            !
-                        </Badge>
-                    )}
-                </Button>
-
-                {/* Boşluk */}
-                <div className="flex-1" />
-
-                {/* İşlemler Dropdown */}
-                <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[11px] font-bold text-muted-foreground/80 border-gray-200 dark:border-gray-800 transition-all hover:bg-gray-100 dark:hover:bg-gray-800">
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                            <span className="hidden md:inline">{t("common.actions") as string || "İşlemler"}</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 p-1.5">
-                        <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                            {t("common.actions") as string || "Dosya İşlemleri"}
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onOpenImportExport}>
-                            <FileDown className="w-4 h-4 text-violet-600" />
-                            <span className="font-medium text-sm">{t("importExport.title") as string}</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onOpenBulkImageUpload}>
-                            <ImageIcon className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium text-sm">{t("products.bulkImageUpload") as string}</span>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuSeparator className="my-1.5" />
-
-                        <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                            {t("products.tools") as string || "Araçlar"}
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onAddTestProducts}>
-                            <Sparkles className="w-4 h-4 text-amber-500" />
-                            <span className="font-medium text-sm">{t("products.addTestProducts") as string}</span>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* + Ürün Ekle - Primary */}
-                <Button
-                    onClick={onAddProduct}
-                    size="sm"
-                    className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-md shrink-0 h-8 px-3 transition-all font-bold text-[11px]"
-                >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{t("products.addProduct") as string}</span>
-                </Button>
             </div>
+
+            {/* Filtre Butonu - her zaman görünsün */}
+            <Button
+                variant={hasActiveFilters ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                    "gap-1 h-8 px-2 transition-all shrink-0",
+                    hasActiveFilters ? "bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" : "text-muted-foreground"
+                )}
+                onClick={onOpenFilters}
+            >
+                <Filter className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline text-[11px] font-semibold">{t("products.filterBy") as string}</span>
+                {hasActiveFilters && (
+                    <Badge variant="default" className="h-4 min-w-[16px] px-0.5 bg-violet-600 text-[8px] flex items-center justify-center">
+                        !
+                    </Badge>
+                )}
+            </Button>
+
+            {/* Boşluk */}
+            <div className="flex-1" />
+
+            {/* İşlemler Dropdown - HER ZAMAN görünsün (mobil dahil) */}
+            <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[11px] font-bold text-muted-foreground/80 border-gray-200 dark:border-gray-800 transition-all hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
+                        <MoreHorizontal className="w-3.5 h-3.5" />
+                        <span className="hidden md:inline">{t("common.actions") as string || "İşlemler"}</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1.5">
+                    <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                        {t("common.actions") as string || "Dosya İşlemleri"}
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onOpenImportExport}>
+                        <FileDown className="w-4 h-4 text-violet-600" />
+                        <span className="font-medium text-sm">{t("importExport.title") as string}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onOpenBulkImageUpload}>
+                        <ImageIcon className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-sm">{t("products.bulkImageUpload") as string}</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="my-1.5" />
+
+                    <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                        {t("products.tools") as string || "Araçlar"}
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem className="gap-2.5 py-2.5 cursor-pointer rounded-lg" onClick={onAddTestProducts}>
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span className="font-medium text-sm">{t("products.addTestProducts") as string}</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* + Ürün Ekle - Primary - HER ZAMAN görünsün */}
+            <Button
+                onClick={onAddProduct}
+                size="sm"
+                className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0 shadow-md shrink-0 h-8 px-3 transition-all font-bold text-[11px]"
+            >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t("products.addProduct") as string}</span>
+            </Button>
         </div>
     )
 }

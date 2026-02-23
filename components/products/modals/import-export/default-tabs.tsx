@@ -66,14 +66,21 @@ export function DefaultTabs({
                             </div>
                         </div>
 
-                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                            <input type="file" accept=".csv,.xlsx,.xls" onChange={onFileUpload} className="hidden" id="file-upload" />
-                            <label htmlFor="file-upload" className="cursor-pointer">
-                                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                                <p className="font-medium">2. {t('importExport.uploadFile')}</p>
-                                <p className="text-sm text-muted-foreground mt-1">{t('importExport.dragDrop')}</p>
-                                <p className="text-xs text-muted-foreground mt-2">{t('importExport.supportedFormats')}</p>
-                            </label>
+                        <div
+                            className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                            onClick={() => document.getElementById('file-upload')?.click()}
+                        >
+                            <input
+                                type="file"
+                                accept=".csv,.xlsx,.xls"
+                                onChange={onFileUpload}
+                                className="sr-only"
+                                id="file-upload"
+                            />
+                            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                            <p className="font-medium">2. {t('importExport.uploadFile')}</p>
+                            <p className="text-sm text-muted-foreground mt-1">{t('importExport.dragDrop')}</p>
+                            <p className="text-xs text-muted-foreground mt-2">{t('importExport.supportedFormats')}</p>
                         </div>
 
                         <div className="bg-muted/50 rounded-lg p-4">

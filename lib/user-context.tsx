@@ -249,18 +249,15 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     if (isLoggingOutRef.current) return
     isLoggingOutRef.current = true
 
-    setIsLoading(true)
-    setUser(null)
-    setSupabaseUser(null)
-
     try {
+      // Sign out silently without clearing state first to avoid flash
       const signOutPromise = supabase.auth.signOut()
       const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000))
       await Promise.race([signOutPromise, timeoutPromise])
     } catch (error) {
       console.error("Çıkış hatası:", error)
     } finally {
-      setIsLoading(false)
+      // Redirect FIRST, then state will be cleaned by page unload
       if (typeof window !== "undefined") {
         window.location.href = "/auth?logged_out=1"
       }

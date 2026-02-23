@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTranslation } from "@/lib/i18n-provider"
-import { Product, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
+import { Product, ProductStats, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +43,7 @@ interface ProductsPageClientProps {
     limit: number
     totalPages: number
   }
+  initialStats: ProductStats
   userPlan: "free" | "plus" | "pro"
   maxProducts: number
 }
@@ -57,19 +58,21 @@ const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
 import { useRouter, useSearchParams } from "next/navigation"
 
-export function ProductsPageClient({ initialProducts, initialMetadata, userPlan, maxProducts }: ProductsPageClientProps) {
+export function ProductsPageClient({ initialProducts, initialMetadata, initialStats, userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [metadata, setMetadata] = useState(initialMetadata)
+  const [stats, setStats] = useState<ProductStats>(initialStats)
 
   // Server-side güncellemeleri (revalidatePath sonrası) client state'e yansıt
   useEffect(() => {
     setProducts(initialProducts)
     setMetadata(initialMetadata)
-  }, [initialProducts, initialMetadata])
+    setStats(initialStats)
+  }, [initialProducts, initialMetadata, initialStats])
 
   const [search, setSearch] = useState(searchParams.get("search") || "")
   const [showLimitModal, setShowLimitModal] = useState(false)
@@ -185,15 +188,6 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
       max: Math.max(...prices, 100000)
     }
   }, [products])
-
-  // Filtreleme ve sıralama mantığı (Client-side'da sadece ek filtreler için kalabilir ama şimdilik sunucu verisini kullanıyoruz)
-  const stats = useMemo(() => ({
-    total: metadata.total,
-    inStock: products.filter(p => p.stock >= 10).length, // Bu istatistikler tüm liste için değil sadece mevcut sayfa için olur, eğer tam istatistik istenirse backend'den gelmeli
-    lowStock: products.filter(p => p.stock > 0 && p.stock < 10).length,
-    outOfStock: products.filter(p => p.stock === 0).length,
-    totalValue: products.reduce((sum, p) => sum + (Number(p.price) || 0) * p.stock, 0)
-  }), [products, metadata])
 
   const hasActiveFilters = search !== "" || selectedCategory !== "all" || stockFilter !== "all" || priceRange[0] !== 0 || priceRange[1] !== priceStats.max
 
@@ -347,17 +341,43 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
   }
 
   const downloadAllProducts = () => {
-    // CSV Headerları
-    const headers = ["Name", "SKU", "Description", "Price", "Stock", "Category", "Image URL", "Product URL"]
+    // Collect all unique custom attribute names across all products
+    const customAttrNames = new Set<string>()
+    products.forEach(p => {
+      if (Array.isArray(p.custom_attributes)) {
+        p.custom_attributes.forEach((attr: { name: string }) => {
+          if (attr.name) customAttrNames.add(attr.name)
+        })
+      }
+    })
+    const customAttrList = Array.from(customAttrNames)
 
-    // CSV Satırları - Virgül içeren metinleri korumak için çift tırnak içine alıyoruz
+    // CSV Headers — cover image + additional images + custom attributes
+    const headers = [
+      "Name", "SKU", "Description", "Price", "Stock", "Category",
+      "Cover Image", "Additional Images", "Product URL",
+      ...customAttrList
+    ]
+
+    // CSV Rows
     const rows = products.map(p => {
-      // Tüm görselleri topla ve pipe (|) ile birleştir
-      const allImages = [
-        ...(p.image_url ? [p.image_url] : []),
-        ...(p.images || [])
-      ]
-      const imagesString = Array.from(new Set(allImages)).filter(Boolean).join("|");
+      // Cover image = image_url
+      const coverImage = p.image_url || ""
+
+      // Additional images = images array excluding cover
+      const additionalImages = (p.images || [])
+        .filter((img: string) => img && img !== p.image_url)
+        .join("|")
+
+      // Custom attributes — map each name to its value+unit
+      const customAttrValues = customAttrList.map(attrName => {
+        if (!Array.isArray(p.custom_attributes)) return ""
+        const attr = p.custom_attributes.find((a: { name: string }) => a.name === attrName)
+        if (!attr) return ""
+        const val = (attr as { value?: string }).value || ""
+        const unit = (attr as { unit?: string }).unit || ""
+        return unit ? `${val} ${unit}` : val
+      })
 
       const fields = [
         p.name,
@@ -366,18 +386,22 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
         p.price,
         p.stock,
         p.category || "",
-        imagesString,
-        p.product_url || ""
+        coverImage,
+        additionalImages,
+        p.product_url || "",
+        ...customAttrValues
       ]
 
-      // Her alanı temizle ve tırnak içine al
+      // Escape and wrap each field in quotes
       return fields.map(field => {
-        const stringValue = String(field || "").replace(/"/g, '""') // Çift tırnakları escape et
+        const stringValue = String(field ?? "").replace(/"/g, '""')
         return `"${stringValue}"`
       })
     })
 
-    const csvContent = [headers.map(h => `"${h}"`), ...rows].map(e => e.join(",")).join("\n")
+    // BOM for UTF-8 Excel compatibility
+    const bom = "\uFEFF"
+    const csvContent = bom + [headers.map(h => `"${h}"`), ...rows].map(e => e.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
@@ -400,9 +424,23 @@ export function ProductsPageClient({ initialProducts, initialMetadata, userPlan,
           <ProductsToolbar
             selectedCount={selectedIds.length}
             totalFilteredCount={metadata.total}
-            onSelectAll={(checked) => {
+            onSelectAll={async (checked) => {
               if (checked) {
-                setSelectedIds(products.map(p => p.id))
+                try {
+                  toast.loading(t('common.loading') as string || 'Tüm ürünler seçiliyor...', { id: 'select-all' });
+                  const { getAllProductIds } = await import('@/lib/actions/products');
+                  const allIds = await getAllProductIds();
+                  if (allIds && allIds.length > 0) {
+                    setSelectedIds(allIds);
+                    toast.success(t('products.allSelected', { count: allIds.length }) as string || `Toplam ${allIds.length} ürün seçildi`, { id: 'select-all' });
+                  } else {
+                    setSelectedIds(products.map(p => p.id));
+                    toast.dismiss('select-all');
+                  }
+                } catch (error) {
+                  setSelectedIds(products.map(p => p.id));
+                  toast.dismiss('select-all');
+                }
               } else {
                 setSelectedIds([])
               }

@@ -44,10 +44,26 @@ export const getProducts = async (req: Request, res: Response) => {
 
             if (error) throw error;
 
-            const products = (data || []).map((p: Record<string, unknown>) => ({
-                ...p,
-                order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
-            }));
+            const products = (data || []).map((p: Record<string, unknown>) => {
+                let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
+                if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
+                    imgUrl = imgUrl.replace('http://', 'https://');
+                }
+
+                let imgs = Array.isArray(p.images) ? p.images as string[] : [];
+                imgs = imgs.map((img) =>
+                    (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
+                        ? img.replace('http://', 'https://')
+                        : img
+                );
+
+                return {
+                    ...p,
+                    image_url: imgUrl,
+                    images: imgs,
+                    order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
+                };
+            });
 
             return {
                 products,
@@ -87,6 +103,18 @@ export const getProduct = async (req: Request, res: Response) => {
 
         if (!product) {
             return res.status(404).json({ error: 'Ürün bulunamadı veya yetkiniz yok.' });
+        }
+
+        if (typeof product.image_url === 'string' && product.image_url.startsWith('http://') && !product.image_url.includes('localhost')) {
+            product.image_url = product.image_url.replace('http://', 'https://');
+        }
+
+        if (Array.isArray(product.images)) {
+            product.images = product.images.map((img: string) =>
+                (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
+                    ? img.replace('http://', 'https://')
+                    : img
+            );
         }
 
         res.json(product);
@@ -155,6 +183,50 @@ export const checkProductsInCatalogs = async (req: Request, res: Response) => {
             productsInCatalogs,
             hasAnyInCatalogs: productsInCatalogs.length > 0
         });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: errorMessage });
+    }
+};
+
+export const getProductStats = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+
+        // Use redis cache to speed up stats
+        const cacheKey = cacheKeys.stats(userId, { type: 'products' });
+        const result = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
+            // For precision, getting all stock/price pairs
+            const { data, error } = await supabase
+                .from('products')
+                .select('stock, price')
+                .eq('user_id', userId);
+
+            if (error) throw error;
+
+            const stats = {
+                total: data.length,
+                inStock: 0,
+                lowStock: 0,
+                outOfStock: 0,
+                totalValue: 0
+            };
+
+            data.forEach(p => {
+                const stock = p.stock || 0;
+                const price = Number(p.price) || 0;
+
+                if (stock >= 10) stats.inStock++;
+                else if (stock > 0 && stock < 10) stats.lowStock++;
+                else if (stock === 0) stats.outOfStock++;
+
+                stats.totalValue += (stock * price);
+            });
+
+            return stats;
+        });
+
+        res.json(result);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ error: errorMessage });

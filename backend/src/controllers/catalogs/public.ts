@@ -53,7 +53,8 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
             // Batch fetch: Supabase .in() sends IDs as URL query params.
             // Node.js has a 16KB header limit — 100 UUIDs (~3.7KB) is safe per request.
             const CHUNK_SIZE = 100;
-            const CONCURRENCY = 3; // Max parallel requests to Supabase
+            // Higher concurrency for large catalogs — 6 parallel keeps 10K under 15s
+            const CONCURRENCY = 6;
             const chunks: string[][] = [];
             for (let i = 0; i < productIds.length; i += CHUNK_SIZE) {
                 chunks.push(productIds.slice(i, i + CHUNK_SIZE));
@@ -71,7 +72,8 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
                         const { data, error } = await supabase
                             .from('products')
                             .select(PRODUCT_FIELDS)
-                            .in('id', chunk);
+                            .in('id', chunk)
+                            .limit(CHUNK_SIZE);   // ← CRITICAL: without this PostgREST default max-rows can silently cap results
                         if (error) {
                             console.error(`[PublicCatalog] Batch fetch error (${chunk.length} items):`, error);
                             return [];

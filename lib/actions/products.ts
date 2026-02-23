@@ -56,6 +56,18 @@ export async function getProducts(params?: {
   return await apiFetch<ProductsResponse>(path)
 }
 
+export interface ProductStats {
+  total: number
+  inStock: number
+  lowStock: number
+  outOfStock: number
+  totalValue: number
+}
+
+export async function getProductStats(): Promise<ProductStats> {
+  return await apiFetch<ProductStats>("/products/stats")
+}
+
 export async function createProduct(formData: FormData) {
   const customAttributesJson = formData.get("custom_attributes") as string
   let customAttributes: CustomAttribute[] = []

@@ -170,14 +170,14 @@ export function ModernGridTemplate({
 
             {/* Grid İçerik */}
             {/* ÖNEMLİ: Kart yapısı değiştirilmedi - aspect-[4/3] fotoğraf and flex-1 bilgiler alanı korundu */}
-            <div className={`flex-1 p-4 grid ${getGridCols()} ${getGridRows()} gap-3 overflow-hidden`}>
+            <div className={`flex-1 p-4 grid ${getGridCols()} gap-3 overflow-hidden`} style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
                 {(products || []).map((product) => {
                     const productUrl = product.product_url
                     // YENİ ÖZELLİK: showUrls kontrolü - showUrls=true ve URL varsa tıklanabilir, yoksa değil
                     // ÖNCE: Her zaman productUrl varsa tıklanabilirdi
                     // ŞİMDİ: showUrls=true VE productUrl varsa tıklanabilir
                     return (
-                        <div key={product.id} className="flex flex-col h-full border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm relative group">
+                        <div key={product.id} className="flex flex-col h-full min-h-0 border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm relative group">
                             {/* Görsel - KART YAPISI KORUNDU: aspect-[4/3] sabit oran, değiştirilmedi */}
                             <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
                                 {/* YENİ: ProductImageGallery bileşeni - Çoklu görsel desteği */}

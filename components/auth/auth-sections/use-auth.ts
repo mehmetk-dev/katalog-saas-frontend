@@ -152,7 +152,12 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
 
     const getSiteUrl = () => {
         if (typeof window !== "undefined") {
-            return window.location.origin
+            const origin = window.location.origin
+            // 0.0.0.0 is not a valid redirect target for emails
+            if (origin.includes("0.0.0.0")) {
+                return origin.replace("0.0.0.0", "localhost")
+            }
+            return origin
         }
         return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     }

@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { Metadata } from "next"
 
-import { getProducts } from "@/lib/actions/products"
+import { getProducts, getProductStats } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { ProductsPageClient } from "@/components/products/products-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -22,8 +22,9 @@ export default async function ProductsPage({
   const category = params.category || "all"
   const search = params.search || ""
 
-  const [productsResponse, user] = await Promise.all([
+  const [productsResponse, statsResponse, user] = await Promise.all([
     getProducts({ page, limit, category, search }),
+    getProductStats(),
     getCurrentUser(),
   ])
 
@@ -32,6 +33,7 @@ export default async function ProductsPage({
       <ProductsPageClient
         initialProducts={productsResponse.products}
         initialMetadata={productsResponse.metadata}
+        initialStats={statsResponse}
         userPlan={(user?.plan as "free" | "plus" | "pro") || "free"}
         maxProducts={user?.maxProducts || 50}
       />

@@ -161,7 +161,8 @@ export async function revalidateCatalogPublic(slug: string) {
 
 export const getPublicCatalog = cache(async (slug: string) => {
   try {
-    return await apiFetch<Catalog>(`/catalogs/public/${slug}`)
+    // Large catalogs (10K+ products) need longer timeout — backend fetches in batches
+    return await apiFetch<Catalog>(`/catalogs/public/${slug}`, { timeout: 120000 })
   } catch {
     return null
   }

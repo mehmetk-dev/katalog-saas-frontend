@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useMemo, memo } from "react"
-import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid } from "lucide-react"
+import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid, FolderOpen } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
 import NextImage from "next/image"
@@ -164,7 +164,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
             return Array.from({ length: 10 }, (_, i) => Math.floor(base + (current - base) * (i / 9)))
         }
 
-        const totalViews = initialStats?.totalViews || currentCatalogs.reduce((sum: number, c: any) => sum + (Number(c.view_count) || Number(c.views) || 0), 0)
+        const totalCatalogCount = initialStats?.totalCatalogs ?? currentCatalogs.length
         const publishedCount = initialStats?.publishedCatalogs ??
             currentCatalogs.filter((c: any) => !!(c.is_published || c.published || c.status === 'published')).length
 
@@ -180,14 +180,14 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                 sparkline: generateSparkline(productCount),
             },
             {
-                label: t("dashboard.totalViews"),
-                value: totalViews.toLocaleString(),
-                icon: Eye,
+                label: t("dashboard.catalogs"),
+                value: totalCatalogCount.toString(),
+                icon: FolderOpen,
                 change: t("dashboard.allCatalogs"),
                 trend: null,
                 trendUp: true,
                 color: "blue",
-                sparkline: generateSparkline(totalViews),
+                sparkline: generateSparkline(totalCatalogCount),
             },
             {
                 label: t("catalogs.published"),

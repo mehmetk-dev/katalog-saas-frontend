@@ -10,6 +10,7 @@ router.use(requireAuth);
 
 // Specific routes first (before dynamic :id routes)
 router.get('/', ProductController.getProducts);
+router.get('/stats', ProductController.getProductStats);
 router.post('/', ProductController.createProduct);
 router.post('/bulk-delete', ProductController.bulkDeleteProducts);
 router.post('/bulk-import', ProductController.bulkImportProducts);

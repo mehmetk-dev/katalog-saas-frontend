@@ -33,6 +33,11 @@ import { FashionLookbookTemplate } from "@/components/catalogs/templates/fashion
 import { MagazineTemplate } from "@/components/catalogs/templates/magazine"
 import { LuxuryTemplate } from "@/components/catalogs/templates/luxury"
 import { ClassicCatalogTemplate } from "@/components/catalogs/templates/classic-catalog"
+import { BoldTemplate } from "@/components/catalogs/templates/bold"
+import { ElegantCardsTemplate } from "@/components/catalogs/templates/elegant-cards"
+import { MinimalistTemplate } from "@/components/catalogs/templates/minimalist"
+import { ShowcaseTemplate } from "@/components/catalogs/templates/showcase"
+import { CatalogProTemplate } from "@/components/catalogs/templates/catalog-pro"
 
 export const INDUSTRIES = [
     { id: 'fashion', name: 'Moda ve Giyim', icon: ShoppingBag, description: 'Giyim, ayakkabı ve aksesuarlar' },
@@ -49,10 +54,15 @@ export const INDUSTRIES = [
 
 export const TEMPLATES = [
     { id: 'modern-grid', name: 'Modern Izgara', component: ModernGridTemplate, description: 'Temiz ve çok yönlü ızgara düzeni.' },
-    { id: 'fashion-lookbook', name: 'Moda Lookbook', component: FashionLookbookTemplate, description: 'Büyük görsellerle dergi stili düzen.' },
-    { id: 'magazine', name: 'Magazin', component: MagazineTemplate, description: 'Hikaye odaklı, profesyonel mizanpaj.' },
+    { id: 'fashion-lookbook', name: 'Moda Lookbook', component: FashionLookbookTemplate, description: 'Büyük görsellerle dergi stili.' },
+    { id: 'magazine', name: 'Magazin', component: MagazineTemplate, description: 'Hikaye odaklı profesyonel mizanpaj.' },
     { id: 'luxury', name: 'Lüks', component: LuxuryTemplate, description: 'Premium, koyu temalı zarafet.' },
     { id: 'classic-catalog', name: 'Klasik', component: ClassicCatalogTemplate, description: 'Geleneksel ve güvenilir yerleşim.' },
+    { id: 'bold', name: 'Cesur', component: BoldTemplate, description: 'Güçlü renkler, dikkat çekici stil.' },
+    { id: 'elegant-cards', name: 'Zarif Kartlar', component: ElegantCardsTemplate, description: 'Şık kartlarla premium sunum.' },
+    { id: 'minimalist', name: 'Minimalist', component: MinimalistTemplate, description: 'Sade, az ama öz tasarım.' },
+    { id: 'showcase', name: 'Vitrin', component: ShowcaseTemplate, description: 'Ürünleri ön plana çıkarır.' },
+    { id: 'catalog-pro', name: 'Katalog Pro', component: CatalogProTemplate, description: 'Profesyonel iş kataloğu.' },
 ]
 
 interface DemoBuilderProps {
@@ -128,7 +138,7 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                 )
             case 2: // Template Selection
                 return (
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         {TEMPLATES.map((tmpl) => (
                             <motion.div
                                 key={tmpl.id}
@@ -140,25 +150,48 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                                     ${templateId === tmpl.id ? 'border-[#cf1414] bg-red-50/30 ring-4 ring-red-50' : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'}
                                 `}
                             >
-                                <div className="aspect-[16/10] bg-slate-950 rounded-xl overflow-hidden relative group">
+                                <div className="aspect-[16/10] bg-slate-100 rounded-xl overflow-hidden relative group">
                                     {/* Template Badge */}
-                                    <div className="absolute top-3 left-3 z-10">
-                                        <span className="bg-white/10 backdrop-blur-md text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider">
-                                            Premium Layout
+                                    <div className="absolute top-2 left-2 z-20">
+                                        <span className="bg-white/90 backdrop-blur-md text-slate-800 text-[8px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">
+                                            {tmpl.name}
                                         </span>
                                     </div>
 
-                                    {/* Mock Preview Content */}
-                                    <div className="absolute inset-0 opacity-40 group-hover:opacity-60 transition-opacity">
-                                        <div className="grid grid-cols-2 gap-1 p-2 h-full">
-                                            {[1, 2, 3, 4].map(i => <div key={i} className="bg-white/10 rounded-sm" />)}
+                                    {/* Actual Template Mini-Preview */}
+                                    <div className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity overflow-hidden pointer-events-none bg-slate-200/30">
+                                        <div
+                                            className="absolute bg-white shadow-[0_5px_15px_rgba(0,0,0,0.1)] border border-slate-200"
+                                            style={{
+                                                width: '210mm',
+                                                height: '297mm',
+                                                top: '50%',
+                                                left: '50%',
+                                                marginLeft: '-105mm',
+                                                marginTop: '-148.5mm',
+                                                transform: 'scale(0.14)',
+                                                transformOrigin: 'center'
+                                            }}
+                                        >
+                                            <tmpl.component
+                                                products={currentProducts.slice(0, 4)}
+                                                catalogName={catalogName}
+                                                primaryColor={primaryColor}
+                                                headerTextColor={headerTextColor}
+                                                showPrices={showPrices}
+                                                showDescriptions={showDescriptions}
+                                                logoUrl={logoUrl}
+                                                showAttributes={true}
+                                                showSku={true}
+                                                isFreeUser={false}
+                                            />
                                         </div>
                                     </div>
 
                                     {templateId === tmpl.id && (
-                                        <div className="absolute inset-0 bg-[#cf1414]/10 backdrop-blur-[2px] flex items-center justify-center">
-                                            <div className="w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#cf1414] animate-in zoom-in duration-300">
-                                                <Check className="w-6 h-6 stroke-[3px]" />
+                                        <div className="absolute inset-0 bg-[#cf1414]/10 backdrop-blur-[1px] flex items-center justify-center z-30">
+                                            <div className="w-10 h-10 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#cf1414] animate-in zoom-in duration-300">
+                                                <Check className="w-5 h-5 stroke-[4px]" />
                                             </div>
                                         </div>
                                     )}
@@ -359,7 +392,7 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                                         <Undo2 className="w-4 h-4 mr-2" /> Geri
                                     </Button>
                                 )}
-                                <Button onClick={handleNext} className="h-12 ml-auto w-full gap-2 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-500/10 rounded-xl font-black uppercase tracking-tight">
+                                <Button onClick={handleNext} className="h-12 ml-auto flex-1 gap-2 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-500/10 rounded-xl font-black uppercase tracking-tight">
                                     {step === 3 ? "Kataloğu Oluştur" : "Devam Et"} <ArrowRight className="w-5 h-5" />
                                 </Button>
                             </div>
@@ -378,7 +411,7 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
 
                         {/* Improved Preview Container (Supports growing content) */}
                         <div
-                            className="shrink-0 mb-32 mt-4 relative"
+                            className="shrink-0 mb-8 relative"
                             style={{
                                 width: '126mm', // Exactly 210mm * 0.6
                                 minHeight: '178.2mm', // Exactly 297mm * 0.6
@@ -400,7 +433,7 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                                 }}
                             >
                                 {/* Actual Preview Content */}
-                                <div className="p-10 pb-20 bg-white min-h-[297mm]">
+                                <div className="p-4 bg-white h-full overflow-hidden">
                                     <CurrentTemplate
                                         products={currentProducts}
                                         catalogName={catalogName}
