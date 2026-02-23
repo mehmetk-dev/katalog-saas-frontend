@@ -12,6 +12,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast, Toaster } from "sonner"
+import { PdfProgressModal, PDF_PROGRESS_INITIAL_STATE } from "@/components/ui/pdf-progress-modal"
+import type { PdfProgressState } from "@/components/ui/pdf-progress-modal"
 
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
@@ -58,6 +60,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const [isMobile, setIsMobile] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
+    const [pdfProgress, setPdfProgress] = useState<PdfProgressState>(PDF_PROGRESS_INITIAL_STATE)
+    const cancelledRef = useRef(false)
 
     // Detaylı ekran boyutu kontrolü
     useEffect(() => {
@@ -219,25 +223,46 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         }
     }
 
-    // İndirme işlemi: İstemci tarafında PDF oluşturma (API bağımlılığı kaldırıldı)
+    // İndirme işlemi: İstemci tarafında PDF oluşturma (progress + cancel destekli)
+    const CHUNK_SIZE = 5
+
+    const formatTimeLeft = (seconds: number): string => {
+        if (seconds < 60) return `~${Math.ceil(seconds)}s`
+        const m = Math.floor(seconds / 60)
+        const s = Math.ceil(seconds % 60)
+        return `~${m}m ${s}s`
+    }
+
+    const cancelPdfExport = useCallback(() => {
+        cancelledRef.current = true
+        setPdfProgress(prev => ({ ...prev, phase: "cancelled", percent: prev.percent }))
+    }, [])
+
+    const closePdfModal = useCallback(() => {
+        setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
+    }, [])
+
     const handleDownload = async () => {
         try {
-            setIsExporting(true) // Animasyonları devre dışı bırak
-            toast.loading("PDF oluşturuluyor, lütfen bekleyin... (Sayfa sayısına göre biraz sürebilir)", { id: "pdf-download", duration: 15000 })
+            cancelledRef.current = false
+            setIsExporting(true)
+            setPdfProgress({ phase: "preparing", currentPage: 0, totalPages: 0, percent: 5, estimatedTimeLeft: "" })
 
-            // Dinamik Import: Sadece indirme butona basıldığında kütüphaneleri yükle (Bundle Optimizasyonu)
+            // Dinamik Import: Sadece indirme butona basıldığında kütüphaneleri yükle
             const { jsPDF } = await import("jspdf")
             const { toPng } = await import("html-to-image")
 
             // Kısa bir gecikme ile render'ın tamamlanmasını bekle
             await new Promise(resolve => setTimeout(resolve, 100))
 
-            // A4 Boyutu (mm cinsinden)
             const content = document.querySelectorAll('[data-pdf-page="true"]')
             if (!content || content.length === 0) {
-                toast.error("PDF oluşturulacak içerik bulunamadı.", { id: "pdf-download" })
+                setPdfProgress({ phase: "error", currentPage: 0, totalPages: 0, percent: 0, estimatedTimeLeft: "", errorMessage: "PDF oluşturulacak içerik bulunamadı." })
                 return
             }
+
+            const totalPages = content.length
+            setPdfProgress({ phase: "rendering", currentPage: 0, totalPages, percent: 10, estimatedTimeLeft: "" })
 
             const pdf = new jsPDF({
                 orientation: "portrait",
@@ -245,19 +270,20 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 format: "a4"
             })
 
-            const imgWidth = 210 // A4 width in mm
+            const imgWidth = 210  // A4 width in mm
             const pageHeight = 297 // A4 height in mm
+            const renderStart = Date.now()
 
-            for (let i = 0; i < content.length; i++) {
+            for (let i = 0; i < totalPages; i++) {
+                if (cancelledRef.current) return
+
                 const page = content[i] as HTMLElement
 
-                // html-to-image için ayarlar
-                // Margin, Shadow vb. özellikler PDF çıktısında kaymalara yol açabilir, bunları sıfırlıyoruz.
                 const dataUrl = await toPng(page, {
                     quality: 1.0,
-                    pixelRatio: 2, // Yüksek çözünürlük
-                    width: 794,   // A4 @ 96 DPI Width
-                    height: 1123, // A4 @ 96 DPI Height
+                    pixelRatio: 2,
+                    width: 794,
+                    height: 1123,
                     cacheBust: true,
                     style: {
                         margin: '0',
@@ -265,28 +291,58 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                         boxShadow: 'none',
                         border: 'none',
                         borderRadius: '0',
-                        display: 'block' // Flex/Grid etkilerini izole et
+                        display: 'block'
                     }
                 })
 
-                // const imgProps = pdf.getImageProperties(dataUrl)
+                if (cancelledRef.current) return
 
-                if (i > 0) {
-                    pdf.addPage()
-                }
-
+                if (i > 0) pdf.addPage()
                 pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, pageHeight)
+
+                // Progress + ETA hesaplama
+                const rendered = i + 1
+                const elapsed = (Date.now() - renderStart) / 1000
+                const avgPerPage = elapsed / rendered
+                const remaining = (totalPages - rendered) * avgPerPage
+                const percent = 10 + Math.round((rendered / totalPages) * 80) // 10-90 arası
+
+                setPdfProgress({
+                    phase: "rendering",
+                    currentPage: rendered,
+                    totalPages,
+                    percent,
+                    estimatedTimeLeft: remaining > 2 ? formatTimeLeft(remaining) : ""
+                })
+
+                // Her CHUNK_SIZE sayfada bir tarayıcıya nefes aldır
+                if (rendered % CHUNK_SIZE === 0 && rendered < totalPages) {
+                    await new Promise(resolve => setTimeout(resolve, 50))
+                }
             }
+
+            if (cancelledRef.current) return
+
+            setPdfProgress({ phase: "saving", currentPage: totalPages, totalPages, percent: 95, estimatedTimeLeft: "" })
 
             const fileName = `${catalog.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`
             pdf.save(fileName)
-            toast.success("İndirme işlemi tamamlandı!", { id: "pdf-download" })
+
+            setPdfProgress({ phase: "done", currentPage: totalPages, totalPages, percent: 100, estimatedTimeLeft: "" })
 
         } catch (error) {
+            if (cancelledRef.current) return
             console.error("PDF Generation Error:", error)
-            toast.error("PDF oluşturulamadı. Lütfen tekrar deneyin.", { id: "pdf-download" })
+            setPdfProgress({
+                phase: "error",
+                currentPage: 0,
+                totalPages: 0,
+                percent: 0,
+                estimatedTimeLeft: "",
+                errorMessage: error instanceof Error ? error.message : "PDF oluşturulamadı. Lütfen tekrar deneyin."
+            })
         } finally {
-            setIsExporting(false) // Animasyonları tekrar aç
+            setIsExporting(false)
         }
     }
 
@@ -367,6 +423,12 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 <ImageLightbox />
 
                 <Toaster position="top-center" expand={true} richColors />
+
+                <PdfProgressModal
+                    state={pdfProgress}
+                    onCancel={pdfProgress.phase === "done" || pdfProgress.phase === "error" || pdfProgress.phase === "cancelled" ? closePdfModal : cancelPdfExport}
+                    t={t}
+                />
 
                 <ShareModal
                     open={isShareModalOpen}

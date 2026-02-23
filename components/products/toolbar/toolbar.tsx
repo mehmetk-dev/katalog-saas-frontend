@@ -92,46 +92,43 @@ export function ProductsToolbar({
             {/* Ayırıcı - sadece desktop */}
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 hidden sm:block mx-1" />
 
-            {/* Desktop Kontroller (Görünüm + Sayfa Boyutu + Filtre) */}
-            <div className="hidden sm:flex items-center gap-1.5 min-w-0">
-                {/* Görünüm Seçici */}
-                <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-0.5 h-8">
-                    <Button
-                        variant={viewMode === "grid" ? "secondary" : "ghost"}
-                        size="icon"
-                        className={cn("h-7 w-7 transition-all", viewMode === "grid" && "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm")}
-                        onClick={() => onViewModeChange("grid")}
-                    >
-                        <LayoutGrid className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                        variant={viewMode === "list" ? "secondary" : "ghost"}
-                        size="icon"
-                        className={cn("h-7 w-7 transition-all", viewMode === "list" && "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm")}
-                        onClick={() => onViewModeChange("list")}
-                    >
-                        <List className="w-3.5 h-3.5" />
-                    </Button>
-                </div>
+            {/* Görünüm Seçici - her zaman görünsün (mobil dahil) */}
+            <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-0.5 h-8 shrink-0">
+                <Button
+                    variant={viewMode === "grid" ? "secondary" : "ghost"}
+                    size="icon"
+                    className={cn("h-7 w-7 transition-all", viewMode === "grid" && "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm")}
+                    onClick={() => onViewModeChange("grid")}
+                >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                    variant={viewMode === "list" ? "secondary" : "ghost"}
+                    size="icon"
+                    className={cn("h-7 w-7 transition-all", viewMode === "list" && "bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm")}
+                    onClick={() => onViewModeChange("list")}
+                >
+                    <List className="w-3.5 h-3.5" />
+                </Button>
+            </div>
 
-                {/* Sayfa Boyutu */}
-                <div className="shrink-0">
-                    <Select
-                        value={itemsPerPage.toString()}
-                        onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
-                    >
-                        <SelectTrigger className="h-8 w-[64px] px-1.5 text-[10px] font-bold bg-gray-50 dark:bg-gray-800 border-0 shadow-none focus:ring-violet-500/20">
-                            <span>{itemsPerPage}</span>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {pageSizeOptions.map((size) => (
-                                <SelectItem key={size} value={size.toString()} className="text-[10px]">
-                                    {size}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+            {/* Sayfa Boyutu - sadece desktop */}
+            <div className="hidden sm:block shrink-0">
+                <Select
+                    value={itemsPerPage.toString()}
+                    onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
+                >
+                    <SelectTrigger className="h-8 w-[64px] px-1.5 text-[10px] font-bold bg-gray-50 dark:bg-gray-800 border-0 shadow-none focus:ring-violet-500/20">
+                        <span>{itemsPerPage}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                        {pageSizeOptions.map((size) => (
+                            <SelectItem key={size} value={size.toString()} className="text-[10px]">
+                                {size}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Filtre Butonu - her zaman görünsün */}

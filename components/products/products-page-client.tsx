@@ -344,10 +344,8 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
     try {
       toast.loading(t("importExport.exportLoading") as string || "Ürünler hazırlanıyor...", { id: "export-loading" })
 
-      // Tüm ürünleri backend'den çek (sayfa sayfa, progress ile)
-      const allProducts = await getAllProductsForExport((percent, message) => {
-        toast.loading(`${t("importExport.exportLoading") as string || "Ürünler yükleniyor..."} ${message} (${percent}%)`, { id: "export-loading" })
-      })
+      // Tüm ürünleri backend'den çek (server action — callback geçilemez)
+      const allProducts = await getAllProductsForExport()
 
       toast.dismiss("export-loading")
 

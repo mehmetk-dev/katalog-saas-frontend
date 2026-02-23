@@ -14,6 +14,7 @@ import { SPLIT_PREVIEW_SOFT_LIMIT } from "@/components/builder/builder-utils"
 import { BuilderToolbar } from "./toolbar/builder-toolbar"
 import { ExitDialog } from "./modals/exit-dialog"
 import { PreviewFloatingHeader } from "./toolbar/preview-floating-header"
+import { PdfProgressModal } from "@/components/ui/pdf-progress-modal"
 
 import { useBuilderState } from "@/lib/hooks/use-builder-state"
 import { useBuilderHandlers } from "@/lib/hooks/use-builder-handlers"
@@ -212,6 +213,16 @@ export function BuilderPageClient({
           onOpenChange={state.setShowExitDialog}
           onExitWithoutSaving={handlers.handleExitWithoutSaving}
           onSaveAndExit={handlers.handleSaveAndExit}
+        />
+
+        {/* PDF Progress Modal */}
+        <PdfProgressModal
+          state={handlers.pdfProgress}
+          onCancel={handlers.pdfProgress.phase === 'done' || handlers.pdfProgress.phase === 'error' || handlers.pdfProgress.phase === 'cancelled'
+            ? handlers.closePdfModal
+            : handlers.cancelExport
+          }
+          t={handlers.t}
         />
 
         {/* GHOST CONTAINER (PDF Export) */}

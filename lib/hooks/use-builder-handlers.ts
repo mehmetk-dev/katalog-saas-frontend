@@ -55,7 +55,7 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
     })
 
     // ─── PDF Export ────────────────────────────────────────────────────
-    const { isExporting, handleDownloadPDF } = usePdfExport({
+    const { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal } = usePdfExport({
         catalogName: state.catalogName,
         selectedProducts: state.selectedProducts,
         canExport,
@@ -109,6 +109,9 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         // PDF
         isExporting,
         handleDownloadPDF,
+        pdfProgress,
+        cancelExport,
+        closePdfModal,
 
         // UI
         handleShare,
