@@ -99,122 +99,607 @@
 
 ```
 fogcatalog/
-├── .agent/                    # AI Agent kuralları ve skills
 ├── app/                       # Next.js App Router
-│   ├── api/                   # API Routes (minimal - çoğu backend'de)
+│   ├── admin/
+│   │   ├── error.tsx
+│   │   ├── layout.tsx
+│   │   ├── login/page.tsx
+│   │   └── page.tsx
+│   ├── api/
+│   │   ├── admin/activity-logs/route.ts
+│   │   └── health/route.ts
 │   ├── auth/                  # Auth sayfaları (login, register, reset)
-│   │   ├── callback/          # OAuth callback
-│   │   ├── forgot-password/   # Şifre sıfırlama
-│   │   ├── reset-password/    # Yeni şifre belirleme
-│   │   └── verify/            # Email doğrulama
+│   │   ├── callback/route.ts  # OAuth callback
+│   │   ├── confirmed/page.tsx
+│   │   ├── confirm-recovery/page.tsx
+│   │   ├── error/page.tsx
+│   │   ├── forgot-password/page.tsx
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── reset-password/page.tsx
+│   │   └── verify/page.tsx    # Email doğrulama
 │   ├── blog/                  # Blog sayfaları (MDX)
+│   │   ├── [slug]/page.tsx
+│   │   ├── blog-post-layout.tsx
+│   │   ├── dijital-katalog-ile-satis-artirma/page.tsx
+│   │   ├── neden-dijital-katalog-kullanmalisiniz/page.tsx
+│   │   ├── page.tsx
+│   │   └── why-digital-catalog/page.tsx
 │   ├── catalog/               # Public katalog görüntüleme
-│   │   └── [slug]/            # Dinamik katalog route
+│   │   └── [slug]/
+│   │       ├── loading.tsx
+│   │       ├── page.tsx
+│   │       └── public-catalog-client.tsx
+│   ├── contact/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── create-demo/page.tsx
 │   ├── dashboard/             # Kullanıcı paneli
-│   │   ├── analytics/         # İstatistik sayfası
-│   │   ├── builder/           # Katalog editörü
-│   │   │   └── [id]/          # Dinamik editör route
-│   │   ├── catalogs/          # Katalog listesi
+│   │   ├── admin/page.tsx
+│   │   ├── analytics/page.tsx # İstatistik sayfası
+│   │   ├── builder/page.tsx   # Katalog editörü
+│   │   ├── catalogs/page.tsx  # Katalog listesi
+│   │   ├── categories/page.tsx
+│   │   ├── error.tsx
+│   │   ├── layout.tsx
+│   │   ├── loading.tsx
+│   │   ├── page.tsx
 │   │   ├── products/          # Ürün yönetimi
-│   │   └── settings/          # Profil ayarları
+│   │   │   ├── loading.tsx
+│   │   │   └── page.tsx
+│   │   ├── settings/page.tsx  # Profil ayarları
+│   │   └── templates/page.tsx
+│   ├── faq/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── features/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── how-it-works/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
 │   ├── legal/                 # Yasal sayfalar (KVKK, terms)
+│   │   ├── cancellation-policy/
+│   │   ├── cancellation-refund-policy/page.tsx
+│   │   ├── cookie-policy/
+│   │   ├── distance-sales-agreement/
+│   │   ├── explicit-consent/page.tsx
+│   │   └── kvkk/
 │   ├── pricing/               # Fiyatlandırma sayfası
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── privacy/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── terms/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── error.tsx
+│   ├── global-error.tsx
 │   ├── globals.css            # Tailwind base + custom CSS
+│   ├── icon.png
 │   ├── layout.tsx             # Root layout (providers)
-│   └── page.tsx               # Landing page (~33KB!)
+│   ├── loading.tsx
+│   ├── not-found.tsx
+│   ├── page.tsx               # Landing page (~33KB!)
+│   ├── robots.ts
+│   └── sitemap.ts
 │
 ├── backend/                   # Express.js API Katmanı
-│   ├── src/
+│   ├── dist/                  # Compiled JS (build output)
+│   │   ├── controllers/
+│   │   │   ├── catalogs.js
+│   │   │   ├── catalogs/
+│   │   │   │   ├── helpers.js
+│   │   │   │   ├── public.js
+│   │   │   │   ├── publish.js
+│   │   │   │   ├── read.js
+│   │   │   │   ├── stats.js
+│   │   │   │   ├── types.js
+│   │   │   │   └── write.js
+│   │   │   ├── notifications.js
+│   │   │   ├── products.js
+│   │   │   ├── products/
+│   │   │   │   ├── bulk.js
+│   │   │   │   ├── helpers.js
+│   │   │   │   ├── media.js
+│   │   │   │   ├── read.js
+│   │   │   │   ├── schemas.js
+│   │   │   │   └── write.js
+│   │   │   └── users.js
+│   │   ├── middlewares/
+│   │   │   ├── auth.js
+│   │   │   └── errorHandler.js
+│   │   ├── routes/
+│   │   │   ├── admin.js
+│   │   │   ├── auth.js
+│   │   │   ├── catalogs.js
+│   │   │   ├── health.js
+│   │   │   ├── notifications.js
+│   │   │   ├── products.js
+│   │   │   └── users.js
+│   │   ├── services/
+│   │   │   ├── activity-logger.js
+│   │   │   ├── cloudinary.js
+│   │   │   ├── redis.js
+│   │   │   └── supabase.js
+│   │   ├── types/auth.js
+│   │   ├── utils/env-validation.js
+│   │   └── index.js
+│   ├── src/                   # TypeScript source
 │   │   ├── controllers/       # İş mantığı
 │   │   │   ├── catalogs.ts    # Katalog CRUD (~36KB)
+│   │   │   ├── catalogs/      # Modüler yapı
+│   │   │   │   ├── helpers.ts
+│   │   │   │   ├── public.ts
+│   │   │   │   ├── publish.ts
+│   │   │   │   ├── read.ts
+│   │   │   │   ├── stats.ts
+│   │   │   │   ├── types.ts
+│   │   │   │   └── write.ts
+│   │   │   ├── notifications.ts
 │   │   │   ├── products.ts    # Ürün CRUD (~31KB)
-│   │   │   ├── users.ts       # Kullanıcı işlemleri
-│   │   │   └── notifications.ts
+│   │   │   ├── products/      # Modüler yapı
+│   │   │   │   ├── bulk.ts
+│   │   │   │   ├── helpers.ts
+│   │   │   │   ├── media.ts
+│   │   │   │   ├── read.ts
+│   │   │   │   ├── schemas.ts
+│   │   │   │   └── write.ts
+│   │   │   └── users.ts       # Kullanıcı işlemleri
+│   │   ├── middlewares/       # Auth, error handling
+│   │   │   ├── auth.ts
+│   │   │   └── errorHandler.ts
 │   │   ├── routes/            # API endpoint tanımları
-│   │   │   ├── products.ts    # /api/v1/products/*
-│   │   │   ├── catalogs.ts    # /api/v1/catalogs/*
-│   │   │   ├── users.ts       # /api/v1/users/*
 │   │   │   ├── admin.ts       # /api/v1/admin/*
 │   │   │   ├── auth.ts        # /api/v1/auth/*
-│   │   │   └── health.ts      # /health
-│   │   ├── middlewares/       # Auth, error handling
+│   │   │   ├── catalogs.ts    # /api/v1/catalogs/*
+│   │   │   ├── health.ts      # /health
+│   │   │   ├── notifications.ts
+│   │   │   ├── products.ts    # /api/v1/products/*
+│   │   │   └── users.ts       # /api/v1/users/*
 │   │   ├── services/          # Redis, Supabase clients
+│   │   │   ├── activity-logger.ts
+│   │   │   ├── cloudinary.ts
+│   │   │   ├── redis.ts
+│   │   │   └── supabase.ts
+│   │   ├── types/
+│   │   │   └── auth.ts
+│   │   ├── utils/
+│   │   │   └── env-validation.ts
 │   │   └── index.ts           # Express app entry
+│   ├── .env                   # Backend env vars
+│   ├── .env.example
+│   ├── backend_ts_errors.log
+│   ├── Dockerfile             # Backend container
 │   ├── package.json           # Backend dependencies
-│   └── Dockerfile             # Backend container
+│   ├── package-lock.json
+│   ├── tsc_errors.txt
+│   └── tsconfig.json
 │
 ├── components/                # React Bileşenleri
+│   ├── admin/                 # Admin panel bileşenleri
+│   │   ├── admin-dashboard.tsx
+│   │   ├── admin-dashboard/
+│   │   │   ├── activity-logs-tab.tsx
+│   │   │   ├── admin-header.tsx
+│   │   │   ├── deleted-users-tab.tsx
+│   │   │   ├── feedbacks-tab.tsx
+│   │   │   ├── overview-tab.tsx
+│   │   │   ├── types.ts
+│   │   │   ├── use-admin-dashboard.tsx
+│   │   │   └── users-tab.tsx
+│   │   └── activity-logs-client.tsx
+│   ├── analytics/
+│   │   └── analytics-client.tsx
 │   ├── auth/                  # Login, register forms
+│   │   ├── auth-form.tsx
+│   │   ├── auth-form/
+│   │   │   ├── auth-tabs.tsx
+│   │   │   ├── error-alert.tsx
+│   │   │   ├── google-auth-button.tsx
+│   │   │   ├── legal-notice.tsx
+│   │   │   ├── loading-status.tsx
+│   │   │   ├── redirect-overlay.tsx
+│   │   │   ├── status-banner.tsx
+│   │   │   ├── types.ts
+│   │   │   └── use-auth-form-controller.tsx
+│   │   ├── auth-form-new.tsx
+│   │   ├── auth-page-client.tsx
+│   │   ├── auth-sections/
+│   │   │   ├── auth-form.tsx
+│   │   │   ├── hero-panel.tsx
+│   │   │   ├── index.ts
+│   │   │   ├── redirect-overlay.tsx
+│   │   │   ├── types.ts
+│   │   │   └── use-auth.ts
+│   │   ├── onboarding-modal.tsx
+│   │   └── session-watcher.tsx
 │   ├── builder/               # Katalog editör bileşenleri
-│   │   ├── builder-page-client.tsx  # Ana editör (~45KB)
-│   │   ├── catalog-editor.tsx       # Editor core (~76KB)
-│   │   ├── catalog-preview.tsx      # Önizleme
-│   │   └── upgrade-modal.tsx        # Plan yükseltme
+│   │   ├── builder-page-client.tsx  # Ana editör container
+│   │   ├── builder-utils.ts
+│   │   ├── editor/
+│   │   │   ├── catalog-editor.tsx   # Editor core logic (~refactored)
+│   │   │   ├── design-sections/
+│   │   │   │   ├── appearance-section.tsx
+│   │   │   │   ├── background-section.tsx
+│   │   │   │   ├── branding-section.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── section-wrapper.tsx
+│   │   │   │   ├── storytelling-section.tsx
+│   │   │   │   ├── structure-preview.tsx
+│   │   │   │   ├── template-section.tsx
+│   │   │   │   └── types.ts
+│   │   │   ├── editor-content-tab.tsx
+│   │   │   ├── editor-design-tab.tsx
+│   │   │   └── editor-product-cards.tsx
+│   │   ├── modals/
+│   │   │   ├── exit-dialog.tsx
+│   │   │   └── upgrade-modal.tsx    # Plan yükseltme
+│   │   ├── preview/
+│   │   │   ├── catalog-preview.tsx  # PDF export önizleme
+│   │   │   └── template-preview-card.tsx
+│   │   └── toolbar/
+│   │       ├── builder-toolbar.tsx
+│   │       └── preview-floating-header.tsx
 │   ├── catalogs/              # Katalog görüntüleme
-│   │   ├── templates/         # 15+ şablon bileşeni
-│   │   │   ├── modern-grid.tsx
-│   │   │   ├── magazine.tsx
+│   │   ├── catalog-preview.tsx
+│   │   ├── catalogs-page-client.tsx
+│   │   ├── catalog-thumbnail.tsx
+│   │   ├── category-divider.tsx
+│   │   ├── cover-page.tsx
+│   │   ├── covers/            # Kapak tasarımları (10 tema)
+│   │   │   ├── artistic.tsx
+│   │   │   ├── bold.tsx
+│   │   │   ├── corporate.tsx
+│   │   │   ├── fashion.tsx
+│   │   │   ├── index.tsx
+│   │   │   ├── industrial.tsx
 │   │   │   ├── luxury.tsx
-│   │   │   └── ... (18 dosya)
-│   │   ├── covers/            # Kapak tasarımları
-│   │   ├── dividers/          # Kategori ayraç sayfaları
-│   │   └── share-modal.tsx    # Sosyal medya paylaşım
-│   ├── products/              # Ürün yönetimi
-│   │   ├── products-table.tsx       # Ana tablo (~44KB)
-│   │   ├── product-modal.tsx        # Ürün ekleme/düzenleme (~60KB)
-│   │   ├── import-export-modal.tsx  # Excel/CSV import (~64KB)
-│   │   └── bulk-image-upload-modal.tsx
+│   │   │   ├── magazine.tsx
+│   │   │   ├── minimal.tsx
+│   │   │   ├── modern.tsx
+│   │   │   └── tech.tsx
+│   │   ├── dividers/          # Kategori ayraç sayfaları (10 tema)
+│   │   │   ├── artistic.tsx
+│   │   │   ├── bold.tsx
+│   │   │   ├── corporate.tsx
+│   │   │   ├── fashion.tsx
+│   │   │   ├── index.tsx
+│   │   │   ├── industrial.tsx
+│   │   │   ├── luxury.tsx
+│   │   │   ├── magazine.tsx
+│   │   │   ├── minimal.tsx
+│   │   │   ├── modern.tsx
+│   │   │   └── tech.tsx
+│   │   ├── share-modal.tsx    # Sosyal medya paylaşım
+│   │   └── templates/         # 17 şablon bileşeni
+│   │       ├── bold.tsx
+│   │       ├── catalog-pro.tsx
+│   │       ├── classic-catalog.tsx
+│   │       ├── clean-white.tsx
+│   │       ├── compact-list.tsx
+│   │       ├── elegant-cards.tsx
+│   │       ├── fashion-lookbook.tsx
+│   │       ├── industrial.tsx
+│   │       ├── luxury.tsx
+│   │       ├── magazine.tsx
+│   │       ├── minimalist.tsx
+│   │       ├── modern-grid.tsx
+│   │       ├── product-tiles.tsx
+│   │       ├── registry.tsx
+│   │       ├── retail.tsx
+│   │       ├── showcase.tsx
+│   │       ├── tech-modern.tsx
+│   │       └── types.ts
+│   ├── categories/
+│   │   └── categories-page-client.tsx
 │   ├── dashboard/             # Dashboard bileşenleri
-│   └── ui/                    # Shadcn/Radix primitives (31 dosya)
+│   │   ├── dashboard-client.tsx
+│   │   ├── feedback-modal.tsx
+│   │   ├── header.tsx
+│   │   ├── notification-dropdown.tsx
+│   │   ├── notifications-popover.tsx
+│   │   ├── onboarding-checklist.tsx
+│   │   └── sidebar.tsx
+│   ├── demo/
+│   │   └── demo-builder.tsx
+│   ├── layout/
+│   │   ├── public-footer.tsx
+│   │   └── public-header.tsx
+│   ├── products/              # Ürün yönetimi
+│   │   ├── bulk/
+│   │   │   ├── bulk-actions-modal.tsx
+│   │   │   ├── bulk-image-upload/
+│   │   │   │   ├── image-card.tsx
+│   │   │   │   ├── matcher.ts
+│   │   │   │   ├── product-selector.tsx
+│   │   │   │   ├── types.ts
+│   │   │   │   └── upload-service.ts
+│   │   │   ├── bulk-image-upload-modal.tsx
+│   │   │   └── bulk-price-modal.tsx
+│   │   ├── filters/
+│   │   │   └── filter-sheet.tsx
+│   │   ├── modals/
+│   │   │   ├── import-export/
+│   │   │   │   ├── constants.ts          # Header aliases & system fields
+│   │   │   │   ├── default-tabs.tsx
+│   │   │   │   ├── file-utils.ts
+│   │   │   │   ├── import-products.ts    # CSV→Product parser
+│   │   │   │   ├── mapping-step.tsx
+│   │   │   │   └── types.ts
+│   │   │   ├── import-export-modal.tsx   # Excel/CSV import (~64KB)
+│   │   │   ├── product-modal.tsx         # Ürün ekleme/düzenleme (~60KB)
+│   │   │   └── product-modal.tsx.bak
+│   │   ├── products-page-client.tsx      # Ana tablo container & export logic
+│   │   ├── table/
+│   │   │   ├── components/
+│   │   │   │   ├── delete-alert-dialog.tsx
+│   │   │   │   └── product-preview-dialog.tsx
+│   │   │   ├── hooks/
+│   │   │   │   └── use-products-table.ts
+│   │   │   ├── index.ts
+│   │   │   ├── pagination.tsx
+│   │   │   ├── products-table.tsx        # Tablo render logic
+│   │   │   ├── types.ts
+│   │   │   ├── utils/
+│   │   │   │   └── product-helpers.ts
+│   │   │   └── views/
+│   │   │       ├── product-grid-view.tsx
+│   │   │       └── product-list-view.tsx
+│   │   ├── tabs/
+│   │   │   ├── product-attributes-tab.tsx
+│   │   │   ├── product-basic-tab.tsx
+│   │   │   └── product-images-tab.tsx
+│   │   └── toolbar/
+│   │       ├── bulk-actions-bar.tsx
+│   │       ├── stats-cards.tsx
+│   │       └── toolbar.tsx
+│   ├── settings/
+│   │   └── settings-page-client.tsx
+│   ├── templates/
+│   │   ├── preview-data.ts
+│   │   └── templates-page-client.tsx
+│   ├── ui/                    # Shadcn/Radix primitives (36 dosya)
+│   │   ├── alert.tsx
+│   │   ├── alert-dialog.tsx
+│   │   ├── avatar.tsx
+│   │   ├── badge.tsx
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── checkbox.tsx
+│   │   ├── dialog.tsx
+│   │   ├── dropdown-menu.tsx
+│   │   ├── image-lightbox.tsx
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   ├── network-status-banner.tsx
+│   │   ├── pdf-progress-modal.tsx
+│   │   ├── popover.tsx
+│   │   ├── product-image-gallery.tsx
+│   │   ├── progress.tsx
+│   │   ├── radio-group.tsx
+│   │   ├── responsive-container.tsx
+│   │   ├── scroll-area.tsx
+│   │   ├── select.tsx
+│   │   ├── separator.tsx
+│   │   ├── sheet.tsx
+│   │   ├── skeleton.tsx
+│   │   ├── skeleton-variants.tsx
+│   │   ├── slider.tsx
+│   │   ├── switch.tsx
+│   │   ├── table.tsx
+│   │   ├── tabs.tsx
+│   │   ├── textarea.tsx
+│   │   ├── theme-toggle.tsx
+│   │   └── tooltip.tsx
+│   ├── error-boundary.tsx
+│   ├── home-page-title-updater.tsx
+│   └── theme-provider.tsx
+│
+├── content/                   # MDX blog içerikleri
+│   └── blog/
+│       ├── b2b-dijital-katalog-rehberi-2026.mdx
+│       ├── dijital-katalog-ile-satis-artirma.mdx
+│       ├── neden-dijital-katalog-kullanmalisiniz.mdx
+│       └── why-digital-catalog.mdx
 │
 ├── lib/                       # Core Logic
+│   ├── __tests__/
+│   │   ├── api.test.ts
+│   │   └── errorHandler.test.ts
 │   ├── actions/               # Server Actions (Next.js)
-│   │   ├── products.ts        # Ürün CRUD actions
+│   │   ├── admin.ts
+│   │   ├── auth.ts
 │   │   ├── catalogs.ts        # Katalog CRUD actions
-│   │   ├── templates.ts       # Şablon yönetimi
 │   │   ├── categories.ts      # Kategori işlemleri
-│   │   ├── user.ts            # Kullanıcı profili
 │   │   ├── feedback.ts        # Geri bildirim
-│   │   └── notifications.ts   # Bildirimler
-│   ├── supabase/              # Supabase clients
-│   │   ├── server.ts          # Server-side client
-│   │   ├── client.ts          # Client-side client
-│   │   └── proxy.ts           # Session middleware
-│   ├── storage/               # Storage abstraction
-│   │   ├── types.ts           # StorageProvider interface
-│   │   ├── cloudinary.ts      # Cloudinary implementation
-│   │   ├── supabase.ts        # Supabase Storage
-│   │   └── index.ts           # Factory
+│   │   ├── notifications.ts   # Bildirimler
+│   │   ├── products.ts        # Ürün CRUD actions
+│   │   ├── templates.ts       # Şablon yönetimi
+│   │   └── user.ts            # Kullanıcı profili
 │   ├── hooks/                 # Custom React hooks
-│   │   ├── use-async-timeout.ts  # Zaman aşımı yönetimi
-│   │   └── use-media-query.ts
+│   │   ├── use-async-timeout.ts      # Zaman aşımı yönetimi
+│   │   ├── use-builder-handlers.ts
+│   │   ├── use-builder-state.ts
+│   │   ├── use-catalog-actions.ts
+│   │   ├── use-catalogs.ts
+│   │   ├── use-debounce.ts
+│   │   ├── use-editor-upload.ts
+│   │   ├── use-network-status.ts
+│   │   ├── use-notifications.ts
+│   │   ├── use-pdf-export.ts
+│   │   ├── use-product-images.ts
+│   │   └── use-products.ts
+│   ├── services/
+│   │   └── email.ts
+│   ├── storage/               # Storage abstraction
+│   │   ├── cloudinary.ts      # Cloudinary implementation
+│   │   ├── index.ts           # Factory
+│   │   ├── supabase.ts        # Supabase Storage
+│   │   └── types.ts           # StorageProvider interface
+│   ├── supabase/              # Supabase clients
+│   │   ├── client.ts          # Client-side client
+│   │   ├── proxy.ts           # Session middleware
+│   │   └── server.ts          # Server-side client
+│   ├── translations/          # i18n çevirileri (modüler)
+│   │   ├── admin.ts
+│   │   ├── auth.ts
+│   │   ├── billing.ts
+│   │   ├── catalog.ts
+│   │   ├── common.ts
+│   │   ├── dashboard.ts
+│   │   ├── index.ts           # Export hub
+│   │   ├── layout.ts
+│   │   ├── legal.ts
+│   │   ├── products.ts        # Ürün & import/export çevirileri
+│   │   ├── public-pages.ts
+│   │   └── settings.ts
+│   ├── utils/
+│   │   ├── fuzzy-search.ts
+│   │   └── retry.ts
 │   ├── validations/           # Zod schemas
 │   │   └── index.ts           # Tüm validation şemaları
+│   ├── activity-logger.ts
 │   ├── api.ts                 # apiFetch wrapper
-│   ├── constants.ts           # Şablon sabitleri (deprecated)
+│   ├── blog.ts
+│   ├── constants.ts           # Şablon sabitleri (deprecated?)
+│   ├── demo-data.ts
+│   ├── env-validation.ts
 │   ├── helpers.ts             # Utility fonksiyonlar
-│   ├── translations.ts        # i18n çevirileri (~142KB!)
+│   ├── i18n-provider.tsx
+│   ├── image-utils.ts
+│   ├── lightbox-context.tsx
+│   ├── query-provider.tsx
+│   ├── rate-limit.ts          # Client-side rate limiting
 │   ├── seo.ts                 # SEO metadata helpers
-│   └── rate-limit.ts          # Client-side rate limiting
-│
-├── supabase/                  # Database
-│   └── migrations/            # SQL migration dosyaları (27 adet)
-│
-├── tests/                     # Test dosyaları
-│   ├── components/            # Component tests
-│   └── lib/                   # Utility tests
+│   ├── sidebar-context.tsx
+│   ├── user-context.tsx
+│   └── utils.ts
 │
 ├── public/                    # Static assets
-├── content/                   # MDX blog içerikleri
-├── types/                     # Global TypeScript types
+│   ├── blog/
+│   │   ├── hero1.png
+│   │   └── hero2.png
+│   ├── icons/
+│   │   └── social/
+│   │       ├── facebook.png
+│   │       ├── gmail.png
+│   │       ├── linkedin.png
+│   │       ├── telegram.png
+│   │       ├── twitter.png
+│   │       └── whatsapp.png
+│   ├── apple-icon.png
+│   ├── hero-catalog.png
+│   ├── hero-dashboard.webp
+│   ├── icon-dark-32x32.png
+│   ├── icon-light-32x32.png
+│   ├── logo-preview.svg
+│   ├── manifest.json
+│   ├── og-image.png
+│   ├── placeholder.jpg
+│   ├── placeholder.svg
+│   ├── placeholder.webp
+│   ├── placeholder-logo.png
+│   ├── placeholder-user.jpg
+│   ├── placeholder-user.webp
+│   ├── sw.js
+│   └── urun-import-sablonu.csv
 │
-├── middleware.ts              # Next.js middleware (auth session)
-├── next.config.mjs            # Next.js configuration
-├── tailwind.config.ts         # Tailwind configuration
-├── vitest.config.ts           # Test configuration
+├── scripts/                   # Utility scripts
+│   ├── 001-create-users-table.sql
+│   ├── check-storage.js
+│   ├── check-storage.mjs
+│   ├── check-test-user.ts
+│   ├── check-test-user-short.ts
+│   ├── convert-to-webp.mjs
+│   ├── seed-products.mjs
+│   └── upgrade-test-user.ts
+│
+├── supabase/                  # Database
+│   ├── .temp/
+│   │   └── cli-latest
+│   └── migrations/            # SQL migration dosyaları (38 adet)
+│       ├── 00_initial_schema.sql
+│       ├── 00_initial_schema_safe.sql
+│       ├── 20260207_feedbacks_rls_admin.sql
+│       ├── 20260212190000_add_show_in_search.sql
+│       ├── 20260212230000_enforce_product_limits.sql
+│       ├── activity_logs.sql
+│       ├── add_catalog_customization_fields.sql
+│       ├── add_catalog_slug_unique_constraint.sql
+│       ├── add_cover_and_divider_pages.sql
+│       ├── add_cover_theme.sql
+│       ├── add_header_text_color_column.sql
+│       ├── add_product_image_fit_column.sql
+│       ├── add_product_url_column.sql
+│       ├── add_products_display_order.sql
+│       ├── add_published_slug_index.sql
+│       ├── add_show_urls_column.sql
+│       ├── add_storytelling_columns_only.sql
+│       ├── auth_activity_trigger.sql
+│       ├── batch_update_functions.sql
+│       ├── category_metadata_table.sql
+│       ├── create_tables_only.sql
+│       ├── dashboard_stats_optimization.sql
+│       ├── deleted_photos_table.sql
+│       ├── disable_rls_local.sql
+│       ├── fix_security_warnings.sql
+│       ├── fix_template_layouts.sql
+│       ├── notifications_and_logs.sql
+│       ├── product_catalog_cleanup.sql
+│       ├── smart_view_tracking.sql
+│       ├── storage_buckets_setup.sql
+│       ├── unique_visitors_multi.sql
+│       └── update_catalog_schema_sku_title.sql
+│
+├── types/                     # Global TypeScript types
+│   └── react-pageflip.d.ts
+│
+├── .claude-full-file-list.txt # AI context file list (504 files)
+├── .dockerignore
+├── .editorconfig
+├── .env.example
+├── .env.local
+├── .env.production.example
+├── .env.sentry-build-plugin
+├── .gitignore
+├── .prettierignore
+├── .prettierrc
+├── AI_CONTEXT.md
+├── BUILDER_PERFORMANCE_EXECUTION_PLAN.md
+├── CACHE_ARCHITECTURE_EXPLANATION.md
+├── CLAUDE.md                  # Bu dosya (proje dokümantasyonu)
+├── components.json            # Shadcn config
 ├── docker-compose.yml         # Docker setup
 ├── Dockerfile                 # Frontend container
-└── package.json               # Dependencies
+├── ENVIRONMENT_SETUP.md
+├── eslint.config.mjs
+├── instrumentation.ts
+├── instrumentation-client.ts.bak
+├── LOCAL_DB_QUICKSTART.md
+├── middleware.ts              # Next.js middleware (auth session)
+├── next.config.mjs            # Next.js configuration
+├── next-env.d.ts
+├── package.json               # Frontend dependencies
+├── package-lock.json
+├── PERFORMANCE_OPTIMIZATIONS.md
+├── pnpm-lock.yaml
+├── postcss.config.mjs
+├── PROJECT_AUDIT_AND_ROADMAP.md
+├── README.md
+├── sentry.client.config.ts
+├── sentry.edge.config.ts
+├── sentry.server.config.ts
+├── spaghetti-report.md
+├── storytelling-catalog.md
+├── SUPABASE_EMAIL_SETUP.md
+├── TROUBLESHOOTING_CLOUDINARY.md
+├── tsconfig.json
+├── tsconfig.tsbuildinfo
+├── vitest.config.ts           # Test configuration
+├── vitest.setup.ts
+└── WORK_LOG.md
 ```
 
 ### Kritik Dosya Açıklamaları

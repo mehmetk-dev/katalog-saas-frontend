@@ -694,6 +694,23 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
               const importedList = Array.isArray(imported) ? imported : []
               setProducts([...importedList, ...products])
               adjustMetadataTotal(importedList.length)
+              // Stats'ı yeni ürünlere göre güncelle (server refresh beklemeden)
+              setStats(prev => {
+                let deltaInStock = 0, deltaLowStock = 0, deltaOutOfStock = 0
+                importedList.forEach(p => {
+                  const stock = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock || 0))
+                  if (stock >= 10) deltaInStock++
+                  else if (stock > 0 && stock < 10) deltaLowStock++
+                  else deltaOutOfStock++
+                })
+                return {
+                  ...prev,
+                  total: prev.total + importedList.length,
+                  inStock: prev.inStock + deltaInStock,
+                  lowStock: prev.lowStock + deltaLowStock,
+                  outOfStock: prev.outOfStock + deltaOutOfStock,
+                }
+              })
               router.refresh()
               refreshUser()
             } catch (error) {

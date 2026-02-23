@@ -129,7 +129,8 @@ export const parseCSVFile = (file: File, t: TFunction): Promise<{ headers: strin
                     }
 
                     const delimiter = detectDelimiter(lines[0])
-                    const headers = parseCSVLine(lines[0], delimiter)
+                    // BOM ve görünmez karakterleri header'lardan temizle
+                    const headers = parseCSVLine(lines[0], delimiter).map(h => h.replace(/^\uFEFF/, '').trim())
                     const data: string[][] = []
 
                     for (let i = 1; i < lines.length; i++) {
