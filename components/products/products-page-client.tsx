@@ -56,6 +56,16 @@ type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 const DEFAULT_ITEMS_PER_PAGE = 12
 const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
 
+const parsePageFromQuery = (value: string | null) => {
+  const parsed = Number.parseInt(value || "1", 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+}
+
+const parseLimitFromQuery = (value: string | null) => {
+  const parsed = Number.parseInt(value || String(DEFAULT_ITEMS_PER_PAGE), 10)
+  return PAGE_SIZE_OPTIONS.includes(parsed) ? parsed : DEFAULT_ITEMS_PER_PAGE
+}
+
 import { useRouter, useSearchParams } from "next/navigation"
 
 export function ProductsPageClient({ initialProducts, initialMetadata, initialStats, userPlan, maxProducts }: ProductsPageClientProps) {
@@ -96,8 +106,8 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
   const [stockFilter, setStockFilter] = useState<StockFilter>("all")
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all")
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
-  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1"))
-  const [itemsPerPage, setItemsPerPage] = useState(parseInt(searchParams.get("limit") || DEFAULT_ITEMS_PER_PAGE.toString()))
+  const [currentPage, setCurrentPage] = useState(parsePageFromQuery(searchParams.get("page")))
+  const [itemsPerPage, setItemsPerPage] = useState(parseLimitFromQuery(searchParams.get("limit")))
 
   // Fiyat Güncelleme State
   const [priceChangeType, setPriceChangeType] = useState<"increase" | "decrease">("increase")
@@ -465,9 +475,10 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
             onViewModeChange={setViewMode}
             itemsPerPage={itemsPerPage}
             onItemsPerPageChange={(size) => {
-              setItemsPerPage(size)
+              const safeSize = PAGE_SIZE_OPTIONS.includes(size) ? size : DEFAULT_ITEMS_PER_PAGE
+              setItemsPerPage(safeSize)
               setCurrentPage(1)
-              updateUrl({ limit: size, page: 1 })
+              updateUrl({ limit: safeSize, page: 1 })
             }}
             pageSizeOptions={PAGE_SIZE_OPTIONS}
             onOpenImportExport={() => setShowImportModal(true)}
