@@ -51,6 +51,7 @@ export function ImportExportModal({
     const [csvData, setCsvData] = useState<string[][]>([])
     const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([])
     const [currentPage, setCurrentPage] = useState(1)
+    const [importProgress, setImportProgress] = useState({ percent: 0, message: '' })
 
     const open = controlledOpen !== undefined ? controlledOpen : internalOpen
     const canImport = userPlan === 'plus' || userPlan === 'pro'
@@ -76,6 +77,7 @@ export function ImportExportModal({
         setCsvData([])
         setColumnMappings([])
         setCurrentPage(1)
+        setImportProgress({ percent: 0, message: '' })
     }
 
     const totalPages = Math.max(1, Math.ceil(csvData.length / ROWS_PER_PAGE))
@@ -154,10 +156,14 @@ export function ImportExportModal({
         }
 
         setImportStatus('loading')
+        setImportProgress({ percent: 10, message: t('importExport.preparing') || 'Hazırlanıyor...' })
         await importTimeout.execute(async () => {
+            setImportProgress({ percent: 30, message: t('importExport.uploading') || 'Ürünler yükleniyor...' })
             importTimeout.setProgress(50)
             await onImport(products)
+            setImportProgress({ percent: 90, message: t('importExport.finishing') || 'Tamamlanıyor...' })
             importTimeout.setProgress(100)
+            setImportProgress({ percent: 100, message: `${products.length} ${t('importExport.productsReady') || 'ürün aktarıldı'}` })
 
             setImportStatus('success')
             setImportResult({ success: products.length, failed: 0 })
@@ -251,6 +257,8 @@ export function ImportExportModal({
                                 if (onOpenChange) onOpenChange(false)
                                 else setInternalOpen(false)
                             }}
+                            progressPercent={importProgress.percent}
+                            progressMessage={importProgress.message}
                         />
                     )}
                 </DialogContent>

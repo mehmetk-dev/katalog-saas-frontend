@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react'
 import { AlertCircle, CheckCircle2, Crown, Download, FileSpreadsheet, FileText, HelpCircle, Loader2, Upload } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { type MappingStatus } from './types'
 
@@ -17,6 +18,8 @@ interface DefaultTabsProps {
     onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void
     onResetError: () => void
     onExportAndClose: () => void
+    progressPercent?: number
+    progressMessage?: string
 }
 
 export function DefaultTabs({
@@ -31,6 +34,8 @@ export function DefaultTabs({
     onFileUpload,
     onResetError,
     onExportAndClose,
+    progressPercent = 0,
+    progressMessage = '',
 }: DefaultTabsProps) {
     return (
         <Tabs defaultValue="import" className="mt-4">
@@ -95,7 +100,18 @@ export function DefaultTabs({
                     </>
                 )}
 
-                {importStatus === 'loading' && <div className="py-12 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" /></div>}
+                {importStatus === 'loading' && (
+                    <div className="py-8 text-center space-y-4">
+                        <Loader2 className="h-10 w-10 animate-spin mx-auto text-violet-600" />
+                        <div className="space-y-2 px-4">
+                            <Progress value={progressPercent} className="h-2.5 bg-gray-100 dark:bg-gray-800 [&>div]:bg-violet-600 [&>div]:transition-all [&>div]:duration-500" />
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>{progressMessage || t('importExport.importing') || 'İçe aktarılıyor...'}</span>
+                                <span className="font-semibold text-violet-600">{progressPercent}%</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {importStatus === 'success' && importResult && (
                     <div className="py-12 text-center">

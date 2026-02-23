@@ -17,8 +17,8 @@ export default async function ProductsPage({
   searchParams: Promise<{ page?: string; limit?: string; category?: string; search?: string }>
 }) {
   const params = await searchParams
-  const page = parseInt(params.page || "1")
-  const limit = parseInt(params.limit || "12")
+  const page = Math.max(1, parseInt(params.page || "1") || 1)
+  const limit = Math.min(1000, Math.max(1, parseInt(params.limit || "12") || 12))
   const category = params.category || "all"
   const search = params.search || ""
 

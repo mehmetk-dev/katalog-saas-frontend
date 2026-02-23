@@ -15,7 +15,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
         if (page < 1) page = 1;
         if (limit < 1) limit = 12;
-        if (limit > 2000) limit = 2000;
+        if (limit > 1000) limit = 1000;
 
         const params = { page, limit, category, search };
         const cacheKey = cacheKeys.products(userId, params);

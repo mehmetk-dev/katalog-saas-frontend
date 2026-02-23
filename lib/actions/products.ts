@@ -56,6 +56,32 @@ export async function getProducts(params?: {
   return await apiFetch<ProductsResponse>(path)
 }
 
+export async function getAllProductsForExport(
+  onProgress?: (percent: number, message: string) => void
+): Promise<Product[]> {
+  const allProducts: Product[] = []
+  let page = 1
+  const batchSize = 500
+
+  // İlk sayfayı çek — total sayıyı öğren
+  const firstResponse = await getProducts({ page, limit: batchSize })
+  allProducts.push(...firstResponse.products)
+  const totalPages = firstResponse.metadata.totalPages
+  const totalCount = firstResponse.metadata.total
+
+  onProgress?.(Math.round((1 / totalPages) * 100), `${allProducts.length} / ${totalCount}`)
+
+  // Kalan sayfaları çek
+  while (page < totalPages) {
+    page++
+    const response = await getProducts({ page, limit: batchSize })
+    allProducts.push(...response.products)
+    onProgress?.(Math.round((page / totalPages) * 100), `${allProducts.length} / ${totalCount}`)
+  }
+
+  return allProducts
+}
+
 export interface ProductStats {
   total: number
   inStock: number

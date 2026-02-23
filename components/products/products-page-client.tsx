@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTranslation } from "@/lib/i18n-provider"
-import { Product, ProductStats, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts } from "@/lib/actions/products"
+import { Product, ProductStats, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts, getAllProductsForExport } from "@/lib/actions/products"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -340,77 +340,87 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
     setSelectedIds(newSelectedIds)
   }
 
-  const downloadAllProducts = () => {
-    // Collect all unique custom attribute names across all products
-    const customAttrNames = new Set<string>()
-    products.forEach(p => {
-      if (Array.isArray(p.custom_attributes)) {
-        p.custom_attributes.forEach((attr: { name: string }) => {
-          if (attr.name) customAttrNames.add(attr.name)
-        })
-      }
-    })
-    const customAttrList = Array.from(customAttrNames)
+  const downloadAllProducts = async () => {
+    try {
+      toast.loading(t("importExport.exportLoading") as string || "Ürünler hazırlanıyor...", { id: "export-loading" })
 
-    // CSV Headers — cover image + additional images + custom attributes
-    const headers = [
-      "Name", "SKU", "Description", "Price", "Stock", "Category",
-      "Cover Image", "Additional Images", "Product URL",
-      ...customAttrList
-    ]
-
-    // CSV Rows
-    const rows = products.map(p => {
-      // Cover image = image_url
-      const coverImage = p.image_url || ""
-
-      // Additional images = images array excluding cover
-      const additionalImages = (p.images || [])
-        .filter((img: string) => img && img !== p.image_url)
-        .join("|")
-
-      // Custom attributes — map each name to its value+unit
-      const customAttrValues = customAttrList.map(attrName => {
-        if (!Array.isArray(p.custom_attributes)) return ""
-        const attr = p.custom_attributes.find((a: { name: string }) => a.name === attrName)
-        if (!attr) return ""
-        const val = (attr as { value?: string }).value || ""
-        const unit = (attr as { unit?: string }).unit || ""
-        return unit ? `${val} ${unit}` : val
+      // Tüm ürünleri backend'den çek (sayfa sayfa, progress ile)
+      const allProducts = await getAllProductsForExport((percent, message) => {
+        toast.loading(`${t("importExport.exportLoading") as string || "Ürünler yükleniyor..."} ${message} (${percent}%)`, { id: "export-loading" })
       })
 
-      const fields = [
-        p.name,
-        p.sku || "",
-        p.description || "",
-        p.price,
-        p.stock,
-        p.category || "",
-        coverImage,
-        additionalImages,
-        p.product_url || "",
-        ...customAttrValues
+      toast.dismiss("export-loading")
+
+      if (!allProducts.length) {
+        toast.error(t("importExport.noProductsExport") as string || "Dışa aktarılacak ürün yok")
+        return
+      }
+
+      // Collect all unique custom attribute names
+      const customAttrNames = new Set<string>()
+      allProducts.forEach(p => {
+        if (Array.isArray(p.custom_attributes)) {
+          p.custom_attributes.forEach((attr: { name: string }) => {
+            if (attr.name) customAttrNames.add(attr.name)
+          })
+        }
+      })
+      const customAttrList = Array.from(customAttrNames)
+
+      // CSV Headers
+      const headers = [
+        "Name", "SKU", "Description", "Price", "Stock", "Category",
+        "Cover Image", "Additional Images", "Product URL",
+        ...customAttrList
       ]
 
-      // Escape and wrap each field in quotes
-      return fields.map(field => {
-        const stringValue = String(field ?? "").replace(/"/g, '""')
-        return `"${stringValue}"`
-      })
-    })
+      // CSV Rows
+      const rows = allProducts.map(p => {
+        const coverImage = p.image_url || ""
+        const additionalImages = (p.images || [])
+          .filter((img: string) => img && img !== p.image_url)
+          .join("|")
 
-    // BOM for UTF-8 Excel compatibility
-    const bom = "\uFEFF"
-    const csvContent = bom + [headers.map(h => `"${h}"`), ...rows].map(e => e.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", `products_export_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+        const customAttrValues = customAttrList.map(attrName => {
+          if (!Array.isArray(p.custom_attributes)) return ""
+          const attr = p.custom_attributes.find((a: { name: string }) => a.name === attrName)
+          if (!attr) return ""
+          const val = (attr as { value?: string }).value || ""
+          const unit = (attr as { unit?: string }).unit || ""
+          return unit ? `${val} ${unit}` : val
+        })
+
+        const fields = [
+          p.name, p.sku || "", p.description || "", p.price, p.stock, p.category || "",
+          coverImage, additionalImages, p.product_url || "",
+          ...customAttrValues
+        ]
+
+        return fields.map(field => {
+          const stringValue = String(field ?? "").replace(/"/g, '""')
+          return `"${stringValue}"`
+        })
+      })
+
+      // BOM for UTF-8 Excel compatibility
+      const bom = "\uFEFF"
+      const csvContent = bom + [headers.map(h => `"${h}"`), ...rows].map(e => e.join(",")).join("\n")
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement("a")
+      const url = URL.createObjectURL(blob)
+      link.setAttribute("href", url)
+      link.setAttribute("download", `products_export_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast.success(t("importExport.productsExported", { count: allProducts.length }) as string || `${allProducts.length} ürün dışa aktarıldı`)
+    } catch (error) {
+      toast.dismiss("export-loading")
+      toast.error(t("toasts.processingError") as string || "Dışa aktarma sırasında hata oluştu")
+      console.error("Export error:", error)
+    }
   }
 
   return (
