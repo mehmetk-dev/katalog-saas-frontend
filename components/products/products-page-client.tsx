@@ -352,7 +352,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
 
   const downloadAllProducts = async () => {
     try {
-      toast.loading(t("importExport.exportLoading") as string || "Ürünler hazırlanıyor...", { id: "export-loading" })
+      toast.loading(t("products.importExport.exportLoading") as string || "Ürünler hazırlanıyor...", { id: "export-loading" })
 
       // Tüm ürünleri backend'den çek (server action — callback geçilemez)
       const allProducts = await getAllProductsForExport()
@@ -360,49 +360,121 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
       toast.dismiss("export-loading")
 
       if (!allProducts.length) {
-        toast.error(t("importExport.noProductsExport") as string || "Dışa aktarılacak ürün yok")
+        toast.error(t("products.importExport.noProductsExport") as string || "Dışa aktarılacak ürün yok")
         return
       }
 
-      // Collect all unique custom attribute names
-      const customAttrNames = new Set<string>()
-      allProducts.forEach(p => {
-        if (Array.isArray(p.custom_attributes)) {
-          p.custom_attributes.forEach((attr: { name: string }) => {
-            if (attr.name) customAttrNames.add(attr.name)
-          })
+      const normalizeExportValue = (value: unknown) => {
+        const normalized = String(value ?? "").trim()
+        const lowered = normalized.toLowerCase()
+        if (!normalized || lowered === "null" || lowered === "undefined" || lowered === "n/a" || lowered === "-") {
+          return ""
         }
+        return normalized
+      }
+
+      const hasAnyValue = (values: Array<unknown>) =>
+        values.some((value) => normalizeExportValue(value).length > 0)
+
+      const columnDefs = [
+        {
+          key: "name",
+          header: t("products.importExport.systemFields.name") as string,
+          value: (product: Product) => product.name || "",
+          required: true,
+        },
+        {
+          key: "sku",
+          header: t("products.importExport.systemFields.sku") as string,
+          value: (product: Product) => normalizeExportValue(product.sku),
+          required: false,
+        },
+        {
+          key: "description",
+          header: t("products.importExport.systemFields.description") as string,
+          value: (product: Product) => normalizeExportValue(product.description),
+          required: false,
+        },
+        {
+          key: "price",
+          header: t("products.importExport.systemFields.price") as string,
+          value: (product: Product) => String(product.price ?? ""),
+          required: true,
+        },
+        {
+          key: "stock",
+          header: t("products.importExport.systemFields.stock") as string,
+          value: (product: Product) => String(product.stock ?? ""),
+          required: true,
+        },
+        {
+          key: "category",
+          header: t("products.importExport.systemFields.category") as string,
+          value: (product: Product) => normalizeExportValue(product.category),
+          required: false,
+        },
+        {
+          key: "coverImage",
+          header: t("products.importExport.systemFields.coverImage") as string,
+          value: (product: Product) => normalizeExportValue(product.image_url),
+          required: false,
+        },
+        {
+          key: "additionalImages",
+          header: t("products.importExport.systemFields.additionalImages") as string,
+          value: (product: Product) => (product.images || [])
+            .map((img: string) => normalizeExportValue(img))
+            .filter((img: string) => img && img !== normalizeExportValue(product.image_url))
+            .join("|"),
+          required: false,
+        },
+        {
+          key: "productUrl",
+          header: t("products.importExport.systemFields.productUrl") as string,
+          value: (product: Product) => normalizeExportValue(product.product_url),
+          required: false,
+        },
+      ]
+
+      const activeColumns = columnDefs.filter((column) =>
+        column.required || hasAnyValue(allProducts.map((product) => column.value(product))),
+      )
+
+      // Collect all unique custom attribute names that actually have values
+      const customAttrNames = new Set<string>()
+      allProducts.forEach((product) => {
+        if (!Array.isArray(product.custom_attributes)) return
+
+        product.custom_attributes.forEach((attr: { name?: string; value?: string | null }) => {
+          const attrName = normalizeExportValue(attr?.name)
+          const attrValue = normalizeExportValue(attr?.value)
+          if (attrName && attrValue) {
+            customAttrNames.add(attrName)
+          }
+        })
       })
       const customAttrList = Array.from(customAttrNames)
 
       // CSV Headers
       const headers = [
-        "Name", "SKU", "Description", "Price", "Stock", "Category",
-        "Cover Image", "Additional Images", "Product URL",
-        ...customAttrList
+        ...activeColumns.map((column) => column.header),
+        ...customAttrList,
       ]
 
       // CSV Rows
-      const rows = allProducts.map(p => {
-        const coverImage = p.image_url || ""
-        const additionalImages = (p.images || [])
-          .filter((img: string) => img && img !== p.image_url)
-          .join("|")
+      const rows = allProducts.map((product) => {
+        const baseValues = activeColumns.map((column) => column.value(product))
 
         const customAttrValues = customAttrList.map(attrName => {
-          if (!Array.isArray(p.custom_attributes)) return ""
-          const attr = p.custom_attributes.find((a: { name: string }) => a.name === attrName)
+          if (!Array.isArray(product.custom_attributes)) return ""
+          const attr = product.custom_attributes.find((a: { name: string }) => a.name === attrName)
           if (!attr) return ""
           const val = (attr as { value?: string }).value || ""
           const unit = (attr as { unit?: string }).unit || ""
           return unit ? `${val} ${unit}` : val
         })
 
-        const fields = [
-          p.name, p.sku || "", p.description || "", p.price, p.stock, p.category || "",
-          coverImage, additionalImages, p.product_url || "",
-          ...customAttrValues
-        ]
+        const fields = [...baseValues, ...customAttrValues]
 
         return fields.map(field => {
           const stringValue = String(field ?? "").replace(/"/g, '""')
@@ -423,7 +495,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
       link.click()
       document.body.removeChild(link)
 
-      toast.success(t("importExport.productsExported", { count: allProducts.length }) as string || `${allProducts.length} ürün dışa aktarıldı`)
+      toast.success(t("products.importExport.productsExported", { count: allProducts.length }) as string || `${allProducts.length} ürün dışa aktarıldı`)
     } catch (error) {
       toast.dismiss("export-loading")
       toast.error(t("toasts.processingError") as string || "Dışa aktarma sırasında hata oluştu")

@@ -14,6 +14,12 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
     const products: Array<Record<string, unknown>> = []
     const totalRows = csvData.length
 
+    const parseImageUrls = (raw: string) =>
+        raw
+            .split(/[|,\n]/)
+            .map((u) => u.trim())
+            .filter(Boolean)
+
     for (let rowIdx = 0; rowIdx < csvData.length; rowIdx++) {
         const row = csvData[rowIdx]
         onProgress?.(Math.round((rowIdx / Math.max(totalRows, 1)) * 50))
@@ -99,20 +105,43 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
                     product.category = isFreeUser ? null : value || null
                     break
                 case 'image_url':
-                    if (value.includes('|')) {
-                        const urls = value.split('|').map((u) => u.trim()).filter(Boolean)
-                        product.image_url = urls[0] || null
-                        product.images = urls
-                    } else {
-                        product.image_url = value || null
-                        product.images = value ? [value] : []
+                    if (value) {
+                        const urls = parseImageUrls(value)
+                        const cover = urls[0] || value
+                        product.image_url = cover || null
+
+                        const existingImages = Array.isArray(product.images) ? product.images : []
+                        const merged = [cover, ...existingImages, ...urls].filter(Boolean)
+                        product.images = Array.from(new Set(merged)).slice(0, 5)
                     }
                     break
+                case 'images': {
+                    const urls = parseImageUrls(value)
+                    if (!urls.length) break
+
+                    const existingImages = Array.isArray(product.images) ? product.images : []
+                    const merged = [...existingImages, ...urls].filter(Boolean)
+                    product.images = Array.from(new Set(merged)).slice(0, 5)
+
+                    if (!product.image_url && product.images.length > 0) {
+                        product.image_url = product.images[0]
+                    }
+                    break
+                }
                 case 'product_url':
                     product.product_url = value || null
                     break
             }
         })
+
+        if (!product.image_url && Array.isArray(product.images) && product.images.length > 0) {
+            product.image_url = product.images[0]
+        }
+
+        if (product.image_url && Array.isArray(product.images)) {
+            const normalizedImages = [product.image_url, ...product.images].filter(Boolean)
+            product.images = Array.from(new Set(normalizedImages)).slice(0, 5)
+        }
 
         product.custom_attributes = customAttrs
         if (product.name) products.push(product)
@@ -130,14 +159,15 @@ export const downloadTemplateCsv = (t: (key: string) => string) => {
         t('importExport.systemFields.stock'),
         t('importExport.systemFields.category'),
         t('importExport.systemFields.imageUrl'),
+        t('importExport.systemFields.additionalImages'),
         t('products.attributeNames.weight'),
         t('products.attributeNames.color'),
         t('products.attributeNames.material'),
     ]
 
     const sampleData = [
-        ['Ergonomik Ofis Koltuğu', 'MOB-001', 'Bel destekli, ayarlanabilir kolçaklar', '2499.99', '25', 'Mobilya', '', '12 kg', 'Siyah', 'Kumaş/Metal'],
-        ['Ahşap Çalışma Masası', 'MOB-002', 'Doğal meşe, 150x75 cm', '1899.00', '15', 'Mobilya', '', '35 kg', 'Doğal', 'Meşe Ahşap'],
+        ['Ergonomik Ofis Koltuğu', 'MOB-001', 'Bel destekli, ayarlanabilir kolçaklar', '2499.99', '25', 'Mobilya', 'https://example.com/cover1.jpg', 'https://example.com/side1.jpg|https://example.com/side2.jpg', '12 kg', 'Siyah', 'Kumaş/Metal'],
+        ['Ahşap Çalışma Masası', 'MOB-002', 'Doğal meşe, 150x75 cm', '1899.00', '15', 'Mobilya', 'https://example.com/cover2.jpg', 'https://example.com/side3.jpg|https://example.com/side4.jpg', '35 kg', 'Doğal', 'Meşe Ahşap'],
     ]
 
     const csvContent = [

@@ -1,4 +1,4 @@
-export const SYSTEM_FIELDS_KEYS = ['name', 'sku', 'description', 'price', 'stock', 'category', 'image_url', 'product_url'] as const
+export const SYSTEM_FIELDS_KEYS = ['name', 'sku', 'description', 'price', 'stock', 'category', 'image_url', 'images', 'product_url'] as const
 
 export const ROWS_PER_PAGE = 100
 
@@ -23,6 +23,7 @@ export const HEADER_ALIASES: Record<string, string> = {
     baslik: 'name',
     title: 'name',
     sku: 'sku',
+    'sku (stok kodu)': 'sku',
     'stok kodu': 'sku',
     stok_kodu: 'sku',
     stokkodu: 'sku',
@@ -84,9 +85,23 @@ export const HEADER_ALIASES: Record<string, string> = {
     image_url: 'image_url',
     imageurl: 'image_url',
     photo: 'image_url',
+    'cover image': 'image_url',
+    'kapak görseli': 'image_url',
+    'kapak gorseli': 'image_url',
     foto: 'image_url',
     fotoğraf: 'image_url',
     fotograf: 'image_url',
+    'ek görseller': 'images',
+    'ek gorseller': 'images',
+    ek_gorseller: 'images',
+    'yan görseller': 'images',
+    'yan gorseller': 'images',
+    yan_gorseller: 'images',
+    'additional images': 'images',
+    additional_images: 'images',
+    images: 'images',
+    image_urls: 'images',
+    'image urls': 'images',
     'ürün url': 'product_url',
     'urun url': 'product_url',
     ürün_url: 'product_url',
