@@ -100,7 +100,7 @@ export function ImportExportModal({
     const systemFields = useMemo(
         () => SYSTEM_FIELDS_KEYS.map((key) => ({
             id: key,
-            label: t(`products.importExport.systemFields.${key === 'image_url' ? 'imageUrl' : key === 'product_url' ? 'productUrl' : key === 'images' ? 'additionalImages' : key}`) + (key === 'name' || key === 'price' ? ' *' : ''),
+            label: t(`importExport.systemFields.${key === 'image_url' ? 'imageUrl' : key === 'product_url' ? 'productUrl' : key === 'images' ? 'additionalImages' : key}`) + (key === 'name' || key === 'price' ? ' *' : ''),
         })),
         [t],
     )

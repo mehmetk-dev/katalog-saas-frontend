@@ -352,7 +352,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
 
   const downloadAllProducts = async () => {
     try {
-      toast.loading(t("products.importExport.exportLoading") as string || "Ürünler hazırlanıyor...", { id: "export-loading" })
+      toast.loading(t("importExport.exportLoading") as string || "Ürünler hazırlanıyor...", { id: "export-loading" })
 
       // Tüm ürünleri backend'den çek (server action — callback geçilemez)
       const allProducts = await getAllProductsForExport()
@@ -360,7 +360,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
       toast.dismiss("export-loading")
 
       if (!allProducts.length) {
-        toast.error(t("products.importExport.noProductsExport") as string || "Dışa aktarılacak ürün yok")
+        toast.error(t("importExport.noProductsExport") as string || "Dışa aktarılacak ürün yok")
         return
       }
 
@@ -379,49 +379,49 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
       const columnDefs = [
         {
           key: "name",
-          header: t("products.importExport.systemFields.name") as string,
+          header: t("importExport.systemFields.name") as string,
           value: (product: Product) => product.name || "",
           required: true,
         },
         {
           key: "sku",
-          header: t("products.importExport.systemFields.sku") as string,
+          header: t("importExport.systemFields.sku") as string,
           value: (product: Product) => normalizeExportValue(product.sku),
           required: false,
         },
         {
           key: "description",
-          header: t("products.importExport.systemFields.description") as string,
+          header: t("importExport.systemFields.description") as string,
           value: (product: Product) => normalizeExportValue(product.description),
           required: false,
         },
         {
           key: "price",
-          header: t("products.importExport.systemFields.price") as string,
+          header: t("importExport.systemFields.price") as string,
           value: (product: Product) => String(product.price ?? ""),
           required: true,
         },
         {
           key: "stock",
-          header: t("products.importExport.systemFields.stock") as string,
+          header: t("importExport.systemFields.stock") as string,
           value: (product: Product) => String(product.stock ?? ""),
           required: true,
         },
         {
           key: "category",
-          header: t("products.importExport.systemFields.category") as string,
+          header: t("importExport.systemFields.category") as string,
           value: (product: Product) => normalizeExportValue(product.category),
           required: false,
         },
         {
           key: "coverImage",
-          header: t("products.importExport.systemFields.coverImage") as string,
+          header: t("importExport.systemFields.coverImage") as string,
           value: (product: Product) => normalizeExportValue(product.image_url),
           required: false,
         },
         {
           key: "additionalImages",
-          header: t("products.importExport.systemFields.additionalImages") as string,
+          header: t("importExport.systemFields.additionalImages") as string,
           value: (product: Product) => (product.images || [])
             .map((img: string) => normalizeExportValue(img))
             .filter((img: string) => img && img !== normalizeExportValue(product.image_url))
@@ -430,7 +430,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
         },
         {
           key: "productUrl",
-          header: t("products.importExport.systemFields.productUrl") as string,
+          header: t("importExport.systemFields.productUrl") as string,
           value: (product: Product) => normalizeExportValue(product.product_url),
           required: false,
         },
@@ -495,7 +495,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
       link.click()
       document.body.removeChild(link)
 
-      toast.success(t("products.importExport.productsExported", { count: allProducts.length }) as string || `${allProducts.length} ürün dışa aktarıldı`)
+      toast.success(t("importExport.productsExported", { count: allProducts.length }) as string || `${allProducts.length} ürün dışa aktarıldı`)
     } catch (error) {
       toast.dismiss("export-loading")
       toast.error(t("toasts.processingError") as string || "Dışa aktarma sırasında hata oluştu")

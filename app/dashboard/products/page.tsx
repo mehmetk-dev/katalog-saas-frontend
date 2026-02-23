@@ -30,11 +30,22 @@ export default async function ProductsPage({
   const category = params.category || "all"
   const search = params.search || ""
 
-  const [productsResponse, statsResponse, user] = await Promise.all([
-    getProducts({ page, limit, category, search }),
-    getProductStats(),
-    getCurrentUser(),
-  ])
+  let productsResponse: import('@/lib/actions/products').ProductsResponse = { products: [], metadata: { total: 0, page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, totalPages: 1 } };
+  let statsResponse = { total: 0, inStock: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };
+  let user: any = null;
+
+  try {
+    const [pRes, sRes, uRes] = await Promise.all([
+      getProducts({ page, limit, category, search }),
+      getProductStats(),
+      getCurrentUser(),
+    ]);
+    if (pRes) productsResponse = pRes;
+    if (sRes) statsResponse = sRes;
+    if (uRes) user = uRes;
+  } catch (error) {
+    console.error("[ProductsPage] Error fetching data:", error);
+  }
 
   return (
     <Suspense fallback={<ProductsPageSkeleton />}>
