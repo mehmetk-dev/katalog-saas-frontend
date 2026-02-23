@@ -16,7 +16,7 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
 
     const parseImageUrls = (raw: string) =>
         raw
-            .split(/[|,\n]/)
+            .split(/[|\n]/)
             .map((u) => u.trim())
             .filter(Boolean)
 
@@ -152,14 +152,14 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
 
 export const downloadTemplateCsv = (t: (key: string) => string) => {
     const headers = [
-        `${t('products.importExport.systemFields.name')}*`,
-        t('products.importExport.systemFields.sku'),
-        t('products.importExport.systemFields.description'),
-        `${t('products.importExport.systemFields.price')}*`,
-        t('products.importExport.systemFields.stock'),
-        t('products.importExport.systemFields.category'),
-        t('products.importExport.systemFields.coverImage'),
-        t('products.importExport.systemFields.additionalImages'),
+        `${t('importExport.systemFields.name')}*`,
+        t('importExport.systemFields.sku'),
+        t('importExport.systemFields.description'),
+        `${t('importExport.systemFields.price')}*`,
+        t('importExport.systemFields.stock'),
+        t('importExport.systemFields.category'),
+        t('importExport.systemFields.coverImage'),
+        t('importExport.systemFields.additionalImages'),
         t('products.attributeNames.weight'),
         t('products.attributeNames.color'),
         t('products.attributeNames.material'),
