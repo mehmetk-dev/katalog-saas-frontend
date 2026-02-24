@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from "react"
-import { FileText, List } from "lucide-react"
+import { FileText, List, ZoomIn, ZoomOut } from "lucide-react"
 import { useUser } from "@/lib/user-context"
 import type { Product } from "@/lib/actions/products"
 import { Button } from "@/components/ui/button"
@@ -118,7 +118,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
   const isFreeUser = user?.plan === "free"
   const [currentPage, setCurrentPage] = useState(0)
   const [viewMode, setViewMode] = useState<"single" | "multi">("single")
-  const [scale] = useState(0.7)
+  const [scale, setScale] = useState(0.7)
   const containerRef = useRef<HTMLDivElement>(null)
   const workspaceScrollRef = useRef<HTMLDivElement>(null)
   const [multiScrollTop, setMultiScrollTop] = useState(0)
@@ -403,6 +403,29 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
         </div>
 
         <div className="flex items-center gap-1 md:gap-4">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 md:gap-2 bg-slate-100 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200 dark:border-white/10 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 md:h-8 px-1.5 md:px-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              onClick={() => setScale(s => Math.max(0.3, s - 0.1))}
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </Button>
+            <span className="text-[10px] font-bold w-8 text-center text-slate-500 dark:text-slate-400 tabular-nums">
+              {Math.round(scale * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 md:h-8 px-1.5 md:px-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              onClick={() => setScale(s => Math.min(2.0, s + 0.1))}
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+
           {viewMode === 'single' && totalPages > 1 && (
             <div className="flex items-center gap-3 md:gap-4 bg-slate-100 dark:bg-white/5 px-4 py-1.5 rounded-2xl border border-slate-200 dark:border-white/10 min-w-[200px] md:min-w-[300px]">
               <div className="text-[9px] font-black text-slate-500 dark:text-slate-400 tabular-nums shrink-0">

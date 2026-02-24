@@ -196,32 +196,51 @@ export const getProductStats = async (req: Request, res: Response) => {
         // Use redis cache to speed up stats
         const cacheKey = cacheKeys.stats(userId, { type: 'products' });
         const result = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
-            // For precision, getting all stock/price pairs
-            const { data, error } = await supabase
+            // First get exact total count (doesn't fetch rows)
+            const { count: totalCount, error: countError } = await supabase
                 .from('products')
-                .select('stock, price')
+                .select('*', { count: 'exact', head: true })
                 .eq('user_id', userId);
 
-            if (error) throw error;
+            if (countError) throw countError;
+
+            const total = totalCount || 0;
 
             const stats = {
-                total: data.length,
+                total,
                 inStock: 0,
                 lowStock: 0,
                 outOfStock: 0,
                 totalValue: 0
             };
 
-            data.forEach(p => {
-                const stock = p.stock || 0;
-                const price = Number(p.price) || 0;
+            // Fetch all stock/price pairs in batches of 1000 (Supabase default limit)
+            const BATCH_SIZE = 1000;
+            const totalBatches = Math.ceil(total / BATCH_SIZE);
 
-                if (stock >= 10) stats.inStock++;
-                else if (stock > 0 && stock < 10) stats.lowStock++;
-                else if (stock === 0) stats.outOfStock++;
+            for (let batch = 0; batch < totalBatches; batch++) {
+                const from = batch * BATCH_SIZE;
+                const to = from + BATCH_SIZE - 1;
 
-                stats.totalValue += (stock * price);
-            });
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('stock, price')
+                    .eq('user_id', userId)
+                    .range(from, to);
+
+                if (error) throw error;
+
+                (data || []).forEach(p => {
+                    const stock = p.stock || 0;
+                    const price = Number(p.price) || 0;
+
+                    if (stock >= 10) stats.inStock++;
+                    else if (stock > 0 && stock < 10) stats.lowStock++;
+                    else if (stock === 0) stats.outOfStock++;
+
+                    stats.totalValue += (stock * price);
+                });
+            }
 
             return stats;
         });

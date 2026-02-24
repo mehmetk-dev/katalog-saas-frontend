@@ -125,22 +125,13 @@ export function BuilderToolbar({
                     {!isMobile && (
                         <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 mr-2">
                             <Button
-                                variant={view === "editor" ? "secondary" : "ghost"}
-                                size="sm"
-                                className="h-8 px-3 rounded-lg text-[11px] font-black uppercase tracking-wider"
-                                onClick={() => onViewChange("editor")}
-                            >
-                                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                                Düzenle
-                            </Button>
-                            <Button
                                 variant={view === "preview" ? "secondary" : "ghost"}
                                 size="sm"
                                 className="h-8 px-3 rounded-lg text-[11px] font-black uppercase tracking-wider"
                                 onClick={() => onViewChange("preview")}
                             >
                                 <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                Önizle
+                                Tam Ekran Önizle
                             </Button>
                         </div>
                     )}

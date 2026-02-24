@@ -81,7 +81,18 @@ export function LuxuryTemplate({
         color: '#d4af37' // Default gold text base
     }
 
-    const primaryTextColor = headerTextColor || '#f3eacb' // Cream/Gold or user override
+    // Koyu arka plan → koyu headerTextColor kullanılamaz, açık renge zorla
+    const isDarkColor = (color?: string) => {
+        if (!color) return false
+        const hex = color.replace('#', '')
+        const r = parseInt(hex.substring(0, 2), 16)
+        const g = parseInt(hex.substring(2, 4), 16)
+        const b = parseInt(hex.substring(4, 6), 16)
+        return (r + g + b) / 3 < 100 // Ortalama < 100 ise çok koyu
+    }
+
+    const safeHeaderTextColor = isDarkColor(headerTextColor) ? undefined : headerTextColor
+    const primaryTextColor = safeHeaderTextColor || '#f3eacb' // Cream/Gold or user override
     const accentColor = '#d4af37' // Gold accent
 
     return (
@@ -153,12 +164,12 @@ export function LuxuryTemplate({
 
                             {/* Product Info - All Text Made Pure White as Requested */}
                             <div className="mt-5 flex flex-col items-center text-center relative px-2">
-                                <h3 className="font-serif text-[13px] tracking-[0.2em] uppercase line-clamp-1 mb-1 transition-colors duration-500" style={{ color: headerTextColor || '#ffffff' }}>
+                                <h3 className="font-serif text-[13px] tracking-[0.2em] uppercase line-clamp-1 mb-1 transition-colors duration-500" style={{ color: primaryTextColor }}>
                                     {product.name}
                                 </h3>
 
                                 {showDescriptions && product.description && (
-                                    <p className="text-[10px] italic line-clamp-2 mb-2 font-serif font-light tracking-wide max-w-[200px] leading-relaxed" style={{ color: headerTextColor ? `${headerTextColor}CC` : '#ffffff' }}>
+                                    <p className="text-[10px] italic line-clamp-2 mb-2 font-serif font-light tracking-wide max-w-[200px] leading-relaxed" style={{ color: `${primaryTextColor}CC` }}>
                                         {product.description}
                                     </p>
                                 )}
@@ -178,8 +189,8 @@ export function LuxuryTemplate({
                                 {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
                                     <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 opacity-80 group-hover:opacity-100 transition-opacity duration-500 pb-8">
                                         {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 2).map((attr, aidx) => (
-                                            <div key={aidx} className="flex items-center text-[8px] tracking-[0.15em] uppercase font-medium" style={{ color: headerTextColor || '#ffffff' }}>
-                                                <span className="mr-1" style={{ color: headerTextColor ? `${headerTextColor}99` : 'rgba(255,255,255,0.6)' }}>{attr.name}:</span>
+                                            <div key={aidx} className="flex items-center text-[8px] tracking-[0.15em] uppercase font-medium" style={{ color: primaryTextColor }}>
+                                                <span className="mr-1" style={{ color: `${primaryTextColor}99` }}>{attr.name}:</span>
                                                 <span>{attr.value}{attr.unit}</span>
                                             </div>
                                         ))}

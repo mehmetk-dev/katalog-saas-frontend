@@ -156,15 +156,42 @@ export function ImportExportModal({
         }
 
         setImportStatus('loading')
-        setImportProgress({ percent: 10, message: t('importExport.preparing') || 'Hazırlanıyor...' })
-        await importTimeout.execute(async () => {
-            setImportProgress({ percent: 30, message: t('importExport.uploading') || 'Ürünler yükleniyor...' })
-            importTimeout.setProgress(50)
-            await onImport(products)
-            setImportProgress({ percent: 90, message: t('importExport.finishing') || 'Tamamlanıyor...' })
-            importTimeout.setProgress(100)
-            setImportProgress({ percent: 100, message: `${products.length} ${t('importExport.productsReady') || 'ürün aktarıldı'}` })
+        setImportProgress({ percent: 5, message: t('importExport.preparing') || 'Hazırlanıyor...' })
 
+        await importTimeout.execute(async () => {
+            const BATCH_SIZE = 500
+            const totalProducts = products.length
+
+            if (totalProducts <= BATCH_SIZE) {
+                // Küçük import: tek batch
+                setImportProgress({ percent: 20, message: t('importExport.uploading') || 'Ürünler yükleniyor...' })
+                await onImport(products)
+                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady') || 'ürün aktarıldı'}` })
+            } else {
+                // Büyük import: batch'lere böl
+                let imported = 0
+
+                for (let i = 0; i < totalProducts; i += BATCH_SIZE) {
+                    const batch = products.slice(i, i + BATCH_SIZE)
+                    const batchNum = Math.floor(i / BATCH_SIZE) + 1
+                    const totalBatches = Math.ceil(totalProducts / BATCH_SIZE)
+
+                    // Progress: 10% → 90% arası batch'lere dağıt
+                    const percent = 10 + Math.round((imported / totalProducts) * 80)
+                    setImportProgress({
+                        percent,
+                        message: `${imported}/${totalProducts} ürün yüklendi (Paket ${batchNum}/${totalBatches})`,
+                    })
+                    importTimeout.setProgress(percent)
+
+                    await onImport(batch)
+                    imported += batch.length
+                }
+
+                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady') || 'ürün aktarıldı'}` })
+            }
+
+            importTimeout.setProgress(100)
             setImportStatus('success')
             setImportResult({ success: products.length, failed: 0 })
             toast.success(t('importExport.productsImported', { count: products.length }))

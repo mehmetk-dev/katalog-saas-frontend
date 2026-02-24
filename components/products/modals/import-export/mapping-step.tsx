@@ -110,7 +110,20 @@ export function MappingStep({
                                     <th key={index} className="px-4 py-3 min-w-[220px] bg-muted/50 border-b align-top">
                                         <div className="space-y-2">
                                             <div className="font-semibold text-foreground flex items-center gap-2">
-                                                <span className="truncate max-w-[150px]" title={header}>{header}</span>
+                                                {(() => {
+                                                    const mapped = columnMappings[index]?.systemField
+                                                    const sysField = mapped && mapped !== 'skip' && mapped !== null
+                                                        ? systemFields.find(f => f.id === mapped)
+                                                        : null
+                                                    return sysField ? (
+                                                        <span className="flex flex-col min-w-0">
+                                                            <span className="truncate max-w-[160px] text-indigo-700" title={sysField.label}>{sysField.label}</span>
+                                                            <span className="truncate max-w-[160px] text-[11px] font-normal text-muted-foreground" title={header}>{header}</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="truncate max-w-[150px]" title={header}>{header}</span>
+                                                    )
+                                                })()}
                                                 <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">{index + 1}</Badge>
                                             </div>
 

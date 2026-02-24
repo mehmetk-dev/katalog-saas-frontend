@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
     ShoppingBag,
     Smartphone,
@@ -19,7 +20,9 @@ import {
     Trophy,
     ToyBrick,
     Book,
-    Utensils
+    Utensils,
+    Eye,
+    X
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,11 +60,9 @@ export const TEMPLATES = [
     { id: 'fashion-lookbook', name: 'Moda Lookbook', component: FashionLookbookTemplate, description: 'Büyük görsellerle dergi stili.' },
     { id: 'magazine', name: 'Magazin', component: MagazineTemplate, description: 'Hikaye odaklı profesyonel mizanpaj.' },
     { id: 'luxury', name: 'Lüks', component: LuxuryTemplate, description: 'Premium, koyu temalı zarafet.' },
-    { id: 'classic-catalog', name: 'Klasik', component: ClassicCatalogTemplate, description: 'Geleneksel ve güvenilir yerleşim.' },
     { id: 'bold', name: 'Cesur', component: BoldTemplate, description: 'Güçlü renkler, dikkat çekici stil.' },
     { id: 'elegant-cards', name: 'Zarif Kartlar', component: ElegantCardsTemplate, description: 'Şık kartlarla premium sunum.' },
     { id: 'minimalist', name: 'Minimalist', component: MinimalistTemplate, description: 'Sade, az ama öz tasarım.' },
-    { id: 'showcase', name: 'Vitrin', component: ShowcaseTemplate, description: 'Ürünleri ön plana çıkarır.' },
     { id: 'catalog-pro', name: 'Katalog Pro', component: CatalogProTemplate, description: 'Profesyonel iş kataloğu.' },
 ]
 
@@ -86,11 +87,27 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
     const [showDescriptions, setShowDescriptions] = useState(true)
 
     const previewRef = useRef<HTMLDivElement>(null)
+    const [showMobilePreview, setShowMobilePreview] = useState(false)
 
     // Scroll to top on step change (only if not embedded)
     useEffect(() => {
         if (!isEmbedded) window.scrollTo(0, 0)
     }, [step, isEmbedded])
+
+    const router = useRouter()
+
+    // Responsive scale
+    const [scale, setScale] = useState(0.75)
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 640) setScale(0.45) // Mobile
+            else if (window.innerWidth < 1024) setScale(0.65) // Tablet
+            else setScale(0.75) // Desktop
+        }
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     // Get Current Template Component
     const CurrentTemplate = TEMPLATES.find(t => t.id === templateId)?.component || ModernGridTemplate
@@ -146,48 +163,68 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setTemplateId(tmpl.id)}
                                 className={`
-                                    cursor-pointer p-4 rounded-2xl border-2 transition-all duration-300 flex flex-col gap-3 relative
+                                    cursor-pointer rounded-2xl border-2 transition-all duration-300 flex flex-col relative overflow-hidden
                                     ${templateId === tmpl.id ? 'border-[#cf1414] bg-red-50/30 ring-4 ring-red-50' : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'}
                                 `}
                             >
-                                <div className="aspect-[16/10] bg-slate-100 rounded-xl overflow-hidden relative group">
-                                    {/* Template Badge */}
-                                    <div className="absolute top-2 left-2 z-20">
-                                        <span className="bg-white/90 backdrop-blur-md text-slate-800 text-[8px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">
-                                            {tmpl.name}
-                                        </span>
-                                    </div>
-
-                                    {/* Actual Template Mini-Preview */}
-                                    <div className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity overflow-hidden pointer-events-none bg-slate-200/30">
+                                {/* Template Preview - A4 aspect ratio */}
+                                <div className="w-full relative overflow-hidden bg-slate-50" style={{ aspectRatio: '210/297' }}>
+                                    {/* CSS override: NextImage fill modunun transform:scale altında çalışmamasını düzelt */}
+                                    <style>{`
+                                        .demo-card-preview img {
+                                            position: absolute !important;
+                                            width: 100% !important;
+                                            height: 100% !important;
+                                            inset: 0 !important;
+                                        }
+                                        .demo-card-preview [data-nimg] {
+                                            position: absolute !important;
+                                            inset: 0 !important;
+                                        }
+                                    `}</style>
+                                    {/* Auto-scaling preview container */}
+                                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
                                         <div
-                                            className="absolute bg-white shadow-[0_5px_15px_rgba(0,0,0,0.1)] border border-slate-200"
+                                            className="demo-card-preview absolute top-0 left-0 bg-white origin-top-left overflow-hidden"
                                             style={{
-                                                width: '210mm',
-                                                height: '297mm',
-                                                top: '50%',
-                                                left: '50%',
-                                                marginLeft: '-105mm',
-                                                marginTop: '-148.5mm',
-                                                transform: 'scale(0.14)',
-                                                transformOrigin: 'center'
+                                                width: '794px',
+                                                height: '1123px',
+                                                transform: 'scale(var(--preview-scale, 0.2))',
+                                            }}
+                                            ref={(el) => {
+                                                if (el && el.parentElement) {
+                                                    const parentWidth = el.parentElement.offsetWidth
+                                                    const s = parentWidth / 794
+                                                    el.style.setProperty('--preview-scale', String(s))
+                                                    el.style.transform = `scale(${s})`
+
+                                                    // Force eager loading: NextImage lazy loading çalışmaz transform:scale altında
+                                                    requestAnimationFrame(() => {
+                                                        el.querySelectorAll('img[loading="lazy"]').forEach(img => {
+                                                            img.setAttribute('loading', 'eager')
+                                                        })
+                                                    })
+                                                }
                                             }}
                                         >
-                                            <tmpl.component
-                                                products={currentProducts.slice(0, 4)}
-                                                catalogName={catalogName}
-                                                primaryColor={primaryColor}
-                                                headerTextColor={headerTextColor}
-                                                showPrices={showPrices}
-                                                showDescriptions={showDescriptions}
-                                                logoUrl={logoUrl}
-                                                showAttributes={true}
-                                                showSku={true}
-                                                isFreeUser={false}
-                                            />
+                                            <div className="w-full h-full" style={{ width: '794px', height: '1123px' }}>
+                                                <tmpl.component
+                                                    products={currentProducts.slice(0, 6)}
+                                                    catalogName={catalogName}
+                                                    primaryColor={primaryColor}
+                                                    headerTextColor={headerTextColor}
+                                                    showPrices={showPrices}
+                                                    showDescriptions={showDescriptions}
+                                                    logoUrl={logoUrl}
+                                                    showAttributes={true}
+                                                    showSku={true}
+                                                    isFreeUser={false}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
+                                    {/* Selection overlay */}
                                     {templateId === tmpl.id && (
                                         <div className="absolute inset-0 bg-[#cf1414]/10 backdrop-blur-[1px] flex items-center justify-center z-30">
                                             <div className="w-10 h-10 bg-white rounded-full shadow-2xl flex items-center justify-center text-[#cf1414] animate-in zoom-in duration-300">
@@ -196,13 +233,15 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                                         </div>
                                     )}
                                 </div>
-                                <div className="px-1 flex items-center justify-between">
-                                    <div>
-                                        <h3 className="font-black text-sm uppercase tracking-tighter">{tmpl.name}</h3>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{tmpl.description}</p>
+
+                                {/* Bottom info bar */}
+                                <div className="px-3 py-2.5 flex items-center justify-between border-t border-slate-100">
+                                    <div className="min-w-0">
+                                        <h3 className="font-black text-xs uppercase tracking-tighter truncate">{tmpl.name}</h3>
+                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">{tmpl.description}</p>
                                     </div>
                                     {templateId === tmpl.id && (
-                                        <span className="text-[10px] font-black text-[#cf1414] uppercase">Seçili</span>
+                                        <span className="text-[9px] font-black text-[#cf1414] uppercase shrink-0 ml-2">Seçili</span>
                                     )}
                                 </div>
                             </motion.div>
@@ -212,96 +251,69 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
             case 3: // Customization
                 return (
                     <div className="space-y-6">
-                        <Tabs defaultValue="design" className="w-full">
-                            <TabsList className="w-full h-12 grid grid-cols-2 bg-slate-100 p-1 rounded-xl">
-                                <TabsTrigger value="design" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                    <Palette className="w-4 h-4 mr-2" /> Tasarım
-                                </TabsTrigger>
-                                <TabsTrigger value="content" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                    <LayoutTemplate className="w-4 h-4 mr-2" /> İçerik
-                                </TabsTrigger>
-                            </TabsList>
+                        <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Katalog Kimliği</Label>
+                            <div className="space-y-2">
+                                <span className="text-sm font-bold text-slate-900">Görünen İsim</span>
+                                <Input
+                                    value={catalogName}
+                                    onChange={(e) => setCatalogName(e.target.value)}
+                                    className="h-12 rounded-xl border-slate-200 focus:border-[#cf1414] focus:ring-[#cf1414]/10 font-bold"
+                                    placeholder="Örn: Yaz Koleksiyonu 2024"
+                                />
+                            </div>
+                        </div>
 
-                            <TabsContent value="design" className="p-6 space-y-6">
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Marka Renkleri</Label>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-900">Ana Renk</span>
-                                                <span className="text-xs text-slate-400 font-medium">{primaryColor}</span>
-                                            </div>
-                                            <div className="relative group">
-                                                <div className="w-12 h-12 rounded-xl shadow-inner border border-white" style={{ backgroundColor: primaryColor }} />
-                                                <Input
-                                                    type="color"
-                                                    value={primaryColor}
-                                                    onChange={(e) => setPrimaryColor(e.target.value)}
-                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-900">Arka Plan</span>
-                                                <span className="text-xs text-slate-400 font-medium">{backgroundColor}</span>
-                                            </div>
-                                            <div className="relative">
-                                                <div className="w-12 h-12 rounded-xl shadow-inner border border-white" style={{ backgroundColor: backgroundColor }} />
-                                                <Input
-                                                    type="color"
-                                                    value={backgroundColor}
-                                                    onChange={(e) => setBackgroundColor(e.target.value)}
-                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                                />
-                                            </div>
-                                        </div>
+                        <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Marka Renkleri</Label>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-slate-900">Ana Renk</span>
+                                        <span className="text-xs text-slate-400 font-medium">{primaryColor}</span>
+                                    </div>
+                                    <div className="relative group">
+                                        <div className="w-12 h-12 rounded-xl shadow-inner border border-white" style={{ backgroundColor: primaryColor }} />
+                                        <Input
+                                            type="color"
+                                            value={primaryColor}
+                                            onChange={(e) => setPrimaryColor(e.target.value)}
+                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        />
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tipografi ve Ölçek</Label>
-                                    <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-bold text-slate-900">Fiyatları Göster</span>
-                                            <Switch checked={showPrices} onCheckedChange={setShowPrices} className="data-[state=checked]:bg-[#cf1414]" />
-                                        </div>
-                                        <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-                                            <span className="text-sm font-bold text-slate-900">Ürün Açıklamaları</span>
-                                            <Switch checked={showDescriptions} onCheckedChange={setShowDescriptions} className="data-[state=checked]:bg-[#cf1414]" />
-                                        </div>
+                                <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-slate-900">Arka Plan</span>
+                                        <span className="text-xs text-slate-400 font-medium">{backgroundColor}</span>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="w-12 h-12 rounded-xl shadow-inner border border-white" style={{ backgroundColor: backgroundColor }} />
+                                        <Input
+                                            type="color"
+                                            value={backgroundColor}
+                                            onChange={(e) => setBackgroundColor(e.target.value)}
+                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        />
                                     </div>
                                 </div>
-                            </TabsContent>
+                            </div>
+                        </div>
 
-                            <TabsContent value="content" className="p-6 space-y-6">
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Katalog Kimliği</Label>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <span className="text-sm font-bold text-slate-900">Görünen İsim</span>
-                                            <Input
-                                                value={catalogName}
-                                                onChange={(e) => setCatalogName(e.target.value)}
-                                                className="h-12 rounded-xl border-slate-200 focus:border-[#cf1414] focus:ring-[#cf1414]/10 font-bold"
-                                                placeholder="Örn: Yaz Koleksiyonu 2024"
-                                            />
-                                        </div>
-
-                                        <div className="p-5 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-3 hover:border-slate-300 transition-colors cursor-pointer">
-                                            <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-400">
-                                                <Smartphone className="w-5 h-5" />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-xs font-black uppercase tracking-tight text-slate-900">Marka Logosu Yükle</p>
-                                                <p className="text-[10px] text-slate-400 font-medium">PNG, SVG veya JPG (Max 2MB)</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Detaylar</Label>
+                            <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-900">Fiyatları Göster</span>
+                                    <Switch checked={showPrices} onCheckedChange={setShowPrices} className="data-[state=checked]:bg-[#cf1414]" />
                                 </div>
-                            </TabsContent>
-                        </Tabs>
+                                <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                                    <span className="text-sm font-bold text-slate-900">Ürün Açıklamaları</span>
+                                    <Switch checked={showDescriptions} onCheckedChange={setShowDescriptions} className="data-[state=checked]:bg-[#cf1414]" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )
             case 4: // Final
@@ -317,17 +329,39 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                             </p>
                         </div>
                         <div className="flex gap-4">
-                            <Button className="gap-2" size="lg">
-                                <Download className="w-4 h-4" /> PDF İndir (Demo)
+                            <Button variant="outline" onClick={handleBack} className="gap-2" size="lg">
+                                <Undo2 className="w-4 h-4" /> Geri
                             </Button>
-                            <Button variant="outline" className="gap-2" size="lg">
-                                <Share2 className="w-4 h-4" /> Linki Paylaş
+                            <Button
+                                className="gap-2"
+                                size="lg"
+                                onClick={async () => {
+                                    if (!previewRef.current) return
+                                    try {
+                                        const { toJpeg } = await import('html-to-image')
+                                        const { default: jsPDF } = await import('jspdf')
+
+                                        const dataUrl = await toJpeg(previewRef.current, {
+                                            quality: 0.95,
+                                            pixelRatio: 2,
+                                            backgroundColor: '#ffffff',
+                                        })
+
+                                        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+                                        pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297)
+                                        pdf.save(`${catalogName || 'katalog'}-demo.pdf`)
+                                    } catch (err) {
+                                        console.error('PDF export error:', err)
+                                    }
+                                }}
+                            >
+                                <Download className="w-4 h-4" /> PDF İndir
                             </Button>
                         </div>
                         <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-8 max-w-md">
                             <h4 className="font-bold text-blue-900 mb-1">Bu kataloğu kaydetmek ister misiniz?</h4>
                             <p className="text-sm text-blue-700 mb-3">Çalışmanızı kaydetmek, gerçek ürünler eklemek ve dünyayla paylaşmak için hemen kaydolun.</p>
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={onFinish}>Ücretsiz Hesap Oluştur</Button>
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={() => router.push('/auth/register')}>Ücretsiz Hesap Oluştur</Button>
                         </div>
                     </div>
                 )
@@ -348,13 +382,13 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
             )}
 
             {/* Main Layout */}
-            <div className={`flex flex-col lg:flex-row ${isEmbedded ? '' : 'flex-1 h-full overflow-hidden'}`}>
+            <div className={`flex flex-col lg:flex-row ${isEmbedded ? '' : 'flex-1 lg:h-full lg:overflow-hidden overflow-y-auto relative'}`}>
                 {/* LEFT SIDEBAR - CONTROLS */}
                 <div className={`
-                    ${isEmbedded ? 'w-full' : 'w-full lg:w-[380px] bg-white border-r z-20'} 
-                    flex flex-col h-full
+                    ${isEmbedded ? 'w-full' : 'w-full lg:w-[380px] bg-white lg:border-r z-20 shrink-0'} 
+                    ${showMobilePreview ? 'hidden lg:flex' : 'flex'} flex-col lg:h-full pb-20 lg:pb-0
                 `}>
-                    <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="p-4 lg:p-8 lg:overflow-y-auto flex-1 custom-scrollbar">
                         <div className="mb-8">
                             <h1 className="text-2xl font-black mb-2 uppercase tracking-tighter text-slate-900">
                                 {step === 1 && "Kategori Seçin"}
@@ -388,64 +422,88 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
                         <div className="p-6 border-t bg-slate-50/50 flex-shrink-0">
                             <div className="flex gap-4">
                                 {step > 1 && (
-                                    <Button variant="outline" onClick={handleBack} className="h-12 px-6 rounded-xl font-bold">
-                                        <Undo2 className="w-4 h-4 mr-2" /> Geri
+                                    <Button variant="outline" onClick={handleBack} className="h-12 px-3 sm:px-6 rounded-xl font-bold shrink-0">
+                                        <Undo2 className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Geri</span>
                                     </Button>
                                 )}
-                                <Button onClick={handleNext} className="h-12 ml-auto flex-1 gap-2 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-500/10 rounded-xl font-black uppercase tracking-tight">
+                                <Button onClick={handleNext} className="h-12 w-full flex-1 gap-2 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-500/10 rounded-xl font-black uppercase tracking-tight text-xs sm:text-base">
                                     {step === 3 ? "Kataloğu Oluştur" : "Devam Et"} <ArrowRight className="w-5 h-5" />
                                 </Button>
                             </div>
                         </div>
                     )}
+
+                    {/* Mobile Preview Button */}
+                    <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
+                        <Button
+                            onClick={() => setShowMobilePreview(true)}
+                            className="w-full h-14 bg-slate-900 text-white font-bold rounded-2xl shadow-2xl flex items-center justify-center gap-2 text-base"
+                        >
+                            <Eye className="w-5 h-5" /> Kataloğu Önizle
+                        </Button>
+                    </div>
                 </div>
 
                 {/* RIGHT SIDE - PREVIEW */}
                 {!isEmbedded && (
-                    <div className="flex-1 bg-slate-50 overflow-y-auto flex flex-col items-center p-4 lg:p-8 pb-32 min-h-0 relative">
-                        {/* Floating Status Badge (Moved to Side) */}
-                        <div className="fixed top-24 right-8 flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-full border shadow-sm z-50">
+                    <div className={`
+                        ${showMobilePreview ? 'fixed inset-0 z-50 bg-[#f8f6f0] overflow-auto touch-pan-y flex flex-col items-center justify-center p-4' : 'hidden'} 
+                        lg:flex lg:relative lg:flex-1 lg:bg-[#f8f6f0] lg:overflow-y-auto flex-col items-center p-4 lg:p-8 lg:pb-32 min-h-0
+                    `}>
+                        {/* Status Badge */}
+                        <div className="hidden lg:flex fixed top-24 right-8 items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-full border shadow-sm z-50">
                             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Canlı Önizleme</span>
                         </div>
 
+                        {/* Mobile Close Button */}
+                        {showMobilePreview && (
+                            <div className="lg:hidden fixed top-4 right-4 z-[60]">
+                                <Button variant="secondary" size="icon" className="rounded-full shadow-lg bg-white/80 backdrop-blur-md text-slate-800 hover:bg-white border border-slate-200 w-12 h-12" onClick={() => setShowMobilePreview(false)}>
+                                    <X className="w-6 h-6" />
+                                </Button>
+                            </div>
+                        )}
+
                         {/* Improved Preview Container (Supports growing content) */}
-                        <div
-                            className="shrink-0 mb-8 relative"
-                            style={{
-                                width: '126mm', // Exactly 210mm * 0.6
-                                minHeight: '178.2mm', // Exactly 297mm * 0.6
-                                height: 'auto'
-                            }}
-                        >
+                        <div className="w-full max-w-full flex justify-center pt-8 lg:pt-0">
                             <div
-                                ref={previewRef}
-                                className="origin-top-left shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden"
+                                className="shrink-0 mb-8 relative"
                                 style={{
-                                    backgroundColor,
-                                    width: '210mm',
-                                    minHeight: '297mm',
-                                    height: 'auto',
-                                    transform: 'scale(0.6)',
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0
+                                    width: `${210 * scale}mm`,
+                                    height: `${297 * scale}mm`,
+                                    overflow: 'hidden'
                                 }}
                             >
-                                {/* Actual Preview Content */}
-                                <div className="p-4 bg-white h-full overflow-hidden">
-                                    <CurrentTemplate
-                                        products={currentProducts}
-                                        catalogName={catalogName}
-                                        primaryColor={primaryColor}
-                                        headerTextColor={headerTextColor}
-                                        showPrices={showPrices}
-                                        showDescriptions={showDescriptions}
-                                        logoUrl={logoUrl}
-                                        showAttributes={true}
-                                        showSku={true}
-                                        isFreeUser={false}
-                                    />
+                                <div
+                                    ref={previewRef}
+                                    className="origin-top-left shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden"
+                                    style={{
+                                        backgroundColor,
+                                        width: '210mm',
+                                        height: '297mm',
+                                        transform: `scale(${scale})`,
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    {/* Actual Preview Content */}
+                                    <div className="p-4 bg-white h-full overflow-hidden">
+                                        <CurrentTemplate
+                                            products={currentProducts}
+                                            catalogName={catalogName}
+                                            primaryColor={primaryColor}
+                                            headerTextColor={headerTextColor}
+                                            showPrices={showPrices}
+                                            showDescriptions={showDescriptions}
+                                            logoUrl={logoUrl}
+                                            showAttributes={true}
+                                            showSku={true}
+                                            isFreeUser={false}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>

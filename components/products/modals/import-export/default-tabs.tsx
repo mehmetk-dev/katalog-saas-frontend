@@ -62,7 +62,7 @@ export function DefaultTabs({
                                 <div className="flex-1">
                                     <h4 className="font-medium">1. {t('importExport.downloadTemplate')}</h4>
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        {t('importExport.templateDesc') || 'Download the sample template for the correct format.'}
+                                        {t('importExport.templateDesc') || 'Doğru formatlama için örnek şablonu indirin.'}
                                     </p>
                                     <Button variant="outline" size="sm" className="mt-3" onClick={onDownloadTemplate}>
                                         <Download className="h-4 w-4 mr-2" />{t('importExport.downloadTemplate')} (.csv)
@@ -91,10 +91,10 @@ export function DefaultTabs({
                         <div className="bg-muted/50 rounded-lg p-4">
                             <h4 className="font-medium mb-2 flex items-center gap-2"><HelpCircle className="h-4 w-4" />{t('importExport.active')}</h4>
                             <ul className="text-sm text-muted-foreground space-y-1">
-                                <li>• {t('importExport.tip1') || 'You can map columns after upload'}</li>
+                                <li>• {t('importExport.tip1') || 'Yüklemeden sonra kolon eşleştirmesi yapabilirsiniz'}</li>
                                 <li>• {t('toasts.nameFieldRequired')} &amp; {t('toasts.priceFieldRequired')}</li>
-                                <li>• {t('importExport.tip2') || 'Unmatched columns are added as custom attributes'}</li>
-                                <li>• {t('importExport.tip3') || 'Turkish characters and different column names are supported'}</li>
+                                <li>• {t('importExport.tip2') || 'Eşleşmeyen kolonlar özel özellik olarak eklenir'}</li>
+                                <li>• {t('importExport.tip3') || 'Türkçe karakterler ve farklı kolon isimleri desteklenir'}</li>
                             </ul>
                         </div>
                     </>

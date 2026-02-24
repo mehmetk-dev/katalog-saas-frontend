@@ -16,6 +16,7 @@ interface ProductImageGalleryProps {
     showNavigation?: boolean // Galeri navigasyonu göster
     interactive?: boolean // Tıklama ile lightbox aç
     aspectRatio?: string // Özel aspect ratio (örn: "aspect-square")
+    priority?: boolean // İlk görseli anında (lazy-load olmadan) yükle
 }
 
 /**
@@ -32,7 +33,8 @@ export function ProductImageGallery({
     imageFit = 'cover',
     showNavigation = true,
     interactive = true,
-    aspectRatio
+    aspectRatio,
+    priority = false
 }: ProductImageGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState(0)
     const { openLightbox } = useLightbox()
@@ -115,8 +117,8 @@ export function ProductImageGallery({
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     unoptimized // Optimized URL used manually
-                    priority={false} // Lazy load by default for grid items
-                    loading="lazy"
+                    priority={priority}
+                    loading={priority ? "eager" : "lazy"}
                     className={cn(
                         "w-full h-full transition-transform duration-300",
                         fitClass,
@@ -124,6 +126,21 @@ export function ProductImageGallery({
                         imageClassName
                     )}
                 />
+
+                {/* Arka plan ön yükleyicisi: Bu ürünün diğer açıları lightbox'ta gecikmesin diye gizlice indirilir */}
+                {hasMultiple && (
+                    <div className="hidden" aria-hidden="true">
+                        {allImages.slice(1).map((img, idx) => (
+                            <img
+                                key={`prefetch-${idx}`}
+                                src={getCloudinaryResizedUrl(img, 1000)}
+                                loading="lazy"
+                                decoding="async"
+                                alt=""
+                            />
+                        ))}
+                    </div>
+                )}
 
                 {/* Birden fazla görsel varsa gösterge */}
                 {hasMultiple && showNavigation && (
