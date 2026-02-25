@@ -105,9 +105,13 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
     if (redis) {
         try {
             const data = await redis.get(key);
+            // Eğer Redis aktifse ama veri yoksa, memory cache'e düşme (çünkü silinmiş olabilir)
+            // Sadece hata durumunda veya Redis kapalıyken memory cache kullanılmalı
             if (data) return JSON.parse(data);
+            return null;
         } catch (error) {
             console.warn('Redis read error:', error);
+            // Hata durumunda memory cache'e devam edebilir
         }
     }
 

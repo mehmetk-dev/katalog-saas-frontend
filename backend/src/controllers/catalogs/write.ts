@@ -13,7 +13,7 @@ const FIELDS_WITH_NULL_CHECK = [
     'show_sku', 'show_urls', 'columns_per_row', 'background_color',
     'background_image_fit', 'logo_size', 'title_position',
     'product_image_fit', 'header_text_color', 'enable_cover_page',
-    'enable_category_dividers',
+    'enable_category_dividers', 'show_in_search',
 ];
 
 // Fields that only need undefined check (null is a valid value to clear)
@@ -31,7 +31,7 @@ const INSERT_OPTIONAL_FIELDS = [
     'logo_url', 'logo_position', 'logo_size', 'title_position',
     'product_image_fit', 'header_text_color', 'enable_cover_page',
     'cover_image_url', 'cover_description', 'enable_category_dividers',
-    'cover_theme',
+    'cover_theme', 'show_in_search',
 ];
 
 export const createCatalog = async (req: Request, res: Response) => {
