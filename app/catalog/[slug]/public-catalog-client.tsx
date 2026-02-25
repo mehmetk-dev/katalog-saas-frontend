@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/i18n-provider"
 import {
     Download,
     Share2,
+    Maximize2,
     Sparkles,
     Search,
     X
@@ -502,7 +503,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
 
                                         {!isMobile && (
                                             <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="rounded-full hover:bg-slate-100">
-                                                <Sparkles className="w-4 h-4" />
+                                                <Maximize2 className="w-4 h-4" />
                                             </Button>
                                         )}
                                     </div>

@@ -178,6 +178,10 @@ const products = {
             skippedFields: "Atlanan Alanlar",
             editHint: "Tablodaki hücrelere tıklayarak verileri düzenleyebilirsiniz.",
             freeDesc: "Şablonu indirebilir veya ürünlerinizi manuel olarak ekleyebilirsiniz.",
+            preparing: "Hazırlanıyor...",
+            uploading: "Ürünler yükleniyor...",
+            productsReady: "ürün aktarıldı",
+            importing: "İçe aktarılıyor...",
         },
     },
     en: {
@@ -359,6 +363,10 @@ const products = {
             skippedFields: "Skipped Fields",
             editHint: "Click on table cells to edit data.",
             freeDesc: "You can download the template or add products manually.",
+            preparing: "Preparing...",
+            uploading: "Uploading products...",
+            productsReady: "products imported",
+            importing: "Importing...",
         },
     },
 } as const

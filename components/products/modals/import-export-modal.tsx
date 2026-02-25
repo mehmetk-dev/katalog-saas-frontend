@@ -156,17 +156,31 @@ export function ImportExportModal({
         }
 
         setImportStatus('loading')
-        setImportProgress({ percent: 5, message: t('importExport.preparing') || 'Hazırlanıyor...' })
+        setImportProgress({ percent: 5, message: t('importExport.preparing') })
+
+        // State güncellemesinin render edilmesini bekle
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)))
 
         await importTimeout.execute(async () => {
             const BATCH_SIZE = 500
             const totalProducts = products.length
 
             if (totalProducts <= BATCH_SIZE) {
-                // Küçük import: tek batch
-                setImportProgress({ percent: 20, message: t('importExport.uploading') || 'Ürünler yükleniyor...' })
+                // Küçük import: tek batch — simulated progress
+                setImportProgress({ percent: 20, message: t('importExport.uploading') })
+                importTimeout.setProgress(20)
+                await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 100)))
+
+                setImportProgress({ percent: 50, message: `${totalProducts} ${t('importExport.uploading')}` })
+                importTimeout.setProgress(50)
+
                 await onImport(products)
-                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady') || 'ürün aktarıldı'}` })
+
+                setImportProgress({ percent: 90, message: `${totalProducts} ${t('importExport.productsReady')}` })
+                importTimeout.setProgress(90)
+                await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 200)))
+
+                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady')}` })
             } else {
                 // Büyük import: batch'lere böl
                 let imported = 0
@@ -180,7 +194,7 @@ export function ImportExportModal({
                     const percent = 10 + Math.round((imported / totalProducts) * 80)
                     setImportProgress({
                         percent,
-                        message: `${imported}/${totalProducts} ürün yüklendi (Paket ${batchNum}/${totalBatches})`,
+                        message: `${imported}/${totalProducts} ${t('importExport.uploading')} (${batchNum}/${totalBatches})`,
                     })
                     importTimeout.setProgress(percent)
 
@@ -188,7 +202,7 @@ export function ImportExportModal({
                     imported += batch.length
                 }
 
-                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady') || 'ürün aktarıldı'}` })
+                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady')}` })
             }
 
             importTimeout.setProgress(100)
