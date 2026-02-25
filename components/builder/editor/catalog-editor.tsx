@@ -107,30 +107,55 @@ export const rgbToHex = (r: number, g: number, b: number) => {
   }).join('')}`
 }
 
-/** Get available column options per layout/template */
+/** 
+ * ŞABLON SÜTUN REFERANS LİSTESİ (TEMPLATE COLUMN CONSTRAINTS)
+ * ───
+ * Bu ayarlar her şablonun Görünüm Düzeni sekmesinde kaç "Sütun" seçeneği
+ * göstereceğini belirler. Şablonlar isimleri (layout) üzerinden eşleştirilir.
+ * 
+ * - modern-grid (Modern Izgara): 2 ve 3 sütun
+ * - product-tiles (Ürün Karoları): Sadece 3 sütun (Sabit)
+ * - minimalist (Minimalist): Sadece 2 sütun (Sabit)
+ * - clean-white (Temiz Beyaz): 2, 3 ve 4 sütun
+ * - elegant-cards (Zarif Kartlar): Sadece 2 sütun (Sabit)
+ * - bold (Kalın ve Cesur): 2 ve 3 sütun
+ * - catalog-pro (Katalog Pro): Sadece 2 sütun (Sabit)
+ * - luxury (Lüks Siyah): Sadece 2 sütun (Sabit)
+ * - magazine (Dergi): 2 ve 3 sütun
+ * - fashion-lookbook (Moda Lookbook): Sadece 2 sütun (Sabit)
+ * - retail (Perakende): 2 ve 3 sütun
+ * - tech-modern (Modern Teknoloji): 2 ve 3 sütun
+ * - compact-list (Kompakt Liste): Sadece 1 sütun (Sabit)
+ * - industrial (Endüstriyel): Sadece 1 sütun (Sabit)
+ * - classic-catalog (Klasik Katalog): Sadece 1 sütun (Sabit)
+ * - showcase (Vitrin): Sadece 2 sütun (Sabit)
+ */
 const getAvailableColumns = (layout: string) => {
   switch (layout) {
-    case 'bold':
-    case 'catalog-pro':
-    case 'luxury':
-    case 'minimalist':
-    case 'clean-white':
-    case 'elegant-cards':
-    case 'magazine':
-    case 'fashion-lookbook':
-      return [2]
     case 'modern-grid':
-    case 'product-tiles': return [3]
+      return [2, 3]
+    case 'product-tiles':
+      return [3]
+    case 'minimalist':
+    case 'elegant-cards':
+    case 'catalog-pro':
+    case 'fashion-lookbook':
+    case 'luxury':
+    case 'showcase':
+      return [2]
+    case 'classic-catalog':
+    case 'industrial':
+    case 'compact-list':
+      return [1]
+    case 'clean-white':
+      return [2, 3, 4]
+    case 'bold':
+    case 'magazine':
     case 'retail':
     case 'tech-modern':
       return [2, 3]
-    case 'compact-list':
-    case 'industrial':
-    case 'classic-catalog':
-    case 'showcase':
-      return [1]
     default:
-      return [2, 3]
+      return [2, 3, 4]
   }
 }
 
@@ -507,6 +532,8 @@ export function CatalogEditor({
               onLogoUrlChange={onLogoUrlChange}
               logoPosition={logoPosition}
               onLogoPositionChange={onLogoPositionChange}
+              logoSize={_logoSize}
+              onLogoSizeChange={_onLogoSizeChange}
               titlePosition={titlePosition}
               onTitlePositionChange={onTitlePositionChange}
               enableCoverPage={enableCoverPage}

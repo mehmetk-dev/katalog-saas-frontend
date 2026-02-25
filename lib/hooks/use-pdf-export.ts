@@ -23,6 +23,17 @@ function formatTimeLeft(seconds: number): string {
     return secs > 0 ? `~${mins} dk ${secs} sn` : `~${mins} dk`
 }
 
+// Arka planda donmayı/yavaşlamayı önleyen özel bekleme fonksiyonu (setTimeout alternatifi)
+const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
+    if (ms === 0) {
+        const channel = new MessageChannel()
+        channel.port1.onmessage = () => resolve()
+        channel.port2.postMessage(null)
+    } else {
+        setTimeout(resolve, ms)
+    }
+})
+
 /**
  * Sayfa sayısına göre PDF kalite ayarlarını dinamik belirler.
  * Büyük kataloglarda bellek tükenmesini önlemek için kalite düşürülür.
@@ -97,7 +108,7 @@ export function usePdfExport({
             setIsExporting(true)
 
             // Wait for React to render ghost container with all pages
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            await yieldToMain(1500)
             if (cancelledRef.current) return
 
             const { jsPDF } = await import("jspdf")
@@ -220,7 +231,7 @@ export function usePdfExport({
                         })
 
                         await Promise.allSettled(imagePromises)
-                        await new Promise(r => setTimeout(r, 200))
+                        await yieldToMain(200)
 
                         const { toJpeg } = await import("html-to-image")
                         let imgData: string | null = await toJpeg(clone, {
@@ -245,7 +256,7 @@ export function usePdfExport({
 
                 // Between chunks: yield to browser & GC
                 if (chunkEnd < pageElements.length) {
-                    await new Promise(r => setTimeout(r, settings.chunkDelay))
+                    await yieldToMain(settings.chunkDelay)
                 }
             }
 

@@ -44,6 +44,7 @@ interface ProductsPageClientProps {
     totalPages: number
   }
   initialStats: ProductStats
+  initialAllCategories?: string[]
   userPlan: "free" | "plus" | "pro"
   maxProducts: number
 }
@@ -68,7 +69,7 @@ const parseLimitFromQuery = (value: string | null) => {
 
 import { useRouter, useSearchParams } from "next/navigation"
 
-export function ProductsPageClient({ initialProducts, initialMetadata, initialStats, userPlan, maxProducts }: ProductsPageClientProps) {
+export function ProductsPageClient({ initialProducts, initialMetadata, initialStats, initialAllCategories = [], userPlan, maxProducts }: ProductsPageClientProps) {
   const { t, language } = useTranslation()
   const { refreshUser } = useUser()
   const router = useRouter()
@@ -185,10 +186,11 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
     updateUrl({ page })
   }, [updateUrl])
 
-  // Kategorileri çıkar
+  // Kategorileri çıkar — backend'den gelen tüm kategoriler + sayfa ürünlerindeki yeniler
   const categories = useMemo(() => {
-    return [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
-  }, [products])
+    const pageCategories = products.map(p => p.category).filter(Boolean) as string[]
+    return [...new Set([...initialAllCategories, ...pageCategories])].sort()
+  }, [products, initialAllCategories])
 
   // Fiyat aralığını hesapla
   const priceStats = useMemo(() => {

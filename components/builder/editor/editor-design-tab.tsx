@@ -75,6 +75,8 @@ interface EditorDesignTabProps {
     onLogoUrlChange?: (url: string | null) => void
     logoPosition: Catalog['logo_position']
     onLogoPositionChange?: (position: NonNullable<Catalog['logo_position']>) => void
+    logoSize?: Catalog['logo_size']
+    onLogoSizeChange?: (size: NonNullable<Catalog['logo_size']>) => void
     titlePosition: Catalog['title_position']
     onTitlePositionChange?: (position: NonNullable<Catalog['title_position']>) => void
 
@@ -139,6 +141,8 @@ export function EditorDesignTab(props: EditorDesignTabProps) {
                     onLogoUrlChange={props.onLogoUrlChange}
                     logoPosition={props.logoPosition}
                     onLogoPositionChange={props.onLogoPositionChange}
+                    logoSize={props.logoSize}
+                    onLogoSizeChange={props.onLogoSizeChange}
                     titlePosition={props.titlePosition}
                     onTitlePositionChange={props.onTitlePositionChange}
                     primaryColor={props.primaryColor}

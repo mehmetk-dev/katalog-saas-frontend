@@ -129,6 +129,18 @@ const common = {
             uploadTimeout: "Yükleme zaman aşımına uğradı. Bağlantınızı kontrol edin.",
             importTimeout: "İçe aktarma işlemi zaman aşımına uğradı.",
         },
+        pdf: {
+            phrasePreparing: "Katalog hazırlanıyor...",
+            phraseRendering: "Sayfa {current} / {total} işleniyor...",
+            phraseProcessing: "PDF dosyası oluşturuluyor...",
+            phraseSaving: "PDF kaydediliyor...",
+            phraseDone: "PDF başarıyla indirildi!",
+            phraseError: "PDF oluşturulamadı",
+            phraseCancelled: "PDF indirme iptal edildi",
+            modalTitle: "PDF İndirme",
+            modalDesc: "Katalog PDF olarak hazırlanıyor",
+            estimated: "Tahmini: {time}"
+        }
     },
     en: {
         common: {
@@ -259,6 +271,18 @@ const common = {
             uploadTimeout: "Upload timed out. Please check your connection.",
             importTimeout: "Import operation timed out.",
         },
+        pdf: {
+            phrasePreparing: "Preparing catalog...",
+            phraseRendering: "Rendering page {current} / {total}...",
+            phraseProcessing: "Generating PDF file...",
+            phraseSaving: "Saving PDF...",
+            phraseDone: "PDF downloaded successfully!",
+            phraseError: "Failed to generate PDF",
+            phraseCancelled: "PDF download cancelled",
+            modalTitle: "PDF Download",
+            modalDesc: "Preparing catalog as PDF",
+            estimated: "Estimated: {time}"
+        }
     },
 } as const
 

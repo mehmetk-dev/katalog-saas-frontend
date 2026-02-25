@@ -47,6 +47,8 @@ export interface BrandingSectionProps {
     onLogoUrlChange?: (url: string | null) => void
     logoPosition: Catalog['logo_position']
     onLogoPositionChange?: (position: NonNullable<Catalog['logo_position']>) => void
+    logoSize?: Catalog['logo_size']
+    onLogoSizeChange?: (size: NonNullable<Catalog['logo_size']>) => void
     titlePosition: Catalog['title_position']
     onTitlePositionChange?: (position: NonNullable<Catalog['title_position']>) => void
     primaryColor: string

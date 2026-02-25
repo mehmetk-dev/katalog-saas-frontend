@@ -36,6 +36,7 @@ export interface ProductsResponse {
     limit: number
     totalPages: number
   }
+  allCategories?: string[]
 }
 
 export async function getProducts(params?: {

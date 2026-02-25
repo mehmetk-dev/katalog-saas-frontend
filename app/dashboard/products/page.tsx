@@ -53,6 +53,7 @@ export default async function ProductsPage({
         initialProducts={productsResponse.products}
         initialMetadata={productsResponse.metadata}
         initialStats={statsResponse}
+        initialAllCategories={productsResponse.allCategories || []}
         userPlan={(user?.plan as "free" | "plus" | "pro") || "free"}
         maxProducts={user?.maxProducts || 50}
       />

@@ -249,9 +249,20 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             setIsExporting(true)
             setPdfProgress({ phase: "preparing", currentPage: 0, totalPages: 0, percent: 5, estimatedTimeLeft: "" })
 
+            // Arka planda donmayı/yavaşlamayı önleyen özel bekleme fonksiyonu (setTimeout alternatifi)
+            const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
+                if (ms === 0) {
+                    const channel = new MessageChannel()
+                    channel.port1.onmessage = () => resolve()
+                    channel.port2.postMessage(null)
+                } else {
+                    setTimeout(resolve, ms)
+                }
+            })
+
             // Dinamik Import: Sadece indirme butona basıldığında kütüphaneleri yükle
             const { jsPDF } = await import("jspdf")
-            const { toPng } = await import("html-to-image")
+            const { toJpeg } = await import("html-to-image")
 
             // LazyPage'lerin isExporting=true ile render olması için yeterli süre bekle
             // İlk bekle, sonra DOM'da sayfa elemanlarının hazır olduğunu doğrula
@@ -261,9 +272,9 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             let content = document.querySelectorAll('[data-pdf-page="true"]')
             const expectedPages = catalogPages.length
             let retries = 0
-            const maxRetries = 20 // 20 x 500ms = 10 saniye
+            const maxRetries = 20
             while (content.length < expectedPages && retries < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 500))
+                await yieldToMain(500)
                 content = document.querySelectorAll('[data-pdf-page="true"]')
                 retries++
             }
@@ -291,9 +302,9 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
 
                 const page = content[i] as HTMLElement
 
-                const dataUrl = await toPng(page, {
-                    quality: 1.0,
-                    pixelRatio: 2,
+                let dataUrl: string | null = await toJpeg(page, {
+                    quality: 0.8,
+                    pixelRatio: 1.5,
                     width: 794,
                     height: 1123,
                     cacheBust: true,
@@ -310,7 +321,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 if (cancelledRef.current) return
 
                 if (i > 0) pdf.addPage()
-                pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, pageHeight)
+                if (dataUrl) pdf.addImage(dataUrl, 'JPEG', 0, 0, imgWidth, pageHeight)
+                dataUrl = null // free memory immediately
 
                 // Progress + ETA hesaplama
                 const rendered = i + 1
@@ -327,9 +339,9 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                     estimatedTimeLeft: remaining > 2 ? formatTimeLeft(remaining) : ""
                 })
 
-                // Her CHUNK_SIZE sayfada bir tarayıcıya nefes aldır
+                // Her CHUNK_SIZE sayfada bir tarayıcıya nefes aldır (Arka plan sekme dostu)
                 if (rendered % CHUNK_SIZE === 0 && rendered < totalPages) {
-                    await new Promise(resolve => setTimeout(resolve, 50))
+                    await yieldToMain(0)
                 }
             }
 

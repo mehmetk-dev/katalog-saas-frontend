@@ -125,14 +125,14 @@ export function NotificationDropdown() {
                                         !notification.is_read && "bg-blue-50/50 dark:bg-blue-950/20"
                                     )}
                                 >
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-3 pr-14">
                                         <div className="shrink-0 mt-0.5">
                                             {getNotificationIcon(notification.type)}
                                         </div>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 overflow-hidden">
                                             <div className="flex items-start justify-between gap-2">
                                                 <p className={cn(
-                                                    "text-sm truncate",
+                                                    "text-sm break-words line-clamp-2",
                                                     !notification.is_read && "font-medium"
                                                 )}>
                                                     {notification.title}
@@ -141,7 +141,7 @@ export function NotificationDropdown() {
                                                     <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />
                                                 )}
                                             </div>
-                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 break-words">
                                                 {notification.message}
                                             </p>
                                             <div className="flex items-center gap-2 mt-1.5">

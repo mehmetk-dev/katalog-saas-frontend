@@ -65,6 +65,20 @@ export const getProducts = async (req: Request, res: Response) => {
                 };
             });
 
+            // Tüm benzersiz kategorileri getir (filtre için)
+            const { data: categoryData } = await supabase
+                .from('products')
+                .select('category')
+                .eq('user_id', userId)
+                .not('category', 'is', null)
+                .not('category', 'eq', '');
+
+            const allCategories = [...new Set(
+                (categoryData || [])
+                    .map((p: { category: string | null }) => p.category)
+                    .filter(Boolean)
+            )] as string[];
+
             return {
                 products,
                 metadata: {
@@ -72,7 +86,8 @@ export const getProducts = async (req: Request, res: Response) => {
                     page,
                     limit,
                     totalPages: Math.ceil((count || 0) / limit)
-                }
+                },
+                allCategories,
             };
         });
 

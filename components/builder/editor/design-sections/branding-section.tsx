@@ -16,6 +16,8 @@ export function BrandingSection({
     logoUrl,
     onLogoPositionChange,
     logoPosition,
+    logoSize,
+    onLogoSizeChange,
     titlePosition,
     onTitlePositionChange,
     primaryColor,
@@ -96,8 +98,8 @@ export function BrandingSection({
 
                         {/* 2. Right Column: Controls (Dense & Clean) */}
                         <div className="flex-1 space-y-5">
-                            {/* Row 1: Position & Alignment */}
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Row 1: Position, Alignment & Size */}
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider ml-1">Logo Konumu</Label>
                                     <Select value={logoPosition || 'none'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
@@ -109,6 +111,19 @@ export function BrandingSection({
                                             <SelectItem value="header-left">Sol Üst</SelectItem>
                                             <SelectItem value="header-center">Orta Üst</SelectItem>
                                             <SelectItem value="header-right">Sağ Üst</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider ml-1">Logo Boyutu</Label>
+                                    <Select value={logoSize || 'medium'} onValueChange={(v) => onLogoSizeChange?.(v as NonNullable<Catalog['logo_size']>)}>
+                                        <SelectTrigger className="h-10 rounded-xl bg-white border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-indigo-100 transition-shadow hover:border-indigo-300">
+                                            <SelectValue placeholder="Seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                                            <SelectItem value="small">Küçük</SelectItem>
+                                            <SelectItem value="medium">Orta</SelectItem>
+                                            <SelectItem value="large">Büyük</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -209,7 +224,7 @@ export function BrandingSection({
                         </div>
                     </div>
                 </CardContent>
-            </Card>
-        </SectionWrapper>
+            </Card >
+        </SectionWrapper >
     )
 }
