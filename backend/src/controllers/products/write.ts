@@ -58,7 +58,8 @@ export const createProduct = async (req: Request, res: Response) => {
 
         await Promise.all([
             deleteCache(cacheKeys.products(userId)),
-            deleteCache(cacheKeys.product(userId, data.id))
+            deleteCache(cacheKeys.product(userId, data.id)),
+            deleteCache(cacheKeys.stats(userId))
         ]);
         setProductsInvalidated(userId);
 
@@ -149,7 +150,8 @@ export const updateProduct = async (req: Request, res: Response) => {
 
         await Promise.all([
             deleteCache(cacheKeys.products(userId)),
-            deleteCache(cacheKeys.product(userId, id))
+            deleteCache(cacheKeys.product(userId, id)),
+            deleteCache(cacheKeys.stats(userId))
         ]);
 
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -196,7 +198,10 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
         if (error) throw error;
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         const { ipAddress, userAgent } = getRequestInfo(req);

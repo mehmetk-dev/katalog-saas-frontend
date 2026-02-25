@@ -36,9 +36,6 @@ export function ProductTilesTemplate({
 
     return (
         <div className="h-full flex flex-col relative font-serif bg-[#FDFBF7] text-[#1c1917] selection:bg-black selection:text-white">
-            <div className="absolute top-0 right-0 bg-red-600 text-white p-2 text-xs z-50 font-sans font-bold">
-                DEBUG: Page {pageNumber} | Items Received: {safeProducts.length}
-            </div>
             {/* Header - Minimalist Editorial - Smaller */}
             <header className="px-12 pt-8 pb-4 flex items-end justify-between border-b border-[#E7E5E4]">
                 <div>
@@ -64,15 +61,14 @@ export function ProductTilesTemplate({
             {/* Main Grid - Tighter to make cards smaller */}
             <main className={cn(
                 "flex-1 px-20 py-8 grid gap-x-12 gap-y-12 content-start",
-                getGridCols()
+                `grid-cols-${columnsPerRow}`
             )}>
-                {safeProducts.slice(0, 6).map((product, idx) => {
+                {safeProducts.map((product, idx) => {
                     const productUrl = product.product_url
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
 
-                    // Stagger effect: Push down middle column (indices 1, 4, 7...)
-                    // Only apply stagger if not mobile (simplified here as PDF is fixed width usually)
-                    const isStaggered = idx % 3 === 1
+                    // Stagger effect: Push down middle column
+                    const isStaggered = columnsPerRow === 3 ? (idx % 3 === 1) : false
 
                     return (
                         <Wrapper

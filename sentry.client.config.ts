@@ -1,4 +1,4 @@
-console.log("Sentry Client Config loading...");
+
 
 import * as Sentry from "@sentry/nextjs";
 
@@ -10,7 +10,7 @@ Sentry.init({
     enabled: true,
 
     // Set to true to see Sentry debug logs in browser console
-    debug: true,
+    debug: process.env.NODE_ENV === "development",
 
     // Performance Monitoring
     tracesSampleRate: 1.0,
@@ -51,16 +51,4 @@ Sentry.init({
     tunnel: "/monitoring",
 });
 
-// Manual tests to verify Sentry is working
-console.info("Sentry initialization complete. Sending test events...");
-Sentry.captureMessage("Sentry Test: Initialization success");
-Sentry.captureException(new Error("Sentry Test: CaptureException test"));
 
-// Add a helper to the window for manual testing in console
-if (typeof window !== "undefined") {
-    (window as any).testSentry = () => {
-        console.log("Triggering manual Sentry error...");
-        Sentry.captureException(new Error("Manual test error from browser console"));
-        alert("Sentry test error sent! Check your dashboard.");
-    };
-}

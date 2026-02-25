@@ -146,7 +146,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     else if (layout === 'compact-list' || layout === 'list') itemsPerPage = 10
     else if (layout === 'retail') itemsPerPage = (props.columnsPerRow || 3) * 5
     else if (layout === 'catalog-pro') itemsPerPage = (props.columnsPerRow || 3) * 3
-    else if (layout === 'product-tiles') itemsPerPage = props.columnsPerRow === 2 ? 4 : 9
+    else if (layout === 'product-tiles') itemsPerPage = 6
     else {
       // Modern Grid ve Varsayılan
       if (props.columnsPerRow === 2) itemsPerPage = 6
@@ -238,13 +238,16 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     if (!page) return null
     const TemplateComponent = (ALL_TEMPLATES[props.layout as keyof typeof ALL_TEMPLATES] || ALL_TEMPLATES['modern-grid']) as React.ComponentType<TemplateComponentProps>
 
+    // Export modunda scale uygulamadan tam boyut render et
+    const effectiveScale = props.isExporting ? 1 : scale
+
     return (
       <div
         key={`page-container-${props.layout}-${pageIndex}`}
-        className="relative shrink-0"
+        className="catalog-page-wrapper relative shrink-0"
         style={{
-          width: A4_WIDTH * scale,
-          height: A4_HEIGHT * scale,
+          width: props.isExporting ? A4_WIDTH : A4_WIDTH * scale,
+          height: props.isExporting ? A4_HEIGHT : A4_HEIGHT * scale,
           marginBottom: viewMode === 'multi' ? 40 : 0
         }}
       >
@@ -254,7 +257,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
           style={{
             width: A4_WIDTH,
             height: A4_HEIGHT,
-            transform: `scale(${scale})`,
+            transform: props.isExporting ? 'none' : `scale(${scale})`,
             transformOrigin: 'top center',
           }}
         >

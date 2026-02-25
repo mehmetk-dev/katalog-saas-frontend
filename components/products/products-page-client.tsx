@@ -313,9 +313,34 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
     startTransition(async () => {
       try {
         const addedProducts = await addDummyProducts(language as 'tr' | 'en', userPlan)
-        setProducts([...addedProducts, ...products])
-        adjustMetadataTotal(addedProducts.length)
+        const addedList = Array.isArray(addedProducts) ? addedProducts : []
+        setProducts([...addedList, ...products])
+        adjustMetadataTotal(addedList.length)
+
+        // Stats'ı yeni ürünlere göre güncelle
+        setStats(prev => {
+          let deltaInStock = 0, deltaLowStock = 0, deltaOutOfStock = 0
+          let deltaValue = 0
+          addedList.forEach(p => {
+            const stock = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock || 0))
+            const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0))
+            if (stock >= 10) deltaInStock++
+            else if (stock > 0 && stock < 10) deltaLowStock++
+            else deltaOutOfStock++
+            deltaValue += (stock * price)
+          })
+          return {
+            ...prev,
+            total: prev.total + addedList.length,
+            inStock: prev.inStock + deltaInStock,
+            lowStock: prev.lowStock + deltaLowStock,
+            outOfStock: prev.outOfStock + deltaOutOfStock,
+            totalValue: prev.totalValue + deltaValue
+          }
+        })
+
         toast.success(t('toasts.testProductsAdded') as string)
+        router.refresh()
         refreshUser()
       } catch {
         toast.error(t('toasts.testProductsFailed') as string)
@@ -697,11 +722,14 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
               // Stats'ı yeni ürünlere göre güncelle (server refresh beklemeden)
               setStats(prev => {
                 let deltaInStock = 0, deltaLowStock = 0, deltaOutOfStock = 0
+                let deltaValue = 0
                 importedList.forEach(p => {
                   const stock = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock || 0))
+                  const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0))
                   if (stock >= 10) deltaInStock++
                   else if (stock > 0 && stock < 10) deltaLowStock++
                   else deltaOutOfStock++
+                  deltaValue += (stock * price)
                 })
                 return {
                   ...prev,
@@ -709,6 +737,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
                   inStock: prev.inStock + deltaInStock,
                   lowStock: prev.lowStock + deltaLowStock,
                   outOfStock: prev.outOfStock + deltaOutOfStock,
+                  totalValue: prev.totalValue + deltaValue
                 }
               })
               router.refresh()

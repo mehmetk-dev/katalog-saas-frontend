@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 
 import { supabase } from '../services/supabase';
+import { deleteCache, cacheKeys } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 
 // Helper to get user ID from request (attached by auth middleware)
@@ -51,6 +52,8 @@ export const getMe = async (req: Request, res: Response) => {
 
                 if (!upgradeError && updatedProfile) {
                     profile = updatedProfile;
+                    // Plan değişti, cache'i temizle
+                    await deleteCache(cacheKeys.user(userId));
 
                     // Bildirim gönder
                     try {
@@ -161,6 +164,9 @@ export const updateMe = async (req: Request, res: Response) => {
             .eq('id', userId);
 
         if (error) throw error;
+
+        // Profil değişti, user cache'i temizle
+        await deleteCache(cacheKeys.user(userId));
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -310,6 +316,9 @@ export const upgradeToPro = async (req: Request, res: Response) => {
             .eq('id', userId);
 
         if (error) throw error;
+
+        // Plan değişti, user cache'i temizle
+        await deleteCache(cacheKeys.user(userId));
 
         // Log activity
         const { ipAddress, userAgent } = getRequestInfo(req);

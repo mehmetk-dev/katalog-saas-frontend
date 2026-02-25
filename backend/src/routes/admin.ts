@@ -108,6 +108,11 @@ router.put('/users/:id/plan', async (req: Request, res: Response) => {
             .eq('id', id);
 
         if (error) throw error;
+
+        // Plan değişti, user cache'i temizle
+        const { deleteCache, cacheKeys } = await import('../services/redis');
+        await deleteCache(cacheKeys.user(id));
+
         res.json({ success: true });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';

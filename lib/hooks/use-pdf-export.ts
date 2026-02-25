@@ -171,10 +171,13 @@ export function usePdfExport({
                     clone.style.left = '0'
                     clone.style.zIndex = '-9999'
                     clone.style.transform = 'none'
+                    clone.style.translate = 'none'
                     clone.style.margin = '0'
                     clone.style.boxShadow = 'none'
                     clone.style.width = '794px'
                     clone.style.height = '1123px'
+                    clone.style.overflow = 'hidden'
+                    clone.className = 'catalog-page catalog-light bg-white'
 
                     try {
                         // Convert images to base64 (CORS fix)

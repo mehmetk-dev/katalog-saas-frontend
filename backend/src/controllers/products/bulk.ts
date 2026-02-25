@@ -38,7 +38,10 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
 
         if (error) throw error;
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         const photoUrls = products && products.length > 0 ? collectPhotoUrlsFromProducts(products) : [];
@@ -124,7 +127,10 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
 
         if (error) throw error;
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -166,7 +172,10 @@ export const reorderProducts = async (req: Request, res: Response) => {
 
         await Promise.all(updatePromises);
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -261,7 +270,10 @@ export const bulkUpdatePrices = async (req: Request, res: Response) => {
         const rpcError = updateResults.find(r => r.error)?.error;
         if (rpcError) throw rpcError;
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         const updatedProducts = updateResults
@@ -307,7 +319,10 @@ export const renameCategory = async (req: Request, res: Response) => {
 
         if (rpcError) throw rpcError;
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         res.json(data || []);
@@ -360,7 +375,10 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
             .filter(r => !r.error && r.data)
             .map(r => r.data);
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         const { ipAddress, userAgent } = getRequestInfo(req);
@@ -410,7 +428,10 @@ export const bulkUpdateImages = async (req: Request, res: Response) => {
 
         const results = await Promise.all(updatePromises);
 
-        await deleteCache(cacheKeys.products(userId));
+        await Promise.all([
+            deleteCache(cacheKeys.products(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
         setProductsInvalidated(userId);
 
         res.json({ success: true, count: updates.length, results });

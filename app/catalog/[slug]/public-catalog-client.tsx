@@ -104,7 +104,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         if (layout === 'showcase') return 5 // 1 Hero + 4 Sidebar
         if (layout === 'luxury') return 6 // 2x3 Grid
 
-        if (layout === 'product-tiles') return columns * 2
+        if (layout === 'product-tiles') return 6
         if (layout === 'catalog-pro') return 4
 
         return columns * 3
@@ -252,10 +252,21 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             const { jsPDF } = await import("jspdf")
             const { toPng } = await import("html-to-image")
 
-            // Kısa bir gecikme ile render'ın tamamlanmasını bekle
-            await new Promise(resolve => setTimeout(resolve, 100))
+            // LazyPage'lerin isExporting=true ile render olması için yeterli süre bekle
+            // İlk bekle, sonra DOM'da sayfa elemanlarının hazır olduğunu doğrula
+            await new Promise(resolve => setTimeout(resolve, 1500))
 
-            const content = document.querySelectorAll('[data-pdf-page="true"]')
+            // Sayfaların DOM'da hazır olmasını bekle (maksimum 10 saniye)
+            let content = document.querySelectorAll('[data-pdf-page="true"]')
+            const expectedPages = catalogPages.length
+            let retries = 0
+            const maxRetries = 20 // 20 x 500ms = 10 saniye
+            while (content.length < expectedPages && retries < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 500))
+                content = document.querySelectorAll('[data-pdf-page="true"]')
+                retries++
+            }
+
             if (!content || content.length === 0) {
                 setPdfProgress({ phase: "error", currentPage: 0, totalPages: 0, percent: 0, estimatedTimeLeft: "", errorMessage: "PDF oluşturulacak içerik bulunamadı." })
                 return
