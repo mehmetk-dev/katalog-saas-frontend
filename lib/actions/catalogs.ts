@@ -124,6 +124,11 @@ export async function updateCatalog(id: string, updates: Partial<Catalog>) {
     body: JSON.stringify(updates),
   })
   revalidatePath("/dashboard", "layout")
+  if (updates.share_slug) {
+    revalidatePath(`/catalog/${updates.share_slug}`)
+  } else {
+    revalidatePath("/catalog/[slug]", "page") // Fallback for all catalog slugs if we don't have the specific slug in the mutation
+  }
   return { success: true }
 }
 
