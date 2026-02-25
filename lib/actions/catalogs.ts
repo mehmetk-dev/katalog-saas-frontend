@@ -114,7 +114,7 @@ export async function createCatalog(data: Partial<Catalog>) {
     method: "POST",
     body: JSON.stringify(data),
   })
-  revalidatePath("/dashboard")
+  revalidatePath("/dashboard", "layout")
   return newCatalog
 }
 
@@ -123,8 +123,7 @@ export async function updateCatalog(id: string, updates: Partial<Catalog>) {
     method: "PUT",
     body: JSON.stringify(updates),
   })
-  revalidatePath("/dashboard")
-  revalidatePath(`/dashboard/builder/${id}`)
+  revalidatePath("/dashboard", "layout")
   return { success: true }
 }
 
@@ -132,7 +131,7 @@ export async function deleteCatalog(id: string) {
   await apiFetch(`/catalogs/${id}`, {
     method: "DELETE",
   })
-  revalidatePath("/dashboard")
+  revalidatePath("/dashboard", "layout")
   return { success: true }
 }
 
@@ -141,7 +140,7 @@ export async function publishCatalog(id: string, isPublished: boolean, share_slu
     method: "PATCH",
     body: JSON.stringify({ is_published: isPublished }),
   })
-  revalidatePath("/dashboard")
+  revalidatePath("/dashboard", "layout")
   if (share_slug) {
     revalidatePath(`/catalog/${share_slug}`)
   }
