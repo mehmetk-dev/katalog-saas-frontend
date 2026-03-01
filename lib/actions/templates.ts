@@ -1,10 +1,10 @@
-"use server"
+﻿"use server"
 
 import { revalidatePath } from "next/cache"
 
 import { createClient } from "@/lib/supabase/server"
 
-import { checkIsAdmin } from "./admin"
+import { requireAdmin } from "./admin"
 
 export interface Template {
     id: string
@@ -21,7 +21,7 @@ export interface Template {
     updated_at: string
 }
 
-// Tüm template'leri getir
+// TÃ¼m template'leri getir
 export async function getTemplates(): Promise<Template[]> {
     const supabase = await createClient()
 
@@ -38,7 +38,7 @@ export async function getTemplates(): Promise<Template[]> {
     return data || []
 }
 
-// Sadece sistem şablonlarını getir
+// Sadece sistem ÅŸablonlarÄ±nÄ± getir
 export async function getSystemTemplates(): Promise<Template[]> {
     const supabase = await createClient()
 
@@ -56,7 +56,7 @@ export async function getSystemTemplates(): Promise<Template[]> {
     return data || []
 }
 
-// Sadece custom şablonları getir
+// Sadece custom ÅŸablonlarÄ± getir
 export async function getCustomTemplates(): Promise<Template[]> {
     const supabase = await createClient()
 
@@ -92,7 +92,7 @@ export async function getTemplate(id: string): Promise<Template | null> {
     return data
 }
 
-// Yeni template oluştur (Admin only)
+// Yeni template oluÅŸtur (Admin only)
 export async function createTemplate(data: {
     name: string
     id: string
@@ -104,8 +104,7 @@ export async function createTemplate(data: {
     layout?: string
 }) {
     try {
-        const isAdmin = await checkIsAdmin()
-        if (!isAdmin) throw new Error("Unauthorized")
+        await requireAdmin()
 
         const supabase = await createClient()
 
@@ -162,7 +161,7 @@ export async function createTemplate(data: {
     }
 }
 
-// Template güncelle (Admin only)
+// Template gÃ¼ncelle (Admin only)
 export async function updateTemplate(id: string, data: Partial<{
     name: string
     description: string
@@ -174,8 +173,7 @@ export async function updateTemplate(id: string, data: Partial<{
     sortOrder: number
 }>) {
     try {
-        const isAdmin = await checkIsAdmin()
-        if (!isAdmin) throw new Error("Unauthorized")
+        await requireAdmin()
 
         const supabase = await createClient()
 
@@ -208,11 +206,10 @@ export async function updateTemplate(id: string, data: Partial<{
     }
 }
 
-// Template fotoğrafını güncelle (Admin only)
+// Template fotoÄŸrafÄ±nÄ± gÃ¼ncelle (Admin only)
 export async function updateTemplateImage(id: string, imageUrl: string) {
     try {
-        const isAdmin = await checkIsAdmin()
-        if (!isAdmin) throw new Error("Unauthorized")
+        await requireAdmin()
 
         const supabase = await createClient()
 
@@ -235,11 +232,10 @@ export async function updateTemplateImage(id: string, imageUrl: string) {
     }
 }
 
-// Template sil (Admin only, sadece custom şablonlar)
+// Template sil (Admin only, sadece custom ÅŸablonlar)
 export async function deleteTemplate(id: string) {
     try {
-        const isAdmin = await checkIsAdmin()
-        if (!isAdmin) throw new Error("Unauthorized")
+        await requireAdmin()
 
         const supabase = await createClient()
 

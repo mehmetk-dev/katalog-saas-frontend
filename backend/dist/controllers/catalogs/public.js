@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPublicCatalog = void 0;
+exports.getPublicCatalogMeta = exports.getPublicCatalog = void 0;
 const crypto_1 = __importDefault(require("crypto"));
 const supabase_1 = require("../../services/supabase");
 const redis_1 = require("../../services/redis");
 const helpers_1 = require("./helpers");
+const safe_error_1 = require("../../utils/safe-error");
 const getPublicCatalog = async (req, res) => {
     try {
         const { slug } = req.params;
@@ -44,31 +45,51 @@ const getPublicCatalog = async (req, res) => {
         }
         let products = [];
         if (Array.isArray(productIds) && productIds.length > 0) {
-            console.log(`[Debug] Fetching ${productIds.length} products for catalog ${slug}`);
-            const { data: productData, error: productError } = await supabase_1.supabase
-                .from('products')
-                .select('*')
-                .in('id', productIds);
-            if (productError) {
-                console.error('[Debug] Product fetch error:', productError);
+            // Batch fetch: Supabase .in() sends IDs as URL query params.
+            // Node.js has a 16KB header limit — 100 UUIDs (~3.7KB) is safe per request.
+            const CHUNK_SIZE = 100;
+            // Higher concurrency for large catalogs — 6 parallel keeps 10K under 15s
+            const CONCURRENCY = 6;
+            const chunks = [];
+            for (let i = 0; i < productIds.length; i += CHUNK_SIZE) {
+                chunks.push(productIds.slice(i, i + CHUNK_SIZE));
             }
-            if (productData) {
+            // Only select fields the frontend actually needs (not select('*'))
+            const PRODUCT_FIELDS = 'id,name,description,price,image_url,images,sku,category,custom_attributes,product_url,currency';
+            // Concurrency-limited parallel fetch
+            const allResults = [];
+            for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+                const batch = chunks.slice(i, i + CONCURRENCY);
+                const batchResults = await Promise.all(batch.map(async (chunk) => {
+                    const { data, error } = await supabase_1.supabase
+                        .from('products')
+                        .select(PRODUCT_FIELDS)
+                        .in('id', chunk)
+                        .limit(CHUNK_SIZE); // ← CRITICAL: without this PostgREST default max-rows can silently cap results
+                    if (error) {
+                        console.error(`[PublicCatalog] Batch fetch error (${chunk.length} items):`, error);
+                        return [];
+                    }
+                    return data || [];
+                }));
+                allResults.push(...batchResults);
+            }
+            const allProductData = allResults.flat();
+            if (allProductData.length > 0) {
+                // Preserve original order from product_ids
+                const productMap = new Map(allProductData.map((p) => [p.id.toLowerCase(), p]));
                 products = productIds
-                    .map((pid) => productData.find((p) => p.id.toLowerCase() === pid.toLowerCase()))
-                    .filter(Boolean);
+                    .map((pid) => productMap.get(pid.toLowerCase()))
+                    .filter((p) => p !== undefined);
             }
         }
         // Ownership & view tracking
         const visitorInfo = getVisitorInfo(req);
         const ownerId = data.user_id;
         let isOwner = false;
-        // Check x-user-id header
-        const headerUserId = req.headers['x-user-id'];
-        if (headerUserId && headerUserId === ownerId) {
-            isOwner = true;
-        }
-        // Fallback: JWT verification
-        if (!isOwner && req.headers.authorization) {
+        // SECURITY: Only trust JWT-based authentication for owner detection.
+        // x-user-id header was removed because it's trivially spoofable.
+        if (req.headers.authorization) {
             try {
                 const token = req.headers.authorization.replace('Bearer ', '');
                 const { data: { user: authUser } } = await supabase_1.supabase.auth.getUser(token);
@@ -84,10 +105,12 @@ const getPublicCatalog = async (req, res) => {
         smartIncrementViewCount(data.id, ownerId, visitorInfo, isOwner).catch(err => {
             console.error('[PublicCatalog] View tracking failed:', err);
         });
+        // Cache headers — stale-while-revalidate for fast repeat visits
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
         res.json({ ...data, products });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         const status = errorMessage === 'Catalog not found or not published' ? 404 : 500;
         res.status(status).json({ error: errorMessage });
     }
@@ -103,7 +126,8 @@ const getVisitorInfo = (req) => {
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
-    const visitorHash = crypto_1.default.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
+    // SECURITY: Use SHA-256 instead of MD5 for visitor hashing
+    const visitorHash = crypto_1.default.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex');
     return { ip, userAgent, deviceType, visitorHash };
 };
 const smartIncrementViewCount = async (catalogId, ownerId, visitorInfo, isOwner) => {
@@ -130,3 +154,32 @@ const smartIncrementViewCount = async (catalogId, ownerId, visitorInfo, isOwner)
         console.error('[Analytics] Critical error:', err);
     }
 };
+/**
+ * Lightweight metadata endpoint — returns only catalog name/description/SEO fields.
+ * No product fetching, no view tracking. Used by generateMetadata for fast page loads.
+ */
+const getPublicCatalogMeta = async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const metaCacheKey = `${redis_1.cacheKeys.publicCatalog(slug)}:meta`;
+        const meta = await (0, redis_1.getOrSetCache)(metaCacheKey, redis_1.cacheTTL.publicCatalog, async () => {
+            const { data, error } = await supabase_1.supabase
+                .from('catalogs')
+                .select('id, name, description, is_published, show_in_search')
+                .eq('share_slug', slug)
+                .eq('is_published', true)
+                .single();
+            if (error || !data)
+                throw new Error('Catalog not found');
+            return data;
+        });
+        res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+        res.json(meta);
+    }
+    catch (error) {
+        const msg = (0, safe_error_1.safeErrorMessage)(error);
+        const status = msg === 'Catalog not found' ? 404 : 500;
+        res.status(status).json({ error: msg });
+    }
+};
+exports.getPublicCatalogMeta = getPublicCatalogMeta;

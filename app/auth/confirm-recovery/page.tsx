@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { RefreshCw, ShieldCheck, Heart } from 'lucide-react'
+import { RefreshCw, ShieldCheck, Heart, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -11,6 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
  * önden "tüketip" geçersiz kılmasını engellemek için yapılmıştır.
  */
 export default function ConfirmRecoveryPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+            </div>
+        }>
+            <ConfirmRecoveryContent />
+        </Suspense>
+    )
+}
+
+function ConfirmRecoveryContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isRedirecting, setIsRedirecting] = useState(false)

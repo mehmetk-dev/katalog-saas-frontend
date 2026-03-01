@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { apiFetch } from "@/lib/api"
+import { validate, profileUpdateSchema } from "@/lib/validations"
 
 export async function signOut() {
   const supabase = await createServerSupabaseClient()
@@ -44,14 +45,17 @@ export async function updateProfile(formData: FormData, avatarUrl?: string | nul
   const fullName = formData.get("fullName") as string
   const company = formData.get("company") as string
 
+  // Validate and sanitize input
+  const validatedData = validate(profileUpdateSchema, {
+    full_name: fullName,
+    company: company,
+    avatar_url: avatarUrl,
+    logo_url: logoUrl
+  })
+
   await apiFetch("/users/me", {
     method: "PUT",
-    body: JSON.stringify({
-      full_name: fullName,
-      company: company,
-      avatar_url: avatarUrl,
-      logo_url: logoUrl
-    }),
+    body: JSON.stringify(validatedData),
   })
   revalidatePath("/dashboard/settings")
   return { success: true }
@@ -59,11 +63,12 @@ export async function updateProfile(formData: FormData, avatarUrl?: string | nul
 
 // Builder'dan logo güncellendiğinde profili de güncelle
 export async function updateUserLogo(logoUrl: string | null) {
+  // Validate and sanitize input
+  const validatedData = validate(profileUpdateSchema, { logo_url: logoUrl })
+
   await apiFetch("/users/me", {
     method: "PUT",
-    body: JSON.stringify({
-      logo_url: logoUrl
-    }),
+    body: JSON.stringify(validatedData),
   })
   revalidatePath("/dashboard/settings")
   revalidatePath("/dashboard/builder")

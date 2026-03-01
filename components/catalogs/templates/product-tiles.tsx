@@ -1,7 +1,9 @@
+import React from "react"
 import NextImage from "next/image"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Product Tiles Template - Redesigned V2
@@ -12,63 +14,143 @@ import { ProductImageGallery } from "@/components/ui/product-image-gallery"
  * - Minimalist interface with high focus on visuals
  * - Floating status indicators
  */
-export function ProductTilesTemplate({
+export const ProductTilesTemplate = React.memo(function ProductTilesTemplate({
     catalogName,
     products,
-    primaryColor = '#000000',
-    headerTextColor = '#000000',
+    primaryColor = 'transparent',
+    headerTextColor = '#1c1917',
     showPrices,
     showDescriptions,
     showAttributes,
-    showSku,
+    showSku: _showSku,
     showUrls = false,
     pageNumber = 1,
-    columnsPerRow = 3,
     logoUrl,
     logoPosition,
-    productImageFit = 'cover'
+    logoSize,
+    titlePosition = 'left',
+    productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient
 }: TemplateProps) {
     const safeProducts = products || []
 
-    const getGridCols = () => {
-        return "grid-cols-3"
+    const containerStyle = buildBackgroundStyle({
+        backgroundColor: backgroundColor || '#FDFBF7', // Default var olan renk
+        backgroundImage,
+        backgroundImageFit,
+        backgroundGradient,
+    })
+
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
+
+    const logoHeight = getStandardLogoHeight(logoSize)
+
+    const renderLogo = () => {
+        if (!logoUrl || !isHeaderLogo) return null
+        return (
+            <div className="shrink-0 flex items-center">
+                <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain max-h-12 w-auto" />
+            </div>
+        )
     }
 
+    const renderTitle = () => (
+        <h1 className="text-3xl font-light italic tracking-tight leading-none">
+            {catalogName}
+        </h1>
+    )
+
+    const renderCollectionInfo = (align: 'left' | 'right') => (
+        <div className={`shrink-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
+            <span className="block text-[10px] font-sans font-bold uppercase tracking-widest opacity-60 mb-0.5">
+                Koleksiyon
+            </span>
+            <span className="text-sm font-sans font-bold">
+                {new Date().getFullYear()}
+            </span>
+        </div>
+    )
+
     return (
-        <div className="h-full flex flex-col relative font-serif bg-[#FDFBF7] text-[#1c1917] selection:bg-black selection:text-white">
+        <div
+            className="h-full flex flex-col relative font-serif text-[#1c1917] selection:bg-black selection:text-white"
+            style={containerStyle}
+        >
             {/* Header - Minimalist Editorial - Smaller */}
-            <header className="px-12 pt-8 pb-4 flex items-end justify-between border-b border-[#E7E5E4]">
-                <div>
-                    {logoUrl && logoPosition?.startsWith('header') && (
-                        <div className="h-8 w-auto relative mb-4">
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={32} className="object-contain h-full w-auto" />
-                        </div>
+            <header
+                className="px-12 py-6 flex items-center justify-between border-b border-[#E7E5E4] relative h-[88px] shrink-0 transition-colors"
+                style={{ backgroundColor: primaryColor, color: headerTextColor }}
+            >
+                {/* Sol Alan */}
+                <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
+                    {/* Çarpışma varsa ikisini yan yana çiz */}
+                    {isCollisionLeft ? (
+                        <>
+                            {renderLogo()}
+                            {renderTitle()}
+                        </>
+                    ) : (
+                        <>
+                            {/* Yoksa kendi konumlarında olanları çiz */}
+                            {logoAlignment === 'left' && renderLogo()}
+                            {titlePosition === 'left' && renderTitle()}
+                        </>
                     )}
-                    <h1 className="text-4xl font-light italic tracking-tight" style={{ color: headerTextColor }}>
-                        {catalogName}
-                    </h1>
+                    {/* Sadece başlık sağdaysa koleksiyon sola geçsin */}
+                    {titlePosition === 'right' && !isCollisionLeft && renderCollectionInfo('left')}
                 </div>
-                <div className="text-right">
-                    <span className="block text-[10px] font-sans font-bold uppercase tracking-widest text-gray-400">
-                        Collection
-                    </span>
-                    <span className="text-sm font-sans font-bold">
-                        {new Date().getFullYear()}
-                    </span>
+
+                {/* Orta Alan */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-20 w-full max-w-[60%] gap-6">
+                    {isCollisionCenter ? (
+                        <>
+                            {renderLogo()}
+                            {renderTitle()}
+                        </>
+                    ) : (
+                        <>
+                            {logoAlignment === 'center' && renderLogo()}
+                            {titlePosition === 'center' && renderTitle()}
+                        </>
+                    )}
+                </div>
+
+                {/* Sağ Alan */}
+                <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6">
+                    {/* Başlık sol veya ortadaysa koleksiyonu doğal olarak sağa at */}
+                    {(titlePosition === 'left' || titlePosition === 'center') && !isCollisionRight && renderCollectionInfo('right')}
+
+                    {isCollisionRight ? (
+                        <>
+                            {renderTitle()}
+                            {renderLogo()}
+                        </>
+                    ) : (
+                        <>
+                            {titlePosition === 'right' && renderTitle()}
+                            {logoAlignment === 'right' && renderLogo()}
+                        </>
+                    )}
                 </div>
             </header>
 
             {/* Main Grid - Tighter to make cards smaller */}
-            <main className={cn(
-                "flex-1 px-20 py-8 grid gap-x-12 gap-y-12 content-start",
-                `grid-cols-${columnsPerRow}`
-            )}>
+            <main className="flex-1 px-20 py-8 grid gap-x-12 gap-y-12 content-start grid-cols-3">
                 {safeProducts.map((product, idx) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
 
                     // Stagger effect: Push down middle column
-                    const isStaggered = columnsPerRow === 3 ? (idx % 3 === 1) : false
+                    const isStaggered = (idx % 3 === 1)
 
                     return (
                         <Wrapper
@@ -117,11 +199,7 @@ export function ProductTilesTemplate({
                                 <div className="flex items-center justify-center gap-4 border-t border-[#E7E5E4] pt-2 mt-2 w-2/3 mx-auto">
                                     {showPrices && (
                                         <span className="font-sans font-bold text-sm">
-                                            {(() => {
-                                                const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(product.price).toLocaleString('tr-TR')}`
-                                            })()}
+                                            {formatProductPrice(product)}
                                         </span>
                                     )}
                                 </div>
@@ -152,4 +230,4 @@ export function ProductTilesTemplate({
             </footer>
         </div>
     )
-}
+})

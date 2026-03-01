@@ -9,6 +9,7 @@ interface UseEditorUploadOptions {
     onCoverImageUrlChange?: (url: string | null) => void
     onBackgroundImageChange?: (url: string | null) => void
     backgroundImage?: string | null
+    t: (key: string, params?: Record<string, unknown>) => string
 }
 
 export function useEditorUpload({
@@ -16,6 +17,7 @@ export function useEditorUpload({
     onCoverImageUrlChange,
     onBackgroundImageChange,
     backgroundImage,
+    t,
 }: UseEditorUploadOptions) {
     const logoInputRef = useRef<HTMLInputElement>(null)
     const bgInputRef = useRef<HTMLInputElement>(null)
@@ -57,8 +59,8 @@ export function useEditorUpload({
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()
             await supabase.auth.getSession()
-        } catch (e) {
-            console.error('[useEditorUpload] handleUploadClick session check error:', e)
+        } catch {
+            // Session check failed silently — upload will handle auth errors
         }
     }, [])
 
@@ -81,7 +83,7 @@ export function useEditorUpload({
             try {
                 if (attempt > 0) {
                     const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
-                    onProgress?.(`Tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+                    onProgress?.(t('builder.upload.retrying', { attempt: attempt + 1, max: MAX_RETRIES }))
 
                     await new Promise<void>((resolve, reject) => {
                         const checkInterval = setInterval(() => {
@@ -97,7 +99,7 @@ export function useEditorUpload({
                 if (parentSignal?.aborted) {
                     throw new Error('Upload cancelled')
                 }
-                onProgress?.(attempt > 0 ? `Yükleniyor (Deneme ${attempt + 1})...` : 'Yükleniyor...')
+                onProgress?.(attempt > 0 ? t('builder.upload.uploadingRetry', { attempt: attempt + 1 }) : t('builder.upload.uploading'))
 
                 const fileExtension = file.name.split('.').pop() || 'jpg'
                 const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExtension}`
@@ -113,8 +115,7 @@ export function useEditorUpload({
 
                 const timeoutPromise = new Promise<never>((_, reject) => {
                     timeoutId = setTimeout(() => {
-                        console.warn(`[useEditorUpload] ⏱️ Attempt ${attempt + 1} timeout (${TIMEOUT_MS / 1000}s)`)
-                        currentAttemptController.abort()
+                            currentAttemptController.abort()
                         reject(new Error('UPLOAD_TIMEOUT'))
                     }, TIMEOUT_MS)
                 })
@@ -128,7 +129,7 @@ export function useEditorUpload({
                 if (timeoutId) clearTimeout(timeoutId)
 
                 if (result?.url) return result.url
-                throw new Error('URL dönmedi')
+                throw new Error('URL_MISSING')
 
             } catch (error: unknown) {
                 if (timeoutId) clearTimeout(timeoutId)
@@ -143,7 +144,7 @@ export function useEditorUpload({
                 if (attempt === MAX_RETRIES - 1) throw error
             }
         }
-        throw new Error("Yükleme başarıyla tamamlanamadı.")
+        throw new Error('UPLOAD_FAILED')
     }, [])
 
     // Logo/BG/Cover Upload Logic
@@ -153,7 +154,7 @@ export function useEditorUpload({
 
         const limit = type === 'logo' ? 2 : 10
         if (file.size > limit * 1024 * 1024) {
-            toast.error(`Dosya çok büyük. Maksimum ${limit}MB yüklenebilir.`)
+            toast.error(t('builder.upload.fileTooLarge', { limit }))
             if (e.target) e.target.value = ''
             return
         }
@@ -173,12 +174,12 @@ export function useEditorUpload({
             uploadTimeoutIds.current.delete(uploadKey)
         }
 
-        const typeLabel = type === 'logo' ? 'Logo' : (type === 'cover' ? 'Kapak' : 'Arka plan')
+        const typeLabel = type === 'logo' ? t('builder.upload.typeLogo') : (type === 'cover' ? t('builder.upload.typeCover') : t('builder.upload.typeBg'))
         const toastId = `upload-${type}-${Date.now()}`
-        toast.loading(`${typeLabel} hazırlanıyor...`, { id: toastId })
+        toast.loading(t('builder.upload.preparing', { type: typeLabel }), { id: toastId })
 
         try {
-            toast.loading(`${typeLabel} gönderiliyor...`, { id: toastId })
+            toast.loading(t('builder.upload.sending', { type: typeLabel }), { id: toastId })
 
             const publicUrl = await uploadFileWithRetry(file, type, abortController.signal, (status) => {
                 toast.loading(`${typeLabel}: ${status}`, { id: toastId })
@@ -189,8 +190,8 @@ export function useEditorUpload({
                 try {
                     const { updateUserLogo } = await import("@/lib/actions/auth")
                     await updateUserLogo(publicUrl)
-                } catch (syncError) {
-                    console.warn("[useEditorUpload] Logo sync to profile failed:", syncError)
+                } catch {
+                    // Logo profile sync is non-critical — silently ignore
                 }
             } else if (type === 'cover') {
                 onCoverImageUrlChange?.(publicUrl)
@@ -198,10 +199,8 @@ export function useEditorUpload({
                 onBackgroundImageChange?.(publicUrl)
             }
 
-            toast.success(`${typeLabel} yüklendi.`, { id: toastId })
+            toast.success(t('builder.upload.success', { type: typeLabel }), { id: toastId })
         } catch (error: unknown) {
-            console.error(`[useEditorUpload] ❌ Error:`, error)
-
             const errorMessage = error instanceof Error ? error.message : String(error)
 
             if (errorMessage === 'Upload cancelled' || abortController.signal.aborted) {
@@ -209,11 +208,11 @@ export function useEditorUpload({
                 return
             }
 
-            let userMessage = "Yükleme başarısız."
-            if (errorMessage === 'SESSION_TIMEOUT') userMessage = "Oturum doğrulanamadı, lütfen tekrar deneyin."
-            else if (errorMessage === 'UPLOAD_TIMEOUT') userMessage = "İşlem çok uzun sürdü, bağlantınızı kontrol edin."
-            else if (errorMessage.includes('too large')) userMessage = "Dosya boyutu çok büyük."
-            else userMessage = `Hata: ${errorMessage.substring(0, 40)}`
+            let userMessage = t('builder.upload.failed')
+            if (errorMessage === 'SESSION_TIMEOUT') userMessage = t('builder.upload.sessionError')
+            else if (errorMessage === 'UPLOAD_TIMEOUT') userMessage = t('builder.upload.timeoutError')
+            else if (errorMessage.includes('too large')) userMessage = t('builder.upload.tooLarge')
+            else userMessage = t('builder.upload.unexpectedError')
 
             toast.error(userMessage, { id: toastId })
         } finally {

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { sendFeedback } from "@/lib/actions/feedback"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { storage } from "@/lib/storage"
 
 interface FeedbackModalProps {
@@ -42,6 +42,8 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     // Upload işlemlerini iptal etmek için ref'ler
     const uploadAbortControllers = useRef<Map<string, AbortController>>(new Map())
     const uploadTimeoutIds = useRef<Map<string, NodeJS.Timeout>>(new Map())
+    // Track Object URLs for cleanup to prevent memory leaks
+    const objectUrlsRef = useRef<Set<string>>(new Set())
 
     // Fotoğraf yükleme alanına tıklandığında (daha dosya seçilmeden) oturumu tazele (Just-in-Time)
     const handleUploadClick = async () => {
@@ -74,7 +76,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                 // 1. Bekleme Süresi (Exponential Backoff - İlk denemede beklemez)
                 if (attempt > 0) {
                     const waitTime = 1000 * Math.pow(2, attempt - 1)
-                    retryToastId = toast.loading(`Bağlantı yoğun, tekrar deneniyor (${attempt + 1}/${MAX_RETRIES})...`)
+                    retryToastId = toast.loading(t('toasts.retryingConnection', { attempt: attempt + 1, max: MAX_RETRIES }))
 
                     await new Promise<void>((resolve, reject) => {
                         const checkInterval = setInterval(() => {
@@ -155,11 +157,19 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         handleUploadClick() // Dosya seçildiğinde refresh yap
         const selectedFiles = Array.from(e.target.files || [])
-        const newFiles = selectedFiles.map(file => ({
-            file,
-            preview: URL.createObjectURL(file),
-            type: file.type
-        }))
+        // Validate MIME type (defense-in-depth beyond accept attribute)
+        const validFiles = selectedFiles.filter(file => {
+            const isValid = file.type.startsWith('image/') || file.type.startsWith('video/')
+            if (!isValid) {
+                toast.error(t('toasts.invalidImageFile'))
+            }
+            return isValid
+        })
+        const newFiles = validFiles.map(file => {
+            const preview = URL.createObjectURL(file)
+            objectUrlsRef.current.add(preview)
+            return { file, preview, type: file.type }
+        })
         setFiles(prev => [...prev, ...newFiles].slice(0, 5)) // En fazla 5 dosya
         if (fileInputRef.current) fileInputRef.current.value = ""
     }
@@ -182,7 +192,9 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
 
         setFiles(prev => {
             const newFiles = [...prev]
-            URL.revokeObjectURL(newFiles[index].preview)
+            const revokedUrl = newFiles[index].preview
+            URL.revokeObjectURL(revokedUrl)
+            objectUrlsRef.current.delete(revokedUrl)
             newFiles.splice(index, 1)
             return newFiles
         })
@@ -192,6 +204,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
     useEffect(() => {
         const controllers = uploadAbortControllers.current
         const timeouts = uploadTimeoutIds.current
+        const urls = objectUrlsRef.current
 
         return () => {
             // Devam eden upload'ları iptal et
@@ -206,6 +219,10 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
             })
             timeouts.clear()
 
+            // Revoke all Object URLs to prevent memory leaks
+            urls.forEach(url => URL.revokeObjectURL(url))
+            urls.clear()
+
             toast.dismiss()
         }
     }, [])
@@ -217,6 +234,9 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
             uploadAbortControllers.current.clear()
             uploadTimeoutIds.current.forEach(t => clearTimeout(t))
             uploadTimeoutIds.current.clear()
+            // Revoke Object URLs when modal closes
+            objectUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+            objectUrlsRef.current.clear()
         }
     }, [open])
 

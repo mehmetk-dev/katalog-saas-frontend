@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download, Shield, Zap, Sparkles } from "lucide-react"
 import { toast } from "sonner"
-import NextImage from "next/image"
+import dynamic from "next/dynamic"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,18 +25,24 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { deleteCatalog, type Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
-import { useTranslation } from "@/lib/i18n-provider"
-import { useUser } from "@/lib/user-context"
+import { ShareModal } from "@/components/catalogs/share-modal"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { useUser } from "@/lib/contexts/user-context"
 
-import { CatalogPreview } from "./catalog-preview"
+const CatalogPreview = dynamic(() => import("@/components/builder/preview/catalog-preview").then(m => m.CatalogPreview), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full aspect-[794/1123] bg-gradient-to-b from-slate-100 to-slate-50 animate-pulse flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-slate-400 animate-spin" />
+    </div>
+  )
+})
 
 
 
@@ -46,11 +52,13 @@ interface CatalogsPageClientProps {
   userPlan?: "free" | "plus" | "pro"
 }
 
-// Plan limitleri
+import { PLAN_LIMITS } from "@/lib/constants"
+
+// Plan limitleri — uses shared constants
 const CATALOG_LIMITS = {
-  free: 1,
-  plus: 10,
-  pro: Infinity,
+  free: PLAN_LIMITS.free.maxCatalogs,
+  plus: PLAN_LIMITS.plus.maxCatalogs,
+  pro: PLAN_LIMITS.pro.maxCatalogs,
 }
 
 
@@ -63,7 +71,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [showLimitModal, setShowLimitModal] = useState(searchParams.get("limit_reached") === "true")
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [qrCatalog, setQrCatalog] = useState<{ name: string; slug: string } | null>(null)
+  const [shareCatalog, setShareCatalog] = useState<Catalog | null>(null)
 
   // URL'deki "limit_reached=true" parametresini modal açıldıktan sonra temizle
   useEffect(() => {
@@ -113,13 +121,11 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       return
     }
 
-    const creatingMsg = t('toasts.creatingCatalog')
-    const toastId = toast.loading(creatingMsg === 'toasts.creatingCatalog' ? "Katalog oluşturuluyor..." : String(creatingMsg))
+    const toastId = toast.loading(t('toasts.creatingCatalog'))
     try {
       const { createCatalog } = await import("@/lib/actions/catalogs")
       const currentDate = new Date().toLocaleDateString('tr-TR')
-      const rawName = t("catalogs.newCatalog")
-      const baseName = rawName === "catalogs.newCatalog" ? "Yeni Katalog" : String(rawName)
+      const baseName = t("catalogs.newCatalog")
 
       const newCatalog = await createCatalog({
         name: `${baseName} - ${currentDate}`,
@@ -128,12 +134,11 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
 
       adjustCatalogsCount(1)
 
-      const successMsg = t('toasts.catalogCreated')
-      toast.success(successMsg === 'toasts.catalogCreated' ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
+      toast.success(t('toasts.catalogCreated'), { id: toastId })
       window.location.href = `/dashboard/builder?id=${newCatalog.id}`
     } catch (error: unknown) {
       console.error("Catalog creation error:", error)
-      const message = (error instanceof Error ? error.message : null) || t('catalogs.createFailed') || "Katalog oluşturulamadı"
+      const message = (error instanceof Error ? error.message : null) || t('catalogs.createFailed')
       toast.error(message, { id: toastId })
     }
   }
@@ -212,31 +217,43 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
           {filteredCatalogs.map((catalog) => {
-            const catalogProducts = Array.isArray(userProducts) ? userProducts.filter((p) => catalog.product_ids?.includes(p.id)) : []
+            const catalogProducts = catalog.product_ids && Array.isArray(userProducts)
+              ? catalog.product_ids.map(id => userProducts.find(p => p.id === id)).filter(Boolean) as Product[]
+              : []
 
             return (
-              <Card key={catalog.id} className="group overflow-hidden bg-card hover:shadow-md transition-shadow border-0 shadow-sm ring-1 ring-border">
+              <Card
+                key={catalog.id}
+                className="group overflow-hidden bg-card hover:shadow-lg border-0 shadow-sm ring-1 ring-border"
+                style={{ contentVisibility: 'auto', containIntrinsicSize: '0 400px' }}
+              >
                 <CardContent className="p-0 relative bg-muted/30 dark:bg-muted/50">
                   {/* Preview Container using ResponsiveContainer */}
-                  <div className="relative group-hover:opacity-95 transition-opacity border-b">
+                  <div className="relative border-b">
                     <ResponsiveContainer>
                       <CatalogPreview
                         layout={catalog.layout}
                         catalogName={catalog.name}
-                        products={catalogProducts}
+                        products={catalogProducts.slice(0, 6)}
                         primaryColor={catalog.primary_color}
                         showPrices={catalog.show_prices}
                         showDescriptions={catalog.show_descriptions}
                         showAttributes={catalog.show_attributes}
                         columnsPerRow={catalog.columns_per_row}
                         backgroundColor={catalog.background_color}
-                        backgroundImage={catalog.background_image}
-                        backgroundImageFit={catalog.background_image_fit}
-                        backgroundGradient={catalog.background_gradient}
-                        logoUrl={catalog.logo_url}
-                        logoPosition={catalog.logo_position}
-                        logoSize={catalog.logo_size}
+                        backgroundImage={catalog.background_image || undefined}
+                        backgroundImageFit={catalog.background_image_fit || undefined}
+                        backgroundGradient={catalog.background_gradient || undefined}
+                        logoUrl={catalog.logo_url || undefined}
+                        logoPosition={catalog.logo_position || undefined}
+                        logoSize={catalog.logo_size || undefined}
                         productImageFit={catalog.product_image_fit || 'cover'}
+                        enableCoverPage={false} // Kullanıcı burada kapak değil ürün sayfasını görmek istiyor
+                        enableCategoryDividers={false} // Sadece ilk ürün sayfasını garanti etmek için
+                        coverImageUrl={catalog.cover_image_url || undefined}
+                        coverDescription={catalog.cover_description || undefined}
+                        theme={(catalog as { theme?: string }).theme || 'light'}
+                        showControls={false}
                       />
                     </ResponsiveContainer>
 
@@ -257,8 +274,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                         </Button>
                       </div>
                     ) : (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 duration-300">
-                        <Button variant="secondary" size="default" className="rounded-full px-4 sm:px-8 font-semibold shadow-xl translate-y-4 group-hover:translate-y-0 transition-all duration-300" asChild>
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 duration-150">
+                        <Button variant="secondary" size="default" className="rounded-full px-4 sm:px-8 font-semibold shadow-xl translate-y-2 group-hover:translate-y-0 transition-all duration-150" asChild>
                           <Link href={`/dashboard/builder?id=${catalog.id}`}>
                             <Pencil className="w-4 h-4 mr-2" />
                             {t("catalogs.edit")}
@@ -315,7 +332,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                                 <Share2 className="w-4 h-4 mr-2" />
                                 {t("catalogs.copyLink")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setQrCatalog({ name: catalog.name, slug: catalog.share_slug! })}>
+                              <DropdownMenuItem onClick={() => setShareCatalog(catalog)}>
                                 <QrCode className="w-4 h-4 mr-2" />
                                 {t("catalogs.qrCode")}
                               </DropdownMenuItem>
@@ -388,8 +405,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <Shield className="w-5 h-5 text-slate-500" />
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-bold text-foreground">Başlangıç</h4>
-                <p className="text-[10px] text-muted-foreground">Mevcut planınız</p>
+                <h4 className="text-sm font-bold text-foreground">{t("catalogs.freePlanName")}</h4>
+                <p className="text-[10px] text-muted-foreground">{t("catalogs.currentPlan")}</p>
               </div>
               <div className="text-right">
                 <span className="text-sm font-black text-foreground">1</span>
@@ -410,8 +427,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <Zap className="w-5 h-5 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-bold text-foreground">Profesyonel</h4>
-                <p className="text-[10px] text-blue-600/70 font-medium">Büyüyen işletmeler için</p>
+                <h4 className="text-sm font-bold text-foreground">{t("catalogs.proPlanName")}</h4>
+                <p className="text-[10px] text-blue-600/70 font-medium">{t("catalogs.proPlanDesc")}</p>
               </div>
               <div className="text-right">
                 <span className="text-sm font-black text-blue-700 dark:text-blue-400">10</span>
@@ -430,7 +447,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
               </div>
               <div className="flex-1">
                 <h4 className="text-sm font-bold text-foreground">Business</h4>
-                <p className="text-[10px] text-purple-600/70 font-medium">Sınırsız operasyon</p>
+                <p className="text-[10px] text-purple-600/70 font-medium">{t("catalogs.unlimitedOps")}</p>
               </div>
               <div className="text-right">
                 <span className="text-sm font-black text-purple-700 dark:text-purple-400">∞</span>
@@ -464,87 +481,15 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       {/* Upgrade Modal */}
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
 
-      {/* QR Code Modal - Modern Design */}
-      <Dialog open={!!qrCatalog} onOpenChange={() => setQrCatalog(null)}>
-        <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-2">
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                <QrCode className="w-4 h-4 text-white" />
-              </div>
-              {t("catalogs.share")}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {qrCatalog?.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-4 pb-4 space-y-4">
-            {/* QR Code */}
-            <div className="bg-card rounded-xl p-4 flex flex-col items-center border border-border">
-              {qrCatalog && (
-                <div className="relative w-36 h-36">
-                  <NextImage
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog.slug}`)}`}
-                    alt="QR Code"
-                    fill
-                    className="object-contain"
-                    unoptimized
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Link */}
-            {qrCatalog && (
-              <div className="bg-muted/50 rounded-lg p-2 flex items-center gap-2">
-                <div className="flex-1 text-xs text-muted-foreground truncate font-mono">
-                  {`${window.location.origin}/catalog/${qrCatalog.slug}`}
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="shrink-0 h-7 px-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/catalog/${qrCatalog.slug}`)
-                    toast.success(t('toasts.linkCopied'))
-                  }}
-                >
-                  {t("common.copy")}
-                </Button>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={() => {
-                  if (qrCatalog) {
-                    window.open(`/catalog/${qrCatalog.slug}`, '_blank')
-                  }
-                }}
-              >
-                <Eye className="w-3.5 h-3.5 mr-1.5" />
-                {t("catalogs.view")}
-              </Button>
-              <Button
-                size="sm"
-                className="h-9 bg-gradient-to-r from-violet-600 to-purple-600"
-                onClick={() => {
-                  const url = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`${window.location.origin}/catalog/${qrCatalog?.slug}`)}`;
-                  window.open(url, '_blank');
-                }}
-              >
-                <Download className="w-3.5 h-3.5 mr-1.5" />
-                {t("catalogs.downloadQr")}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Share & QR Code Modal */}
+      <ShareModal
+        open={!!shareCatalog}
+        onOpenChange={(open) => !open && setShareCatalog(null)}
+        catalog={shareCatalog}
+        isPublished={!!shareCatalog?.is_published}
+        shareUrl={shareCatalog?.share_slug ? `${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/catalog/${shareCatalog.share_slug}` : ''}
+        onDownloadPdf={async () => { }}
+      />
     </div>
   )
 }

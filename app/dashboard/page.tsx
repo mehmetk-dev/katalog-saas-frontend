@@ -2,7 +2,7 @@ import { getCatalogs, getDashboardStats } from "@/lib/actions/catalogs"
 import { getProducts } from "@/lib/actions/products"
 import { DashboardClient } from "@/components/dashboard/dashboard-client"
 
-import { SEO_CONFIG } from "@/lib/seo"
+import { SEO_CONFIG } from "@/lib/services/seo"
 
 export const metadata = SEO_CONFIG.dashboard
 

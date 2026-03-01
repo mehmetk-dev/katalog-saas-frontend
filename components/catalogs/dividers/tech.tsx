@@ -1,17 +1,17 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function TechDivider({
+export const TechDivider = React.memo(function TechDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#00ff41'
+    primaryColor: _primaryColor = '#00ff41'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-black text-[#00ff41] font-mono overflow-hidden flex flex-col p-12">
             {/* Matrix Rain Background */}
             <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden select-none text-[10px] leading-none break-all">
-                {Array.from({ length: 5000 }).map(() => Math.random() > 0.5 ? '1' : '0').join('')}
+                {Array.from({ length: 5000 }).map((_, i) => i % 3 === 0 ? '1' : '0').join('')}
             </div>
 
             {/* Header Status */}
@@ -90,4 +90,4 @@ export function TechDivider({
             `}</style>
         </div>
     )
-}
+})

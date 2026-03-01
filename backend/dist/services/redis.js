@@ -68,6 +68,23 @@ const initRedis = () => {
 exports.initRedis = initRedis;
 // In-memory cache fallback (Redis yoksa kullanılır)
 const memoryCache = new Map();
+// SECURITY: Prevent OOM — cap memory cache size
+const MAX_MEMORY_CACHE_SIZE = 5000;
+// Memory leak protection - GC every 1 minute
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of memoryCache.entries()) {
+        if (now >= val.expires) {
+            memoryCache.delete(key);
+        }
+    }
+    // GC productsInvalidatedUntil entries
+    for (const [userId, until] of productsInvalidatedUntil.entries()) {
+        if (now >= until) {
+            productsInvalidatedUntil.delete(userId);
+        }
+    }
+}, 60000).unref();
 // Cache key oluştur
 const createKey = (prefix, ...parts) => {
     return `katalog:${prefix}:${parts.join(':')}`;
@@ -104,11 +121,24 @@ const getCache = async (key) => {
     if (redis) {
         try {
             const data = await redis.get(key);
-            if (data)
-                return JSON.parse(data);
+            // Eğer Redis aktifse ama veri yoksa, memory cache'e düşme (çünkü silinmiş olabilir)
+            // Sadece hata durumunda veya Redis kapalıyken memory cache kullanılmalı
+            if (data) {
+                try {
+                    return JSON.parse(data);
+                }
+                catch {
+                    // SECURITY: Corrupted cache data — delete and continue
+                    console.warn('Redis corrupted data for key:', key);
+                    await redis.del(key).catch(() => { });
+                    return null;
+                }
+            }
+            return null;
         }
         catch (error) {
             console.warn('Redis read error:', error);
+            // Hata durumunda memory cache'e devam edebilir
         }
     }
     // 2. Production'da Redis yokken ürün cache'i kullanma (kapak/güncelleme tüm instance'larda görünsün)
@@ -119,7 +149,14 @@ const getCache = async (key) => {
     const memCached = memoryCache.get(key);
     if (memCached) {
         if (Date.now() < memCached.expires) {
-            return JSON.parse(memCached.data);
+            try {
+                return JSON.parse(memCached.data);
+            }
+            catch {
+                // Corrupted memory cache entry — remove and continue
+                memoryCache.delete(key);
+                return null;
+            }
         }
         memoryCache.delete(key);
     }
@@ -143,6 +180,12 @@ const setCache = async (key, data, ttlSeconds = 300) => {
         return;
     }
     // 3. Memory cache'e yaz
+    // SECURITY: Evict oldest entries if cache exceeds size limit to prevent OOM
+    if (memoryCache.size >= MAX_MEMORY_CACHE_SIZE) {
+        const firstKey = memoryCache.keys().next().value;
+        if (firstKey)
+            memoryCache.delete(firstKey);
+    }
     memoryCache.set(key, {
         data: stringData,
         expires: Date.now() + (ttlSeconds * 1000)
@@ -150,7 +193,21 @@ const setCache = async (key, data, ttlSeconds = 300) => {
 };
 exports.setCache = setCache;
 // Cache'i sil
-const deleteCache = async (pattern) => {
+const deleteCache = async (pattern, exact = false) => {
+    if (exact) {
+        // 1. Redis'ten tam eşleşmeyle sil
+        if (redis) {
+            try {
+                await redis.del(pattern);
+            }
+            catch (error) {
+                console.warn('Redis delete exact error:', error);
+            }
+        }
+        // 2. Memory cache'den tam eşleşmeyle sil
+        memoryCache.delete(pattern);
+        return;
+    }
     const searchPattern = pattern.endsWith('*') ? pattern : `${pattern}*`;
     // 1. Redis'ten sil
     if (redis) {

@@ -1,15 +1,16 @@
-import { Sparkles, Upload, Trash2, Image as ImageIcon, Layout } from "lucide-react"
+import { Sparkles, Upload, Trash2, Image as ImageIcon, Layout, GripVertical } from "lucide-react"
 import NextImage from "next/image"
+import { useState, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { COVER_THEMES } from "@/components/catalogs/covers"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { StorytellingSectionProps } from "./types"
 import { SectionWrapper } from "./section-wrapper"
 
 export function StorytellingSection({
-    t,
     openSections,
     toggleSection,
     enableCoverPage,
@@ -22,14 +23,60 @@ export function StorytellingSection({
     onEnableCategoryDividersChange,
     coverTheme,
     onCoverThemeChange,
-
+    categoryOrder,
+    onCategoryOrderChange,
+    products,
     handleFileUpload,
     coverInputRef,
 }: StorytellingSectionProps) {
+    const { t } = useTranslation()
+    const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+
+    // Eşsiz kategorileri alıyoruz
+    const uniqueCategories = useMemo(() => {
+        const cats = Array.from(new Set(products.map(p => p.category || 'Kategorisiz'))) as string[]
+
+        // Mevcut categoryOrder'a göre sırala, sıralamada olmayanları sona ekle
+        if (categoryOrder && categoryOrder.length > 0) {
+            cats.sort((a, b) => {
+                const idxA = categoryOrder.indexOf(a)
+                const idxB = categoryOrder.indexOf(b)
+                if (idxA === -1 && idxB === -1) return 0
+                if (idxA === -1) return 1
+                if (idxB === -1) return -1
+                return idxA - idxB
+            })
+        }
+        return cats
+    }, [products, categoryOrder])
+
+    // Sürükle-bırak işlemleri
+    const handleDragStart = (idx: number) => {
+        setDraggedIdx(idx)
+    }
+
+    const handleDragOver = (e: React.DragEvent, idx: number) => {
+        e.preventDefault()
+        if (draggedIdx === null || draggedIdx === idx) return
+
+        const newOrder = [...uniqueCategories]
+        const draggedItem = newOrder[draggedIdx]
+        newOrder.splice(draggedIdx, 1) // Çek
+        newOrder.splice(idx, 0, draggedItem) // Bırakılan yere ekle
+
+        if (onCategoryOrderChange) {
+            onCategoryOrderChange(newOrder)
+            setDraggedIdx(idx) // Sürüklenen elemanın index'ini güncelle ki ui pırpır etmesin
+        }
+    }
+
+    const handleDragEnd = () => {
+        setDraggedIdx(null)
+    }
     return (
         <SectionWrapper
             id="storytelling"
-            title="Hikaye Kataloğu"
+            title={t('builder.storyCatalog') as string}
             icon={<Sparkles className="w-4 h-4" />}
             iconBg="bg-violet-50 dark:bg-violet-900/30 text-violet-600"
             isOpen={!!openSections.storytelling}
@@ -48,9 +95,9 @@ export function StorytellingSection({
                                     "text-[11px] font-black uppercase",
                                     "text-slate-700 dark:text-slate-300 tracking-wide"
                                 )}>
-                                    Kapak Sayfası
+                                    {t('builder.coverPage') as string}
                                 </Label>
-                                <p className="text-[10px] text-slate-500">Katalogda profesyonel bir kapak sayfası göster</p>
+                                <p className="text-[10px] text-slate-500">{t('builder.coverPageDesc') as string}</p>
                             </div>
                             <button
                                 onClick={() => onEnableCoverPageChange?.(!enableCoverPage)}
@@ -85,7 +132,7 @@ export function StorytellingSection({
                                         "text-[11px] font-black uppercase",
                                         "text-slate-500 tracking-[0.1em] pl-1"
                                     )}>
-                                        Kapak Tasarımı
+                                        {t('builder.coverDesign') as string}
                                     </Label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {Object.entries(COVER_THEMES).map(([key, theme]) => {
@@ -131,7 +178,7 @@ export function StorytellingSection({
                                                                 ? "text-indigo-700 dark:text-indigo-400"
                                                                 : "text-slate-700 dark:text-slate-300"
                                                         )}>
-                                                            {theme.name}
+                                                            {t(`coverThemes.${key}`) || theme.name}
                                                         </span>
                                                     </div>
                                                     {isSelected && (
@@ -147,7 +194,7 @@ export function StorytellingSection({
                                     {/* Cover Image Upload */}
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between px-1">
-                                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kapak Görseli</Label>
+                                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t('builder.coverImage') as string}</Label>
                                         </div>
                                         <div className="space-y-3">
                                             {coverImageUrl ? (
@@ -184,7 +231,7 @@ export function StorytellingSection({
                                                             )}
                                                         >
                                                             <Upload className="w-3.5 h-3.5 mr-1.5" />
-                                                            Değiştir
+                                                            {t('builder.changeBtn') as string}
                                                         </Button>
                                                         <Button
                                                             type="button"
@@ -197,7 +244,7 @@ export function StorytellingSection({
                                                             )}
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                                                            Kaldır
+                                                            {t('builder.removeBtn') as string}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -230,7 +277,7 @@ export function StorytellingSection({
                                                             "tracking-widest text-slate-500",
                                                             "group-hover:text-slate-700"
                                                         )}>
-                                                            Görsel Seç
+                                                            {t('builder.selectImage') as string}
                                                         </span>
                                                         <span className="block text-[9px] text-slate-400 font-bold mt-0.5">PNG, JPG, WEBP</span>
                                                     </div>
@@ -252,13 +299,13 @@ export function StorytellingSection({
                                             "text-[10px] font-black uppercase",
                                             "text-slate-500 tracking-widest px-1"
                                         )}>
-                                            Kapak Açıklaması
+                                            {t('builder.coverDesc') as string}
                                         </Label>
                                         <div className="flex-1 relative">
                                             <textarea
                                                 value={coverDescription || ''}
                                                 onChange={(e) => onCoverDescriptionChange?.(e.target.value || null)}
-                                                placeholder="Katalog hakkında kısa bir açıklama..."
+                                                placeholder={t('builder.coverDescPlaceholder') as string}
                                                 maxLength={500}
                                                 className={cn(
                                                     "w-full h-full min-h-[128px] p-4 text-sm",
@@ -292,9 +339,9 @@ export function StorytellingSection({
                                     "text-[11px] font-black uppercase",
                                     "text-slate-700 dark:text-slate-300 tracking-wide"
                                 )}>
-                                    Kategori Geçiş Sayfaları
+                                    {t('builder.categoryDividers') as string}
                                 </Label>
-                                <p className="text-[10px] text-slate-500">Kategoriler arası geçişlerde görsel ayraç sayfaları göster</p>
+                                <p className="text-[10px] text-slate-500">{t('builder.categoryDividersDesc') as string}</p>
                             </div>
                             <button
                                 onClick={() => onEnableCategoryDividersChange?.(!enableCategoryDividers)}
@@ -315,6 +362,34 @@ export function StorytellingSection({
                                 />
                             </button>
                         </div>
+
+                        {enableCategoryDividers && uniqueCategories.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest px-1 block mb-3">
+                                    {t('builder.categoryOrder') as string}
+                                </Label>
+                                <div className="space-y-1.5">
+                                    {uniqueCategories.map((category, idx) => (
+                                        <div
+                                            key={category}
+                                            draggable
+                                            onDragStart={() => handleDragStart(idx)}
+                                            onDragOver={(e) => handleDragOver(e, idx)}
+                                            onDragEnd={handleDragEnd}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl cursor-grab active:cursor-grabbing border border-transparent transition-all",
+                                                draggedIdx === idx ? "opacity-50 border-indigo-500 scale-[0.98]" : "hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"
+                                            )}
+                                        >
+                                            <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />
+                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                                                {category}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>

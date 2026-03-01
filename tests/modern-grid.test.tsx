@@ -5,10 +5,11 @@ import type { Product } from '@/lib/actions/products'
 
 // Mock NextImage since it doesn't work well in jsdom/vitest without setup
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean; [key: string]: unknown }) => {
+    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
-            imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+            const existingStyle = (typeof imgProps.style === 'object' && imgProps.style !== null) ? imgProps.style as Record<string, unknown> : {}
+            imgProps.style = { ...existingStyle, position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)

@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { supabase } from '../../services/supabase';
 import { cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { getUserId } from './helpers';
+import { safeErrorMessage } from '../../utils/safe-error';
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
@@ -30,16 +31,24 @@ export const getProducts = async (req: Request, res: Response) => {
                 .eq('user_id', userId);
 
             if (category && category !== 'all') {
-                query = query.ilike('category', `%${category}%`);
+                // SECURITY: Escape PostgREST special characters to prevent filter injection
+                const sanitizedCategory = category.replace(/[%_*(),."\\]/g, '');
+                query = query.ilike('category', `%${sanitizedCategory}%`);
             }
 
             if (search) {
-                query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
+                // SECURITY: Sanitize search input to prevent PostgREST .or() filter injection
+                // PostgREST parses .or() string as filter expressions — raw interpolation is dangerous
+                const sanitizedSearch = search.replace(/[%_*(),."\\]/g, '');
+                if (sanitizedSearch.length > 0) {
+                    query = query.or(`name.ilike.%${sanitizedSearch}%,sku.ilike.%${sanitizedSearch}%`);
+                }
             }
 
             const { data, error, count } = await query
                 .order('display_order', { ascending: true, nullsFirst: false })
                 .order('created_at', { ascending: false })
+                .order('id', { ascending: false })
                 .range(from, to);
 
             if (error) throw error;
@@ -93,8 +102,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
         res.json(result);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
 
@@ -134,8 +142,7 @@ export const getProduct = async (req: Request, res: Response) => {
 
         res.json(product);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
 
@@ -158,8 +165,7 @@ export const checkProductInCatalogs = async (req: Request, res: Response) => {
             count: catalogs?.length || 0
         });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
 
@@ -199,8 +205,7 @@ export const checkProductsInCatalogs = async (req: Request, res: Response) => {
             hasAnyInCatalogs: productsInCatalogs.length > 0
         });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
 
@@ -262,7 +267,6 @@ export const getProductStats = async (req: Request, res: Response) => {
 
         res.json(result);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };

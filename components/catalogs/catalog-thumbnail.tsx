@@ -1,16 +1,7 @@
 import NextImage from "next/image"
 
 import type { Product } from "@/lib/actions/products"
-
-interface Catalog {
-    id: string
-    name: string
-    layout: string
-    product_ids: string[]
-    // Add other fields if available in DB, but for now we rely on defaults or what's present
-}
-
-// Product interface imported from @/lib/actions/products
+import type { Catalog } from "@/lib/actions/catalogs"
 
 interface CatalogThumbnailProps {
     catalog: Catalog

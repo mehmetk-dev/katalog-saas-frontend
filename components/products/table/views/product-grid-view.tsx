@@ -24,7 +24,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { type ProductViewProps } from "../types"
-import { getStockStatus, getCurrencySymbol } from "../utils/product-helpers"
+import { getStockStatus, getCurrencySymbol, isSafeUrl } from "../utils/product-helpers"
 import { DeleteAlertDialog } from "../components/delete-alert-dialog"
 
 export function ProductGridView({
@@ -366,7 +366,7 @@ export function ProductGridView({
                                         <p className="text-sm">{previewProduct.description || "—"}</p>
                                     </div>
 
-                                    {previewProduct.product_url && (
+                                    {previewProduct.product_url && isSafeUrl(previewProduct.product_url) && (
                                         <div>
                                             <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
                                             <a

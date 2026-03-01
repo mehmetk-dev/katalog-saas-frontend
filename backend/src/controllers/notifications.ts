@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
+import { safeErrorMessage } from '../utils/safe-error';
 
 const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
 
@@ -23,31 +24,35 @@ export const getNotifications = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const { limit = 20, unread_only = false } = req.query;
 
+        // SECURITY: Cap limit to prevent excessive data extraction
+        const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
+
         let query = supabase
             .from('notifications')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(Number(limit));
+            .limit(safeLimit);
 
         if (unread_only === 'true') {
             query = query.eq('is_read', false);
         }
 
-        const { data, error } = await query;
+        // PERF: Fetch notifications and unread count in parallel (was sequential)
+        const [notifResult, countResult] = await Promise.all([
+            query,
+            supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('is_read', false)
+        ]);
 
-        if (error) throw error;
+        if (notifResult.error) throw notifResult.error;
 
-        // Also get unread count
-        const { count: unreadCount } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('is_read', false);
-
-        res.json({ notifications: data || [], unreadCount: unreadCount || 0 });
+        res.json({ notifications: notifResult.data || [], unreadCount: countResult.count || 0 });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
     }
 };
@@ -68,7 +73,7 @@ export const markAsRead = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
     }
 };
@@ -88,7 +93,7 @@ export const markAllAsRead = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
     }
 };
@@ -109,7 +114,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
     }
 };
@@ -128,7 +133,7 @@ export const deleteAllNotifications = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
     }
 };
@@ -207,7 +212,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
             message: 'Subscription cancelled. You can continue using premium features until the end date.'
         });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
     }
 };

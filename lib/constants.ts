@@ -1,6 +1,44 @@
-// DEPRECATED: Şablonlar artık Supabase 'templates' tablosundan çekiliyor
-// Bu sabit sadece yedek/fallback olarak tutulmuştur
-// Admin panelinden şablonları yönetin: /admin
+// ─── Site-wide Constants ────────────────────────────────────────────────────────
+
+/** Canonical base URL — used for SEO, sitemap, OG tags */
+export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fogcatalog.com"
+
+/** Contact/support email addresses */
+export const EMAILS = {
+    info: "info@fogcatalog.com",
+    support: "destek@fogcatalog.com",
+    kvkk: "kvkk@fogcatalog.com",
+    legal: "legal@fogcatalog.com",
+} as const
+
+// ─── Plan System ────────────────────────────────────────────────────────────────
+
+export type PlanType = "free" | "plus" | "pro"
+
+export interface PlanLimits {
+    maxCatalogs: number
+    maxProducts: number
+    maxExports: number
+}
+
+/** Single source of truth for plan limits.
+ *  Used by: dashboard/layout.tsx, dashboard/builder/page.tsx, catalogs-page-client.tsx */
+export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
+    free: { maxCatalogs: 1, maxProducts: 50, maxExports: 1 },
+    plus: { maxCatalogs: 10, maxProducts: 1000, maxExports: 50 },
+    pro: { maxCatalogs: Infinity, maxProducts: Infinity, maxExports: Infinity },
+} as const
+
+/** Convenience — returns limits for the given plan, defaults to free */
+export function getPlanLimits(plan: string | undefined | null): PlanLimits {
+    return PLAN_LIMITS[(plan as PlanType) || "free"] ?? PLAN_LIMITS.free
+}
+
+// ─── Template Definitions ───────────────────────────────────────────────────────
+
+// FALLBACK: Şablonlar öncelikle Supabase 'templates' tablosundan çekiliyor.
+// Bu sabit template-section.tsx tarafından fallback/fiyatlandırma bilgisi için kullanılır.
+// Ana kaynak: Admin panelinden yönetilen DB kayıtları (/admin)
 export const TEMPLATES = [
     // Ücretsiz şablonlar
     {

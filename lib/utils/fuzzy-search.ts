@@ -20,6 +20,7 @@ interface FuzzySearchResult<T> {
 
 /**
  * Levenshtein distance - iki string arasındaki düzenleme mesafesi
+ * Optimized: O(min(m,n)) memory instead of O(m*n)
  */
 function levenshteinDistance(str1: string, str2: string): number {
     const m = str1.length
@@ -29,26 +30,28 @@ function levenshteinDistance(str1: string, str2: string): number {
     if (m === 0) return n
     if (n === 0) return m
 
-    // DP matrisi
-    const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0))
+    // Ensure str2 is the shorter string for optimal memory usage
+    if (m < n) return levenshteinDistance(str2, str1)
 
-    // İlk satır ve sütunu doldur
-    for (let i = 0; i <= m; i++) dp[i][0] = i
-    for (let j = 0; j <= n; j++) dp[0][j] = j
+    // Two-row DP — only O(n) memory
+    let prev = Array.from({ length: n + 1 }, (_, i) => i)
+    let curr = new Array<number>(n + 1)
 
-    // Matrisi doldur
     for (let i = 1; i <= m; i++) {
+        curr[0] = i
         for (let j = 1; j <= n; j++) {
             const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
-            dp[i][j] = Math.min(
-                dp[i - 1][j] + 1,      // silme
-                dp[i][j - 1] + 1,      // ekleme
-                dp[i - 1][j - 1] + cost // değiştirme
+            curr[j] = Math.min(
+                prev[j] + 1,      // silme
+                curr[j - 1] + 1,   // ekleme
+                prev[j - 1] + cost // değiştirme
             )
         }
+        // Swap rows
+        ;[prev, curr] = [curr, prev]
     }
 
-    return dp[m][n]
+    return prev[n]
 }
 
 /**

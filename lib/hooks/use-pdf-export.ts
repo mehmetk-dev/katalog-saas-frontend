@@ -107,11 +107,15 @@ export function usePdfExport({
             setPhase("preparing", { percent: 5, currentPage: 0, totalPages: 0, estimatedTimeLeft: "" })
             setIsExporting(true)
 
+            // FIX(F3): Import heavy libraries once upfront instead of per-page
+            const [{ jsPDF }, { toJpeg }] = await Promise.all([
+                import("jspdf"),
+                import("html-to-image"),
+            ])
+
             // Wait for React to render ghost container with all pages
             await yieldToMain(1500)
             if (cancelledRef.current) return
-
-            const { jsPDF } = await import("jspdf")
 
             const container = document.getElementById('catalog-export-container')
             if (!container) {
@@ -141,6 +145,11 @@ export function usePdfExport({
 
             // Track timing for ETA estimation
             const startTime = Date.now()
+
+            // FIX(F3): Image cache — avoid re-fetching the same image URL across pages
+            // Limit cache size to prevent OOM on large catalogs
+            const IMAGE_CACHE_LIMIT = 500
+            const imageCache = new Map<string, string>()
 
             // Process pages in chunks to avoid memory pressure
             let processedCount = 0
@@ -192,15 +201,29 @@ export function usePdfExport({
 
                     try {
                         // Convert images to base64 (CORS fix)
+                        // FIX(F3): Use cache to avoid re-downloading same images
                         const images = clone.querySelectorAll('img')
                         const imagePromises = Array.from(images).map(async (img) => {
                             try {
                                 if (!img.src || img.src.startsWith('data:')) return
 
+                                const originalSrc = img.src
+
+                                // Check cache first
+                                const cached = imageCache.get(originalSrc)
+                                if (cached) {
+                                    img.src = cached
+                                    img.style.display = 'block'
+                                    img.removeAttribute('crossOrigin')
+                                    img.removeAttribute('srcset')
+                                    img.removeAttribute('loading')
+                                    return
+                                }
+
                                 const controller = new AbortController()
                                 const timeoutId = setTimeout(() => controller.abort(), settings.imageTimeout)
 
-                                const response = await fetch(img.src, {
+                                const response = await fetch(originalSrc, {
                                     signal: controller.signal,
                                     mode: 'cors',
                                     credentials: 'omit'
@@ -217,6 +240,14 @@ export function usePdfExport({
                                     reader.readAsDataURL(blob)
                                 })
 
+                                // Cache for reuse on other pages (with size limit)
+                                if (imageCache.size >= IMAGE_CACHE_LIMIT) {
+                                    // Evict oldest entry (first inserted)
+                                    const firstKey = imageCache.keys().next().value
+                                    if (firstKey) imageCache.delete(firstKey)
+                                }
+                                imageCache.set(originalSrc, base64)
+
                                 img.src = base64
                                 img.style.display = 'block'
                                 img.removeAttribute('crossOrigin')
@@ -224,7 +255,7 @@ export function usePdfExport({
                                 img.removeAttribute('loading')
 
                             } catch {
-                                console.warn("Image skipped:", img.src)
+                                // Image fetch failed — use transparent placeholder
                                 img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                                 img.style.objectFit = 'contain'
                             }
@@ -233,7 +264,7 @@ export function usePdfExport({
                         await Promise.allSettled(imagePromises)
                         await yieldToMain(200)
 
-                        const { toJpeg } = await import("html-to-image")
+                        // FIX(F3): toJpeg imported once at top, not per-page
                         let imgData: string | null = await toJpeg(clone, {
                             quality: settings.quality,
                             pixelRatio: settings.pixelRatio,
@@ -260,6 +291,9 @@ export function usePdfExport({
                 }
             }
 
+            // FIX(F3): Release image cache to free memory after all pages processed
+            imageCache.clear()
+
             if (cancelledRef.current) {
                 setIsExporting(false)
                 return
@@ -279,10 +313,9 @@ export function usePdfExport({
                 if (!result.error) {
                     refreshUser()
                 }
-            }).catch(err => console.error("Export limit update failed:", err))
+            }).catch(() => { /* Export quota update is non-critical */ })
 
         } catch (err) {
-            console.error("PDF Fail:", err)
             setIsExporting(false)
             const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
             setPhase("error", { errorMessage: msg, percent: 0, estimatedTimeLeft: "" })

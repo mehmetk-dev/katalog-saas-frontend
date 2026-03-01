@@ -48,10 +48,13 @@ const publicPages = {
         },
         marketing: {
             heroTitle: "Dakikalar içinde harika ürün katalogları oluşturun",
+            authHeroTitle: "Müşterilerinizi Etkileyen Kataloglar Hazırlayın",
             heroSubtitle: "Ürünlerini güzel bir şekilde sergilemek için FogCatalog kullanan binlerce işletmeye katılın.",
             feature1: "Her sektör için güzel şablonlar",
             feature2: "PDF'e aktar veya link ile paylaş",
             feature3: "Kurumsal düzeyde güvenlik",
+            feature4: "Excel ile Toplu Ürün Yükleme",
+            feature5: "WhatsApp Sipariş Entegrasyonu",
             trustedBy: "Dünya çapında 10.000+ işletme tarafından güveniliyor",
         },
         featuresPage: {
@@ -256,10 +259,13 @@ const publicPages = {
         },
         marketing: {
             heroTitle: "Create stunning product catalogs in minutes",
+            authHeroTitle: "Create Catalogs That Impress Your Customers",
             heroSubtitle: "Join thousands of businesses who use FogCatalog to showcase their products beautifully.",
             feature1: "Beautiful templates for every industry",
             feature2: "Export to PDF or share via link",
             feature3: "Enterprise-grade security",
+            feature4: "Bulk Product Upload via Excel",
+            feature5: "WhatsApp Order Integration",
             trustedBy: "Trusted by 10,000+ businesses worldwide",
         },
         featuresPage: {

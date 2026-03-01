@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react"
 import { toast } from "sonner"
 import { storage } from "@/lib/storage"
-import { optimizeImage } from "@/lib/image-utils"
+import { optimizeImage } from "@/lib/utils/image-utils"
 import type { Product } from "@/lib/actions/products"
 
 // ─── Types ──────────────────────────────────────────────────────────

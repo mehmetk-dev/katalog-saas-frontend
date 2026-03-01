@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useLayoutEffect, useRef, useState, useCallback } from "react"
 
 interface ResponsiveContainerProps {
     children: React.ReactNode
-    aspectRatio?: number // width / height
     contentWidth?: number
     contentHeight?: number
     className?: string
@@ -17,31 +16,36 @@ export function ResponsiveContainer({
     className = ""
 }: ResponsiveContainerProps) {
     const containerRef = useRef<HTMLDivElement>(null)
-    const [scale, setScale] = useState(0.35)
+    const rafRef = useRef<number>(0)
+    const [scale, setScale] = useState(0)
 
-    useEffect(() => {
-        const updateScale = () => {
-            if (containerRef.current) {
-                const parentWidth = containerRef.current.offsetWidth
-                const newScale = parentWidth / contentWidth
-                setScale(newScale)
-            }
+    const updateScale = useCallback(() => {
+        if (containerRef.current) {
+            const parentWidth = containerRef.current.offsetWidth
+            const newScale = parentWidth / contentWidth
+            setScale(newScale)
         }
+    }, [contentWidth])
 
+    useLayoutEffect(() => {
         // Initial calc
         updateScale()
 
-        // Observer
+        // Observer with rAF throttle to avoid layout thrashing
         const resizeObserver = new ResizeObserver(() => {
-            updateScale()
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = requestAnimationFrame(updateScale)
         })
 
         if (containerRef.current) {
             resizeObserver.observe(containerRef.current)
         }
 
-        return () => resizeObserver.disconnect()
-    }, [contentWidth])
+        return () => {
+            cancelAnimationFrame(rafRef.current)
+            resizeObserver.disconnect()
+        }
+    }, [updateScale])
 
     return (
         <div

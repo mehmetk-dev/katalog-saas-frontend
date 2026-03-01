@@ -2,35 +2,36 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Sofa, Shirt, Package, Utensils, Laptop, MoreHorizontal, Loader2 } from "lucide-react"
+import { Sofa, Shirt, Package, Utensils, Laptop, MoreHorizontal } from "lucide-react"
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface OnboardingModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const industries = [
-  { id: "furniture", label: "Furniture", icon: Sofa },
-  { id: "fashion", label: "Fashion", icon: Shirt },
-  { id: "wholesale", label: "Wholesale", icon: Package },
-  { id: "food", label: "Food & Beverage", icon: Utensils },
-  { id: "electronics", label: "Electronics", icon: Laptop },
-  { id: "other", label: "Other", icon: MoreHorizontal },
-]
+const industryKeys = [
+  { id: "furniture", labelKey: "auth.industryFurniture", icon: Sofa },
+  { id: "fashion", labelKey: "auth.industryFashion", icon: Shirt },
+  { id: "wholesale", labelKey: "auth.industryWholesale", icon: Package },
+  { id: "food", labelKey: "auth.industryFood", icon: Utensils },
+  { id: "electronics", labelKey: "auth.industryElectronics", icon: Laptop },
+  { id: "other", labelKey: "auth.industryOther", icon: MoreHorizontal },
+] as const
 
 export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [selected, setSelected] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!selected) return
-    setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 800))
+    // TODO: Send selected industry to API when endpoint is available
+    // e.g. await apiFetch("/users/preferences", { method: "POST", body: JSON.stringify({ industry: selected }) })
     onOpenChange(false)
     router.push("/dashboard")
   }
@@ -39,12 +40,12 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-xl">What is your industry?</DialogTitle>
-          <DialogDescription>Help us recommend the best templates for your product catalogs.</DialogDescription>
+          <DialogTitle className="text-xl">{t('auth.onboardingTitle')}</DialogTitle>
+          <DialogDescription>{t('auth.onboardingDesc')}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-4">
-          {industries.map((industry) => {
+          {industryKeys.map((industry) => {
             const Icon = industry.icon
             return (
               <button
@@ -60,7 +61,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
                 <span
                   className={cn("text-sm font-medium", selected === industry.id ? "text-primary" : "text-foreground")}
                 >
-                  {industry.label}
+                  {t(industry.labelKey)}
                 </span>
               </button>
             )
@@ -75,11 +76,10 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
               router.push("/dashboard")
             }}
           >
-            Skip for now
+            {t('auth.onboardingSkip')}
           </Button>
-          <Button onClick={handleContinue} disabled={!selected || isLoading}>
-            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Continue
+          <Button onClick={handleContinue} disabled={!selected}>
+            {t('auth.onboardingContinue')}
           </Button>
         </div>
       </DialogContent>

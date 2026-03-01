@@ -7,7 +7,7 @@ import { FeedbackModal } from '@/components/dashboard/feedback-modal'
 import { Product } from '@/lib/actions/products'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
         t: (key: string) => key,
         language: 'tr'
@@ -38,6 +38,7 @@ const mockSupabaseClient = {
                 user: { id: 'test-user-id' }
             }
         }),
+        refreshSession: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
     },
     storage: {
         from: vi.fn(() => ({
@@ -64,7 +65,7 @@ vi.mock('next/image', () => ({
     default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
-            imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+            imgProps.style = { ...((imgProps.style as Record<string, unknown>) || {}), position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)
@@ -74,8 +75,8 @@ vi.mock('next/image', () => ({
     },
 }))
 
-vi.mock('@/lib/image-utils', () => ({
-    convertToWebP: vi.fn(async (file: File) => {
+vi.mock('@/lib/utils/image-utils', () => ({
+    optimizeImage: vi.fn(async (file: File) => {
         // Simüle edilmiş WebP dönüşümü
         return {
             blob: new Blob([file], { type: 'image/webp' }),
@@ -149,6 +150,8 @@ describe('Fotoğraf Yükleme Testleri', () => {
             onSaved: vi.fn(),
             allCategories: [],
             userPlan: 'free' as const,
+            maxProducts: 50,
+            currentProductCount: 10,
         }
 
         it('fotoğraf yükleme butonunu gösterir', async () => {
@@ -613,13 +616,13 @@ describe('Fotoğraf Yükleme Testleri', () => {
             }
 
             fireEvent.dragEnter(dropZone!, {
-                dataTransfer: dataTransfer as DataTransfer,
+                dataTransfer: dataTransfer as unknown as DataTransfer,
             })
             fireEvent.dragOver(dropZone!, {
-                dataTransfer: dataTransfer as DataTransfer,
+                dataTransfer: dataTransfer as unknown as DataTransfer,
             })
             fireEvent.drop(dropZone!, {
-                dataTransfer: dataTransfer as DataTransfer,
+                dataTransfer: dataTransfer as unknown as DataTransfer,
             })
 
             await waitFor(() => {
@@ -824,11 +827,11 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
     describe('Image Utils - WebP Dönüşümü', () => {
         it('küçük dosyaları dönüştürmez (250KB altı)', async () => {
-            const { convertToWebP } = await import('@/lib/image-utils')
+            const { optimizeImage } = await import('@/lib/utils/image-utils')
             const smallFile = createMockImageFile('small.png', 100 * 1024) // 100KB
 
             try {
-                const result = await convertToWebP(smallFile)
+                const result = await optimizeImage(smallFile)
                 // Küçük dosyalar için blob aynı kalabilir veya dönüştürülebilir
                 expect(result).toBeTruthy()
                 expect(result.blob).toBeTruthy()
@@ -839,10 +842,11 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('büyük dosyaları WebP\'ye dönüştürür', async () => {
-            const { convertToWebP } = await import('@/lib/image-utils')
+            const { optimizeImage } = await import('@/lib/utils/image-utils')
             const largeFile = createMockImageFile('large.png', 500 * 1024) // 500KB
+            expect(optimizeImage).toHaveBeenCalled()
 
-            const result = await convertToWebP(largeFile)
+            const result = await optimizeImage(largeFile)
             expect(result.fileName).toContain('.webp')
         })
     })
@@ -857,6 +861,8 @@ describe('Fotoğraf Yükleme Testleri', () => {
                 onSaved: vi.fn(),
                 allCategories: [],
                 userPlan: 'free' as const,
+                maxProducts: 50,
+                currentProductCount: 10,
             }
 
             render(<ProductModal {...defaultProps} />)
@@ -893,6 +899,8 @@ describe('Fotoğraf Yükleme Testleri', () => {
                 onSaved: vi.fn(),
                 allCategories: [],
                 userPlan: 'free' as const,
+                maxProducts: 50,
+                currentProductCount: 10,
             }
 
             render(<ProductModal {...defaultProps} />)
@@ -938,6 +946,8 @@ describe('Fotoğraf Yükleme Testleri', () => {
                 onSaved: vi.fn(),
                 allCategories: [],
                 userPlan: 'free' as const,
+                maxProducts: 50,
+                currentProductCount: 10,
             }
 
             render(<ProductModal {...defaultProps} />)

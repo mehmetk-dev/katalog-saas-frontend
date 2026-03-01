@@ -89,6 +89,8 @@ interface EditorDesignTabProps {
     onCoverDescriptionChange?: (desc: string | null) => void
     enableCategoryDividers: boolean
     onEnableCategoryDividersChange?: (enable: boolean) => void
+    categoryOrder: string[]
+    onCategoryOrderChange?: (order: string[]) => void
     coverTheme: string
     onCoverThemeChange?: (theme: string) => void
     catalogName: string
@@ -107,7 +109,7 @@ interface EditorDesignTabProps {
     selectedProductIds: string[]
 }
 
-export function EditorDesignTab(props: EditorDesignTabProps) {
+export const EditorDesignTab = React.memo(function EditorDesignTab(props: EditorDesignTabProps) {
     return (
         <div className="m-0 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
             <div className="space-y-3">
@@ -196,6 +198,8 @@ export function EditorDesignTab(props: EditorDesignTabProps) {
                     onCoverDescriptionChange={props.onCoverDescriptionChange}
                     enableCategoryDividers={props.enableCategoryDividers}
                     onEnableCategoryDividersChange={props.onEnableCategoryDividersChange}
+                    categoryOrder={props.categoryOrder}
+                    onCategoryOrderChange={props.onCategoryOrderChange}
                     coverTheme={props.coverTheme}
                     onCoverThemeChange={props.onCoverThemeChange}
                     catalogName={props.catalogName}
@@ -223,4 +227,4 @@ export function EditorDesignTab(props: EditorDesignTabProps) {
             </div>
         </div>
     )
-}
+})

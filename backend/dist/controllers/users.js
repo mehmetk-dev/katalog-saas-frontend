@@ -36,7 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.upgradeToPro = exports.incrementExportsUsed = exports.deleteMe = exports.updateMe = exports.sendWelcomeNotification = exports.getMe = void 0;
 const zod_1 = require("zod");
 const supabase_1 = require("../services/supabase");
+const redis_1 = require("../services/redis");
 const activity_logger_1 = require("../services/activity-logger");
+const safe_error_1 = require("../utils/safe-error");
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req) => req.user.id;
 const getUserEmail = (req) => req.user.email;
@@ -55,12 +57,13 @@ const getMe = async (req, res) => {
         const userId = getUserId(req);
         const userEmail = getUserEmail(req);
         const userMeta = getUserMeta(req);
-        // Get user profile
-        let { data: profile } = await supabase_1.supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .single();
+        // PERF: Fetch profile and counts in parallel (was 3 sequential queries)
+        let [profileResult, productsCountResult, catalogsCountResult] = await Promise.all([
+            supabase_1.supabase.from('users').select('*').eq('id', userId).single(),
+            supabase_1.supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+            supabase_1.supabase.from('catalogs').select('*', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
+        let profile = profileResult.data;
         // Check for subscription expiry
         if (profile && profile.plan !== 'free' && profile.subscription_end) {
             const expiry = new Date(profile.subscription_end);
@@ -78,6 +81,8 @@ const getMe = async (req, res) => {
                     .single();
                 if (!upgradeError && updatedProfile) {
                     profile = updatedProfile;
+                    // Plan değişti, cache'i temizle
+                    await (0, redis_1.deleteCache)(redis_1.cacheKeys.user(userId));
                     // Bildirim gönder
                     try {
                         const { createNotification } = await Promise.resolve().then(() => __importStar(require('./notifications')));
@@ -89,15 +94,9 @@ const getMe = async (req, res) => {
                 }
             }
         }
-        // Get counts
-        const { count: productsCount } = await supabase_1.supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId);
-        const { count: catalogsCount } = await supabase_1.supabase
-            .from('catalogs')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId);
+        // Get counts (already fetched in parallel above)
+        const productsCount = productsCountResult.count;
+        const catalogsCount = catalogsCountResult.count;
         const result = {
             id: userId,
             email: userEmail,
@@ -115,7 +114,7 @@ const getMe = async (req, res) => {
         res.json(result);
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -142,7 +141,7 @@ const sendWelcomeNotification = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -168,6 +167,8 @@ const updateMe = async (req, res) => {
             .eq('id', userId);
         if (error)
             throw error;
+        // Profil değişti, user cache'i temizle
+        await (0, redis_1.deleteCache)(redis_1.cacheKeys.user(userId));
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -180,7 +181,7 @@ const updateMe = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -205,7 +206,7 @@ const deleteMe = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -276,55 +277,23 @@ const incrementExportsUsed = async (req, res) => {
         return res.status(409).json({ error: 'Export counter update conflict, please retry' });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
 exports.incrementExportsUsed = incrementExportsUsed;
 const upgradeToPro = async (req, res) => {
     try {
-        const userId = getUserId(req);
-        const { plan } = req.body;
-        // Validate plan
-        const validPlans = ['free', 'plus', 'pro'];
-        const targetPlan = validPlans.includes(plan) ? plan : 'pro';
-        // Set subscription end date (1 year from now for yearly plans)
-        const subscriptionEnd = new Date();
-        subscriptionEnd.setFullYear(subscriptionEnd.getFullYear() + 1);
-        const { error } = await supabase_1.supabase.from('users')
-            .update({
-            plan: targetPlan,
-            subscription_status: 'active',
-            subscription_end: subscriptionEnd.toISOString()
-        })
-            .eq('id', userId);
-        if (error)
-            throw error;
-        // Log activity
-        const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
-        await (0, activity_logger_1.logActivity)({
-            userId,
-            activityType: 'plan_upgrade',
-            description: activity_logger_1.ActivityDescriptions.planUpgrade(targetPlan.toUpperCase()),
-            metadata: { newPlan: targetPlan },
-            ipAddress,
-            userAgent
+        // SECURITY: Plan upgrade is disabled until payment integration (Stripe/Iyzico) is implemented.
+        // This endpoint must ONLY be callable from a verified payment webhook, not directly by users.
+        // TODO: Implement payment webhook verification before enabling plan upgrades.
+        return res.status(403).json({
+            error: 'Payment Required',
+            message: 'Plan yükseltme işlemi şu anda aktif değil. Ödeme entegrasyonu tamamlandığında kullanılabilir olacaktır.'
         });
-        // Bildirim gönder
-        if (targetPlan !== 'free') {
-            try {
-                const { createNotification } = await Promise.resolve().then(() => __importStar(require('./notifications')));
-                const planName = targetPlan === 'pro' ? 'Pro' : 'Plus';
-                await createNotification(userId, 'subscription_started', `${planName} Paketi Aktif! ✨`, `Tebrikler! ${planName} paketiniz aktif edildi. ${subscriptionEnd.toLocaleDateString('tr-TR')} tarihine kadar tüm premium özelliklerden yararlanabilirsiniz.`, '/dashboard');
-            }
-            catch (notifError) {
-                console.error('Notification error:', notifError);
-            }
-        }
-        res.json({ success: true, plan: targetPlan });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };

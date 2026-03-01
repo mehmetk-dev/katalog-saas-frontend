@@ -32,8 +32,12 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const express_2 = __importDefault(require("express"));
 const auth_1 = require("../middlewares/auth");
 const ProductController = __importStar(require("../controllers/products"));
 const router = (0, express_1.Router)();
@@ -41,9 +45,11 @@ const router = (0, express_1.Router)();
 router.use(auth_1.requireAuth);
 // Specific routes first (before dynamic :id routes)
 router.get('/', ProductController.getProducts);
+router.get('/stats', ProductController.getProductStats);
 router.post('/', ProductController.createProduct);
 router.post('/bulk-delete', ProductController.bulkDeleteProducts);
-router.post('/bulk-import', ProductController.bulkImportProducts);
+// SECURITY: Bulk import needs higher body limit (50MB) for large CSV/JSON imports
+router.post('/bulk-import', express_2.default.json({ limit: '50mb' }), ProductController.bulkImportProducts);
 router.post('/reorder', ProductController.reorderProducts);
 router.post('/bulk-price-update', ProductController.bulkUpdatePrices);
 router.post('/bulk-image-update', ProductController.bulkUpdateImages);

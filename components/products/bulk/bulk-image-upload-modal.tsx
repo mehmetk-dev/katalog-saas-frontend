@@ -17,6 +17,26 @@ import { type BulkImageUploadModalProps, type ImageFile } from "./bulk-image-upl
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 
+/** Magic bytes doğrulaması — dosya uzantısı spoofing'e karşı koruma */
+async function validateImageMagicBytes(file: File): Promise<boolean> {
+    try {
+        const buffer = await file.slice(0, 12).arrayBuffer()
+        const bytes = new Uint8Array(buffer)
+        // JPEG: FF D8 FF
+        if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return true
+        // PNG: 89 50 4E 47
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return true
+        // WebP: RIFF....WEBP
+        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+            bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return true
+        // GIF: 47 49 46 38
+        if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return true
+        return false
+    } catch {
+        return false
+    }
+}
+
 export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }: BulkImageUploadModalProps) {
     const [images, setImages] = React.useState<ImageFile[]>([])
     const [dragActive, setDragActive] = React.useState(false)
@@ -60,13 +80,20 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
     }, [])
 
     const handleFiles = React.useCallback(
-        (files: FileList) => {
+        async (files: FileList) => {
             const nextImages: ImageFile[] = []
 
             for (const file of Array.from(files)) {
                 if (!file.type.startsWith("image/")) continue
                 if (file.size > MAX_FILE_SIZE) {
                     toast.error(`${file.name} çok büyük (Max 5MB).`)
+                    continue
+                }
+
+                // Magic bytes doğrulaması — uzantı spoofing koruması
+                const isValid = await validateImageMagicBytes(file)
+                if (!isValid) {
+                    toast.error(`${file.name} geçersiz dosya formatı.`)
                     continue
                 }
 

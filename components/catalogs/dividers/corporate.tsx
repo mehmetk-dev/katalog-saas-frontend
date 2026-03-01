@@ -1,11 +1,11 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function CorporateDivider({
+export const CorporateDivider = React.memo(function CorporateDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#2563EB'
+    primaryColor: _primaryColor = '#2563EB'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-slate-50 text-slate-900 font-sans overflow-hidden flex flex-col p-24 justify-center">
@@ -15,7 +15,7 @@ export function CorporateDivider({
             <div className="pl-12 z-10 max-w-4xl">
                 <div className="flex items-center gap-4 text-blue-600 font-bold uppercase tracking-widest text-sm mb-8">
                     <span className="w-12 h-px bg-blue-600" />
-                    <span>Section {Math.floor(Math.random() * 10) + 1}</span>
+                    <span>Section 1</span>
                 </div>
 
                 <h2 className="text-8xl font-black text-slate-900 leading-tight mb-12 tracking-tight">
@@ -44,8 +44,8 @@ export function CorporateDivider({
 
             {/* Background Watermark */}
             <div className="absolute right-[-10%] bottom-[-10%] text-[400px] font-black text-slate-200 opacity-50 z-0 select-none pointer-events-none">
-                0{Math.floor(Math.random() * 9)}
+                05
             </div>
         </div>
     )
-}
+})

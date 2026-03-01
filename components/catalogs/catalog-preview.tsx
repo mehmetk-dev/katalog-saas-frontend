@@ -1,6 +1,7 @@
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
+import { safeBackgroundImageUrl } from "./templates/utils"
 
 import { ModernGridTemplate } from "./templates/modern-grid"
 import { CompactListTemplate } from "./templates/compact-list"
@@ -18,6 +19,28 @@ import { IndustrialTemplate } from "./templates/industrial"
 import { LuxuryTemplate } from "./templates/luxury"
 import { CleanWhiteTemplate } from "./templates/clean-white"
 import { ProductTilesTemplate } from "./templates/product-tiles"
+import type { TemplateProps } from "./templates/types"
+
+// Static template map — eager imports required for PDF export reliability
+const TEMPLATE_MAP: Record<string, React.ComponentType<TemplateProps>> = {
+    'modern-grid': ModernGridTemplate,
+    'compact-list': CompactListTemplate,
+    'list': CompactListTemplate,
+    'magazine': MagazineTemplate,
+    'minimalist': MinimalistTemplate,
+    'bold': BoldTemplate,
+    'elegant-cards': ElegantCardsTemplate,
+    'classic-catalog': ClassicCatalogTemplate,
+    'showcase': ShowcaseTemplate,
+    'catalog-pro': CatalogProTemplate,
+    'retail': RetailTemplate,
+    'tech-modern': TechModernTemplate,
+    'fashion-lookbook': FashionLookbookTemplate,
+    'industrial': IndustrialTemplate,
+    'luxury': LuxuryTemplate,
+    'clean-white': CleanWhiteTemplate,
+    'product-tiles': ProductTilesTemplate,
+}
 
 interface CatalogPreviewProps {
     layout: string
@@ -114,7 +137,7 @@ export function CatalogPreview({
         if (backgroundImage) {
             return {
                 ...baseStyle,
-                backgroundImage: `url(${backgroundImage})`,
+                backgroundImage: safeBackgroundImageUrl(backgroundImage),
                 backgroundSize: backgroundImageFit === 'fill' ? '100% 100%' : backgroundImageFit,
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat'
@@ -156,65 +179,32 @@ export function CatalogPreview({
 
     // Map layout string to component
     const getTemplate = () => {
-        switch (normalizedLayout) {
-            case "modern-grid":
-                return <ModernGridTemplate {...templateProps} />
-            case "compact-list":
-            case "list":
-                return <CompactListTemplate {...templateProps} />
-            case "magazine":
-                return <MagazineTemplate {...templateProps} />
-            case "minimalist":
-                return <MinimalistTemplate {...templateProps} />
-            case "bold":
-                return <BoldTemplate {...templateProps} />
-            case "elegant-cards":
-                return <ElegantCardsTemplate {...templateProps} />
-            case "classic-catalog":
-                return <ClassicCatalogTemplate {...templateProps} />
-            case "showcase":
-                return <ShowcaseTemplate {...templateProps} />
-            case "catalog-pro":
-                return <CatalogProTemplate {...templateProps} />
-            case "retail":
-                return <RetailTemplate {...templateProps} />
-            case "tech-modern":
-                return <TechModernTemplate {...templateProps} />
-            case "fashion-lookbook":
-                return <FashionLookbookTemplate {...templateProps} />
-            case "industrial":
-                return <IndustrialTemplate {...templateProps} />
-            case "luxury":
-                return <LuxuryTemplate {...templateProps} />
-            case "clean-white":
-                return <CleanWhiteTemplate {...templateProps} />
-            case "product-tiles":
-                // FORCE RECOMPILE - HARDCODED SIZE 6
-                const forcedSize = 6
-                const derivedTotalPages = Math.ceil((templateProps.products?.length || 0) / forcedSize) || 1
-                console.log("DEBUG: ProductTiles Rendering. Size:", forcedSize, "TotalPages:", derivedTotalPages)
-
-                return (
-                    <div className="flex flex-col gap-8 bg-slate-100 p-4 -m-4">
-                        {Array.from({ length: derivedTotalPages }).map((_, i) => (
-                            <div
-                                key={`page-${i}-${derivedTotalPages}`}
-                                className="w-[794px] h-[1123px] relative overflow-hidden shadow-md mx-auto bg-white"
-                                style={getBackgroundStyle()}
-                            >
-                                <ProductTilesTemplate
-                                    {...templateProps}
-                                    products={templateProps.products?.slice(i * forcedSize, (i + 1) * forcedSize) || []}
-                                    pageNumber={i + 1}
-                                    totalPages={derivedTotalPages}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                )
-            default:
-                return <ModernGridTemplate {...templateProps} />
+        // product-tiles has special multi-page rendering
+        if (normalizedLayout === 'product-tiles') {
+            const forcedSize = 6;
+            const derivedTotalPages = Math.ceil((templateProps.products?.length || 0) / forcedSize) || 1;
+            return (
+                <div className="flex flex-col gap-8 bg-slate-100 p-4 -m-4">
+                    {Array.from({ length: derivedTotalPages }).map((_, i) => (
+                        <div
+                            key={`page-${i}-${derivedTotalPages}`}
+                            className="w-[794px] h-[1123px] relative overflow-hidden shadow-md mx-auto bg-white"
+                            style={getBackgroundStyle()}
+                        >
+                            <ProductTilesTemplate
+                                {...templateProps}
+                                products={templateProps.products?.slice(i * forcedSize, (i + 1) * forcedSize) || []}
+                                pageNumber={i + 1}
+                                totalPages={derivedTotalPages}
+                            />
+                        </div>
+                    ))}
+                </div>
+            );
         }
+
+        const TemplateComponent = TEMPLATE_MAP[normalizedLayout] || ModernGridTemplate
+        return <TemplateComponent {...templateProps} />
     }
 
     // Minimalist şablonu veya Export modu veya tek sayfa sınırı olanlar için dinamik yükseklik

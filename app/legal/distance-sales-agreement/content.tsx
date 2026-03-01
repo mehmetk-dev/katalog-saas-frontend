@@ -1,8 +1,9 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
+import { FileText } from "lucide-react"
 
 export function DistanceSalesContent() {
     const { t } = useTranslation()
@@ -45,6 +46,22 @@ export function DistanceSalesContent() {
 
                         {/* Contract Text */}
                         <div className="space-y-12 text-[#333] text-[13px] leading-relaxed font-light text-justify">
+
+                            {/* Özet Kutusu */}
+                            <div className="bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200 rounded-xl p-7 not-italic font-normal text-left">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <FileText className="w-5 h-5 text-slate-600" />
+                                    <h2 className="text-base font-bold text-slate-900">{t("legal.distanceSales.summary.title")}</h2>
+                                </div>
+                                <ul className="space-y-2.5">
+                                    {(t("legal.distanceSales.summary.items", { returnObjects: true }) as string[]).map((item, i) => (
+                                        <li key={i} className="flex gap-3 items-start">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mt-2 shrink-0" />
+                                            <span className="text-slate-700 text-sm leading-relaxed">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
 
                             {/* 1. Taraflar / Parties */}
                             <section>

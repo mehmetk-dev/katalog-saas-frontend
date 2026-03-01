@@ -5,22 +5,14 @@ export default async function CategoriesPage() {
     const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Get user plan
-    const { data: profile } = await supabase
-        .from("users")
-        .select("plan")
-        .eq("id", user?.id)
-        .single()
+    // PERF: Fetch profile and products in parallel instead of sequentially
+    const [profileResult, productsResult] = await Promise.all([
+        supabase.from("users").select("plan").eq("id", user?.id).single(),
+        supabase.from("products").select("category, image_url, name").eq("user_id", user?.id),
+    ])
 
-    const userPlan = (profile?.plan || "free") as "free" | "plus" | "pro"
-
-    // Get products with images to derive categories
-    const { data: productsData } = await supabase
-        .from("products")
-        .select("category, image_url, name")
-        .eq("user_id", user?.id)
-
-    const products = productsData as { category: string | null, image_url: string | null, name: string }[] | null
+    const userPlan = (profileResult.data?.plan || "free") as "free" | "plus" | "pro"
+    const products = productsResult.data as { category: string | null, image_url: string | null, name: string }[] | null
 
     // Parse categories from products with images
     const categoryData = new Map<string, { count: number, images: string[], productNames: string[] }>()

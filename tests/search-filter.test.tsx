@@ -2,11 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 
-vi.mock('@/lib/user-context', () => ({
+vi.mock('@/lib/contexts/user-context', () => ({
     useUser: () => ({
         user: { id: 'test-user', plan: 'free' },
         isLoading: false,

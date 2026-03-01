@@ -38,31 +38,36 @@ export function AppearanceSection({
             <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
                 <CardContent className="p-5 space-y-6">
                     {/* Premium Toggles List */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {[
                             { label: t('builder.showPrices'), value: showPrices, onChange: onShowPricesChange, icon: <Sparkles className="w-3.5 h-3.5" /> },
                             { label: t('builder.showDescriptions'), value: showDescriptions, onChange: onShowDescriptionsChange },
-                            { label: "Özellikleri Göster", value: showAttributes, onChange: onShowAttributesChange, disabled: layout === 'magazine' },
-                            { label: "Ürün Stoklarını Göster", value: showSku, onChange: onShowSkuChange },
-                            { label: "Ürün URL'leri", value: showUrls, onChange: onShowUrlsChange },
+                            { label: t('builder.showAttributes'), value: showAttributes, onChange: onShowAttributesChange, disabled: layout === 'magazine' },
+                            { label: t('builder.showSku'), value: showSku, onChange: onShowSkuChange },
+                            { label: t('builder.showUrls'), value: showUrls, onChange: onShowUrlsChange },
                         ].map((item, idx) => (
                             <div
                                 key={idx}
+                                role="switch"
+                                tabIndex={item.disabled ? -1 : 0}
+                                aria-checked={!!item.value}
+                                aria-label={item.label as string}
                                 className={cn(
                                     "flex items-center justify-between p-3 rounded-2xl transition-all duration-300 border border-slate-100/50 dark:border-slate-800/50",
                                     item.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:bg-white dark:hover:bg-slate-800/50 hover:shadow-sm group",
-                                    item.label === "Ürün URL'leri" && "col-span-2 sm:col-span-1"
+                                    item.label === t('builder.showUrls') && "col-span-2 sm:col-span-1"
                                 )}
                                 onClick={() => !item.disabled && item.onChange?.(!item.value)}
+                                onKeyDown={(e) => { if (!item.disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); item.onChange?.(!item.value) } }}
                             >
                                 <div className="flex flex-col gap-0.5 min-w-0">
                                     <span className={cn(
-                                        "text-[10px] font-black uppercase tracking-tight transition-colors truncate",
+                                        "text-[10px] font-black uppercase tracking-tight transition-colors leading-tight",
                                         item.disabled ? "text-slate-400" : "text-slate-600 dark:text-slate-400"
                                     )}>
                                         {item.label as string}
                                     </span>
-                                    {item.disabled && <span className="text-[8px] font-medium italic opacity-60">Dergide yok</span>}
+                                    {item.disabled && <span className="text-[8px] font-medium italic opacity-60">{t('builder.notInMagazine')}</span>}
                                 </div>
                                 <div className={cn(
                                     "w-9 h-[18px] rounded-full relative transition-all duration-500 shrink-0",
@@ -84,9 +89,9 @@ export function AppearanceSection({
                             <Label className="text-[10px] font-black uppercase text-slate-500 block tracking-widest text-center">{(t('builder.productImages') || "Ürün Fotoğrafları") as string}</Label>
                             <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
                                 {[
-                                    { value: 'cover' as const, label: 'Kırp' },
-                                    { value: 'contain' as const, label: 'Sığdır' },
-                                    { value: 'fill' as const, label: 'Doldur' }
+                                    { value: 'cover' as const, label: t('builder.productImageFit.crop') },
+                                    { value: 'contain' as const, label: t('builder.productImageFit.fit') },
+                                    { value: 'fill' as const, label: t('builder.productImageFit.fill') }
                                 ].map((option) => (
                                     <button
                                         key={option.value}
@@ -107,7 +112,7 @@ export function AppearanceSection({
                         {/* Column Count Pill */}
                         {availableColumns.length > 1 ? (
                             <div className="space-y-2.5">
-                                <Label className="text-[10px] font-black uppercase text-slate-500 block tracking-widest text-center">Görünüm Düzeni</Label>
+                                <Label className="text-[10px] font-black uppercase text-slate-500 block tracking-widest text-center">{t('builder.layoutView')}</Label>
                                 <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl gap-1">
                                     {availableColumns.map((num: number) => (
                                         <button
@@ -120,14 +125,14 @@ export function AppearanceSection({
                                                     : "text-slate-500 hover:text-slate-700"
                                             )}
                                         >
-                                            {num} Sütun
+                                            {num} {t('builder.column')}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         ) : (
                             <div className="flex items-center justify-center text-[10px] text-slate-400 font-bold italic pt-4 leading-tight text-center">
-                                Seçili şablon için düzen sabit.
+                                {t('builder.layoutFixed')}
                             </div>
                         )}
                     </div>

@@ -5,6 +5,21 @@
 
 import type { StorageProvider, UploadOptions, UploadResult } from './types'
 
+// =============================================================================
+// SECURITY: Client-side upload constraints
+// These mirror what should be configured in the Cloudinary unsigned upload preset
+// =============================================================================
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'image/svg+xml',
+]
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
+const MAX_DIMENSION = 8192 // px — prevent absurd dimensions
+
 interface CloudinaryConfig {
   cloudName: string
   uploadPreset: string
@@ -22,6 +37,44 @@ export class CloudinaryProvider implements StorageProvider {
   }
 
   async upload(file: File | Blob, options: UploadOptions = {}): Promise<UploadResult> {
+    // ===========================================================================
+    // SECURITY: Client-side file validation before sending to Cloudinary
+    // ===========================================================================
+
+    // 1. File size check
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
+      throw new Error(`Dosya boyutu çok büyük: ${sizeMB}MB. Maksimum ${MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB izin verilmektedir.`)
+    }
+
+    if (file.size === 0) {
+      throw new Error('Boş dosya yüklenemez.')
+    }
+
+    // 2. MIME type check
+    const fileType = file.type || (file instanceof File ? file.type : '')
+    if (fileType && !ALLOWED_MIME_TYPES.includes(fileType)) {
+      throw new Error(`Desteklenmeyen dosya türü: ${fileType}. İzin verilen: JPEG, PNG, WebP, GIF, AVIF, SVG`)
+    }
+
+    // 3. If it's a File, do a quick extension check too (defense-in-depth)
+    if (file instanceof File && file.name) {
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      const allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'svg']
+      if (ext && !allowedExts.includes(ext)) {
+        throw new Error(`Desteklenmeyen dosya uzantısı: .${ext}. İzin verilen: ${allowedExts.join(', ')}`)
+      }
+    }
+
+    // 4. Image dimension check (for File/Blob that we can read)
+    if (typeof window !== 'undefined' && fileType && fileType.startsWith('image/') && fileType !== 'image/svg+xml') {
+      try {
+        await this.validateImageDimensions(file)
+      } catch (dimError) {
+        throw dimError
+      }
+    }
+
     const formData = new FormData()
 
     // Dosya adı oluştur (uzantı OLMADAN - Cloudinary otomatik ekliyor)
@@ -131,8 +184,8 @@ export class CloudinaryProvider implements StorageProvider {
 
   async delete(_path: string): Promise<void> {
     // Cloudinary'de silme işlemi için signed request gerekir (server-side)
-    // Client-side'da sadece upload yapılabilir, silme için API endpoint gerekir
-    console.warn('[Cloudinary] Delete operation should be done server-side')
+    // Client-side'da sadece upload yapılabilir, silme için backend API endpoint gerekir
+    throw new Error('[Cloudinary] Delete operation requires server-side signed request. Use the backend API endpoint instead.')
   }
 
   getPublicUrl(path: string): string {
@@ -141,5 +194,41 @@ export class CloudinaryProvider implements StorageProvider {
     // q_auto: Otomatik kalite
     // w_1600,c_limit: Görseli maks 1600px genişliğe çeker (eğer orijinali daha büyükse)
     return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto,w_1600,c_limit/${path}`
+  }
+
+  /**
+   * SECURITY: Validate image dimensions before upload
+   * Prevents absurdly large images that could cause OOM on render
+   */
+  private validateImageDimensions(file: File | Blob): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+
+      const cleanup = () => URL.revokeObjectURL(url)
+
+      img.onload = () => {
+        cleanup()
+        if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+          reject(new Error(`Görsel boyutu çok büyük: ${img.width}x${img.height}px. Maksimum ${MAX_DIMENSION}x${MAX_DIMENSION}px.`))
+        } else {
+          resolve()
+        }
+      }
+
+      img.onerror = () => {
+        cleanup()
+        // Can't read dimensions — allow upload, Cloudinary will validate
+        resolve()
+      }
+
+      // Timeout — don't block forever
+      setTimeout(() => {
+        cleanup()
+        resolve()
+      }, 5000)
+
+      img.src = url
+    })
   }
 }

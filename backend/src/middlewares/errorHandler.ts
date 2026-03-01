@@ -80,7 +80,9 @@ export const errorHandler = (
     }
 
     // Development'ta stack trace logla
-    if (process.env.NODE_ENV !== 'production') {
+    // SECURITY: Only show stack in explicit development mode (undefined NODE_ENV defaults to safe)
+    const isDev = process.env.NODE_ENV === 'development';
+    if (isDev) {
         console.error(`[${status}] ${message}`);
         if (!isOperational) {
             console.error(err.stack);
@@ -90,7 +92,7 @@ export const errorHandler = (
     // Response
     res.status(status).json({
         error: message,
-        ...(process.env.NODE_ENV !== 'production' && !isOperational && { stack: err.stack })
+        ...(isDev && !isOperational && { stack: err.stack })
     });
 };
 
@@ -98,5 +100,7 @@ export const errorHandler = (
  * 404 Not Found handler
  */
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-    next(new ApiError(`Endpoint bulunamadı: ${req.method} ${req.path}`, 404));
+    // SECURITY: Sanitize path to prevent reflection/injection of user-controlled input
+    const safePath = req.path.replace(/[^a-zA-Z0-9/_\-\.]/g, '');
+    next(new ApiError(`Endpoint bulunamadı: ${req.method} ${safePath}`, 404));
 };

@@ -1,11 +1,11 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function LuxuryDivider({
+export const LuxuryDivider = React.memo(function LuxuryDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#D4AF37'
+    primaryColor: _primaryColor = '#D4AF37'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-[#0F0F0F] text-[#D4AF37] font-serif overflow-hidden flex flex-col items-center justify-center p-24">
@@ -21,7 +21,7 @@ export function LuxuryDivider({
 
             <div className="text-center max-w-3xl z-10 space-y-12">
                 <span className="text-xs uppercase tracking-[0.4em] text-white/40">
-                    Collection &#8470; {Math.floor(Math.random() * 50)}
+                    Collection &#8470; 12
                 </span>
 
                 <h2 className="text-8xl font-light italic text-[#FDFCF5] leading-tight">
@@ -44,4 +44,4 @@ export function LuxuryDivider({
             </div>
         </div>
     )
-}
+})

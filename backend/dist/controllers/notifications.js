@@ -2,34 +2,39 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationTemplates = exports.cancelSubscription = exports.createNotification = exports.deleteAllNotifications = exports.deleteNotification = exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
 const supabase_1 = require("../services/supabase");
+const safe_error_1 = require("../utils/safe-error");
 const getUserId = (req) => req.user.id;
 // Get user notifications
 const getNotifications = async (req, res) => {
     try {
         const userId = getUserId(req);
         const { limit = 20, unread_only = false } = req.query;
+        // SECURITY: Cap limit to prevent excessive data extraction
+        const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
         let query = supabase_1.supabase
             .from('notifications')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(Number(limit));
+            .limit(safeLimit);
         if (unread_only === 'true') {
             query = query.eq('is_read', false);
         }
-        const { data, error } = await query;
-        if (error)
-            throw error;
-        // Also get unread count
-        const { count: unreadCount } = await supabase_1.supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('is_read', false);
-        res.json({ notifications: data || [], unreadCount: unreadCount || 0 });
+        // PERF: Fetch notifications and unread count in parallel (was sequential)
+        const [notifResult, countResult] = await Promise.all([
+            query,
+            supabase_1.supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('is_read', false)
+        ]);
+        if (notifResult.error)
+            throw notifResult.error;
+        res.json({ notifications: notifResult.data || [], unreadCount: countResult.count || 0 });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -49,7 +54,7 @@ const markAsRead = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -68,7 +73,7 @@ const markAllAsRead = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -88,7 +93,7 @@ const deleteNotification = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -106,7 +111,7 @@ const deleteAllNotifications = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };
@@ -168,7 +173,7 @@ const cancelSubscription = async (req, res) => {
         });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: message });
     }
 };

@@ -1,15 +1,17 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Showcase Template - "The Spotlight Noir"
  * A high-end, cinematic layout designed to highlight a main feature product with a spotlight effect.
  * Features: Dark mode by default, large hero imagery, and a sophisticated monochromatic sidebar.
  */
-export function ShowcaseTemplate({
+export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
     catalogName,
     products,
     primaryColor = "#3b82f6",
@@ -24,67 +26,118 @@ export function ShowcaseTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
     productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#ffffff',
 }: TemplateProps) {
     const safeProducts = products || []
     const [main, ...others] = safeProducts
 
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'contain': return 'object-contain'
-            case 'fill': return 'object-fill'
-            case 'cover':
-            default: return 'object-cover'
-        }
-    }
-
     // Kullanıcı isteği: Vitrin (Showcase) sağ taraf tek sütun
     const getRightCols = () => "grid-cols-1"
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 24
-            case 'large': return 44
-            default: return 32
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoHeight = getStandardLogoHeight(logoSize)
+
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+
+    const renderTitleBlock = () => (
+        <div className="flex flex-col">
+            <h1 className="text-xl font-black tracking-[0.3em] uppercase truncate max-w-[400px]" style={{ color: headerTextColor || '#ffffff' }}>
+                {catalogName || "FEATURE_SHOW"}
+            </h1>
+            <span className="text-[9px] font-bold tracking-[0.5em] mt-1" style={{ color: headerTextColor ? `${headerTextColor}80` : '#ffffff33' }}>
+                CURATED EDITION
+            </span>
+        </div>
+    )
 
     return (
-        <div className="bg-[#0a0a0a] h-full flex flex-col overflow-hidden text-white selection:bg-blue-500/30">
+        <div className="h-full flex flex-col overflow-hidden text-white selection:bg-blue-500/30 transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#0a0a0a' }}>
             {/* Minimal High-End Header */}
-            <div className="h-20 px-10 flex items-center justify-between border-b border-white/5 shrink-0 bg-[#0a0a0a] z-50">
-                <div className="flex items-center gap-10">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain filter brightness-110" />
+            <header className="h-20 px-10 flex items-center justify-between border-b shrink-0 z-50 transition-colors" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent', borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
+                {/* Sol Alan */}
+                <div className="flex-1 flex items-center justify-start min-w-0 gap-10">
+                    {isCollisionLeft ? (
+                        <div className="flex items-center gap-6">
+                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {renderTitleBlock()}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-6">
+                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {titlePosition === 'left' && renderTitleBlock()}
+                        </div>
                     )}
-                    <div className="flex flex-col">
-                        <h1 className="text-xl font-black tracking-[0.3em] uppercase truncate max-w-[400px]">
-                            {catalogName || "FEATURE_SHOW"}
-                        </h1>
-                        <span className="text-[9px] font-bold text-white/20 tracking-[0.5em] mt-1">CURATED EDITION</span>
-                    </div>
                 </div>
 
-                <div className="flex items-center gap-8">
-                    {logoUrl && isHeaderLogo && (logoAlignment === 'right' || logoAlignment === 'center') && (
-                        <NextImage src={logoUrl} alt="Logo" width={110} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain filter brightness-110" />
+                {/* Orta Alan */}
+                <div className="flex-1 flex items-center justify-center min-w-0 gap-10 text-center">
+                    {isCollisionCenter ? (
+                        <div className="flex items-center gap-4">
+                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {renderTitleBlock()}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-4 text-center">
+                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {titlePosition === 'center' && renderTitleBlock()}
+                        </div>
                     )}
-                    <div className="h-10 w-[1px] bg-white/10" />
-                    <div className="text-right">
-                        <span className="text-[11px] font-mono font-bold text-white/40 block leading-none">PV_{pageNumber}</span>
-                        <span className="text-[9px] text-white/20 mt-1 block">T_VOL: {totalPages}</span>
+                </div>
+
+                {/* Sağ Alan */}
+                <div className="flex-1 flex items-center justify-end min-w-0 gap-8 text-right relative">
+                    {isCollisionRight ? (
+                        <div className="flex items-center gap-6 flex-row-reverse text-right">
+                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {renderTitleBlock()}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-6 flex-row-reverse text-right">
+                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {titlePosition === 'right' && renderTitleBlock()}
+                        </div>
+                    )}
+
+                    {/* Pagination indicators */}
+                    <div className="flex items-center gap-6 pl-4 border-l" style={{ borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
+                        <div className="text-right">
+                            <span className="text-[11px] font-mono font-bold block leading-none" style={{ color: headerTextColor ? `${headerTextColor}99` : '#ffffff66' }}>PV_{pageNumber}</span>
+                            <span className="text-[9px] mt-1 block" style={{ color: headerTextColor ? `${headerTextColor}66` : '#ffffff33' }}>T_VOL: {totalPages}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
             {/* Main Cinematic Content */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Hero Feature - Left */}
                 {main && (() => {
-                    const productUrl = main.product_url
+                    const productUrl = sanitizeHref(main.product_url)
 
                     return (
                         <div className="w-[60%] h-full relative shrink-0 group overflow-hidden">
@@ -124,11 +177,7 @@ export function ShowcaseTemplate({
                                             <span className="text-[10px] uppercase font-black tracking-widest text-white/20 mb-2">Value Reference</span>
                                             <div className="flex items-center gap-4">
                                                 <p className="text-4xl font-black leading-none tracking-tighter" style={{ color: primaryColor }}>
-                                                    {(() => {
-                                                        const currency = main.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                        return `${symbol}${Number(main.price).toFixed(2)}`
-                                                    })()}
+                                                    {formatProductPrice(main)}
                                                 </p>
                                             </div>
                                         </div>
@@ -159,12 +208,12 @@ export function ShowcaseTemplate({
                 })()}
 
                 {/* Vertical Sidebar - Right (1 Column, 4 Rows) */}
-                <div className={`w-[40%] grid ${getRightCols()} grid-rows-4 bg-[#0d0d0d] border-l border-white/5 shrink-0`}>
+                <div className={`w-[40%] grid ${getRightCols()} grid-rows-4 border-l shrink-0 transition-colors`} style={{ borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
                     {others.slice(0, 4).map((product, idx) => {
-                        const productUrl = product.product_url
+                        const productUrl = sanitizeHref(product.product_url)
 
                         return (
-                            <div key={product.id} className="relative group overflow-hidden border-b border-white/5 flex flex-col h-full">
+                            <div key={product.id} className="relative group overflow-hidden border-b flex flex-col h-full transition-colors" style={{ borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
                                 <div className="absolute inset-0 opacity-20 group-hover:opacity-50 transition-all duration-[1.5s]">
                                     <ProductImageGallery
                                         product={product}
@@ -179,8 +228,8 @@ export function ShowcaseTemplate({
 
                                 <div className="mt-auto p-8 relative z-10 transition-transform duration-700 group-hover:-translate-y-2">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <span className="text-[10px] font-black italic text-white/20">{(idx + 2).toString().padStart(2, '0')}</span>
-                                        <div className="h-[1px] flex-1 bg-white/5" />
+                                        <span className="text-[10px] font-black italic" style={{ color: headerTextColor ? `${headerTextColor}66` : '#ffffff33' }}>{(idx + 2).toString().padStart(2, '0')}</span>
+                                        <div className="h-[1px] flex-1" style={{ backgroundColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }} />
                                     </div>
                                     <h3 className="text-sm font-black uppercase tracking-tight group-hover:text-blue-400 transition-colors line-clamp-1">
                                         {product.name}
@@ -190,11 +239,7 @@ export function ShowcaseTemplate({
                                         {showPrices && (
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-bold tracking-tighter" style={{ color: primaryColor }}>
-                                                    {(() => {
-                                                        const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                        return `${symbol}${Number(product.price).toFixed(2)}`
-                                                    })()}
+                                                    {formatProductPrice(product)}
                                                 </p>
                                             </div>
                                         )}
@@ -223,4 +268,4 @@ export function ShowcaseTemplate({
             </div>
         </div>
     )
-}
+})

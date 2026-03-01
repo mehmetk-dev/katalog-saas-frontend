@@ -31,6 +31,7 @@ interface FeedbacksTabProps {
     onClearSelection: () => void
     onToggleSelect: (id: string) => void
     onToggleSelectAll: () => void
+    t: (key: string) => string
 }
 
 export function FeedbacksTab({
@@ -43,6 +44,7 @@ export function FeedbacksTab({
     onClearSelection,
     onToggleSelect,
     onToggleSelectAll,
+    t,
 }: FeedbacksTabProps) {
     return (
         <Card>
@@ -51,18 +53,18 @@ export function FeedbacksTab({
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             <FileText className="w-5 h-5 text-violet-600" />
-                            Geri Bildirimler & Sorun Bildirimleri
+                            {t("admin.feedbacksTitle")}
                         </CardTitle>
                         <CardDescription>
-                            Kullanıcılardan gelen tüm geri bildirimleri buradan takip edebilirsiniz
+                            {t("admin.feedbacksDesc")}
                         </CardDescription>
                     </div>
                     {selectedFeedbackIds.length > 0 && (
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">{selectedFeedbackIds.length} seçili</span>
+                            <span className="text-sm text-muted-foreground">{selectedFeedbackIds.length} {t("admin.selected")}</span>
                             <Button variant="outline" size="sm" onClick={onClearSelection}>
                                 <X className="w-4 h-4 mr-1" />
-                                Temizle
+                                {t("admin.clear")}
                             </Button>
                         </div>
                     )}
@@ -72,7 +74,7 @@ export function FeedbacksTab({
                 {feedbacks.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                        <p>Henüz geri bildirim bulunmuyor.</p>
+                        <p>{t("admin.noFeedbacks")}</p>
                     </div>
                 ) : (
                     <>
@@ -80,7 +82,7 @@ export function FeedbacksTab({
                             <div className="mb-4 p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/50 rounded-lg flex items-center justify-between flex-wrap gap-2">
                                 <div className="flex items-center gap-2 text-sm font-medium text-violet-900 dark:text-violet-100">
                                     <CheckSquare className="w-4 h-4" />
-                                    {selectedFeedbackIds.length} geri bildirim seçili
+                                    {selectedFeedbackIds.length} {t("admin.feedbacksSelected")}
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <Button
@@ -89,7 +91,7 @@ export function FeedbacksTab({
                                         onClick={() => onBulkStatusUpdate("pending")}
                                         className="text-xs"
                                     >
-                                        Beklemeye Al
+                                        {t("admin.setPending")}
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -97,7 +99,7 @@ export function FeedbacksTab({
                                         onClick={() => onBulkStatusUpdate("resolved")}
                                         className="text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                                     >
-                                        Çözüldü Yap
+                                        {t("admin.setResolved")}
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -105,7 +107,7 @@ export function FeedbacksTab({
                                         onClick={() => onBulkStatusUpdate("closed")}
                                         className="text-xs bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
                                     >
-                                        Kapat
+                                        {t("admin.closeStatus")}
                                     </Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
@@ -115,21 +117,20 @@ export function FeedbacksTab({
                                                 className="text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                             >
                                                 <Trash2 className="w-3 h-3 mr-1" />
-                                                Toplu Sil
+                                                {t("admin.bulkDelete")}
                                             </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader>
-                                                <AlertDialogTitle>Toplu Silme</AlertDialogTitle>
+                                                <AlertDialogTitle>{t("admin.bulkDeleteTitle")}</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    {selectedFeedbackIds.length} geri bildirimi ve tüm ekli dosyaları kalıcı olarak silmek
-                                                    istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                                                    {selectedFeedbackIds.length} {t("admin.bulkDeleteConfirm")}
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
-                                                <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                                                 <AlertDialogAction onClick={onBulkDelete} className="bg-red-600 hover:bg-red-700">
-                                                    {selectedFeedbackIds.length} Geri Bildirimi Sil
+                                                    {selectedFeedbackIds.length} {t("admin.deleteFeedbacksAction")}
                                                 </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
@@ -146,14 +147,14 @@ export function FeedbacksTab({
                                             onCheckedChange={onToggleSelectAll}
                                         />
                                     </TableHead>
-                                    <TableHead>Tarih</TableHead>
-                                    <TableHead>Kullanıcı</TableHead>
-                                    <TableHead>Konu</TableHead>
-                                    <TableHead>Mesaj</TableHead>
-                                    <TableHead>Ekler</TableHead>
-                                    <TableHead>Sayfa</TableHead>
-                                    <TableHead>Durum</TableHead>
-                                    <TableHead className="text-right">İşlem</TableHead>
+                                    <TableHead>{t("admin.date")}</TableHead>
+                                    <TableHead>{t("admin.user")}</TableHead>
+                                    <TableHead>{t("admin.subject")}</TableHead>
+                                    <TableHead>{t("admin.message")}</TableHead>
+                                    <TableHead>{t("admin.attachments")}</TableHead>
+                                    <TableHead>{t("admin.pageCol")}</TableHead>
+                                    <TableHead>{t("admin.status")}</TableHead>
+                                    <TableHead className="text-right">{t("admin.action")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -182,6 +183,15 @@ export function FeedbacksTab({
                                         <TableCell>
                                             <div className="flex flex-wrap gap-1 max-w-[120px]">
                                                 {feedback.attachments?.map((url, idx) => {
+                                                    // URL güvenlik kontrolü — sadece http/https kabul et
+                                                    let isSafeUrl = false
+                                                    try {
+                                                        const parsed = new URL(url)
+                                                        isSafeUrl = ['http:', 'https:'].includes(parsed.protocol)
+                                                    } catch { /* invalid URL */ }
+
+                                                    if (!isSafeUrl) return null
+
                                                     const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("/video")
                                                     return (
                                                         <a
@@ -216,22 +226,22 @@ export function FeedbacksTab({
                                                     feedback.status === "resolved" && "bg-green-50 text-green-700 border-green-200"
                                                 )}
                                             >
-                                                {feedback.status === "pending" ? "Beklemede" : feedback.status === "resolved" ? "Çözüldü" : "Kapatıldı"}
+                                                {feedback.status === "pending" ? t("admin.pending") : feedback.status === "resolved" ? t("admin.resolved") : t("admin.closed")}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center gap-2 justify-end">
                                                 <Select
-                                                    defaultValue={feedback.status}
+                                                    value={feedback.status}
                                                     onValueChange={(value) => onStatusUpdate(feedback.id, value as Feedback["status"])}
                                                 >
                                                     <SelectTrigger className="w-[110px] h-7 text-[10px]">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="pending">Beklemede</SelectItem>
-                                                        <SelectItem value="resolved">Çözüldü</SelectItem>
-                                                        <SelectItem value="closed">Kapatıldı</SelectItem>
+                                                        <SelectItem value="pending">{t("admin.pending")}</SelectItem>
+                                                        <SelectItem value="resolved">{t("admin.resolved")}</SelectItem>
+                                                        <SelectItem value="closed">{t("admin.closed")}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <AlertDialog>
@@ -246,16 +256,15 @@ export function FeedbacksTab({
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>Geri Bildirimi Sil</AlertDialogTitle>
+                                                            <AlertDialogTitle>{t("admin.deleteFeedback")}</AlertDialogTitle>
                                                             <AlertDialogDescription>
-                                                                Bu geri bildirimi ve tüm ekli dosyaları kalıcı olarak silmek istediğinizden emin
-                                                                misiniz? Bu işlem geri alınamaz.
+                                                                {t("admin.deleteFeedbackConfirm")}
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
-                                                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                                                             <AlertDialogAction onClick={() => onDelete(feedback.id)} className="bg-red-600 hover:bg-red-700">
-                                                                Sil
+                                                                {t("common.delete")}
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
                                                     </AlertDialogContent>

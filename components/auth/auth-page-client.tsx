@@ -2,7 +2,7 @@
 
 import { useAuth, HeroPanel, AuthForm, RedirectOverlay } from "./auth-sections"
 import { OnboardingModal } from "@/components/auth/onboarding-modal"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 export function AuthPageClient() {
     const { t } = useTranslation()

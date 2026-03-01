@@ -14,7 +14,7 @@ import {
     RefreshCw, AlertTriangle, Save, Share2, Eye, Pencil, Download,
     ArrowUpRight
 } from "lucide-react"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import { Catalog } from "@/lib/actions/catalogs"
 import { toast } from "sonner"
@@ -68,7 +68,7 @@ export function BuilderToolbar({
     const getMainAction = () => {
         if (isPublished && hasUnpushedChanges) {
             return {
-                label: "Yayını Güncelle",
+                label: t('builder.updatePublish'),
                 icon: <RefreshCw className={cn("w-4 h-4", isPending && "animate-spin")} />,
                 onClick: onPushUpdates,
                 className: "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-200",
@@ -77,7 +77,7 @@ export function BuilderToolbar({
         }
         if (isPublished) {
             return {
-                label: "Paylaş",
+                label: t('builder.shareBtn'),
                 icon: <Share2 className="w-4 h-4" />,
                 onClick: onShare,
                 className: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200",
@@ -85,7 +85,7 @@ export function BuilderToolbar({
             }
         }
         return {
-            label: "Yayınla",
+            label: t('builder.publishBtn'),
             icon: <Globe className="w-4 h-4" />,
             onClick: onPublish,
             className: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200",
@@ -106,6 +106,7 @@ export function BuilderToolbar({
                         size="icon"
                         className="h-9 w-9 shrink-0 hover:bg-slate-100 rounded-xl"
                         onClick={onExit}
+                        aria-label={t('builder.backBtn') as string}
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
@@ -131,7 +132,7 @@ export function BuilderToolbar({
                                 onClick={() => onViewChange("preview")}
                             >
                                 <Eye className="w-3.5 h-3.5 mr-1.5" />
-                                Tam Ekran Önizle
+                                {t('builder.fullScreenPreview')}
                             </Button>
                         </div>
                     )}
@@ -143,13 +144,13 @@ export function BuilderToolbar({
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Yayında</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">{t('builder.liveLabel')}</span>
                             <a
                                 href={`/catalog/${catalog?.share_slug}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="ml-1 p-1 hover:bg-emerald-100 rounded-md transition-all group/link"
-                                title="Canlı Katalogu Görüntüle"
+                                title={t('builder.viewLiveCatalog')}
                             >
                                 <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                             </a>
@@ -165,10 +166,10 @@ export function BuilderToolbar({
                                 onClick={onSave}
                                 disabled={isPending}
                                 className="h-9 px-3 rounded-xl shrink-0 transition-all bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 animate-pulse gap-2"
-                                title="Değişiklikleri Kaydet"
+                                title={t('builder.saveChanges')}
                             >
                                 <Save className="w-4 h-4" />
-                                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">Kaydet</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">{t('builder.saveBtn')}</span>
                             </Button>
                         ) : (
                             <Button
@@ -176,7 +177,7 @@ export function BuilderToolbar({
                                 disabled
                                 variant="ghost"
                                 className="h-9 w-9 rounded-xl shrink-0 text-slate-300 cursor-not-allowed"
-                                title="Kaydedilecek değişiklik yok"
+                                title={t('builder.noChangesToSave')}
                             >
                                 <Save className="w-4.5 h-4.5" />
                             </Button>
@@ -195,7 +196,7 @@ export function BuilderToolbar({
                                         className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-orange-200 transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
                                     >
                                         <RefreshCw className={cn("w-3.5 h-3.5 mr-2", isPending && "animate-spin")} />
-                                        Yayını Güncelle
+                                        {t('builder.updatePublish')}
                                     </Button>
                                 )}
 
@@ -225,7 +226,7 @@ export function BuilderToolbar({
                                         className="h-9 px-4 border-slate-200 hover:bg-slate-50 font-black text-[11px] uppercase tracking-wider rounded-xl transition-all whitespace-nowrap"
                                     >
                                         <Share2 className="w-3.5 h-3.5 mr-2 text-indigo-600" />
-                                        Paylaş
+                                        {t('builder.shareBtn')}
                                     </Button>
                                 )}
                             </>
@@ -239,7 +240,7 @@ export function BuilderToolbar({
                                     size="icon"
                                     onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
                                     className="h-9 w-9 rounded-xl text-slate-500 hover:bg-slate-100"
-                                    title="Önizle"
+                                    title={t('builder.previewBtn')}
                                 >
                                     <Eye className="w-5 h-5" />
                                 </Button>
@@ -259,10 +260,10 @@ export function BuilderToolbar({
                         {/* MORE OPTIONS */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl shrink-0 hover:bg-slate-50">
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl shrink-0 hover:bg-slate-50">
                                     <MoreVertical className="w-5 h-5 text-slate-400" />
                                     {hasUnpushedChanges && isPublished && !isMobile && (
-                                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white" />
+                                        <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white shadow-sm" />
                                     )}
                                 </Button>
                             </DropdownMenuTrigger>
@@ -272,35 +273,35 @@ export function BuilderToolbar({
                                         <div className="px-3 py-2">
                                             <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                                Katalog Yayında
+                                                {t('builder.catalogLive')}
                                             </div>
                                             <div className="text-[9px] text-slate-400 font-bold truncate">slug: {catalog?.share_slug}</div>
                                         </div>
 
                                         <DropdownMenuItem onClick={() => {
                                             if (catalog?.share_slug) {
-                                                window.open(`${window.location.origin}/catalog/${catalog.share_slug}`, '_blank')
+                                                window.open(`${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/catalog/${catalog.share_slug}`, '_blank')
                                             }
                                         }} className="rounded-xl h-10 font-bold text-xs text-emerald-600 bg-emerald-50/30 hover:bg-emerald-50">
                                             <ArrowUpRight className="w-4 h-4 mr-2.5" />
-                                            Kataloğu Görüntüle
+                                            {t('builder.viewCatalogAction')}
                                         </DropdownMenuItem>
 
                                         <DropdownMenuItem onClick={() => {
                                             if (catalog?.share_slug) {
-                                                const url = `${window.location.origin}/catalog/${catalog.share_slug}`
+                                                const url = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/catalog/${catalog.share_slug}`
                                                 navigator.clipboard.writeText(url)
-                                                toast.success("Link kopyalandı!")
+                                                toast.success(t('builder.linkCopied'))
                                             }
                                         }} className="rounded-xl h-10 font-bold text-xs">
                                             <Copy className="w-4 h-4 mr-2.5 text-slate-400" />
-                                            Linki Kopyala
+                                            {t('builder.copyLink')}
                                         </DropdownMenuItem>
 
                                         {isUrlOutdated && (
                                             <DropdownMenuItem onClick={onUpdateSlug} className="text-orange-600 rounded-xl h-10 font-bold text-xs bg-orange-50">
                                                 <AlertTriangle className="w-4 h-4 mr-2.5" />
-                                                Giriş Linkini Yenile
+                                                {t('builder.refreshEntryLink')}
                                             </DropdownMenuItem>
                                         )}
 
@@ -311,18 +312,18 @@ export function BuilderToolbar({
                                 {isMobile && (
                                     <DropdownMenuItem onClick={() => onViewChange(view === "preview" ? "editor" : "preview")} className="rounded-xl h-10 font-bold text-xs">
                                         {view === "preview" ? <Pencil className="w-4 h-4 mr-2.5 text-slate-400" /> : <Eye className="w-4 h-4 mr-2.5 text-slate-400" />}
-                                        {view === "preview" ? 'Düzenleme Modu' : 'Önizleme Modu'}
+                                        {view === "preview" ? t('builder.editMode') : t('builder.previewMode')}
                                     </DropdownMenuItem>
                                 )}
 
                                 <DropdownMenuItem onClick={onPublish} className="rounded-xl h-10 font-bold text-xs">
                                     <Globe className="w-4 h-4 mr-2.5 text-slate-400" />
-                                    {isPublished ? 'Yayından Kaldır' : 'Kataloğu Yayınla'}
+                                    {isPublished ? t('builder.unpublish') : t('builder.publishCatalog')}
                                 </DropdownMenuItem>
 
                                 <DropdownMenuItem onClick={onDownloadPDF} className="rounded-xl h-10 font-bold text-xs">
                                     <Download className="w-4 h-4 mr-2.5 text-slate-400" />
-                                    PDF Olarak İndir
+                                    {t('builder.downloadAsPdf')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

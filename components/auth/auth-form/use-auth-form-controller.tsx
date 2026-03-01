@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/client"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { LoadingPhase } from "@/components/auth/auth-form/types"
 
 const getSiteUrl = () => {
@@ -36,7 +36,7 @@ export function useAuthFormController() {
 
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
     const slowConnectionRef = useRef<NodeJS.Timeout | null>(null)
-    const abortControllerRef = useRef<AbortController | null>(null)
+    const isRedirectingRef = useRef(false)
 
     const SITE_URL = getSiteUrl()
     const SLOW_CONNECTION_THRESHOLD = 5000
@@ -63,7 +63,7 @@ export function useAuthFormController() {
                 could_not_authenticate: t("auth.couldNotAuthenticate"),
                 access_denied: t("auth.accessDenied"),
             }
-            setError(errorMessages[urlError] || `${t("auth.errorPrefix")} ${urlError}`)
+            setError(errorMessages[urlError] || t("auth.unexpectedError"))
             setShowRetry(true)
 
             const newUrl = new URL(window.location.href)
@@ -96,14 +96,9 @@ export function useAuthFormController() {
     }, [t])
 
     useEffect(() => {
-        const timeoutId = timeoutRef.current
-        const slowConnectionId = slowConnectionRef.current
-        const abortController = abortControllerRef.current
-
         return () => {
-            if (timeoutId) clearTimeout(timeoutId)
-            if (slowConnectionId) clearTimeout(slowConnectionId)
-            if (abortController) abortController.abort()
+            if (timeoutRef.current) clearTimeout(timeoutRef.current)
+            if (slowConnectionRef.current) clearTimeout(slowConnectionRef.current)
         }
     }, [])
 
@@ -124,9 +119,6 @@ export function useAuthFormController() {
             setError(t("auth.slowOperation"))
             setIsLoading(false)
             setLoadingPhase("idle")
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort()
-            }
         }, TIMEOUT_THRESHOLD)
     }, [t])
 
@@ -199,7 +191,7 @@ export function useAuthFormController() {
                         user_id: signInData.user.id,
                         user_email: signInData.user.email || signInEmail,
                         activity_type: "user_login",
-                        description: `${signInData.user.email || signInEmail} sisteme giriş yaptı`,
+                        description: "Kullanıcı sisteme giriş yaptı",
                     })
                 } catch (logError) {
                     console.error("Activity log error:", logError)
@@ -213,6 +205,7 @@ export function useAuthFormController() {
 
             setLoadingPhase("redirecting")
             setIsRedirecting(true)
+            isRedirectingRef.current = true
 
             await new Promise((resolve) => setTimeout(resolve, 300))
 
@@ -228,7 +221,7 @@ export function useAuthFormController() {
             }
             setLoadingPhase("idle")
         } finally {
-            if (loadingPhase !== "redirecting") {
+            if (!isRedirectingRef.current) {
                 setIsLoading(false)
             }
         }
@@ -295,7 +288,7 @@ export function useAuthFormController() {
                         user_email: data.user.email || signUpEmail,
                         user_name: signUpName,
                         activity_type: "user_signup",
-                        description: `${data.user.email || signUpEmail} yeni hesap oluşturdu`,
+                        description: "Yeni hesap oluşturuldu",
                     })
                 } catch (logError) {
                     console.error("Activity log error:", logError)

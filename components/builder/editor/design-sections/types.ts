@@ -102,6 +102,8 @@ export interface StorytellingSectionProps {
     onCoverDescriptionChange?: (desc: string | null) => void
     enableCategoryDividers: boolean
     onEnableCategoryDividersChange?: (enable: boolean) => void
+    categoryOrder: string[]
+    onCategoryOrderChange?: (order: string[]) => void
     coverTheme: string
     onCoverThemeChange?: (theme: string) => void
     catalogName: string

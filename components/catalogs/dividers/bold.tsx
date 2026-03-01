@@ -1,11 +1,11 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function BoldDivider({
+export const BoldDivider = React.memo(function BoldDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#000000'
+    primaryColor: _primaryColor = '#000000'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-black text-white font-sans overflow-hidden flex flex-col justify-center p-12">
@@ -39,4 +39,4 @@ export function BoldDivider({
             </div>
         </div>
     )
-}
+})

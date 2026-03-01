@@ -57,7 +57,7 @@ interface EditorContentTabProps {
     onRemoveProduct: (id: string) => void
 }
 
-export function EditorContentTab({
+export const EditorContentTab = React.memo(function EditorContentTab({
     t,
     description,
     onDescriptionChange,
@@ -191,8 +191,8 @@ export function EditorContentTab({
                 <div className="flex flex-col gap-3">
                     {isProductListTruncated && (
                         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-                            Büyük katalog modu aktif: {availableProductCount} ürün yüklendi
-                            {totalProductCount ? ` / toplam ${totalProductCount}` : ""}. Performans için ilk 5000 ürün üzerinde çalışılıyor.
+                            {t('builder.bigCatalogMode')}: {t('builder.bigCatalogLoaded', { count: availableProductCount })}
+                            {totalProductCount ? ` / ${t('builder.bigCatalogTotal', { total: totalProductCount })}` : ""}. {t('builder.bigCatalogPerf')}
                         </div>
                     )}
 
@@ -227,8 +227,8 @@ export function EditorContentTab({
                     </div>
                 </div>
 
-                {/* PRODUCTS GRID - PREMIUM CARDS (Memoized) */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {/* PRODUCTS GRID - COMPACT CARDS */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
                     {visibleProducts.map(product => (
                         <ProductCard
                             key={product.id}
@@ -296,7 +296,7 @@ export function EditorContentTab({
 
                         {/* Sayfa Bilgisi */}
                         <span className="ml-3 text-xs text-slate-500 font-medium">
-                            {filteredProducts.length} üründen {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProducts.length)}
+                            {t('builder.productsFromTo', { total: filteredProducts.length, from: startIndex + 1, to: Math.min(startIndex + itemsPerPage, filteredProducts.length) })}
                         </span>
                     </div>
                 )}
@@ -322,7 +322,7 @@ export function EditorContentTab({
                     {hasVirtualizedSorting && (
                         <div className="mb-2 flex items-center justify-between gap-2 px-1">
                             <p className="text-[10px] text-muted-foreground font-medium">
-                                Sanal liste modu: {validProductIds.length} üründen yaklaşık {approxRenderedItems} tanesi render ediliyor
+                                {t('builder.virtualListMode')}: {t('builder.virtualListRendering', { total: validProductIds.length, rendered: approxRenderedItems })}
                             </p>
                         </div>
                     )}
@@ -392,4 +392,4 @@ export function EditorContentTab({
             </div>
         </div>
     )
-}
+})

@@ -1,12 +1,18 @@
 import { Request, Response } from 'express';
 import { supabase } from '../../services/supabase';
 import { getUserId } from './helpers';
+import { cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const timeRange = (req.query.timeRange as string) || '30d';
         const days = timeRange === '7d' ? 7 : timeRange === '90d' ? 90 : 30;
+
+        // PERF: Cache stats per user+timeRange for 2 minutes
+        const statsCacheKey = cacheKeys.stats(userId, { timeRange });
+        const finalStats = await getOrSetCache(statsCacheKey, 120, async () => {
+
         const dateThreshold = new Date();
         dateThreshold.setDate(dateThreshold.getDate() - days);
         const dateThresholdStr = dateThreshold.toISOString().split('T')[0];
@@ -121,6 +127,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         }
 
         const finalStats = { ...summaryStats, ...detailedStats };
+        return finalStats;
+        }); // end getOrSetCache
+
         res.json(finalStats);
     } catch (error: unknown) {
         console.error('[Stats] Critical Error:', error);

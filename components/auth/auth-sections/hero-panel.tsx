@@ -12,11 +12,11 @@ export function HeroPanel({ t }: HeroPanelProps) {
         <div className="hidden lg:flex w-1/2 relative overflow-hidden flex-col p-12 text-white">
             <div className="absolute inset-0 z-0">
                 <NextImage
-                    src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+                    src="/auth-hero-bg.webp"
                     alt="Background"
                     fill
                     className="object-cover"
-                    unoptimized
+                    priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
                 <div className="absolute inset-0 bg-violet-900/20 mix-blend-overlay" />
@@ -33,18 +33,18 @@ export function HeroPanel({ t }: HeroPanelProps) {
 
             <div className="relative z-10 flex-1 flex flex-col justify-center max-w-lg">
                 <h2 className="text-4xl font-bold tracking-tight mb-4 leading-tight">
-                    Müşterilerinizi Etkileyen Kataloglar Hazırlayın
+                    {t('marketing.authHeroTitle')}
                 </h2>
                 <p className="text-lg text-white/70 mb-10 leading-relaxed">
-                    {t('landing.heroSubtitle') as string}
+                    {t('landing.heroSubtitle')}
                 </p>
                 <ul className="space-y-5">
                     {[
                         t('marketing.feature1'),
                         t('marketing.feature2'),
                         t('marketing.feature3'),
-                        "Excel ile Toplu Ürün Yükleme",
-                        "WhatsApp Sipariş Entegrasyonu"
+                        t('marketing.feature4'),
+                        t('marketing.feature5')
                     ].map((feature, idx) => (
                         <li key={idx} className="flex items-center gap-3 text-white/90">
                             <div className="w-6 h-6 rounded-full bg-[#cf1414] flex items-center justify-center shadow-lg shadow-red-900/20">

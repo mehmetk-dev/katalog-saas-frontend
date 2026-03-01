@@ -5,7 +5,45 @@ import {
   checkRateLimit,
   AUTH_CALLBACK_LIMIT,
   AUTH_CALLBACK_WINDOW_MS,
-} from "@/lib/rate-limit"
+} from "@/lib/services/rate-limit"
+
+const DEFAULT_NEXT_PATH = "/dashboard"
+
+function resolveOrigin(rawOrigin: string): string {
+  return rawOrigin.includes("0.0.0.0")
+    ? rawOrigin.replace("0.0.0.0", "localhost")
+    : rawOrigin
+}
+
+function sanitizeNextPath(rawNext: string | null): string {
+  if (!rawNext) return DEFAULT_NEXT_PATH
+  const isValidRelativePath = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("\\")
+  return isValidRelativePath ? rawNext : DEFAULT_NEXT_PATH
+}
+
+function mapExchangeErrorToCode(message?: string): string {
+  const normalizedMessage = message?.toLowerCase() || ""
+  if (normalizedMessage.includes("expired")) return "code_expired"
+  if (normalizedMessage.includes("invalid")) return "invalid_code"
+  if (normalizedMessage.includes("network") || normalizedMessage.includes("fetch")) return "network_error"
+  return "auth_failed"
+}
+
+function buildForwardedRedirect(request: Request, nextPath: string): string | null {
+  const rawForwarded = request.headers.get("x-forwarded-host")?.toLowerCase().trim()
+  if (!rawForwarded) return null
+
+  const [hostname, port] = rawForwarded.split(":")
+  if (!hostname) return null
+
+  const allowedHosts = getAllowedRedirectHosts()
+  const hostAllowed = allowedHosts.includes(hostname)
+  if (!hostAllowed) return null
+
+  const protocol = request.url.includes("localhost") ? "http" : "https"
+  const hostWithPort = port ? `${hostname}:${port}` : hostname
+  return `${protocol}://${hostWithPort}${nextPath}`
+}
 
 /** İzin verilen redirect host'ları (x-forwarded-host). Production'da güvenlik için. */
 function getAllowedRedirectHosts(): string[] {
@@ -32,21 +70,12 @@ function getAllowedRedirectHosts(): string[] {
 export async function GET(request: Request) {
   const urlObj = new URL(request.url)
   const searchParams = urlObj.searchParams
-  let origin = urlObj.origin
-
-  // Fix for invalid 0.0.0.0 redirect issues
-  if (origin.includes("0.0.0.0")) {
-    origin = origin.replace("0.0.0.0", "localhost")
-  }
+  const origin = resolveOrigin(urlObj.origin)
 
   const code = searchParams.get("code")
   const error = searchParams.get("error")
   const errorDescription = searchParams.get("error_description")
-  const rawNext = searchParams.get("next") || "/dashboard"
-  // Güvenlik: Sadece relative path kabul et (open redirect önleme)
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("\\")
-    ? rawNext
-    : "/dashboard"
+  const next = sanitizeNextPath(searchParams.get("next"))
   const type = searchParams.get("type")
 
   // Rate limit: auth callback (OAuth code exchange) dakikada limit kadar
@@ -64,7 +93,6 @@ export async function GET(request: Request) {
 
   // Handle OAuth errors
   if (error) {
-    console.error("Auth callback error:", error, errorDescription)
     return NextResponse.redirect(
       `${origin}/auth?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(errorDescription || "")}`
     )
@@ -78,18 +106,7 @@ export async function GET(request: Request) {
       const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
       if (exchangeError) {
-        console.error("Session exchange error:", exchangeError)
-
-        // Provide more specific error messages
-        let errorCode = "auth_failed"
-        if (exchangeError.message?.includes("expired")) {
-          errorCode = "code_expired"
-        } else if (exchangeError.message?.includes("invalid")) {
-          errorCode = "invalid_code"
-        } else if (exchangeError.message?.includes("network") || exchangeError.message?.includes("fetch")) {
-          errorCode = "network_error"
-        }
-
+        const errorCode = mapExchangeErrorToCode(exchangeError.message)
         return NextResponse.redirect(`${origin}/auth?error=${errorCode}`)
       }
 
@@ -102,8 +119,7 @@ export async function GET(request: Request) {
             activity_type: 'user_login',
             description: `${sessionData.user.email} sisteme giriş yaptı`,
           })
-        } catch (logError) {
-          console.error('Activity log error:', logError)
+        } catch {
           // Don't block auth flow if logging fails
         }
       }
@@ -113,22 +129,11 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/auth/reset-password`)
       }
 
-      // 2. 'next' parametresi varsa oraya, yoksa dashboard'a
-      // Güvenlik: x-forwarded-host sadece izin listesindeki host'lara redirect eder
-      const rawForwarded = request.headers.get("x-forwarded-host")?.toLowerCase().trim()
-      const [hostname, port] = rawForwarded ? rawForwarded.split(":") : [null, null]
-      const allowedHosts = getAllowedRedirectHosts()
-      const hostAllowed = hostname && allowedHosts.some((h) => h === hostname)
-
-      if (hostAllowed) {
-        const protocol = request.url.includes("localhost") ? "http" : "https"
-        const hostWithPort = port ? `${hostname}:${port}` : hostname
-        return NextResponse.redirect(`${protocol}://${hostWithPort}${next}`)
-      }
+      const forwardedRedirect = buildForwardedRedirect(request, next)
+      if (forwardedRedirect) return NextResponse.redirect(forwardedRedirect)
 
       return NextResponse.redirect(`${origin}${next}`)
-    } catch (err) {
-      console.error("Auth callback unexpected error:", err)
+    } catch {
       return NextResponse.redirect(`${origin}/auth?error=unexpected_error`)
     }
   }

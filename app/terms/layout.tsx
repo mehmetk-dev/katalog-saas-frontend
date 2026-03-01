@@ -1,4 +1,4 @@
-import { generateSEO } from "@/lib/seo"
+import { generateSEO } from "@/lib/services/seo"
 
 export const metadata = generateSEO({
     title: "Terms of Service | Kullanım Koşulları",

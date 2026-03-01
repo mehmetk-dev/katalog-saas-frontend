@@ -12,7 +12,7 @@ import { ImportExportModal } from "./modals/import-export-modal"
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Product, ProductStats, deleteProducts, bulkImportProducts, bulkUpdatePrices, addDummyProducts, getAllProductsForExport } from "@/lib/actions/products"
 import {
   AlertDialog,
@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { BulkImageUploadModal } from "@/components/products/bulk/bulk-image-upload-modal"
-import { useUser } from "@/lib/user-context"
+import { useUser } from "@/lib/contexts/user-context"
 
 // Atomic Components
 import { ProductStatsCards } from "./toolbar/stats-cards"
@@ -56,6 +56,29 @@ type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 
 const DEFAULT_ITEMS_PER_PAGE = 12
 const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
+
+/** CSV formula injection koruması — =, +, -, @, \t, \r ile başlayan hücrelere prefix ekler */
+function sanitizeCsvCell(value: string): string {
+  const trimmed = value.trim()
+  if (/^[=+\-@\t\r]/.test(trimmed)) {
+    return `'${trimmed}`
+  }
+  return trimmed
+}
+
+/** Stats delta hesaplama — tekrar eden kod bloğunu ortadan kaldırır */
+function calculateStatsDelta(productList: Product[]): Omit<ProductStats, 'totalValue'> & { totalValue: number } {
+  let inStock = 0, lowStock = 0, outOfStock = 0, totalValue = 0
+  productList.forEach(p => {
+    const stock = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock || 0))
+    const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0))
+    if (stock >= 10) inStock++
+    else if (stock > 0 && stock < 10) lowStock++
+    else outOfStock++
+    totalValue += stock * price
+  })
+  return { total: productList.length, inStock, lowStock, outOfStock, totalValue }
+}
 
 const parsePageFromQuery = (value: string | null) => {
   const parsed = Number.parseInt(value || "1", 10)
@@ -320,26 +343,15 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
         adjustMetadataTotal(addedList.length)
 
         // Stats'ı yeni ürünlere göre güncelle
-        setStats(prev => {
-          let deltaInStock = 0, deltaLowStock = 0, deltaOutOfStock = 0
-          let deltaValue = 0
-          addedList.forEach(p => {
-            const stock = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock || 0))
-            const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0))
-            if (stock >= 10) deltaInStock++
-            else if (stock > 0 && stock < 10) deltaLowStock++
-            else deltaOutOfStock++
-            deltaValue += (stock * price)
-          })
-          return {
-            ...prev,
-            total: prev.total + addedList.length,
-            inStock: prev.inStock + deltaInStock,
-            lowStock: prev.lowStock + deltaLowStock,
-            outOfStock: prev.outOfStock + deltaOutOfStock,
-            totalValue: prev.totalValue + deltaValue
-          }
-        })
+        const delta = calculateStatsDelta(addedList)
+        setStats(prev => ({
+          ...prev,
+          total: prev.total + delta.total,
+          inStock: prev.inStock + delta.inStock,
+          lowStock: prev.lowStock + delta.lowStock,
+          outOfStock: prev.outOfStock + delta.outOfStock,
+          totalValue: prev.totalValue + delta.totalValue,
+        }))
 
         toast.success(t('toasts.testProductsAdded') as string)
         router.refresh()
@@ -504,8 +516,10 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
         const fields = [...baseValues, ...customAttrValues]
 
         return fields.map(field => {
-          const stringValue = String(field ?? "").replace(/"/g, '""')
-          return `"${stringValue}"`
+          const raw = String(field ?? "")
+          const sanitized = sanitizeCsvCell(raw)
+          const escaped = sanitized.replace(/"/g, '""')
+          return `"${escaped}"`
         })
       })
 
@@ -526,7 +540,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
     } catch (error) {
       toast.dismiss("export-loading")
       toast.error(t("toasts.processingError") as string || "Dışa aktarma sırasında hata oluştu")
-      console.error("Export error:", error)
+      if (process.env.NODE_ENV === 'development') console.error("Export error:", error)
     }
   }
 
@@ -554,7 +568,7 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
                     setSelectedIds(products.map(p => p.id));
                     toast.dismiss('select-all');
                   }
-                } catch (error) {
+                } catch {
                   setSelectedIds(products.map(p => p.id));
                   toast.dismiss('select-all');
                 }
@@ -722,30 +736,19 @@ export function ProductsPageClient({ initialProducts, initialMetadata, initialSt
               setProducts([...importedList, ...products])
               adjustMetadataTotal(importedList.length)
               // Stats'ı yeni ürünlere göre güncelle (server refresh beklemeden)
-              setStats(prev => {
-                let deltaInStock = 0, deltaLowStock = 0, deltaOutOfStock = 0
-                let deltaValue = 0
-                importedList.forEach(p => {
-                  const stock = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock || 0))
-                  const price = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0))
-                  if (stock >= 10) deltaInStock++
-                  else if (stock > 0 && stock < 10) deltaLowStock++
-                  else deltaOutOfStock++
-                  deltaValue += (stock * price)
-                })
-                return {
-                  ...prev,
-                  total: prev.total + importedList.length,
-                  inStock: prev.inStock + deltaInStock,
-                  lowStock: prev.lowStock + deltaLowStock,
-                  outOfStock: prev.outOfStock + deltaOutOfStock,
-                  totalValue: prev.totalValue + deltaValue
-                }
-              })
+              const delta = calculateStatsDelta(importedList)
+              setStats(prev => ({
+                ...prev,
+                total: prev.total + delta.total,
+                inStock: prev.inStock + delta.inStock,
+                lowStock: prev.lowStock + delta.lowStock,
+                outOfStock: prev.outOfStock + delta.outOfStock,
+                totalValue: prev.totalValue + delta.totalValue,
+              }))
               router.refresh()
               refreshUser()
             } catch (error) {
-              console.error('Bulk import failed:', error)
+              if (process.env.NODE_ENV === 'development') console.error('Bulk import failed:', error)
               throw error
             }
           }}

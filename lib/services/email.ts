@@ -2,14 +2,21 @@
 
 import { Resend } from "resend"
 
-// Resend instance'ını lazy initialization ile oluştur
-// Çünkü process.env değerleri runtime'da değişebilir
-function getResendInstance() {
+// Singleton Resend instance — lazy initialized on first use
+let resendSingleton: Resend | null = null
+let lastApiKey: string | undefined
+
+function getResendInstance(): Resend | null {
     const apiKey = process.env.RESEND_API_KEY
     if (!apiKey) {
         return null
     }
-    return new Resend(apiKey)
+    // Re-create if API key changed (e.g., env reload)
+    if (!resendSingleton || lastApiKey !== apiKey) {
+        resendSingleton = new Resend(apiKey)
+        lastApiKey = apiKey
+    }
+    return resendSingleton
 }
 
 interface SendEmailOptions {
@@ -21,7 +28,7 @@ interface SendEmailOptions {
 
 export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
     const apiKey = process.env.RESEND_API_KEY
-    
+
     if (!apiKey) {
         console.error("RESEND_API_KEY not found - Email cannot be sent")
         return { success: false, error: "Email service not configured" }
@@ -32,14 +39,14 @@ export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
         // Not: Eğer RESEND_FROM_EMAIL doğrulanmamış bir domain içeriyorsa,
         // Resend API hatası verecektir. Bu durumda default onboarding@resend.dev kullanılır
         let fromEmail = from || process.env.RESEND_FROM_EMAIL || "FogCatalog <onboarding@resend.dev>"
-        
+
         // Eğer custom domain kullanılıyorsa ve hata alırsak, default'a geri dön
         // Şimdilik her zaman default kullan (domain doğrulaması gerektirir)
         // Kullanıcı domain doğrulamak isterse, Resend dashboard'dan yapabilir
         if (fromEmail.includes('@') && !fromEmail.includes('@resend.dev') && !fromEmail.includes('onboarding@resend.dev')) {
             fromEmail = "FogCatalog <onboarding@resend.dev>"
         }
-        
+
         const resendInstance = getResendInstance()
         if (!resendInstance) {
             console.error("Failed to create Resend instance")

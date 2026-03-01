@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function LuxuryCover({
+export const LuxuryCover = React.memo(function LuxuryCover({
     catalogName,
     coverImageUrl,
     coverDescription,
     logoUrl,
     productCount = 0,
-    primaryColor = '#D4AF37'
+    primaryColor: _primaryColor = '#D4AF37'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#0a0a0a] text-[#C5A059] overflow-hidden font-serif">
@@ -62,4 +62,4 @@ export function LuxuryCover({
             </div>
         </div>
     )
-}
+})

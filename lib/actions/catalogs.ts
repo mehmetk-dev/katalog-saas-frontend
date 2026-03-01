@@ -5,6 +5,7 @@ import { cache } from "react"
 
 import { apiFetch } from "@/lib/api"
 import type { Product } from "@/lib/actions/products"
+import { validate, catalogCreateSchema, catalogUpdateSchema } from "@/lib/validations"
 
 export interface Catalog {
   id: string
@@ -41,6 +42,7 @@ export interface Catalog {
   cover_image_url?: string | null  // Custom cover image uploaded by user
   cover_description?: string | null  // Cover page description (max 500 chars)
   enable_category_dividers?: boolean  // Enable category transition pages (default: false)
+  category_order?: string[] // Order of categories when dividers are enabled
   cover_theme?: string // Theme for the cover page (e.g., 'modern', 'minimal', 'lux', etc.)
   show_in_search?: boolean // New: Visibility in search engines (default: true)
   created_at: string
@@ -87,7 +89,7 @@ export async function getTemplates(): Promise<CatalogTemplate[]> {
 
     // Eğer database boşsa API'den çekmeyi deniyelim
     if (!templates || templates.length === 0) {
-      console.log("No templates found in database, falling back to API...")
+      console.warn("No templates found in database, falling back to API...")
       return await getTemplatesFromAPI()
     }
 
@@ -110,18 +112,24 @@ export async function getTemplates(): Promise<CatalogTemplate[]> {
 }
 
 export async function createCatalog(data: Partial<Catalog>) {
+  // Validate and sanitize input
+  const validatedData = validate(catalogCreateSchema, data)
+
   const newCatalog = await apiFetch<Catalog>("/catalogs", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(validatedData),
   })
   revalidatePath("/dashboard", "layout")
   return newCatalog
 }
 
 export async function updateCatalog(id: string, updates: Partial<Catalog>) {
+  // Validate and sanitize input
+  const validatedUpdates = validate(catalogUpdateSchema, updates)
+
   await apiFetch(`/catalogs/${id}`, {
     method: "PUT",
-    body: JSON.stringify(updates),
+    body: JSON.stringify(validatedUpdates),
   })
   revalidatePath("/dashboard", "layout")
   if (updates.share_slug) {

@@ -8,7 +8,7 @@ import { UpgradeModal } from '@/components/builder/modals/upgrade-modal'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useAsyncTimeout } from '@/lib/hooks/use-async-timeout'
-import { useTranslation } from '@/lib/i18n-provider'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 import { cn } from '@/lib/utils'
 
 import { ROWS_PER_PAGE, SYSTEM_FIELDS_KEYS } from './import-export/constants'
@@ -109,6 +109,14 @@ export function ImportExportModal({
         const file = e.target.files?.[0]
         if (!file) return
 
+        // Dosya boyutu limiti — OOM crash önleme
+        const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+        if (file.size > MAX_IMPORT_FILE_SIZE) {
+            toast.error(t('toasts.fileTooLarge') || 'Dosya boyutu çok büyük (Max 10MB)')
+            e.target.value = ''
+            return
+        }
+
         try {
             const type = getImportFileType(file)
             if (!type) throw new Error(t('toasts.invalidFileFormat'))
@@ -124,7 +132,9 @@ export function ImportExportModal({
             setImportStatus('mapping')
             toast.success(t('importExport.rowsFound', { count: parsed.data.length }))
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : t('toasts.processingError'))
+            // Dış kütüphane (XLSX) hata mesajlarını kullanıcıya sızdırma
+            const isKnownError = error instanceof Error && !error.message.includes('Error:')
+            toast.error(isKnownError ? error.message : t('toasts.processingError'))
         }
 
         e.target.value = ''

@@ -2,6 +2,21 @@ import type { Product } from '@/lib/actions/products'
 
 import { type ColumnMapping } from './types'
 
+/** URL'leri doğrula — javascript: ve data: XSS saldırılarını önle */
+function isValidUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        return ['http:', 'https:'].includes(parsed.protocol)
+    } catch {
+        return false
+    }
+}
+
+/** Custom attribute isimlerini sanitize et — script injection önleme */
+function sanitizeAttributeName(name: string): string {
+    return name.replace(/[<>"'&]/g, '').trim().slice(0, 100)
+}
+
 interface BuildProductsParams {
     csvData: string[][]
     csvHeaders: string[]
@@ -50,8 +65,9 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
 
             if (mapping.systemField === null) {
                 if (csvHeaders[index]) {
-                    const attrName = mapping.customName?.trim() || csvHeaders[index].charAt(0).toUpperCase() + csvHeaders[index].slice(1).replace(/\*/g, '')
-                    customAttrs.push({ name: attrName, value })
+                    const rawName = mapping.customName?.trim() || csvHeaders[index].charAt(0).toUpperCase() + csvHeaders[index].slice(1).replace(/\*/g, '')
+                    const attrName = sanitizeAttributeName(rawName)
+                    if (attrName) customAttrs.push({ name: attrName, value })
                 }
                 return
             }
@@ -106,17 +122,17 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
                     break
                 case 'image_url':
                     if (value) {
-                        const urls = parseImageUrls(value)
-                        const cover = urls[0] || value
-                        product.image_url = cover || null
+                        const urls = parseImageUrls(value).filter(isValidUrl)
+                        const cover = urls[0] || null
+                        product.image_url = cover
 
                         const existingImages = Array.isArray(product.images) ? product.images : []
-                        const merged = [cover, ...existingImages, ...urls].filter(Boolean)
+                        const merged = [cover, ...existingImages, ...urls].filter(Boolean) as string[]
                         product.images = Array.from(new Set(merged)).slice(0, 5)
                     }
                     break
                 case 'images': {
-                    const urls = parseImageUrls(value)
+                    const urls = parseImageUrls(value).filter(isValidUrl)
                     if (!urls.length) break
 
                     const existingImages = Array.isArray(product.images) ? product.images : []
@@ -129,7 +145,7 @@ export const buildImportProducts = ({ csvData, csvHeaders, columnMappings, isFre
                     break
                 }
                 case 'product_url':
-                    product.product_url = value || null
+                    product.product_url = value && isValidUrl(value) ? value : null
                     break
             }
         })

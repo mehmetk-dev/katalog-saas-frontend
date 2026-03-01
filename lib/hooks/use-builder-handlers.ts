@@ -3,9 +3,9 @@
 import { useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { type Catalog } from "@/lib/actions/catalogs"
-import { useUser } from "@/lib/user-context"
+import { useUser } from "@/lib/contexts/user-context"
 import { usePdfExport } from "@/lib/hooks/use-pdf-export"
 import { useCatalogActions } from "@/lib/hooks/use-catalog-actions"
 import type { useBuilderState } from "@/lib/hooks/use-builder-state"
@@ -72,11 +72,11 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
             return
         }
         state.setShowShareModal(true)
-    }, [state.currentCatalogId, catalog?.share_slug, t, state.setShowShareModal])
+    }, [state, catalog?.share_slug, t])
 
-    const handleViewChange = useCallback((v: "split" | "editor" | "preview") => state.setView(v), [state.setView])
+    const handleViewChange = useCallback((v: "split" | "editor" | "preview") => state.setView(v), [state])
 
-    const handleCatalogNameChange = useCallback((name: string) => state.setCatalogName(name), [state.setCatalogName])
+    const handleCatalogNameChange = useCallback((name: string) => state.setCatalogName(name), [state])
 
     const handleExit = useCallback(() => {
         if (state.hasUnsavedChanges) {
@@ -84,18 +84,22 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         } else {
             router.push('/dashboard')
         }
-    }, [state.hasUnsavedChanges, state.setShowExitDialog, router])
+    }, [state, router])
 
     const handleExitWithoutSaving = useCallback(() => {
         state.setShowExitDialog(false)
         router.push('/dashboard')
-    }, [state.setShowExitDialog, router])
+    }, [state, router])
 
-    const handleSaveAndExit = useCallback(() => {
-        handleSave()
-        state.setShowExitDialog(false)
-        setTimeout(() => router.push('/dashboard'), 1500)
-    }, [handleSave, state.setShowExitDialog, router])
+    const handleSaveAndExit = useCallback(async () => {
+        try {
+            await handleSave()
+            state.setShowExitDialog(false)
+            router.push('/dashboard')
+        } catch {
+            // Save failed — user stays on page, toast already shown by handleSave
+        }
+    }, [handleSave, state, router])
 
     return {
         // From useCatalogActions

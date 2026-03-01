@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { CheckCircle2, ChevronRight, X } from "lucide-react"
 import Link from "next/link"
 
@@ -9,17 +9,31 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface OnboardingChecklistProps {
     hasProducts: boolean
     hasCatalogs: boolean
 }
 
+const ONBOARDING_DISMISSED_KEY = 'fogcatalog-onboarding-dismissed'
+
 export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChecklistProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [isVisible, setIsVisible] = useState(true)
+
+    // Restore dismiss state from localStorage after mount
+    useEffect(() => {
+        if (localStorage.getItem(ONBOARDING_DISMISSED_KEY) === 'true') {
+            setIsVisible(false)
+        }
+    }, [])
+
+    const handleDismiss = useCallback(() => {
+        setIsVisible(false)
+        localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true')
+    }, [])
 
     if (!isVisible) return null
 
@@ -73,7 +87,7 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
                         <span>{t("dashboard.onboarding.completed", { percent: Math.round(progress) })}</span>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={() => setIsVisible(false)}>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={handleDismiss}>
                     <X className="w-4 h-4" />
                 </Button>
             </CardHeader>

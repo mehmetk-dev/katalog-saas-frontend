@@ -53,6 +53,7 @@ interface ProductBasicTabProps {
     category: string[]
     onCategoryChange: (v: string[]) => void
     allCategories: string[]
+    canCreateCategory: boolean
     language: string
     t: (key: string, params?: Record<string, unknown>) => string
 }
@@ -62,7 +63,7 @@ export const ProductBasicTab = memo(function ProductBasicTab({
     name, onNameChange, sku, onSkuChange, description, onDescriptionChange,
     price, onPriceChange, stock, onStockChange, currency, onCurrencyChange,
     productUrl, onProductUrlChange, category, onCategoryChange,
-    allCategories, language, t,
+    allCategories, canCreateCategory, language, t,
 }: ProductBasicTabProps) {
     const [categoryInput, setCategoryInput] = useState("")
     const [showCategories, setShowCategories] = useState(false)
@@ -88,6 +89,11 @@ export const ProductBasicTab = memo(function ProductBasicTab({
     }
 
     const addNewCategory = () => {
+        if (!canCreateCategory) {
+            toast.error(t("products.categoryUpgradeRequired"))
+            return
+        }
+
         const trimmed = categoryInput.trim()
         if (trimmed && !category.includes(trimmed)) {
             onCategoryChange([...category, trimmed])
@@ -218,13 +224,20 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                         )}
                         <div className="flex gap-2">
                             <Input
+                                name="newCategoryInput"
                                 value={categoryInput}
                                 onChange={(e) => setCategoryInput(e.target.value)}
+                                disabled={!canCreateCategory}
                                 onKeyDown={(e) => {
-                                    if (e.key === "Enter" && categoryInput.trim()) {
+                                    if (e.key === "Enter") {
                                         e.preventDefault()
-                                        addNewCategory()
+                                        if (categoryInput.trim()) {
+                                            addNewCategory()
+                                        }
                                     }
+                                }}
+                                onBlur={() => {
+                                    // onBlur'da otomatik ekleme kaldırıldı — yalnızca Enter ve buton ile eklenir
                                 }}
                                 placeholder={t("products.newCategory")}
                                 className="h-8 text-sm"
@@ -234,11 +247,16 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                                 size="sm"
                                 className="h-8 px-3 bg-violet-600 hover:bg-violet-700"
                                 onClick={addNewCategory}
-                                disabled={!categoryInput.trim()}
+                                disabled={!canCreateCategory || !categoryInput.trim()}
                             >
                                 <Plus className="w-3.5 h-3.5" />
                             </Button>
                         </div>
+                        {!canCreateCategory && (
+                            <p className="text-xs text-muted-foreground">
+                                {t("products.categoryUpgradeHint")}
+                            </p>
+                        )}
                         {category.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 pt-2 border-t">
                                 {category.map((cat, idx) => (
@@ -285,6 +303,12 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                     type="url"
                     value={productUrl}
                     onChange={(e) => onProductUrlChange(e.target.value)}
+                    onBlur={(e) => {
+                        const url = e.target.value.trim()
+                        if (url && !/^https?:\/\//i.test(url)) {
+                            toast.warning(t("products.urlProtocolWarning") || "URL http:// veya https:// ile başlamalıdır")
+                        }
+                    }}
                     placeholder="https://example.com/urun-sayfasi"
                     className="h-10"
                 />

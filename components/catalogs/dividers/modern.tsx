@@ -1,7 +1,9 @@
 import React from 'react'
 import type { CategoryDividerProps } from './index'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 
-export function ModernDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#3b82f6' }: CategoryDividerProps) {
+export const ModernDivider = React.memo(function ModernDivider({ categoryName, firstProductImage: _firstProductImage, primaryColor: _primaryColor = '#3b82f6' }: CategoryDividerProps) {
+    const { t } = useTranslation()
     return (
         <div className="relative w-full h-full bg-slate-50 flex items-center justify-center overflow-hidden">
             {/* Shapes */}
@@ -14,7 +16,7 @@ export function ModernDivider({ categoryName, firstProductImage: _firstProductIm
             {/* Content */}
             <div className="relative z-10 text-center">
                 <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider rounded-full mb-6">
-                    Kategori
+                    {t("dividerTexts.category")}
                 </div>
                 <h2 className="text-7xl font-black text-slate-900 mb-6 tracking-tight">
                     {categoryName}
@@ -23,4 +25,4 @@ export function ModernDivider({ categoryName, firstProductImage: _firstProductIm
             </div>
         </div>
     )
-}
+})

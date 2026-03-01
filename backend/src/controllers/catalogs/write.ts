@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import { supabase } from '../../services/supabase';
 import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../../services/activity-logger';
-import { createNotification } from '../notifications';
+import { createNotification, NotificationTemplates } from '../notifications';
 import { getUserId, getPlanLimits, generateShareSlug, pickDefinedFields } from './helpers';
+import { catalogCreateSchema, catalogUpdateSchema } from './schemas';
+import { safeErrorMessage } from '../../utils/safe-error';
 import type { CatalogUpdatePayload } from './types';
 
 // Fields that require both undefined AND null checks before writing
@@ -13,7 +15,7 @@ const FIELDS_WITH_NULL_CHECK = [
     'show_sku', 'show_urls', 'columns_per_row', 'background_color',
     'background_image_fit', 'logo_size', 'title_position',
     'product_image_fit', 'header_text_color', 'enable_cover_page',
-    'enable_category_dividers', 'show_in_search',
+    'enable_category_dividers', 'show_in_search', 'category_order'
 ];
 
 // Fields that only need undefined check (null is a valid value to clear)
@@ -31,13 +33,22 @@ const INSERT_OPTIONAL_FIELDS = [
     'logo_url', 'logo_position', 'logo_size', 'title_position',
     'product_image_fit', 'header_text_color', 'enable_cover_page',
     'cover_image_url', 'cover_description', 'enable_category_dividers',
-    'cover_theme', 'show_in_search',
+    'cover_theme', 'show_in_search', 'category_order'
 ];
 
 export const createCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { name: rawName, description, layout, product_ids } = req.body;
+
+        // SECURITY: Validate input with Zod schema
+        const parsed = catalogCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi'
+            });
+        }
+        const { name: rawName, description, layout, product_ids } = parsed.data;
 
         const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
 
@@ -77,9 +88,10 @@ export const createCatalog = async (req: Request, res: Response) => {
         };
 
         // Include optional fields only if provided
+        // SECURITY: Use parsed.data (Zod-validated) instead of raw req.body
         for (const key of INSERT_OPTIONAL_FIELDS) {
-            if (req.body[key] !== undefined) {
-                insertData[key] = req.body[key];
+            if ((parsed.data as Record<string, unknown>)[key] !== undefined) {
+                insertData[key] = (parsed.data as Record<string, unknown>)[key];
             }
         }
 
@@ -106,7 +118,6 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         // Bildirim gönder
         try {
-            const { NotificationTemplates } = await import('../notifications');
             const template = NotificationTemplates.catalogCreated(name, data.id);
             await createNotification(
                 userId,
@@ -132,7 +143,7 @@ export const createCatalog = async (req: Request, res: Response) => {
 
         res.status(201).json(data);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -141,9 +152,18 @@ export const updateCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const {
-            name, cover_description, cover_image_url, share_slug,
-        }: CatalogUpdatePayload = req.body;
+
+        // SECURITY: Validate input with Zod schema
+        const parsed = catalogUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+            console.error('[CatalogUpdate] Validation failed:', JSON.stringify(parsed.error.issues, null, 2));
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi',
+                details: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message, code: i.code }))
+            });
+        }
+        const { name, cover_description, cover_image_url, share_slug } = parsed.data;
 
         // Validate cover_description length (max 500 chars)
         if (cover_description !== undefined && cover_description !== null && cover_description.length > 500) {
@@ -173,9 +193,10 @@ export const updateCatalog = async (req: Request, res: Response) => {
             .single();
 
         // Build update data dynamically
+        // SECURITY: Use parsed.data (Zod-validated) instead of raw req.body
         const updateData: Record<string, unknown> = {
             updated_at: new Date().toISOString(),
-            ...pickDefinedFields(req.body, FIELDS_WITH_NULL_CHECK, FIELDS_WITHOUT_NULL_CHECK),
+            ...pickDefinedFields(parsed.data as Record<string, unknown>, FIELDS_WITH_NULL_CHECK, FIELDS_WITHOUT_NULL_CHECK),
         };
 
         const { error, data } = await supabase
@@ -201,10 +222,10 @@ export const updateCatalog = async (req: Request, res: Response) => {
         // Cache'leri temizle
         await Promise.all([
             deleteCache(cacheKeys.catalogs(userId)),
-            deleteCache(cacheKeys.catalog(userId, id)),
+            deleteCache(cacheKeys.catalog(userId, id), true),
             deleteCache(cacheKeys.stats(userId)),
-            ...(oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug))] : []),
-            ...(share_slug ? [deleteCache(cacheKeys.publicCatalog(share_slug))] : [])
+            ...(oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug), true)] : []),
+            ...(share_slug ? [deleteCache(cacheKeys.publicCatalog(share_slug), true)] : [])
         ]);
 
         // Log activity
@@ -221,7 +242,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
         res.json({ success: true });
     } catch (error: unknown) {
         console.error('Catalog update exception:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error, 'Katalog güncellenirken bir hata oluştu');
         res.status(500).json({
             error: 'Katalog güncellenirken bir hata oluştu',
             message: errorMessage
@@ -245,7 +266,7 @@ export const deleteCatalog = async (req: Request, res: Response) => {
         // Cache'leri temizle
         await Promise.all([
             deleteCache(cacheKeys.catalogs(userId)),
-            deleteCache(cacheKeys.catalog(userId, id)),
+            deleteCache(cacheKeys.catalog(userId, id), true),
             deleteCache(cacheKeys.stats(userId))
         ]);
 
@@ -262,7 +283,7 @@ export const deleteCatalog = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };

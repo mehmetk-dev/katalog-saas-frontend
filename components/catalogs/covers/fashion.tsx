@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function FashionCover({
+export const FashionCover = React.memo(function FashionCover({
     catalogName,
     coverImageUrl,
     coverDescription,
     logoUrl,
     productCount = 0,
-    primaryColor = '#000000'
+    primaryColor: _primaryColor = '#000000'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-white text-black overflow-hidden font-sans">
@@ -63,4 +63,4 @@ export function FashionCover({
             </div>
         </div>
     )
-}
+})

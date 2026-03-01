@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bulkUpdateImages = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.getProduct = exports.getProducts = void 0;
+exports.bulkUpdateImages = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductStats = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.getProduct = exports.getProducts = void 0;
 var read_1 = require("./products/read");
 Object.defineProperty(exports, "getProducts", { enumerable: true, get: function () { return read_1.getProducts; } });
 Object.defineProperty(exports, "getProduct", { enumerable: true, get: function () { return read_1.getProduct; } });
 Object.defineProperty(exports, "checkProductInCatalogs", { enumerable: true, get: function () { return read_1.checkProductInCatalogs; } });
 Object.defineProperty(exports, "checkProductsInCatalogs", { enumerable: true, get: function () { return read_1.checkProductsInCatalogs; } });
+Object.defineProperty(exports, "getProductStats", { enumerable: true, get: function () { return read_1.getProductStats; } });
 var write_1 = require("./products/write");
 Object.defineProperty(exports, "createProduct", { enumerable: true, get: function () { return write_1.createProduct; } });
 Object.defineProperty(exports, "updateProduct", { enumerable: true, get: function () { return write_1.updateProduct; } });

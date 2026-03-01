@@ -6,28 +6,33 @@ const redis_1 = require("../../services/redis");
 const activity_logger_1 = require("../../services/activity-logger");
 const helpers_1 = require("./helpers");
 const media_1 = require("./media");
+const schemas_1 = require("./schemas");
+const safe_error_1 = require("../../utils/safe-error");
 const bulkDeleteProducts = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        const { ids } = req.body;
-        if (!Array.isArray(ids)) {
-            return res.status(400).json({ error: 'ids must be an array' });
+        // SECURITY: Validate input with Zod schema (UUID format + array size limit)
+        const parsed = schemas_1.bulkDeleteSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
-        const { data: products, error: fetchError } = await supabase_1.supabase
-            .from('products')
-            .select('id, name, image_url, images')
-            .in('id', ids)
-            .eq('user_id', userId);
-        if (fetchError)
-            throw fetchError;
-        const { error } = await supabase_1.supabase
-            .from('products')
-            .delete()
-            .in('id', ids)
-            .eq('user_id', userId);
+        const { ids } = parsed.data;
+        // Batch fetch & delete: .in() has URL length limits for large arrays
+        const CHUNK_SIZE = 100;
+        const idChunks = [];
+        for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+            idChunks.push(ids.slice(i, i + CHUNK_SIZE));
+        }
+        const fetchResults = await Promise.all(idChunks.map(chunk => supabase_1.supabase.from('products').select('id, name, image_url, images').in('id', chunk).eq('user_id', userId)));
+        const products = fetchResults.flatMap(r => r.data || []);
+        const deleteResults = await Promise.all(idChunks.map(chunk => supabase_1.supabase.from('products').delete().in('id', chunk).eq('user_id', userId)));
+        const error = deleteResults.find(r => r.error)?.error;
         if (error)
             throw error;
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         const photoUrls = products && products.length > 0 ? (0, media_1.collectPhotoUrlsFromProducts)(products) : [];
         if (photoUrls.length > 0) {
@@ -48,7 +53,7 @@ const bulkDeleteProducts = async (req, res) => {
         });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -56,10 +61,17 @@ exports.bulkDeleteProducts = bulkDeleteProducts;
 const bulkImportProducts = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        const { products } = req.body;
-        if (!Array.isArray(products) || products.length === 0) {
-            return res.status(400).json({ error: 'products array is required' });
+        // SECURITY: Validate all imported products with Zod schema
+        const parsed = schemas_1.bulkImportSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const firstError = parsed.error.issues[0];
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: firstError?.message || 'Invalid product data',
+                path: firstError?.path?.join('.')
+            });
         }
+        const { products } = parsed.data;
         const [user, productsCountResult] = await Promise.all([
             (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
                 const { data } = await supabase_1.supabase.from('users').select('plan').eq('id', userId).single();
@@ -76,33 +88,30 @@ const bulkImportProducts = async (req, res) => {
                 message: `Bu işlem paket limitinizi aşıyor. (${plan.toUpperCase()} limiti: ${maxProducts}, Mevcut: ${currentCount}, Eklenmek istenen: ${products.length})`
             });
         }
-        const productsToInsert = products.map((p) => {
-            const product = {
-                user_id: userId,
-                name: p.name,
-                sku: p.sku || null,
-                description: p.description || null,
-                price: p.price || 0,
-                stock: p.stock || 0,
-                category: p.category || null,
-                image_url: p.image_url || null,
-                custom_attributes: p.custom_attributes || []
-            };
-            if (p.images && Array.isArray(p.images)) {
-                product.images = p.images;
-            }
-            if (p.product_url) {
-                product.product_url = p.product_url;
-            }
-            return product;
-        });
+        // Products are already validated by Zod schema above
+        const productsToInsert = products.map((p) => ({
+            user_id: userId,
+            name: p.name,
+            sku: p.sku || null,
+            description: p.description || null,
+            price: p.price || 0,
+            stock: p.stock || 0,
+            category: p.category || null,
+            image_url: p.image_url || null,
+            images: p.images || [],
+            product_url: p.product_url || null,
+            custom_attributes: p.custom_attributes || [],
+        }));
         const { data, error } = await supabase_1.supabase
             .from('products')
             .insert(productsToInsert)
             .select();
         if (error)
             throw error;
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -116,7 +125,7 @@ const bulkImportProducts = async (req, res) => {
         res.status(201).json(data);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -124,10 +133,12 @@ exports.bulkImportProducts = bulkImportProducts;
 const reorderProducts = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        const { order } = req.body;
-        if (!Array.isArray(order)) {
-            return res.status(400).json({ error: 'order must be an array' });
+        // SECURITY: Validate reorder input with Zod schema (UUID + integer range)
+        const parsed = schemas_1.reorderSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
+        const { order } = parsed.data;
         const updatePromises = order.map(item => supabase_1.supabase
             .from('products')
             .update({
@@ -137,7 +148,10 @@ const reorderProducts = async (req, res) => {
             .eq('id', item.id)
             .eq('user_id', userId));
         await Promise.all(updatePromises);
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -151,37 +165,33 @@ const reorderProducts = async (req, res) => {
         res.json({ success: true, updated: order.length });
     }
     catch (error) {
-        const errorMessage = error instanceof Error
-            ? error.message
-            : (typeof error === 'object' ? JSON.stringify(error) : String(error));
+        // SECURITY: Don't leak raw error objects/stack traces
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error, 'Sıralama kaydedilemedi');
         console.error('Reorder products error:', errorMessage);
-        res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi', error: errorMessage });
+        res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi' });
     }
 };
 exports.reorderProducts = reorderProducts;
 const bulkUpdatePrices = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        const { productIds, changeType, changeMode, amount } = req.body;
-        if (!Array.isArray(productIds) || productIds.length === 0) {
-            return res.status(400).json({ error: 'productIds array is required' });
+        // SECURITY: Validate with Zod schema (replaces manual validation)
+        const parsed = schemas_1.bulkPriceUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
-        if (!['increase', 'decrease'].includes(changeType)) {
-            return res.status(400).json({ error: 'changeType must be increase or decrease' });
+        const { productIds, changeType, changeMode, amount } = parsed.data;
+        // Batch fetch: .in() has URL length limits for large arrays
+        const CHUNK_SIZE = 100;
+        const idChunks = [];
+        for (let i = 0; i < productIds.length; i += CHUNK_SIZE) {
+            idChunks.push(productIds.slice(i, i + CHUNK_SIZE));
         }
-        if (!['percentage', 'fixed'].includes(changeMode)) {
-            return res.status(400).json({ error: 'changeMode must be percentage or fixed' });
-        }
-        if (typeof amount !== 'number' || amount <= 0) {
-            return res.status(400).json({ error: 'amount must be a positive number' });
-        }
-        const { data: products, error: fetchError } = await supabase_1.supabase
-            .from('products')
-            .select('*')
-            .in('id', productIds)
-            .eq('user_id', userId);
+        const fetchResults = await Promise.all(idChunks.map(chunk => supabase_1.supabase.from('products').select('*').in('id', chunk).eq('user_id', userId)));
+        const fetchError = fetchResults.find(r => r.error)?.error;
         if (fetchError)
             throw fetchError;
+        const products = fetchResults.flatMap(r => r.data || []);
         if (!products || products.length === 0) {
             return res.status(404).json({ error: 'No products found' });
         }
@@ -198,19 +208,25 @@ const bulkUpdatePrices = async (req, res) => {
             newPrice = Math.round(newPrice * 100) / 100;
             return { id: product.id, price: newPrice };
         });
-        const { data, error: rpcError } = await supabase_1.supabase.rpc('batch_update_product_prices', {
-            p_user_id: userId,
-            p_updates: priceUpdates
-        });
+        const updatePromises = priceUpdates.map(update => supabase_1.supabase
+            .from('products')
+            .update({ price: update.price })
+            .eq('id', update.id)
+            .eq('user_id', userId)
+            .select()
+            .single());
+        const updateResults = await Promise.all(updatePromises);
+        const rpcError = updateResults.find(r => r.error)?.error;
         if (rpcError)
             throw rpcError;
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
-        const updatedProducts = (data || []).map((item) => ({
-            id: item.id,
-            price: item.price,
-            ...products.find(p => p.id === item.id)
-        }));
+        const updatedProducts = updateResults
+            .filter(r => !r.error && r.data)
+            .map(r => r.data);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
             userId,
@@ -228,7 +244,7 @@ const bulkUpdatePrices = async (req, res) => {
         res.json(updatedProducts);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -247,12 +263,15 @@ const renameCategory = async (req, res) => {
         });
         if (rpcError)
             throw rpcError;
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         res.json(data || []);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -264,11 +283,13 @@ const deleteCategoryFromProducts = async (req, res) => {
         if (!categoryName) {
             return res.status(400).json({ error: 'categoryName is required' });
         }
+        // SECURITY: Escape PostgREST wildcard characters to prevent filter injection
+        const sanitizedCategoryName = categoryName.replace(/[%_*(),."\\]/g, '');
         const { data: products, error: fetchError } = await supabase_1.supabase
             .from('products')
             .select('*')
             .eq('user_id', userId)
-            .ilike('category', `%${categoryName}%`);
+            .ilike('category', `%${sanitizedCategoryName}%`);
         if (fetchError)
             throw fetchError;
         if (!products || products.length === 0) {
@@ -291,7 +312,10 @@ const deleteCategoryFromProducts = async (req, res) => {
         const updatedProducts = results
             .filter(r => !r.error && r.data)
             .map(r => r.data);
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -305,7 +329,7 @@ const deleteCategoryFromProducts = async (req, res) => {
         res.json(updatedProducts);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -313,10 +337,12 @@ exports.deleteCategoryFromProducts = deleteCategoryFromProducts;
 const bulkUpdateImages = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        const { updates } = req.body;
-        if (!Array.isArray(updates)) {
-            return res.status(400).json({ error: 'updates must be an array' });
+        // SECURITY: Validate with Zod schema (UUID format + URL validation + array limits)
+        const parsed = schemas_1.bulkUpdateImagesSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
+        const { updates } = parsed.data;
         const updatePromises = updates.map(({ productId, images }) => supabase_1.supabase
             .from('products')
             .update({
@@ -334,12 +360,15 @@ const bulkUpdateImages = async (req, res) => {
             error: result.error?.message
         })));
         const results = await Promise.all(updatePromises);
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         res.json({ success: true, count: updates.length, results });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };

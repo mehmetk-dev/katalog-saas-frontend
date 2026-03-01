@@ -3,10 +3,9 @@ import { render, screen } from '@testing-library/react'
 import { DashboardClient } from '@/components/dashboard/dashboard-client'
 import { type Catalog } from '@/lib/actions/catalogs'
 import { type Product } from '@/lib/actions/products'
-import { type User } from '@/lib/user-context'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
         t: (key: string) => {
             const translations: Record<string, string> = {
@@ -54,7 +53,7 @@ const mockUseUser = vi.fn(() => ({
     refreshUser: vi.fn(),
 }))
 
-vi.mock('@/lib/user-context', () => ({
+vi.mock('@/lib/contexts/user-context', () => ({
     useUser: () => mockUseUser(),
 }))
 
@@ -501,6 +500,7 @@ describe('Dashboard Client Testleri', () => {
         it('Loading state gösterilir', () => {
             // useUser mock'unu değiştir
             mockUseUser.mockReturnValueOnce({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 user: null as any,
                 isLoading: true,
                 refreshUser: vi.fn(),

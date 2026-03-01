@@ -35,6 +35,11 @@ if (!cloudName || !apiKey || !apiSecret) {
 export function extractPublicId(photoUrl: string): string | null {
     if (!photoUrl) return null;
 
+    // Eğer bu bir Cloudinary URL'si değilse (örneğin Unsplash test verisiyse) işlem yapma
+    if (!photoUrl.includes('res.cloudinary.com')) {
+        return null; // Sessizce geç, uyarı basmaya gerek yok (demolar için)
+    }
+
     // Cloudinary URL formatını analiz et
     // Format: /image/upload/[transformations]/[version/]/[folder/]/filename.ext
 
@@ -177,8 +182,9 @@ export async function movePhotoToDeletedFolder(photoUrl: string): Promise<boolea
                 asset_folder: deletedFolder, // Media Library'de görünecek klasör
                 invalidate: true
             });
-        } catch (updateError: any) {
-            console.warn(`[Cloudinary] Failed to update asset_folder for ${newPublicId}:`, updateError.message);
+        } catch (updateError: unknown) {
+            const updateMsg = updateError instanceof Error ? updateError.message : String(updateError);
+            console.warn(`[Cloudinary] Failed to update asset_folder for ${newPublicId}:`, updateMsg);
             // asset_folder güncelleme hatası olsa bile devam et (public_id zaten değişti)
         }
 
@@ -189,13 +195,14 @@ export async function movePhotoToDeletedFolder(photoUrl: string): Promise<boolea
         }
 
         return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Eğer dosya zaten yoksa veya başka bir hata varsa
-        if (error.http_code === 404) {
+        const httpCode = (error as { http_code?: number })?.http_code;
+        if (httpCode === 404) {
             console.warn('[Cloudinary] Photo not found (already deleted?):', publicId);
             return false;
         }
-        if (error.http_code === 409) {
+        if (httpCode === 409) {
             // Aynı isimde dosya zaten var
             console.warn(`[Cloudinary] Photo already exists in ${deletedFolder} folder:`, publicId);
             return true; // Zaten taşınmış sayılabilir

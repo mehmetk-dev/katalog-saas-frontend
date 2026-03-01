@@ -1,11 +1,11 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function FashionDivider({
+export const FashionDivider = React.memo(function FashionDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#000000'
+    primaryColor: _primaryColor = '#000000'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-white text-black font-serif overflow-hidden flex flex-col justify-center items-center p-24">
@@ -44,4 +44,4 @@ export function FashionDivider({
             </div>
         </div>
     )
-}
+})

@@ -157,7 +157,8 @@ CREATE TABLE IF NOT EXISTS public.category_metadata (
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT category_metadata_pkey PRIMARY KEY (id),
-  CONSTRAINT category_metadata_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+  CONSTRAINT category_metadata_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT category_metadata_user_id_category_name_key UNIQUE (user_id, category_name)
 );
 
 -- =============================================

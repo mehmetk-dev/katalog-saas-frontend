@@ -77,18 +77,7 @@ export function TemplateSection({
 
     return (
         <div className="space-y-6 pt-6 animate-in fade-in duration-700">
-            {/* Scrollbar hide CSS injection for WebKit */}
-            <style jsx global>{`
-                .hide-scrollbar::-webkit-scrollbar {
-                    display: none;
-                }
-                .dragging-scroll {
-                    cursor: grabbing !important;
-                }
-                .dragging-scroll * {
-                    pointer-events: none !important;
-                }
-            `}</style>
+            {/* PERF(F15): CSS moved to globals.css */}
 
             <div className="flex items-center justify-center gap-3">
                 <div className="h-px bg-slate-200 flex-1 hidden sm:block" />

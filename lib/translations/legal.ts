@@ -4,6 +4,15 @@ const legal = {
             cancellationPolicy: {
                 title: "İptal ve İade Koşulları",
                 ref: "REF: LEG-REF-2026/V1",
+                summary: {
+                    title: "Özet",
+                    items: [
+                        "Dijital hizmet olduğu için satın alınan aboneliklerde para iadesi yoktur.",
+                        "Karar vermeden önce süresiz ücretsiz paketimizi kullanarak sistemi deneyebilirsiniz.",
+                        "Aboneliğinizi istediğiniz zaman cezasız iptal edebilirsiniz.",
+                        "İptal sonrası mevcut dönem sonuna kadar hizmet devam eder, verileriniz silinmez."
+                    ]
+                },
                 warning: "ÖNEMLİ BİLGİLENDİRME",
                 refundPolicy: {
                     title: "1. İADE POLİTİKASI",
@@ -55,12 +64,22 @@ const legal = {
                         "FogCatalog kaynaklı teknik bir sorun nedeniyle hizmetin hiç verilemediği veya " +
                         "sistemin 24 saatten uzun süre erişime kapalı kaldığı (uptime sorunu) durumlarda, " +
                         "talep üzerine ilgili döneme ait ücret iadesi değerlendirmeye alınabilir. Bu tür nadir " +
-                        "durumlarda destek@fogcatalog.com üzerinden bizimle iletişime geçebilirsiniz."
+                        "durumlarda info@fogcatalog.com üzerinden bizimle iletişime geçebilirsiniz."
                 }
             },
             kvkk: {
                 title: "KVKK Aydınlatma Metni",
                 ref: "REF: LEG-KVK-2026/V1",
+                summary: {
+                    title: "Özet",
+                    items: [
+                        "Hangi verilerinizi topladığımızı (ad, e-posta, IP adresi) ve neden kullandığımızı açıklar.",
+                        "Verileriniz yalnızca hizmet sunumu, faturalama ve yasal zorunluluklar için işlenir.",
+                        "Verileriniz sadece ödeme kuruluşları ve yetkili kurumlarla paylaşılır, asla satılmaz.",
+                        "KVKK Madde 11 kapsamında verilerinizin silinmesini, düzeltilmesini talep edebilirsiniz.",
+                        "Sorularınız için: info@fogcatalog.com"
+                    ]
+                },
                 controller: {
                     title: "1. Veri Sorumlusu Kimdir?",
                     desc:
@@ -141,7 +160,7 @@ const legal = {
                         "işlenmediğini öğrenme, yanlış işlenmişse düzeltilmesini isteme, verilerin " +
                         "silinmesini veya yok edilmesini talep etme haklarına sahipsiniz.",
                     contact:
-                        "Bu haklarınızı kullanmak için taleplerinizi, kvkk@fogcatalog.com " +
+                        "Bu haklarınızı kullanmak için taleplerinizi, info@fogcatalog.com " +
                         "e-posta adresine veya şirket adresimize yazılı olarak iletebilirsiniz."
                 },
                 ui: {
@@ -154,6 +173,15 @@ const legal = {
             distanceSales: {
                 title: "Mesafeli Satış Sözleşmesi",
                 ref: "REF: LEG-DSA-2026/V1",
+                summary: {
+                    title: "Özet",
+                    items: [
+                        "FogCatalog, bulut tabanlı bir dijital katalog yazılımıdır (SaaS).",
+                        "Dijital hizmet olarak cayma hakkı istisnaları kapsamındadır — iade yoktur.",
+                        "Abonelik istediğiniz zaman iptal edilebilir, kalan süre boyunca kullanım devam eder.",
+                        "Uyuşmazlıklarda Bursa Tüketici Mahkemeleri yetkilidir."
+                    ]
+                },
                 effectiveDateLabel: "Yürürlük Tarihi:",
                 effectiveDate: "25.01.2026",
                 parties: {
@@ -277,6 +305,15 @@ const legal = {
             },
             cookiePolicy: {
                 title: "Çerez (Cookie) Politikası",
+                summary: {
+                    title: "Özet",
+                    items: [
+                        "Çerezler, sitemizin düzgün çalışması ve deneyiminizi iyileştirmek için kullanılır.",
+                        "Zorunlu çerezler dışında analitik ve tercih çerezleri kullanıyoruz.",
+                        "Tarayıcı ayarlarınızdan çerezleri istediğiniz zaman yönetebilirsiniz.",
+                        "Sorularınız için: info@fogcatalog.com"
+                    ]
+                },
                 lastUpdated: "Son Güncelleme: 25 Ocak 2026",
                 intro:
                     "FogCatalog (Hukuki Ünvan: Burcu Aldığ) olarak, web sitemizden en verimli " +
@@ -353,6 +390,15 @@ const legal = {
             cancellationPolicy: {
                 title: "Cancellation & Refund Policy",
                 ref: "REF: LEG-REF-2026/V1",
+                summary: {
+                    title: "In Brief",
+                    items: [
+                        "No refunds on purchased subscriptions as it is a digital service.",
+                        "You can try the system using our unlimited free plan before deciding.",
+                        "You can cancel your subscription anytime without any penalty.",
+                        "After cancellation, service continues until the end of the current period — your data is not deleted."
+                    ]
+                },
                 warning: "IMPORTANT INFORMATION",
                 refundPolicy: {
                     title: "1. REFUND POLICY",
@@ -409,12 +455,22 @@ const legal = {
                         "technical problem caused by FogCatalog or the system remains " +
                         "inaccessible for more than 24 hours (uptime issue), a refund for " +
                         "the relevant period may be evaluated upon request. In such rare " +
-                        "cases, you can contact us via support@fogcatalog.com."
+                        "cases, you can contact us via info@fogcatalog.com."
                 }
             },
             kvkk: {
                 title: "KVKK Clarification Text",
                 ref: "REF: LEG-KVK-2026/V1",
+                summary: {
+                    title: "In Brief",
+                    items: [
+                        "Explains what data we collect (name, email, IP address) and why we use it.",
+                        "Your data is processed only for service delivery, billing, and legal obligations.",
+                        "Your data is shared only with payment providers and authorized institutions, never sold.",
+                        "Under KVKK Article 11, you can request deletion or correction of your data.",
+                        "Contact: info@fogcatalog.com"
+                    ]
+                },
                 controller: {
                     title: "1. Who is the Data Controller?",
                     desc:
@@ -496,7 +552,7 @@ const legal = {
                         "processed incorrectly, to request deletion or destruction of data.",
                     contact:
                         "To exercise these rights, you can send your requests in writing " +
-                        "to kvkk@fogcatalog.com email address or our company address."
+                        "to info@fogcatalog.com email address or our company address."
                 },
                 ui: {
                     badge: "DATA PRIVACY PROTOCOL",
@@ -508,6 +564,15 @@ const legal = {
             distanceSales: {
                 title: "Distance Sales Agreement",
                 ref: "REF: LEG-DSA-2026/V1",
+                summary: {
+                    title: "In Brief",
+                    items: [
+                        "FogCatalog is a cloud-based digital catalog software (SaaS).",
+                        "As a digital service, it falls under withdrawal right exceptions — no refunds.",
+                        "Subscription can be cancelled anytime; usage continues for the remaining period.",
+                        "Bursa Consumer Courts have jurisdiction for disputes."
+                    ]
+                },
                 effectiveDateLabel: "Effective Date:",
                 effectiveDate: "25.01.2026",
                 parties: {
@@ -636,6 +701,15 @@ const legal = {
             },
             cookiePolicy: {
                 title: "Cookie Policy",
+                summary: {
+                    title: "In Brief",
+                    items: [
+                        "Cookies are used for proper site operation and to improve your experience.",
+                        "We use mandatory, analytical, and functional cookies.",
+                        "You can manage cookies anytime through your browser settings.",
+                        "Contact: info@fogcatalog.com"
+                    ]
+                },
                 lastUpdated: "Last Updated: January 25, 2026",
                 intro:
                     "As FogCatalog (Legal Title: Burcu Aldig), we use Cookies to ensure " +

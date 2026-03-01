@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useTransition, useEffect, useCallback } from "react"
+import { useState, useTransition, useEffect, useCallback, useMemo } from "react"
 import { toast } from "sonner"
 
 import { deleteProduct, createProduct, updateProductOrder, checkProductInCatalogs } from "@/lib/actions/products"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { type Product, type ProductsTableProps } from "../types"
 
 export function useProductsTable({
@@ -20,7 +20,7 @@ export function useProductsTable({
     const { t } = useTranslation()
     const [deleteId, setDeleteId] = useState<string | null>(null)
     const [deleteCatalogs, setDeleteCatalogs] = useState<{ id: string; name: string }[]>([])
-    const [, setIsCheckingCatalogs] = useState(false)
+    const [isCheckingCatalogs, setIsCheckingCatalogs] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [isMobile, setIsMobile] = useState(false)
     const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
@@ -30,6 +30,7 @@ export function useProductsTable({
 
     const handleImageError = useCallback((imageUrl: string) => {
         setFailedImages((prev: Set<string>) => {
+            if (prev.has(imageUrl)) return prev
             const newSet = new Set(prev)
             newSet.add(imageUrl)
             return newSet
@@ -37,19 +38,22 @@ export function useProductsTable({
     }, [])
 
     useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768)
-        checkMobile()
-        window.addEventListener('resize', checkMobile)
-        return () => window.removeEventListener('resize', checkMobile)
+        const mql = window.matchMedia('(max-width: 767px)')
+        setIsMobile(mql.matches)
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+        mql.addEventListener('change', handler)
+        return () => mql.removeEventListener('change', handler)
     }, [])
 
-    const filteredProducts = search
-        ? products.filter((product) =>
-            product.name.toLowerCase().includes(search.toLowerCase()) ||
-            product.sku?.toLowerCase().includes(search.toLowerCase()) ||
-            product.category?.toLowerCase().includes(search.toLowerCase())
+    const filteredProducts = useMemo(() => {
+        if (!search) return products
+        const searchLower = search.toLowerCase()
+        return products.filter((product) =>
+            product.name.toLowerCase().includes(searchLower) ||
+            product.sku?.toLowerCase().includes(searchLower) ||
+            product.category?.toLowerCase().includes(searchLower)
         )
-        : products
+    }, [products, search])
 
     const toggleSelectAll = () => {
         if (selectedIds.length === filteredProducts.length) {
@@ -106,11 +110,13 @@ export function useProductsTable({
                 formData.append("stock", product.stock.toString())
                 if (product.category) formData.append("category", product.category)
                 if (product.image_url) formData.append("image_url", product.image_url)
+                if (product.images?.length) formData.append("images", JSON.stringify(product.images))
+                if (product.product_url) formData.append("product_url", product.product_url)
                 if (product.custom_attributes && Array.isArray(product.custom_attributes)) {
                     formData.append("custom_attributes", JSON.stringify(product.custom_attributes))
                 }
-                await createProduct(formData)
-                window.location.reload()
+                const newProduct = await createProduct(formData)
+                onDeleted('') // Trigger parent refresh
                 toast.success(t("common.success"))
             } catch {
                 toast.error(t("common.error"))
@@ -164,7 +170,8 @@ export function useProductsTable({
                     await updateProductOrder(orderData)
                     onReorderSuccess?.()
                 } catch {
-                    console.error("Sıralama kaydedilemedi")
+                    if (process.env.NODE_ENV === 'development') console.error("Sıralama kaydedilemedi")
+                    toast.error(t("common.error"))
                 }
             })
         }

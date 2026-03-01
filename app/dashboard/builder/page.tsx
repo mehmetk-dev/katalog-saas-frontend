@@ -7,8 +7,13 @@ import { getProducts } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const BUILDER_MAX_PRODUCTS = 10_000
-const BUILDER_PAGE_SIZE = 2000
+// PERF: Reduced from 10_000 → 2_000. For most users 2K covers all products.
+// Users with more products should use search/filter in the editor.
+// Backend caps per-page to 1000, so PAGE_SIZE is set to match.
+// TODO: Implement server-side search + incremental loading in the builder
+//       to avoid sending the full product list in the SSR payload.
+const BUILDER_MAX_PRODUCTS = 2_000
+const BUILDER_PAGE_SIZE = 1_000
 
 async function getBuilderProducts(maxProducts: number = BUILDER_MAX_PRODUCTS) {
   const firstPage = await getProducts({ page: 1, limit: Math.min(BUILDER_PAGE_SIZE, maxProducts) })
@@ -54,13 +59,25 @@ interface BuilderPageProps {
   searchParams: Promise<{ id?: string }>
 }
 
+// PERF: Page shell renders instantly; data loading streams via Suspense.
+// Previously the entire data fetch blocked the page from rendering.
 export default async function CatalogBuilderPage({ searchParams }: BuilderPageProps) {
   const params = await searchParams
   const catalogId = params.id
 
+  return (
+    <Suspense fallback={<BuilderSkeleton />}>
+      <BuilderDataLoader catalogId={catalogId} />
+    </Suspense>
+  )
+}
+
+/** Async server component — handles data fetching inside Suspense boundary.
+ *  This lets Next.js stream the skeleton immediately while data loads. */
+async function BuilderDataLoader({ catalogId }: { catalogId?: string }) {
   const [catalog, productsPayload] = await Promise.all([
     catalogId ? getCatalog(catalogId) : null,
-    getBuilderProducts()
+    getBuilderProducts(),
   ])
 
   // Eğer ID verilmiş ama katalog bulunamıyorsa, yeni katalog sayfasına yönlendir
@@ -78,16 +95,11 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
       const { data: profile } = await supabase.from("users").select("plan").eq("id", user.id).single()
       const plan = (profile?.plan || "free") as "free" | "plus" | "pro"
 
-      if (plan === "free") {
-        const { count } = await supabase.from("catalogs").select("*", { count: "exact", head: true }).eq("user_id", user.id)
-        if ((count || 0) >= 1) {
-          redirect("/dashboard/catalogs?limit_reached=true")
-        }
-      }
-      // Add similar checks for plus plan if needed
-      if (plan === "plus") {
-        const { count } = await supabase.from("catalogs").select("*", { count: "exact", head: true }).eq("user_id", user.id)
-        if ((count || 0) >= 10) {
+      const { maxCatalogs } = (await import("@/lib/constants")).getPlanLimits(plan)
+
+      if (Number.isFinite(maxCatalogs)) {
+        const { count } = await supabase.from("catalogs").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+        if ((count || 0) >= maxCatalogs) {
           redirect("/dashboard/catalogs?limit_reached=true")
         }
       }
@@ -95,14 +107,12 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
   }
 
   return (
-    <Suspense fallback={<BuilderSkeleton />}>
-      <BuilderPageClient
-        catalog={catalog}
-        products={productsPayload.products}
-        productTotalCount={productsPayload.totalAvailable}
-        isProductListTruncated={productsPayload.isTruncated}
-      />
-    </Suspense>
+    <BuilderPageClient
+      catalog={catalog}
+      products={productsPayload.products}
+      productTotalCount={productsPayload.totalAvailable}
+      isProductListTruncated={productsPayload.isTruncated}
+    />
   )
 }
 

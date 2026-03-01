@@ -3,10 +3,10 @@
 import type React from "react"
 import { useState, useCallback } from "react"
 import Link from "next/link"
-import { ArrowLeft, Loader2, CheckCircle2, BookOpen } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 
 const getSiteUrl = () => {
@@ -22,6 +22,30 @@ const getSiteUrl = () => {
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validateEmailInput(email: string, invalidMessage: string): string | null {
+  if (!email || !EMAIL_REGEX.test(email)) return invalidMessage
+  return null
+}
+
+function mapResetPasswordError(message: string, fallbackMessage: string): string {
+  const normalized = message.toLowerCase()
+
+  if (normalized.includes("rate limit") || normalized.includes("too many") || normalized.includes("security purposes")) {
+    const match = normalized.match(/(\d+) seconds/i)
+    const waitTime = match ? match[1] : "birkaç"
+    return `Güvenlik nedeniyle ${waitTime} saniye beklemelisiniz. Lütfen daha sonra tekrar deneyin.`
+  }
+  if (normalized.includes("email")) {
+    return "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
+  }
+  if (normalized.includes("redirect")) {
+    return "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
+  }
+
+  return message || fallbackMessage
+}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -48,19 +72,28 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  const sendResetPasswordEmail = useCallback(async (targetEmail: string) => {
+    const supabase = createClient()
+    const siteUrl = getSiteUrl()
+    const redirectUrl = `${siteUrl}/auth/confirm-recovery`
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+      redirectTo: redirectUrl,
+    })
+
+    if (resetError) {
+      throw new Error(mapResetPasswordError(resetError.message || "", t("auth.errorGeneric")))
+    }
+  }, [t])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setFieldErrors({})
 
-    // Manual Validation
-    if (!email) {
-      setFieldErrors({ email: t("auth.invalidEmail") })
-      return
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setFieldErrors({ email: t("auth.invalidEmail") })
+    const emailError = validateEmailInput(email, t("auth.invalidEmail"))
+    if (emailError) {
+      setFieldErrors({ email: emailError })
       setShakingFields({ email: true })
       setTimeout(() => setShakingFields({}), 500)
       return
@@ -77,40 +110,10 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    const supabase = createClient()
-
     try {
-      const SITE_URL = getSiteUrl()
-      const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      })
-
-
-      if (error) {
-        console.error("[ForgotPassword] Supabase error:", error)
-
-        // Daha açıklayıcı hata mesajları
-        let errorMessage = error.message || t("auth.errorGeneric")
-        const message = error.message?.toLowerCase() || ""
-
-        if (message.includes('rate limit') || message.includes('too many') || message.includes('security purposes')) {
-          const match = message.match(/(\d+) seconds/i)
-          const waitTime = match ? match[1] : "birkaç"
-          errorMessage = `Güvenlik nedeniyle ${waitTime} saniye beklemelisiniz. Lütfen daha sonra tekrar deneyin.`
-        } else if (message.includes('email')) {
-          errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
-        } else if (message.includes('redirect')) {
-          errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
-        }
-
-        throw new Error(errorMessage)
-      }
-
+      await sendResetPasswordEmail(email)
       setSuccess(true)
     } catch (err) {
-      console.error("[ForgotPassword] Error:", err)
       setError(err instanceof Error ? err.message : t("auth.errorGeneric"))
     } finally {
       setIsLoading(false)
@@ -119,38 +122,13 @@ export default function ForgotPasswordPage() {
 
   const handleContinueAnyway = async () => {
     setIsLoading(true)
+    setError(null)
     setShowGoogleWarning(false)
-    const supabase = createClient()
+
     try {
-      const SITE_URL = getSiteUrl()
-      const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      })
-
-
-      if (error) {
-        console.error("[ForgotPassword] Continue anyway - Supabase error:", error)
-
-        // Daha açıklayıcı hata mesajları
-        let errorMessage = error.message || t("auth.errorGeneric")
-        const message = error.message?.toLowerCase() || ""
-
-        if (message.includes('rate limit') || message.includes('too many')) {
-          errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
-        } else if (message.includes('email')) {
-          errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
-        } else if (message.includes('redirect')) {
-          errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
-        }
-
-        throw new Error(errorMessage)
-      }
-
+      await sendResetPasswordEmail(email)
       setSuccess(true)
     } catch (err) {
-      console.error("[ForgotPassword] Continue anyway - Error:", err)
       setError(err instanceof Error ? err.message : t("auth.errorGeneric"))
     } finally {
       setIsLoading(false)

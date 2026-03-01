@@ -20,7 +20,7 @@ import {
     useDeleteAllNotifications,
 } from "@/lib/hooks/use-notifications"
 
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 export function NotificationDropdown() {
     const { t: baseT, language } = useTranslation()
@@ -59,6 +59,18 @@ export function NotificationDropdown() {
                 return <Bell className="w-4 h-4 text-gray-500" />
         }
     }
+
+    // Validate action_url is safe (relative or same-origin only)
+    const isSafeUrl = useCallback((url: string): boolean => {
+        if (!url) return false
+        if (url.startsWith('/')) return true
+        try {
+            const parsed = new URL(url, window.location.origin)
+            return parsed.origin === window.location.origin
+        } catch {
+            return false
+        }
+    }, [])
 
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr)
@@ -148,7 +160,7 @@ export function NotificationDropdown() {
                                                 <span className="text-[10px] text-muted-foreground">
                                                     {formatTime(notification.created_at)}
                                                 </span>
-                                                {notification.action_url && (
+                                                {notification.action_url && isSafeUrl(notification.action_url) && (
                                                     <Link
                                                         href={notification.action_url}
                                                         className="text-[10px] text-primary hover:underline flex items-center gap-0.5"

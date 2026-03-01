@@ -49,7 +49,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/image', () => ({
-    default: (props: any) => {
+    default: (props: Record<string, unknown>) => {
         const { fill, unoptimized, priority, ...rest } = props;
         const cleanProps = {
             ...rest,
@@ -57,7 +57,6 @@ vi.mock('next/image', () => ({
             unoptimized: unoptimized ? "true" : undefined,
             priority: priority ? "true" : undefined,
         };
-        // eslint-disable-next-line @next/next/no-img-element
         return React.createElement('img', cleanProps);
     },
 }))

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type Product, type CustomAttribute, createProduct, updateProduct } from "@/lib/actions/products"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useProductImages } from "@/lib/hooks/use-product-images"
 
 import { ProductBasicTab } from "../tabs/product-basic-tab"
@@ -30,10 +30,11 @@ interface ProductModalProps {
 }
 
 // ─── Component ───────────────────────────────────────────────────────
-export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], maxProducts, currentProductCount }: ProductModalProps) {
+export function ProductModal({ open, onOpenChange, product, onSaved, allCategories = [], userPlan = "free", maxProducts, currentProductCount }: ProductModalProps) {
   const { t: baseT, language } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const isEditing = !!product
+  const canCreateCategory = userPlan !== "free"
 
   // ─── Form State ─────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("basic")
@@ -76,6 +77,10 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
+    const formElement = e.currentTarget instanceof HTMLFormElement ? e.currentTarget : (e.target as HTMLFormElement)
+    const formDataLocal = formElement instanceof HTMLFormElement ? new FormData(formElement) : new FormData()
+    const pendingCat = (formDataLocal.get("newCategoryInput") as string || "").trim()
+
     if (!name.trim()) {
       toast.error(t("toasts.productNameRequired"))
       setActiveTab("basic")
@@ -111,6 +116,11 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       finalImageUrls = [coverUrl, ...finalImageUrls].slice(0, 5)
     }
 
+    const finalCategories = [...category]
+    if (pendingCat && !finalCategories.includes(pendingCat)) {
+      finalCategories.push(pendingCat)
+    }
+
     // Build form data
     const formData = new FormData()
     formData.append("name", name)
@@ -118,7 +128,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     formData.append("description", description)
     formData.append("price", price)
     formData.append("stock", stock)
-    formData.append("category", category.join(", "))
+    formData.append("category", finalCategories.join(", "))
     formData.append("image_url", coverUrl)
     formData.append("images", JSON.stringify(finalImageUrls))
     formData.append("product_url", productUrl)
@@ -137,7 +147,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
           name, sku, description,
           price: parseFloat(price) || 0,
           stock: parseInt(stock) || 0,
-          category: category.join(", "),
+          category: finalCategories.join(", "),
           image_url: coverUrl,
           images: finalImageUrls,
           product_url: productUrl || null,
@@ -222,6 +232,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     productUrl={productUrl} onProductUrlChange={setProductUrl}
                     category={category} onCategoryChange={setCategory}
                     allCategories={allCategories}
+                    canCreateCategory={canCreateCategory}
                     language={language}
                     t={t}
                   />

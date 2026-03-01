@@ -1,18 +1,108 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/client"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { AuthMode, AuthState, AuthHandlers } from "./types"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
+const DEFAULT_API_URL = "http://localhost:4000/api/v1"
+const DEFAULT_APP_URL = "http://localhost:3000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const SHAKE_DURATION_MS = 500
+const REDIRECT_DELAY_MS = 800
+const PASSWORD_MIN_LENGTH = 6
+const GOOGLE_PROVIDER = "google"
+const RESET_REDIRECT_PATH = "/auth/confirm-recovery"
+const CALLBACK_PATH = "/auth/callback"
+const DASHBOARD_PATH = "/dashboard"
+const AUTH_VERIFY_PATH = "/auth/verify"
+const LOGGED_OUT_PARAM = "logged_out"
+const LOGGED_OUT_VALUE = "1"
+const PROVIDER_CACHE_TTL_MS = 10_000
+
+type ProviderInfo = {
+    exists?: boolean
+    isOAuth?: boolean
+    provider?: string | null
+}
+
+type AuthUrlErrorParams = {
+    urlError: string
+    errorCode: string
+    errorDescription: string
+}
+
+function sanitizeText(value: unknown): string {
+    return typeof value === "string" ? value.trim() : ""
+}
+
+function sanitizeErrorToken(value: unknown): string {
+    return sanitizeText(value).toLowerCase()
+}
+
+function safeDecodeURIComponent(value: string): string {
+    try {
+        return decodeURIComponent(value)
+    } catch {
+        return value
+    }
+}
+
+function isValidEmail(email: string): boolean {
+    return EMAIL_REGEX.test(email)
+}
+
+function includesAny(text: string, terms: string[]): boolean {
+    return terms.some(term => text.includes(term))
+}
+
+function sanitizeProviderInfo(data: unknown): ProviderInfo {
+    if (!data || typeof data !== "object") {
+        return { exists: false, isOAuth: false, provider: null }
+    }
+
+    const source = data as Record<string, unknown>
+    return {
+        exists: source.exists === true,
+        isOAuth: source.isOAuth === true,
+        provider: sanitizeText(source.provider),
+    }
+}
+
+function extractAuthErrorParams(url: URL, searchParams: ReturnType<typeof useSearchParams>): AuthUrlErrorParams {
+    const hashParams = new URLSearchParams(url.hash.substring(1))
+
+    return {
+        urlError: sanitizeErrorToken(url.searchParams.get("error") || hashParams.get("error") || searchParams.get("error")),
+        errorCode: sanitizeErrorToken(url.searchParams.get("error_code") || hashParams.get("error_code") || searchParams.get("error_code")),
+        errorDescription: sanitizeText(url.searchParams.get("error_description") || hashParams.get("error_description") || searchParams.get("error_description")),
+    }
+}
+
+function removeAuthErrorParamsFromUrl(url: URL): void {
+    const keys = ["error", "error_code", "error_description"]
+    keys.forEach(key => url.searchParams.delete(key))
+
+    if (!url.hash) return
+
+    const hashParams = new URLSearchParams(url.hash.substring(1))
+    keys.forEach(key => hashParams.delete(key))
+    const nextHash = hashParams.toString()
+    url.hash = nextHash ? `#${nextHash}` : ""
+}
 
 export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboarding: boolean; setShowOnboarding: (v: boolean) => void } {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { t } = useTranslation()
+
+    const translate = useCallback((key: string, fallback: string): string => {
+        const result = t(key)
+        return typeof result === "string" && result.trim() ? result : fallback
+    }, [t])
 
     const [mode, setMode] = useState<AuthMode>('signin')
     const [showOnboarding, setShowOnboarding] = useState(false)
@@ -31,368 +121,440 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
 
-    // URL error handling + session check
-    useEffect(() => {
-        const checkSession = async () => {
-            const supabase = createClient()
+    const supabase = useMemo(() => createClient(), [])
 
-            // Logout sonrası güvenli yönlendirme:
-            // ?logged_out=1 geldiğinde önce session'ı kapat, sonra normal akışa dön.
-            if (searchParams.get("logged_out") === "1") {
-                try {
-                    await supabase.auth.signOut()
-                } catch (e) {
-                    console.warn("[AuthPageClient] logged_out signOut warning:", e)
-                }
-
-                if (typeof window !== "undefined") {
-                    const cleanUrl = new URL(window.location.href)
-                    cleanUrl.searchParams.delete("logged_out")
-                    window.history.replaceState({}, "", cleanUrl.toString())
-                }
-
-                return
-            }
-
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session) {
-                setIsRedirecting(true)
-                router.replace("/dashboard")
-            }
-        }
-        checkSession()
-
-        const handleFocus = () => {
-            setIsGoogleLoading(false)
-            setIsLoading(false)
-        }
-        window.addEventListener("focus", handleFocus)
-
-        if (typeof window === "undefined") return
-
-        const url = new URL(window.location.href)
-        const urlError = url.searchParams.get("error") || new URLSearchParams(url.hash.substring(1)).get("error") || searchParams.get("error")
-        const errorCode = url.searchParams.get("error_code") || new URLSearchParams(url.hash.substring(1)).get("error_code") || searchParams.get("error_code")
-        const errorDescription = url.searchParams.get("error_description") || new URLSearchParams(url.hash.substring(1)).get("error_description") || searchParams.get("error_description")
-
-        if (typeof window !== "undefined") {
-            (window as Window & { __authErrorCheck?: unknown }).__authErrorCheck = {
-                urlError, errorCode, errorDescription,
-                fullUrl: window.location.href, search: url.search, hash: url.hash, timestamp: Date.now()
-            }
-        }
-
-        if (urlError || errorCode) {
-            if (typeof window !== "undefined") {
-                (window as Window & { __authError?: unknown }).__authError = { urlError, errorCode, errorDescription, timestamp: Date.now() }
-            }
-
-            let errorMessage: string | null = null
-
-            if (errorCode === "otp_expired" || (urlError === "access_denied" && errorCode === "otp_expired")) {
-                errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
-                setMode('forgot-password')
-            } else if (urlError === "access_denied" && errorDescription && (errorDescription.includes("expired") || errorDescription.includes("invalid"))) {
-                errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
-                setMode('forgot-password')
-            } else if (errorCode === "code_expired" || urlError === "code_expired") {
-                errorMessage = (t("auth.sessionExpired") as string) || "Oturum süreniz dolmuş. Lütfen tekrar giriş yapın."
-            } else if (urlError === "auth_failed") {
-                errorMessage = (t("auth.authFailed") as string) || "Kimlik doğrulama başarısız oldu."
-            } else if (urlError === "invalid_code") {
-                errorMessage = (t("auth.invalidCode") as string) || "Geçersiz kod."
-            } else if (urlError === "network_error") {
-                errorMessage = (t("auth.networkError") as string) || "Ağ hatası oluştu."
-            } else if (urlError === "missing_code") {
-                errorMessage = (t("auth.missingCode") as string) || "Kod bulunamadı."
-            } else if (urlError === "access_denied") {
-                if (errorDescription && errorDescription.includes("expired")) {
-                    errorMessage = "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin."
-                    setMode('forgot-password')
-                } else {
-                    errorMessage = (t("auth.accessDenied") as string) || "Erişim reddedildi."
-                }
-            } else if (errorDescription) {
-                errorMessage = decodeURIComponent(errorDescription)
-                if (errorDescription.toLowerCase().includes("expired") || errorDescription.toLowerCase().includes("invalid")) {
-                    setMode('forgot-password')
-                }
-            } else if (urlError) {
-                errorMessage = `${(t("auth.errorPrefix") as string) || "Hata"} ${urlError}`
-            }
-
-            if (errorMessage) {
-                setError(String(errorMessage))
-                if (typeof window !== "undefined") {
-                    (window as Window & { __authErrorMessage?: string }).__authErrorMessage = String(errorMessage)
-                }
-            }
-
-            const newUrl = new URL(window.location.href)
-            newUrl.searchParams.delete("error")
-            newUrl.searchParams.delete("error_code")
-            newUrl.searchParams.delete("error_description")
-
-            if (newUrl.hash) {
-                const hashParams = new URLSearchParams(newUrl.hash.substring(1))
-                hashParams.delete("error")
-                hashParams.delete("error_code")
-                hashParams.delete("error_description")
-                const newHash = hashParams.toString()
-                newUrl.hash = newHash ? `#${newHash}` : ""
-            }
-
-            window.history.replaceState({}, "", newUrl.toString())
-        }
-
-        return () => {
-            window.removeEventListener("focus", handleFocus)
-        }
-    }, [searchParams, t, router])
-
-    const getSiteUrl = () => {
+    const getSiteUrl = useCallback(() => {
         if (typeof window !== "undefined") {
             const origin = window.location.origin
-            // 0.0.0.0 is not a valid redirect target for emails
             if (origin.includes("0.0.0.0")) {
                 return origin.replace("0.0.0.0", "localhost")
             }
             return origin
         }
-        return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    }
+        return process.env.NEXT_PUBLIC_APP_URL || DEFAULT_APP_URL
+    }, [])
 
-    const checkProvider = async (emailAddr: string) => {
+    const handleAuthSessionRedirect = useCallback(async () => {
+        if (searchParams.get(LOGGED_OUT_PARAM) === LOGGED_OUT_VALUE) {
+            try {
+                await supabase.auth.signOut()
+            } catch {
+                // Kullanıcı deneyimini bozmamak için sessizce devam edilir.
+            }
+
+            if (typeof window !== "undefined") {
+                const cleanUrl = new URL(window.location.href)
+                cleanUrl.searchParams.delete(LOGGED_OUT_PARAM)
+                window.history.replaceState({}, "", cleanUrl.toString())
+            }
+
+            return
+        }
+
+        try {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession()
+
+            if (session) {
+                setIsRedirecting(true)
+                router.replace(DASHBOARD_PATH)
+            }
+        } catch {
+            setIsRedirecting(false)
+        }
+    }, [router, searchParams, supabase])
+
+    const resolveUrlErrorMessage = useCallback((params: AuthUrlErrorParams): { message: string; setForgotPasswordMode: boolean } | null => {
+        const passwordResetExpiredMessage = translate(
+            "auth.passwordResetLinkExpired",
+            "Şifre sıfırlama linkinizin süresi dolmuş. Lütfen yeni bir şifre sıfırlama linki isteyin.",
+        )
+        const codeOrUrlErrorMap: Record<string, string> = {
+            code_expired: translate("auth.sessionExpired", "Oturum süreniz dolmuş. Lütfen tekrar giriş yapın."),
+            auth_failed: translate("auth.authFailed", "Kimlik doğrulama başarısız oldu."),
+            invalid_code: translate("auth.invalidCode", "Geçersiz kod."),
+            network_error: translate("auth.networkError", "Ağ hatası oluştu."),
+            missing_code: translate("auth.missingCode", "Kod bulunamadı."),
+        }
+
+        const isOtpExpired = params.errorCode === "otp_expired" || (params.urlError === "access_denied" && params.errorCode === "otp_expired")
+        if (isOtpExpired) {
+            return { message: passwordResetExpiredMessage, setForgotPasswordMode: true }
+        }
+
+        const descriptionLower = params.errorDescription.toLowerCase()
+        const hasExpiredOrInvalidDescription = includesAny(descriptionLower, ["expired", "invalid"])
+
+        if (params.urlError === "access_denied" && hasExpiredOrInvalidDescription) {
+            return { message: passwordResetExpiredMessage, setForgotPasswordMode: true }
+        }
+
+        const mappedCodeMessage = codeOrUrlErrorMap[params.errorCode]
+        if (mappedCodeMessage) {
+            return { message: mappedCodeMessage, setForgotPasswordMode: false }
+        }
+
+        const mappedUrlMessage = codeOrUrlErrorMap[params.urlError]
+        if (mappedUrlMessage) {
+            return { message: mappedUrlMessage, setForgotPasswordMode: false }
+        }
+
+        if (params.urlError === "access_denied") {
+            return {
+                message: translate("auth.accessDenied", "Erişim reddedildi."),
+                setForgotPasswordMode: false,
+            }
+        }
+
+        if (params.errorDescription) {
+            return {
+                message: safeDecodeURIComponent(params.errorDescription),
+                setForgotPasswordMode: hasExpiredOrInvalidDescription,
+            }
+        }
+
+        if (params.urlError) {
+            return {
+                message: `${translate("auth.errorPrefix", "Hata")} ${params.urlError}`,
+                setForgotPasswordMode: false,
+            }
+        }
+
+        return null
+    }, [translate])
+
+    const validateAuthFields = useCallback((currentMode: AuthMode, currentEmail: string, currentPassword: string, currentName: string): Record<string, string> => {
+        const validationErrors: Record<string, string> = {}
+
+        if (!isValidEmail(currentEmail)) {
+            validationErrors.email = translate("auth.invalidEmail", "Geçerli bir e-posta adresi giriniz.")
+        }
+
+        if (currentMode !== "forgot-password") {
+            if (!currentPassword) {
+                validationErrors.password = translate("auth.passwordRequired", "Lütfen şifrenizi giriniz.")
+            } else if (currentPassword.length < PASSWORD_MIN_LENGTH) {
+                validationErrors.password = translate("auth.passwordLength", "Şifre en az 6 karakter olmalıdır.")
+            }
+        }
+
+        if (currentMode === "signup" && !currentName) {
+            validationErrors.name = translate("auth.nameRequired", "Lütfen adınızı ve soyadınızı giriniz.")
+        }
+
+        return validationErrors
+    }, [translate])
+
+    const applyFieldValidationErrors = useCallback((validationErrors: Record<string, string>) => {
+        setFieldErrors(validationErrors)
+
+        const newShakingFields = Object.keys(validationErrors).reduce<Record<string, boolean>>((acc, key) => {
+            acc[key] = true
+            return acc
+        }, {})
+
+        setShakingFields(newShakingFields)
+        window.setTimeout(() => {
+            setShakingFields({})
+        }, SHAKE_DURATION_MS)
+    }, [])
+
+    const buildResetPasswordErrorMessage = useCallback((errorMessage: string): string => {
+        const loweredMessage = errorMessage.toLowerCase()
+        const resetErrorStrategies: Array<{ matcher: (msg: string) => boolean; message: string }> = [
+            {
+                matcher: msg => includesAny(msg, ["rate limit", "too many"]),
+                message: translate("auth.resetPasswordTooManyRequests", "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."),
+            },
+            {
+                matcher: msg => msg.includes("email"),
+                message: translate("auth.resetPasswordEmailSendFailed", "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."),
+            },
+            {
+                matcher: msg => msg.includes("redirect"),
+                message: "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin.",
+            },
+        ]
+
+        const matchedStrategy = resetErrorStrategies.find(strategy => strategy.matcher(loweredMessage))
+        return matchedStrategy?.message || errorMessage || translate("auth.errorGeneric", "Bir hata oluştu.")
+    }, [translate])
+
+    const mapSubmitErrorMessage = useCallback((error: unknown): string => {
+        const fallback = translate("auth.errorGeneric", "Bir hata oluştu.")
+        if (!(error instanceof Error)) {
+            return fallback
+        }
+
+        const lowered = error.message.toLowerCase()
+        const submitErrorStrategies: Array<{ matcher: (msg: string) => boolean; message: string }> = [
+            {
+                matcher: msg => includesAny(msg, ["invalid login credentials", "invalid credentials"]),
+                message: translate("auth.invalidCredentials", "E-posta veya şifre hatalı."),
+            },
+            {
+                matcher: msg => includesAny(msg, ["user already registered", "already registered"]),
+                message: translate("auth.alreadyRegistered", "Bu e-posta zaten kayıtlı."),
+            },
+            {
+                matcher: msg => msg.includes("email not confirmed"),
+                message: translate("auth.emailNotConfirmed", "E-posta adresinizi doğrulayın."),
+            },
+            {
+                matcher: msg => includesAny(msg, ["rate limit", "too many requests"]),
+                message: translate("auth.tooManyAttempts", "Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyiniz."),
+            },
+        ]
+
+        const matchedStrategy = submitErrorStrategies.find(strategy => strategy.matcher(lowered))
+        return matchedStrategy?.message || error.message || fallback
+    }, [translate])
+
+    const sendPasswordResetEmail = useCallback(async (targetEmail: string) => {
+        const redirectUrl = `${getSiteUrl()}${RESET_REDIRECT_PATH}`
+
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(targetEmail, {
+            redirectTo: redirectUrl,
+        })
+
+        if (resetError) {
+            throw new Error(buildResetPasswordErrorMessage(resetError.message))
+        }
+    }, [buildResetPasswordErrorMessage, getSiteUrl, supabase])
+
+    const providerCacheRef = useRef<{ email: string; result: ProviderInfo; ts: number } | null>(null)
+
+    const checkProvider = useCallback(async (emailAddr: string): Promise<ProviderInfo> => {
+        const sanitizedEmail = sanitizeText(emailAddr)
+
+        // Return cached result if same email within TTL
+        const cached = providerCacheRef.current
+        if (cached && cached.email === sanitizedEmail && Date.now() - cached.ts < PROVIDER_CACHE_TTL_MS) {
+            return cached.result
+        }
+
         try {
             const response = await fetch(`${API_URL}/auth/check-provider`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: emailAddr }),
+                body: JSON.stringify({ email: sanitizedEmail }),
             })
-            const data = await response.json()
-            return data
+
+            if (!response.ok) {
+                return { exists: false, isOAuth: false, provider: null }
+            }
+
+            const data: unknown = await response.json()
+            const result = sanitizeProviderInfo(data)
+            providerCacheRef.current = { email: sanitizedEmail, result, ts: Date.now() }
+            return result
         } catch {
-            return { isOAuth: false, provider: null }
+            return { exists: false, isOAuth: false, provider: null }
         }
-    }
+    }, [])
 
-    const handleForgotPassword = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError(null)
+    useEffect(() => {
+        handleAuthSessionRedirect()
+    }, [handleAuthSessionRedirect])
 
-        if (!email) {
-            setError(t("auth.invalidEmail") as string)
-            return
+    useEffect(() => {
+        if (typeof window === "undefined") return
+
+        const handleFocus = () => {
+            setIsGoogleLoading(false)
+            setIsLoading(false)
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(email)) {
-            setError(t("auth.invalidEmail") as string)
+
+        window.addEventListener("focus", handleFocus)
+
+        return () => {
+            window.removeEventListener("focus", handleFocus)
+        }
+    }, [])
+
+    useEffect(() => {
+        if (typeof window === "undefined") return
+
+        const url = new URL(window.location.href)
+
+        const authErrorParams = extractAuthErrorParams(url, searchParams)
+        if (authErrorParams.urlError || authErrorParams.errorCode) {
+            const resolvedError = resolveUrlErrorMessage(authErrorParams)
+
+            if (resolvedError) {
+                setError(resolvedError.message)
+                if (resolvedError.setForgotPasswordMode) {
+                    setMode("forgot-password")
+                }
+            }
+
+            removeAuthErrorParamsFromUrl(url)
+            window.history.replaceState({}, "", url.toString())
+        }
+    }, [resolveUrlErrorMessage, searchParams])
+
+    const handleForgotPassword = useCallback(async (e: React.FormEvent) => {
+        // Note: e.preventDefault() and setError(null) already called by handleSubmit
+
+        const sanitizedEmail = sanitizeText(email)
+        if (!isValidEmail(sanitizedEmail)) {
+            setError(translate("auth.invalidEmail", "Geçerli bir e-posta adresi giriniz."))
             return
         }
 
         setIsLoading(true)
         setShowGoogleWarning(false)
 
-        const providerInfo = await checkProvider(email)
-
-        if (!providerInfo.exists) {
-            setError("Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı.")
-            setIsLoading(false)
-            return
-        }
-
-        if (providerInfo.isOAuth && providerInfo.provider === "google") {
-            setShowGoogleWarning(true)
-            setIsLoading(false)
-            return
-        }
-
-        const supabase = createClient()
         try {
-            const SITE_URL = getSiteUrl()
-            const redirectUrl = `${SITE_URL}/auth/confirm-recovery`
+            const providerInfo = await checkProvider(sanitizedEmail)
 
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: redirectUrl,
-            })
-
-            if (error) {
-                console.error("[AuthPageClient] Supabase error:", error)
-
-                let errorMessage: string = (error instanceof Error ? error.message : null) || t("auth.errorGeneric")
-
-                if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
-                    errorMessage = "Çok fazla istek gönderildi. Lütfen birkaç dakika sonra tekrar deneyin."
-                } else if (error.message?.includes('email')) {
-                    errorMessage = "E-posta gönderilemedi. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin."
-                } else if (error.message?.includes('redirect')) {
-                    errorMessage = "Yönlendirme URL'i geçersiz. Lütfen yöneticiye bildirin."
-                }
-
-                throw new Error(errorMessage as string)
+            if (!providerInfo.exists) {
+                setError(translate("auth.userNotFound", "Bu e-posta adresi ile kayıtlı bir kullanıcı bulunamadı."))
+                return
             }
 
+            if (providerInfo.isOAuth && providerInfo.provider?.toLowerCase() === GOOGLE_PROVIDER) {
+                setShowGoogleWarning(true)
+                return
+            }
+
+            await sendPasswordResetEmail(sanitizedEmail)
             setSuccess(true)
         } catch (err) {
-            console.error("[AuthPageClient] Error:", err)
-            setError(err instanceof Error ? err.message : (t("auth.errorGeneric") as string))
+            setError(err instanceof Error ? err.message : translate("auth.errorGeneric", "Bir hata oluştu."))
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [checkProvider, email, sendPasswordResetEmail, translate])
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSignUp = useCallback(async (sanitizedEmail: string, currentPassword: string, sanitizedName: string, sanitizedCompanyName: string) => {
+        const { data, error } = await supabase.auth.signUp({
+            email: sanitizedEmail,
+            password: currentPassword,
+            options: {
+                emailRedirectTo: `${getSiteUrl()}${CALLBACK_PATH}`,
+                data: {
+                    full_name: sanitizedName,
+                    company_name: sanitizedCompanyName,
+                },
+            },
+        })
+        if (error) throw error
+
+        if (data.session) {
+            setIsRedirecting(true)
+            await new Promise(resolve => setTimeout(resolve, REDIRECT_DELAY_MS))
+            router.replace(DASHBOARD_PATH)
+            return
+        }
+
+        if (data.user) {
+            router.push(AUTH_VERIFY_PATH)
+        }
+    }, [getSiteUrl, router, supabase])
+
+    const handleSignIn = useCallback(async (sanitizedEmail: string, currentPassword: string) => {
+        const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password: currentPassword })
+        if (error) throw error
+
+        setIsRedirecting(true)
+        await new Promise(resolve => setTimeout(resolve, REDIRECT_DELAY_MS))
+        router.replace(DASHBOARD_PATH)
+    }, [router, supabase])
+
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
         setFieldErrors({})
 
-        let hasError = false
-        const newFieldErrors: Record<string, string> = {}
+        const sanitizedEmail = sanitizeText(email)
+        const sanitizedName = sanitizeText(name)
+        const sanitizedCompanyName = sanitizeText(companyName)
+        const validationErrors = validateAuthFields(mode, sanitizedEmail, password, sanitizedName)
 
-        if (!email) {
-            newFieldErrors.email = t("auth.invalidEmail") as string
-            hasError = true
-        } else {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (!emailRegex.test(email)) {
-                newFieldErrors.email = t("auth.invalidEmail") as string
-                hasError = true
-            }
-        }
-
-        if (mode !== 'forgot-password') {
-            if (!password) {
-                newFieldErrors.password = "Lütfen şifrenizi giriniz."
-                hasError = true
-            } else if (password.length < 6) {
-                newFieldErrors.password = t("auth.passwordLength") as string
-                hasError = true
-            }
-        }
-
-        if (mode === 'signup' && !name) {
-            newFieldErrors.name = "Lütfen adınızı ve soyadınızı giriniz."
-            hasError = true
-        }
-
-        if (hasError) {
-            setFieldErrors(newFieldErrors)
-
-            const newShakingFields: Record<string, boolean> = {}
-            Object.keys(newFieldErrors).forEach(key => {
-                newShakingFields[key] = true
-            })
-            setShakingFields(newShakingFields)
-
-            setTimeout(() => {
-                setShakingFields({})
-            }, 500)
+        if (Object.keys(validationErrors).length > 0) {
+            applyFieldValidationErrors(validationErrors)
             return
         }
 
-        if (mode === 'forgot-password') return handleForgotPassword(e)
+        if (mode === "forgot-password") {
+            return handleForgotPassword(e)
+        }
 
         setIsLoading(true)
-        const supabase = createClient()
 
         try {
-            if (mode === 'signup') {
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        emailRedirectTo: `${getSiteUrl()}/auth/callback`,
-                        data: {
-                            full_name: name,
-                            company_name: companyName
-                        },
-                    },
-                })
-                if (error) throw error
-
-                if (data.session) {
-                    setIsRedirecting(true)
-                    await new Promise(r => setTimeout(r, 800))
-                    router.replace("/dashboard")
-                } else if (data.user) {
-                    router.push("/auth/verify")
-                }
+            if (mode === "signup") {
+                await handleSignUp(sanitizedEmail, password, sanitizedName, sanitizedCompanyName)
             } else {
-                const { error } = await supabase.auth.signInWithPassword({ email, password })
-                if (error) throw error
-
-                setIsRedirecting(true)
-                await new Promise(r => setTimeout(r, 800))
-                router.replace("/dashboard")
+                await handleSignIn(sanitizedEmail, password)
             }
-        } catch (err: any) {
-            console.error("[AuthPageClient] Submit error:", err)
-            let errorMessage = t("auth.errorGeneric") as string
-
-            const message = err?.message?.toLowerCase() || ""
-
-            if (message.includes("invalid login credentials") || message.includes("invalid credentials")) {
-                errorMessage = t("auth.invalidCredentials") as string
-            } else if (message.includes("user already registered") || message.includes("already registered")) {
-                errorMessage = t("auth.alreadyRegistered") as string
-            } else if (message.includes("email not confirmed")) {
-                errorMessage = t("auth.emailNotConfirmed") as string
-            } else if (message.includes("rate limit") || message.includes("too many requests")) {
-                errorMessage = "Çok fazla deneme yapıldı. Lütfen biraz bekleyip tekrar deneyiniz."
-            } else if (err?.message) {
-                errorMessage = err.message
-            }
-
-            setError(errorMessage)
+        } catch (err: unknown) {
+            setError(mapSubmitErrorMessage(err))
+        } finally {
             setIsLoading(false)
         }
-    }
+    }, [
+        applyFieldValidationErrors,
+        companyName,
+        email,
+        handleForgotPassword,
+        handleSignIn,
+        handleSignUp,
+        mapSubmitErrorMessage,
+        mode,
+        name,
+        password,
+        validateAuthFields,
+    ])
 
-    const handleGoogleAuth = async () => {
+    const handleGoogleAuth = useCallback(async () => {
         setIsGoogleLoading(true)
         setError(null)
-        const supabase = createClient()
+
         try {
             const { error: oauthError } = await supabase.auth.signInWithOAuth({
-                provider: "google",
+                provider: GOOGLE_PROVIDER,
                 options: {
-                    redirectTo: `${getSiteUrl()}/auth/callback`,
+                    redirectTo: `${getSiteUrl()}${CALLBACK_PATH}`,
                     queryParams: {
                         access_type: 'offline',
                         prompt: 'select_account',
-                    }
+                    },
                 },
             })
 
             if (oauthError) {
-                console.error("OAuth Error:", oauthError)
                 setError(oauthError.message)
                 setIsGoogleLoading(false)
             }
         } catch (err) {
-            console.error("Google Auth Exception:", err)
-            setError(err instanceof Error ? err.message : "Google ile giriş yaparken bir hata oluştu.")
+            setError(err instanceof Error ? err.message : translate("auth.googleAuthError", "Google ile giriş yaparken bir hata oluştu."))
             setIsGoogleLoading(false)
         }
-    }
+    }, [getSiteUrl, supabase, translate])
 
-    const handleContinueAnyway = async () => {
+    const handleContinueAnyway = useCallback(async () => {
         setIsLoading(true)
         setShowGoogleWarning(false)
-        const supabase = createClient()
+
+        const sanitizedEmail = sanitizeText(email)
+        if (!isValidEmail(sanitizedEmail)) {
+            setError(translate("auth.invalidEmail", "Geçerli bir e-posta adresi giriniz."))
+            setIsLoading(false)
+            return
+        }
+
         try {
-            const SITE_URL = getSiteUrl()
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${SITE_URL}/auth/confirm-recovery`,
-            })
-            if (error) throw error
+            await sendPasswordResetEmail(sanitizedEmail)
             setSuccess(true)
         } catch (err) {
-            setError(err instanceof Error ? err.message : String(t("auth.errorGeneric")))
+            setError(err instanceof Error ? err.message : translate("auth.errorGeneric", "Bir hata oluştu."))
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [email, sendPasswordResetEmail, translate])
 
     const resetForm = useCallback(() => {
         setError(null)

@@ -1,29 +1,7 @@
 import type { Catalog } from "@/lib/actions/catalogs"
 
-/** slugify - Turkish character-aware URL slug generator */
-export function slugify(text: string) {
-    const trMap: Record<string, string> = {
-        'ç': 'c', 'Ç': 'c',
-        'ğ': 'g', 'Ğ': 'g',
-        'ş': 's', 'Ş': 's',
-        'ü': 'u', 'Ü': 'u',
-        'ı': 'i', 'İ': 'i',
-        'ö': 'o', 'Ö': 'o'
-    }
-
-    const safeText = text ? String(text) : ""
-
-    return safeText
-        .split('')
-        .map(c => trMap[c] || c)
-        .join('')
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w-]+/g, '')
-        .replace(/-+/g, '-')
-        .replace(/^-+|-+$/g, '')
-}
+// Re-export canonical slugify from lib/helpers
+export { slugify } from "@/lib/utils/helpers"
 
 /** All design/content fields that make up the catalog data for save/autosave/publish */
 export interface BuilderCatalogData {
@@ -52,6 +30,7 @@ export interface BuilderCatalogData {
     coverImageUrl: string | null
     coverDescription: string | null
     enableCategoryDividers: boolean
+    categoryOrder: string[]
     coverTheme: string
     isPublished: boolean
     showInSearch: boolean
@@ -85,12 +64,14 @@ export function buildCatalogPayload(data: BuilderCatalogData) {
         cover_image_url: data.coverImageUrl,
         cover_description: data.coverDescription,
         enable_category_dividers: data.enableCategoryDividers,
+        category_order: data.categoryOrder,
         cover_theme: data.coverTheme,
         show_in_search: data.showInSearch,
     }
 }
 
-/** Build the lastSavedState snapshot */
+/** Build the lastSavedState snapshot
+ *  FIX(F11): Must include ALL fields compared in hasUnsavedChanges */
 export function buildSavedStateSnapshot(data: BuilderCatalogData) {
     return {
         name: data.catalogName,
@@ -98,6 +79,7 @@ export function buildSavedStateSnapshot(data: BuilderCatalogData) {
         productIds: data.selectedProductIds,
         layout: data.layout,
         primaryColor: data.primaryColor,
+        headerTextColor: data.headerTextColor,
         showPrices: data.showPrices,
         showDescriptions: data.showDescriptions,
         showAttributes: data.showAttributes,
@@ -106,12 +88,20 @@ export function buildSavedStateSnapshot(data: BuilderCatalogData) {
         columnsPerRow: data.columnsPerRow,
         backgroundColor: data.backgroundColor,
         backgroundImage: data.backgroundImage,
+        backgroundImageFit: data.backgroundImageFit,
+        backgroundGradient: data.backgroundGradient,
         logoUrl: data.logoUrl,
+        logoPosition: data.logoPosition,
+        logoSize: data.logoSize,
+        titlePosition: data.titlePosition,
+        productImageFit: data.productImageFit,
         enableCoverPage: data.enableCoverPage,
+        coverImageUrl: data.coverImageUrl,
+        coverDescription: data.coverDescription,
         enableCategoryDividers: data.enableCategoryDividers,
+        categoryOrder: data.categoryOrder,
         coverTheme: data.coverTheme,
         showInSearch: data.showInSearch,
-        backgroundGradient: data.backgroundGradient,
     }
 }
 
@@ -164,18 +154,44 @@ export function normalizeLogoPosition(
     return 'header-left'
 }
 
+// ─── Color Utilities (F14: consolidated) ──────────────────────────────────────
+
+/** Parse color string (hex or rgba) to RGB components */
+export function parseColor(color: string) {
+    if (color.startsWith('rgba') || color.startsWith('rgb')) {
+        const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
+        if (match) {
+            return {
+                r: parseInt(match[1]),
+                g: parseInt(match[2]),
+                b: parseInt(match[3]),
+                a: match[4] ? parseFloat(match[4]) : 1
+            }
+        }
+    } else if (color.startsWith('#')) {
+        const hex = color.replace('#', '')
+        const r = parseInt(hex.substring(0, 2), 16)
+        const g = parseInt(hex.substring(2, 4), 16)
+        const b = parseInt(hex.substring(4, 6), 16)
+        return { r, g, b, a: 1 }
+    }
+    return { r: 124, g: 58, b: 237, a: 1 } // default indigo
+}
+
+/** Convert RGB values to hex string */
+export function rgbToHex(r: number, g: number, b: number): string {
+    return `#${[r, g, b].map(x => {
+        const hex = x.toString(16)
+        return hex.length === 1 ? '0' + hex : hex
+    }).join('')}`
+}
+
 /** Convert hex color to rgba string */
 export function hexToRgba(hex: string, alpha: number = 1): string {
     if (hex.startsWith('rgba')) return hex
     if (hex === 'transparent') return 'rgba(0, 0, 0, 0)'
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-    if (result) {
-        const r = parseInt(result[1], 16)
-        const g = parseInt(result[2], 16)
-        const b = parseInt(result[3], 16)
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`
-    }
-    return `rgba(124, 58, 237, ${alpha})`
+    const parsed = parseColor(hex)
+    return `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${alpha})`
 }
 
 /** Resolve initial primary color from catalog data */
@@ -218,6 +234,7 @@ export function buildInitialCatalogState(
         coverImageUrl: catalog?.cover_image_url || null,
         coverDescription: catalog?.cover_description || null,
         enableCategoryDividers: catalog?.enable_category_dividers ?? false,
+        categoryOrder: catalog?.category_order ?? [],
         coverTheme: catalog?.cover_theme || 'modern',
         isPublished: catalog?.is_published || false,
         showInSearch: catalog?.show_in_search ?? true,
@@ -226,33 +243,11 @@ export function buildInitialCatalogState(
 
 // ─── Preview Props Builder ────────────────────────────────────────────────────
 
-/** Catalog design config — shared between editor, preview, and PDF export */
-export interface CatalogDesignConfig {
-    catalogName: string
-    layout: string
-    primaryColor: string
-    headerTextColor: string
-    showPrices: boolean
-    showDescriptions: boolean
-    showAttributes: boolean
-    showSku: boolean
-    showUrls: boolean
-    productImageFit: NonNullable<Catalog['product_image_fit']>
-    columnsPerRow: number
-    backgroundColor: string
-    backgroundImage: string | null
-    backgroundImageFit: NonNullable<Catalog['background_image_fit']>
-    backgroundGradient: string | null
-    logoUrl: string | null
-    logoPosition: Catalog['logo_position']
-    logoSize: Catalog['logo_size']
-    titlePosition: Catalog['title_position']
-    enableCoverPage: boolean
-    coverImageUrl: string | null
-    coverDescription: string | null
-    enableCategoryDividers: boolean
-    coverTheme: string
-}
+/** Catalog design config — shared between editor, preview, and PDF export
+ *  FIX(F12): Derived from BuilderCatalogData via Omit — single source of truth */
+export type CatalogDesignConfig = Omit<BuilderCatalogData,
+    'catalogDescription' | 'selectedProductIds' | 'isPublished' | 'showInSearch'
+>
 
 /** Extract CatalogDesignConfig from full BuilderCatalogData */
 export function extractDesignConfig(data: BuilderCatalogData): CatalogDesignConfig {
@@ -280,6 +275,7 @@ export function extractDesignConfig(data: BuilderCatalogData): CatalogDesignConf
         coverImageUrl: data.coverImageUrl,
         coverDescription: data.coverDescription,
         enableCategoryDividers: data.enableCategoryDividers,
+        categoryOrder: data.categoryOrder,
         coverTheme: data.coverTheme,
     }
 }

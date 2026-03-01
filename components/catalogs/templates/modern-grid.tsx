@@ -1,10 +1,12 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
-export function ModernGridTemplate({
+export const ModernGridTemplate = React.memo(function ModernGridTemplate({
     catalogName,
     products,
     primaryColor,
@@ -46,133 +48,96 @@ export function ModernGridTemplate({
         }
     }
 
-    const getGridRows = () => {
-        // columnsPerRow: 2 -> 6 items (3 rows)
-        // columnsPerRow: 3 -> 9 items (3 rows)
-        // columnsPerRow: 4 -> 12 items (3 rows)
-        return "grid-rows-3"
-    }
+    // getGridRows function removed as it is no longer used
 
-    // Logo boyutu
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 24
-            case 'large': return 40
-            default: return 32
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    // Header'da logo var mı?
-    const _isHeaderLogo = logoPosition?.startsWith('header')
-    const _logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoHeight = getStandardLogoHeight(logoSize)
 
-    // Header içeriğini render et (Logo + Başlık akıllı yerleşimi)
-    const renderHeaderContent = (_isFirstPage: boolean) => {
-        const textSize = 'text-lg font-bold'
+    // Arka plan stili oluştur
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
-        // Logo ve Başlık Hizalamaları
-        const isCenterLogo = logoUrl && logoPosition === 'header-center'
-        const isLeftLogo = logoUrl && logoPosition === 'header-left'
-        const isRightLogo = logoUrl && logoPosition === 'header-right'
-
-        return (
-            <div className="flex w-full items-center h-full relative">
-                {/* SOL ALAN (25%) */}
-                <div className="flex-1 flex items-center justify-start gap-4 min-w-0 z-10">
-                    {isLeftLogo && (
-                        <NextImage
-                            src={logoUrl!}
-                            alt="Logo"
-                            width={120}
-                            height={getLogoHeight()}
-                            unoptimized
-                            className="object-contain shrink-0"
-                            style={{ height: getLogoHeight() }}
-                        />
-                    )}
-                    {titlePosition === 'left' && (
-                        <span className={`${textSize} tracking-tight truncate max-w-[250px]`} style={{ color: headerTextColor }}>
-                            {catalogName || "Katalog"}
-                        </span>
-                    )}
-                </div>
-
-                {/* ORTA ALAN (Tam Matematiksel Merkez) */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 z-20 pointer-events-none w-full max-w-[50%]">
-                    <div className="flex flex-col items-center pointer-events-auto">
-                        {isCenterLogo && (
-                            <NextImage
-                                src={logoUrl!}
-                                alt="Logo"
-                                width={120}
-                                height={getLogoHeight()}
-                                unoptimized
-                                className="object-contain shrink-0 mb-1"
-                                style={{ height: getLogoHeight() }}
-                            />
+    return (
+        <div className="h-full flex flex-col relative overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#f4f4f5' }}>
+            {/* Header */}
+            <header className="shrink-0 transition-colors" style={{ height: HEADER_HEIGHT, backgroundColor: primaryColor, color: headerTextColor }}>
+                <div className={`h-full px-8 flex items-center justify-between relative w-full ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}>
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-4">
+                        {isCollisionLeft ? (
+                            <div className="flex items-center gap-4">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'left' && (
+                                    <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
+                                )}
+                            </div>
                         )}
-                        {titlePosition === 'center' && (
-                            <span className={`${textSize} tracking-tight truncate max-w-full text-center`} style={{ color: headerTextColor }}>
-                                {catalogName || "Katalog"}
-                            </span>
+                    </div>
+
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-4">
+                        {isCollisionCenter ? (
+                            <div className="flex items-center justify-center gap-4">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <span className="text-lg font-bold tracking-tight truncate max-w-[250px] text-center whitespace-nowrap">{catalogName || "Katalog"}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'center' && (
+                                    <span className="text-lg font-bold tracking-tight truncate max-w-[250px] text-center whitespace-nowrap">{catalogName || "Katalog"}</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-4 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex items-center gap-4 flex-row-reverse">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'right' && (
+                                    <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
-
-                {/* SAĞ ALAN (25%) */}
-                <div className="flex-1 flex items-center justify-end gap-4 min-w-0 z-10 text-right">
-                    {titlePosition === 'right' && (
-                        <span className={`${textSize} tracking-tight truncate max-w-[250px]`} style={{ color: headerTextColor }}>
-                            {catalogName || "Katalog"}
-                        </span>
-                    )}
-                    {isRightLogo && (
-                        <NextImage
-                            src={logoUrl!}
-                            alt="Logo"
-                            width={120}
-                            height={getLogoHeight()}
-                            unoptimized
-                            className="object-contain shrink-0"
-                            style={{ height: getLogoHeight() }}
-                        />
-                    )}
-                </div>
-            </div>
-        )
-    }
-
-    // Arka plan stili oluştur
-    const containerStyle: React.CSSProperties = {
-        backgroundColor: backgroundColor || 'transparent',
-        ...(backgroundImage ? {
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: backgroundImageFit || 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-        } : {}),
-        ...(backgroundGradient ? {
-            background: backgroundGradient
-        } : {})
-    }
-
-    return (
-        <div className="h-full flex flex-col relative overflow-hidden" style={containerStyle}>
-            {/* Header */}
-            <div className="shrink-0" style={{ height: HEADER_HEIGHT }}>
-                <div
-                    className={`h-full px-8 flex items-center relative ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}
-                    style={{ backgroundColor: primaryColor }}
-                >
-                    {renderHeaderContent(pageNumber === 1)}
-                </div>
-            </div>
+            </header>
 
             {/* Grid İçerik */}
             {/* ÖNEMLİ: Kart yapısı değiştirilmedi - aspect-[4/3] fotoğraf and flex-1 bilgiler alanı korundu */}
             <div className={`flex-1 p-4 grid ${getGridCols()} gap-3 overflow-hidden`} style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
                 {(products || []).map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     // YENİ ÖZELLİK: showUrls kontrolü - showUrls=true ve URL varsa tıklanabilir, yoksa değil
                     // ÖNCE: Her zaman productUrl varsa tıklanabilirdi
                     // ŞİMDİ: showUrls=true VE productUrl varsa tıklanabilir
@@ -195,11 +160,7 @@ export function ModernGridTemplate({
                                     {showPrices && (
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <span className="font-bold text-sm" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </span>
                                         </div>
                                     )}
@@ -263,4 +224,4 @@ export function ModernGridTemplate({
             </div>
         </div>
     )
-}
+})

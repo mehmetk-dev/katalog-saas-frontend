@@ -1,15 +1,17 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Luxury Template - "The Royal Essence"
  * A high-end, premium design optimized for luxury brands, perfumes, jewelry, or high-end real estate.
  * Features: Dark mode by default, gold accents, serif typography, and sophisticated spacing.
  */
-export function LuxuryTemplate({
+export const LuxuryTemplate = React.memo(function LuxuryTemplate({
     catalogName,
     products,
     primaryColor: _primaryColor, // We use a set luxury palette but could integrate primaryColor
@@ -24,6 +26,7 @@ export function LuxuryTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'center',
     productImageFit = 'cover',
     // New Props for Customization
     backgroundColor,
@@ -34,15 +37,6 @@ export function LuxuryTemplate({
 }: TemplateProps) {
     const { t } = useTranslation()
     const safeProducts = products || []
-
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'contain': return 'object-contain'
-            case 'fill': return 'object-fill'
-            case 'cover':
-            default: return 'object-cover'
-        }
-    }
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -55,29 +49,20 @@ export function LuxuryTemplate({
 
     const getGridRows = () => "grid-rows-3"
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 28
-            case 'large': return 48
-            default: return 36
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const _logoAlignment = logoPosition?.split('-')[1] || 'center'
+    const logoHeight = getStandardLogoHeight(logoSize)
 
     // Arka plan stili oluştur
     const containerStyle: React.CSSProperties = {
-        backgroundColor: backgroundColor || '#0a0a0a',
-        ...(backgroundImage ? {
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: backgroundImageFit || 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-        } : {}),
-        ...(backgroundGradient ? {
-            background: backgroundGradient
-        } : {}),
+        ...buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient }),
+        backgroundColor: backgroundColor || '#0A0A0A', // default dark background
         color: '#d4af37' // Default gold text base
     }
 
@@ -96,7 +81,7 @@ export function LuxuryTemplate({
     const accentColor = '#d4af37' // Gold accent
 
     return (
-        <div className="h-full flex flex-col overflow-hidden relative selection:bg-[#d4af37] selection:text-black" style={containerStyle}>
+        <div className="h-full flex flex-col overflow-hidden relative selection:bg-[#d4af37] selection:text-black transition-colors" style={containerStyle}>
             {/* Subtle Texture Overlay - Removed external dependency for stability */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.4] mix-blend-soft-light transition-opacity bg-[radial-gradient(#1a1a1a_1px,transparent_1px)] [background-size:16px_16px]" />
 
@@ -104,44 +89,89 @@ export function LuxuryTemplate({
             <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[#d4af37] to-transparent shrink-0 opacity-70" />
 
             {/* Header */}
-            <div className="h-24 px-12 flex flex-col justify-center shrink-0 z-10">
-                <div className="flex items-center justify-between w-full">
-                    <div className="flex-1 flex items-center gap-4">
-                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/30" />
-                    </div>
-
-                    <div className="px-8 text-center flex flex-col items-center">
-                        {logoUrl && isHeaderLogo && (
-                            <div className="mb-2">
-                                <NextImage
-                                    src={logoUrl}
-                                    alt="Logo"
-                                    width={140}
-                                    height={getLogoHeight()}
-                                    unoptimized
-                                    className="object-contain filter brightness-125 transition-all"
-                                    style={{ height: getLogoHeight() }}
-                                />
+            <header className="h-24 px-12 flex items-center justify-between shrink-0 z-10 transition-colors" style={{ color: primaryTextColor }}>
+                <div className="flex-1 flex items-center justify-between relative w-full h-full">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
+                        {isCollisionLeft ? (
+                            <div className="flex flex-col gap-2 items-start">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'left' && (
+                                    <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
+                                )}
                             </div>
                         )}
-                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate max-w-[400px]" style={{ color: primaryTextColor }}>
-                            {catalogName || (t('catalogs.luxury') as string)}
-                        </h1>
-                        <div className="text-[9px] uppercase tracking-[0.5em] mt-1" style={{ color: `${accentColor}99` }}>
-                            {(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}
-                        </div>
+                        {!isHeaderLogo && titlePosition !== 'left' && (
+                            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/30 max-w-[100px]" />
+                        )}
                     </div>
 
-                    <div className="flex-1 flex items-center gap-4">
-                        <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/30" />
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex flex-col items-center justify-center min-w-0 z-10 gap-2">
+                        {isCollisionCenter ? (
+                            <div className="flex flex-col gap-2 items-center text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <div className="flex flex-col items-center">
+                                    <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
+                                    <div className="text-[9px] uppercase tracking-[0.5em] mt-1" style={{ color: `${accentColor}99` }}>{(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'center' && (
+                                    <div className="flex flex-col items-center">
+                                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
+                                        <div className="text-[9px] uppercase tracking-[0.5em] mt-1" style={{ color: `${accentColor}99` }}>{(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}</div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex flex-col gap-2 items-end">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'right' && (
+                                    <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
+                                )}
+                            </div>
+                        )}
+                        {!isHeaderLogo && titlePosition !== 'right' && (
+                            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/30 max-w-[100px]" />
+                        )}
                     </div>
                 </div>
-            </div>
+            </header>
 
             {/* Grid - Products */}
             <div className={`flex-1 px-12 pb-8 grid ${getGridCols()} ${getGridRows()} gap-x-12 gap-y-10 overflow-hidden z-10`}>
                 {safeProducts.map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
 
                     return (
                         <div key={product.id} className="h-full flex flex-col relative group">
@@ -178,11 +208,7 @@ export function LuxuryTemplate({
 
                                 {showPrices && (
                                     <div className="text-base font-serif font-medium tracking-[0.1em]" style={{ color: accentColor }}>
-                                        {(() => {
-                                            const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                            return `${symbol}${Number(product.price).toFixed(2)}`
-                                        })()}
+                                        {formatProductPrice(product)}
                                     </div>
                                 )}
 
@@ -233,4 +259,4 @@ export function LuxuryTemplate({
             <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#8a6d3b] via-[#f3eacb] to-[#8a6d3b] shrink-0" />
         </div>
     )
-}
+})

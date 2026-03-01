@@ -10,11 +10,15 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const compression_1 = __importDefault(require("compression"));
 const prom_client_1 = __importDefault(require("prom-client"));
 const redis_1 = require("./services/redis");
 const errorHandler_1 = require("./middlewares/errorHandler");
+const env_validation_1 = require("./utils/env-validation");
 // Load environment variables
 dotenv_1.default.config();
+// SECURITY: Validate required env vars at startup (exits in production if missing)
+(0, env_validation_1.validateEnvAndExit)();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
 // Cloudflare veya Docker arkasında olduğun için gerçek IP'yi görmesini sağlar.
@@ -48,8 +52,10 @@ const authLimiter = (0, express_rate_limit_1.default)({
 // Middleware
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
-        // Allow requests without origin (server-to-server, SSR, mobile apps, curl)
+        // Allow requests without origin (server-to-server, SSR, mobile apps)
         // Next.js server-side requests don't send Origin header
+        // NOTE: CORS only protects browsers. curl/scripts bypass CORS entirely.
+        // All mutative endpoints still require valid JWT via requireAuth middleware.
         if (!origin) {
             return callback(null, true);
         }
@@ -58,7 +64,9 @@ app.use((0, cors_1.default)({
         }
         else {
             // Log rejected origins for debugging
-            console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+            if (!isDev) {
+                console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+            }
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -66,6 +74,22 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+// SECURITY: Block no-origin mutative requests without auth (defense-in-depth)
+// SSR always sends Authorization header, so this only blocks raw curl/script abuse
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const method = req.method.toUpperCase();
+    const hasMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    // If no origin + mutative request + no auth header → reject
+    // Public GET endpoints (health, public catalog) still work without origin
+    if (!origin && hasMutation && !req.headers.authorization) {
+        // Allow health check POST if any
+        if (req.path.startsWith('/health'))
+            return next();
+        return res.status(403).json({ error: 'Origin or authorization required' });
+    }
+    next();
+});
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: isDev ? false : undefined, // Disable CSP in dev for easier debugging
     crossOriginEmbedderPolicy: false, // Allow embedding for catalog previews
@@ -85,16 +109,26 @@ app.use((0, helmet_1.default)({
     xXssProtection: true, // Enable XSS filter
 }));
 app.use((0, morgan_1.default)('dev'));
-app.use(express_1.default.json({ limit: '10mb' })); // Limit body size
-app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
+app.use((0, compression_1.default)()); // gzip/brotli response compression
+// SECURITY: Default 2MB limit to prevent DoS. Bulk import route has its own 50MB limit.
+app.use(express_1.default.json({ limit: '2mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '2mb' }));
 // Prometheus'un verileri okuyacağı endpoint
+// SECURITY: Protected with token-based auth to prevent information leakage
 app.get('/metrics', async (req, res) => {
     try {
+        const metricsToken = process.env.METRICS_SECRET;
+        // SECURITY: Only accept token via header — query strings leak in logs/referers
+        const providedToken = req.headers['x-metrics-token'];
+        if (!metricsToken || providedToken !== metricsToken) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         res.set('Content-Type', prom_client_1.default.register.contentType);
         res.end(await prom_client_1.default.register.metrics());
     }
-    catch (err) {
-        res.status(500).end(err);
+    catch {
+        // SECURITY: Never leak raw error objects to client
+        res.status(500).json({ error: 'Metrics unavailable' });
     }
 });
 // Apply rate limiting to API routes

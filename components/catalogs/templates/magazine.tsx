@@ -1,10 +1,12 @@
+import React from "react"
 import NextImage from "next/image"
 import { ExternalLink, ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
-export function MagazineTemplate({
+export const MagazineTemplate = React.memo(function MagazineTemplate({
     catalogName,
     products,
     primaryColor,
@@ -19,7 +21,7 @@ export function MagazineTemplate({
     columnsPerRow = 2,
     logoUrl,
     logoPosition,
-    logoSize: _logoSize,
+    logoSize,
     titlePosition = 'left',
     productImageFit = 'cover',
     // New Props for Customization
@@ -42,85 +44,122 @@ export function MagazineTemplate({
         }
     }
 
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'cover': return 'object-cover'
-            case 'fill': return 'object-fill'
-            case 'contain':
-            default: return 'object-contain'
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
+    const logoHeight = getStandardLogoHeight(logoSize)
 
     // Arka plan stili oluştur
-    const containerStyle: React.CSSProperties = {
-        backgroundColor: backgroundColor || '#ffffff',
-        ...(backgroundImage ? {
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: backgroundImageFit || 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-        } : {}),
-        ...(backgroundGradient ? {
-            background: backgroundGradient
-        } : {})
-    }
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     const borderColor = headerTextColor ? `${headerTextColor}20` : 'rgba(2, 6, 23, 0.1)' // slate-950/10
 
+    const renderLogo = () => {
+        if (!logoUrl || !isHeaderLogo) return null
+        return (
+            <div className="shrink-0 flex items-center">
+                <NextImage
+                    src={logoUrl}
+                    alt="Logo"
+                    width={160}
+                    height={logoHeight}
+                    className="object-contain max-h-14 w-auto"
+                />
+            </div>
+        )
+    }
+
+    const renderTitle = (align: 'left' | 'center' | 'right') => (
+        <div className={cn(
+            "flex flex-col",
+            align === 'center' ? "items-center" : align === 'right' ? "items-end" : "items-start"
+        )}>
+            <h1
+                className="text-3xl font-black italic tracking-tighter leading-none uppercase"
+                style={{ color: headerTextColor }}
+            >
+                {catalogName || "EDITORIAL"}
+            </h1>
+            <div className="flex items-center gap-3 mt-1">
+                <span className="text-[11px] font-bold tracking-[0.5em] uppercase" style={{ color: headerTextColor ? `${headerTextColor}80` : '#64748b' }}>
+                    Issue {new Date().getFullYear()} / {pageNumber}
+                </span>
+            </div>
+        </div>
+    )
+
+    const renderSidebarInfo = (align: 'left' | 'right') => (
+        <div className={`hidden lg:flex flex-col border-l pl-6 font-sans font-bold uppercase tracking-widest text-[9px] ${align === 'right' ? 'text-right border-l-0 border-r pr-6 pl-0' : 'text-left'}`} style={{ borderColor: borderColor, color: headerTextColor ? `${headerTextColor}66` : '#94a3b8' }}>
+            <span>Autumn Winter</span>
+            <span>Selection Portfolio</span>
+        </div>
+    )
+
     return (
         <div className="h-full flex flex-col relative overflow-hidden font-serif" style={containerStyle}>
-            {/* Editorial Header - Extra Tall & Bold */}
+            {/* Editorial Header - Adjusted Size & Alignment */}
             <header
-                className="shrink-0 relative z-20 flex items-center px-10 border-b-2"
-                style={{ height: HEADER_HEIGHT, borderColor: headerTextColor || '#020617' }}
+                className="shrink-0 relative z-20 flex items-center px-10 border-b-2 transition-colors h-[120px]"
+                style={{ borderColor: headerTextColor || '#020617', backgroundColor: primaryColor }}
             >
-                <div className={cn(
-                    "w-full flex items-center gap-10",
-                    titlePosition === 'center' ? "justify-center" : titlePosition === 'right' ? "justify-end" : "justify-between"
-                )}>
-                    {/* Catalog Branding */}
-                    <div className={cn(
-                        "flex items-center gap-8",
-                        titlePosition === 'right' && "flex-row-reverse"
-                    )}>
-                        {logoUrl && isHeaderLogo && (
-                            <div className="bg-slate-950 p-2 transform rotate-[-3deg] shadow-xl">
-                                <NextImage
-                                    src={logoUrl}
-                                    alt="Logo"
-                                    width={120}
-                                    height={40}
-                                    unoptimized
-                                    style={{ height: '40px' }}
-                                    className="object-contain brightness-[100]"
-                                />
-                            </div>
-                        )}
-                        <div className={cn(
-                            "flex flex-col",
-                            titlePosition === 'center' ? "items-center" : titlePosition === 'right' ? "items-end" : "items-start"
-                        )}>
-                            <h1
-                                className="text-5xl font-black italic tracking-tighter leading-none uppercase"
-                                style={{ color: headerTextColor }}
-                            >
-                                {catalogName || "EDITORIAL"}
-                            </h1>
-                            <div className="flex items-center gap-3 mt-1">
-                                <span className="text-[11px] font-bold tracking-[0.5em] uppercase" style={{ color: headerTextColor ? `${headerTextColor}80` : '#64748b' }}>
-                                    Issue {new Date().getFullYear()} / {pageNumber}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                {/* Sol Alan */}
+                <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-8">
+                    {/* Çarpışma varsa ikisini yan yana çiz */}
+                    {isCollisionLeft ? (
+                        <>
+                            {renderLogo()}
+                            {renderTitle('left')}
+                        </>
+                    ) : (
+                        <>
+                            {/* Yoksa kendi konumlarında olanları çiz */}
+                            {logoAlignment === 'left' && renderLogo()}
+                            {titlePosition === 'left' && renderTitle('left')}
+                        </>
+                    )}
+                </div>
 
-                    {/* Editorial Sidebar Info */}
-                    <div className="hidden lg:flex flex-col border-l pl-6 font-sans font-bold uppercase tracking-widest text-[9px]" style={{ borderColor: borderColor, color: headerTextColor ? `${headerTextColor}66` : '#94a3b8' }}>
-                        <span>Autumn Winter</span>
-                        <span>Selection Portfolio</span>
-                    </div>
+                {/* Orta Alan */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-20 w-full max-w-[50%] gap-8">
+                    {isCollisionCenter ? (
+                        <>
+                            {renderLogo()}
+                            {renderTitle('center')}
+                        </>
+                    ) : (
+                        <>
+                            {logoAlignment === 'center' && renderLogo()}
+                            {titlePosition === 'center' && renderTitle('center')}
+                        </>
+                    )}
+                </div>
+
+                {/* Sağ Alan */}
+                <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-8">
+                    {/* Sadece title sol ve ortadaysa sağda sidebar göster */}
+                    {(titlePosition === 'left' || titlePosition === 'center') && !isCollisionRight && renderSidebarInfo('left')}
+
+                    {isCollisionRight ? (
+                        <>
+                            {renderTitle('right')}
+                            {renderLogo()}
+                        </>
+                    ) : (
+                        <>
+                            {titlePosition === 'right' && renderTitle('right')}
+                            {logoAlignment === 'right' && renderLogo()}
+                        </>
+                    )}
+
+                    {/* Title sağdaysa sidebar sola geçer */}
+                    {titlePosition === 'right' && !isCollisionLeft && (
+                        <div className="absolute left-10">{renderSidebarInfo('right')}</div>
+                    )}
                 </div>
             </header>
 
@@ -129,7 +168,7 @@ export function MagazineTemplate({
 
                 {/* 1. HERO PRODUCT - BIG SHOT */}
                 {heroProduct && (
-                    <div className="relative h-[380px] w-full flex bg-slate-100 overflow-hidden group shadow-2xl">
+                    <div className="relative h-[380px] w-full flex overflow-hidden group shadow-2xl">
                         {/* Huge Image */}
                         <div className="w-2/3 h-full relative overflow-hidden">
                             <ProductImageGallery
@@ -162,24 +201,21 @@ export function MagazineTemplate({
                             <div className="relative z-10 border-t border-white/20 pt-6">
                                 {showPrices && (
                                     <div className="flex items-center gap-3">
-                                        <p className="text-3xl font-black italic tracking-tighter" style={{ color: primaryColor }}>
-                                            {(() => {
-                                                const currency = heroProduct.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                return `${symbol}${Number(heroProduct.price).toLocaleString('tr-TR')}`
-                                            })()}
+                                        <p className="text-3xl font-black italic tracking-tighter">
+                                            {formatProductPrice(heroProduct)}
                                         </p>
                                         {showUrls && heroProduct.product_url && (
                                             <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 group-hover:bg-white/10 transition-colors">
-                                                <ShoppingBag className="w-5 h-5" style={{ color: primaryColor }} />
+                                                <ShoppingBag className="w-5 h-5" />
                                             </div>
                                         )}
                                     </div>
                                 )}
-                                {showUrls && heroProduct.product_url && (
+                                {showUrls && sanitizeHref(heroProduct.product_url) && (
                                     <a
-                                        href={heroProduct.product_url}
+                                        href={sanitizeHref(heroProduct.product_url)}
                                         target="_blank"
+                                        rel="noopener noreferrer"
                                         className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white hover:text-white/70 transition-colors"
                                     >
                                         <ExternalLink className="w-3 h-3" />
@@ -200,7 +236,7 @@ export function MagazineTemplate({
                         {gridProducts.map((product) => (
                             <div key={product.id} className="relative group flex flex-col h-[260px] overflow-hidden">
                                 {/* Secondary Image - FIXED HEIGHT */}
-                                <div className="relative h-[180px] bg-slate-50 border border-slate-100 overflow-hidden shadow-lg transition-transform duration-500 hover:translate-y-[-4px]">
+                                <div className="relative h-[180px] overflow-hidden shadow-lg transition-transform duration-500 hover:translate-y-[-4px]">
                                     <ProductImageGallery
                                         product={product}
                                         imageFit={productImageFit}
@@ -217,13 +253,9 @@ export function MagazineTemplate({
 
                                     {/* Price Tag Overlay */}
                                     {showPrices && (
-                                        <div className="absolute top-2 left-2 px-2 py-1 text-[11px] font-black italic shadow-lg z-10 flex items-center gap-2" style={{ backgroundColor: headerTextColor || '#020617', color: backgroundColor || '#ffffff' }}>
+                                        <div className="absolute top-2 left-2 px-2 py-1 text-[11px] font-black italic shadow-lg z-10 flex items-center gap-2 bg-slate-950 text-white">
                                             <span>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toLocaleString('tr-TR')}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </span>
                                             {showUrls && product.product_url && (
                                                 <ShoppingBag className="w-3 h-3 opacity-70" />
@@ -259,4 +291,4 @@ export function MagazineTemplate({
             </footer>
         </div>
     )
-}
+})

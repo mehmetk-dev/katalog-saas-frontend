@@ -1,11 +1,11 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function MagazineDivider({
+export const MagazineDivider = React.memo(function MagazineDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#ef4444'
+    primaryColor: _primaryColor = '#ef4444'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-[#fdfbf7] text-[#1c1917] font-serif overflow-hidden flex flex-col items-center justify-center p-24 text-center">
@@ -39,9 +39,9 @@ export function MagazineDivider({
                     <span className="font-sans font-bold text-lg">{productCount}</span>
                 </div>
                 <span className="font-sans text-[10px] uppercase tracking-widest text-[#a8a29e]">
-                    Page {Math.floor(Math.random() * 100)} • Products
+                    Page 24 • Products
                 </span>
             </div>
         </div>
     )
-}
+})

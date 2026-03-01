@@ -1,4 +1,4 @@
-import { SEO_CONFIG } from "@/lib/seo"
+import { SEO_CONFIG } from "@/lib/services/seo"
 
 export const metadata = SEO_CONFIG.pricing
 

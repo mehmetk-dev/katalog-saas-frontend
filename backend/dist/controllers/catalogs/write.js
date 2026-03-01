@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteCatalog = exports.updateCatalog = exports.createCatalog = void 0;
 const supabase_1 = require("../../services/supabase");
@@ -39,6 +6,8 @@ const redis_1 = require("../../services/redis");
 const activity_logger_1 = require("../../services/activity-logger");
 const notifications_1 = require("../notifications");
 const helpers_1 = require("./helpers");
+const schemas_1 = require("./schemas");
+const safe_error_1 = require("../../utils/safe-error");
 // Fields that require both undefined AND null checks before writing
 const FIELDS_WITH_NULL_CHECK = [
     'name', 'layout', 'primary_color', 'is_published', 'share_slug',
@@ -46,7 +15,7 @@ const FIELDS_WITH_NULL_CHECK = [
     'show_sku', 'show_urls', 'columns_per_row', 'background_color',
     'background_image_fit', 'logo_size', 'title_position',
     'product_image_fit', 'header_text_color', 'enable_cover_page',
-    'enable_category_dividers',
+    'enable_category_dividers', 'show_in_search', 'category_order'
 ];
 // Fields that only need undefined check (null is a valid value to clear)
 const FIELDS_WITHOUT_NULL_CHECK = [
@@ -62,12 +31,20 @@ const INSERT_OPTIONAL_FIELDS = [
     'logo_url', 'logo_position', 'logo_size', 'title_position',
     'product_image_fit', 'header_text_color', 'enable_cover_page',
     'cover_image_url', 'cover_description', 'enable_category_dividers',
-    'cover_theme',
+    'cover_theme', 'show_in_search', 'category_order'
 ];
 const createCatalog = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        const { name: rawName, description, layout, product_ids } = req.body;
+        // SECURITY: Validate input with Zod schema
+        const parsed = schemas_1.catalogCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi'
+            });
+        }
+        const { name: rawName, description, layout, product_ids } = parsed.data;
         const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
         // Limit kontrolü ve kullanıcı bilgileri
         const [userData, catalogsCountResult] = await Promise.all([
@@ -100,9 +77,10 @@ const createCatalog = async (req, res) => {
             is_published: false,
         };
         // Include optional fields only if provided
+        // SECURITY: Use parsed.data (Zod-validated) instead of raw req.body
         for (const key of INSERT_OPTIONAL_FIELDS) {
-            if (req.body[key] !== undefined) {
-                insertData[key] = req.body[key];
+            if (parsed.data[key] !== undefined) {
+                insertData[key] = parsed.data[key];
             }
         }
         const { data, error } = await supabase_1.supabase
@@ -125,8 +103,7 @@ const createCatalog = async (req, res) => {
         ]);
         // Bildirim gönder
         try {
-            const { NotificationTemplates } = await Promise.resolve().then(() => __importStar(require('../notifications')));
-            const template = NotificationTemplates.catalogCreated(name, data.id);
+            const template = notifications_1.NotificationTemplates.catalogCreated(name, data.id);
             await (0, notifications_1.createNotification)(userId, 'catalog_created', template.title, template.message, template.actionUrl);
         }
         catch {
@@ -145,7 +122,7 @@ const createCatalog = async (req, res) => {
         res.status(201).json(data);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -154,7 +131,15 @@ const updateCatalog = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
         const { id } = req.params;
-        const { name, cover_description, cover_image_url, share_slug, } = req.body;
+        // SECURITY: Validate input with Zod schema
+        const parsed = schemas_1.catalogUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi'
+            });
+        }
+        const { name, cover_description, cover_image_url, share_slug } = parsed.data;
         // Validate cover_description length (max 500 chars)
         if (cover_description !== undefined && cover_description !== null && cover_description.length > 500) {
             return res.status(400).json({
@@ -181,9 +166,10 @@ const updateCatalog = async (req, res) => {
             .eq('id', id)
             .single();
         // Build update data dynamically
+        // SECURITY: Use parsed.data (Zod-validated) instead of raw req.body
         const updateData = {
             updated_at: new Date().toISOString(),
-            ...(0, helpers_1.pickDefinedFields)(req.body, FIELDS_WITH_NULL_CHECK, FIELDS_WITHOUT_NULL_CHECK),
+            ...(0, helpers_1.pickDefinedFields)(parsed.data, FIELDS_WITH_NULL_CHECK, FIELDS_WITHOUT_NULL_CHECK),
         };
         const { error, data } = await supabase_1.supabase
             .from('catalogs')
@@ -206,10 +192,10 @@ const updateCatalog = async (req, res) => {
         // Cache'leri temizle
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
-            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id), true),
             (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId)),
-            ...(oldCatalog?.share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(oldCatalog.share_slug))] : []),
-            ...(share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(share_slug))] : [])
+            ...(oldCatalog?.share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(oldCatalog.share_slug), true)] : []),
+            ...(share_slug ? [(0, redis_1.deleteCache)(redis_1.cacheKeys.publicCatalog(share_slug), true)] : [])
         ]);
         // Log activity
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
@@ -225,7 +211,7 @@ const updateCatalog = async (req, res) => {
     }
     catch (error) {
         console.error('Catalog update exception:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error, 'Katalog güncellenirken bir hata oluştu');
         res.status(500).json({
             error: 'Katalog güncellenirken bir hata oluştu',
             message: errorMessage
@@ -247,7 +233,7 @@ const deleteCatalog = async (req, res) => {
         // Cache'leri temizle
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(userId)),
-            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalog(userId, id), true),
             (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
         ]);
         // Log activity
@@ -263,7 +249,7 @@ const deleteCatalog = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = (0, safe_error_1.safeErrorMessage)(error);
         res.status(500).json({ error: errorMessage });
     }
 };

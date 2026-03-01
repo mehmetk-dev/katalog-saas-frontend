@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Filter, X, Check, SortAsc, SortDesc } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,7 +8,14 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+
+const SORT_OPTIONS = [
+    { value: "created_at", labelKey: "filters.sortNew" },
+    { value: "name", labelKey: "filters.sortName" },
+    { value: "price", labelKey: "filters.sortPrice" },
+    { value: "stock", labelKey: "filters.sortStock" },
+] as const
 
 interface ProductsFilterSheetProps {
     open: boolean
@@ -50,6 +58,14 @@ export function ProductsFilterSheet({
 }: ProductsFilterSheetProps) {
     const { t } = useTranslation()
 
+    const priceQuickOptions = useMemo(() => [
+        { label: t("filters.all") as string, min: 0, max: maxPrice },
+        { label: "₺0-100", min: 0, max: 100 },
+        { label: "₺100-500", min: 100, max: 500 },
+        { label: "₺500-1000", min: 500, max: 1000 },
+        { label: "₺1000+", min: 1000, max: maxPrice },
+    ], [maxPrice, t])
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent side="right" className="w-[320px] sm:w-[380px] overflow-y-auto">
@@ -65,14 +81,9 @@ export function ProductsFilterSheet({
                 <div className="space-y-6 mt-6">
                     {/* Sıralama */}
                     <div className="space-y-3">
-                        <Label className="text-sm font-medium">Sıralama</Label>
+                        <Label className="text-sm font-medium">{t("filters.sort") as string}</Label>
                         <div className="grid grid-cols-2 gap-2">
-                            {[
-                                { value: "created_at", label: "Yeni" },
-                                { value: "name", label: "İsim" },
-                                { value: "price", label: "Fiyat" },
-                                { value: "stock", label: "Stok" },
-                            ].map((opt) => (
+                            {SORT_OPTIONS.map((opt) => (
                                 <Button
                                     key={opt.value}
                                     variant={sortField === opt.value ? "default" : "outline"}
@@ -90,7 +101,7 @@ export function ProductsFilterSheet({
                                         }
                                     }}
                                 >
-                                    {opt.label}
+                                    {t(opt.labelKey) as string}
                                     {sortField === opt.value && (
                                         sortOrder === "asc" ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />
                                     )}
@@ -150,7 +161,7 @@ export function ProductsFilterSheet({
                                     type="number"
                                     placeholder={t("filters.min") as string}
                                     value={priceRange[0] || ""}
-                                    onChange={(e) => onPriceRangeChange([Number(e.target.value) || 0, priceRange[1]])}
+                                    onChange={(e) => onPriceRangeChange([Math.max(0, Number(e.target.value) || 0), priceRange[1]])}
                                     className="pl-7 h-9"
                                 />
                             </div>
@@ -161,20 +172,14 @@ export function ProductsFilterSheet({
                                     type="number"
                                     placeholder={t("filters.max") as string}
                                     value={priceRange[1] || ""}
-                                    onChange={(e) => onPriceRangeChange([priceRange[0], Number(e.target.value) || maxPrice])}
+                                    onChange={(e) => onPriceRangeChange([priceRange[0], Math.max(0, Number(e.target.value) || maxPrice)])}
                                     className="pl-7 h-9"
                                 />
                             </div>
                         </div>
                         {/* Hızlı Fiyat Seçenekleri */}
                         <div className="flex flex-wrap gap-1.5">
-                            {[
-                                { label: "Tümü", min: 0, max: maxPrice },
-                                { label: "₺0-100", min: 0, max: 100 },
-                                { label: "₺100-500", min: 100, max: 500 },
-                                { label: "₺500-1000", min: 500, max: 1000 },
-                                { label: "₺1000+", min: 1000, max: maxPrice },
-                            ].map((opt) => (
+                            {priceQuickOptions.map((opt) => (
                                 <Button
                                     key={opt.label}
                                     variant="outline"

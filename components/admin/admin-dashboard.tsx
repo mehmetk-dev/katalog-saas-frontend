@@ -60,8 +60,8 @@ export function AdminDashboardClient() {
                     <TabsTrigger value="overview">{t("admin.overview")}</TabsTrigger>
                     <TabsTrigger value="users">{t("admin.users")} ({users.length})</TabsTrigger>
                     <TabsTrigger value="deleted">{t("admin.deletedUsers")} ({deletedUsers.length})</TabsTrigger>
-                    <TabsTrigger value="feedbacks">Geri Bildirimler ({feedbacks.length})</TabsTrigger>
-                    <TabsTrigger value="activity">Aktivite Logları</TabsTrigger>
+                    <TabsTrigger value="feedbacks">{t("admin.feedbacks")} ({feedbacks.length})</TabsTrigger>
+                    <TabsTrigger value="activity">{t("admin.activityLogs")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
@@ -94,6 +94,7 @@ export function AdminDashboardClient() {
                         onClearSelection={clearSelectedFeedbacks}
                         onToggleSelect={toggleSelectFeedback}
                         onToggleSelectAll={toggleSelectAllFeedbacks}
+                        t={t}
                     />
                 </TabsContent>
 
@@ -105,6 +106,7 @@ export function AdminDashboardClient() {
                         totalLogsPages={totalLogsPages}
                         logsTotalCount={logsTotalCount}
                         onPageChange={handleLogsPageChange}
+                        t={t}
                     />
                 </TabsContent>
             </Tabs>

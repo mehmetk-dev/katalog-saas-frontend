@@ -9,11 +9,7 @@ import {
     Check,
     ArrowRight,
     Download,
-    Share2,
     Undo2,
-    Palette,
-    Type,
-    LayoutTemplate,
     Home,
     Armchair,
     Car,
@@ -27,7 +23,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { AnimatePresence, motion } from "framer-motion"
 import { DEMO_DATA } from "@/lib/demo-data"
@@ -35,11 +30,9 @@ import { ModernGridTemplate } from "@/components/catalogs/templates/modern-grid"
 import { FashionLookbookTemplate } from "@/components/catalogs/templates/fashion-lookbook"
 import { MagazineTemplate } from "@/components/catalogs/templates/magazine"
 import { LuxuryTemplate } from "@/components/catalogs/templates/luxury"
-import { ClassicCatalogTemplate } from "@/components/catalogs/templates/classic-catalog"
 import { BoldTemplate } from "@/components/catalogs/templates/bold"
 import { ElegantCardsTemplate } from "@/components/catalogs/templates/elegant-cards"
 import { MinimalistTemplate } from "@/components/catalogs/templates/minimalist"
-import { ShowcaseTemplate } from "@/components/catalogs/templates/showcase"
 import { CatalogProTemplate } from "@/components/catalogs/templates/catalog-pro"
 
 export const INDUSTRIES = [
@@ -71,7 +64,7 @@ interface DemoBuilderProps {
     onFinish?: () => void;
 }
 
-export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) {
+export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
     // State
     const [step, setStep] = useState(1)
     const [industry, setIndustry] = useState('fashion')
@@ -80,9 +73,9 @@ export function DemoBuilder({ isEmbedded = false, onFinish }: DemoBuilderProps) 
     // Customization State
     const [catalogName, setCatalogName] = useState('Harika Kataloğum')
     const [primaryColor, setPrimaryColor] = useState('#000000')
-    const [headerTextColor, setHeaderTextColor] = useState('#000000')
+    const [headerTextColor] = useState('#000000')
     const [backgroundColor, setBackgroundColor] = useState('#ffffff')
-    const [logoUrl, setLogoUrl] = useState<string | null>(null)
+    const [logoUrl] = useState<string | null>(null)
     const [showPrices, setShowPrices] = useState(true)
     const [showDescriptions, setShowDescriptions] = useState(true)
 

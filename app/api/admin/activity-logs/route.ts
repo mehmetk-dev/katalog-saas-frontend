@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
-import { getActivityLogs, ActivityType } from "@/lib/activity-logger"
+import { getActivityLogs, ActivityType } from "@/lib/services/activity-logger"
 
 export async function GET(request: NextRequest) {
     try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         }
 
         const { data: profile } = await supabase
-            .from("profiles")
+            .from("users")
             .select("is_admin")
             .eq("id", user.id)
             .single()
@@ -26,16 +26,18 @@ export async function GET(request: NextRequest) {
 
         // Parse query params
         const searchParams = request.nextUrl.searchParams
-        const page = parseInt(searchParams.get("page") || "1")
-        const limit = parseInt(searchParams.get("limit") || "50")
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1)
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50") || 50))
         const activityType = searchParams.get("activityType") as ActivityType | undefined
         const userId = searchParams.get("userId") || undefined
+        const search = searchParams.get("search") || undefined
         const startDate = searchParams.get("startDate") || undefined
         const endDate = searchParams.get("endDate") || undefined
 
         const { logs, total } = await getActivityLogs(page, limit, {
             activityType,
             userId,
+            search,
             startDate,
             endDate,
         })

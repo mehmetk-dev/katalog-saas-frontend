@@ -13,6 +13,7 @@ interface ActivityLogsTabProps {
     totalLogsPages: number
     logsTotalCount: number
     onPageChange: (page: number) => void
+    t: (key: string) => string
 }
 
 export function ActivityLogsTab({
@@ -22,6 +23,7 @@ export function ActivityLogsTab({
     totalLogsPages,
     logsTotalCount,
     onPageChange,
+    t,
 }: ActivityLogsTabProps) {
     return (
         <Card>
@@ -30,32 +32,32 @@ export function ActivityLogsTab({
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             <Activity className="w-5 h-5" />
-                            Aktivite Logları
+                            {t("admin.activityLogs")}
                         </CardTitle>
-                        <CardDescription>Tüm kullanıcı aktivitelerini buradan takip edebilirsiniz</CardDescription>
+                        <CardDescription>{t("admin.activityLogsDesc")}</CardDescription>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                        Toplam: <span className="font-semibold text-foreground">{logsTotalCount}</span> kayıt
+                        {t("admin.totalLabel")} <span className="font-semibold text-foreground">{logsTotalCount}</span> {t("admin.records")}
                     </div>
                 </div>
             </CardHeader>
             <CardContent>
                 {loadingLogs ? (
-                    <div className="text-center py-8">Yükleniyor...</div>
+                    <div className="text-center py-8">{t("common.loading")}</div>
                 ) : activityLogs.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                        <p>Henüz aktivite kaydı bulunmuyor.</p>
+                        <p>{t("admin.noActivityLogs")}</p>
                     </div>
                 ) : (
                     <>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Tarih</TableHead>
-                                    <TableHead>Kullanıcı</TableHead>
-                                    <TableHead>İşlem</TableHead>
-                                    <TableHead>Detay</TableHead>
+                                    <TableHead>{t("admin.date")}</TableHead>
+                                    <TableHead>{t("admin.user")}</TableHead>
+                                    <TableHead>{t("admin.action")}</TableHead>
+                                    <TableHead>{t("admin.detail")}</TableHead>
                                     <TableHead>IP</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -66,7 +68,7 @@ export function ActivityLogsTab({
                                             {new Date(log.created_at).toLocaleString("tr-TR")}
                                         </TableCell>
                                         <TableCell className="font-medium text-xs">
-                                            {log.user_email || log.user_name || "Anonim"}
+                                            {log.user_email || log.user_name || t("admin.anonymous")}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="text-xs">
@@ -85,7 +87,7 @@ export function ActivityLogsTab({
                         {totalLogsPages > 1 && (
                             <div className="flex items-center justify-between mt-4 pt-4 border-t">
                                 <div className="text-sm text-muted-foreground">
-                                    Sayfa {logsPage + 1} / {totalLogsPages}
+                                    {t("admin.pageCol")} {logsPage + 1} / {totalLogsPages}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Button
@@ -95,7 +97,7 @@ export function ActivityLogsTab({
                                         disabled={logsPage === 0 || loadingLogs}
                                     >
                                         <ChevronLeft className="w-4 h-4 mr-1" />
-                                        Önceki
+                                        {t("admin.previous")}
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -103,7 +105,7 @@ export function ActivityLogsTab({
                                         onClick={() => onPageChange(logsPage + 1)}
                                         disabled={logsPage >= totalLogsPages - 1 || loadingLogs}
                                     >
-                                        Sonraki
+                                        {t("admin.next")}
                                         <ChevronRight className="w-4 h-4 ml-1" />
                                     </Button>
                                 </div>

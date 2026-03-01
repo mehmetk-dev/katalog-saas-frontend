@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import Link from "next/link"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
@@ -10,115 +10,113 @@ import {
     Settings,
     ShieldCheck,
     Package,
-    LifeBuoy,
-    ChevronDown,
-    ArrowRight
+    ChevronDown
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
+const categories = [
+    { id: "general", label: "Genel Bakış", icon: ShieldCheck },
+    { id: "products", label: "Ürünler & Katalog", icon: Package },
+    { id: "sharing", label: "Paylaşım & Erişim", icon: MessageCircle },
+    { id: "account", label: "Üyelik & Fatura", icon: Settings },
+]
+
+const faqData: Record<string, { q: string, a: string }[]> = {
+    general: [
+        {
+            q: "FogCatalog tam olarak nedir ve işletmeme nasıl değer katar?",
+            a: "FogCatalog, klasik PDF katalogların hantallığını ortadan kaldıran yeni nesil bir SaaS çözümüdür. Ürünlerinizi saniyeler içinde dijital, güncellenebilir ve etkileşimli bir mikrositeye dönüştürür. Müşterileriniz ürünleri incelerken sizinle kolayca iletişime geçebilir, bu da etkileşimi artırır."
+        },
+        {
+            q: "Ücretsiz planda herhangi bir süre sınırı var mı?",
+            a: "Hayır, 'Starter' paketimiz tamamen ücretsizdir ve sonsuza kadar kullanabilirsiniz. Deneme süresi bitince otomatik ödeme alma gibi sürprizler yoktur. İşletmeniz büyüdüğünde dilediğiniz zaman üst paketlere geçiş yapabilirsiniz."
+        },
+        {
+            q: "Mobil uygulama indirmem gerekiyor mu?",
+            a: "Hayır. FogCatalog %100 bulut tabanlıdır (Web-based). Bilgisayarınızdan, tabletinizden veya telefonunuzun tarayıcısından panelinize erişip yönetim sağlayabilirsiniz. Müşterileriniz de herhangi bir uygulama indirmeden kataloğunuzu görüntüleyebilir."
+        },
+        {
+            q: "Birden fazla dil desteği var mı?",
+            a: "Şu an için arayüzümüz Türkçe ve İngilizce dillerini desteklemektedir. Ancak katalog içeriklerinizi (ürün isimleri ve açıklamaları) dilediğiniz dilde girebilirsiniz."
+        },
+        {
+            q: "Ziyaretçi istatistiklerini görebilir miyim?",
+            a: "Kesinlikle. 'Plus' ve üzeri paketlerimizde, kataloğunuzun kaç kez görüntülendiğini, en çok hangi ürünlerin tıklandığını detaylı panelimizde görebilirsiniz."
+        }
+    ],
+    products: [
+        {
+            q: "Toplu ürün yükleme yapabilir miyim?",
+            a: "Evet! Yüzlerce ürün fotoğrafını sürükle-bırak yöntemiyle tek seferde yükleyebilirsiniz. Akıllı sistemimiz, görsel isimlerinden ürün adlarını otomatik olarak oluşturmaya çalışır, size sadece fiyatları ve detayları girmek kalır."
+        },
+        {
+            q: "Ürün resim kalitesi düşer mi?",
+            a: "Hayır. Sistemimiz yüklediğiniz yüksek çözünürlüklü görselleri akıllı sıkıştırma algoritmalarıyla optimize eder. Böylece hem sayfanız milisaniyeler içinde açılır hem de ürünleriniz cam gibi net görünür."
+        },
+        {
+            q: "Fiyatı olmayan ürün ekleyebilir miyim?",
+            a: "Tabii ki. Dilerseniz bazı ürünlerin fiyatını gizleyebilir veya 'Fiyat Sorunuz' şeklinde gösterebilirsiniz. Bu özellik özellikle B2B toptan satış yapan firmalar veya proje bazlı çalışanlar için idealdir."
+        },
+        {
+            q: "Oluşturduğum kataloğun PDF çıktısını alabilir miyim?",
+            a: "Evet. Dijital kataloğunuzu tek bir tıklamayla A4 formatında, baskıya hazır yüksek çözünürlüklü bir PDF dosyasına dönüştürebilirsiniz. Hem dijital hem fiziksel pazarlama ihtiyacınızı tek panelden çözersiniz."
+        },
+        // "Stok takibi" removed/simplified if not needed, but general "stokta var/yok" is usually fine. User didn't ask to remove it specifically aside from "WP sipariş" and "ek kullanıcı". I'll keep it unless it implies complex inventory.
+        {
+            q: "Stok durumu belirtebilir miyim?",
+            a: "Evet, ürünleriniz için 'Stokta Var/Yok' veya 'Tükendi' etiketlerini kullanarak müşterilerinizi bilgilendirebilirsiniz."
+        },
+        {
+            q: "Ürünlerimi Excel'e aktarabilir miyim?",
+            a: "Evet, tüm ürün listenizi, fiyatları ve açıklamalarıyla birlikte istediğiniz zaman Excel (CSV/XLS) formatında dışa aktarabilirsiniz."
+        }
+    ],
+    sharing: [
+        // Removed WhatsApp Order Question
+        {
+            q: "QR kodum değişecek mi?",
+            a: "Hayır. Size özel oluşturulan QR kod 'Statik' değil 'Dinamik' bir yapıdadır. Yani kataloğunuzun içeriğini, fiyatlarını veya resimlerini ne kadar değiştirirseniz değiştirin, QR kodunuz her zaman aynı kalır ve güncel kataloğunuza yönlendirir."
+        },
+        {
+            q: "Kataloğumu sosyal medyada paylaşabilir miyim?",
+            a: "Kesinlikle. Size verdiğimiz katalog linkini (fogcatalog.com/firma-adiniz) Instagram biyografinize, Facebook gönderilerinize veya LinkedIn profilinize ekleyebilirsiniz. Link önizlemeleri profesyonel görünecek şekilde optimize edilmiştir."
+        },
+        {
+            q: "Kataloğumu kimler görebilir?",
+            a: "Kataloğunuz internet üzerinde erişilebilir bir web sayfası olarak yayınlanır. Paylaştığınız linke sahip olan veya QR kodunuzu okutan herkes kataloğunuzu görüntüleyebilir."
+        },
+        {
+            q: "Tablet ve mobilde düzgün görünür mü?",
+            a: "Evet. FogCatalog tüm cihazlar ve ekran boyutları için (responsive) özel olarak optimize edilmiştir. Müşterileriniz telefon, tablet veya bilgisayardan sorunsuz bir deneyim yaşar."
+        }
+    ],
+    account: [
+        {
+            q: "Aboneliğimi nasıl iptal ederim?",
+            a: "Kullanıcı panelinizdeki 'Ayarlar > Abonelik' sekmesinden tek tıkla iptal işlemini gerçekleştirebilirsiniz. Herhangi bir taahhüt veya cayma bedeli yoktur."
+        },
+        {
+            q: "Paket değişikliği yapabilir miyim?",
+            a: "Evet, dilediğiniz zaman paketinizi yükseltebilir veya düşürebilirsiniz."
+        },
+        {
+            q: "Fatura kesiyor musunuz?",
+            a: "Evet. Ödemeniz başarıyla alındıktan sonra, şirket bilgilerinizle oluşturulan yasal e-faturanız sistemde kayıtlı e-posta adresinize otomatik olarak gönderilir."
+        },
+        // Removed Extra User Question
+        {
+            q: "Teknik destek veriyor musunuz?",
+            a: "Tüm kullanıcılarımıza e-posta desteği sunuyoruz. Pro kullanıcılarımız ise öncelikli destek hattımıza erişebilirler."
+        }
+    ]
+}
+
 export default function FAQPage() {
     const [activeCategory, setActiveCategory] = useState("general")
     const [openQuestion, setOpenQuestion] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState("")
-
-    const categories = [
-        { id: "general", label: "Genel Bakış", icon: ShieldCheck },
-        { id: "products", label: "Ürünler & Katalog", icon: Package },
-        { id: "sharing", label: "Paylaşım & Erişim", icon: MessageCircle },
-        { id: "account", label: "Üyelik & Fatura", icon: Settings },
-    ]
-
-    const faqData: Record<string, { q: string, a: string }[]> = {
-        general: [
-            {
-                q: "FogCatalog tam olarak nedir ve işletmeme nasıl değer katar?",
-                a: "FogCatalog, klasik PDF katalogların hantallığını ortadan kaldıran yeni nesil bir SaaS çözümüdür. Ürünlerinizi saniyeler içinde dijital, güncellenebilir ve etkileşimli bir mikrositeye dönüştürür. Müşterileriniz ürünleri incelerken sizinle kolayca iletişime geçebilir, bu da etkileşimi artırır."
-            },
-            {
-                q: "Ücretsiz planda herhangi bir süre sınırı var mı?",
-                a: "Hayır, 'Starter' paketimiz tamamen ücretsizdir ve sonsuza kadar kullanabilirsiniz. Deneme süresi bitince otomatik ödeme alma gibi sürprizler yoktur. İşletmeniz büyüdüğünde dilediğiniz zaman üst paketlere geçiş yapabilirsiniz."
-            },
-            {
-                q: "Mobil uygulama indirmem gerekiyor mu?",
-                a: "Hayır. FogCatalog %100 bulut tabanlıdır (Web-based). Bilgisayarınızdan, tabletinizden veya telefonunuzun tarayıcısından panelinize erişip yönetim sağlayabilirsiniz. Müşterileriniz de herhangi bir uygulama indirmeden kataloğunuzu görüntüleyebilir."
-            },
-            {
-                q: "Birden fazla dil desteği var mı?",
-                a: "Şu an için arayüzümüz Türkçe ve İngilizce dillerini desteklemektedir. Ancak katalog içeriklerinizi (ürün isimleri ve açıklamaları) dilediğiniz dilde girebilirsiniz."
-            },
-            {
-                q: "Ziyaretçi istatistiklerini görebilir miyim?",
-                a: "Kesinlikle. 'Plus' ve üzeri paketlerimizde, kataloğunuzun kaç kez görüntülendiğini, en çok hangi ürünlerin tıklandığını detaylı panelimizde görebilirsiniz."
-            }
-        ],
-        products: [
-            {
-                q: "Toplu ürün yükleme yapabilir miyim?",
-                a: "Evet! Yüzlerce ürün fotoğrafını sürükle-bırak yöntemiyle tek seferde yükleyebilirsiniz. Akıllı sistemimiz, görsel isimlerinden ürün adlarını otomatik olarak oluşturmaya çalışır, size sadece fiyatları ve detayları girmek kalır."
-            },
-            {
-                q: "Ürün resim kalitesi düşer mi?",
-                a: "Hayır. Sistemimiz yüklediğiniz yüksek çözünürlüklü görselleri akıllı sıkıştırma algoritmalarıyla optimize eder. Böylece hem sayfanız milisaniyeler içinde açılır hem de ürünleriniz cam gibi net görünür."
-            },
-            {
-                q: "Fiyatı olmayan ürün ekleyebilir miyim?",
-                a: "Tabii ki. Dilerseniz bazı ürünlerin fiyatını gizleyebilir veya 'Fiyat Sorunuz' şeklinde gösterebilirsiniz. Bu özellik özellikle B2B toptan satış yapan firmalar veya proje bazlı çalışanlar için idealdir."
-            },
-            {
-                q: "Oluşturduğum kataloğun PDF çıktısını alabilir miyim?",
-                a: "Evet. Dijital kataloğunuzu tek bir tıklamayla A4 formatında, baskıya hazır yüksek çözünürlüklü bir PDF dosyasına dönüştürebilirsiniz. Hem dijital hem fiziksel pazarlama ihtiyacınızı tek panelden çözersiniz."
-            },
-            // "Stok takibi" removed/simplified if not needed, but general "stokta var/yok" is usually fine. User didn't ask to remove it specifically aside from "WP sipariş" and "ek kullanıcı". I'll keep it unless it implies complex inventory.
-            {
-                q: "Stok durumu belirtebilir miyim?",
-                a: "Evet, ürünleriniz için 'Stokta Var/Yok' veya 'Tükendi' etiketlerini kullanarak müşterilerinizi bilgilendirebilirsiniz."
-            },
-            {
-                q: "Ürünlerimi Excel'e aktarabilir miyim?",
-                a: "Evet, tüm ürün listenizi, fiyatları ve açıklamalarıyla birlikte istediğiniz zaman Excel (CSV/XLS) formatında dışa aktarabilirsiniz."
-            }
-        ],
-        sharing: [
-            // Removed WhatsApp Order Question
-            {
-                q: "QR kodum değişecek mi?",
-                a: "Hayır. Size özel oluşturulan QR kod 'Statik' değil 'Dinamik' bir yapıdadır. Yani kataloğunuzun içeriğini, fiyatlarını veya resimlerini ne kadar değiştirirseniz değiştirin, QR kodunuz her zaman aynı kalır ve güncel kataloğunuza yönlendirir."
-            },
-            {
-                q: "Kataloğumu sosyal medyada paylaşabilir miyim?",
-                a: "Kesinlikle. Size verdiğimiz katalog linkini (fogcatalog.com/firma-adiniz) Instagram biyografinize, Facebook gönderilerinize veya LinkedIn profilinize ekleyebilirsiniz. Link önizlemeleri profesyonel görünecek şekilde optimize edilmiştir."
-            },
-            {
-                q: "Kataloğumu kimler görebilir?",
-                a: "Kataloğunuz internet üzerinde erişilebilir bir web sayfası olarak yayınlanır. Paylaştığınız linke sahip olan veya QR kodunuzu okutan herkes kataloğunuzu görüntüleyebilir."
-            },
-            {
-                q: "Tablet ve mobilde düzgün görünür mü?",
-                a: "Evet. FogCatalog tüm cihazlar ve ekran boyutları için (responsive) özel olarak optimize edilmiştir. Müşterileriniz telefon, tablet veya bilgisayardan sorunsuz bir deneyim yaşar."
-            }
-        ],
-        account: [
-            {
-                q: "Aboneliğimi nasıl iptal ederim?",
-                a: "Kullanıcı panelinizdeki 'Ayarlar > Abonelik' sekmesinden tek tıkla iptal işlemini gerçekleştirebilirsiniz. Herhangi bir taahhüt veya cayma bedeli yoktur."
-            },
-            {
-                q: "Paket değişikliği yapabilir miyim?",
-                a: "Evet, dilediğiniz zaman paketinizi yükseltebilir veya düşürebilirsiniz."
-            },
-            {
-                q: "Fatura kesiyor musunuz?",
-                a: "Evet. Ödemeniz başarıyla alındıktan sonra, şirket bilgilerinizle oluşturulan yasal e-faturanız sistemde kayıtlı e-posta adresinize otomatik olarak gönderilir."
-            },
-            // Removed Extra User Question
-            {
-                q: "Teknik destek veriyor musunuz?",
-                a: "Tüm kullanıcılarımıza e-posta desteği sunuyoruz. Pro kullanıcılarımız ise öncelikli destek hattımıza erişebilirler."
-            }
-        ]
-    }
 
     const toggleQuestion = (id: string) => {
         setOpenQuestion(openQuestion === id ? null : id)

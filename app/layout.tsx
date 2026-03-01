@@ -3,8 +3,9 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Montserrat } from "next/font/google"
 
 import "./globals.css"
-import { I18nProvider } from "@/lib/i18n-provider"
+import { I18nProvider } from "@/lib/contexts/i18n-provider"
 import { SessionWatcher } from "@/components/auth/session-watcher"
+import { SITE_URL } from "@/lib/constants"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,7 +22,7 @@ const montserrat = Montserrat({
   weight: ["400", "500", "700", "900"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.com'
+const siteUrl = SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -121,12 +122,6 @@ const softwareAppSchema = {
     priceCurrency: 'TRY',
     description: 'Ücretsiz plan ile başlayın',
   },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '200',
-    bestRating: '5',
-  },
 }
 
 // JSON-LD Structured Data - Organization (for brand recognition & Knowledge Graph)
@@ -169,16 +164,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
         {/* PWA */}
-        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="FogCatalog" />
-        {/* DNS Prefetch for external resources */}
-        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Preconnect to Supabase */}
-        <link rel="preconnect" href="https://supabase.co" />
+
       </head>
       <body
         className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}

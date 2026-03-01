@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 
 interface ProductsToolbarProps {
@@ -116,7 +116,7 @@ export function ProductsToolbar({
             <div className="hidden sm:block shrink-0">
                 <Select
                     value={itemsPerPage.toString()}
-                    onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
+                    onValueChange={(value) => onItemsPerPageChange(parseInt(value, 10))}
                 >
                     <SelectTrigger className="h-8 w-[64px] px-1.5 text-[10px] font-bold bg-gray-50 dark:bg-gray-800 border-0 shadow-none focus:ring-violet-500/20">
                         <span>{itemsPerPage}</span>

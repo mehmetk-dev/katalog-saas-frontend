@@ -2,20 +2,22 @@
 
 import Link from "next/link"
 import { useCallback, useMemo, memo } from "react"
-import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Sparkles, Palette, LayoutGrid, FolderOpen } from "lucide-react"
+import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Sparkles, Palette, LayoutGrid, FolderOpen } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
 import NextImage from "next/image"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useTranslation } from "@/lib/i18n-provider"
-import { useUser } from "@/lib/user-context"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { useUser } from "@/lib/contexts/user-context"
 import { DashboardStats, type Catalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
+import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
 import { cn } from "@/lib/utils"
 
 interface DashboardClientProps {
@@ -65,8 +67,8 @@ const Sparkline = memo(function Sparkline({ data, color = "violet" }: { data: nu
 const CatalogThumbnail = memo(function CatalogThumbnail({ catalog, products }: { catalog: Catalog; products: Product[] }) {
     const catalogProducts = useMemo(() =>
         (products || [])
-            .filter((p: any) => catalog.product_ids?.includes(p.id))
-            .filter((p: any) => p.images?.[0] || p.image_url)
+            .filter((p) => catalog.product_ids?.includes(p.id))
+            .filter((p) => p.images?.[0] || p.image_url)
             .slice(0, 4),
         [catalog.product_ids, products]
     )
@@ -97,67 +99,78 @@ const CatalogThumbnail = memo(function CatalogThumbnail({ catalog, products }: {
     )
 })
 
+// Extract catalog date formatting to avoid inline IIFE
+function formatCatalogDate(
+    catalog: Catalog | Record<string, unknown>,
+    t: (key: string) => string,
+    language: string
+): string {
+    const dateStr = (catalog as Record<string, unknown>).updated_at as string ||
+        (catalog as Record<string, unknown>).created_at as string ||
+        (catalog as Record<string, unknown>).updatedAt as string ||
+        (catalog as Record<string, unknown>).createdAt as string ||
+        (catalog as Record<string, unknown>).updated_At as string
+    if (!dateStr) return "-"
+    const errorText = t("common.updateError")
+    try {
+        let date = new Date(dateStr)
+        if (isNaN(date.getTime())) {
+            date = new Date(String(dateStr).replace(' ', 'T'))
+            if (isNaN(date.getTime())) return errorText
+        }
+        const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000)
+        if (diffInSeconds < 60) return t("common.justNow")
+        return formatDistanceToNow(date, {
+            addSuffix: true,
+            locale: language === 'tr' ? tr : undefined
+        })
+    } catch {
+        return errorText
+    }
+}
+
 export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats }: DashboardClientProps) {
-    const { t: baseT } = useTranslation()
+    const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const { user, isLoading, adjustCatalogsCount } = useUser()
+    const router = useRouter()
+    const { createNewCatalog, isCreating } = useCreateCatalog()
 
     // Veri normalizasyonu: Catalogs ve Products'ın her zaman array olmasını sağla
-    const currentCatalogs: Catalog[] = Array.isArray(initialCatalogs) ? initialCatalogs : (initialCatalogs as any)?.data || []
-    const currentProducts = Array.isArray(initialProducts) ? initialProducts : (initialProducts as any)?.products || []
-    const recentCatalogs = currentCatalogs.slice(0, 3)
+    const currentCatalogs: Catalog[] = useMemo(() => Array.isArray(initialCatalogs) ? initialCatalogs : (initialCatalogs as { data?: Catalog[] })?.data || [], [initialCatalogs])
+    const currentProducts = useMemo(() => Array.isArray(initialProducts) ? initialProducts : (initialProducts as { products?: Product[] })?.products || [], [initialProducts])
+    const recentCatalogs = useMemo(() => currentCatalogs.slice(0, 3), [currentCatalogs])
     const productCount = totalProductCount || currentProducts.length
 
     // Ürün sayısını güvenli hesapla (Deduplicate & Clean & Validate against Master List)
-    const getSafeProductCount = useCallback((catalog: any) => {
+    const getSafeProductCount = useCallback((catalog: Catalog | Record<string, unknown>) => {
         if (!catalog) return 0;
-        const rawIds = Array.isArray(catalog.product_ids) ? catalog.product_ids :
-            (catalog as any).productIds && Array.isArray((catalog as any).productIds) ? (catalog as any).productIds :
-                (typeof (catalog as any).product_ids === 'string' ? (catalog as any).product_ids.split(',') : []);
+        const catalogAny = catalog as Record<string, unknown>;
+        const rawIds = Array.isArray(catalogAny.product_ids) ? catalogAny.product_ids :
+            catalogAny.productIds && Array.isArray(catalogAny.productIds) ? catalogAny.productIds :
+                (typeof catalogAny.product_ids === 'string' ? catalogAny.product_ids.split(',') : []);
 
         // Benzersiz ve boş olmayan ID'leri temizle
         const uniqueIds = Array.from(new Set(
             rawIds
-                .map((id: any) => String(id).trim())
+                .map((id) => String(id).trim())
                 .filter((id: string) => id.length > 0 && id !== 'undefined' && id !== 'null')
         ));
 
         return uniqueIds.length;
     }, []);
 
-    // User henüz yüklenmediyse basit bir skeleton göster
-    if (isLoading) {
-        return (
-            <div className="space-y-6 md:space-y-8 animate-pulse">
-                <div className="h-10 bg-muted rounded w-1/3"></div>
-                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-3">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-40 bg-muted rounded-xl"></div>
-                    ))}
-                </div>
-                <div className="h-64 bg-muted rounded-xl"></div>
-            </div>
-        )
-    }
-
-    // Pre-compute catalog product counts (avoids per-render IIFE in catalog cards)
-    const catalogProductCounts = useMemo(() => {
-        const map = new Map<string, number>()
-        currentCatalogs.forEach((catalog: any) => {
-            const rawIds = Array.isArray(catalog.product_ids) ? catalog.product_ids :
-                (catalog.productIds && Array.isArray(catalog.productIds) ? catalog.productIds :
-                    (typeof catalog.product_ids === 'string' ? catalog.product_ids.split(',') : []))
-            const uniqueIds = new Set(
-                rawIds.map((id: any) => String(id).trim())
-                    .filter((id: string) => id.length > 0 && id !== 'undefined' && id !== 'null')
-            )
-            map.set(catalog.id, uniqueIds.size)
-        })
-        return map
-    }, [currentCatalogs])
-
     // Memoized stats computation
-    const stats = useMemo(() => {
+    const stats: Array<{
+        label: string;
+        value: string;
+        icon: React.ElementType;
+        change: string;
+        trend: string | null;
+        trendUp: boolean;
+        color: string;
+        sparkline: number[];
+    }> = useMemo(() => {
         const generateSparkline = (current: number) => {
             if (current === 0) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             const base = Math.max(1, Math.floor(current * 0.6))
@@ -166,7 +179,12 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
 
         const totalCatalogCount = initialStats?.totalCatalogs ?? currentCatalogs.length
         const publishedCount = initialStats?.publishedCatalogs ??
-            currentCatalogs.filter((c: any) => !!(c.is_published || c.published || c.status === 'published')).length
+            currentCatalogs.filter((c) => {
+                const isPub = 'is_published' in c ? c.is_published : false;
+                const pub = 'published' in c ? (c as Record<string, unknown>).published : false;
+                const status = 'status' in c ? (c as Record<string, unknown>).status : '';
+                return !!(isPub || pub || status === 'published');
+            }).length
 
         return [
             {
@@ -201,6 +219,21 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
             },
         ]
     }, [productCount, user?.maxProducts, initialStats, currentCatalogs, t])
+
+    // User henüz yüklenmediyse basit bir skeleton göster
+    if (isLoading) {
+        return (
+            <div className="space-y-6 md:space-y-8 animate-pulse">
+                <div className="h-10 bg-muted rounded w-1/3"></div>
+                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-3">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-40 bg-muted rounded-xl"></div>
+                    ))}
+                </div>
+                <div className="h-64 bg-muted rounded-xl"></div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6 md:space-y-8">
@@ -322,33 +355,13 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                 onClick={async () => {
                                     const maxCatalogs = user?.plan === 'pro' ? 999999 : (user?.plan === 'plus' ? 10 : 1)
                                     if (currentCatalogs.length >= maxCatalogs) {
-                                        toast.error(t("catalogs.limitReached") || "Limit doldu")
-                                        window.location.href = "/dashboard/catalogs?limit_reached=true"
+                                        toast.error(t("catalogs.limitReached"))
+                                        router.push("/dashboard/catalogs?limit_reached=true")
                                         return
                                     }
-
-                                    const creatingMsg = t("toasts.creatingCatalog")
-                                    const toastId = toast.loading(creatingMsg === "toasts.creatingCatalog" ? "Katalog oluşturuluyor..." : String(creatingMsg))
-                                    try {
-                                        const { createCatalog } = await import("@/lib/actions/catalogs")
-                                        const currentDate = new Date().toLocaleDateString('tr-TR')
-                                        const rawName = t("catalogs.newCatalog")
-                                        const baseName = rawName === "catalogs.newCatalog" ? "Yeni Katalog" : String(rawName)
-
-                                        const newCatalog = await createCatalog({
-                                            name: `${baseName} - ${currentDate}`,
-                                            layout: "modern-grid"
-                                        })
-
-                                        adjustCatalogsCount(1)
-
-                                        const successMsg = t("toasts.catalogCreated")
-                                        toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
-                                        window.location.href = `/dashboard/builder?id=${newCatalog.id}`
-                                    } catch (error: unknown) {
-                                        toast.error(error instanceof Error ? error.message : "Hata oluştu", { id: toastId })
-                                    }
+                                    createNewCatalog()
                                 }}
+                                disabled={isCreating}
                                 className={cn(
                                     "bg-gradient-to-r from-violet-600 to-indigo-600",
                                     "hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/20"
@@ -382,7 +395,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="font-semibold text-sm sm:text-base truncate group-hover:text-primary transition-colors">
-                                                {catalog.name || (catalog as any).title || t("common.untitled")}
+                                                {catalog.name || (catalog as unknown as Record<string, unknown>).title as string || t("common.untitled")}
                                             </p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-muted-foreground">
@@ -396,27 +409,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                                     )}
                                                 >
                                                     <UserPen className="w-3 h-3" />
-                                                    {(() => {
-                                                        const updateErrorText = t("common.updateError") || "Bilinmiyor";
-                                                        const dateStr = catalog.updated_at || catalog.created_at || (catalog as any).updatedAt || (catalog as any).createdAt || (catalog as any).updated_At;
-                                                        if (!dateStr) return "-";
-                                                        try {
-                                                            const date = new Date(dateStr)
-                                                            if (isNaN(date.getTime())) {
-                                                                // Alternatif parse denemesi (ISO olmayan formatlar için)
-                                                                const altDate = new Date(String(dateStr).replace(' ', 'T'));
-                                                                if (isNaN(altDate.getTime())) return updateErrorText;
-                                                                const diffInSeconds = Math.floor((new Date().getTime() - altDate.getTime()) / 1000);
-                                                                if (diffInSeconds < 60) return "Az önce";
-                                                                return formatDistanceToNow(altDate, { addSuffix: true, locale: tr })
-                                                            }
-                                                            const diffInSeconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-                                                            if (diffInSeconds < 60) return "Az önce";
-                                                            return formatDistanceToNow(date, { addSuffix: true, locale: tr })
-                                                        } catch {
-                                                            return updateErrorText;
-                                                        }
-                                                    })()}
+                                                    {formatCatalogDate(catalog, t, language)}
                                                 </span>
                                             </div>
                                         </div>

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { type Product } from "../types"
-import { getStockStatus, getCurrencySymbol } from "../utils/product-helpers"
+import { getStockStatus, getCurrencySymbol, isSafeUrl } from "../utils/product-helpers"
 
 interface ProductPreviewDialogProps {
     product: Product
@@ -171,7 +171,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                     </div>
                 </div>
 
-                {product.product_url && (
+                {product.product_url && isSafeUrl(product.product_url) && (
                     <div>
                         <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
                         <a

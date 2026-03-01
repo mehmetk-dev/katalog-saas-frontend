@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { supabase } from '../../services/supabase';
 import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { getUserPlan, getPlanLimits } from './helpers';
+import { safeErrorMessage } from '../../utils/safe-error';
 
 export const getPublicCatalog = async (req: Request, res: Response) => {
     try {
@@ -103,14 +104,9 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
 
         let isOwner = false;
 
-        // Check x-user-id header
-        const headerUserId = req.headers['x-user-id'];
-        if (headerUserId && headerUserId === ownerId) {
-            isOwner = true;
-        }
-
-        // Fallback: JWT verification
-        if (!isOwner && req.headers.authorization) {
+        // SECURITY: Only trust JWT-based authentication for owner detection.
+        // x-user-id header was removed because it's trivially spoofable.
+        if (req.headers.authorization) {
             try {
                 const token = req.headers.authorization.replace('Bearer ', '');
                 const { data: { user: authUser } } = await supabase.auth.getUser(token);
@@ -131,7 +127,7 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
         res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
         res.json({ ...data, products });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         const status = errorMessage === 'Catalog not found or not published' ? 404 : 500;
         res.status(status).json({ error: errorMessage });
     }
@@ -150,7 +146,8 @@ const getVisitorInfo = (req: Request) => {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
 
-    const visitorHash = crypto.createHash('md5').update(`${ip}-${userAgent}`).digest('hex');
+    // SECURITY: Use SHA-256 instead of MD5 for visitor hashing
+    const visitorHash = crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex');
 
     return { ip, userAgent, deviceType, visitorHash };
 };
@@ -210,8 +207,8 @@ export const getPublicCatalogMeta = async (req: Request, res: Response) => {
         res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
         res.json(meta);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const status = errorMessage === 'Catalog not found' ? 404 : 500;
-        res.status(status).json({ error: errorMessage });
+        const msg = safeErrorMessage(error);
+        const status = msg === 'Catalog not found' ? 404 : 500;
+        res.status(status).json({ error: msg });
     }
 };

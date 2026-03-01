@@ -7,11 +7,45 @@ import { ArrowRight, Layout, CheckCircle2, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+
+const colorMap: Record<string, { bg: string; text: string }> = {
+    violet: { bg: "bg-violet-100", text: "text-violet-600" },
+    fuchsia: { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
+    emerald: { bg: "bg-emerald-100", text: "text-emerald-600" },
+}
+
+interface StepCardProps {
+    icon: React.ElementType
+    color: string
+    badge: string
+    title: string
+    description: string
+}
+
+function StepCard({ icon: Icon, color, badge, title, description }: StepCardProps) {
+    const colors = colorMap[color] ?? colorMap.violet
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+            <div className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center mb-6`}>
+                <Icon className={`w-6 h-6 ${colors.text}`} />
+            </div>
+            <div className={`text-sm font-medium ${colors.text} mb-2`}>{badge}</div>
+            <h3 className="text-xl font-bold mb-3 text-slate-900">{title}</h3>
+            <p className="text-slate-500">{description}</p>
+        </div>
+    )
+}
 
 export default function HowItWorksPage() {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+
+    const steps = [
+        { icon: Layout, color: "violet", badgeKey: "step1Badge", titleKey: "step1Title", descKey: "step1Desc" },
+        { icon: CheckCircle2, color: "fuchsia", badgeKey: "step2Badge", titleKey: "step2Title", descKey: "step2Desc" },
+        { icon: Share2, color: "emerald", badgeKey: "step3Badge", titleKey: "step3Title", descKey: "step3Desc" },
+    ]
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -29,41 +63,16 @@ export default function HowItWorksPage() {
                     </div>
 
                     <div className="grid gap-8 lg:grid-cols-3 max-w-5xl mx-auto">
-                        {/* Step 1 */}
-                        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center mb-6">
-                                <Layout className="w-6 h-6 text-violet-600" />
-                            </div>
-                            <div className="text-sm font-medium text-violet-600 mb-2">{t('howItWorksPage.step1Badge')}</div>
-                            <h3 className="text-xl font-bold mb-3 text-slate-900">{t('howItWorksPage.step1Title')}</h3>
-                            <p className="text-slate-500">
-                                {t('howItWorksPage.step1Desc')}
-                            </p>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-fuchsia-100 flex items-center justify-center mb-6">
-                                <CheckCircle2 className="w-6 h-6 text-fuchsia-600" />
-                            </div>
-                            <div className="text-sm font-medium text-fuchsia-600 mb-2">{t('howItWorksPage.step2Badge')}</div>
-                            <h3 className="text-xl font-bold mb-3 text-slate-900">{t('howItWorksPage.step2Title')}</h3>
-                            <p className="text-slate-500">
-                                {t('howItWorksPage.step2Desc')}
-                            </p>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mb-6">
-                                <Share2 className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div className="text-sm font-medium text-emerald-600 mb-2">{t('howItWorksPage.step3Badge')}</div>
-                            <h3 className="text-xl font-bold mb-3 text-slate-900">{t('howItWorksPage.step3Title')}</h3>
-                            <p className="text-slate-500">
-                                {t('howItWorksPage.step3Desc')}
-                            </p>
-                        </div>
+                        {steps.map((step) => (
+                            <StepCard
+                                key={step.badgeKey}
+                                icon={step.icon}
+                                color={step.color}
+                                badge={t(`howItWorksPage.${step.badgeKey}`)}
+                                title={t(`howItWorksPage.${step.titleKey}`)}
+                                description={t(`howItWorksPage.${step.descKey}`)}
+                            />
+                        ))}
                     </div>
 
                     <div className="mt-20 text-center">

@@ -22,11 +22,22 @@ const safeString = (maxLength: number = 255) =>
         .max(maxLength)
         .transform((val) => val.trim())
 
-/** URL validation with protocol check */
+/** URL validation with protocol check — blocks javascript:, data:, vbscript: schemes */
 const safeUrl = z
     .string()
     .url()
     .max(2048)
+    .refine(
+        (val) => {
+            try {
+                const parsed = new URL(val)
+                return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+            } catch {
+                return false
+            }
+        },
+        { message: 'URL sadece http veya https protokolü içerebilir' }
+    )
     .optional()
     .nullable()
     .transform((val) => val?.trim() || null)
@@ -99,7 +110,7 @@ export const catalogUpdateSchema = z.object({
     primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$|^rgba?\(.+\)$/).optional(),
     is_published: z.boolean().optional(),
     share_slug: z.string().max(100).regex(/^[a-z0-9-]+$/, 'Slug sadece küçük harf, rakam ve tire içerebilir').optional(),
-    product_ids: z.array(z.string().uuid()).max(500).optional(),
+    product_ids: z.array(z.string().uuid()).max(5000).optional(),
     show_prices: z.boolean().optional(),
     show_descriptions: z.boolean().optional(),
     show_attributes: z.boolean().optional(),
@@ -137,12 +148,23 @@ export const feedbackSchema = z.object({
 })
 
 // =============================================================================
+// CONTACT FORM SCHEMAS (Public — no auth required)
+// =============================================================================
+
+export const contactFormSchema = z.object({
+    name: z.string().min(2, 'Ad en az 2 karakter olmalı').max(100).transform((val) => val.trim()),
+    email: z.string().email('Geçerli bir e-posta adresi giriniz').max(255),
+    subject: z.string().min(1, 'Konu seçimi zorunludur').max(100).transform((val) => val.trim()),
+    message: z.string().min(10, 'Mesaj en az 10 karakter olmalı').max(3000).transform((val) => val.trim()),
+})
+
+// =============================================================================
 // AUTH SCHEMAS
 // =============================================================================
 
 export const loginSchema = z.object({
     email: z.string().email('Geçerli bir e-posta adresi giriniz').max(255),
-    password: z.string().min(6, 'Şifre en az 6 karakter olmalı').max(128),
+    password: z.string().min(8, 'Şifre en az 8 karakter olmalı').max(128),
 })
 
 export const signupSchema = z.object({
@@ -156,6 +178,15 @@ export const profileUpdateSchema = z.object({
     company: safeString(255).optional(),
     avatar_url: safeUrl,
     logo_url: safeUrl,
+})
+
+// =============================================================================
+// CATEGORY SCHEMAS
+// =============================================================================
+
+export const categoryMetadataSchema = z.object({
+    color: z.string().max(50).regex(/^#[0-9A-Fa-f]{3,8}$/).optional(),
+    cover_image: safeUrl,
 })
 
 // =============================================================================
@@ -209,3 +240,4 @@ export type Feedback = z.infer<typeof feedbackSchema>
 export type Login = z.infer<typeof loginSchema>
 export type Signup = z.infer<typeof signupSchema>
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
+export type CategoryMetadata = z.infer<typeof categoryMetadataSchema>

@@ -18,7 +18,7 @@ router.get('/full', async (req, res) => {
     let dbStatus = false;
     let redisStatus = false;
     try {
-        const { error } = await supabase_1.supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
+        const { error } = await supabase_1.supabase.from('users').select('id', { count: 'exact', head: true }).limit(1);
         dbStatus = !error;
     }
     catch {
@@ -46,8 +46,10 @@ router.get('/full', async (req, res) => {
 // GET /health/ready - Readiness check (for Kubernetes)
 router.get('/ready', async (req, res) => {
     try {
-        // Check if app is ready to receive traffic
-        // Add your readiness checks here (DB connection, etc.)
+        // Check if app is ready to receive traffic by verifying DB connectivity
+        const { error } = await supabase_1.supabase.from('users').select('id', { count: 'exact', head: true }).limit(1);
+        if (error)
+            throw error;
         res.status(200).json({ ready: true });
     }
     catch {

@@ -16,7 +16,7 @@ interface UsersTabProps {
     t: TranslationFn
 }
 
-export function UsersTab({ users, filteredUsers, searchTerm, onSearchChange, onPlanUpdate, t }: UsersTabProps) {
+export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpdate, t }: UsersTabProps) {
     return (
         <Card>
             <CardHeader>
@@ -84,7 +84,7 @@ export function UsersTab({ users, filteredUsers, searchTerm, onSearchChange, onP
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Select
-                                        defaultValue={user.plan || "free"}
+                                        value={user.plan || "free"}
                                         onValueChange={(value) => onPlanUpdate(user.id, value as "free" | "plus" | "pro")}
                                     >
                                         <SelectTrigger className="w-[100px] ml-auto h-8">

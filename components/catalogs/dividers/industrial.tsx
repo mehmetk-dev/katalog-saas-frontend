@@ -1,11 +1,11 @@
 import React from 'react'
 import type { DividerPageProps } from './index'
 
-export function IndustrialDivider({
+export const IndustrialDivider = React.memo(function IndustrialDivider({
     categoryName,
     productCount = 0,
     description,
-    primaryColor = '#FACC15'
+    primaryColor: _primaryColor = '#FACC15'
 }: DividerPageProps) {
     return (
         <div className="relative w-full h-full bg-[#1F2937] text-white font-mono overflow-hidden p-16 flex flex-col justify-between">
@@ -18,7 +18,7 @@ export function IndustrialDivider({
             <div className="w-full border-b-2 border-white/20 pb-4 flex justify-between items-end">
                 <div className="flex gap-4">
                     <div className="w-4 h-4 bg-[#FACC15]" />
-                    <span className="text-xs tracking-[0.2em] font-bold">SECTION ID: {Math.random().toString(36).substring(7).toUpperCase()}</span>
+                    <span className="text-xs tracking-[0.2em] font-bold">SECTION ID: X7A9K2</span>
                 </div>
                 <span className="text-4xl font-bold text-[#FACC15]">items: {productCount}</span>
             </div>
@@ -50,4 +50,4 @@ export function IndustrialDivider({
             </div>
         </div>
     )
-}
+})

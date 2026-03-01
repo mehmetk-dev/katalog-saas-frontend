@@ -1,16 +1,18 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { cn } from "@/lib/utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Fashion Lookbook Template - "The Couture Editorial"
  * A high-end, asymmetrical layout designed for fashion, lifestyle, and art catalogs.
  * Features: Overlapping elements, vertical typography, and a magazine-like structure.
  */
-export function FashionLookbookTemplate({
+export const FashionLookbookTemplate = React.memo(function FashionLookbookTemplate({
     catalogName,
     products,
     primaryColor = "#000000",
@@ -24,6 +26,7 @@ export function FashionLookbookTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
     productImageFit = 'cover',
     // New Props for Customization
     backgroundColor,
@@ -35,43 +38,24 @@ export function FashionLookbookTemplate({
     const safeProducts = products || []
     const [hero, ...others] = safeProducts
 
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'contain': return 'object-contain'
-            case 'fill': return 'object-fill'
-            case 'cover':
-            default: return 'object-cover'
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 24
-            case 'large': return 48
-            default: return 32
-        }
-    }
-
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoHeight = getStandardLogoHeight(logoSize)
 
     // Arka plan stili oluştur
     const containerStyle: React.CSSProperties = {
-        backgroundColor: backgroundColor || '#fdfdfd',
-        ...(backgroundImage ? {
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: backgroundImageFit || 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-        } : {}),
-        ...(backgroundGradient ? {
-            background: backgroundGradient
-        } : {}),
-        borderLeftColor: primaryColor
+        ...buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient }),
+        borderLeftColor: primaryColor,
     }
 
     return (
-        <div className="h-full flex border-l-[40px] relative overflow-hidden selection:bg-black selection:text-white" style={containerStyle}>
+        <div className="h-full flex border-l-[40px] relative overflow-hidden selection:bg-black selection:text-white transition-colors" style={containerStyle}>
             {/* Side Page Indicator - Vertical */}
             <div className="absolute left-[-30px] top-0 h-full flex items-center justify-center pointer-events-none">
                 <span className="rotate-[-90deg] text-white text-[10px] font-black tracking-[1em] uppercase whitespace-nowrap opacity-50">
@@ -87,56 +71,84 @@ export function FashionLookbookTemplate({
                 )}
                 style={{ backgroundColor: primaryColor }}
             />
-            <div className="flex-1 flex flex-col p-10 pr-14 relative z-10 w-full">
+            <div className="flex-1 flex flex-col p-10 pr-14 relative z-10 w-full transition-colors" style={{ color: headerTextColor }}>
                 {/* Editorial Header */}
-                <div className="mb-12 flex justify-between items-end border-b-2 pb-6" style={{ borderColor: headerTextColor ? `${headerTextColor}10` : 'rgba(0,0,0,0.05)' }}>
-                    <div>
-                        {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                            <div className="mb-4">
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                <header className="mb-12 flex items-end justify-between border-b-2 pb-6 min-h-[100px] transition-colors relative" style={{ borderColor: headerTextColor ? `${headerTextColor}10` : 'rgba(0,0,0,0.05)' }}>
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex flex-col items-start justify-end min-w-0 z-10 gap-4">
+                        {isCollisionLeft ? (
+                            <div className="flex flex-col gap-4 items-start">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-4xl font-serif italic tracking-tighter leading-none">{catalogName || "The Look"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-6">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                )}
+                                {titlePosition === 'left' && (
+                                    <h1 className="text-4xl font-serif italic tracking-tighter leading-none">{catalogName || "The Look"}</h1>
+                                )}
                             </div>
                         )}
-                        <h1 className="text-4xl font-serif italic tracking-tighter leading-none" style={{ color: headerTextColor || '#000000' }}>
-                            {catalogName || "The Look"}
-                        </h1>
-                        {logoAlignment !== 'left' && (
-                            <div className={cn(
-                                "text-[10px] uppercase tracking-[0.5em]",
-                                "text-neutral-400 font-medium whitespace-nowrap"
-                            )}>
-                                LOOKBOOK — VOL.{String(pageNumber).padStart(2, '0')}
-                            </div>
+                        {!isHeaderLogo && titlePosition !== 'left' && (
+                            <div className="text-[10px] uppercase tracking-[0.5em] font-medium whitespace-nowrap opacity-50 block mb-1 mt-auto pt-4">LOOKBOOK — VOL.{String(pageNumber).padStart(2, '0')}</div>
                         )}
-                        <p className="text-[10px] tracking-[0.4em] uppercase mt-2 font-bold" style={{ color: headerTextColor ? `${headerTextColor}66` : 'rgba(0,0,0,0.4)' }}>
-                            Editorial Lookbook / Series {pageNumber}
-                        </p>
                     </div>
 
-                    <div className="text-right">
-                        {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                            <div className="mb-4">
-                                <NextImage
-                                    src={logoUrl}
-                                    alt="Logo"
-                                    width={120}
-                                    height={getLogoHeight()}
-                                    unoptimized
-                                    style={{ height: getLogoHeight() }}
-                                    className="object-contain"
-                                />
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex flex-col items-center justify-end min-w-0 z-10 gap-4">
+                        {isCollisionCenter ? (
+                            <div className="flex flex-col gap-4 items-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-4xl font-serif italic tracking-tighter leading-none">{catalogName || "The Look"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-6 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                )}
+                                {titlePosition === 'center' && (
+                                    <h1 className="text-4xl font-serif italic tracking-tighter leading-none">{catalogName || "The Look"}</h1>
+                                )}
                             </div>
                         )}
-                        <span
-                            className={cn(
-                                "text-[60px] font-serif italic leading-none",
-                                "absolute top-4 right-10 pointer-events-none"
-                            )}
-                            style={{ color: headerTextColor ? `${headerTextColor}0D` : 'rgba(0,0,0,0.05)' }}
-                        >
-                            {String(pageNumber).padStart(2, '0')}
-                        </span>
                     </div>
-                </div>
+
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex flex-col items-end justify-end min-w-0 z-10 gap-4 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex flex-col gap-4 items-end">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-4xl font-serif italic tracking-tighter leading-none">{catalogName || "The Look"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-6 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                )}
+                                {titlePosition === 'right' && (
+                                    <div className="flex flex-col items-end">
+                                        <h1 className="text-4xl font-serif italic tracking-tighter leading-none">{catalogName || "The Look"}</h1>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Big absolute page number */}
+                    <span
+                        className="text-[120px] font-serif italic leading-none absolute top-[-50px] right-2 pointer-events-none opacity-[0.03]"
+                    >
+                        {String(pageNumber).padStart(2, '0')}
+                    </span>
+                </header>
 
                 {/* The Asymmetrical Grid */}
                 <div className="flex-1 flex gap-12 overflow-hidden">
@@ -160,9 +172,9 @@ export function FashionLookbookTemplate({
                                         FEATURED PIECE
                                     </div>
 
-                                    {(showUrls && hero.product_url) && (
+                                    {(showUrls && sanitizeHref(hero.product_url)) && (
                                         <a
-                                            href={hero.product_url}
+                                            href={sanitizeHref(hero.product_url)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className={cn(
@@ -184,11 +196,7 @@ export function FashionLookbookTemplate({
                                         {showPrices && (
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xl font-light" style={{ color: headerTextColor ? `${headerTextColor}99` : 'rgba(0,0,0,0.6)' }}>
-                                                    {(() => {
-                                                        const currency = hero.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                        return `${symbol}${Number(hero.price).toFixed(2)}`
-                                                    })()}
+                                                    {formatProductPrice(hero)}
                                                 </span>
                                                 {showUrls && hero.product_url && (
                                                     <ShoppingBag className="w-5 h-5" style={{ color: headerTextColor ? `${headerTextColor}33` : 'rgba(0,0,0,0.2)' }} />
@@ -212,7 +220,7 @@ export function FashionLookbookTemplate({
                     {/* Right: Detailed Minimal Grid */}
                     <div className="w-[40%] flex flex-col justify-between overflow-hidden shrink-0 h-full py-2">
                         {others.slice(0, 4).map((product, idx) => {
-                            const productUrl = product.product_url
+                            const productUrl = sanitizeHref(product.product_url)
                             const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
 
                             return (
@@ -258,11 +266,7 @@ export function FashionLookbookTemplate({
                                             {showPrices && (
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs font-light" style={{ color: headerTextColor || '#000000' }}>
-                                                        {(() => {
-                                                            const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                            return `${symbol}${Number(product.price).toFixed(2)}`
-                                                        })()}
+                                                        {formatProductPrice(product)}
                                                     </span>
                                                     {showUrls && productUrl && (
                                                         <ShoppingBag className="w-3 h-3" style={{ color: headerTextColor ? `${headerTextColor}33` : 'rgba(0,0,0,0.2)' }} />
@@ -295,4 +299,4 @@ export function FashionLookbookTemplate({
             </div>
         </div>
     )
-}
+})

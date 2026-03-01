@@ -22,7 +22,7 @@ export function SectionWrapper({ title, icon, iconBg, isOpen, onToggle, children
                 className="grid transition-[grid-template-rows] duration-300 ease-in-out"
                 style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
             >
-                <div className="overflow-hidden">
+                <div className={cn("min-h-0", isOpen ? "overflow-visible" : "overflow-hidden")}>
                     {children}
                 </div>
             </div>

@@ -4,17 +4,29 @@ import { deleteCache, cacheKeys } from '../../services/redis';
 import { logActivity, getRequestInfo } from '../../services/activity-logger';
 import { createNotification } from '../notifications';
 import { getUserId } from './helpers';
+import { catalogPublishSchema } from './schemas';
+import { safeErrorMessage } from '../../utils/safe-error';
 
 export const publishCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { id } = req.params;
-        const { is_published }: { is_published: boolean } = req.body;
+
+        // SECURITY: Validate input with Zod schema
+        const parsed = catalogPublishSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: parsed.error.issues[0]?.message || 'is_published alanı zorunludur'
+            });
+        }
+        const { is_published } = parsed.data;
 
         const { data: catalog } = await supabase
             .from('catalogs')
             .select('share_slug')
             .eq('id', id)
+            .eq('user_id', userId)
             .single();
 
         const { error } = await supabase
@@ -70,7 +82,7 @@ export const publishCatalog = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };

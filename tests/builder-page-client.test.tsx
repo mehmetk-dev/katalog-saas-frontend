@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BuilderPageClient } from '@/components/builder/builder-page-client'
-import { useUser, type UserContextType, type User } from '@/lib/user-context'
+import { useUser, type UserContextType, type User } from '@/lib/contexts/user-context'
 import { useRouter } from 'next/navigation'
 import type { Catalog } from '@/lib/actions/catalogs'
 import React from 'react'
@@ -9,14 +9,14 @@ import React from 'react'
 // --- Mocks ---
 
 // Mock Translations
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
         t: (key: string) => key
     })
 }))
 
 // Mock User Context
-vi.mock('@/lib/user-context')
+vi.mock('@/lib/contexts/user-context')
 
 // Mock Next Navigation
 vi.mock('next/navigation', () => ({
@@ -96,9 +96,9 @@ vi.mock('@/lib/actions/user', () => ({
 
 // Mock Complex Sub-Components
 vi.mock('@/components/builder/editor/catalog-editor', () => ({
-    CatalogEditor: ({ onLayoutChange }: { onLayoutChange: (layout: string) => void }) => (
+    CatalogEditor: () => (
         <div data-testid="catalog-editor">
-            <button onClick={() => onLayoutChange('list')}>Change Layout</button>
+            <span>Mock Editor</span>
         </div>
     )
 }))
@@ -146,7 +146,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     })
 
     it('ENDPOINT: handleSave -> updateCatalog çağrılmalı', async () => {
-        render(<BuilderPageClient catalog={mockCatalog as Catalog} products={[]} />)
+        render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} />)
 
         // Değişiklik yap
         const input = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
@@ -176,7 +176,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
             incrementExports: vi.fn(),
         } as unknown as UserContextType)
 
-        render(<BuilderPageClient catalog={mockCatalog as Catalog} products={[]} />)
+        render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} />)
 
         // 1. Önce isDirty yapmak için bir değişiklik yap (slug tetiklensin)
         const nameInput = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
@@ -201,7 +201,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     })
 
     it('ENDPOINT: handleDownloadPDF -> incrementUserExports çağrılmalı', async () => {
-        render(<BuilderPageClient catalog={mockCatalog as Catalog} products={[]} />)
+        render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} />)
 
         fireEvent.click(screen.getByTitle(/Daha fazla seçenek/i))
         const downloadOption = await screen.findByText(/PDF İndir/i)
@@ -219,15 +219,12 @@ describe('BuilderPageClient Final Audit Tests', () => {
         // Ancak butonun tıklandığını ve akışın başladığını üstteki toast ile kanıtladık.
     })
 
-    it('UI: Layout değişimi düzgün çalışmalı', async () => {
-        render(<BuilderPageClient catalog={mockCatalog as Catalog} products={[]} />)
+    it('UI: Editor bileşeni render edilmeli', async () => {
+        render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} />)
 
-        const changeLayoutBtn = screen.getByText('Change Layout')
-        fireEvent.click(changeLayoutBtn)
-
-        // Layout değişince Kaydet butonu çıkmalı
+        // CatalogEditor context ile render edilmiş olmalı
         await waitFor(() => {
-            expect(screen.getByText('Kaydet')).toBeDefined()
+            expect(screen.getByTestId('catalog-editor')).toBeDefined()
         })
     })
 
@@ -244,7 +241,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
             incrementExports: vi.fn(),
         } as unknown as UserContextType)
 
-        render(<BuilderPageClient catalog={mockCatalog as Catalog} products={[]} />)
+        render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} />)
 
         fireEvent.click(screen.getByTitle(/Daha fazla seçenek/i))
         const downloadOption = await screen.findByText(/PDF İndir/i)

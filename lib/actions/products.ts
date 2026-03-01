@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { apiFetch } from "@/lib/api"
+import { validate, productCreateSchema, productUpdateSchema, bulkDeleteSchema, bulkPriceUpdateSchema } from "@/lib/validations"
 
 export interface CustomAttribute {
   name: string
@@ -123,9 +124,12 @@ export async function createProduct(formData: FormData) {
     custom_attributes: customAttributes,
   }
 
+  // Validate and sanitize input
+  const validatedData = validate(productCreateSchema, productData)
+
   const data = await apiFetch<Product>("/products", {
     method: "POST",
-    body: JSON.stringify(productData),
+    body: JSON.stringify(validatedData),
   })
   revalidatePath("/dashboard/products")
   return data
@@ -162,7 +166,7 @@ export async function updateProduct(id: string, formData: FormData) {
   // Refined Logic:
   // We will assume the frontend ALWAYS sends 'images' array as JSON if it's an edit form.
 
-  const updates: Record<string, unknown> = {
+  const updates: Partial<Pick<Product, 'name' | 'sku' | 'description' | 'price' | 'stock' | 'category' | 'image_url' | 'product_url' | 'custom_attributes' | 'images'>> = {
     name: formData.get("name") as string,
     sku: (formData.get("sku") as string) || null,
     description: (formData.get("description") as string) || null,
@@ -182,9 +186,12 @@ export async function updateProduct(id: string, formData: FormData) {
     }
   }
 
+  // Validate and sanitize input
+  const validatedUpdates = validate(productUpdateSchema, updates)
+
   await apiFetch(`/products/${id}`, {
     method: "PUT",
-    body: JSON.stringify(updates),
+    body: JSON.stringify(validatedUpdates),
   })
   revalidatePath("/dashboard/products")
   return { success: true }
@@ -199,9 +206,12 @@ export async function deleteProduct(id: string) {
 }
 
 export async function deleteProducts(ids: string[]) {
+  // Validate input
+  const validated = validate(bulkDeleteSchema, { ids })
+
   await apiFetch("/products/bulk-delete", {
     method: "POST",
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify(validated),
   })
   revalidatePath("/dashboard/products")
   return { success: true }
@@ -285,14 +295,12 @@ export async function bulkUpdatePrices(
   changeMode: "percentage" | "fixed",
   amount: number
 ) {
+  // Validate input
+  const validated = validate(bulkPriceUpdateSchema, { productIds, changeType, changeMode, amount })
+
   const updatedProducts = await apiFetch<Product[]>("/products/bulk-price-update", {
     method: "POST",
-    body: JSON.stringify({
-      productIds,
-      changeType,
-      changeMode,
-      amount
-    }),
+    body: JSON.stringify(validated),
   })
   revalidatePath("/dashboard/products")
   return updatedProducts
@@ -521,13 +529,13 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
 
 export async function getAllProductIds(): Promise<string[]> {
   try {
-    const response = await apiFetch<any>("/products?limit=9999&select=id")
+    const response = await apiFetch<{ id: string }[] | { products: { id: string }[] }>("/products?limit=9999&select=id")
     if (Array.isArray(response)) {
       return response.map(p => p.id)
     }
     // Eğer response formatı { products: [...] } şeklindeyse
     if (response.products && Array.isArray(response.products)) {
-      return response.products.map((p: any) => p.id)
+      return response.products.map(p => p.id)
     }
     return []
   } catch (error) {

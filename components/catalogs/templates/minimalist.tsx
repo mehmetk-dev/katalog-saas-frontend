@@ -1,8 +1,10 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 
 /**
@@ -10,7 +12,7 @@ import { ProductImageGallery } from "@/components/ui/product-image-gallery"
  * A zen-like design focusing purely on product photography and essential info.
  * Features: High whitespace, hairline borders, and sophisticated light typography.
  */
-export function MinimalistTemplate({
+export const MinimalistTemplate = React.memo(function MinimalistTemplate({
     catalogName,
     products,
     primaryColor: _primaryColor = "#000000",
@@ -25,31 +27,29 @@ export function MinimalistTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'center',
     productImageFit = 'contain',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor,
 }: TemplateProps) {
     const HEADER_HEIGHT = "70px"
     const FOOTER_HEIGHT = "48px"
     const PRODUCTS_PER_PAGE = 4
 
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'cover': return 'object-cover'
-            case 'fill': return 'object-fill'
-            case 'contain':
-            default: return 'object-contain'
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 24
-            case 'large': return 40
-            default: return 32
-        }
-    }
+    const logoHeight = getStandardLogoHeight(logoSize)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'center'
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     // Ürünleri sayfalara böl (Builder modunda çoklu sayfa, Public modunda tek sayfa)
     const productChunks = []
@@ -76,44 +76,84 @@ export function MinimalistTemplate({
                 const totalPageCount = isBuilderMode ? productChunks.length : _totalPages
 
                 return (
-                    <div key={pageIndex} className="h-[1123px] w-full flex flex-col bg-white text-[#1a1a1a] overflow-hidden selection:bg-[#f0f0f0] relative shadow-sm">
+                    <div key={pageIndex} className="h-[1123px] w-full flex flex-col overflow-hidden selection:bg-[#f0f0f0] relative shadow-sm transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff', color: headerTextColor || '#1a1a1a' }}>
                         {/* Header - Delicate and Precise */}
-                        <div className="shrink-0 px-12" style={{ height: HEADER_HEIGHT }}>
-                            <div className="h-full flex items-center justify-between border-b border-[#f0f0f0]">
-                                <div className="flex-1 flex items-center">
-                                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                                        <NextImage src={logoUrl} alt="Logo" width={110} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                                    )}
-                                    {logoAlignment !== 'left' && (
-                                        <span className="text-[10px] tracking-[0.4em] text-[#a0a0a0] uppercase whitespace-nowrap">
-                                            {catalogName || "COLLECTION"}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="flex-1 flex justify-center">
-                                    {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
-                                        <NextImage src={logoUrl} alt="Logo" width={110} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                        <header className="shrink-0 px-12 transition-colors border-b" style={{ height: HEADER_HEIGHT, borderColor: headerTextColor ? `${headerTextColor}20` : '#f0f0f0' }}>
+                            <div className="flex-1 flex items-center justify-between relative w-full h-full">
+                                {/* Sol Alan */}
+                                <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
+                                    {isCollisionLeft ? (
+                                        <div className="flex flex-col gap-2 items-start">
+                                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                                <NextImage src={logoUrl} alt="Logo" width={110} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                            )}
+                                            <h1 className="text-sm font-light tracking-[0.5em] uppercase truncate">{catalogName || "MINIMAL"}</h1>
+                                        </div>
                                     ) : (
-                                        <h1 className="text-sm font-light tracking-[0.5em] uppercase text-black">
-                                            {catalogName || "MINIMAL"}
-                                        </h1>
+                                        <div className="flex items-center gap-6">
+                                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                                <NextImage src={logoUrl} alt="Logo" width={110} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                            )}
+                                            {titlePosition === 'left' && (
+                                                <h1 className="text-sm font-light tracking-[0.5em] uppercase truncate">{catalogName || "MINIMAL"}</h1>
+                                            )}
+                                        </div>
+                                    )}
+                                    {!isHeaderLogo && titlePosition !== 'left' && (
+                                        <span className="text-[10px] tracking-[0.4em] uppercase whitespace-nowrap opacity-40">COLLECTION</span>
                                     )}
                                 </div>
 
-                                <div className="flex-1 flex justify-end items-center gap-4">
-                                    <span className="text-[10px] font-mono text-[#d0d0d0]">P.{currentPage.toString().padStart(2, '0')}</span>
-                                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                                        <NextImage src={logoUrl} alt="Logo" width={110} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                                {/* Orta Alan */}
+                                <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
+                                    {isCollisionCenter ? (
+                                        <div className="flex flex-col gap-2 items-center text-center">
+                                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                                <NextImage src={logoUrl} alt="Logo" width={110} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                            )}
+                                            <h1 className="text-sm font-light tracking-[0.5em] uppercase truncate">{catalogName || "MINIMAL"}</h1>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-6 text-center">
+                                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                                <NextImage src={logoUrl} alt="Logo" width={110} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                            )}
+                                            {titlePosition === 'center' && (
+                                                <h1 className="text-sm font-light tracking-[0.5em] uppercase truncate">{catalogName || "MINIMAL"}</h1>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Sağ Alan */}
+                                <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
+                                    {isCollisionRight ? (
+                                        <div className="flex flex-col gap-2 items-end">
+                                            <span className="text-[10px] font-mono opacity-60">P.{currentPage.toString().padStart(2, '0')}</span>
+                                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                                <NextImage src={logoUrl} alt="Logo" width={110} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                            )}
+                                            <h1 className="text-sm font-light tracking-[0.5em] uppercase truncate">{catalogName || "MINIMAL"}</h1>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-6 flex-row-reverse text-right">
+                                            <span className="text-[10px] font-mono opacity-60">P.{currentPage.toString().padStart(2, '0')}</span>
+                                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                                <NextImage src={logoUrl} alt="Logo" width={110} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                            )}
+                                            {titlePosition === 'right' && (
+                                                <h1 className="text-sm font-light tracking-[0.5em] uppercase truncate">{catalogName || "MINIMAL"}</h1>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </header>
 
                         {/* Grid - Flexible 2x2 Layout */}
                         <div className="flex-1 px-12 grid grid-cols-2 gap-x-12 gap-y-12 overflow-hidden py-10 content-start">
                             {pageProducts.map((product) => {
-                                const productUrl = product.product_url
+                                const productUrl = sanitizeHref(product.product_url)
                                 return (
                                     <div key={product.id} className="flex flex-col relative w-full aspect-[3/4] group">
                                         {/* Product Image - Fixed Proportion */}
@@ -138,11 +178,7 @@ export function MinimalistTemplate({
                                                 </h3>
                                                 {showPrices && (
                                                     <div className="text-xs font-medium text-[#1a1a1a] ml-4">
-                                                        {(() => {
-                                                            const currency = product.custom_attributes?.find((a: CustomAttribute) => a.name === "currency")?.value || "TRY"
-                                                            const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                            return `${symbol}${Number(product.price).toFixed(2)}`
-                                                        })()}
+                                                        {formatProductPrice(product)}
                                                     </div>
                                                 )}
                                             </div>
@@ -183,13 +219,13 @@ export function MinimalistTemplate({
                         </div>
 
                         {/* Footer - Minimal */}
-                        <div className="shrink-0 flex items-center justify-center" style={{ height: FOOTER_HEIGHT }}>
+                        <div className="shrink-0 flex items-center justify-center transition-colors" style={{ height: FOOTER_HEIGHT }}>
                             <div className="flex items-center gap-10">
-                                <div className="w-12 h-[1px] bg-[#f0f0f0]" />
-                                <span className="text-[9px] tracking-[0.5em] text-[#d0d0d0] uppercase">
+                                <div className="w-12 h-[1px]" style={{ backgroundColor: headerTextColor ? `${headerTextColor}20` : '#f0f0f0' }} />
+                                <span className="text-[9px] tracking-[0.5em] uppercase opacity-40">
                                     {currentPage} / {totalPageCount}
                                 </span>
-                                <div className="w-12 h-[1px] bg-[#f0f0f0]" />
+                                <div className="w-12 h-[1px]" style={{ backgroundColor: headerTextColor ? `${headerTextColor}20` : '#f0f0f0' }} />
                             </div>
                         </div>
                     </div>
@@ -197,4 +233,4 @@ export function MinimalistTemplate({
             })}
         </div>
     )
-}
+})

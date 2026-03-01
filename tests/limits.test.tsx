@@ -7,11 +7,11 @@ import type { Product } from '@/lib/actions/products'
 import type { Catalog } from '@/lib/actions/catalogs'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 
-vi.mock('@/lib/user-context', () => ({
+vi.mock('@/lib/contexts/user-context', () => ({
     useUser: () => ({
         user: { id: 'test-user', plan: 'free' },
         isLoading: false,
@@ -89,6 +89,7 @@ describe('Plan Limitleri Testleri', () => {
                 user_id: 'test-user',
                 description: null,
                 product_url: null,
+                order: i,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             }))
@@ -96,6 +97,8 @@ describe('Plan Limitleri Testleri', () => {
             render(
                 <ProductsPageClient
                     initialProducts={mockProducts as Parameters<typeof ProductsPageClient>[0]['initialProducts']}
+                    initialMetadata={{ total: 50, page: 1, limit: 50, totalPages: 1 }}
+                    initialStats={{ total: 50, inStock: 50, lowStock: 0, outOfStock: 0, totalValue: 5000 }}
                     userPlan="free"
                     maxProducts={50}
                 />
@@ -179,6 +182,7 @@ describe('Plan Limitleri Testleri', () => {
                 user_id: 'test-user',
                 description: null,
                 product_url: null,
+                order: i,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             }))
@@ -186,6 +190,8 @@ describe('Plan Limitleri Testleri', () => {
             render(
                 <ProductsPageClient
                     initialProducts={mockProducts as Product[]}
+                    initialMetadata={{ total: 1000, page: 1, limit: 1000, totalPages: 1 }}
+                    initialStats={{ total: 1000, inStock: 1000, lowStock: 0, outOfStock: 0, totalValue: 100000 }}
                     userPlan="plus"
                     maxProducts={1000}
                 />

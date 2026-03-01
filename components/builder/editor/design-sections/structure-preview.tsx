@@ -1,5 +1,6 @@
 import { ChevronRight, Layout } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { StructurePreviewProps } from "./types"
 
 export function StructurePreview({
@@ -7,6 +8,8 @@ export function StructurePreview({
     enableCategoryDividers,
     selectedProductCount,
 }: StructurePreviewProps) {
+    const { t } = useTranslation()
+
     return (
         <div className="space-y-6 pt-6 animate-in fade-in duration-700">
             <div className="flex items-center justify-center gap-3">
@@ -15,7 +18,7 @@ export function StructurePreview({
                     <div className="w-10 h-10 rounded-2xl bg-amber-500 shadow-lg shadow-amber-200 flex items-center justify-center text-white">
                         <Layout className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">SAYFA YAPISI</h3>
+                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">{t("builder.pageStructure")}</h3>
                 </div>
                 <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
             </div>
@@ -32,7 +35,7 @@ export function StructurePreview({
                         "w-7 h-7 rounded-xl flex items-center justify-center text-white text-[10px] font-black shadow-sm",
                         enableCoverPage ? "bg-indigo-600" : "bg-slate-300"
                     )}>01</div>
-                    <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">Kapak</span>
+                    <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">{t("builder.coverLabel")}</span>
                 </div>
 
                 <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
@@ -43,8 +46,8 @@ export function StructurePreview({
                         <div className="w-full h-1/2 bg-slate-200/50 rounded-sm"></div>
                         <div className="w-full h-1/2 bg-slate-200/50 rounded-sm"></div>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">Ürünler</span>
-                    <span className="text-[8px] text-slate-400 font-bold">{selectedProductCount} Ürün</span>
+                    <span className="text-[9px] font-black uppercase tracking-tight text-slate-500 text-center px-1">{t("builder.productsLabel")}</span>
+                    <span className="text-[8px] text-slate-400 font-bold">{selectedProductCount} {t("builder.productUnit")}</span>
                 </div>
 
                 {enableCategoryDividers && (
@@ -54,7 +57,7 @@ export function StructurePreview({
                             <div className="w-7 h-7 rounded-xl bg-violet-600 shadow-sm flex items-center justify-center text-white">
                                 <Layout className="w-3.5 h-3.5" />
                             </div>
-                            <span className="text-[9px] font-black uppercase tracking-tight text-slate-600 text-center px-1">Geçişler</span>
+                            <span className="text-[9px] font-black uppercase tracking-tight text-slate-600 text-center px-1">{t("builder.transitionsLabel")}</span>
                         </div>
                     </>
                 )}

@@ -4,7 +4,7 @@ import { ProductModal } from '@/components/products/modals/product-modal'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 
@@ -45,8 +45,8 @@ vi.mock('next/image', () => ({
     },
 }))
 
-vi.mock('@/lib/image-utils', () => ({
-    convertToWebP: vi.fn(async (file: File) => ({
+vi.mock('@/lib/utils/image-utils', () => ({
+    optimizeImage: vi.fn(async (file: File) => ({
         blob: new Blob([file], { type: 'image/webp' }),
         fileName: file.name.replace(/\.[^.]+$/, '.webp'),
     })),
@@ -79,6 +79,8 @@ describe('ProductModal Image Upload', () => {
         onSaved: vi.fn(),
         allCategories: [],
         userPlan: 'free' as const,
+        maxProducts: 50,
+        currentProductCount: 10,
     }
 
     beforeEach(() => {

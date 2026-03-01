@@ -1,15 +1,17 @@
 import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 
-export function ModernCover({
+export const ModernCover = React.memo(function ModernCover({
     catalogName,
     coverImageUrl,
     coverDescription,
-    logoUrl,
+    logoUrl: _logoUrl,
     productCount = 0,
     primaryColor: _primaryColor = '#3b82f6'
 }: CoverPageProps) {
+    const { t } = useTranslation()
     return (
         <div className="relative w-full h-full bg-slate-50 overflow-hidden flex flex-col">
             {/* Background Graphics */}
@@ -39,7 +41,7 @@ export function ModernCover({
                         ) || <div />}
 
                         <div className="flex flex-col items-start lg:items-end shrink-0">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Katalog İçeriği</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t("coverTexts.catalogContent")}</span>
                             <div className="text-5xl font-black text-slate-900 tabular-nums">
                                 {productCount}<span className="text-indigo-600 text-2xl ml-1">+</span>
                             </div>
@@ -62,11 +64,11 @@ export function ModernCover({
                         </div>
                     ) : (
                         <div className="w-full h-full rounded-[2.5rem] bg-gradient-to-br from-slate-100 to-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center">
-                            <div className="text-slate-300 font-black text-4xl uppercase tracking-tighter opacity-50">Görsel Seçilmedi</div>
+                            <div className="text-slate-300 font-black text-4xl uppercase tracking-tighter opacity-50">{t("coverTexts.noImageSelected")}</div>
                         </div>
                     )}
                 </div>
             </div>
         </div>
     )
-}
+})

@@ -1,14 +1,16 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Retail Template - "The High-Street Gallery"
  * A high-impact, modern retail design inspired by street fashion and boutique storefronts.
  * Features: Massive headers, bold typography, card-based layout with sharp shadows.
  */
-export function RetailTemplate({
+export const RetailTemplate = React.memo(function RetailTemplate({
     catalogName,
     products,
     primaryColor = "#000000",
@@ -23,6 +25,13 @@ export function RetailTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
+    productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
 
@@ -35,57 +44,107 @@ export function RetailTemplate({
         }
     }
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 24
-            case 'large': return 44
-            default: return 32
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoHeight = getStandardLogoHeight(logoSize)
+
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+
+    const renderTitleBlock = () => (
+        <div>
+            <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none" style={{ color: headerTextColor || '#000000' }}>
+                {catalogName || "COLLECTION_2026"}
+            </h1>
+            <div className="flex items-center gap-3 mt-2">
+                <span className="text-[10px] font-black bg-black text-white px-2 py-0.5 tracking-widest uppercase">
+                    Season Lookbook
+                </span>
+                <div className="h-[1px] w-12 bg-black/10" />
+            </div>
+        </div>
+    )
 
     return (
-        <div className="h-full bg-white flex flex-col relative overflow-hidden selection:bg-black selection:text-white">
+        <div className="h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Top Fashion Strip */}
-            <div className="h-1.5 w-full bg-black shrink-0" style={{ backgroundColor: primaryColor }} />
+            <div className="h-1.5 w-full shrink-0" style={{ backgroundColor: primaryColor }} />
 
             {/* Header - High Impact */}
-            <div className="h-32 px-12 flex items-center justify-between shrink-0 bg-white z-10">
-                <div className="flex items-center gap-8">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                    )}
-                    <div>
-                        <h1 className="text-4xl font-[900] uppercase tracking-tighter text-black leading-none">
-                            {catalogName || "COLLECTION_2026"}
-                        </h1>
-                        <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[10px] font-black bg-black text-white px-2 py-0.5 tracking-widest uppercase">
-                                Season Lookbook
-                            </span>
-                            <div className="h-[1px] w-12 bg-black/10" />
+            <header className="h-32 px-12 flex items-center justify-between shrink-0 z-10 transition-colors" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent' }}>
+                {/* Sol Alan */}
+                <div className="flex-1 flex items-center justify-start min-w-0 gap-8">
+                    {isCollisionLeft ? (
+                        <div className="flex items-center gap-6">
+                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {renderTitleBlock()}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="flex items-center gap-6">
+                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {titlePosition === 'left' && renderTitleBlock()}
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
-                    {logoUrl && isHeaderLogo && (logoAlignment === 'right' || logoAlignment === 'center') && (
-                        <div className="mb-2">
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
+                {/* Orta Alan */}
+                <div className="flex-1 flex items-center justify-center min-w-0 gap-8 text-center">
+                    {isCollisionCenter ? (
+                        <div className="flex items-center flex-col gap-4">
+                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {renderTitleBlock()}
+                        </div>
+                    ) : (
+                        <div className="flex items-center flex-col gap-4 text-center">
+                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                            )}
+                            {titlePosition === 'center' && renderTitleBlock()}
                         </div>
                     )}
-                    <div className="text-[11px] font-bold text-black border-2 border-black px-3 py-1 italic">
-                        PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}
-                    </div>
                 </div>
-            </div>
+
+                {/* Sağ Alan */}
+                <div className="flex-1 flex items-center justify-end min-w-0 gap-6 text-right relative">
+                    {isCollisionRight ? (
+                        <div className="flex flex-col items-end gap-2 text-right">
+                            {titlePosition === 'right' && renderTitleBlock()}
+                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                            )}
+                            <div className="text-[11px] font-bold border-2 px-3 py-1 italic mt-1" style={{ borderColor: headerTextColor || '#000000', color: headerTextColor || '#000000' }}>
+                                PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-end gap-2 text-right">
+                            {titlePosition === 'right' && renderTitleBlock()}
+                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                            )}
+                            <div className="text-[11px] font-bold border-2 px-3 py-1 italic mt-1" style={{ borderColor: headerTextColor || '#000000', color: headerTextColor || '#000000' }}>
+                                PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </header>
 
             {/* Retail Grid - Sophisticated Cards */}
             <div className={`flex-1 px-10 pb-10 grid ${getGridCols()} grid-rows-3 gap-8 overflow-hidden z-10`}>
                 {safeProducts.map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const _Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const _wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
@@ -102,7 +161,7 @@ export function RetailTemplate({
                             <div className="w-1/3 bg-zinc-50 relative overflow-hidden shrink-0">
                                 <ProductImageGallery
                                     product={product}
-                                    imageFit="contain"
+                                    imageFit={productImageFit}
                                     className="w-full h-full"
                                     imageClassName="p-2 group-hover:scale-110 transition-transform duration-700"
                                     showNavigation={false}
@@ -143,11 +202,7 @@ export function RetailTemplate({
                                     {showPrices && (
                                         <div className="flex items-center gap-2">
                                             <span className="text-lg font-[900] tracking-tighter" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </span>
                                             <div className="w-12 h-[2px] bg-zinc-100" />
                                         </div>
@@ -173,15 +228,15 @@ export function RetailTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-16 px-12 border-t border-zinc-100 flex items-center justify-between shrink-0 bg-white">
-                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-black">
-                    <span className="w-12 h-0.5 bg-black" />
+            <div className="h-16 px-12 border-t flex items-center justify-between shrink-0 transition-colors z-10" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent', borderColor: headerTextColor ? `${headerTextColor}20` : '#f4f4f5' }}>
+                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: headerTextColor || '#000000' }}>
+                    <span className="w-12 h-0.5 bg-black" style={{ backgroundColor: primaryColor || '#000000' }} />
                     <span>Archive Edition</span>
                 </div>
-                <div className="text-[10px] font-bold text-zinc-400">
+                <div className="text-[10px] font-bold opacity-60" style={{ color: headerTextColor || '#000000' }}>
                     © {new Date().getFullYear()} {catalogName?.toUpperCase()}
                 </div>
             </div>
         </div>
     )
-}
+})

@@ -7,19 +7,13 @@ import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { sendEmail } from "@/lib/services/email"
 import { feedbackSchema, validate } from "@/lib/validations"
 import {
-  checkRateLimit,
-  FEEDBACK_LIMIT,
-  FEEDBACK_WINDOW_MS,
-} from "@/lib/rate-limit"
+    checkRateLimit,
+    FEEDBACK_LIMIT,
+    FEEDBACK_WINDOW_MS,
+} from "@/lib/services/rate-limit"
+import { requireAdmin } from "@/lib/actions/admin"
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL
-
-async function requireAdmin(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.email !== ADMIN_EMAIL) {
-    throw new Error("Unauthorized")
-  }
-}
 
 export type Feedback = {
     id: string
@@ -44,7 +38,7 @@ export async function sendFeedback(data: {
     const headersList = await headers()
     const rl = checkRateLimit(headersList, "feedback", FEEDBACK_LIMIT, FEEDBACK_WINDOW_MS)
     if (!rl.allowed) {
-      throw new Error("Çok fazla deneme. Lütfen 10 dakika sonra tekrar deneyin.")
+        throw new Error("Çok fazla deneme. Lütfen 10 dakika sonra tekrar deneyin.")
     }
 
     // Validate and sanitize input
@@ -108,6 +102,16 @@ export async function sendFeedback(data: {
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;')
+            }
+
+            // URL scheme validation — only allow http/https to prevent javascript: XSS
+            const isSafeUrl = (url: string): boolean => {
+                try {
+                    const parsed = new URL(url)
+                    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+                } catch {
+                    return false
+                }
             }
 
             const safeUserName = escapeHtml(userName)
@@ -317,7 +321,7 @@ export async function sendFeedback(data: {
                                 <div style="margin-top: 32px;">
                                     <span class="message-box-title">Ekli Dosyalar</span>
                                     <div style="display: flex; flex-wrap: wrap;">
-                                        ${data.attachments.map(url => {
+                                        ${data.attachments.filter(url => isSafeUrl(url)).map(url => {
                 const fileName = escapeHtml(url).split('/').pop() || 'dosya'
                 const displayName = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName
                 return `
@@ -363,7 +367,7 @@ export async function sendFeedback(data: {
 
 export async function getFeedbacks() {
     const supabase = await createServerSupabaseClient()
-    await requireAdmin(supabase)
+    await requireAdmin()
 
     const { data, error } = await supabase
         .from("feedbacks")
@@ -376,7 +380,7 @@ export async function getFeedbacks() {
 
 export async function updateFeedbackStatus(id: string, status: Feedback['status']) {
     const supabase = await createServerSupabaseClient()
-    await requireAdmin(supabase)
+    await requireAdmin()
 
     const { error } = await supabase
         .from("feedbacks")
@@ -390,7 +394,7 @@ export async function updateFeedbackStatus(id: string, status: Feedback['status'
 
 export async function bulkUpdateFeedbackStatus(ids: string[], status: Feedback['status']) {
     const supabase = await createServerSupabaseClient()
-    await requireAdmin(supabase)
+    await requireAdmin()
 
     const { error } = await supabase
         .from("feedbacks")
@@ -402,81 +406,86 @@ export async function bulkUpdateFeedbackStatus(ids: string[], status: Feedback['
     return { success: true, count: ids.length }
 }
 
-export async function bulkDeleteFeedbacks(ids: string[]) {
-    const supabase = await createServerSupabaseClient()
-    await requireAdmin(supabase)
-
-    let deletedCount = 0
-    let errorCount = 0
-
-    for (const id of ids) {
+/**
+ * Shared helper: Extract file path from attachment URL and delete from storage
+ */
+async function deleteAttachments(
+    supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+    attachments: string[]
+) {
+    for (const url of attachments) {
         try {
-            // Önce feedback'i al (attachments için)
-            const { data: feedback } = await supabase
-                .from("feedbacks")
-                .select("attachments")
-                .eq("id", id)
-                .single()
+            let filePath: string | null = null
+            const urlObj = new URL(url)
 
-            if (feedback) {
-                // Storage'dan dosyaları sil
-                if (feedback.attachments && Array.isArray(feedback.attachments) && feedback.attachments.length > 0) {
-                    for (const url of feedback.attachments) {
-                        try {
-                            let filePath: string | null = null
-                            const urlObj = new URL(url)
+            const publicMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/feedback-attachments\/(.+)/)
+            const signedMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/feedback-attachments\/(.+)/)
 
-                            const publicMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/feedback-attachments\/(.+)/)
-                            const signedMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/feedback-attachments\/(.+)/)
-
-                            if (publicMatch) {
-                                filePath = publicMatch[1]
-                            } else if (signedMatch) {
-                                filePath = signedMatch[1]
-                            } else {
-                                const altMatch = urlObj.pathname.match(/feedback-attachments\/(.+)/)
-                                if (altMatch) {
-                                    filePath = altMatch[1]
-                                }
-                            }
-
-                            if (filePath) {
-                                await supabase.storage
-                                    .from('feedback-attachments')
-                                    .remove([filePath])
-                            }
-                        } catch (error) {
-                            console.warn(`⚠️ Error deleting attachment ${url}:`, error)
-                        }
-                    }
-                }
-
-                // Veritabanından feedback'i sil
-                const { error: deleteError } = await supabase
-                    .from("feedbacks")
-                    .delete()
-                    .eq("id", id)
-
-                if (deleteError) {
-                    console.error(`Error deleting feedback ${id}:`, deleteError)
-                    errorCount++
-                } else {
-                    deletedCount++
+            if (publicMatch) {
+                filePath = publicMatch[1]
+            } else if (signedMatch) {
+                filePath = signedMatch[1]
+            } else {
+                const altMatch = urlObj.pathname.match(/feedback-attachments\/(.+)/)
+                if (altMatch) {
+                    filePath = altMatch[1]
                 }
             }
+
+            if (filePath) {
+                const { error: deleteError } = await supabase.storage
+                    .from('feedback-attachments')
+                    .remove([filePath])
+
+                if (deleteError) {
+                    console.error(`❌ Failed to delete file ${filePath}:`, deleteError)
+                }
+            } else {
+                console.warn(`⚠️ Could not extract file path from URL: ${url}`)
+            }
         } catch (error) {
-            console.error(`Error processing feedback ${id}:`, error)
-            errorCount++
+            console.warn(`⚠️ Error deleting attachment ${url}:`, error)
         }
+    }
+}
+
+export async function bulkDeleteFeedbacks(ids: string[]) {
+    const supabase = await createServerSupabaseClient()
+    await requireAdmin()
+
+    // Batch fetch all feedbacks at once instead of N+1 queries
+    const { data: feedbacks } = await supabase
+        .from("feedbacks")
+        .select("id, attachments")
+        .in("id", ids)
+
+    // Delete attachments in parallel
+    if (feedbacks && feedbacks.length > 0) {
+        await Promise.allSettled(
+            feedbacks
+                .filter(f => f.attachments && Array.isArray(f.attachments) && f.attachments.length > 0)
+                .map(f => deleteAttachments(supabase, f.attachments as string[]))
+        )
+    }
+
+    // Batch delete all feedbacks at once
+    const { error, count } = await supabase
+        .from("feedbacks")
+        .delete()
+        .in("id", ids)
+
+    if (error) {
+        console.error("Error bulk deleting feedbacks:", error)
+        throw error
     }
 
     revalidatePath("/dashboard/admin")
-    return { success: true, deletedCount, errorCount }
+    return { success: true, deletedCount: count ?? ids.length, errorCount: 0 }
 }
 
 export async function deleteFeedback(id: string) {
     const supabase = await createServerSupabaseClient()
-    await requireAdmin(supabase)
+    await requireAdmin()
 
     // Önce feedback'i al (attachments için)
     const { data: feedback, error: fetchError } = await supabase
@@ -494,54 +503,9 @@ export async function deleteFeedback(id: string) {
         throw new Error("Feedback not found")
     }
 
-    // Storage'dan dosyaları sil
+    // Storage'dan dosyaları sil (shared helper kullan)
     if (feedback.attachments && Array.isArray(feedback.attachments) && feedback.attachments.length > 0) {
-
-        for (const url of feedback.attachments) {
-            try {
-                let filePath: string | null = null
-
-                // URL'den dosya yolunu çıkar - farklı formatları kontrol et
-                try {
-                    const urlObj = new URL(url)
-
-                    // Format 1: Public URL: /storage/v1/object/public/feedback-attachments/{userId}/feedback/{fileName}
-                    // Format 2: Signed URL: /storage/v1/object/sign/feedback-attachments/{userId}/feedback/{fileName}?token=...
-                    const publicMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/feedback-attachments\/(.+)/)
-                    const signedMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/feedback-attachments\/(.+)/)
-
-                    if (publicMatch) {
-                        filePath = publicMatch[1]
-                    } else if (signedMatch) {
-                        filePath = signedMatch[1]
-                    } else {
-                        // Alternatif: URL'den direkt path çıkar
-                        const altMatch = urlObj.pathname.match(/feedback-attachments\/(.+)/)
-                        if (altMatch) {
-                            filePath = altMatch[1]
-                        }
-                    }
-
-                    if (filePath) {
-                        const { error: deleteError } = await supabase.storage
-                            .from('feedback-attachments')
-                            .remove([filePath])
-
-                        if (deleteError) {
-                            console.error(`❌ Failed to delete file ${filePath}:`, deleteError)
-                            // Devam et, veritabanı kaydını sil
-                        }
-                    } else {
-                        console.warn(`⚠️ Could not extract file path from URL: ${url}`)
-                    }
-                } catch (urlError) {
-                    console.warn(`⚠️ Invalid URL format: ${url}`, urlError)
-                }
-            } catch (error) {
-                console.warn(`⚠️ Error deleting attachment ${url}:`, error)
-                // Devam et, veritabanı kaydını sil
-            }
-        }
+        await deleteAttachments(supabase, feedback.attachments)
     }
 
     // Veritabanından feedback'i sil

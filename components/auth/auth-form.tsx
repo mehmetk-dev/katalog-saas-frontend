@@ -10,11 +10,7 @@ import { RedirectOverlay } from "@/components/auth/auth-form/redirect-overlay"
 import { StatusBanner } from "@/components/auth/auth-form/status-banner"
 import { useAuthFormController } from "@/components/auth/auth-form/use-auth-form-controller"
 
-interface AuthFormProps {
-    onSignUpComplete: () => void
-}
-
-export function AuthForm({ onSignUpComplete: _onSignUpComplete }: AuthFormProps) {
+export function AuthForm() {
     const {
         t,
         language,

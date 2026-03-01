@@ -1,14 +1,16 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Classic Catalog Template - "The Archive Editorial"
  * A timeless, sophisticated design inspired by archival fashion magazines and art galleries.
  * Features: Minimalist structure, serif typography, heavy use of negative space, and a documentary feel.
  */
-export function ClassicCatalogTemplate({
+export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate({
     catalogName,
     products,
     primaryColor = "#000000",
@@ -18,10 +20,11 @@ export function ClassicCatalogTemplate({
     showSku,
     showUrls = false,
     pageNumber = 1,
-    totalPages: _totalPages = 1,
+    totalPages = 1,
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
     productImageFit = 'cover',
     // New Props for Customization
     backgroundColor,
@@ -32,50 +35,102 @@ export function ClassicCatalogTemplate({
 }: TemplateProps) {
     const safeProducts = products || []
 
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'contain': return 'object-contain'
-            case 'fill': return 'object-fill'
-            case 'cover':
-            default: return 'object-cover'
-        }
-    }
-
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 32
-            case 'large': return 64
-            default: return 48
-        }
-    }
-
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'center'
-
     // Arka plan stili oluştur
-    const containerStyle: React.CSSProperties = {
-        backgroundColor: backgroundColor || '#fdfdfd',
-        ...(backgroundImage ? {
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: backgroundImageFit || 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-        } : {}),
-        ...(backgroundGradient ? {
-            background: backgroundGradient
-        } : {})
-    }
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
+
+    const logoHeight = getStandardLogoHeight(logoSize)
 
     return (
-        <div className="h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12" style={containerStyle}>
+        <div className="h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12 transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Header - Classic & Time-Honored */}
+            <header className="h-24 px-16 flex items-end pb-6 border-b border-black/10 shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
+                <div className="flex-1 flex items-end justify-between relative w-full h-full">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-end justify-start min-w-0 z-10 gap-8">
+                        {isCollisionLeft ? (
+                            <div className="flex flex-col gap-4 items-start">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-8">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                )}
+                                {titlePosition === 'left' && (
+                                    <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex items-end justify-center min-w-0 z-10 gap-8">
+                        {isCollisionCenter ? (
+                            <div className="flex flex-col gap-4 items-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-8">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                )}
+                                {titlePosition === 'center' && (
+                                    <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-end justify-end min-w-0 z-10 gap-8 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex flex-col gap-4 items-end">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-8 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                )}
+                                {titlePosition === 'right' && (
+                                    <div className="flex flex-col items-end">
+                                        <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                        <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
+                                    </div>
+                                )}
+                                {titlePosition !== 'right' && logoAlignment !== 'right' && (
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </header>
 
             {/* Content - Vertical Flow (Max 3 Items Per Page usually appropriate for this style) */}
             <div className="flex-1 px-16 py-12 flex flex-col gap-12 overflow-hidden items-center">
                 {safeProducts.slice(0, 3).map((product, idx) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
@@ -95,7 +150,7 @@ export function ClassicCatalogTemplate({
                         <div key={product.id} className="flex-1 min-h-0 w-full">
                             <Wrapper {...(wrapperProps as React.AnchorHTMLAttributes<HTMLAnchorElement> & React.HTMLAttributes<HTMLDivElement>)} className={`group w-full h-full flex items-center gap-12 cursor-pointer relative ${orderClass}`}>
                                 {/* Image Section */}
-                                <div className="w-[45%] h-full relative bg-zinc-50 border border-black/5 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.03)] shrink-0">
+                                <div className="w-[45%] h-full relative border border-black/5 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.03)] shrink-0 transition-colors">
                                     <ProductImageGallery
                                         product={product}
                                         imageFit={productImageFit}
@@ -143,11 +198,7 @@ export function ClassicCatalogTemplate({
                                     {showPrices && (
                                         <div className="mt-auto pt-6 border-t border-black/10 w-32 flex items-center justify-between">
                                             <span className="text-xl font-serif italic block" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </span>
                                             {showUrls && productUrl && (
                                                 <ShoppingBag className="w-4 h-4 text-black/20 group-hover:text-black/60 transition-colors" />
@@ -175,4 +226,4 @@ export function ClassicCatalogTemplate({
             </div>
         </div>
     )
-}
+})

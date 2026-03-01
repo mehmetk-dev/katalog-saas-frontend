@@ -1,226 +1,134 @@
 "use client"
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react"
+import dynamic from "next/dynamic"
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
 import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
 
 import { EditorContentTab } from "./editor-content-tab"
-import { EditorDesignTab } from "./editor-design-tab"
+
+// PERF: Lazy-load design tab — defers react-colorful, template constants,
+// 6 design sections, and cover themes until user clicks the "Design" tab.
+const EditorDesignTab = dynamic(
+  () => import("./editor-design-tab").then(m => ({ default: m.EditorDesignTab })),
+  { ssr: false }
+)
+
+// FIX(F2): Context-based — no more 60+ prop drilling
+import { useBuilder } from "@/components/builder/builder-context"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface CatalogEditorProps {
-  products: Product[]
-  totalProductCount?: number
-  isProductListTruncated?: boolean
-  selectedProductIds: string[]
-  onSelectedProductIdsChange: (ids: string[]) => void
-  description: string
-  onDescriptionChange: (desc: string) => void
-  layout: string
-  onLayoutChange: (layout: string) => void
-  primaryColor: string
-  onPrimaryColorChange: (color: string) => void
-  showPrices: boolean
-  onShowPricesChange: (show: boolean) => void
-  showDescriptions: boolean
-  onShowDescriptionsChange: (show: boolean) => void
-  userPlan: string
-  onUpgrade: () => void
-  columnsPerRow?: number
-  onColumnsPerRowChange?: (columns: number) => void
-  backgroundColor?: string
-  onBackgroundColorChange?: (color: string) => void
-  backgroundImage?: string | null
-  onBackgroundImageChange?: (url: string | null) => void
-  backgroundGradient?: string | null
-  onBackgroundGradientChange?: (gradient: string | null) => void
-  backgroundImageFit?: Catalog['background_image_fit']
-  onBackgroundImageFitChange?: (fit: NonNullable<Catalog['background_image_fit']>) => void
-  logoUrl?: string | null
-  onLogoUrlChange?: (url: string | null) => void
-  logoPosition?: Catalog['logo_position']
-  onLogoPositionChange?: (position: NonNullable<Catalog['logo_position']>) => void
-  logoSize?: Catalog['logo_size']
-  onLogoSizeChange?: (size: NonNullable<Catalog['logo_size']>) => void
-  titlePosition?: Catalog['title_position']
-  onTitlePositionChange?: (position: NonNullable<Catalog['title_position']>) => void
-  productImageFit?: NonNullable<Catalog['product_image_fit']>
-  onProductImageFitChange?: (fit: NonNullable<Catalog['product_image_fit']>) => void
-  headerTextColor?: string
-  onHeaderTextColorChange?: (color: string) => void
-  showAttributes?: boolean
-  onShowAttributesChange?: (show: boolean) => void
-  showSku?: boolean
-  onShowSkuChange?: (show: boolean) => void
-  showUrls?: boolean
-  onShowUrlsChange?: (show: boolean) => void
-  // Storytelling Catalog Props
-  enableCoverPage?: boolean
-  onEnableCoverPageChange?: (enable: boolean) => void
-  coverImageUrl?: string | null
-  onCoverImageUrlChange?: (url: string | null) => void
-  coverDescription?: string | null
-  onCoverDescriptionChange?: (desc: string | null) => void
-  enableCategoryDividers?: boolean
-  onEnableCategoryDividersChange?: (enable: boolean) => void
-  coverTheme?: string
-  onCoverThemeChange?: (theme: string) => void
-  showInSearch?: boolean
-  onShowInSearchChange?: (show: boolean) => void
-  catalogName: string
-}
+// PERF(F14): Color utilities consolidated in builder-utils
+// parseColor and rgbToHex are now imported from builder-utils
+import { parseColor, rgbToHex } from "@/components/builder/builder-utils"
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Parse color string to RGB components */
-export const parseColor = (color: string) => {
-  if (color.startsWith('rgba')) {
-    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
-    if (match) {
-      return {
-        r: parseInt(match[1]),
-        g: parseInt(match[2]),
-        b: parseInt(match[3]),
-        a: match[4] ? parseFloat(match[4]) : 1
-      }
-    }
-  } else if (color.startsWith('#')) {
-    const hex = color.replace('#', '')
-    const r = parseInt(hex.substring(0, 2), 16)
-    const g = parseInt(hex.substring(2, 4), 16)
-    const b = parseInt(hex.substring(4, 6), 16)
-    return { r, g, b, a: 1 }
-  }
-  return { r: 124, g: 58, b: 237, a: 1 }
-}
-
-/** Convert RGB values to hex string */
-export const rgbToHex = (r: number, g: number, b: number) => {
-  return `#${[r, g, b].map(x => {
-    const hex = x.toString(16)
-    return hex.length === 1 ? '0' + hex : hex
-  }).join('')}`
-}
-
-/** 
- * ŞABLON SÜTUN REFERANS LİSTESİ (TEMPLATE COLUMN CONSTRAINTS)
- * ───
- * Bu ayarlar her şablonun Görünüm Düzeni sekmesinde kaç "Sütun" seçeneği
- * göstereceğini belirler. Şablonlar isimleri (layout) üzerinden eşleştirilir.
- * 
- * - modern-grid (Modern Izgara): 2 ve 3 sütun
- * - product-tiles (Ürün Karoları): Sadece 3 sütun (Sabit)
- * - minimalist (Minimalist): Sadece 2 sütun (Sabit)
- * - clean-white (Temiz Beyaz): 2, 3 ve 4 sütun
- * - elegant-cards (Zarif Kartlar): Sadece 2 sütun (Sabit)
- * - bold (Kalın ve Cesur): 2 ve 3 sütun
- * - catalog-pro (Katalog Pro): Sadece 2 sütun (Sabit)
- * - luxury (Lüks Siyah): Sadece 2 sütun (Sabit)
- * - magazine (Dergi): 2 ve 3 sütun
- * - fashion-lookbook (Moda Lookbook): Sadece 2 sütun (Sabit)
- * - retail (Perakende): 2 ve 3 sütun
- * - tech-modern (Modern Teknoloji): 2 ve 3 sütun
- * - compact-list (Kompakt Liste): Sadece 1 sütun (Sabit)
- * - industrial (Endüstriyel): Sadece 1 sütun (Sabit)
- * - classic-catalog (Klasik Katalog): Sadece 1 sütun (Sabit)
- * - showcase (Vitrin): Sadece 2 sütun (Sabit)
- */
-const getAvailableColumns = (layout: string) => {
+// ŞABLON SÜTUN REFERANS LİSTESİ (TEMPLATE COLUMN CONSTRAINTS)
+// ───
+// Bu ayarlar her şablonun Görünüm Düzeni sekmesinde kaç "Sütun" seçeneği
+// göstereceğini belirler. Şablonlar isimleri (layout) üzerinden eşleştirilir.
+// 
+// Yeni bir template eklediğinde veya mevcut bir template'in desteklediği
+// sütun sayısını değiştirmek istediğinde, SADECE bu fonksiyonu güncelle.
+//
+// ─── Mevcut Şablon Sütun Ayarları (Doğrulanmış Grid Yapıları) ─────────────────
+// - modern-grid (Modern Izgara): 2 veya 3 sütun
+// - compact-list (Kompakt Liste): Sadece 1 sütun (Sabit)
+// - list (Liste): Sadece 1 sütun (Sabit)
+// - classic-catalog (Klasik Katalog): Sadece 1 sütun (Sabit)
+// - industrial (Endüstriyel): Sadece 1 sütun (Sabit)
+// - registry (Kayıt / Satır): Sadece 1 sütun (Sabit)
+// - showcase (Vitrin): Sadece 2 sütun (Sabit - Sağda 1 sütun dikey liste, Solda Kapak)
+// - minimalist (Minimalist): Sadece 2 sütun (Sabit)
+// - elegant-cards (Zarif Kartlar): Sadece 2 sütun (Sabit)
+// - catalog-pro (Katalog Pro): Sadece 2 sütun (Sabit)
+// - magazine (Dergi): 2 veya 3 sütun
+// - luxury (Lüks Katalog): 2 veya 3 sütun
+// - product-tiles (Ürün Döşemeleri): 2 veya 3 sütun
+// - bold (Kalın): 2 veya 3 sütun
+// - fashion-lookbook (Moda Lookbook): 2 veya 3 sütun
+// - clean-white (Temiz Beyaz): 2 veya 3 sütun
+// - retail (Perakende): 2 veya 3 sütun
+// - tech-modern (Teknoloji Modern): 2 veya 3 sütun
+//
+// NOT: Hiçbir standart şablon 4 veya 5 sütun seçeneği sunmamaktadır. Düzenler grid-cols-2 ve grid-cols-3 kullanılarak yazılmıştır.
+const getAvailableColumns = (layout: string): number[] => {
   switch (layout) {
-    case 'modern-grid':
-      return [2, 3]
-    case 'product-tiles':
-      return [3]
+    case 'compact-list':
+    case 'list':
+    case 'classic-catalog':
+    case 'industrial':
+    case 'registry':
+      return [1]
+    case 'showcase':
     case 'minimalist':
     case 'elegant-cards':
     case 'catalog-pro':
-    case 'fashion-lookbook':
-    case 'luxury':
-    case 'showcase':
-      return [2]
-    case 'classic-catalog':
-    case 'industrial':
-    case 'compact-list':
-      return [1]
-    case 'clean-white':
-      return [2, 3, 4]
-    case 'bold':
+      return [2] // Vitrin, Minimalist, Zarif Kartlar ve Katalog Pro sadece 2 sütunlu tasarımları destekler
+    case 'product-tiles':
+      return [3] // Ürün Karoları sadece 3 sütunlu yapıyı destekler
+    case 'modern-grid':
     case 'magazine':
+    case 'luxury':
+    case 'bold':
+    case 'fashion-lookbook':
+    case 'clean-white':
     case 'retail':
     case 'tech-modern':
-      return [2, 3]
     default:
-      return [2, 3, 4]
+      // Diğer çoğu şablon 2 veya 3 sütun düzenini destekler.
+      return [2, 3]
   }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CatalogEditor({
-  products,
-  totalProductCount,
-  isProductListTruncated = false,
-  selectedProductIds,
-  onSelectedProductIdsChange,
-  description,
-  onDescriptionChange,
-  layout,
-  onLayoutChange,
-  primaryColor,
-  onPrimaryColorChange,
-  showPrices,
-  onShowPricesChange,
-  showDescriptions,
-  onShowDescriptionsChange,
-  userPlan,
-  onUpgrade,
-  columnsPerRow = 3,
-  onColumnsPerRowChange,
-  backgroundColor = '#ffffff',
-  onBackgroundColorChange,
-  backgroundImage = null,
-  onBackgroundImageChange,
-  backgroundImageFit = 'cover',
-  onBackgroundImageFitChange,
-  backgroundGradient = null,
-  onBackgroundGradientChange,
-  logoUrl = null,
-  onLogoUrlChange,
-  logoPosition = 'header-left',
-  onLogoPositionChange,
-  logoSize: _logoSize = 'medium',
-  onLogoSizeChange: _onLogoSizeChange,
-  titlePosition = 'left',
-  onTitlePositionChange,
-  showAttributes = false,
-  onShowAttributesChange,
-  showSku = true,
-  onShowSkuChange,
-  showUrls = false,
-  onShowUrlsChange,
-  headerTextColor = '#ffffff',
-  onHeaderTextColorChange,
-  productImageFit = 'cover',
-  onProductImageFitChange,
-  enableCoverPage = false,
-  onEnableCoverPageChange,
-  coverImageUrl = null,
-  onCoverImageUrlChange,
-  coverDescription = null,
-  onCoverDescriptionChange,
-  enableCategoryDividers = false,
-  onEnableCategoryDividersChange,
-  coverTheme = 'modern',
-  onCoverThemeChange,
-  showInSearch: _showInSearch = true,
-  onShowInSearchChange: _onShowInSearchChange,
-  catalogName,
-}: CatalogEditorProps) {
+/** FIX(F2): CatalogEditor now reads all data from BuilderContext via useBuilder().
+ *  No props needed — eliminates 60+ prop drilling. */
+export function CatalogEditor() {
+  const { state, products, productTotalCount, isProductListTruncated, userPlan } = useBuilder()
+
+  // Destructure state for readability
+  const {
+    selectedProductIds, handleSelectedProductIdsChange: onSelectedProductIdsChange,
+    catalogDescription: description, setCatalogDescription: onDescriptionChange,
+    layout, setLayout: onLayoutChange,
+    primaryColor, setPrimaryColor: onPrimaryColorChange,
+    headerTextColor, setHeaderTextColor: onHeaderTextColorChange,
+    showPrices, setShowPrices: onShowPricesChange,
+    showDescriptions, setShowDescriptions: onShowDescriptionsChange,
+    showAttributes, setShowAttributes: onShowAttributesChange,
+    showSku, setShowSku: onShowSkuChange,
+    showUrls, setShowUrls: onShowUrlsChange,
+    productImageFit, setProductImageFit: onProductImageFitChange,
+    columnsPerRow, setColumnsPerRow: onColumnsPerRowChange,
+    backgroundColor, setBackgroundColor: onBackgroundColorChange,
+    backgroundImage, setBackgroundImage: onBackgroundImageChange,
+    backgroundImageFit, setBackgroundImageFit,
+    backgroundGradient, setBackgroundGradient: onBackgroundGradientChange,
+    logoUrl, setLogoUrl: onLogoUrlChange,
+    logoPosition, setLogoPosition,
+    logoSize, setLogoSize,
+    titlePosition, setTitlePosition,
+    enableCoverPage, setEnableCoverPage: onEnableCoverPageChange,
+    coverImageUrl, setCoverImageUrl: onCoverImageUrlChange,
+    coverDescription, setCoverDescription: onCoverDescriptionChange,
+    enableCategoryDividers, setEnableCategoryDividers: onEnableCategoryDividersChange,
+    categoryOrder, setCategoryOrder: onCategoryOrderChange,
+    coverTheme, setCoverTheme: onCoverThemeChange,
+    catalogName, setShowUpgradeModal,
+  } = state
+
+  const onUpgrade = useCallback(() => setShowUpgradeModal(true), [setShowUpgradeModal])
+  const onBackgroundImageFitChange = useCallback((v: NonNullable<Catalog['background_image_fit']>) => setBackgroundImageFit(v), [setBackgroundImageFit])
+  const onLogoPositionChange = useCallback((v: NonNullable<Catalog['logo_position']>) => setLogoPosition(v), [setLogoPosition])
+  const onLogoSizeChange = useCallback((v: NonNullable<Catalog['logo_size']>) => setLogoSize(v), [setLogoSize])
+  const onTitlePositionChange = useCallback((v: NonNullable<Catalog['title_position']>) => setTitlePosition(v), [setTitlePosition])
+
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
@@ -291,21 +199,26 @@ export function CatalogEditor({
     onCoverImageUrlChange,
     onBackgroundImageChange,
     backgroundImage,
+    t,
   })
 
   // ─── Search & Pagination ──────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(15)
+  const [itemsPerPage, setItemsPerPage] = useState(18)
 
   useEffect(() => {
     const calculateItemsPerPage = () => {
       const width = window.innerWidth
-      let cols = 5
-      if (width < 640) cols = 2
-      else if (width < 768) cols = 3
-      else if (width < 1024) cols = 4
-      setItemsPerPage(cols * 3)
+      // CSS breakpointleri ile tam senkronize: grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6
+      let cols = 2
+      let rows = 4
+      if (width >= 1536) { cols = 6; rows = 3; }       // 2xl: 6 sütun * 3 satır = 18 ürün
+      else if (width >= 1280) { cols = 5; rows = 2; }  // xl: 5 sütun * 2 satır = 10 ürün (Dikeyden tasarruf)
+      else if (width >= 1024) { cols = 4; rows = 2; }  // lg: 4 sütun * 2 satır = 8 ürün
+      else if (width >= 640) { cols = 3; rows = 3; }   // sm: 3 sütun * 3 satır = 9 ürün
+
+      setItemsPerPage(cols * rows)
     }
     calculateItemsPerPage()
     window.addEventListener('resize', calculateItemsPerPage)
@@ -380,11 +293,8 @@ export function CatalogEditor({
     }
   }, [selectedProductIds, selectedProductIdSet, onSelectedProductIdsChange])
 
-  const productMap = useMemo(() => {
-    const map = new Map<string, Product>()
-    for (const p of products) map.set(p.id, p)
-    return map
-  }, [products])
+  // PERF(P5): productMap reused from useBuilderState — no duplicate computation
+  const { productMap } = state
 
   const handleSortDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.stopPropagation()
@@ -415,10 +325,11 @@ export function CatalogEditor({
   }, [selectedProductIds, onSelectedProductIdsChange])
 
   // ─── Column Constraints ───────────────────────────────────────────────────
-  const availableColumns = getAvailableColumns(layout)
+  // PERF(F13): Memoize to stabilize reference — prevents effect re-runs every render
+  const availableColumns = useMemo(() => getAvailableColumns(layout), [layout])
 
   useEffect(() => {
-    if (availableColumns.length > 0 && !availableColumns.includes(columnsPerRow!) && onColumnsPerRowChange) {
+    if (availableColumns.length > 0 && !availableColumns.includes(columnsPerRow ?? 0) && onColumnsPerRowChange) {
       onColumnsPerRowChange(availableColumns[0])
     }
   }, [layout, availableColumns, columnsPerRow, onColumnsPerRowChange])
@@ -452,7 +363,7 @@ export function CatalogEditor({
               description={description}
               onDescriptionChange={onDescriptionChange}
               availableProductCount={products.length}
-              totalProductCount={totalProductCount}
+              totalProductCount={productTotalCount}
               isProductListTruncated={isProductListTruncated}
               searchQuery={searchQuery}
               onSearchChange={handleSearchChange}
@@ -532,8 +443,8 @@ export function CatalogEditor({
               onLogoUrlChange={onLogoUrlChange}
               logoPosition={logoPosition}
               onLogoPositionChange={onLogoPositionChange}
-              logoSize={_logoSize}
-              onLogoSizeChange={_onLogoSizeChange}
+              logoSize={logoSize}
+              onLogoSizeChange={onLogoSizeChange}
               titlePosition={titlePosition}
               onTitlePositionChange={onTitlePositionChange}
               enableCoverPage={enableCoverPage}
@@ -544,6 +455,8 @@ export function CatalogEditor({
               onCoverDescriptionChange={onCoverDescriptionChange}
               enableCategoryDividers={enableCategoryDividers}
               onEnableCategoryDividersChange={onEnableCategoryDividersChange}
+              categoryOrder={categoryOrder}
+              onCategoryOrderChange={onCategoryOrderChange}
               coverTheme={coverTheme}
               onCoverThemeChange={onCoverThemeChange}
               catalogName={catalogName}

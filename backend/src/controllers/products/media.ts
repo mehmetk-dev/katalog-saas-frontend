@@ -71,7 +71,7 @@ export const deletePhotosFromSupabase = async (
         }
 
         return { success: paths.length, failed: photoUrls.length - paths.length };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[deletePhotosFromSupabase] Exception deleting photos:', error);
         return { success: 0, failed: paths.length };
     }
@@ -148,7 +148,7 @@ export const cleanupProductPhotos = async (photoUrls: string[], context: 'delete
             if (moveResult.failed > 0) {
                 console.warn(`[${context}] ${moveResult.failed} fotoğraf deletedproducts klasörüne taşınamadı, ürün yine de silinecek.`);
             }
-        } catch (moveError: any) {
+        } catch (moveError: unknown) {
             console.error(`[${context}] Error moving photos to deletedproducts:`, moveError);
             console.warn(`[${context}] Ürün silme işlemine devam ediliyor (fotoğraflar taşınamadı).`);
         }
@@ -161,7 +161,7 @@ export const cleanupProductPhotos = async (photoUrls: string[], context: 'delete
         if (deleteResult.failed > 0) {
             console.warn(`[${context}] ${deleteResult.failed} fotoğraf Supabase'den silinemedi, ürün yine de silinecek.`);
         }
-    } catch (deleteError: any) {
+    } catch (deleteError: unknown) {
         console.error(`[${context}] Error deleting photos from Supabase:`, deleteError);
         console.warn(`[${context}] Ürün silme işlemine devam ediliyor (fotoğraflar silinemedi).`);
     }

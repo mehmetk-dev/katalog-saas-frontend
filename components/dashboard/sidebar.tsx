@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, BarChart3, HelpCircle } from "lucide-react"
@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { useUser } from "@/lib/user-context"
+import { useUser } from "@/lib/contexts/user-context"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useTranslation } from "@/lib/i18n-provider"
-import { useSidebar } from "@/lib/sidebar-context"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { useSidebar } from "@/lib/contexts/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 
@@ -27,7 +27,7 @@ export function DashboardSidebar() {
   const { isOpen, isCollapsed, isMobile, close, toggle } = useSidebar()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { href: "/dashboard", label: t("common.dashboard"), icon: LayoutDashboard },
     { href: "/dashboard/analytics", label: t("dashboard.analytics.title"), icon: BarChart3 },
     { href: "/dashboard/products", label: t("dashboard.products"), icon: Package },
@@ -35,7 +35,7 @@ export function DashboardSidebar() {
     { href: "/dashboard/catalogs", label: t("sidebar.catalogs"), icon: BookOpen },
     { href: "/dashboard/templates", label: t("sidebar.templates"), icon: Palette },
     { href: "/dashboard/settings", label: t("common.settings"), icon: Settings },
-  ]
+  ], [t])
 
 
   // Mobilde link tıklandığında sidebar'ı kapat
@@ -191,21 +191,24 @@ export function DashboardSidebar() {
         {/* Feedback Section */}
         <div className="p-2 border-t border-sidebar-border">
           <FeedbackModal>
-            {isCollapsed && !isMobile ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="flex items-center justify-center w-full p-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors outline-none focus:ring-2 focus:ring-sidebar-ring">
-                    <HelpCircle className="w-5 h-5 shrink-0" />
-                  </button>
-                </TooltipTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className={cn(
+                  "flex items-center w-full rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors outline-none focus:ring-2 focus:ring-sidebar-ring",
+                  isCollapsed && !isMobile
+                    ? "justify-center p-2.5"
+                    : "gap-3 px-3 py-2.5 text-sm font-medium"
+                )}>
+                  <HelpCircle className="w-5 h-5 shrink-0" />
+                  {(!isCollapsed || isMobile) && (
+                    <span className="truncate flex-1">{t('feedback.trigger')}</span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              {isCollapsed && !isMobile && (
                 <TooltipContent side="right">{t('feedback.trigger')}</TooltipContent>
-              </Tooltip>
-            ) : (
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer transition-colors">
-                <HelpCircle className="w-5 h-5 shrink-0" />
-                <span className="truncate flex-1">{t('feedback.trigger')}</span>
-              </div>
-            )}
+              )}
+            </Tooltip>
           </FeedbackModal>
         </div>
 

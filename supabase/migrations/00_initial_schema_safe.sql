@@ -209,6 +209,10 @@ BEGIN
     ALTER TABLE public.category_metadata ADD CONSTRAINT category_metadata_user_id_fkey 
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'category_metadata_user_id_category_name_key') THEN
+    ALTER TABLE public.category_metadata ADD CONSTRAINT category_metadata_user_id_category_name_key 
+    UNIQUE (user_id, category_name);
+  END IF;
 END $$;
 
 -- Activity Logs

@@ -1,7 +1,7 @@
 "use client"
 
 import { Package, TrendingUp, AlertTriangle } from "lucide-react"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 
 interface ProductStatsCardsProps {

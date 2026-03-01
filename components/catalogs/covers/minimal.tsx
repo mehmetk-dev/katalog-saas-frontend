@@ -2,7 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function MinimalCover({
+export const MinimalCover = React.memo(function MinimalCover({
     catalogName,
     coverImageUrl,
     coverDescription,
@@ -90,4 +90,4 @@ export function MinimalCover({
             </div>
         </div>
     )
-}
+})

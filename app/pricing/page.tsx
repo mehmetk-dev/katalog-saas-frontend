@@ -1,20 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
 import { ArrowRight, Check, Star, Sparkles, HelpCircle, Diamond, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { cn } from "@/lib/utils"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(true)
   const { t } = useTranslation()
 
   // Plans Data
-  const plans = [
+  const plans = useMemo(() => [
     {
       id: "free",
       name: t('pricingPage.free'), // "Starter"
@@ -70,9 +70,9 @@ export default function PricingPage() {
       cta: "Sınırları Kaldır",
       href: "/auth?plan=pro",
     },
-  ]
+  ], [t])
 
-  const faqs = [
+  const faqs = useMemo(() => [
     {
       question: t('pricingPage.faq1Q'),
       answer: "Kesinlikle. 'Starter' paketimiz tamamen ücretsizdir ve kredi kartı gerektirmez. İstediğiniz kadar kullanabilirsiniz.",
@@ -85,7 +85,7 @@ export default function PricingPage() {
       question: "Paketimi sonradan değiştirebilir miyim?",
       answer: "Tabii ki. İşletmeniz büyüdükçe dilediğiniz zaman paneliniz üzerinden bir üst pakete geçiş yapabilirsiniz.",
     },
-  ]
+  ], [t])
 
   return (
     <div className="min-h-screen bg-[#FDFDFB] text-slate-900 font-sans selection:bg-rose-100">
@@ -96,7 +96,7 @@ export default function PricingPage() {
         <div className="fixed inset-0 pointer-events-none -z-10">
           <div className="absolute top-0 right-0 w-[50vw] h-[50vh] bg-indigo-50/50 rounded-full blur-[150px]"></div>
           <div className="absolute bottom-0 left-0 w-[50vw] h-[50vh] bg-rose-50/50 rounded-full blur-[150px]"></div>
-          <div className="absolute inset-0 opacity-[0.02] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+          <div className="absolute inset-0 opacity-[0.02] bg-[url('/noise.svg')]"></div>
         </div>
 
         <div className="max-w-7xl mx-auto">

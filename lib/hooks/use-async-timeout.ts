@@ -71,7 +71,8 @@ export function useAsyncTimeout<T = void>(
         }
     }, [])
 
-    // Timeout kontrolü
+    // Timeout kontrolü — progress tracked via lastProgressRef to avoid
+    // re-creating interval on every progress change (performance fix)
     useEffect(() => {
         if (!isLoading) {
             if (intervalRef.current) {
@@ -80,9 +81,6 @@ export function useAsyncTimeout<T = void>(
             }
             return
         }
-
-        // İlerleme referansını güncelle
-        lastProgressRef.current = progress
 
         intervalRef.current = setInterval(() => {
             if (cancelledRef.current) return
@@ -94,7 +92,8 @@ export function useAsyncTimeout<T = void>(
             // Zaman aşımı kontrolü
             // 1. İlerleme var ama çok uzun süredir aynı değerde (takılma)
             // 2. Toplam süre aşıldı
-            const isStuck = progress < 100 && stuckTime > stuckTimeoutMs
+            const currentProgress = lastProgressRef.current
+            const isStuck = currentProgress < 100 && stuckTime > stuckTimeoutMs
             const isTotalExceeded = totalElapsed > totalTimeoutMs
 
             if (isStuck || isTotalExceeded) {
@@ -123,7 +122,7 @@ export function useAsyncTimeout<T = void>(
                 intervalRef.current = null
             }
         }
-    }, [isLoading, progress, stuckTimeoutMs, totalTimeoutMs, timeoutMessage, showToast, onTimeout])
+    }, [isLoading, stuckTimeoutMs, totalTimeoutMs, timeoutMessage, showToast, onTimeout])
 
     const execute = useCallback(async (fn: () => Promise<T>): Promise<T | null> => {
         // Reset state
@@ -187,7 +186,9 @@ export function useAsyncTimeout<T = void>(
     }, [])
 
     const updateProgress = useCallback((newProgress: number) => {
-        setProgress(Math.min(100, Math.max(0, newProgress)))
+        const clamped = Math.min(100, Math.max(0, newProgress))
+        setProgress(clamped)
+        lastProgressRef.current = clamped
         lastProgressTimeRef.current = Date.now()
     }, [])
 

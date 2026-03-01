@@ -18,7 +18,7 @@ import { getSessionSafe } from "@/lib/supabase/client"
 import NextImage from "next/image"
 
 import { storage } from "@/lib/storage"
-import { optimizeImage } from "@/lib/image-utils"
+import { optimizeImage } from "@/lib/utils/image-utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,7 +32,7 @@ import {
     DialogFooter
 } from "@/components/ui/dialog"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface Category {
     id: string

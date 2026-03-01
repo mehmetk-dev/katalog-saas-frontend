@@ -1,15 +1,17 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { cn } from "@/lib/utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Elegant Cards Template - "The Floating Glass"
  * A sophisticated design using glassmorphism and soft depth.
  * Features: Background gradients, backdrop filters, floating cards, and serif typography.
  */
-export function ElegantCardsTemplate({
+export const ElegantCardsTemplate = React.memo(function ElegantCardsTemplate({
     catalogName,
     products,
     primaryColor = "#7c3aed", // Default violet/soft purple
@@ -24,18 +26,15 @@ export function ElegantCardsTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
     productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
-
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'contain': return 'object-contain'
-            case 'fill': return 'object-fill'
-            case 'cover':
-            default: return 'object-cover'
-        }
-    }
 
     const _getGridCols = () => {
         switch (columnsPerRow) {
@@ -46,19 +45,20 @@ export function ElegantCardsTemplate({
         }
     }
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 28
-            case 'large': return 48
-            default: return 36
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'center'
+    const logoHeight = getStandardLogoHeight(logoSize)
+
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     return (
-        <div className="h-full bg-[#fdfaf6] flex flex-col relative overflow-hidden selection:bg-stone-200">
+        <div className="h-full flex flex-col relative overflow-hidden selection:bg-stone-200 transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#fdfaf6' }}>
             {/* Background Orbs for Depth */}
             <div
                 className={cn(
@@ -76,64 +76,80 @@ export function ElegantCardsTemplate({
             />
 
             {/* Header */}
-            <div className="h-32 px-12 flex items-center justify-between shrink-0 relative z-10">
-                <div className="flex-1">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <NextImage
-                            src={logoUrl}
-                            alt="Logo"
-                            width={120}
-                            height={getLogoHeight()}
-                            unoptimized
-                            style={{ height: getLogoHeight() }}
-                            className="object-contain"
-                        />
-                    )}
-                    {logoAlignment !== 'left' && (
-                        <div className={cn(
-                            "text-[10px] uppercase tracking-[0.4em]",
-                            "text-stone-400 font-medium whitespace-nowrap"
-                        )}>
-                            SERIES COLLECTION // {String(pageNumber).padStart(2, '0')}
-                        </div>
-                    )}
-                </div>
+            <header className="h-32 px-12 flex items-center justify-between shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
+                <div className="flex-1 flex items-center justify-between relative w-full h-full">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
+                        {isCollisionLeft ? (
+                            <div className="flex flex-col gap-3 items-start">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'left' && (
+                                    <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
+                                )}
+                            </div>
+                        )}
+                        {!isHeaderLogo && titlePosition !== 'left' && (
+                            <div className="text-[10px] uppercase tracking-[0.4em] font-medium whitespace-nowrap opacity-50">SERIES COLLECTION // {String(pageNumber).padStart(2, '0')}</div>
+                        )}
+                    </div>
 
-                <div className="flex-1 flex flex-col items-center">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'center' ? (
-                        <NextImage
-                            src={logoUrl}
-                            alt="Logo"
-                            width={120}
-                            height={getLogoHeight()}
-                            unoptimized
-                            style={{ height: getLogoHeight() }}
-                            className="object-contain"
-                        />
-                    ) : (
-                        <h1 className="text-3xl font-serif text-stone-900 italic tracking-tight">
-                            {catalogName || "Elegance"}
-                        </h1>
-                    )}
-                </div>
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
+                        {isCollisionCenter ? (
+                            <div className="flex flex-col gap-3 items-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'center' && (
+                                    <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
-                <div className="flex-1 flex justify-end">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                        <NextImage
-                            src={logoUrl}
-                            alt="Logo"
-                            width={120}
-                            height={getLogoHeight()}
-                            unoptimized
-                            style={{ height: getLogoHeight() }}
-                            className="object-contain"
-                        />
-                    )}
-                    {logoAlignment !== 'right' && (
-                        <div className="w-12 h-[1px] bg-stone-300" />
-                    )}
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex flex-col gap-3 items-end">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'right' && (
+                                    <div className="flex flex-col items-end">
+                                        <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {!isHeaderLogo && titlePosition !== 'right' && (
+                            <div className="w-12 h-[1px] opacity-30" style={{ backgroundColor: headerTextColor }} />
+                        )}
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* Grid - The Cards (Optimized for 4 items: 2x2) */}
             <div className={cn(
@@ -141,7 +157,7 @@ export function ElegantCardsTemplate({
                 "gap-12 overflow-hidden relative z-10"
             )}>
                 {safeProducts.slice(0, 4).map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
@@ -218,15 +234,7 @@ export function ElegantCardsTemplate({
                                     {showPrices && (
                                         <div className="flex items-center gap-2">
                                             <span className="text-base font-light text-stone-500 tracking-[0.1em]">
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD"
-                                                        ? "$"
-                                                        : currency === "EUR"
-                                                            ? "€"
-                                                            : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </span>
                                             {showUrls && productUrl && (
                                                 <ShoppingBag className={cn(
@@ -306,4 +314,4 @@ export function ElegantCardsTemplate({
             </div>
         </div >
     )
-}
+})

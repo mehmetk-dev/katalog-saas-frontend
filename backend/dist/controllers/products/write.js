@@ -7,6 +7,7 @@ const activity_logger_1 = require("../../services/activity-logger");
 const helpers_1 = require("./helpers");
 const schemas_1 = require("./schemas");
 const media_1 = require("./media");
+const safe_error_1 = require("../../utils/safe-error");
 const createProduct = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
@@ -53,7 +54,8 @@ const createProduct = async (req, res) => {
             throw error;
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
-            (0, redis_1.deleteCache)(redis_1.cacheKeys.product(userId, data.id))
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.product(userId, data.id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
         ]);
         (0, redis_1.setProductsInvalidated)(userId);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
@@ -68,8 +70,7 @@ const createProduct = async (req, res) => {
         res.status(201).json(data);
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
     }
 };
 exports.createProduct = createProduct;
@@ -132,7 +133,8 @@ const updateProduct = async (req, res) => {
         (0, redis_1.setProductsInvalidated)(userId);
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
-            (0, redis_1.deleteCache)(redis_1.cacheKeys.product(userId, id))
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.product(userId, id)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
         ]);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -146,8 +148,7 @@ const updateProduct = async (req, res) => {
         res.json({ success: true });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
     }
 };
 exports.updateProduct = updateProduct;
@@ -174,7 +175,10 @@ const deleteProduct = async (req, res) => {
             .eq('user_id', userId);
         if (error)
             throw error;
-        await (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId));
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
         (0, redis_1.setProductsInvalidated)(userId);
         const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
         await (0, activity_logger_1.logActivity)({
@@ -195,8 +199,7 @@ const deleteProduct = async (req, res) => {
         });
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
     }
 };
 exports.deleteProduct = deleteProduct;

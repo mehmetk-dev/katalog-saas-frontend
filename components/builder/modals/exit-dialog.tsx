@@ -10,6 +10,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface ExitDialogProps {
     open: boolean
@@ -24,29 +25,30 @@ export function ExitDialog({
     onExitWithoutSaving,
     onSaveAndExit
 }: ExitDialogProps) {
+    const { t } = useTranslation()
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
+                    <AlertDialogTitle>{t('builder.unsavedChanges') as string}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Katalogda kaydedilmemiş değişiklikler var. Çıkmadan önce kaydetmek ister misiniz?
+                        {t('builder.unsavedDesc') as string}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                     <AlertDialogCancel onClick={() => onOpenChange(false)}>
-                        İptal
+                        {t('builder.cancelBtn') as string}
                     </AlertDialogCancel>
                     <Button
                         variant="destructive"
                         onClick={onExitWithoutSaving}
                     >
-                        Kaydetmeden Çık
+                        {t('builder.exitWithoutSave') as string}
                     </Button>
                     <Button
                         onClick={onSaveAndExit}
                     >
-                        Kaydet ve Çık
+                        {t('builder.saveAndExit') as string}
                     </Button>
                 </AlertDialogFooter>
             </AlertDialogContent>

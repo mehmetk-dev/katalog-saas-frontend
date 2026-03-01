@@ -1,15 +1,17 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Bold Template - "The Neo-Brutalist"
  * A high-impact, raw design inspired by modern streetwear and radical architecture.
  * Features: Chunky borders, massive headers, and a "Zine" aesthetic.
  */
-export function BoldTemplate({
+export const BoldTemplate = React.memo(function BoldTemplate({
     catalogName,
     products,
     primaryColor = "#000000",
@@ -24,18 +26,15 @@ export function BoldTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
     productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const HEADER_HEIGHT = "80px"
-
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'cover': return 'object-cover'
-            case 'fill': return 'object-fill'
-            case 'contain':
-            default: return 'object-contain'
-        }
-    }
 
     const getGridCols = () => {
         switch (columnsPerRow) {
@@ -46,56 +45,108 @@ export function BoldTemplate({
         }
     }
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 32
-            case 'large': return 60
-            default: return 44
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoHeight = getStandardLogoHeight(logoSize)
+
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     return (
-        <div className="h-full flex flex-col bg-white overflow-hidden selection:bg-black selection:text-white" style={{ border: `8px solid ${primaryColor}` }}>
+        <div className="h-full flex flex-col overflow-hidden selection:bg-black selection:text-white transition-colors" style={{ border: `8px solid ${primaryColor}`, ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Header - Huge and Loud */}
-            <div className="shrink-0 flex items-stretch border-b-8" style={{ height: HEADER_HEIGHT, borderColor: primaryColor }}>
-                <div className="flex-1 px-6 flex items-center bg-white text-black">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <div className="mr-6 border-r-8 pr-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                        </div>
-                    )}
+            <div className="shrink-0 flex items-stretch border-b-8 transition-colors" style={{ height: HEADER_HEIGHT, borderColor: primaryColor, color: headerTextColor }}>
+                <div className="flex-1 flex items-center px-6 relative w-full">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6 h-full">
+                        {isCollisionLeft ? (
+                            <>
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <div className="mr-4 border-r-8 pr-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                    </div>
+                                )}
+                                <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                            </>
+                        ) : (
+                            <>
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <div className="mr-6 border-r-8 pr-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                    </div>
+                                )}
+                                {titlePosition === 'left' && (
+                                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                )}
+                            </>
+                        )}
+                    </div>
 
-                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic">
-                        {catalogName || "KATALOG"}
-                    </h1>
+                    {/* Orta Alan */}
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-20 w-full max-w-[50%] gap-6 h-full">
+                        {isCollisionCenter ? (
+                            <>
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <div className="border-r-8 pr-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                    </div>
+                                )}
+                                <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                            </>
+                        ) : (
+                            <>
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <div className="h-full flex items-center">
+                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                    </div>
+                                )}
+                                {titlePosition === 'center' && (
+                                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                )}
+                            </>
+                        )}
+                    </div>
 
-                    {logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                        <div className="flex-1 flex justify-center">
-                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                        </div>
-                    )}
-
-                    <div className="flex-1" />
-
-                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                        <div className="ml-6 border-l-8 pl-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                            <NextImage src={logoUrl} alt="Logo" width={140} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                        </div>
-                    )}
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 h-full">
+                        {isCollisionRight ? (
+                            <>
+                                <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <div className="ml-4 border-l-8 pl-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {titlePosition === 'right' && (
+                                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                )}
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <div className="ml-6 border-l-8 pl-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
+                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
 
-                <div className="w-[120px] shrink-0 flex items-center justify-center border-l-8 text-white font-black italic text-2xl" style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
+                <div className="w-[120px] shrink-0 flex items-center justify-center border-l-8 text-white font-black italic text-2xl transition-colors" style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
                     {pageNumber.toString().padStart(2, '0')}
                 </div>
             </div>
 
             {/* Grid - The "Chaos" Grid */}
-            <div className={`flex-1 p-6 grid ${getGridCols()} grid-rows-3 gap-6 overflow-hidden bg-[#f0f0f0]`}>
+            <div className={`flex-1 p-6 grid ${getGridCols()} grid-rows-3 gap-6 overflow-hidden transition-colors`}>
                 {(products || []).map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
@@ -143,11 +194,7 @@ export function BoldTemplate({
                                     {showPrices && (
                                         <div className="flex items-center gap-2 shrink-0">
                                             <div className="bg-black text-white px-2 py-1 text-sm font-black italic shadow-[4px_4px_0px_0px_#fbbf24]">
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </div>
                                             {showUrls && productUrl && (
                                                 <div className="bg-white border-2 border-black p-1 group-hover:bg-yellow-400 transition-colors">
@@ -188,4 +235,4 @@ export function BoldTemplate({
             </div>
         </div>
     )
-}
+})

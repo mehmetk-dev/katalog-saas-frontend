@@ -1,4 +1,4 @@
-import { SEO_CONFIG } from "@/lib/seo"
+import { SEO_CONFIG } from "@/lib/services/seo"
 import Script from "next/script"
 
 export const metadata = SEO_CONFIG.faq

@@ -5,15 +5,31 @@ import { deleteCache, cacheKeys, cacheTTL, getOrSetCache, setProductsInvalidated
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../../services/activity-logger';
 import { getUserId } from './helpers';
 import { cleanupProductPhotos, collectPhotoUrlsFromProducts } from './media';
+import { bulkDeleteSchema, bulkImportSchema, reorderSchema, bulkUpdateImagesSchema, bulkPriceUpdateSchema } from './schemas';
+import { safeErrorMessage } from '../../utils/safe-error';
+
+const parseCategoryList = (categoryValue?: string | null): string[] => {
+    if (!categoryValue) return [];
+
+    const normalized = categoryValue
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => item.toLocaleLowerCase('tr-TR'));
+
+    return [...new Set(normalized)];
+};
 
 export const bulkDeleteProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { ids }: { ids: string[] } = req.body;
 
-        if (!Array.isArray(ids)) {
-            return res.status(400).json({ error: 'ids must be an array' });
+        // SECURITY: Validate input with Zod schema (UUID format + array size limit)
+        const parsed = bulkDeleteSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
+        const { ids } = parsed.data;
 
         // Batch fetch & delete: .in() has URL length limits for large arrays
         const CHUNK_SIZE = 100;
@@ -64,7 +80,7 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
             deletedPhotosCount: photoUrls.length
         });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -72,11 +88,18 @@ export const bulkDeleteProducts = async (req: Request, res: Response) => {
 export const bulkImportProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { products }: { products: Record<string, unknown>[] } = req.body;
 
-        if (!Array.isArray(products) || products.length === 0) {
-            return res.status(400).json({ error: 'products array is required' });
+        // SECURITY: Validate all imported products with Zod schema
+        const parsed = bulkImportSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const firstError = parsed.error.issues[0];
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: firstError?.message || 'Invalid product data',
+                path: firstError?.path?.join('.')
+            });
         }
+        const { products } = parsed.data;
 
         const [user, productsCountResult] = await Promise.all([
             getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
@@ -97,28 +120,46 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
             });
         }
 
-        const productsToInsert = products.map((p: Record<string, any>) => {
-            const product: Record<string, any> = {
-                user_id: userId,
-                name: p.name,
-                sku: p.sku || null,
-                description: p.description || null,
-                price: p.price || 0,
-                stock: p.stock || 0,
-                category: p.category || null,
-                image_url: p.image_url || null,
-                custom_attributes: p.custom_attributes || []
-            };
+        if (plan === 'free') {
+            const { data: existingCategoryRows, error: existingCategoriesError } = await supabase
+                .from('products')
+                .select('category')
+                .eq('user_id', userId)
+                .not('category', 'is', null);
 
-            if (p.images && Array.isArray(p.images)) {
-                product.images = p.images;
-            }
-            if (p.product_url) {
-                product.product_url = p.product_url;
-            }
+            if (existingCategoriesError) throw existingCategoriesError;
 
-            return product;
-        });
+            const existingCategories = new Set(
+                (existingCategoryRows || []).flatMap((row) => parseCategoryList(row.category as string | null))
+            );
+
+            const importsContainNewCategory = products.some((product) => {
+                const requestedCategories = parseCategoryList(product.category || null);
+                return requestedCategories.some((category) => !existingCategories.has(category));
+            });
+
+            if (importsContainNewCategory) {
+                return res.status(403).json({
+                    error: 'Category Plan Restricted',
+                    message: 'Yeni kategori oluşturma özelliği yalnızca Plus ve Pro planlarda kullanılabilir.'
+                });
+            }
+        }
+
+        // Products are already validated by Zod schema above
+        const productsToInsert = products.map((p) => ({
+            user_id: userId,
+            name: p.name,
+            sku: p.sku || null,
+            description: p.description || null,
+            price: p.price || 0,
+            stock: p.stock || 0,
+            category: p.category || null,
+            image_url: p.image_url || null,
+            images: p.images || [],
+            product_url: p.product_url || null,
+            custom_attributes: p.custom_attributes || [],
+        }));
 
         const { data, error } = await supabase
             .from('products')
@@ -145,7 +186,7 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
 
         res.status(201).json(data);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -153,11 +194,13 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
 export const reorderProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { order }: { order: { id: string; order: number }[] } = req.body;
 
-        if (!Array.isArray(order)) {
-            return res.status(400).json({ error: 'order must be an array' });
+        // SECURITY: Validate reorder input with Zod schema (UUID + integer range)
+        const parsed = reorderSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
+        const { order } = parsed.data;
 
         const updatePromises = order.map(item =>
             supabase
@@ -190,35 +233,23 @@ export const reorderProducts = async (req: Request, res: Response) => {
 
         res.json({ success: true, updated: order.length });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error
-            ? error.message
-            : (typeof error === 'object' ? JSON.stringify(error) : String(error));
-
+        // SECURITY: Don't leak raw error objects/stack traces
+        const errorMessage = safeErrorMessage(error, 'Sıralama kaydedilemedi');
         console.error('Reorder products error:', errorMessage);
-        res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi', error: errorMessage });
+        res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi' });
     }
 };
 
 export const bulkUpdatePrices = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { productIds, changeType, changeMode, amount }: { productIds: string[], changeType: 'increase' | 'decrease', changeMode: 'percentage' | 'fixed', amount: number } = req.body;
 
-        if (!Array.isArray(productIds) || productIds.length === 0) {
-            return res.status(400).json({ error: 'productIds array is required' });
+        // SECURITY: Validate with Zod schema (replaces manual validation)
+        const parsed = bulkPriceUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
-
-        if (!['increase', 'decrease'].includes(changeType)) {
-            return res.status(400).json({ error: 'changeType must be increase or decrease' });
-        }
-
-        if (!['percentage', 'fixed'].includes(changeMode)) {
-            return res.status(400).json({ error: 'changeMode must be percentage or fixed' });
-        }
-
-        if (typeof amount !== 'number' || amount <= 0) {
-            return res.status(400).json({ error: 'amount must be a positive number' });
-        }
+        const { productIds, changeType, changeMode, amount } = parsed.data;
 
         // Batch fetch: .in() has URL length limits for large arrays
         const CHUNK_SIZE = 100;
@@ -297,7 +328,7 @@ export const bulkUpdatePrices = async (req: Request, res: Response) => {
 
         res.json(updatedProducts);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -327,7 +358,7 @@ export const renameCategory = async (req: Request, res: Response) => {
 
         res.json(data || []);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -341,11 +372,14 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
             return res.status(400).json({ error: 'categoryName is required' });
         }
 
+        // SECURITY: Escape PostgREST wildcard characters to prevent filter injection
+        const sanitizedCategoryName = categoryName.replace(/[%_*(),."\\]/g, '');
+
         const { data: products, error: fetchError } = await supabase
             .from('products')
             .select('*')
             .eq('user_id', userId)
-            .ilike('category', `%${categoryName}%`);
+            .ilike('category', `%${sanitizedCategoryName}%`);
 
         if (fetchError) throw fetchError;
 
@@ -393,7 +427,7 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
 
         res.json(updatedProducts);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };
@@ -401,11 +435,13 @@ export const deleteCategoryFromProducts = async (req: Request, res: Response) =>
 export const bulkUpdateImages = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
-        const { updates }: { updates: { productId: string; images: string[] }[] } = req.body;
 
-        if (!Array.isArray(updates)) {
-            return res.status(400).json({ error: 'updates must be an array' });
+        // SECURITY: Validate with Zod schema (UUID format + URL validation + array limits)
+        const parsed = bulkUpdateImagesSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
         }
+        const { updates } = parsed.data;
 
         const updatePromises = updates.map(({ productId, images }) =>
             supabase
@@ -436,7 +472,7 @@ export const bulkUpdateImages = async (req: Request, res: Response) => {
 
         res.json({ success: true, count: updates.length, results });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
     }
 };

@@ -3,6 +3,7 @@
 import { Percent, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface ProductsBulkActionsBarProps {
     selectedCount: number
@@ -19,13 +20,15 @@ export function ProductsBulkActionsBar({
     onBulkDelete,
     isPending
 }: ProductsBulkActionsBarProps) {
+    const { t } = useTranslation()
+
     if (selectedCount === 0) return null
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
             <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 dark:bg-gray-800 rounded-full shadow-2xl border border-gray-700">
                 <span className="text-white font-medium text-sm">
-                    {selectedCount} seçili
+                    {t("products.selected", { count: selectedCount }) as string}
                 </span>
                 <div className="w-px h-5 bg-gray-600" />
                 <div className="flex items-center gap-1">
@@ -38,10 +41,10 @@ export function ProductsBulkActionsBar({
                                 onClick={onBulkPriceUpdate}
                             >
                                 <Percent className="w-4 h-4" />
-                                <span className="hidden md:inline ml-2">Fiyat</span>
+                                <span className="hidden md:inline ml-2">{t("products.price") as string}</span>
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Fiyat Güncelle</TooltipContent>
+                        <TooltipContent>{t("products.updatePrice") as string}</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -53,10 +56,10 @@ export function ProductsBulkActionsBar({
                                 disabled={isPending}
                             >
                                 <Trash2 className="w-4 h-4" />
-                                <span className="hidden md:inline ml-2">Sil</span>
+                                <span className="hidden md:inline ml-2">{t("common.delete") as string}</span>
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Seçilenleri Sil</TooltipContent>
+                        <TooltipContent>{t("products.deleteSelected") as string}</TooltipContent>
                     </Tooltip>
                 </div>
                 <div className="w-px h-5 bg-gray-600" />

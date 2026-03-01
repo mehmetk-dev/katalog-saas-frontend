@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const zod_1 = require("zod");
-const supabase_1 = require("../services/supabase");
+const safe_error_1 = require("../utils/safe-error");
 const router = (0, express_1.Router)();
 const checkProviderSchema = zod_1.z.object({
     email: zod_1.z.string().trim().email(),
@@ -24,18 +24,10 @@ router.post('/check-provider', async (req, res) => {
             provider: null,
             isOAuth: false,
         };
-        // Keep a light internal query path for observability/compatibility (result not exposed)
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _ = await supabase_1.supabase
-            .from('users')
-            .select('id')
-            .ilike('email', cleanEmail)
-            .maybeSingle();
         res.json(response);
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Check provider error:', message);
+        console.error('Check provider error:', (0, safe_error_1.safeErrorMessage)(error));
         res.json({ exists: true, provider: null, isOAuth: false });
     }
 });

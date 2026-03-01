@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useRef, useState, useEffect } from "react"
 import { CheckSquare } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -41,7 +41,9 @@ const STATIC_PREVIEW_PROPS = {
     showControls: false,
 }
 
-// Template preview kartını tamamen memoize et - sadece isSelected değiştiğinde güncelle
+/** FIX(F8): Lazy-render template previews — only render CatalogPreview
+ *  when the card is scrolled into the visible area (IntersectionObserver).
+ *  Reduces initial render cost from 16× full preview → ~3-4× visible only. */
 export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
     templateId,
     templateName,
@@ -49,15 +51,43 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
     isSelected,
     onSelect,
 }: TemplatePreviewCardProps) {
-    // Ürün verilerini bir kez al
+    const cardRef = useRef<HTMLDivElement>(null)
+    const [isVisible, setIsVisible] = useState(false)
+
+    // FIX(F8): IntersectionObserver — render preview only when card is in viewport
+    useEffect(() => {
+        const el = cardRef.current
+        if (!el) return
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true)
+                    // Once visible, stop observing — preview stays rendered
+                    observer.unobserve(el)
+                }
+            },
+            { rootMargin: '200px' } // Start rendering slightly before visible
+        )
+
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
+
+    // Ürün verilerini bir kez al — only compute when visible
     const products = React.useMemo(
-        () => getPreviewProductsByLayout(templateId),
-        [templateId]
+        () => isVisible ? getPreviewProductsByLayout(templateId) : [],
+        [templateId, isVisible]
     )
 
     return (
         <div
+            ref={cardRef}
+            role="button"
+            tabIndex={0}
             onClick={onSelect}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.() } }}
+            aria-pressed={isSelected}
             className={cn(
                 "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-white",
                 isSelected
@@ -68,14 +98,21 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
             {/* Preview Container - Takes most of the space */}
             <div className="absolute inset-0 pb-14">
                 <div className="w-full h-full catalog-light pointer-events-none">
-                    <ResponsiveContainer>
-                        <CatalogPreview
-                            layout={templateId}
-                            catalogName={templateName}
-                            products={products}
-                            {...STATIC_PREVIEW_PROPS}
-                        />
-                    </ResponsiveContainer>
+                    {isVisible ? (
+                        <ResponsiveContainer>
+                            <CatalogPreview
+                                layout={templateId}
+                                catalogName={templateName}
+                                products={products}
+                                {...STATIC_PREVIEW_PROPS}
+                            />
+                        </ResponsiveContainer>
+                    ) : (
+                        /* FIX(F8): Lightweight placeholder while off-screen */
+                        <div className="w-full h-full flex items-center justify-center bg-slate-50">
+                            <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+                        </div>
+                    )}
                 </div>
             </div>
 

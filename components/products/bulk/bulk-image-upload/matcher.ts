@@ -78,6 +78,8 @@ function calculateMatchScore(productTokens: string[], fileTokens: string[]): num
 function isExactSkuMatch(normalizedFileName: string, sku: string): boolean {
     const normalizedSku = normalizeText(sku)
     if (!normalizedSku || normalizedSku.length < 2) return false
+    // ReDoS koruması: çok uzun SKU'larda regex backtracking'i engelle
+    if (normalizedSku.length > 100) return normalizedFileName.includes(normalizedSku)
 
     if (normalizedFileName === normalizedSku) return true
     if (

@@ -1,4 +1,4 @@
-import Redis, { RedisOptions } from 'ioredis';
+ import Redis, { RedisOptions } from 'ioredis';
 
 // Redis bağlantısı - Upstash (rediss://) veya lokal Redis (redis://)
 const REDIS_URL = (process.env.REDIS_URL || 'redis://localhost:6379').trim();
@@ -67,6 +67,25 @@ export const initRedis = () => {
 // In-memory cache fallback (Redis yoksa kullanılır)
 const memoryCache = new Map<string, { data: string; expires: number }>();
 
+// SECURITY: Prevent OOM — cap memory cache size
+const MAX_MEMORY_CACHE_SIZE = 5000;
+
+// Memory leak protection - GC every 1 minute
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of memoryCache.entries()) {
+        if (now >= val.expires) {
+            memoryCache.delete(key);
+        }
+    }
+    // GC productsInvalidatedUntil entries
+    for (const [userId, until] of productsInvalidatedUntil.entries()) {
+        if (now >= until) {
+            productsInvalidatedUntil.delete(userId);
+        }
+    }
+}, 60000).unref();
+
 // Cache key oluştur
 const createKey = (prefix: string, ...parts: string[]) => {
     return `katalog:${prefix}:${parts.join(':')}`;
@@ -107,7 +126,16 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
             const data = await redis.get(key);
             // Eğer Redis aktifse ama veri yoksa, memory cache'e düşme (çünkü silinmiş olabilir)
             // Sadece hata durumunda veya Redis kapalıyken memory cache kullanılmalı
-            if (data) return JSON.parse(data);
+            if (data) {
+                try {
+                    return JSON.parse(data);
+                } catch {
+                    // SECURITY: Corrupted cache data — delete and continue
+                    console.warn('Redis corrupted data for key:', key);
+                    await redis.del(key).catch(() => {});
+                    return null;
+                }
+            }
             return null;
         } catch (error) {
             console.warn('Redis read error:', error);
@@ -124,7 +152,13 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
     const memCached = memoryCache.get(key);
     if (memCached) {
         if (Date.now() < memCached.expires) {
-            return JSON.parse(memCached.data);
+            try {
+                return JSON.parse(memCached.data);
+            } catch {
+                // Corrupted memory cache entry — remove and continue
+                memoryCache.delete(key);
+                return null;
+            }
         }
         memoryCache.delete(key);
     }
@@ -151,6 +185,11 @@ export const setCache = async (key: string, data: unknown, ttlSeconds: number = 
     }
 
     // 3. Memory cache'e yaz
+    // SECURITY: Evict oldest entries if cache exceeds size limit to prevent OOM
+    if (memoryCache.size >= MAX_MEMORY_CACHE_SIZE) {
+        const firstKey = memoryCache.keys().next().value;
+        if (firstKey) memoryCache.delete(firstKey);
+    }
     memoryCache.set(key, {
         data: stringData,
         expires: Date.now() + (ttlSeconds * 1000)
@@ -158,7 +197,21 @@ export const setCache = async (key: string, data: unknown, ttlSeconds: number = 
 };
 
 // Cache'i sil
-export const deleteCache = async (pattern: string): Promise<void> => {
+export const deleteCache = async (pattern: string, exact: boolean = false): Promise<void> => {
+    if (exact) {
+        // 1. Redis'ten tam eşleşmeyle sil
+        if (redis) {
+            try {
+                await redis.del(pattern);
+            } catch (error) {
+                console.warn('Redis delete exact error:', error);
+            }
+        }
+        // 2. Memory cache'den tam eşleşmeyle sil
+        memoryCache.delete(pattern);
+        return;
+    }
+
     const searchPattern = pattern.endsWith('*') ? pattern : `${pattern}*`;
 
     // 1. Redis'ten sil

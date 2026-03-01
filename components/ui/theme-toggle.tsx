@@ -5,9 +5,11 @@ import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 export function ThemeToggle() {
     const { setTheme, resolvedTheme } = useTheme()
+    const { t } = useTranslation()
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -22,20 +24,22 @@ export function ThemeToggle() {
         )
     }
 
+    const isDark = resolvedTheme === "dark"
+
     return (
         <Button
             variant="ghost"
             size="icon"
             className="h-9 w-9"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            title={resolvedTheme === "dark" ? "Açık tema" : "Koyu tema"}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            title={isDark ? (t('common.lightTheme') || 'Light theme') : (t('common.darkTheme') || 'Dark theme')}
         >
-            {resolvedTheme === "dark" ? (
+            {isDark ? (
                 <Sun className="h-4 w-4 text-yellow-500" />
             ) : (
                 <Moon className="h-4 w-4" />
             )}
-            <span className="sr-only">Tema değiştir</span>
+            <span className="sr-only">{t('common.toggleTheme') || 'Toggle theme'}</span>
         </Button>
     )
 }

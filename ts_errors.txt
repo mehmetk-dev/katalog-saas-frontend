@@ -1,0 +1,4 @@
+components/catalogs/templates/bold.tsx(55,9): error TS2304: Cannot find name 'getHeaderLayout'.
+components/catalogs/templates/bold.tsx(57,24): error TS2304: Cannot find name 'getStandardLogoHeight'.
+components/catalogs/templates/catalog-pro.tsx(51,9): error TS2304: Cannot find name 'getHeaderLayout'.
+components/catalogs/templates/catalog-pro.tsx(53,24): error TS2304: Cannot find name 'getStandardLogoHeight'.

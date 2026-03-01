@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { ProductModal } from '@/components/products/modals/product-modal'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 
@@ -36,7 +36,8 @@ vi.mock('next/image', () => ({
     default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
-            imgProps.style = { ...imgProps.style, position: 'absolute', width: '100%', height: '100%' }
+            const existingStyle = (typeof imgProps.style === 'object' && imgProps.style !== null) ? imgProps.style as Record<string, unknown> : {}
+            imgProps.style = { ...existingStyle, position: 'absolute', width: '100%', height: '100%' }
         }
         if (unoptimized !== undefined) {
             imgProps.unoptimized = String(unoptimized)
@@ -46,7 +47,7 @@ vi.mock('next/image', () => ({
     },
 }))
 
-vi.mock('@/lib/image-utils', () => ({
+vi.mock('@/lib/utils/image-utils', () => ({
     convertToWebP: vi.fn(async (file: File) => ({
         blob: new Blob([file], { type: 'image/webp' }),
         fileName: file.name.replace(/\.[^.]+$/, '.webp'),
@@ -89,6 +90,8 @@ describe('Form Validasyon Testleri', () => {
                     onSaved={onSaved}
                     allCategories={[]}
                     userPlan="free"
+                    maxProducts={50}
+                    currentProductCount={0}
                 />
             )
 
@@ -125,6 +128,8 @@ describe('Form Validasyon Testleri', () => {
                     onSaved={vi.fn()}
                     allCategories={[]}
                     userPlan="free"
+                    maxProducts={50}
+                    currentProductCount={0}
                 />
             )
 
@@ -162,6 +167,8 @@ describe('Form Validasyon Testleri', () => {
                     onSaved={vi.fn()}
                     allCategories={[]}
                     userPlan="free"
+                    maxProducts={50}
+                    currentProductCount={0}
                 />
             )
 

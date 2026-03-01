@@ -32,7 +32,7 @@ export default async function ProductsPage({
 
   let productsResponse: import('@/lib/actions/products').ProductsResponse = { products: [], metadata: { total: 0, page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, totalPages: 1 } };
   let statsResponse = { total: 0, inStock: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };
-  let user: any = null;
+  let user: { plan?: string; maxProducts?: number } | null = null;
 
   try {
     const [pRes, sRes, uRes] = await Promise.all([

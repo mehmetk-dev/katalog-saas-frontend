@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client"
 export function SessionWatcher() {
     const router = useRouter()
     const pathname = usePathname()
-    const supabase = createClient()
+    const supabase = useMemo(() => createClient(), [])
 
     // Gereksiz refresh'leri önlemek için son kontrol zamanı
     const lastCheckTime = useRef<number>(0)

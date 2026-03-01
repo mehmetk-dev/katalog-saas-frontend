@@ -5,7 +5,7 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useTranslation } from '@/lib/i18n-provider'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 
 interface Props {
     children: ReactNode
@@ -29,15 +29,8 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        // Log error to console (in production, send to error tracking service)
         console.error('ErrorBoundary caught an error:', error, errorInfo)
-
         this.setState({ errorInfo })
-
-        // Error logged
-        // if (process.env.NODE_ENV === 'production') {
-        //     Sentry.captureException(error, { extra: errorInfo })
-        // }
     }
 
     handleReset = () => {
@@ -66,6 +59,13 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 }
 
+/** Truncate error message to prevent leaking internal details */
+function sanitizeErrorMessage(message: string, maxLength = 500): string {
+    if (!message) return ''
+    const sanitized = message.replace(/(?:password|secret|token|key|dsn|connectionstring)\s*[:=]\s*\S+/gi, '[REDACTED]')
+    return sanitized.length > maxLength ? sanitized.slice(0, maxLength) + '...' : sanitized
+}
+
 function ErrorContent({ error, onReload, onGoHome }: { error: Error | null, onReload: () => void, onGoHome: () => void }) {
     const { t } = useTranslation()
 
@@ -85,7 +85,7 @@ function ErrorContent({ error, onReload, onGoHome }: { error: Error | null, onRe
                     {process.env.NODE_ENV === 'development' && error && (
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                             <p className="text-sm font-mono text-red-800 break-all">
-                                {error.message}
+                                {sanitizeErrorMessage(error.message)}
                             </p>
                         </div>
                     )}

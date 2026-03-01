@@ -8,6 +8,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface PreviewFloatingHeaderProps {
     view: "split" | "editor" | "preview"
@@ -24,6 +25,7 @@ export function PreviewFloatingHeader({
     onPublish,
     onDownloadPDF
 }: PreviewFloatingHeaderProps) {
+    const { t } = useTranslation()
     if (view !== "preview") return null
 
     return (
@@ -31,9 +33,9 @@ export function PreviewFloatingHeader({
             <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 shadow-xl ring-1 ring-black/5">
                 <div className="flex items-center gap-1 pl-2 min-w-0">
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Önizleme</span>
+                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t('builder.previewLabel') as string}</span>
                         <h2 className="text-xs sm:text-sm font-bold truncate text-foreground leading-none mt-1">
-                            {catalogName || "İsimsiz"}
+                            {catalogName || (t('builder.unnamed') as string)}
                         </h2>
                     </div>
                 </div>
@@ -46,7 +48,7 @@ export function PreviewFloatingHeader({
                         className="h-9 px-3 rounded-xl flex items-center gap-2"
                     >
                         <Pencil className="w-3.5 h-3.5" />
-                        <span className="font-bold text-xs hidden xs:inline">Düzenle</span>
+                        <span className="font-bold text-xs hidden xs:inline">{t('builder.editBtn') as string}</span>
                     </Button>
 
                     <DropdownMenu>
@@ -58,11 +60,11 @@ export function PreviewFloatingHeader({
                         <DropdownMenuContent align="end" side="top" className="w-48 p-1 mb-2">
                             <DropdownMenuItem onClick={onPublish}>
                                 <Globe className="w-4 h-4 mr-2" />
-                                Kataloğu Yayınla
+                                {t('builder.publishCatalog') as string}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={onDownloadPDF}>
                                 <Download className="w-4 h-4 mr-2" />
-                                PDF İndir
+                                {t('builder.downloadPdf') as string}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -74,7 +76,7 @@ export function PreviewFloatingHeader({
                         onClick={() => onViewChange('editor')}
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        <span className="font-bold text-xs">Geri</span>
+                        <span className="font-bold text-xs">{t('builder.backBtn') as string}</span>
                     </Button>
                 </div>
             </div>

@@ -2,7 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function ArtisticCover({
+export const ArtisticCover = React.memo(function ArtisticCover({
     catalogName,
     coverImageUrl,
     coverDescription,
@@ -82,4 +82,4 @@ export function ArtisticCover({
             </div>
         </div>
     )
-}
+})

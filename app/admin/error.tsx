@@ -20,14 +20,19 @@ export default function ErrorBoundary({
             <div className="space-y-2">
                 <h2 className="text-2xl font-bold tracking-tight text-red-500">Something went wrong!</h2>
                 <p className="text-slate-400">
-                    Bu sayfayı yüklerken bir hata oluştu:
-                    <br />
-                    <span className="font-mono text-xs text-red-400">{error.message}</span>
+                    Bu sayfayı yüklerken bir hata oluştu.
                 </p>
-                {error.stack && (
-                    <div className="mt-4 text-left max-w-2xl overflow-auto bg-slate-900 p-4 rounded text-xs text-slate-300 font-mono">
-                        {error.stack}
-                    </div>
+                {process.env.NODE_ENV === "development" && (
+                    <>
+                        <p className="text-slate-400">
+                            <span className="font-mono text-xs text-red-400">{error.message}</span>
+                        </p>
+                        {error.stack && (
+                            <div className="mt-4 text-left max-w-2xl overflow-auto bg-slate-900 p-4 rounded text-xs text-slate-300 font-mono">
+                                {error.stack}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             <Button

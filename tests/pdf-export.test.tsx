@@ -1,13 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BuilderPageClient } from '@/components/builder/builder-page-client'
-import { useUser } from '@/lib/user-context'
+import { useUser } from '@/lib/contexts/user-context'
 import { useRouter } from 'next/navigation'
 import type { Catalog } from '@/lib/actions/catalogs'
 
 // Mock dependencies
-vi.mock('@/lib/user-context')
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/user-context')
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
         t: (key: string) => key
     })

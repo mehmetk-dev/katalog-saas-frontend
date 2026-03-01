@@ -1,181 +1,149 @@
 "use client"
 
-import { AlertTriangle, Power, CheckCircle2, Clock, FileText } from "lucide-react"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
-import { cn } from "@/lib/utils"
-
-function StepCard({ icon, iconColor, titleKey, descKey, t }: {
-    icon: React.ReactNode
-    iconColor: string
-    titleKey: string
-    descKey: string
-    t: (key: string) => string
-}) {
-    return (
-        <div className={cn(
-            "bg-slate-50 p-6 rounded-lg border border-slate-100",
-            "hover:border-blue-100 transition-colors"
-        )}>
-            <div className={cn(
-                "w-8 h-8 bg-white rounded-full flex items-center justify-center",
-                "shadow-sm mb-3", iconColor
-            )}>
-                {icon}
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm mb-2">
-                {t(titleKey)}
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-                {t(descKey)}
-            </p>
-        </div>
-    )
-}
+import { FileText } from "lucide-react"
 
 export function CancellationContent() {
     const { t } = useTranslation()
 
     return (
-        <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans text-[#1a1a1a]">
+        <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans">
             <PublicHeader />
 
             <main className="flex-1 pt-32 pb-20 px-4 md:px-6">
+                <div className="max-w-[794px] mx-auto bg-white shadow-2xl min-h-[1123px] relative flex flex-col transform transition-all hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
 
-                {/* Main Card Container - Slightly wider than A4 for a modern web look but constrained */}
-                <div className="max-w-[800px] mx-auto bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
-
-                    {/* Header Section with Brand Accent */}
-                    <div className="bg-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
-                        <div className={cn(
-                            "absolute top-0 right-0 w-64 h-64 bg-slate-800",
-                            "rounded-full mix-blend-multiply filter blur-3xl",
-                            "opacity-20 -translate-y-1/2 translate-x-1/2"
-                        )} />
-
-                        <div className={cn(
-                            "relative z-10 flex flex-col md:flex-row",
-                            "md:items-end justify-between gap-6"
-                        )}>
-                            <div>
-                                <div className={cn(
-                                    "text-xs font-bold tracking-[0.3em]",
-                                    "text-blue-400 mb-2 uppercase"
-                                )}>
-                                    FogCatalog
-                                </div>
-                                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
-                                    {t("legal.cancellationPolicy.title")}
-                                </h1>
-                            </div>
-                            <div className="text-right">
-                                <div className={cn(
-                                    "text-[10px] font-mono text-slate-400",
-                                    "border border-slate-700 px-3 py-1 rounded",
-                                    "inline-block bg-slate-800/50"
-                                )}>
-                                    {t("legal.cancellationPolicy.ref")}
-                                </div>
-                            </div>
+                    {/* Header */}
+                    <div className="h-[80px] px-8 md:px-12 border-b border-[#f0f0f0] flex items-center justify-between shrink-0 bg-white">
+                        <div className="text-[10px] tracking-[0.4em] text-[#a0a0a0] uppercase font-medium">
+                            FOGCATALOG
+                        </div>
+                        <div className="text-[10px] font-mono text-[#d0d0d0]">
+                            {t("legal.cancellationPolicy.ref")}
                         </div>
                     </div>
 
                     {/* Content Area */}
-                    <div className="p-8 md:p-12 space-y-12">
+                    <div className="flex-1 px-8 md:px-12 py-12 md:py-16">
 
-                        {/* 1. Refund Policy Section */}
-                        <section>
-                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-blue-600 pl-4 mb-6">
-                                {t("legal.cancellationPolicy.refundPolicy.title")}
-                            </h2>
-                            <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                                {t("legal.cancellationPolicy.refundPolicy.desc")}
+                        {/* Title */}
+                        <div className="text-center mb-16">
+                            <h1 className="text-xl md:text-2xl font-light tracking-[0.3em] text-black uppercase mb-6">
+                                {t("legal.cancellationPolicy.title")}
+                            </h1>
+                            <div className="w-12 h-[1px] bg-black mx-auto mb-6"></div>
+                            <p className="text-[10px] tracking-widest text-[#888] uppercase">
+                                YÜRÜRLÜK TARİHİ: 25.01.2026
                             </p>
+                        </div>
 
-                            {/* Important Info Box */}
-                            <div className="bg-amber-50 border-l-4 border-amber-400 p-5 rounded-r-lg">
-                                <div className="flex items-start gap-3">
-                                    <div className="shrink-0 text-amber-500 mt-0.5">
-                                        <AlertTriangle className="w-5 h-5" />
+                        {/* Text */}
+                        <div className="space-y-12 text-[#333] text-[13px] leading-relaxed font-light text-justify">
+
+                            {/* Summary */}
+                            <div className="bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200 rounded-xl p-7 not-italic font-normal text-left">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <FileText className="w-5 h-5 text-slate-600" />
+                                    <h2 className="text-base font-bold text-slate-900">{t("legal.cancellationPolicy.summary.title")}</h2>
+                                </div>
+                                <ul className="space-y-2.5">
+                                    {(t("legal.cancellationPolicy.summary.items", { returnObjects: true }) as string[]).map((item, i) => (
+                                        <li key={i} className="flex gap-3 items-start">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mt-2 shrink-0" />
+                                            <span className="text-slate-700 text-sm leading-relaxed">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* 1. Refund Policy */}
+                            <section>
+                                <h2 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-3 text-black">
+                                    <span className="w-4 h-[1px] bg-black"></span>
+                                    {t("legal.cancellationPolicy.refundPolicy.title")}
+                                </h2>
+                                <p className="text-[#555] pl-7 mb-4">
+                                    {t("legal.cancellationPolicy.refundPolicy.desc")}
+                                </p>
+                                <div className="pl-7">
+                                    <div className="p-4 bg-[#fafafa] border border-[#f0f0f0] border-l-2 border-l-black">
+                                        <strong className="block text-xs uppercase mb-2 text-black">{t("legal.cancellationPolicy.warning")}</strong>
+                                        <p className="text-xs text-[#666]">{t("legal.cancellationPolicy.refundPolicy.importantInfo")}</p>
                                     </div>
-                                    <div>
-                                        <h3 className={cn(
-                                            "text-xs font-bold text-amber-800",
-                                            "uppercase tracking-wider mb-1"
-                                        )}>
-                                            {t("legal.cancellationPolicy.warning")}
-                                        </h3>
-                                        <p className="text-xs text-amber-900/80 leading-relaxed">
-                                            {t("legal.cancellationPolicy.refundPolicy.importantInfo")}
+                                </div>
+                            </section>
+
+                            {/* 2. Cancellation Process */}
+                            <section>
+                                <h2 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-3 text-black">
+                                    <span className="w-4 h-[1px] bg-black"></span>
+                                    {t("legal.cancellationPolicy.cancellationProcess.title")}
+                                </h2>
+                                <p className="text-[#555] pl-7 mb-6">
+                                    {t("legal.cancellationPolicy.cancellationProcess.desc")}
+                                </p>
+
+                                <div className="grid md:grid-cols-2 gap-4 pl-7">
+                                    <div className="bg-white p-4 border border-[#f0f0f0]">
+                                        <span className="block text-[10px] uppercase text-[#bbb] mb-2 font-bold tracking-widest">
+                                            {t("legal.cancellationPolicy.cancellationProcess.howTo.title")}
+                                        </span>
+                                        <p className="text-[#333]">
+                                            {t("legal.cancellationPolicy.cancellationProcess.howTo.desc")}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white p-4 border border-[#f0f0f0]">
+                                        <span className="block text-[10px] uppercase text-[#bbb] mb-2 font-bold tracking-widest">
+                                            {t("legal.cancellationPolicy.cancellationProcess.rights.title")}
+                                        </span>
+                                        <p className="text-[#333]">
+                                            {t("legal.cancellationPolicy.cancellationProcess.rights.desc")}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white p-4 border border-[#f0f0f0]">
+                                        <span className="block text-[10px] uppercase text-[#bbb] mb-2 font-bold tracking-widest">
+                                            {t("legal.cancellationPolicy.cancellationProcess.expiry.title")}
+                                        </span>
+                                        <p className="text-[#333]">
+                                            {t("legal.cancellationPolicy.cancellationProcess.expiry.desc")}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white p-4 border border-[#f0f0f0]">
+                                        <span className="block text-[10px] uppercase text-[#bbb] mb-2 font-bold tracking-widest">
+                                            {t("legal.cancellationPolicy.cancellationProcess.data.title")}
+                                        </span>
+                                        <p className="text-[#333]">
+                                            {t("legal.cancellationPolicy.cancellationProcess.data.desc")}
                                         </p>
                                     </div>
                                 </div>
-                            </div>
-                        </section>
+                            </section>
 
-                        {/* 2. Cancellation Process Section */}
-                        <section>
-                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-blue-600 pl-4 mb-6">
-                                {t("legal.cancellationPolicy.cancellationProcess.title")}
-                            </h2>
-                            <p className="text-sm text-slate-600 mb-8">
-                                {t("legal.cancellationPolicy.cancellationProcess.desc")}
-                            </p>
-
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <StepCard
-                                    icon={<Power className="w-4 h-4" />}
-                                    iconColor="text-blue-600"
-                                    titleKey="legal.cancellationPolicy.cancellationProcess.howTo.title"
-                                    descKey="legal.cancellationPolicy.cancellationProcess.howTo.desc"
-                                    t={t}
-                                />
-                                <StepCard
-                                    icon={<CheckCircle2 className="w-4 h-4" />}
-                                    iconColor="text-emerald-600"
-                                    titleKey="legal.cancellationPolicy.cancellationProcess.rights.title"
-                                    descKey="legal.cancellationPolicy.cancellationProcess.rights.desc"
-                                    t={t}
-                                />
-                                <StepCard
-                                    icon={<Clock className="w-4 h-4" />}
-                                    iconColor="text-slate-600"
-                                    titleKey="legal.cancellationPolicy.cancellationProcess.expiry.title"
-                                    descKey="legal.cancellationPolicy.cancellationProcess.expiry.desc"
-                                    t={t}
-                                />
-                                <StepCard
-                                    icon={<FileText className="w-4 h-4" />}
-                                    iconColor="text-slate-600"
-                                    titleKey="legal.cancellationPolicy.cancellationProcess.data.title"
-                                    descKey="legal.cancellationPolicy.cancellationProcess.data.desc"
-                                    t={t}
-                                />
-                            </div>
-                        </section>
-
-                        {/* 3. Exceptions Section */}
-                        <section>
-                            <h2 className="text-lg font-bold text-slate-900 border-l-4 border-blue-600 pl-4 mb-6">
-                                {t("legal.cancellationPolicy.exceptions.title")}
-                            </h2>
-                            <div className="bg-white border border-dashed border-slate-300 rounded-lg p-6">
-                                <p className="text-sm text-slate-600 leading-relaxed">
+                            {/* 3. Exceptions */}
+                            <section>
+                                <h2 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-3 text-black">
+                                    <span className="w-4 h-[1px] bg-black"></span>
+                                    {t("legal.cancellationPolicy.exceptions.title")}
+                                </h2>
+                                <p className="text-[#555] pl-7">
                                     {t("legal.cancellationPolicy.exceptions.desc")}
                                 </p>
-                            </div>
-                        </section>
+                            </section>
 
+                        </div>
                     </div>
 
-                    {/* Footer Strip */}
-                    <div className={cn(
-                        "bg-slate-50 border-t border-slate-100 p-6",
-                        "text-center text-[10px] text-slate-400",
-                        "font-mono uppercase tracking-widest"
-                    )}>
-                        FOGCATALOG &bull; LEGAL DEPARTMENT
+                    {/* Footer */}
+                    <div className="h-[48px] border-t border-[#f0f0f0] flex items-center justify-center shrink-0 bg-white mt-auto">
+                        <div className="flex items-center gap-8">
+                            <div className="w-8 h-[1px] bg-[#f0f0f0]" />
+                            <span className="text-[9px] tracking-[0.5em] text-[#d0d0d0] uppercase">
+                                SAYFA 01 / 01
+                            </span>
+                            <div className="w-8 h-[1px] bg-[#f0f0f0]" />
+                        </div>
                     </div>
 
                 </div>

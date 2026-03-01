@@ -2,7 +2,7 @@ import type React from "react"
 import { Toaster } from "sonner"
 
 import { ThemeProvider } from "@/components/theme-provider"
-import { QueryProvider } from "@/lib/query-provider"
+import { QueryProvider } from "@/lib/contexts/query-provider"
 
 export const metadata = {
     title: "Admin Panel — FogCatalog",

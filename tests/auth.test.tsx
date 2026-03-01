@@ -14,20 +14,25 @@ const mockSupabaseAuth = {
     onAuthStateChange: vi.fn(() => ({
         data: { subscription: { unsubscribe: vi.fn() } }
     })),
+    refreshSession: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
 }
 
-const mockSupabaseClient = {
-    auth: mockSupabaseAuth,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSupabaseClient: any = {
+    auth: {
+        ...mockSupabaseAuth, // Spread existing auth mocks
+        refreshSession: vi.fn(async () => ({ data: { session: null, user: null }, error: null })), // Ensure refreshSession is present
+    },
     from: vi.fn(() => ({
         insert: vi.fn(),
-    })) as unknown as ReturnType<typeof mockSupabaseClient.from>,
+    })),
 }
 
 vi.mock('@/lib/supabase/client', () => ({
     createClient: vi.fn(() => mockSupabaseClient),
 }))
 
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
         t: (key: string) => {
             const translations: Record<string, string> = {
@@ -62,6 +67,7 @@ vi.mock('@/lib/i18n-provider', () => ({
                 'auth.sendResetLink': 'Sıfırlama Linki Gönder',
                 'auth.emailNotConfirmed': 'Email not confirmed',
                 'auth.alreadyRegistered': 'Already registered',
+                'auth.errorGeneric': 'Bir hata oluştu',
             }
             return translations[key] || key
         },
@@ -82,7 +88,7 @@ global.ResizeObserver = class ResizeObserver {
 } as unknown as typeof ResizeObserver
 
 describe('Authentication Testleri', () => {
-    let mockRouter: any
+    let mockRouter: ReturnType<typeof useRouter>
 
     beforeEach(() => {
         vi.clearAllMocks()
@@ -94,7 +100,7 @@ describe('Authentication Testleri', () => {
             prefetch: vi.fn(),
             back: vi.fn(),
             forward: vi.fn(),
-        }
+        } as unknown as ReturnType<typeof useRouter>
 
         vi.mocked(useRouter).mockReturnValue(mockRouter)
 

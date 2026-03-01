@@ -1,5 +1,5 @@
 import { bulkUpdateProductImages } from "@/lib/actions/products"
-import { optimizeImage } from "@/lib/image-utils"
+import { optimizeImage } from "@/lib/utils/image-utils"
 import { storage } from "@/lib/storage"
 import { type ImageFile } from "./types"
 
@@ -27,8 +27,11 @@ const sleep = (ms: number, signal: AbortSignal): Promise<void> =>
         signal.addEventListener("abort", onAbort, { once: true })
     })
 
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif']
+
 async function uploadSingleImageWithRetry(image: ImageFile, signal: AbortSignal): Promise<string> {
-    const extension = image.file.name.split(".").pop() || "jpg"
+    const rawExt = (image.file.name.split(".").pop() || "").toLowerCase()
+    const extension = ALLOWED_EXTENSIONS.includes(rawExt) ? rawExt : 'jpg'
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -62,7 +65,9 @@ async function uploadSingleImageWithRetry(image: ImageFile, signal: AbortSignal)
             })
 
             const timeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error("UPLOAD_TIMEOUT")), TIMEOUT_MS)
+                const timerId = setTimeout(() => reject(new Error("UPLOAD_TIMEOUT")), TIMEOUT_MS)
+                // Upload bittiğinde timeout'u temizle — memory leak önlenir
+                uploadPromise.finally(() => clearTimeout(timerId))
             })
 
             const result = (await Promise.race([uploadPromise, timeoutPromise])) as { url: string } | null

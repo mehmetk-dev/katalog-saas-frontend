@@ -103,7 +103,8 @@ CREATE TABLE IF NOT EXISTS public.category_metadata (
   color text,
   cover_image text,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, category_name)
 );
 
 -- 6. Activity Logs

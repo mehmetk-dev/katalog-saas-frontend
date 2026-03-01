@@ -7,7 +7,7 @@ export type LoadingPhase =
     | "slow_connection"
     | "success"
 
-export type TranslationFn = (key: string) => string
+export type TranslationFn = (key: string, params?: Record<string, unknown>) => string
 
 export const getLoadingMessage = (phase: LoadingPhase, t: TranslationFn): string => {
     switch (phase) {

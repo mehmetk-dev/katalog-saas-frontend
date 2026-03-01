@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isNetworkError } from "@/lib/utils/retry";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
@@ -35,7 +36,7 @@ interface ApiError extends Error {
     status?: number;
     isRateLimit?: boolean;
     retryAfter?: number;
-    details?: any;
+    details?: unknown;
 }
 
 export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
@@ -50,10 +51,14 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     const realIp = clientHeaders.get("x-real-ip");
     const userAgent = clientHeaders.get("user-agent");
 
-    // Use getUser() instead of getSession() for security
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    // SECURITY: getUser() validates JWT via Supabase Auth server (secure)
+    // getSession() returns cached session with access_token (fast, not validated)
+    // We call both in parallel to avoid TOCTOU race condition — user validation
+    // and token retrieval happen on the same snapshot of auth state.
+    const [{ data: { user } }, { data: { session } }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+    ]);
 
     const headersList: Record<string, string> = {
         "Content-Type": "application/json",
@@ -65,13 +70,10 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     if (realIp) headersList["x-real-ip"] = realIp;
     if (userAgent) headersList["user-agent"] = userAgent;
 
-    // Get session for access token after user is validated
-    if (user) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-            headersList["Authorization"] = `Bearer ${session.access_token}`;
-            headersList["x-user-id"] = user.id;
-        }
+    // Only attach auth headers if BOTH user is validated AND session has a token
+    if (user && session?.access_token) {
+        headersList["Authorization"] = `Bearer ${session.access_token}`;
+        headersList["x-user-id"] = user.id;
     }
 
     const fetchHeaders = headersList;
@@ -148,7 +150,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
             return response.json();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Her durumda timeout'u temizle
             if (timeoutId) {
                 clearTimeout(timeoutId);
@@ -217,22 +219,4 @@ function getErrorMessage(status?: number): string {
     return (status && messages[status]) || 'api.error.unknown';
 }
 
-/**
- * Network hatası mı kontrol et
- */
-function isNetworkError(error: unknown): boolean {
-    if (!error) return false;
-
-    const networkIndicators = [
-        'network',
-        'fetch',
-        'ECONNREFUSED',
-        'ENOTFOUND',
-        'ETIMEDOUT',
-        'ERR_NETWORK',
-        'Failed to fetch'
-    ];
-
-    const message = (error && typeof error === 'object' && 'message' in error ? String(error.message) : '').toLowerCase();
-    return networkIndicators.some(indicator => message.includes(indicator.toLowerCase()));
-}
+// isNetworkError is imported from @/lib/utils/retry

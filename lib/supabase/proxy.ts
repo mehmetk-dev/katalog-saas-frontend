@@ -1,6 +1,26 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+/**
+ * Clears all Supabase auth cookies from a response object.
+ * Removes session timer + chunked auth-token cookies.
+ */
+function clearAuthCookies(response: NextResponse): void {
+  response.cookies.delete("auth_session_timer")
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
+      const projectId = url.hostname.split('.')[0]
+      const name = `sb-${projectId}-auth-token`
+      response.cookies.delete(name)
+      response.cookies.delete(`${name}.0`)
+      response.cookies.delete(`${name}.1`)
+    } catch {
+      // ignore malformed URL
+    }
+  }
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -62,18 +82,7 @@ export async function updateSession(request: NextRequest) {
       // If we are already on the auth page, proceed (clearing cookies via response if needed)
       // preventing infinite redirect loop.
       if (request.nextUrl.pathname.startsWith("/auth")) {
-        // Just force clear cookies on the existing response object
-        supabaseResponse.cookies.delete("auth_session_timer");
-        if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-          try {
-            const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
-            const projectId = url.hostname.split('.')[0]
-            const name = `sb-${projectId}-auth-token`;
-            supabaseResponse.cookies.delete(name);
-            supabaseResponse.cookies.delete(`${name}.0`);
-            supabaseResponse.cookies.delete(`${name}.1`);
-          } catch { }
-        }
+        clearAuthCookies(supabaseResponse)
         return supabaseResponse
       }
 
@@ -81,20 +90,7 @@ export async function updateSession(request: NextRequest) {
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = "/auth"
       const redirectResponse = NextResponse.redirect(loginUrl, 307)
-
-      redirectResponse.cookies.delete("auth_session_timer")
-
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        try {
-          const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
-          const projectId = url.hostname.split('.')[0]
-          const name = `sb-${projectId}-auth-token`;
-          redirectResponse.cookies.delete(name);
-          redirectResponse.cookies.delete(`${name}.0`);
-          redirectResponse.cookies.delete(`${name}.1`);
-        } catch { }
-      }
-
+      clearAuthCookies(redirectResponse)
       return redirectResponse
     }
 
@@ -104,20 +100,8 @@ export async function updateSession(request: NextRequest) {
         const lastAuth = parseInt(sessionAgeCookie);
         if (now - lastAuth > MAX_SESSION_AGE) {
           // Session too old, force logout
-          // Avoid signOut() network call here too if possible, but legal sessions usually allow it.
-          // For safety, let's just use manual clear + redirect for this too.
           const response = redirectToLogin();
-          response.cookies.delete("auth_session_timer");
-          if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-            try {
-              const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
-              const projectId = url.hostname.split('.')[0]
-              const name = `sb-${projectId}-auth-token`;
-              response.cookies.delete(name);
-              response.cookies.delete(`${name}.0`);
-              response.cookies.delete(`${name}.1`);
-            } catch { }
-          }
+          clearAuthCookies(response)
           return response;
         }
       }
@@ -140,6 +124,28 @@ export async function updateSession(request: NextRequest) {
     // 3. Redirect to login if accessing dashboard without auth
     if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
       return redirectToLogin()
+    }
+
+    // 4. Admin panel protection (except /admin/login)
+    if (request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login")) {
+      if (!user) {
+        const adminLoginUrl = request.nextUrl.clone()
+        adminLoginUrl.pathname = "/admin/login"
+        return NextResponse.redirect(adminLoginUrl, 303)
+      }
+
+      // Server-side admin role check via Supabase
+      const { data: adminProfile } = await supabase
+        .from("users")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single()
+
+      if (!adminProfile?.is_admin) {
+        const adminLoginUrl = request.nextUrl.clone()
+        adminLoginUrl.pathname = "/admin/login"
+        return NextResponse.redirect(adminLoginUrl, 303)
+      }
     }
 
     return supabaseResponse

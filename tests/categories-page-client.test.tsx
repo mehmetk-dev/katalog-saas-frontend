@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { CategoriesPageClient } from '@/components/categories/categories-page-client'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
         t: (key: string) => {
             const translations: Record<string, string> = {
@@ -56,7 +56,7 @@ vi.mock('sonner', () => ({
     },
 }))
 
-vi.mock('@/lib/image-utils', () => ({
+vi.mock('@/lib/utils/image-utils', () => ({
     convertToWebP: vi.fn(async (file: File) => ({
         blob: new Blob([file], { type: 'image/webp' }),
         fileName: file.name.replace(/\.[^.]+$/, '.webp'),
@@ -92,7 +92,7 @@ vi.mock('@/components/builder/modals/upgrade-modal', () => ({
 vi.mock('next/image', () => ({
     default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
-        if (fill) imgProps.style = { ...(imgProps.style as any || {}), position: 'absolute', width: '100%', height: '100%' }
+        if (fill) imgProps.style = { ...((imgProps.style as Record<string, unknown>) || {}), position: 'absolute', width: '100%', height: '100%' }
         if (unoptimized !== undefined) imgProps.unoptimized = String(unoptimized)
         // eslint-disable-next-line @next/next/no-img-element
         return <img {...imgProps} />

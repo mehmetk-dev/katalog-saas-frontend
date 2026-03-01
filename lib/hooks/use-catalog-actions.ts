@@ -54,6 +54,7 @@ export function useCatalogActions({
     // ─── Autosave ───────────────────────────────────────────────────────
     const [, setIsAutoSaving] = useState(false)
     const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const isSavingRef = useRef(false)
 
     // Ref for autosave to read fresh state without stale closure
     const getStateRef = useRef(getState)
@@ -67,6 +68,10 @@ export function useCatalogActions({
         }
 
         autoSaveTimeoutRef.current = setTimeout(async () => {
+            // Guard: prevent concurrent autosaves (race condition fix)
+            if (isSavingRef.current) return
+            isSavingRef.current = true
+
             const data = getStateRef.current()
             setIsAutoSaving(true)
             try {
@@ -82,6 +87,7 @@ export function useCatalogActions({
                 console.error('Autosave failed:', error)
             } finally {
                 setIsAutoSaving(false)
+                isSavingRef.current = false
             }
         }, 3000)
 

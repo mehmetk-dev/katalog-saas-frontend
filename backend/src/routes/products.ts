@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import express from 'express';
 
 import { requireAuth } from '../middlewares/auth';
 import * as ProductController from '../controllers/products';
@@ -13,7 +14,8 @@ router.get('/', ProductController.getProducts);
 router.get('/stats', ProductController.getProductStats);
 router.post('/', ProductController.createProduct);
 router.post('/bulk-delete', ProductController.bulkDeleteProducts);
-router.post('/bulk-import', ProductController.bulkImportProducts);
+// SECURITY: Bulk import needs higher body limit (50MB) for large CSV/JSON imports
+router.post('/bulk-import', express.json({ limit: '50mb' }), ProductController.bulkImportProducts);
 router.post('/reorder', ProductController.reorderProducts);
 router.post('/bulk-price-update', ProductController.bulkUpdatePrices);
 router.post('/bulk-image-update', ProductController.bulkUpdateImages);

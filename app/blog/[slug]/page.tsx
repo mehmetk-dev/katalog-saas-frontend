@@ -2,16 +2,24 @@ import React from 'react'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Share2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { PublicHeader } from '@/components/layout/public-header'
 import { PublicFooter } from '@/components/layout/public-footer'
-import { getPostBySlug, getAllPosts } from '@/lib/blog'
+import { getPostBySlug, getAllPosts } from '@/lib/services/blog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { generateSEO } from '@/lib/seo'
+import { generateSEO } from '@/lib/services/seo'
+import { SITE_URL } from '@/lib/constants'
 import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
+
+const CATEGORY_LABELS: Record<string, string> = {
+    'guides': 'Rehberler',
+    'product-updates': 'Ürün Güncellemeleri',
+    'ecommerce-tips': 'E-ticaret İpuçları',
+    'success-stories': 'Başarı Hikayeleri',
+}
 
 interface PostPageProps {
     params: Promise<{ slug: string }>
@@ -45,6 +53,11 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
     if (!post) notFound()
 
+    // Fetch related posts at top level instead of inside JSX IIFE
+    const relatedPosts = getAllPosts()
+        .filter(p => p.slug !== post.slug && p.language === post.language)
+        .slice(0, 2)
+
     // JSON-LD Structured Data
     const jsonLd = {
         '@context': 'https://schema.org',
@@ -53,20 +66,20 @@ export default async function BlogPostPage({ params }: PostPageProps) {
         description: post.excerpt,
         image: post.coverImage,
         datePublished: post.date,
-        dateModified: post.lastModified || post.date,  // SEO: Content freshness signal
+        dateModified: post.lastModified || post.date,
         author: {
             '@type': 'Person',
             name: post.author,
             jobTitle: 'Ürün Yöneticisi & Büyüme Uzmanı',
             description: '8+ yıllık SaaS ürün geliştirme ve büyüme pazarlaması deneyimine sahip dijital katalog ve e-ticaret uzmanı.',
-            url: 'https://fogcatalog.com',
+            url: SITE_URL,
         },
         publisher: {
             '@type': 'Organization',
             name: 'FogCatalog',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://fogcatalog.com/icon.png',
+                url: `${SITE_URL}/icon.png`,
             },
         },
     }
@@ -90,15 +103,7 @@ export default async function BlogPostPage({ params }: PostPageProps) {
                     <div className="space-y-8 mb-16">
                         <div className="flex items-center gap-4">
                             <Badge className="bg-violet-100 text-violet-600 hover:bg-violet-100 border-none px-4 py-1 uppercase tracking-widest text-[10px] font-black">
-                                {(() => {
-                                    const trCategories: Record<string, string> = {
-                                        'guides': 'Rehberler',
-                                        'product-updates': 'Ürün Güncellemeleri',
-                                        'ecommerce-tips': 'E-ticaret İpuçları',
-                                        'success-stories': 'Başarı Hikayeleri'
-                                    }
-                                    return trCategories[post.category] || post.category
-                                })()}
+                                {CATEGORY_LABELS[post.category] ?? post.category}
                             </Badge>
                         </div>
 
@@ -169,48 +174,33 @@ export default async function BlogPostPage({ params }: PostPageProps) {
                     <div className="mt-20 pt-16 border-t-2 border-slate-100">
                         <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight">İlgili Yazılar</h3>
                         <div className="grid md:grid-cols-2 gap-6">
-                            {(() => {
-                                const allPosts = getAllPosts()
-                                const relatedPosts = allPosts
-                                    .filter(p => p.slug !== post.slug && p.language === post.language)
-                                    .slice(0, 2)
-
-                                return relatedPosts.map((relatedPost) => (
-                                    <Link
-                                        key={relatedPost.slug}
-                                        href={`/blog/${relatedPost.slug}`}
-                                        className="group flex flex-col border border-slate-200 rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
-                                    >
-                                        <div className="aspect-[16/9] relative overflow-hidden bg-slate-100">
-                                            <Image
-                                                src={relatedPost.coverImage}
-                                                alt={relatedPost.title}
-                                                fill
-                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                        </div>
-                                        <div className="p-6">
-                                            <Badge className="mb-3 bg-violet-100 text-violet-600 hover:bg-violet-100">
-                                                {(() => {
-                                                    const trCategories: Record<string, string> = {
-                                                        'guides': 'Rehberler',
-                                                        'product-updates': 'Ürün Güncellemeleri',
-                                                        'ecommerce-tips': 'E-ticaret İpuçları',
-                                                        'success-stories': 'Başarı Hikayeleri'
-                                                    }
-                                                    return trCategories[relatedPost.category] || relatedPost.category
-                                                })()}
-                                            </Badge>
-                                            <h4 className="text-lg font-bold text-slate-900 group-hover:text-violet-600 transition-colors mb-2 line-clamp-2">
-                                                {relatedPost.title}
-                                            </h4>
-                                            <p className="text-sm text-slate-500 line-clamp-2">
-                                                {relatedPost.excerpt}
-                                            </p>
-                                        </div>
-                                    </Link>
-                                ))
-                            })()}
+                            {relatedPosts.map((relatedPost) => (
+                                <Link
+                                    key={relatedPost.slug}
+                                    href={`/blog/${relatedPost.slug}`}
+                                    className="group flex flex-col border border-slate-200 rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
+                                >
+                                    <div className="aspect-[16/9] relative overflow-hidden bg-slate-100">
+                                        <Image
+                                            src={relatedPost.coverImage}
+                                            alt={relatedPost.title}
+                                            fill
+                                            className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                    </div>
+                                    <div className="p-6">
+                                        <Badge className="mb-3 bg-violet-100 text-violet-600 hover:bg-violet-100">
+                                            {CATEGORY_LABELS[relatedPost.category] ?? relatedPost.category}
+                                        </Badge>
+                                        <h4 className="text-lg font-bold text-slate-900 group-hover:text-violet-600 transition-colors mb-2 line-clamp-2">
+                                            {relatedPost.title}
+                                        </h4>
+                                        <p className="text-sm text-slate-500 line-clamp-2">
+                                            {relatedPost.excerpt}
+                                        </p>
+                                    </div>
+                                </Link>
+                            ))}
                         </div>
                     </div>
                 </article>

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { type ProductViewProps } from "../types"
-import { getStockStatus, getCurrencySymbol } from "../utils/product-helpers"
+import { getStockStatus, getCurrencySymbol, isSafeUrl } from "../utils/product-helpers"
 import { DeleteAlertDialog } from "../components/delete-alert-dialog"
 import { ProductPreviewDialog } from "../components/product-preview-dialog"
 
@@ -141,7 +141,7 @@ export function ProductListView({
                                 <div className="min-w-0 flex flex-col gap-0.5 pl-2">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-medium text-sm truncate">{product.name}</h3>
-                                        {product.product_url && (
+                                        {product.product_url && isSafeUrl(product.product_url) && (
                                             <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:text-violet-600" onClick={(e) => e.stopPropagation()}>
                                                 <ExternalLink className="w-3 h-3" />
                                             </a>

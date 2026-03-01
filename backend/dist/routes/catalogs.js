@@ -38,6 +38,7 @@ const auth_1 = require("../middlewares/auth");
 const CatalogController = __importStar(require("../controllers/catalogs"));
 const router = (0, express_1.Router)();
 // Public routes (No Auth Required)
+router.get('/public/:slug/meta', CatalogController.getPublicCatalogMeta);
 router.get('/public/:slug', CatalogController.getPublicCatalog);
 // Protected routes (Auth Required)
 router.get('/', auth_1.requireAuth, CatalogController.getCatalogs);

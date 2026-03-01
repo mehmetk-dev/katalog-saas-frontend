@@ -4,8 +4,9 @@ import React, { useState, useCallback } from "react"
 import NextImage from "next/image"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useLightbox } from "@/lib/lightbox-context"
-import { getCloudinaryResizedUrl } from "@/lib/image-utils"
+import { useLightbox } from "@/lib/contexts/lightbox-context"
+import { getCloudinaryResizedUrl } from "@/lib/utils/image-utils"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { Product } from "@/lib/actions/products"
 
 interface ProductImageGalleryProps {
@@ -38,6 +39,7 @@ export function ProductImageGallery({
 }: ProductImageGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState(0)
     const { openLightbox } = useLightbox()
+    const { t } = useTranslation()
 
     // Tüm görselleri birleştir (image_url + images array)
     const allImages = React.useMemo(() => {
@@ -127,21 +129,6 @@ export function ProductImageGallery({
                     )}
                 />
 
-                {/* Arka plan ön yükleyicisi: Bu ürünün diğer açıları lightbox'ta gecikmesin diye gizlice indirilir */}
-                {hasMultiple && (
-                    <div className="hidden" aria-hidden="true">
-                        {allImages.slice(1).map((img, idx) => (
-                            <img
-                                key={`prefetch-${idx}`}
-                                src={getCloudinaryResizedUrl(img, 1000)}
-                                loading="lazy"
-                                decoding="async"
-                                alt=""
-                            />
-                        ))}
-                    </div>
-                )}
-
                 {/* Birden fazla görsel varsa gösterge */}
                 {hasMultiple && showNavigation && (
                     <>
@@ -149,14 +136,14 @@ export function ProductImageGallery({
                         <button
                             onClick={goPrev}
                             className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
-                            aria-label="Önceki görsel"
+                            aria-label={t('common.previousImage') || 'Previous image'}
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
                         <button
                             onClick={goNext}
                             className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
-                            aria-label="Sonraki görsel"
+                            aria-label={t('common.nextImage') || 'Next image'}
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>
@@ -173,7 +160,7 @@ export function ProductImageGallery({
                                             ? "bg-white"
                                             : "bg-white/50 hover:bg-white/70"
                                     )}
-                                    aria-label={`Görsel ${index + 1}`}
+                                    aria-label={`${t('common.imageOf')?.replace('{index}', String(index + 1)) || `Image ${index + 1}`}`}
                                 />
                             ))}
                         </div>

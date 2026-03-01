@@ -6,6 +6,56 @@ import { logActivity, getRequestInfo, ActivityDescriptions } from '../../service
 import { getUserId } from './helpers';
 import { createProductSchema, updateProductSchema } from './schemas';
 import { cleanupProductPhotos, collectProductPhotoUrls, normalizeCoverAndImages } from './media';
+import { safeErrorMessage } from '../../utils/safe-error';
+
+const parseCategoryList = (categoryValue?: string | null): string[] => {
+    if (!categoryValue) return [];
+
+    const normalized = categoryValue
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => item.toLocaleLowerCase('tr-TR'));
+
+    return [...new Set(normalized)];
+};
+
+const ensureFreePlanCannotCreateCategory = async (params: {
+    userId: string;
+    plan: string;
+    incomingCategory?: string | null;
+}): Promise<{ allowed: true } | { allowed: false; message: string }> => {
+    const { userId, plan, incomingCategory } = params;
+
+    if (plan !== 'free') return { allowed: true };
+
+    const requestedCategories = parseCategoryList(incomingCategory);
+    if (requestedCategories.length === 0) return { allowed: true };
+
+    const { data: existingCategoryRows, error } = await supabase
+        .from('products')
+        .select('category')
+        .eq('user_id', userId)
+        .not('category', 'is', null);
+
+    if (error) {
+        return { allowed: false, message: 'Kategori kontrolü sırasında bir hata oluştu.' };
+    }
+
+    const existingCategories = new Set(
+        (existingCategoryRows || []).flatMap((row) => parseCategoryList(row.category as string | null))
+    );
+
+    const hasNewCategory = requestedCategories.some((category) => !existingCategories.has(category));
+    if (hasNewCategory) {
+        return {
+            allowed: false,
+            message: 'Yeni kategori oluşturma özelliği yalnızca Plus ve Pro planlarda kullanılabilir.'
+        };
+    }
+
+    return { allowed: true };
+};
 
 export const createProduct = async (req: Request, res: Response) => {
     try {
@@ -33,6 +83,19 @@ export const createProduct = async (req: Request, res: Response) => {
             return res.status(403).json({
                 error: 'Limit Reached',
                 message: `Ürün ekleme limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxProducts} adet). Daha fazla eklemek için paketinizi yükseltin.`
+            });
+        }
+
+        const categoryCheck = await ensureFreePlanCannotCreateCategory({
+            userId,
+            plan,
+            incomingCategory: category
+        });
+
+        if (!categoryCheck.allowed) {
+            return res.status(403).json({
+                error: 'Category Plan Restricted',
+                message: categoryCheck.message
             });
         }
 
@@ -75,8 +138,7 @@ export const createProduct = async (req: Request, res: Response) => {
 
         res.status(201).json(data);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
 
@@ -103,6 +165,28 @@ export const updateProduct = async (req: Request, res: Response) => {
             display_order,
             is_active
         } = parsed.data;
+
+        const user = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+            const { data } = await supabase.from('users').select('plan').eq('id', userId).single();
+            return data;
+        });
+
+        const plan = (user as { plan: string })?.plan || 'free';
+
+        if (category !== undefined) {
+            const categoryCheck = await ensureFreePlanCannotCreateCategory({
+                userId,
+                plan,
+                incomingCategory: category
+            });
+
+            if (!categoryCheck.allowed) {
+                return res.status(403).json({
+                    error: 'Category Plan Restricted',
+                    message: categoryCheck.message
+                });
+            }
+        }
 
         const { data: existingProduct, error: existingProductError } = await supabase
             .from('products')
@@ -166,8 +250,7 @@ export const updateProduct = async (req: Request, res: Response) => {
 
         res.json({ success: true });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
 
@@ -224,7 +307,6 @@ export const deleteProduct = async (req: Request, res: Response) => {
             deletedPhotosCount: photoUrls.length
         });
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        res.status(500).json({ error: safeErrorMessage(error) });
     }
 };

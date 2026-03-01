@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { UserProvider, useUser } from '@/lib/user-context'
+import { UserProvider, useUser } from '@/lib/contexts/user-context'
 import { createClient } from '@/lib/supabase/client'
 import { apiFetch } from '@/lib/api'
 
@@ -53,13 +53,15 @@ function TestComponent() {
 }
 
 describe('User Context Testleri', () => {
-    let mockSupabaseClient: ReturnType<typeof createClient>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mockSupabaseClient: any
     let mockApiFetch: ReturnType<typeof vi.fn>
 
     beforeEach(() => {
         vi.clearAllMocks()
 
         mockApiFetch = vi.fn()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(apiFetch).mockImplementation(mockApiFetch as any)
 
         const mockUsersBuilder = {
@@ -80,6 +82,7 @@ describe('User Context Testleri', () => {
                     data: { subscription: { unsubscribe: vi.fn() } }
                 })),
                 signOut: vi.fn().mockResolvedValue({ error: null }),
+                refreshSession: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
             },
             from: vi.fn((table: string) => {
                 if (table === 'users') return mockUsersBuilder
@@ -87,11 +90,12 @@ describe('User Context Testleri', () => {
                 if (table === 'catalogs') return mockCountBuilder(0)
                 return mockUsersBuilder
             }),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
 
         vi.mocked(createClient).mockReturnValue(mockSupabaseClient)
 
-            // Helper to update mock data in tests
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ; (mockSupabaseClient as any).setMockProfile = (data: any) => {
                 mockUsersBuilder.single.mockResolvedValue({ data, error: null })
             }
@@ -385,7 +389,8 @@ describe('User Context Testleri', () => {
 
     describe('Auth State Changes', () => {
         it('Auth state değiştiğinde user bilgilerini günceller', async () => {
-            let authStateChangeCallback: ((event: string, session: { user: { id: string; email: string } | null } | null) => void) | null = null
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let authStateChangeCallback: any = null
 
             mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: (event: string, session: { user: { id: string; email: string } | null } | null) => void) => {
                 authStateChangeCallback = callback
@@ -424,7 +429,8 @@ describe('User Context Testleri', () => {
         })
 
         it('Logout olduğunda user state temizlenir', async () => {
-            let authStateChangeCallback: ((event: string, session: { user: { id: string; email: string } | null } | null) => void) | null = null
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let authStateChangeCallback: any = null
 
             mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: (event: string, session: { user: { id: string; email: string } | null } | null) => void) => {
                 authStateChangeCallback = callback

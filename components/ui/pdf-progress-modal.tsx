@@ -47,6 +47,18 @@ function tr(t: PdfProgressModalProps["t"], key: string, fallback: string, params
     return fallback
 }
 
+/** Static phase icons — safe to define at module scope (no props dependency) */
+const PHASE_ICONS: Record<PdfExportPhase, React.ReactNode> = {
+    idle: null,
+    preparing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
+    rendering: <FileDown className="h-6 w-6 text-violet-500 animate-pulse" />,
+    processing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
+    saving: <Loader2 className="h-6 w-6 animate-spin text-green-500" />,
+    done: <CheckCircle2 className="h-6 w-6 text-green-500" />,
+    error: <XCircle className="h-6 w-6 text-red-500" />,
+    cancelled: <X className="h-6 w-6 text-orange-500" />,
+}
+
 export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) {
     const open = state.phase !== "idle"
     const canClose = state.phase === "done" || state.phase === "error" || state.phase === "cancelled"
@@ -63,17 +75,6 @@ export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) 
         cancelled: tr(t, "pdf.phraseCancelled", "PDF indirme iptal edildi"),
     }
 
-    const phaseIcons: Record<PdfExportPhase, React.ReactNode> = {
-        idle: null,
-        preparing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
-        rendering: <FileDown className="h-6 w-6 text-violet-500 animate-pulse" />,
-        processing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
-        saving: <Loader2 className="h-6 w-6 animate-spin text-green-500" />,
-        done: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-        error: <XCircle className="h-6 w-6 text-red-500" />,
-        cancelled: <X className="h-6 w-6 text-orange-500" />,
-    }
-
     return (
         <Dialog open={open} onOpenChange={() => { /* controlled externally */ }}>
             <DialogContent
@@ -84,7 +85,7 @@ export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) 
             >
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-3 text-lg">
-                        {phaseIcons[state.phase]}
+                        {PHASE_ICONS[state.phase]}
                         {tr(t, "pdf.modalTitle", "PDF İndirme")}
                     </DialogTitle>
                     <DialogDescription className="sr-only">

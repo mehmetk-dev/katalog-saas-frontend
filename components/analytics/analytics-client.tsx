@@ -29,7 +29,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { DashboardStats, Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
 import { useDashboardStats } from "@/lib/hooks/use-catalogs"
@@ -81,6 +81,9 @@ function calculateTrend(currentValue: number, previousValue: number) {
         show: Math.abs(percentChange) > 0
     }
 }
+
+// Pie chart color palette — constant, no need to recreate per render
+const DEVICE_COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B']
 
 export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClientProps) {
     const { t: baseT, language } = useTranslation()
@@ -134,16 +137,14 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
     // Cihaz Dağılımı Verisi
     const devicePieData = useMemo(() => {
         const data = (validatedStats.deviceStats || []).map(d => ({
-            name: d.device_type === 'mobile' ? (language === 'tr' ? 'Mobil' : 'Mobile') :
-                d.device_type === 'desktop' ? (language === 'tr' ? 'Masaüstü' : 'Desktop') :
-                    d.device_type === 'tablet' ? 'Tablet' : (language === 'tr' ? 'Diğer' : 'Other'),
+            name: d.device_type === 'mobile' ? t('dashboard.analytics.deviceMobile') :
+                d.device_type === 'desktop' ? t('dashboard.analytics.deviceDesktop') :
+                    d.device_type === 'tablet' ? 'Tablet' : t('dashboard.analytics.deviceOther'),
             value: d.view_count,
             percentage: d.percentage
         }))
         return data.length > 0 ? data : []
-    }, [validatedStats.deviceStats, language])
-
-    const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B']
+    }, [validatedStats.deviceStats, t])
 
     // KPI Trendleri
     const kpiStats = useMemo(() => [
@@ -200,6 +201,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
+                            aria-pressed={timeRange === range}
                             className={cn(
                                 "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
                                 timeRange === range
@@ -209,7 +211,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         >
                             {range === "7d" ? t("dashboard.analytics.last7Days") :
                                 range === "30d" ? t("dashboard.analytics.last30Days") :
-                                    (language === 'tr' ? "90 GÜN" : "90 DAYS")}
+                                    t("dashboard.analytics.last90Days")}
                         </button>
                     ))}
                 </div>
@@ -306,9 +308,10 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                 border: 'none',
                                                 boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
                                                 fontSize: '12px',
-                                                backgroundColor: 'white'
+                                                backgroundColor: 'var(--color-card, white)',
+                                                color: 'var(--color-card-foreground, #1e293b)'
                                             }}
-                                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: '#1e293b' }}
+                                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--color-card-foreground, #1e293b)' }}
                                             formatter={(value: unknown) => [`${value} ${t("dashboard.analytics.views")}`, '']}
                                         />
                                         <Bar
@@ -349,7 +352,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                 animationDuration={1500}
                                             >
                                                 {devicePieData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    <Cell key={`cell-${index}`} fill={DEVICE_COLORS[index % DEVICE_COLORS.length]} />
                                                 ))}
                                             </Pie>
                                             <Tooltip />
@@ -359,7 +362,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30">
                                     <LucidePieChart className="w-12 h-12 mb-2" />
-                                    <span className="text-xs">{language === 'tr' ? 'Veri Bekleniyor' : 'Waiting for Data'}</span>
+                                    <span className="text-xs">{t('dashboard.analytics.waitingForData')}</span>
                                 </div>
                             )}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -374,7 +377,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             {devicePieData.map((device, i) => (
                                 <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DEVICE_COLORS[i % DEVICE_COLORS.length] }} />
                                         <span className="text-sm font-medium">{device.name}</span>
                                     </div>
                                     <div className="flex items-center gap-4">
@@ -408,7 +411,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             <p className="text-sm text-muted-foreground">{t("dashboard.analytics.noData")}</p>
                             <Button size="sm" asChild variant="outline">
                                 <Link href="/dashboard/builder">
-                                    {language === 'tr' ? 'İlk Kataloğu Oluştur' : 'Create First Catalog'}
+                                    {t('dashboard.analytics.createFirstCatalog')}
                                 </Link>
                             </Button>
                         </div>
@@ -417,9 +420,9 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
                                     <tr>
-                                        <th className="px-6 py-3 font-semibold">{language === 'tr' ? 'KATALOG ADI' : 'CATALOG NAME'}</th>
+                                        <th className="px-6 py-3 font-semibold">{t('dashboard.analytics.catalogNameHeader')}</th>
                                         <th className="px-6 py-3 font-semibold text-right">{t("dashboard.analytics.views").toUpperCase()}</th>
-                                        <th className="px-6 py-3 font-semibold hidden md:table-cell">{language === 'tr' ? 'POPÜLERLİK' : 'POPULARITY'}</th>
+                                        <th className="px-6 py-3 font-semibold hidden md:table-cell">{t('dashboard.analytics.popularity')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/50">
@@ -448,13 +451,13 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                                 style={{ width: `${percentage}%` }}
                                                             />
                                                         </div>
-                                                        <span className="text-[10px] font-bold text-muted-foreground w-8">%{Math.round(percentage)}</span>
+                                                        <span className="text-[10px] font-bold text-muted-foreground w-8">{language === 'tr' ? `%${Math.round(percentage)}` : `${Math.round(percentage)}%`}</span>
                                                     </div>
                                                 </td>
                                             </tr>
                                         )
                                     })}
-                                    {devicePieData.length === 0 && (
+                                    {validatedStats.topCatalogs.length === 0 && (
                                         <tr>
                                             <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground italic">
                                                 {t("dashboard.analytics.collectingData")}

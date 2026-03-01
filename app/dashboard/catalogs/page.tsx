@@ -2,6 +2,7 @@ import { Metadata } from "next"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { CatalogsPageClient } from "@/components/catalogs/catalogs-page-client"
+import type { Product } from "@/lib/actions/products"
 
 export const metadata: Metadata = {
   title: "Kataloglar",
@@ -28,7 +29,7 @@ export default async function CatalogsPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("products")
-      .select("*")
+      .select("id,name,price,image_url,images,category,description,sku,product_url,custom_attributes")
       .eq("user_id", user.id),
     supabase
       .from("users")
@@ -39,5 +40,5 @@ export default async function CatalogsPage() {
 
   const userPlan = (profileResult.data?.plan || "free") as "free" | "plus" | "pro"
 
-  return <CatalogsPageClient initialCatalogs={catalogsResult.data || []} userProducts={productsResult.data || []} userPlan={userPlan} />
+  return <CatalogsPageClient initialCatalogs={catalogsResult.data || []} userProducts={(productsResult.data || []) as Product[]} userPlan={userPlan} />
 }

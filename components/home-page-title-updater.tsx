@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 /**
  * Client-side title updater for homepage

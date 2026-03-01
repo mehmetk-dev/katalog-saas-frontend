@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 
@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase/client', () => ({
     createClient: () => ({
         auth: {
             getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: 'test-user' } } } }),
+            refreshSession: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
         },
         storage: {
             from: () => ({
@@ -41,7 +42,7 @@ vi.mock('next/image', () => ({
     },
 }))
 
-vi.mock('@/lib/image-utils', () => ({
+vi.mock('@/lib/utils/image-utils', () => ({
     convertToWebP: vi.fn(async (file: File) => ({
         blob: new Blob([file], { type: 'image/webp' }),
         fileName: file.name.replace(/\.[^.]+$/, '.webp'),

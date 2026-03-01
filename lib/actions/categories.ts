@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { validate, categoryMetadataSchema } from "@/lib/validations"
 
 export async function updateCategoryMetadata(
     categoryName: string,
@@ -13,14 +14,17 @@ export async function updateCategoryMetadata(
 
     if (!user) throw new Error("Unauthorized")
 
+    // Validate and sanitize input
+    const validatedData = validate(categoryMetadataSchema, data)
+
     // Upsert (Varsa güncelle, yoksa ekle)
     const { error } = await supabase
         .from('category_metadata')
         .upsert({
             user_id: user.id,
             category_name: categoryName,
-            color: data.color,
-            cover_image: data.cover_image,
+            color: validatedData.color,
+            cover_image: validatedData.cover_image,
             updated_at: new Date().toISOString()
         }, {
             onConflict: 'user_id, category_name'

@@ -1,3 +1,5 @@
+export type { ActivityLog } from "@/lib/services/activity-logger"
+
 export type TranslationFn = (key: string) => string
 
 export interface AdminStats {
@@ -25,12 +27,3 @@ export interface DeletedUser extends AdminUser {
     original_created_at: string
 }
 
-export interface ActivityLog {
-    id: string
-    created_at: string
-    user_email?: string
-    user_name?: string
-    activity_type: string
-    description: string
-    ip_address?: string
-}

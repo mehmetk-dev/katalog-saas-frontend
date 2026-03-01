@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDashboardStats = exports.getPublicCatalog = exports.publishCatalog = exports.deleteCatalog = exports.updateCatalog = exports.createCatalog = exports.getTemplates = exports.getCatalog = exports.getCatalogs = void 0;
+exports.getDashboardStats = exports.getPublicCatalogMeta = exports.getPublicCatalog = exports.publishCatalog = exports.deleteCatalog = exports.updateCatalog = exports.createCatalog = exports.getTemplates = exports.getCatalog = exports.getCatalogs = void 0;
 var read_1 = require("./catalogs/read");
 Object.defineProperty(exports, "getCatalogs", { enumerable: true, get: function () { return read_1.getCatalogs; } });
 Object.defineProperty(exports, "getCatalog", { enumerable: true, get: function () { return read_1.getCatalog; } });
@@ -13,5 +13,6 @@ var publish_1 = require("./catalogs/publish");
 Object.defineProperty(exports, "publishCatalog", { enumerable: true, get: function () { return publish_1.publishCatalog; } });
 var public_1 = require("./catalogs/public");
 Object.defineProperty(exports, "getPublicCatalog", { enumerable: true, get: function () { return public_1.getPublicCatalog; } });
+Object.defineProperty(exports, "getPublicCatalogMeta", { enumerable: true, get: function () { return public_1.getPublicCatalogMeta; } });
 var stats_1 = require("./catalogs/stats");
 Object.defineProperty(exports, "getDashboardStats", { enumerable: true, get: function () { return stats_1.getDashboardStats; } });

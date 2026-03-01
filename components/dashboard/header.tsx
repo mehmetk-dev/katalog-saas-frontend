@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
 import { Bell, Plus, ChevronDown, LogOut, Settings, User, Menu, PanelLeftClose, PanelLeft, Loader2 } from "lucide-react"
-import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { NotificationDropdown } from "@/components/dashboard/notification-dropdown"
@@ -16,22 +15,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useUser } from "@/lib/user-context"
-import { useTranslation } from "@/lib/i18n-provider"
-import { useSidebar } from "@/lib/sidebar-context"
+import { useUser } from "@/lib/contexts/user-context"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { useSidebar } from "@/lib/contexts/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
 
 // 1. Import usePathname
 import { usePathname } from "next/navigation"
 
 export function DashboardHeader() {
-  const { user, logout, adjustCatalogsCount } = useUser()
+  const { user, logout } = useUser()
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
   const { toggle, isMobile, isCollapsed } = useSidebar()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
+  const { createNewCatalog, isCreating } = useCreateCatalog()
 
   useEffect(() => {
     setMounted(true)
@@ -39,35 +40,6 @@ export function DashboardHeader() {
 
   const handleLogout = async () => {
     await logout()
-  }
-
-  const [isCreating, setIsCreating] = useState(false)
-
-  const handleCatalogCreate = async () => {
-    setIsCreating(true)
-    const creatingMsg = t("toasts.creatingCatalog")
-    const toastId = toast.loading(creatingMsg === "toasts.creatingCatalog" ? "Katalog oluşturuluyor..." : String(creatingMsg))
-    try {
-      const { createCatalog } = await import("@/lib/actions/catalogs")
-      const currentDate = new Date().toLocaleDateString('tr-TR')
-      const rawName = t("catalogs.newCatalog")
-      const baseName = rawName === "catalogs.newCatalog" ? "Yeni Katalog" : String(rawName)
-
-      const newCatalog = await createCatalog({
-        name: `${baseName} - ${currentDate}`,
-        layout: "modern-grid"
-      })
-
-      adjustCatalogsCount(1)
-
-      const successMsg = t("toasts.catalogCreated")
-      toast.success(successMsg === "toasts.catalogCreated" ? "Katalog başarıyla oluşturuldu" : String(successMsg), { id: toastId })
-      window.location.href = `/dashboard/builder?id=${newCatalog.id}`
-    } catch (error: unknown) {
-      console.error("Header creation error:", error)
-      toast.error(error instanceof Error ? error.message : "Hata oluştu", { id: toastId })
-      setIsCreating(false)
-    }
   }
 
   // Dinamik Header Aksiyonu
@@ -181,7 +153,7 @@ export function DashboardHeader() {
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Dinamik Aksiyon Butonu */}
           {action.href === "/dashboard/builder" ? (
-            <Button onClick={handleCatalogCreate} className="gap-2" size="sm" disabled={isCreating}>
+            <Button onClick={createNewCatalog} className="gap-2" size="sm" disabled={isCreating}>
               {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : action.icon}
               <span className="hidden sm:inline">{action.label}</span>
               <span className="sm:hidden">{t("common.new")}</span>

@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function BoldCover({
+export const BoldCover = React.memo(function BoldCover({
     catalogName,
     coverImageUrl,
     coverDescription,
     logoUrl,
     productCount = 0,
-    primaryColor = '#000000'
+    primaryColor: _primaryColor = '#000000'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#E5E5E5] text-black overflow-hidden font-sans selection:bg-black selection:text-white">
@@ -80,4 +80,4 @@ export function BoldCover({
             </div>
         </div>
     )
-}
+})

@@ -11,9 +11,13 @@ import client from 'prom-client';
 
 import { initRedis } from './services/redis';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import { validateEnvAndExit } from './utils/env-validation';
 
 // Load environment variables
 dotenv.config();
+
+// SECURITY: Validate required env vars at startup (exits in production if missing)
+validateEnvAndExit();
 
 const app: Express = express();
 const PORT = process.env.PORT || 4000;
@@ -54,8 +58,10 @@ const authLimiter = rateLimit({
 // Middleware
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests without origin (server-to-server, SSR, mobile apps, curl)
+        // Allow requests without origin (server-to-server, SSR, mobile apps)
         // Next.js server-side requests don't send Origin header
+        // NOTE: CORS only protects browsers. curl/scripts bypass CORS entirely.
+        // All mutative endpoints still require valid JWT via requireAuth middleware.
         if (!origin) {
             return callback(null, true);
         }
@@ -64,7 +70,9 @@ app.use(cors({
             callback(null, true);
         } else {
             // Log rejected origins for debugging
-            console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+            if (!isDev) {
+                console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+            }
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -72,6 +80,24 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// SECURITY: Block no-origin mutative requests without auth (defense-in-depth)
+// SSR always sends Authorization header, so this only blocks raw curl/script abuse
+app.use((req: Request, res: Response, next) => {
+    const origin = req.headers.origin;
+    const method = req.method.toUpperCase();
+    const hasMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+
+    // If no origin + mutative request + no auth header → reject
+    // Public GET endpoints (health, public catalog) still work without origin
+    if (!origin && hasMutation && !req.headers.authorization) {
+        // Allow health check POST if any
+        if (req.path.startsWith('/health')) return next();
+
+        return res.status(403).json({ error: 'Origin or authorization required' });
+    }
+    next();
+});
 app.use(helmet({
     contentSecurityPolicy: isDev ? false : undefined, // Disable CSP in dev for easier debugging
     crossOriginEmbedderPolicy: false, // Allow embedding for catalog previews
@@ -92,16 +118,27 @@ app.use(helmet({
 }));
 app.use(morgan('dev'));
 app.use(compression()); // gzip/brotli response compression
-app.use(express.json({ limit: '50mb' })); // 50MB for large catalogs (10K+ products)
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// SECURITY: Default 2MB limit to prevent DoS. Bulk import route has its own 50MB limit.
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 // Prometheus'un verileri okuyacağı endpoint
+// SECURITY: Protected with token-based auth to prevent information leakage
 app.get('/metrics', async (req: Request, res: Response) => {
     try {
+        const metricsToken = process.env.METRICS_SECRET;
+        // SECURITY: Only accept token via header — query strings leak in logs/referers
+        const providedToken = req.headers['x-metrics-token'];
+
+        if (!metricsToken || providedToken !== metricsToken) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         res.set('Content-Type', client.register.contentType);
         res.end(await client.register.metrics());
-    } catch (err) {
-        res.status(500).end(err);
+    } catch {
+        // SECURITY: Never leak raw error objects to client
+        res.status(500).json({ error: 'Metrics unavailable' });
     }
 });
 

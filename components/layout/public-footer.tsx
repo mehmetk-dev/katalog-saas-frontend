@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 export function PublicFooter() {
     const { t } = useTranslation()

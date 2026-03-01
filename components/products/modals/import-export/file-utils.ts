@@ -5,6 +5,15 @@ import { type ColumnMapping } from './types'
 
 type TFunction = (key: string, params?: Record<string, unknown>) => string
 
+/** CSV/Excel formül injection koruması — hücre değerlerini sanitize eder */
+export function sanitizeImportValue(value: string): string {
+    const trimmed = value.trim()
+    if (/^[=+\-@\t\r]/.test(trimmed)) {
+        return `'${trimmed}`
+    }
+    return trimmed
+}
+
 export const getImportFileType = (file: File): 'excel' | 'csv' | null => {
     const isExcelFile =
         file.type === 'application/vnd.ms-excel' ||
@@ -89,13 +98,13 @@ export const parseExcelFile = (file: File, t: TFunction): Promise<{ headers: str
                     return
                 }
 
-                const headers = (jsonData[0] as string[]).map((h) => String(h || '').trim())
+                const headers = (jsonData[0] as string[]).map((h) => sanitizeImportValue(String(h || '')))
                 const data: string[][] = []
 
                 for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i] as unknown[]
                     if (row && row.some((v) => v !== undefined && v !== null && String(v).trim() !== '')) {
-                        data.push(row.map((v) => (v === undefined || v === null ? '' : String(v).trim())))
+                        data.push(row.map((v) => (v === undefined || v === null ? '' : sanitizeImportValue(String(v)))))
                     }
                 }
 
@@ -130,7 +139,7 @@ export const parseCSVFile = (file: File, t: TFunction): Promise<{ headers: strin
 
                     const delimiter = detectDelimiter(lines[0])
                     // BOM ve görünmez karakterleri header'lardan temizle
-                    const headers = parseCSVLine(lines[0], delimiter).map(h => h.replace(/^\uFEFF/, '').trim())
+                    const headers = parseCSVLine(lines[0], delimiter).map(h => sanitizeImportValue(h.replace(/^\uFEFF/, '')))
                     const data: string[][] = []
 
                     for (let i = 1; i < lines.length; i++) {

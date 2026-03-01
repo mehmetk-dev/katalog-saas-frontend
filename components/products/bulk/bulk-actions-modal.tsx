@@ -59,101 +59,117 @@ export function BulkActionsModal({
         setProgress(0)
 
         const supabase = createClient()
-        let successCount = 0
-        let errorCount = 0
 
         try {
-            for (let i = 0; i < selectedProducts.length; i++) {
-                const product = selectedProducts[i]
-                const updateData: Record<string, string | number | null> = {}
-
-                try {
-                    if (actionType === 'price') {
-                        const value = parseFloat(priceValue)
-                        if (isNaN(value) || value < 0) {
-                            errorCount++
-                            continue
-                        }
-
-                        let newPrice = product.price || 0
-
-                        if (priceType === 'percent') {
-                            const change = (newPrice * value) / 100
-                            if (priceAction === 'increase') {
-                                newPrice += change
-                            } else if (priceAction === 'decrease') {
-                                newPrice -= change
-                            } else {
-                                newPrice = value
-                            }
-                        } else {
-                            if (priceAction === 'increase') {
-                                newPrice += value
-                            } else if (priceAction === 'decrease') {
-                                newPrice -= value
-                            } else {
-                                newPrice = value
-                            }
-                        }
-
-                        updateData.price = Math.max(0, Math.round(newPrice * 100) / 100)
-
-                    } else if (actionType === 'category') {
-                        const category = newCategory.trim() || selectedCategory
-                        if (!category) {
-                            errorCount++
-                            continue
-                        }
-                        updateData.category = category
-
-                    } else if (actionType === 'stock') {
-                        const value = parseInt(stockValue)
-                        if (isNaN(value) || value < 0) {
-                            errorCount++
-                            continue
-                        }
-
-                        let newStock = product.stock || 0
-
-                        if (stockAction === 'increase') {
-                            newStock += value
-                        } else if (stockAction === 'decrease') {
-                            newStock = Math.max(0, newStock - value)
-                        } else {
-                            newStock = value
-                        }
-
-                        updateData.stock = newStock
-                    }
-
-                    const { error } = await supabase
-                        .from('products')
-                        .update(updateData)
-                        .eq('id', product.id)
-
-                    if (error) throw error
-                    successCount++
-
-                } catch (error) {
-                    console.error(`Error updating product ${product.id}:`, error)
-                    errorCount++
+            // Kategori ve sabit değer işlemleri: tüm ürünleri tek sorguda güncelle
+            if (actionType === 'category') {
+                const category = newCategory.trim() || selectedCategory
+                if (!category) {
+                    toast.error("Kategori seçilmedi")
+                    setIsProcessing(false)
+                    return
                 }
-
-                setProgress(Math.round(((i + 1) / selectedProducts.length) * 100))
-            }
-
-            if (successCount > 0) {
-                toast.success(`${successCount} ürün başarıyla güncellendi`)
+                const productIds = selectedProducts.map(p => p.id)
+                const { error } = await supabase
+                    .from('products')
+                    .update({ category })
+                    .in('id', productIds)
+                if (error) throw error
+                setProgress(100)
+                toast.success(`${productIds.length} ürün başarıyla güncellendi`)
                 onSuccess()
                 onOpenChange(false)
-            }
 
-            if (errorCount > 0) {
-                toast.error(`${errorCount} ürün güncellenemedi`)
-            }
+            } else if (actionType === 'stock' && stockAction === 'set') {
+                const value = parseInt(stockValue)
+                if (isNaN(value) || value < 0) {
+                    toast.error("Geçersiz stok değeri")
+                    setIsProcessing(false)
+                    return
+                }
+                const productIds = selectedProducts.map(p => p.id)
+                const { error } = await supabase
+                    .from('products')
+                    .update({ stock: value })
+                    .in('id', productIds)
+                if (error) throw error
+                setProgress(100)
+                toast.success(`${productIds.length} ürün başarıyla güncellendi`)
+                onSuccess()
+                onOpenChange(false)
 
-        } catch (error) {
-            console.error('Bulk action error:', error)
+            } else if (actionType === 'price' && priceAction === 'set' && priceType === 'fixed') {
+                const value = parseFloat(priceValue)
+                if (isNaN(value) || value < 0) {
+                    toast.error("Geçersiz fiyat değeri")
+                    setIsProcessing(false)
+                    return
+                }
+                const productIds = selectedProducts.map(p => p.id)
+                const { error } = await supabase
+                    .from('products')
+                    .update({ price: Math.max(0, Math.round(value * 100) / 100) })
+                    .in('id', productIds)
+                if (error) throw error
+                setProgress(100)
+                toast.success(`${productIds.length} ürün başarıyla güncellendi`)
+                onSuccess()
+                onOpenChange(false)
+
+            } else {
+                // Ürüne özel hesaplama gerektiren işlemler (yüzde artış/azalış vb.)
+                let successCount = 0
+                let errorCount = 0
+
+                for (let i = 0; i < selectedProducts.length; i++) {
+                    const product = selectedProducts[i]
+                    const updateData: Record<string, string | number | null> = {}
+
+                    try {
+                        if (actionType === 'price') {
+                            const value = parseFloat(priceValue)
+                            if (isNaN(value) || value < 0) { errorCount++; continue }
+
+                            let newPrice = product.price || 0
+                            if (priceType === 'percent') {
+                                const change = (newPrice * value) / 100
+                                newPrice = priceAction === 'increase' ? newPrice + change : newPrice - change
+                            } else {
+                                newPrice = priceAction === 'increase' ? newPrice + value : newPrice - value
+                            }
+                            updateData.price = Math.max(0, Math.round(newPrice * 100) / 100)
+
+                        } else if (actionType === 'stock') {
+                            const value = parseInt(stockValue)
+                            if (isNaN(value) || value < 0) { errorCount++; continue }
+                            updateData.stock = stockAction === 'increase'
+                                ? (product.stock || 0) + value
+                                : Math.max(0, (product.stock || 0) - value)
+                        }
+
+                        const { error } = await supabase
+                            .from('products')
+                            .update(updateData)
+                            .eq('id', product.id)
+                        if (error) throw error
+                        successCount++
+                    } catch {
+                        errorCount++
+                    }
+
+                    setProgress(Math.round(((i + 1) / selectedProducts.length) * 100))
+                }
+
+                if (successCount > 0) {
+                    toast.success(`${successCount} ürün başarıyla güncellendi`)
+                    onSuccess()
+                    onOpenChange(false)
+                }
+                if (errorCount > 0) {
+                    toast.error(`${errorCount} ürün güncellenemedi`)
+                }
+            }
+        } catch {
             toast.error('Toplu işlem sırasında hata oluştu')
         } finally {
             setIsProcessing(false)

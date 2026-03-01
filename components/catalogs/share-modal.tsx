@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { type Catalog } from "@/lib/actions/catalogs"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface ShareModalProps {
     open: boolean
@@ -32,6 +33,7 @@ interface ShareModalProps {
 }
 
 export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl, onDownloadPdf }: ShareModalProps) {
+    const { t } = useTranslation()
     const [copied, setCopied] = useState(false)
     const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
     const [activeTab, setActiveTab] = useState<"link" | "qr">("link")
@@ -57,7 +59,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
         if (!isPublished) return
         await navigator.clipboard.writeText(shareUrl)
         setCopied(true)
-        toast.success("Link kopyalandı!")
+        toast.success(t("share.linkCopiedToast"))
         setTimeout(() => setCopied(false), 2000)
     }
 
@@ -67,7 +69,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
         link.download = `${catalogName.replace(/\s+/g, "-").toLowerCase()}-qr.png`
         link.href = qrCodeUrl
         link.click()
-        toast.success("QR kod galeriye kaydedildi.")
+        toast.success(t("share.qrSavedToast"))
     }
 
     const handleShareQR = async () => {
@@ -81,7 +83,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                 await navigator.share({
                     files: [file],
                     title: catalogName,
-                    text: `${catalogName} Kataloğu QR Kodu`
+                    text: t("share.qrCodeTitle").replace("{name}", catalogName)
                 })
             } else {
                 handleDownloadQR()
@@ -92,12 +94,12 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
     }
 
     const encodedUrl = encodeURIComponent(shareUrl)
-    const encodedText = encodeURIComponent(`${catalogName} kataloğuna göz atın!`)
+    const encodedText = encodeURIComponent(t("share.shareText").replace("{name}", catalogName))
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl bg-background rounded-[2rem]">
-                <DialogTitle className="sr-only">Kataloğu Paylaş</DialogTitle>
+                <DialogTitle className="sr-only">{t("share.title")}</DialogTitle>
 
                 {/* Minimalist Header Style (Matching UpgradeModal) */}
                 <div className="relative border-b border-border bg-gradient-to-b from-background to-muted/20 pb-1">
@@ -109,7 +111,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                 <Share2 className="w-6 h-6 text-indigo-600" />
                             </div>
                             <div className="text-center space-y-1">
-                                <h2 className="text-xl font-bold tracking-tight text-foreground">Kataloğu Paylaş</h2>
+                                <h2 className="text-xl font-bold tracking-tight text-foreground">{t("share.title")}</h2>
                                 <p className="text-xs text-muted-foreground">{catalogName}</p>
                             </div>
 
@@ -130,7 +132,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                         )}
                                     >
                                         <LinkIcon className="w-3 h-3" />
-                                        Link Paylaş
+                                        {t("share.linkTab")}
                                     </button>
                                     <button
                                         onClick={() => setActiveTab("qr")}
@@ -140,7 +142,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                         )}
                                     >
                                         <QrCode className="w-3 h-3" />
-                                        QR Kod
+                                        {t("share.qrTab")}
                                     </button>
                                 </div>
                             )}
@@ -156,9 +158,9 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                 <Globe className="w-8 h-8 text-amber-500" />
                             </div>
                             <div className="space-y-1">
-                                <h3 className="font-bold text-slate-800">Katalog Yayında Değil</h3>
+                                <h3 className="font-bold text-slate-800">{t("share.notPublishedTitle")}</h3>
                                 <p className="text-slate-500 text-[11px] max-w-[240px] mx-auto">
-                                    Paylaşım yapabilmek için önce kataloğu yayınlamanız gerekiyor.
+                                    {t("share.notPublishedDesc")}
                                 </p>
                             </div>
                             <Button
@@ -166,7 +168,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                 onClick={() => { onOpenChange(false); onDownloadPdf() }}
                                 className="h-10 px-6 rounded-xl text-xs font-bold"
                             >
-                                <Download className="w-3.5 h-3.5 mr-2" /> PDF Olarak İndir
+                                <Download className="w-3.5 h-3.5 mr-2" /> {t("share.downloadPdf")}
                             </Button>
                         </div>
                     ) : (
@@ -177,10 +179,10 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                     <div className="group relative bg-white dark:bg-card border border-border rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:border-indigo-200">
                                         <div className="flex flex-col gap-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Katalog Bağlantısı</span>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("share.catalogLink")}</span>
                                                 {copied && (
                                                     <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 animate-in fade-in slide-in-from-right-2">
-                                                        <Check className="w-3 h-3" /> Kopyalandı
+                                                        <Check className="w-3 h-3" /> {t("share.copied")}
                                                     </span>
                                                 )}
                                             </div>
@@ -198,7 +200,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                                 )}
                                             >
                                                 {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                                                {copied ? "Link Kopyalandı" : "Linki Kopyala"}
+                                                {copied ? t("share.linkCopied") : t("share.copyLink")}
                                             </Button>
                                         </div>
                                     </div>
@@ -207,7 +209,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-2 px-1">
                                             <div className="h-px bg-border flex-1" />
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Hızlı Paylaş</span>
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("share.quickShare")}</span>
                                             <div className="h-px bg-border flex-1" />
                                         </div>
 
@@ -263,21 +265,21 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
 
                                     <div className="text-center space-y-4 w-full">
                                         <p className="text-[11px] text-muted-foreground font-medium px-8 leading-relaxed">
-                                            Müşterileriniz cihazlarıyla tarayarak kataloğunuzu hızlıca açabilir.
+                                            {t("share.qrDescription")}
                                         </p>
                                         <div className="grid grid-cols-2 gap-3">
                                             <Button
                                                 onClick={handleShareQR}
                                                 className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px]"
                                             >
-                                                <Send className="w-3.5 h-3.5 mr-2" /> Paylaş
+                                                <Send className="w-3.5 h-3.5 mr-2" /> {t("share.shareBtn")}
                                             </Button>
                                             <Button
                                                 variant="outline"
                                                 onClick={handleDownloadQR}
                                                 className="h-10 rounded-xl font-bold text-[11px] border-indigo-100 text-indigo-700 bg-indigo-50/10 hover:bg-indigo-50"
                                             >
-                                                <Download className="w-3.5 h-3.5 mr-2" /> İndir
+                                                <Download className="w-3.5 h-3.5 mr-2" /> {t("share.downloadBtn")}
                                             </Button>
                                         </div>
                                     </div>
@@ -292,17 +294,17 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                     <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         <div className="flex items-center gap-1.5">
                             <Smartphone className="w-3.5 h-3.5 text-emerald-500" />
-                            <span>Mobil Uyumlu</span>
+                            <span>{t("share.mobileReady")}</span>
                         </div>
                         <div className="h-3 w-px bg-border/50" />
                         <div className="flex items-center gap-1.5 px-4">
                             <Download className="w-3.5 h-3.5 text-blue-500" />
-                            <span>PDF Destekli</span>
+                            <span>{t("share.pdfSupported")}</span>
                         </div>
                         <div className="h-3 w-px bg-border/50" />
                         <div className="flex items-center gap-1.5">
                             <Globe className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>Canlı Link</span>
+                            <span>{t("share.liveLink")}</span>
                         </div>
                     </div>
                 </div>
@@ -313,7 +315,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                     className="absolute right-4 top-4 rounded-full p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-white"
                 >
                     <X className="h-4 w-4 text-muted-foreground" />
-                    <span className="sr-only">Kapat</span>
+                    <span className="sr-only">{t("share.close")}</span>
                 </button>
             </DialogContent>
         </Dialog>

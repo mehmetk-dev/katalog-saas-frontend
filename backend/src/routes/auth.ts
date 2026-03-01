@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 
-import { supabase } from '../services/supabase';
 import { CheckProviderRequest, CheckProviderResponse } from '../types/auth';
+import { safeErrorMessage } from '../utils/safe-error';
 
 const router = Router();
 
@@ -30,19 +30,10 @@ router.post('/check-provider', async (req: Request<{}, CheckProviderResponse | {
             isOAuth: false,
         };
 
-        // Keep a light internal query path for observability/compatibility (result not exposed)
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const _ = await supabase
-            .from('users')
-            .select('id')
-            .ilike('email', cleanEmail)
-            .maybeSingle();
-
         res.json(response);
 
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Check provider error:', message);
+        console.error('Check provider error:', safeErrorMessage(error));
         res.json({ exists: true, provider: null, isOAuth: false });
     }
 });

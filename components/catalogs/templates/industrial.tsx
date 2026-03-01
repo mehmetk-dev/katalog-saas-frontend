@@ -1,14 +1,16 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 /**
  * Industrial Template - "The Structural Blueprint"
  * A rugged, technical design suited for heavy machinery, construction, or hardware catalogs.
  * Features: Grid paper background, mono fonts, technical callouts, and industrial yellow accents.
  */
-export function IndustrialTemplate({
+export const IndustrialTemplate = React.memo(function IndustrialTemplate({
     catalogName,
     products,
     primaryColor = "#f59e0b", // Construction Yellow
@@ -22,32 +24,30 @@ export function IndustrialTemplate({
     logoUrl,
     logoPosition,
     logoSize,
+    titlePosition = 'left',
     productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
 
-    const _getImageFitClass = () => {
-        switch (productImageFit) {
-            case 'contain': return 'object-contain'
-            case 'fill': return 'object-fill'
-            case 'cover':
-            default: return 'object-cover'
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 24
-            case 'large': return 44
-            default: return 32
-        }
-    }
+    const logoHeight = getStandardLogoHeight(logoSize)
 
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     return (
-        <div className="h-full bg-[#f8f9fa] flex flex-col relative overflow-hidden selection:bg-yellow-400 selection:text-black">
+        <div className="h-full flex flex-col relative overflow-hidden selection:bg-yellow-400 selection:text-black transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#f8f9fa' }}>
             {/* Blueprint Grid Overlay */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.05]"
                 style={{ backgroundImage: "radial-gradient(#000 0.5px, transparent 0.5px)", backgroundSize: "20px 20px" }} />
@@ -61,37 +61,96 @@ export function IndustrialTemplate({
             </div>
 
             {/* Header */}
-            <div className="h-24 px-10 flex items-center justify-between shrink-0 bg-white border-b-4 border-black z-10">
-                <div className="flex items-center gap-6">
-                    {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                        <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                    )}
-                    <div>
-                        <h1 className="text-2xl font-[900] uppercase tracking-tighter text-black leading-none italic">
-                            {catalogName || "TECHNICAL_SPEC_V1"}
-                        </h1>
-                        <p className="text-[10px] font-mono font-bold text-black/40 mt-1 uppercase tracking-widest">
-                            INDUSTRIAL SERIES // DEPT_REF_{pageNumber}
-                        </p>
+            <header className="h-24 px-10 flex items-center justify-between shrink-0 border-b-4 border-black z-10 transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', color: headerTextColor }}>
+                <div className="flex-1 flex items-center justify-between relative w-full h-full">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
+                        {isCollisionLeft ? (
+                            <div className="flex flex-col gap-2 items-start">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <div>
+                                    <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
+                                    <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'left' && (
+                                    <div>
+                                        <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
+                                        <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                </div>
 
-                <div className="text-right flex flex-col items-end gap-1">
-                    <div className="text-[10px] font-mono font-bold px-2 py-0.5 border-2 border-black bg-black text-white italic">
-                        PAGE. {String(pageNumber).padStart(3, '0')}
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
+                        {isCollisionCenter ? (
+                            <div className="flex flex-col gap-2 items-center text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <div>
+                                    <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
+                                    <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'center' && (
+                                    <div>
+                                        <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
+                                        <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    {logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                        <div className="mt-2">
-                            <NextImage src={logoUrl} alt="Logo" width={120} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                        </div>
-                    )}
+
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex flex-col gap-2 items-end">
+                                <div className="text-[10px] font-mono font-bold px-2 py-0.5 border-2 border-black bg-black text-white italic">PAGE. {String(pageNumber).padStart(3, '0')}</div>
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <div>
+                                    <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-6 flex-row-reverse text-right">
+                                <div className="text-[10px] font-mono font-bold px-2 py-0.5 border-2 border-black bg-black text-white italic" style={{ borderColor: headerTextColor === '#000000' || !headerTextColor ? 'black' : headerTextColor, backgroundColor: headerTextColor === '#000000' || !headerTextColor ? 'black' : headerTextColor }}>PAGE. {String(pageNumber).padStart(3, '0')}</div>
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'right' && (
+                                    <div>
+                                        <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
+                                        <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* Content List - Heavy Machinery Rows (6 Items - Expanded) */}
             <div className="flex-1 px-8 py-6 flex flex-col justify-between overflow-hidden z-10 w-full bg-zinc-100/50">
                 {safeProducts.slice(0, 6).map((product, idx) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
@@ -171,11 +230,7 @@ export function IndustrialTemplate({
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="text-xl font-[900] font-mono leading-none tracking-tighter text-black">
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toFixed(2)}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </div>
                                             {showUrls && productUrl && (
                                                 <ShoppingBag className="w-4 h-4 text-black/30 group-hover:text-yellow-600 transition-colors" />
@@ -196,9 +251,9 @@ export function IndustrialTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-12 bg-white px-10 border-t-4 border-black flex items-center justify-between shrink-0 z-10 font-mono">
-                <div className="text-[10px] font-bold text-black flex items-center gap-4">
-                    <span className="w-20 h-4 bg-black" />
+            <div className="h-12 border-t-4 border-black px-10 flex items-center justify-between shrink-0 z-10 font-mono transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', color: headerTextColor }}>
+                <div className="text-[10px] font-bold flex items-center gap-4">
+                    <span className="w-20 h-4" style={{ backgroundColor: headerTextColor || '#000000' }} />
                     <span>SYSTEM_MASTER_REV: 2.04</span>
                 </div>
                 <div className="text-[10px] font-black tracking-widest uppercase">
@@ -207,4 +262,4 @@ export function IndustrialTemplate({
             </div>
         </div>
     )
-}
+})

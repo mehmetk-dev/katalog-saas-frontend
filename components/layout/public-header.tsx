@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Sparkles, Menu, X, ArrowRight, ChevronRight, Globe, User } from "lucide-react"
+import { Sparkles, Menu, X, ArrowRight } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useTranslation } from "@/lib/i18n-provider"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { AnimatePresence, motion } from "framer-motion"
 
 export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {

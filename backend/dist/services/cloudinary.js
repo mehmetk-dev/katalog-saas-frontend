@@ -160,7 +160,8 @@ async function movePhotoToDeletedFolder(photoUrl) {
             });
         }
         catch (updateError) {
-            console.warn(`[Cloudinary] Failed to update asset_folder for ${newPublicId}:`, updateError.message);
+            const updateMsg = updateError instanceof Error ? updateError.message : String(updateError);
+            console.warn(`[Cloudinary] Failed to update asset_folder for ${newPublicId}:`, updateMsg);
             // asset_folder güncelleme hatası olsa bile devam et (public_id zaten değişti)
         }
         // Result'un public_id'si yeni public_id ile eşleşmeli
@@ -171,11 +172,12 @@ async function movePhotoToDeletedFolder(photoUrl) {
     }
     catch (error) {
         // Eğer dosya zaten yoksa veya başka bir hata varsa
-        if (error.http_code === 404) {
+        const httpCode = error?.http_code;
+        if (httpCode === 404) {
             console.warn('[Cloudinary] Photo not found (already deleted?):', publicId);
             return false;
         }
-        if (error.http_code === 409) {
+        if (httpCode === 409) {
             // Aynı isimde dosya zaten var
             console.warn(`[Cloudinary] Photo already exists in ${deletedFolder} folder:`, publicId);
             return true; // Zaten taşınmış sayılabilir

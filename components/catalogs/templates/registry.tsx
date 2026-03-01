@@ -1,10 +1,16 @@
 import dynamic from 'next/dynamic'
 import type { TemplateProps } from './types'
 
+/**
+ * ALL_TEMPLATES — Dynamic (lazy-loaded) template registry for the builder live preview.
+ * For PDF export, catalog-preview.tsx uses a separate TEMPLATE_MAP with static imports
+ * because html-to-image requires all components to be synchronously available.
+ */
+
 // Loading placeholder that matches the template container
 const LoadingPlaceholder = () => (
     <div className="w-full h-full flex items-center justify-center bg-muted/20">
-        <div className="animate-pulse text-muted-foreground text-xs">Yükleniyor...</div>
+        <div className="animate-pulse text-muted-foreground text-xs">...</div>
     </div>
 )
 
@@ -14,6 +20,10 @@ export const ALL_TEMPLATES: Record<string, React.ComponentType<TemplateProps>> =
         loading: LoadingPlaceholder
     }),
     'compact-list': dynamic(() => import('./compact-list').then(m => m.CompactListTemplate), {
+        ssr: false,
+        loading: LoadingPlaceholder
+    }),
+    'list': dynamic(() => import('./compact-list').then(m => m.CompactListTemplate), {
         ssr: false,
         loading: LoadingPlaceholder
     }),

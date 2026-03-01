@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function IndustrialCover({
+export const IndustrialCover = React.memo(function IndustrialCover({
     catalogName,
     coverImageUrl,
     coverDescription,
     logoUrl,
     productCount = 0,
-    primaryColor = '#FACC15'
+    primaryColor: _primaryColor = '#FACC15'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#1F2937] text-white overflow-hidden font-mono">
@@ -86,4 +86,4 @@ export function IndustrialCover({
             </div>
         </div>
     )
-}
+})

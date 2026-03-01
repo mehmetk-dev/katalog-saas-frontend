@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
-import { queryKeys } from "@/lib/query-provider"
+import { queryKeys } from "@/lib/contexts/query-provider"
 import {
     getCatalogs,
     getCatalog,

@@ -41,7 +41,7 @@ export function createStorageProvider(): StorageProvider {
 
       console.error('[Storage] ❌ Cloudinary configuration missing!')
       console.error('[Storage] Debug info:', debugInfo)
-      
+
       throw new Error(
         'Cloudinary configuration missing!\n\n' +
         'Please set the following environment variables in your hosting platform:\n' +
@@ -69,5 +69,21 @@ export function createStorageProvider(): StorageProvider {
   return storageInstance
 }
 
-// Export singleton instance
-export const storage = createStorageProvider()
+// Lazy singleton getter — avoids throwing at module import time.
+// The provider is only created when first accessed, not when the module is imported.
+export function getStorage(): StorageProvider {
+  return createStorageProvider()
+}
+
+// Backward-compatible named export using a getter (lazy initialization)
+// This ensures importing this module never throws — the error only happens
+// when `storage` is actually accessed without proper env vars.
+let _lazyStorage: StorageProvider | undefined
+export const storage: StorageProvider = new Proxy({} as StorageProvider, {
+  get(_target, prop, receiver) {
+    if (!_lazyStorage) {
+      _lazyStorage = createStorageProvider()
+    }
+    return Reflect.get(_lazyStorage, prop, receiver)
+  }
+})

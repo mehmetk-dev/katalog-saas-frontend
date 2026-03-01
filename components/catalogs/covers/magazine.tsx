@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function MagazineCover({
+export const MagazineCover = React.memo(function MagazineCover({
     catalogName,
     coverImageUrl,
     coverDescription,
     logoUrl,
     productCount = 0,
-    primaryColor = '#ef4444'
+    primaryColor: _primaryColor = '#ef4444'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-[#FAFAF9] text-[#1c1917] overflow-hidden font-serif">
@@ -76,7 +76,7 @@ export function MagazineCover({
                 <div className="flex flex-col items-end">
                     <div className="h-8 w-32 flex justify-end gap-[2px]">
                         {Array.from({ length: 40 }).map((_, i) => (
-                            <div key={i} className="bg-black w-[1px] h-full" style={{ width: Math.random() > 0.5 ? '2px' : '1px' }} />
+                            <div key={i} className="bg-black w-[1px] h-full" style={{ width: i % 2 === 0 ? '2px' : '1px' }} />
                         ))}
                     </div>
                     <span className="text-[8px] font-mono mt-1">9 771234 567003</span>
@@ -84,4 +84,4 @@ export function MagazineCover({
             </div>
         </div>
     )
-}
+})

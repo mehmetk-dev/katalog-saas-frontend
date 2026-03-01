@@ -1,16 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, MapPin, Send, Sparkles, Globe, Instagram, Twitter, MessageSquare, HelpCircle, DollarSign, Handshake } from "lucide-react"
+import { Mail, MapPin, Send, Sparkles, Globe, Instagram, Twitter, MessageSquare, HelpCircle, DollarSign, Handshake, Loader2, CheckCircle2 } from "lucide-react"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { sendContactMessage } from "@/lib/actions/contact"
+import { toast } from "sonner"
 
 export default function ContactPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const subjects = [
     { id: 'genel', label: 'Genel', icon: MessageSquare },
@@ -57,7 +61,7 @@ export default function ContactPage() {
               <div className={cn(
                 "absolute inset-0 opacity-[0.05] pointer-events-none",
                 "mix-blend-overlay",
-                "bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"
+                "bg-[url('/noise.svg')]"
               )} />
 
               {/* Inner shadow - Desktop only */}
@@ -167,7 +171,7 @@ export default function ContactPage() {
               "rounded-b-2xl md:rounded-r-2xl md:rounded-bl-none",
               "overflow-hidden"
             )}>
-              <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+              <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('/noise.svg')]" />
 
               <div className="relative z-10 flex flex-col h-full">
                 {/* Form header */}
@@ -180,149 +184,224 @@ export default function ContactPage() {
                   <div className="h-0.5 bg-violet-600 w-12 ml-auto" />
                 </div>
 
-                <form className="flex-1 space-y-6 md:space-y-8" onSubmit={(e) => e.preventDefault()}>
-                  <div className="space-y-6 md:space-y-8">
-                    {/* Name */}
-                    <div className="relative group">
-                      <Input
-                        id="name"
-                        placeholder=" "
-                        suppressHydrationWarning
-                        className={cn(
-                          "peer bg-transparent border-0 border-b-2",
-                          "border-slate-100 rounded-none h-10 sm:h-12 px-0",
-                          "text-base sm:text-lg font-medium",
-                          "focus:ring-0 focus:border-violet-600",
-                          "transition-all placeholder:opacity-0"
-                        )}
-                      />
-                      <label
-                        htmlFor="name"
-                        className={cn(
-                          "absolute left-0 top-2 sm:top-3 text-slate-400",
-                          "text-sm sm:text-base transition-all",
-                          "peer-focus:-top-5 peer-focus:text-[10px]",
-                          "peer-focus:text-violet-600 peer-focus:font-bold",
-                          "peer-[:not(:placeholder-shown)]:-top-5",
-                          "peer-[:not(:placeholder-shown)]:text-[10px]",
-                          "cursor-text uppercase tracking-widest"
-                        )}
-                      >
-                        Adınız
-                      </label>
+                {isSuccess ? (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
-
-                    {/* Email */}
-                    <div className="relative group">
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder=" "
-                        suppressHydrationWarning
-                        className={cn(
-                          "peer bg-transparent border-0 border-b-2",
-                          "border-slate-100 rounded-none h-10 sm:h-12 px-0",
-                          "text-base sm:text-lg font-medium",
-                          "focus:ring-0 focus:border-violet-600",
-                          "transition-all placeholder:opacity-0"
-                        )}
-                      />
-                      <label
-                        htmlFor="email"
-                        className={cn(
-                          "absolute left-0 top-2 sm:top-3 text-slate-400",
-                          "text-sm sm:text-base transition-all",
-                          "peer-focus:-top-5 peer-focus:text-[10px]",
-                          "peer-focus:text-violet-600 peer-focus:font-bold",
-                          "peer-[:not(:placeholder-shown)]:-top-5",
-                          "peer-[:not(:placeholder-shown)]:text-[10px]",
-                          "cursor-text uppercase tracking-widest"
-                        )}
-                      >
-                        E-posta
-                      </label>
+                    <div className="text-center space-y-2">
+                      <h3 className="text-xl font-bold text-slate-900">Mesajınız Gönderildi!</h3>
+                      <p className="text-slate-500 text-sm max-w-xs">En kısa sürede size dönüş yapacağız. Teşekkürler.</p>
                     </div>
+                    <Button
+                      type="button"
+                      onClick={() => setIsSuccess(false)}
+                      variant="outline"
+                      className="mt-4 rounded-full"
+                    >
+                      Yeni Mesaj Gönder
+                    </Button>
+                  </div>
+                ) : (
+                  <form className="flex-1 space-y-6 md:space-y-8" onSubmit={async (e) => {
+                    e.preventDefault()
+                    const form = e.currentTarget
+                    const formData = new FormData(form)
+                    const name = (formData.get("name") as string)?.trim()
+                    const email = (formData.get("email") as string)?.trim()
+                    const message = (formData.get("message") as string)?.trim()
 
-                    {/* Subject */}
-                    <div className="space-y-2.5 md:space-y-3 pt-1 md:pt-2">
-                      <label className="text-[9px] uppercase tracking-widest font-black text-slate-400">Konu Seçin</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {subjects.map((subj) => {
-                          const Icon = subj.icon
-                          return (
-                            <button
-                              key={subj.id}
-                              type="button"
-                              onClick={() => setSelectedSubject(subj.id)}
-                              className={cn(
-                                "flex items-center justify-center gap-1.5 sm:gap-2",
-                                "text-[9px] sm:text-[10px] uppercase font-bold",
-                                "py-2 sm:py-2.5 px-2 sm:px-3",
-                                "border rounded-full transition-all min-h-[44px]",
-                                selectedSubject === subj.id
-                                  ? "border-violet-600 bg-violet-50 text-violet-600"
-                                  : "border-slate-100 text-slate-500 hover:border-violet-300 hover:text-violet-600"
-                              )}
-                            >
-                              <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                              <span className="truncate">{subj.label}</span>
-                            </button>
-                          )
-                        })}
+                    if (!name || !email || !selectedSubject || !message) {
+                      toast.error("Lütfen tüm alanları doldurun.")
+                      return
+                    }
+                    if (message.length < 10) {
+                      toast.error("Mesaj en az 10 karakter olmalıdır.")
+                      return
+                    }
+
+                    setIsSubmitting(true)
+                    try {
+                      const result = await sendContactMessage({ name, email, subject: selectedSubject, message })
+                      if (result.success) {
+                        setIsSuccess(true)
+                        form.reset()
+                        setSelectedSubject("")
+                        toast.success("Mesajınız başarıyla gönderildi!")
+                      } else {
+                        toast.error(result.error || "Mesaj gönderilemedi.")
+                      }
+                    } catch {
+                      toast.error("Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.")
+                    } finally {
+                      setIsSubmitting(false)
+                    }
+                  }}>
+                    <div className="space-y-6 md:space-y-8">
+                      {/* Name */}
+                      <div className="relative group">
+                        <Input
+                          id="name"
+                          name="name"
+                          placeholder=" "
+                          required
+                          disabled={isSubmitting}
+                          suppressHydrationWarning
+                          className={cn(
+                            "peer bg-transparent border-0 border-b-2",
+                            "border-slate-100 rounded-none h-10 sm:h-12 px-0",
+                            "text-base sm:text-lg font-medium",
+                            "focus:ring-0 focus:border-violet-600",
+                            "transition-all placeholder:opacity-0"
+                          )}
+                        />
+                        <label
+                          htmlFor="name"
+                          className={cn(
+                            "absolute left-0 top-2 sm:top-3 text-slate-400",
+                            "text-sm sm:text-base transition-all",
+                            "peer-focus:-top-5 peer-focus:text-[10px]",
+                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-[:not(:placeholder-shown)]:-top-5",
+                            "peer-[:not(:placeholder-shown)]:text-[10px]",
+                            "cursor-text uppercase tracking-widest"
+                          )}
+                        >
+                          Adınız
+                        </label>
+                      </div>
+
+                      {/* Email */}
+                      <div className="relative group">
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder=" "
+                          required
+                          disabled={isSubmitting}
+                          suppressHydrationWarning
+                          className={cn(
+                            "peer bg-transparent border-0 border-b-2",
+                            "border-slate-100 rounded-none h-10 sm:h-12 px-0",
+                            "text-base sm:text-lg font-medium",
+                            "focus:ring-0 focus:border-violet-600",
+                            "transition-all placeholder:opacity-0"
+                          )}
+                        />
+                        <label
+                          htmlFor="email"
+                          className={cn(
+                            "absolute left-0 top-2 sm:top-3 text-slate-400",
+                            "text-sm sm:text-base transition-all",
+                            "peer-focus:-top-5 peer-focus:text-[10px]",
+                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-[:not(:placeholder-shown)]:-top-5",
+                            "peer-[:not(:placeholder-shown)]:text-[10px]",
+                            "cursor-text uppercase tracking-widest"
+                          )}
+                        >
+                          E-posta
+                        </label>
+                      </div>
+
+                      {/* Subject */}
+                      <div className="space-y-2.5 md:space-y-3 pt-1 md:pt-2">
+                        <label className="text-[9px] uppercase tracking-widest font-black text-slate-400">Konu Seçin</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {subjects.map((subj) => {
+                            const Icon = subj.icon
+                            return (
+                              <button
+                                key={subj.id}
+                                type="button"
+                                onClick={() => setSelectedSubject(subj.id)}
+                                className={cn(
+                                  "flex items-center justify-center gap-1.5 sm:gap-2",
+                                  "text-[9px] sm:text-[10px] uppercase font-bold",
+                                  "py-2 sm:py-2.5 px-2 sm:px-3",
+                                  "border rounded-full transition-all min-h-[44px]",
+                                  selectedSubject === subj.id
+                                    ? "border-violet-600 bg-violet-50 text-violet-600"
+                                    : "border-slate-100 text-slate-500 hover:border-violet-300 hover:text-violet-600"
+                                )}
+                              >
+                                <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+                                <span className="truncate">{subj.label}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Message */}
+                      <div className="relative group pt-1 md:pt-2">
+                        <Textarea
+                          id="message"
+                          name="message"
+                          placeholder=" "
+                          required
+                          minLength={10}
+                          disabled={isSubmitting}
+                          suppressHydrationWarning
+                          className={cn(
+                            "peer bg-transparent border-0 border-b-2",
+                            "border-slate-100 rounded-none",
+                            "min-h-[80px] sm:min-h-[100px] px-0",
+                            "text-base sm:text-lg font-medium",
+                            "focus:ring-0 focus:border-violet-600",
+                            "transition-all resize-none placeholder:opacity-0"
+                          )}
+                        />
+                        <label
+                          htmlFor="message"
+                          className={cn(
+                            "absolute left-0 top-3 sm:top-4 text-slate-400",
+                            "text-sm sm:text-base transition-all",
+                            "peer-focus:-top-4 peer-focus:text-[10px]",
+                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-[:not(:placeholder-shown)]:-top-4",
+                            "peer-[:not(:placeholder-shown)]:text-[10px]",
+                            "cursor-text uppercase tracking-widest"
+                          )}
+                        >
+                          Mesajınız
+                        </label>
                       </div>
                     </div>
 
-                    {/* Message */}
-                    <div className="relative group pt-1 md:pt-2">
-                      <Textarea
-                        id="message"
-                        placeholder=" "
-                        suppressHydrationWarning
+                    <div className="pt-4 md:pt-6">
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
                         className={cn(
-                          "peer bg-transparent border-0 border-b-2",
-                          "border-slate-100 rounded-none",
-                          "min-h-[80px] sm:min-h-[100px] px-0",
-                          "text-base sm:text-lg font-medium",
-                          "focus:ring-0 focus:border-violet-600",
-                          "transition-all resize-none placeholder:opacity-0"
-                        )}
-                      />
-                      <label
-                        htmlFor="message"
-                        className={cn(
-                          "absolute left-0 top-3 sm:top-4 text-slate-400",
-                          "text-sm sm:text-base transition-all",
-                          "peer-focus:-top-4 peer-focus:text-[10px]",
-                          "peer-focus:text-violet-600 peer-focus:font-bold",
-                          "peer-[:not(:placeholder-shown)]:-top-4",
-                          "peer-[:not(:placeholder-shown)]:text-[10px]",
-                          "cursor-text uppercase tracking-widest"
+                          "w-full h-12 sm:h-14 rounded-full",
+                          "bg-slate-900 text-white font-bold",
+                          "tracking-widest uppercase text-[10px] sm:text-xs",
+                          "hover:bg-violet-600 hover:scale-[1.02]",
+                          "shadow-2xl shadow-slate-900/10 transition-all group",
+                          "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         )}
                       >
-                        Mesajınız
-                      </label>
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Gönderiliyor...
+                          </>
+                        ) : (
+                          <>
+                            Gönder
+                            <Send className={cn(
+                              "ml-2 sm:ml-3 w-3.5 h-3.5 sm:w-4 sm:h-4",
+                              "group-hover:translate-x-1 group-hover:-translate-y-1",
+                              "transition-transform"
+                            )} />
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="pt-4 md:pt-6">
-                    <Button
-                      className={cn(
-                        "w-full h-12 sm:h-14 rounded-full",
-                        "bg-slate-900 text-white font-bold",
-                        "tracking-widest uppercase text-[10px] sm:text-xs",
-                        "hover:bg-violet-600 hover:scale-[1.02]",
-                        "shadow-2xl shadow-slate-900/10 transition-all group"
-                      )}
-                    >
-                      Gönder
-                      <Send className={cn(
-                        "ml-2 sm:ml-3 w-3.5 h-3.5 sm:w-4 sm:h-4",
-                        "group-hover:translate-x-1 group-hover:-translate-y-1",
-                        "transition-transform"
-                      )} />
-                    </Button>
-                  </div>
-                </form>
+                  </form>
+                )}
 
                 <div className="mt-8 md:mt-10 flex items-center justify-between">
                   <span className="text-[9px] uppercase tracking-widest text-slate-300 font-bold">v2.1</span>

@@ -1,5 +1,3 @@
-"use client"
-
 interface RetryOptions {
     /** Maksimum deneme sayısı - varsayılan 3 */
     maxRetries?: number

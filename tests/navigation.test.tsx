@@ -3,11 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { usePathname } from 'next/navigation'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
-import { useUser } from '@/lib/user-context'
-import { useSidebar } from '@/lib/sidebar-context'
+import { useUser } from '@/lib/contexts/user-context'
+import { useSidebar } from '@/lib/contexts/sidebar-context'
 
 // Mock dependencies
-vi.mock('@/lib/user-context', () => ({
+vi.mock('@/lib/contexts/user-context', () => ({
     useUser: () => ({
         user: {
             id: 'user-1',
@@ -19,11 +19,11 @@ vi.mock('@/lib/user-context', () => ({
     }),
 }))
 
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 
-vi.mock('@/lib/sidebar-context', () => ({
+vi.mock('@/lib/contexts/sidebar-context', () => ({
     useSidebar: () => ({
         isOpen: true,
         isCollapsed: false,
@@ -43,7 +43,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/link', () => ({
-    default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
+    default: ({ children, href, ...props }: { children: React.ReactNode; href: string;[key: string]: unknown }) => (
         <a href={href} {...props}>{children}</a>
     ),
 }))
@@ -89,7 +89,7 @@ describe('Navigation Testleri', () => {
                     isAdmin: true,
                 },
                 isLoading: false,
-            } as ReturnType<typeof useSidebar>)
+            } as ReturnType<typeof useUser>)
 
             render(<DashboardSidebar />)
 
@@ -105,7 +105,7 @@ describe('Navigation Testleri', () => {
                     isAdmin: false,
                 },
                 isLoading: false,
-            } as ReturnType<typeof useSidebar>)
+            } as ReturnType<typeof useUser>)
 
             render(<DashboardSidebar />)
 
@@ -137,6 +137,9 @@ describe('Navigation Testleri', () => {
                 isMobile: true,
                 close: vi.fn(),
                 toggle: vi.fn(),
+                open: vi.fn(),
+                collapse: vi.fn(),
+                expand: vi.fn(),
             } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
@@ -156,6 +159,9 @@ describe('Navigation Testleri', () => {
                 isMobile: true,
                 close: closeMock,
                 toggle: vi.fn(),
+                open: vi.fn(),
+                collapse: vi.fn(),
+                expand: vi.fn(),
             } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
@@ -177,6 +183,9 @@ describe('Navigation Testleri', () => {
                 isMobile: true,
                 close: closeMock,
                 toggle: vi.fn(),
+                open: vi.fn(),
+                collapse: vi.fn(),
+                expand: vi.fn(),
             } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
@@ -196,6 +205,9 @@ describe('Navigation Testleri', () => {
                 isMobile: false,
                 close: vi.fn(),
                 toggle: vi.fn(),
+                open: vi.fn(),
+                collapse: vi.fn(),
+                expand: vi.fn(),
             } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)
@@ -215,6 +227,9 @@ describe('Navigation Testleri', () => {
                 isMobile: false,
                 close: vi.fn(),
                 toggle: toggleMock,
+                open: vi.fn(),
+                collapse: vi.fn(),
+                expand: vi.fn(),
             } as ReturnType<typeof useSidebar>)
 
             render(<DashboardSidebar />)

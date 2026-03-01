@@ -44,6 +44,30 @@ const requiredEnvVars = [
         required: false,
         description: 'Environment mode',
         example: 'development | production'
+    },
+    {
+        key: 'CLOUDINARY_CLOUD_NAME',
+        required: false,
+        description: 'Cloudinary cloud name for image management',
+        example: 'your_cloud_name'
+    },
+    {
+        key: 'CLOUDINARY_API_KEY',
+        required: false,
+        description: 'Cloudinary API key for signed operations',
+        example: '123456789012345'
+    },
+    {
+        key: 'CLOUDINARY_API_SECRET',
+        required: false,
+        description: 'Cloudinary API secret for signed operations',
+        example: 'abcdefghijklmnop'
+    },
+    {
+        key: 'METRICS_SECRET',
+        required: false,
+        description: 'Secret token for Prometheus metrics endpoint',
+        example: 'a-long-random-string'
     }
 ];
 function validateEnv() {

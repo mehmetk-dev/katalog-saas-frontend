@@ -1,8 +1,10 @@
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 // Reusable Title Component (For Collisions) - moved outside render
 function TitleBlock({
@@ -11,23 +13,23 @@ function TitleBlock({
     headerTextColor,
     primaryColor
 }: {
-    align?: 'left' | 'right'
+    align?: 'left' | 'center' | 'right'
     catalogName: string
     headerTextColor?: string
     primaryColor: string
 }) {
     return (
-        <div className={`flex flex-col ${align === 'right' ? 'items-end text-right' : 'items-start text-left'}`}>
-            <h1 className="text-2xl font-black tracking-tight leading-none mb-1 uppercase truncate max-w-[300px]"
+        <div className={`flex flex-col ${align === 'right' ? 'items-end text-right' : align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
+            <h1 className={`text-2xl font-black tracking-tight leading-none mb-1 uppercase truncate max-w-[300px] ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto' : ''}`}
                 style={{ color: headerTextColor || '#1a1a1a' }}>
                 {catalogName || "KATALOG"}
             </h1>
-            <div className={`h-1 w-12 rounded-full opacity-60`} style={{ backgroundColor: primaryColor }} />
+            <div className={`h-1 w-12 rounded-full opacity-60 ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto' : ''}`} style={{ backgroundColor: primaryColor }} />
         </div>
     )
 }
 
-export function CompactListTemplate({
+export const CompactListTemplate = React.memo(function CompactListTemplate({
     catalogName,
     products,
     primaryColor,
@@ -44,7 +46,10 @@ export function CompactListTemplate({
     logoSize,
     titlePosition = 'left',
     productImageFit = "cover",
-    backgroundColor: _backgroundColor
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient
 }: TemplateProps) {
     // A4 Yüksekliği ~1123px
     // Header: 80px
@@ -58,102 +63,87 @@ export function CompactListTemplate({
     const FOOTER_HEIGHT = "50px"
 
     // Logo boyutu - Header büyüdüğü için logoları da biraz büyüttük
-    const getLogoHeight = () => {
-        switch (logoSize) {
-            case 'small': return 32
-            case 'large': return 56
-            default: return 44
-        }
-    }
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
 
-    // Header'da logo var mı?
-    // "Logo alt kısıma gelmesin" -> Sadece header logolarını gösteriyoruz.
-    const isHeaderLogo = logoPosition?.startsWith('header')
-    const logoAlignment = logoPosition?.split('-')[1] || 'left'
+    const logoHeight = getStandardLogoHeight(logoSize)
 
-    // Çakışma Kontrolü (Collision Detection)
-    // Logo ve Başlık aynı hizadaysa (Örn: İkisi de Solda), üst üste binmemeleri için onları yan yana (flex) basacağız.
-    const isCollisionLeft = isHeaderLogo && logoAlignment === 'left' && (titlePosition === 'left' || !titlePosition) // !titlePosition defaults to left
-    const isCollisionCenter = isHeaderLogo && logoAlignment === 'center' && titlePosition === 'center'
-    const isCollisionRight = isHeaderLogo && logoAlignment === 'right' && titlePosition === 'right'
-
-    // Herhangi bir çakışma var mı? Varsa "Absolute Title"ı gizleyeceğiz.
-    const isAnyCollision = isCollisionLeft || isCollisionCenter || isCollisionRight
-
-    // Başlık hizalama stili (Çakışma yoksa kullanılır)
-    const getTitleAlignmentClass = () => {
-        if (titlePosition === 'right') return 'items-end text-right justify-center pr-8'
-        if (titlePosition === 'center') return 'items-center text-center justify-center'
-        return 'items-start text-left justify-center pl-8'
-    }
+    // Arka plan stili
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     return (
-        <div className="h-full flex flex-col relative overflow-hidden">
+        <div className="h-full flex flex-col relative overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Header - Premium Tasarım */}
-            <div className="shrink-0 relative z-10" style={{ height: HEADER_HEIGHT }}>
+            <div className="shrink-0 relative z-10 transition-colors" style={{ height: HEADER_HEIGHT }}>
                 {/* Dekoratif Üst Çizgi */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 w-full" style={{ backgroundColor: primaryColor }} />
 
-                {/* Başlık Alanı (Absolute) - SADECE ÇAKIŞMA YOKSA GÖSTER */}
-                {!isAnyCollision && (
-                    <div className={`absolute inset-0 flex flex-col px-4 pt-2 pointer-events-none z-10 ${getTitleAlignmentClass()}`}>
-                        <div className="flex flex-col max-w-[60%]">
-                            <h1 className="text-2xl font-black tracking-tight leading-none mb-1 uppercase truncate"
-                                style={{ color: headerTextColor || '#1a1a1a' }}>
-                                {catalogName || "KATALOG"}
-                            </h1>
-                            <div className={`h-1 w-12 rounded-full opacity-60 ${titlePosition === 'center' ? 'mx-auto' : titlePosition === 'right' ? 'ml-auto' : ''}`} style={{ backgroundColor: primaryColor }} />
-                        </div>
-                    </div>
-                )}
-
-                {/* Logolar Container - Absolute Overlay */}
-                <div className="absolute inset-0 px-8 flex items-center justify-between pt-2 pointer-events-none z-20">
-                    {/* Sol Logo Alanı */}
-                    <div className="flex-1 flex justify-start items-center pointer-events-auto">
-                        {/* Çakışma Varsa: LOGO + TITLE */}
+                <div className="absolute inset-0 px-8 flex items-center justify-between pt-2">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
                         {isCollisionLeft ? (
                             <div className="flex items-center gap-4">
-                                {logoUrl && <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />}
+                                {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
+                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
                                 <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
                             </div>
                         ) : (
-                            /* Normal Logo */
-                            logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                                <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain object-left" />
-                            )
+                            <div className="flex items-center gap-6">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {(titlePosition === 'left' || !titlePosition) && (
+                                    <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
+                                )}
+                            </div>
                         )}
                     </div>
 
-                    {/* Orta Logo Alanı */}
-                    <div className="flex-1 flex justify-center items-center pointer-events-auto">
-                        {/* Çakışma Varsa: LOGO + TITLE */}
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
                         {isCollisionCenter ? (
-                            <div className="flex items-center gap-4">
-                                {logoUrl && <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />}
-                                <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
+                            <div className="flex items-center gap-4 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                <TitleBlock align="center" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
                             </div>
                         ) : (
-                            /* Normal Logo */
-                            logoUrl && isHeaderLogo && logoAlignment === 'center' && (
-                                <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />
-                            )
+                            <div className="flex items-center gap-6 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'center' && (
+                                    <TitleBlock align="center" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
+                                )}
+                            </div>
                         )}
                     </div>
 
-                    {/* Sağ Logo Alanı */}
-                    <div className="flex-1 flex justify-end items-center pointer-events-auto">
-                        {/* Çakışma Varsa: TITLE + LOGO (Sağ olduğu için title önce) */}
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
                         {isCollisionRight ? (
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 flex-row-reverse">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
                                 <TitleBlock align="right" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                                {logoUrl && <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain" />}
                             </div>
                         ) : (
-                            /* Normal Logo */
-                            logoUrl && isHeaderLogo && logoAlignment === 'right' && (
-                                <NextImage src={logoUrl} alt="Logo" width={160} height={getLogoHeight()} unoptimized style={{ height: getLogoHeight() }} className="object-contain object-right" />
-                            )
+                            <div className="flex items-center gap-6 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
+                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                )}
+                                {titlePosition === 'right' && (
+                                    <TitleBlock align="right" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -162,7 +152,7 @@ export function CompactListTemplate({
             {/* İçerik Alanı - Daha ferah grid/gap */}
             <div className="flex-1 px-8 pt-2 pb-6 flex flex-col justify-start gap-3 overflow-hidden">
                 {(products || []).map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     return (
                         <div
                             key={product.id}
@@ -219,11 +209,7 @@ export function CompactListTemplate({
                                     {showPrices && (
                                         <div className="flex items-center gap-2 pl-2 shrink-0 self-center">
                                             <span className="font-bold text-xl tracking-tight" style={{ color: primaryColor }}>
-                                                {(() => {
-                                                    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                    return `${symbol}${Number(product.price).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-                                                })()}
+                                                {formatProductPrice(product)}
                                             </span>
                                         </div>
                                     )}
@@ -273,4 +259,4 @@ export function CompactListTemplate({
             </div>
         </div>
     )
-}
+})

@@ -1,9 +1,12 @@
+import React from "react"
+import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
 
 // Clean White - Temiz minimalist beyaz
-export function CleanWhiteTemplate({
+export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
     catalogName,
     products,
     primaryColor,
@@ -15,6 +18,16 @@ export function CleanWhiteTemplate({
     pageNumber = 1,
     totalPages = 1,
     columnsPerRow = 2,
+    logoUrl,
+    logoPosition,
+    logoSize,
+    titlePosition = 'left',
+    productImageFit = 'cover',
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
 
@@ -31,29 +44,115 @@ export function CleanWhiteTemplate({
         return "grid-rows-3"
     }
 
+    const {
+        isHeaderLogo,
+        logoAlignment,
+        isCollisionLeft,
+        isCollisionCenter,
+        isCollisionRight
+    } = getHeaderLayout(logoPosition, titlePosition)
+
+    const logoHeight = getStandardLogoHeight(logoSize)
+
+    const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+
+
+
     return (
-        <div className="bg-transparent h-full flex flex-col overflow-hidden">
+        <div className="bg-transparent h-full flex flex-col overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Minimal Header */}
-            <div className="h-16 px-12 flex items-end pb-4 shrink-0">
-                {pageNumber === 1 ? (
-                    <div className="flex items-center gap-4 w-full">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}>
-                            <span className="text-white font-medium">{(catalogName || "K")[0]}</span>
-                        </div>
-                        <h1 className="text-lg font-medium text-gray-900 truncate">{catalogName}</h1>
+            <header className="h-20 px-12 flex items-end pb-4 shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
+                <div className="flex-1 flex items-end justify-between relative w-full h-full">
+                    {/* Sol Alan */}
+                    <div className="flex-1 flex items-end justify-start min-w-0 z-10 gap-6">
+                        {isCollisionLeft ? (
+                            <div className="flex flex-col gap-3 items-start">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl ? (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                ) : (logoAlignment === 'left' && isHeaderLogo && !logoUrl && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
+                                ))}
+                                <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-6">
+                                {logoAlignment === 'left' && isHeaderLogo && logoUrl ? (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                ) : (logoAlignment === 'left' && isHeaderLogo && !logoUrl && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mb-1" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
+                                ))}
+                                {titlePosition === 'left' && (
+                                    <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
+                                )}
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <div className="w-full flex justify-between items-center text-sm text-gray-400 h-full">
-                        <span className="truncate max-w-[70%]">{catalogName}</span>
-                        <span className="font-medium">{pageNumber}</span>
+
+                    {/* Orta Alan */}
+                    <div className="flex-1 flex items-end justify-center min-w-0 z-10 gap-6">
+                        {isCollisionCenter ? (
+                            <div className="flex flex-col gap-3 items-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl ? (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                ) : (logoAlignment === 'center' && isHeaderLogo && !logoUrl && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
+                                ))}
+                                <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-6 text-center">
+                                {logoAlignment === 'center' && isHeaderLogo && logoUrl ? (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                ) : (logoAlignment === 'center' && isHeaderLogo && !logoUrl && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mb-1" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
+                                ))}
+                                {titlePosition === 'center' && (
+                                    <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
+                                )}
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+
+                    {/* Sağ Alan */}
+                    <div className="flex-1 flex items-end justify-end min-w-0 z-10 gap-6 text-right">
+                        {isCollisionRight ? (
+                            <div className="flex flex-col gap-3 items-end">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl ? (
+                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
+                                ) : (logoAlignment === 'right' && isHeaderLogo && !logoUrl && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
+                                ))}
+                                <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
+                                {pageNumber > 1 && <span className="font-medium opacity-50 text-xs">{pageNumber}</span>}
+                            </div>
+                        ) : (
+                            <div className="flex items-end gap-6 flex-row-reverse text-right">
+                                {logoAlignment === 'right' && isHeaderLogo && logoUrl ? (
+                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
+                                ) : (logoAlignment === 'right' && isHeaderLogo && !logoUrl && (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mb-1" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
+                                ))}
+                                {titlePosition === 'right' && (
+                                    <div className="flex flex-col items-end">
+                                        <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
+                                        {pageNumber > 1 && <span className="font-medium opacity-50 text-xs mt-1">{pageNumber}</span>}
+                                    </div>
+                                )}
+                                {titlePosition !== 'right' && logoAlignment !== 'right' && pageNumber > 1 && (
+                                    <div className="flex flex-col items-end">
+                                        <span className="font-medium opacity-50 text-xs mt-1">{pageNumber}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </header>
 
             {/* Çok temiz Dinamik grid */}
             <div className={`flex-1 px-12 py-6 grid ${getGridCols()} ${getGridRows()} gap-x-8 gap-y-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 112px)' }}>
                 {safeProducts.map((product) => {
-                    const productUrl = product.product_url
+                    const productUrl = sanitizeHref(product.product_url)
                     const _Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const _wrapperProps = (showUrls && productUrl) ? {
                         href: productUrl,
@@ -81,11 +180,7 @@ export function CleanWhiteTemplate({
                                         {showPrices && (
                                             <div className="flex items-center gap-1.5 shrink-0">
                                                 <span className="font-bold text-sm leading-tight" style={{ color: primaryColor }}>
-                                                    {(() => {
-                                                        const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-                                                        const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-                                                        return `${symbol}${Number(product.price).toFixed(2)}`
-                                                    })()}
+                                                    {formatProductPrice(product)}
                                                 </span>
                                             </div>
                                         )}
@@ -132,10 +227,10 @@ export function CleanWhiteTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-12 px-12 flex items-center justify-between border-t border-gray-50 shrink-0">
-                <span className="text-[9px] text-gray-300 font-medium tracking-widest uppercase">{catalogName}</span>
-                <span className="text-xs text-gray-400 font-bold px-3 py-1 bg-gray-50 rounded-full">{pageNumber} / {totalPages}</span>
+            <div className="h-12 px-12 flex items-center justify-between border-t border-black/5 shrink-0 transition-colors" style={{ color: headerTextColor }}>
+                <span className="text-[9px] opacity-60 font-medium tracking-widest uppercase">{catalogName}</span>
+                <span className="text-xs opacity-80 font-bold px-3 py-1 rounded-full border border-black/10">{pageNumber} / {totalPages}</span>
             </div>
         </div>
     )
-}
+})

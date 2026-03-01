@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function CorporateCover({
+export const CorporateCover = React.memo(function CorporateCover({
     catalogName,
     coverImageUrl,
     coverDescription,
     logoUrl,
     productCount = 0,
-    primaryColor = '#2563EB'
+    primaryColor: _primaryColor = '#2563EB'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-white text-slate-800 overflow-hidden font-sans">
@@ -80,7 +80,7 @@ export function CorporateCover({
                         {/* Abstract secondary visual */}
                         <div className="absolute inset-0 opacity-20 bg-[repeating-linear-gradient(45deg,white_0,white_1px,transparent_1px,transparent_10px)]" />
                         <div className="absolute bottom-4 right-4 text-white text-[10px] font-mono">
-                            ID: {Math.random().toString(36).substring(7).toUpperCase()}
+                            ID: K9L2M5
                         </div>
                     </div>
                 </div>
@@ -90,4 +90,4 @@ export function CorporateCover({
             <div className="absolute bottom-0 w-full h-4 bg-blue-600" />
         </div>
     )
-}
+})

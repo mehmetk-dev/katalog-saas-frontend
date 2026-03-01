@@ -1,8 +1,9 @@
 import { MetadataRoute } from 'next'
-import { getAllPosts } from '@/lib/blog'
+import { getAllPosts } from '@/lib/services/blog'
+import { SITE_URL } from '@/lib/constants'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fogcatalog.app'
+    const baseUrl = SITE_URL
 
     // Statik sayfalar
     const staticPages: MetadataRoute.Sitemap = [

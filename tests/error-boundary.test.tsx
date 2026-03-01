@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { ErrorBoundary } from '@/components/error-boundary'
 
 // Mock dependencies
-vi.mock('@/lib/i18n-provider', () => ({
+vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
 }))
 

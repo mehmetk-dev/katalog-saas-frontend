@@ -2,13 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
-export function TechCover({
+export const TechCover = React.memo(function TechCover({
     catalogName,
     coverImageUrl,
     coverDescription,
-    logoUrl,
+    logoUrl: _logoUrl,
     productCount = 0,
-    primaryColor = '#00ff41'
+    primaryColor: _primaryColor = '#00ff41'
 }: CoverPageProps) {
     return (
         <div className="relative w-full h-full bg-black text-[#00ff41] overflow-hidden font-mono text-sm selection:bg-[#003B00] selection:text-white">
@@ -48,7 +48,7 @@ export function TechCover({
                             </div>
                             <div className="h-16 w-full bg-[#00ff41]/10 flex items-end gap-1">
                                 {Array.from({ length: 10 }).map((_, i) => (
-                                    <div key={i} className="bg-[#00ff41]" style={{ width: '10%', height: `${Math.random() * 100}%` }} />
+                                    <div key={i} className="bg-[#00ff41]" style={{ width: '10%', height: `${(i * 15) % 80 + 20}%` }} />
                                 ))}
                             </div>
                         </div>
@@ -93,4 +93,4 @@ export function TechCover({
             `}</style>
         </div>
     )
-}
+})

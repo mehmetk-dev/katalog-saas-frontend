@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2, CheckCircle2, BookOpen } from "lucide-react"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
 
@@ -52,8 +52,18 @@ export default function ResetPasswordPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError("Şifre en az 6 karakter olmalıdır.")
+    if (password.length < 8) {
+      setError("Şifre en az 8 karakter olmalıdır.")
+      return
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError("Şifre en az bir büyük harf içermelidir.")
+      return
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError("Şifre en az bir rakam içermelidir.")
       return
     }
 
@@ -149,19 +159,21 @@ export default function ResetPasswordPage() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-[#B01E2E] focus:ring-1 focus:ring-[#B01E2E] transition-all placeholder:text-slate-300"
                   placeholder="••••••••"
                 />
+                <p className="text-[11px] text-slate-400 mt-1 ml-1">En az 8 karakter, bir büyük harf ve bir rakam</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-slate-900 ml-1">Şifre Onayı</label>
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
