@@ -9,6 +9,13 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { LoadingPhase } from "@/components/auth/auth-form/types"
 
 const getSiteUrl = () => {
+    const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+
+    // In production, always prefer canonical app URL to avoid localhost redirects.
+    if (process.env.NODE_ENV === "production" && envUrl) {
+        return envUrl
+    }
+
     if (typeof window !== "undefined") {
         const origin = window.location.origin
         if (origin.includes("0.0.0.0")) {
@@ -16,7 +23,7 @@ const getSiteUrl = () => {
         }
         return origin
     }
-    return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    return envUrl || "http://localhost:3000"
 }
 
 export function useAuthFormController() {

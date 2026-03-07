@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useCallback, useRef } from "react"
 import { toast } from "sonner"
@@ -23,7 +23,7 @@ function formatTimeLeft(seconds: number): string {
     return secs > 0 ? `~${mins} dk ${secs} sn` : `~${mins} dk`
 }
 
-// Arka planda donmayı/yavaşlamayı önleyen özel bekleme fonksiyonu (setTimeout alternatifi)
+// Arka planda donmayÄ±/yavaÅŸlamayÄ± Ã¶nleyen Ã¶zel bekleme fonksiyonu (setTimeout alternatifi)
 const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
     if (ms === 0) {
         const channel = new MessageChannel()
@@ -35,32 +35,32 @@ const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
 })
 
 /**
- * Sayfa sayısına göre PDF kalite ayarlarını dinamik belirler.
- * Büyük kataloglarda bellek tükenmesini önlemek için kalite düşürülür.
+ * Sayfa sayÄ±sÄ±na gÃ¶re PDF kalite ayarlarÄ±nÄ± dinamik belirler.
+ * BÃ¼yÃ¼k kataloglarda bellek tÃ¼kenmesini Ã¶nlemek iÃ§in kalite dÃ¼ÅŸÃ¼rÃ¼lÃ¼r.
  */
 function getPdfQualitySettings(totalPages: number) {
     if (totalPages > 200) {
-        // Çok büyük katalog (200+ sayfa): minimum kalite, maksimum stabilite
+        // Ã‡ok bÃ¼yÃ¼k katalog (200+ sayfa): minimum kalite, maksimum stabilite
         return { pixelRatio: 1, quality: 0.4, chunkSize: 3, chunkDelay: 800, imageTimeout: 5000 }
     }
     if (totalPages > 100) {
-        // Büyük katalog (100-200 sayfa): düşük kalite
+        // BÃ¼yÃ¼k katalog (100-200 sayfa): dÃ¼ÅŸÃ¼k kalite
         return { pixelRatio: 1.2, quality: 0.5, chunkSize: 3, chunkDelay: 500, imageTimeout: 6000 }
     }
     if (totalPages > 50) {
         // Orta katalog (50-100 sayfa): orta kalite
         return { pixelRatio: 1.5, quality: 0.65, chunkSize: 4, chunkDelay: 300, imageTimeout: 7000 }
     }
-    // Normal katalog (<50 sayfa): yüksek kalite
+    // Normal katalog (<50 sayfa): yÃ¼ksek kalite
     return { pixelRatio: 2, quality: 0.85, chunkSize: 5, chunkDelay: 100, imageTimeout: 8000 }
 }
 
 export function usePdfExport({
     catalogName,
-    selectedProducts,
+    selectedProducts: _selectedProducts,
     canExport,
-    user,
-    t,
+    user: _user,
+    t: _t,
     refreshUser,
     onShowUpgradeModal,
 }: UsePdfExportOptions) {
@@ -120,14 +120,14 @@ export function usePdfExport({
             const container = document.getElementById('catalog-export-container')
             if (!container) {
                 setIsExporting(false)
-                setPhase("error", { errorMessage: "Export hazırlığı tamamlanamadı. Lütfen tekrar deneyin." })
+                setPhase("error", { errorMessage: "Export hazÄ±rlÄ±ÄŸÄ± tamamlanamadÄ±. LÃ¼tfen tekrar deneyin." })
                 return
             }
 
             const pages = container.querySelectorAll('.catalog-page-wrapper')
             if (pages.length === 0) {
                 setIsExporting(false)
-                setPhase("error", { errorMessage: "Sayfa yapısı oluşturulamadı. Lütfen tekrar deneyin." })
+                setPhase("error", { errorMessage: "Sayfa yapÄ±sÄ± oluÅŸturulamadÄ±. LÃ¼tfen tekrar deneyin." })
                 return
             }
 
@@ -138,7 +138,7 @@ export function usePdfExport({
             const pageElements = Array.from(pages)
             const totalPages = pageElements.length
 
-            // Sayfa sayısına göre kalite ayarlarını belirle
+            // Sayfa sayÄ±sÄ±na gÃ¶re kalite ayarlarÄ±nÄ± belirle
             const settings = getPdfQualitySettings(totalPages)
 
             setPhase("rendering", { percent: 10, totalPages, currentPage: 0 })
@@ -146,7 +146,7 @@ export function usePdfExport({
             // Track timing for ETA estimation
             const startTime = Date.now()
 
-            // FIX(F3): Image cache — avoid re-fetching the same image URL across pages
+            // FIX(F3): Image cache â€” avoid re-fetching the same image URL across pages
             // Limit cache size to prevent OOM on large catalogs
             const IMAGE_CACHE_LIMIT = 500
             const imageCache = new Map<string, string>()
@@ -255,7 +255,7 @@ export function usePdfExport({
                                 img.removeAttribute('loading')
 
                             } catch {
-                                // Image fetch failed — use transparent placeholder
+                                // Image fetch failed â€” use transparent placeholder
                                 img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                                 img.style.objectFit = 'contain'
                             }
@@ -275,7 +275,7 @@ export function usePdfExport({
                         if (i > 0) pdf.addPage()
                         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
 
-                        // Bellek serbest bırak — büyük base64 string'leri temizle
+                        // Bellek serbest bÄ±rak â€” bÃ¼yÃ¼k base64 string'leri temizle
                         imgData = null
 
                     } finally {
@@ -320,7 +320,7 @@ export function usePdfExport({
             const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
             setPhase("error", { errorMessage: msg, percent: 0, estimatedTimeLeft: "" })
         }
-    }, [catalogName, canExport, user?.plan, t, refreshUser, onShowUpgradeModal, setPhase])
+    }, [catalogName, canExport, refreshUser, onShowUpgradeModal, setPhase])
 
     return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal }
 }

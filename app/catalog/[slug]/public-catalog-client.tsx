@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import { Search, X, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Toaster } from "sonner"
 import { PdfProgressModal } from "@/components/ui/pdf-progress-modal"
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
@@ -14,7 +14,8 @@ import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
 import dynamic from "next/dynamic"
 
-const HTMLFlipBook = dynamic(() => import("react-pageflip"), { ssr: false }) as any;
+const HTMLFlipBook = dynamic(() => import("react-pageflip"), { ssr: false }) as typeof import("react-pageflip")["default"]
+const HTMLFlipBookWithRef = HTMLFlipBook as unknown as React.ComponentType<Record<string, unknown>>
 
 import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
@@ -31,6 +32,13 @@ interface PublicCatalogClientProps {
     products: Product[]
 }
 
+type FlipBookRef = {
+    pageFlip: () => {
+        flipPrev: (corner?: string) => void
+        flipNext: (corner?: string) => void
+    }
+}
+
 export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
@@ -40,7 +48,9 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [zoomScale, setZoomScale] = useState(0.85) // Başlangıçta biraz küçük (0.85)
     const [viewMode, setViewMode] = useState<"list" | "book">("list")
-    const flipBookRef = useRef<any>(null)
+    const flipBookRef = useRef<FlipBookRef | null>(null)
+    const [bookScale, setBookScale] = useState(0.85)
+    const [currentFlipPage, setCurrentFlipPage] = useState(0)
 
     const {
         searchQuery, setSearchQuery,
@@ -54,10 +64,14 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     } = usePublicPdfExport({ catalogName: catalog.name, expectedPageCount: catalogPages.length })
 
     useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-        checkMobile()
-        window.addEventListener('resize', checkMobile)
-        return () => window.removeEventListener('resize', checkMobile)
+        const BOOK_WIDTH = A4_WIDTH_PX * 2
+        const update = () => {
+            setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+            setBookScale(Math.min(0.9, (window.innerWidth * 0.95) / BOOK_WIDTH))
+        }
+        update()
+        window.addEventListener('resize', update)
+        return () => window.removeEventListener('resize', update)
     }, [])
 
     const toggleFullscreen = useCallback(() => {
@@ -124,6 +138,34 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             </div>
         </LazyPage>
     ), [catalog, filteredProducts.length, isExporting, isMobile, pageStyle])
+
+    // Build flipbook pages — with leading/trailing placeholders.
+    // Reactivity on filteredProducts.length is CRITICAL to prevent insertBefore errors when data changes.
+    const flipBookPages = useMemo(() => {
+        const pages: React.ReactNode[] = [
+            <div key="front-placeholder" style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX, background: '#f8fafc' }} />,
+            ...catalogPages.map((page, index) => (
+                <div key={`flip-page-${index}`} className="bg-white relative">
+                    <div style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX }}>
+                        <PageRenderer
+                            page={page}
+                            catalog={catalog}
+                            filteredProductCount={filteredProducts.length}
+                            isExporting={isExporting}
+                        />
+                    </div>
+                </div>
+            )),
+        ]
+        if (pages.length % 2 !== 0) {
+            pages.push(<div key="back-placeholder" style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX, background: '#f8fafc' }} />)
+        }
+        return pages
+    }, [catalogPages, catalog, isExporting, filteredProducts.length])
+
+    // Page 0 = [placeholder | cover] spread → clip left half to show single cover
+    const isCoverPage = currentFlipPage === 0
+
 
     // -- Determine PDF modal action (close vs cancel) ------------------------
 
@@ -246,55 +288,81 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                     )}
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-center p-4 sm:p-10 w-full relative group">
-                                    {/* Prev Button */}
+                                /* FLIPBOOK VIEW */
+                                <div className="flex flex-col items-center justify-center w-full min-h-[calc(100vh-140px)] bg-slate-100/60 py-10 overflow-hidden relative group">
+
+                                    {/* Prev button — fixed so it's outside the scaled area */}
                                     <button
-                                        onClick={() => flipBookRef.current?.pageFlip().flipPrev()}
-                                        className="absolute left-4 z-10 p-3 bg-white/20 hover:bg-white/40 border border-white/20 shadow-2xl backdrop-blur-md rounded-full text-slate-700 hover:text-slate-900 transition-all opacity-0 group-hover:opacity-100 hidden sm:flex items-center justify-center"
+                                        onClick={() => flipBookRef.current?.pageFlip().flipPrev('top')}
+                                        className="fixed left-4 top-1/2 -translate-y-1/2 z-50 p-4 bg-white/90 hover:bg-white shadow-xl rounded-full text-slate-800 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 hidden lg:flex items-center justify-center border border-slate-200"
                                         title="Önceki Sayfa"
                                     >
                                         <ChevronLeft className="w-8 h-8" />
                                     </button>
 
-                                    <HTMLFlipBook
-                                        ref={flipBookRef}
-                                        width={A4_WIDTH_PX / 1.1}
-                                        height={A4_HEIGHT_PX / 1.1}
-                                        size="fixed"
-                                        minWidth={300}
-                                        maxWidth={A4_WIDTH_PX}
-                                        minHeight={424}
-                                        maxHeight={A4_HEIGHT_PX}
-                                        maxShadowOpacity={0.2}
-                                        showCover={true}
-                                        mobileScrollSupport={true}
-                                        useMouseEvents={true}
-                                        flippingTime={600}
-                                        swipeDistance={30}
-                                        className="shadow-2xl"
+                                    {/* OUTER: controls visual width & centering.
+                                        On cover: single-page width, clips left empty half.
+                                        On spread: full double-page width. */}
+                                    <div
+                                        style={{
+                                            width: isCoverPage ? A4_WIDTH_PX : A4_WIDTH_PX * 2,
+                                            overflow: isCoverPage ? 'hidden' : 'visible',
+                                            transform: `scale(${isMobile ? 0.4 : bookScale})`,
+                                            transformOrigin: 'center top',
+                                            marginBottom: `calc(-${A4_HEIGHT_PX}px * (1 - ${isMobile ? 0.4 : bookScale}))`,
+                                            transition: 'width 0.5s ease',
+                                        }}
                                     >
-                                        {catalogPages.map((page, index) => (
-                                            <div key={index} className="bg-white overflow-hidden shadow-lg border border-slate-100">
-                                                <div style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX, transform: 'scale(0.9)', transformOrigin: 'top left' }}>
-                                                    <PageRenderer
-                                                        page={page}
-                                                        catalog={catalog}
-                                                        filteredProductCount={filteredProducts.length}
-                                                        isExporting={isExporting}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </HTMLFlipBook>
+                                        {/* INNER: always full double-width for the library.
+                                            On cover: shifted left so only right half (cover) is visible. */}
+                                        <div
+                                            className="relative shadow-[0_40px_80px_-20px_rgba(0,0,0,0.35)]"
+                                            style={{
+                                                width: A4_WIDTH_PX * 2,
+                                                marginLeft: isCoverPage ? -A4_WIDTH_PX : 0,
+                                                transition: 'margin-left 0.5s ease',
+                                            }}
+                                        >
+                                            <HTMLFlipBookWithRef
+                                                key={`flipbook-${catalogPages.length}-${filteredProducts.length}`}
+                                                ref={flipBookRef}
+                                                width={A4_WIDTH_PX}
+                                                height={A4_HEIGHT_PX}
+                                                size="fixed"
+                                                minWidth={A4_WIDTH_PX}
+                                                maxWidth={A4_WIDTH_PX}
+                                                minHeight={A4_HEIGHT_PX}
+                                                maxHeight={A4_HEIGHT_PX}
+                                                maxShadowOpacity={0.5}
+                                                drawShadow={true}
+                                                showCover={false}
+                                                mobileScrollSupport={false}
+                                                useMouseEvents={true}
+                                                flippingTime={900}
+                                                onFlip={(e: { data: number }) => setCurrentFlipPage(e.data)}
+                                            >
+                                                {flipBookPages}
+                                            </HTMLFlipBookWithRef>
 
-                                    {/* Next Button */}
+                                            {/* Spine line — only on spreads */}
+                                            {!isCoverPage && (
+                                                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-black/10 z-30 pointer-events-none" />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Next button */}
                                     <button
-                                        onClick={() => flipBookRef.current?.pageFlip().flipNext()}
-                                        className="absolute right-4 z-10 p-3 bg-white/20 hover:bg-white/40 border border-white/20 shadow-2xl backdrop-blur-md rounded-full text-slate-700 hover:text-slate-900 transition-all opacity-0 group-hover:opacity-100 hidden sm:flex items-center justify-center"
+                                        onClick={() => flipBookRef.current?.pageFlip().flipNext('top')}
+                                        className="fixed right-4 top-1/2 -translate-y-1/2 z-50 p-4 bg-white/90 hover:bg-white shadow-xl rounded-full text-slate-800 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 hidden lg:flex items-center justify-center border border-slate-200"
                                         title="Sonraki Sayfa"
                                     >
                                         <ChevronRight className="w-8 h-8" />
                                     </button>
+
+                                    <p className="mt-6 text-[11px] text-slate-400 font-medium tracking-widest uppercase">
+                                        Kenarlardan tıklayın veya sürükleyin
+                                    </p>
                                 </div>
                             )}
                         </div>

@@ -52,6 +52,8 @@ export interface CatalogUpdatePayload {
     enable_category_dividers?: boolean;
     cover_theme?: string;
     show_in_search?: boolean;
+    category_order?: string[];
+    updated_at?: string;
 }
 
 // --- Constants ---

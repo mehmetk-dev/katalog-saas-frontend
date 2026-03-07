@@ -307,35 +307,36 @@ export async function bulkUpdatePrices(
 }
 
 export async function bulkUpdateProductImages(updates: { productId: string; images: string[] }[]) {
-  // Veriyi hazırlarken her bir ürün için mevcut görselleri koruyarak ekleme yapılması
-  // Normalde backend'in bunu yapması idealdir ama backend'e müdahale edemediğimiz için
-  // burada her ürün için güncel halini alıp birleştiriyoruz (Server-side merge).
+  const updatesByProduct = new Map<string, string[]>()
 
-  const finalUpdates = await Promise.all(updates.map(async (update) => {
-    try {
-      // Ürünün en güncel halini çek
-      const currentProduct = await apiFetch<Product>(`/products/${update.productId}`)
-      const existingImages = currentProduct.images || (currentProduct.image_url ? [currentProduct.image_url] : [])
+  for (const update of updates) {
+    if (!update?.productId) continue
 
-      // Mevcut olanların üzerine yenileri ekle (Tekil tutarak ve limitleyerek)
-      const combined = [...existingImages]
-      update.images.forEach(img => {
-        if (!combined.includes(img)) combined.push(img)
-      })
+    const incomingImages = Array.isArray(update.images)
+      ? update.images.filter((url): url is string => typeof url === "string" && url.trim().length > 0)
+      : []
 
-      return {
-        productId: update.productId,
-        images: combined.slice(0, 5)
-      }
-    } catch (error) {
-      console.error(`[bulkUpdateProductImages] Fetch error for ${update.productId}:`, error)
-      return update // Hata durumunda orijinal güncellemeyi döndür (fallback)
-    }
+    if (incomingImages.length === 0) continue
+
+    const merged = [...(updatesByProduct.get(update.productId) || []), ...incomingImages]
+    updatesByProduct.set(update.productId, Array.from(new Set(merged)).slice(0, 20))
+  }
+
+  const normalizedUpdates = Array.from(updatesByProduct.entries()).map(([productId, images]) => ({
+    productId,
+    images,
   }))
+
+  if (normalizedUpdates.length === 0) {
+    return { success: true }
+  }
 
   await apiFetch("/products/bulk-image-update", {
     method: "POST",
-    body: JSON.stringify({ updates: finalUpdates }),
+    body: JSON.stringify({
+      updates: normalizedUpdates,
+      mergeWithExisting: true,
+    }),
   })
 
   revalidatePath("/dashboard/products")

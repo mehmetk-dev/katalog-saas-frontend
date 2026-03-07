@@ -6,11 +6,11 @@ Sentry.init({
     // Hardcoded DSN to match server/edge and ensure it works even if env vars are missing
     dsn: "https://868079ea0eaa70b831e1783792021d35@o4510766025080832.ingest.de.sentry.io/4510766042710096",
 
-    // Enable for all environments temporarily to verify it's working
-    enabled: true,
+    // Only send errors in production — keeps dev console clean and saves Sentry quota
+    enabled: process.env.NODE_ENV === "production",
 
-    // Set to true to see Sentry debug logs in browser console
-    debug: process.env.NODE_ENV === "development",
+    // Debug logs only in dev (moot since disabled, but kept for when re-enabling)
+    debug: false,
 
     // Performance Monitoring
     tracesSampleRate: 1.0,

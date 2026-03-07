@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -124,6 +124,13 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
     const supabase = useMemo(() => createClient(), [])
 
     const getSiteUrl = useCallback(() => {
+        const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+
+        // In production, always prefer canonical app URL to avoid localhost redirects.
+        if (process.env.NODE_ENV === "production" && envUrl) {
+            return envUrl
+        }
+
         if (typeof window !== "undefined") {
             const origin = window.location.origin
             if (origin.includes("0.0.0.0")) {
@@ -131,7 +138,7 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
             }
             return origin
         }
-        return process.env.NEXT_PUBLIC_APP_URL || DEFAULT_APP_URL
+        return envUrl || DEFAULT_APP_URL
     }, [])
 
     const handleAuthSessionRedirect = useCallback(async () => {

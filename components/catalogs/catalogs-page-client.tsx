@@ -1,9 +1,9 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Download, Shield, Zap, Sparkles } from "lucide-react"
+import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Shield, Zap, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
 
@@ -54,7 +54,7 @@ interface CatalogsPageClientProps {
 
 import { PLAN_LIMITS } from "@/lib/constants"
 
-// Plan limitleri — uses shared constants
+// Plan limitleri â€” uses shared constants
 const CATALOG_LIMITS = {
   free: PLAN_LIMITS.free.maxCatalogs,
   plus: PLAN_LIMITS.plus.maxCatalogs,
@@ -73,11 +73,11 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [shareCatalog, setShareCatalog] = useState<Catalog | null>(null)
 
-  // URL'deki "limit_reached=true" parametresini modal açıldıktan sonra temizle
+  // URL'deki "limit_reached=true" parametresini modal aÃ§Ä±ldÄ±ktan sonra temizle
   useEffect(() => {
     if (searchParams.get("limit_reached") === "true") {
       const newPath = window.location.pathname
-      // window.history.replaceState Next.js router'ı tetiklemeden URL'i sessizce temizler
+      // window.history.replaceState Next.js router'Ä± tetiklemeden URL'i sessizce temizler
       window.history.replaceState({}, "", newPath)
     }
   }, [searchParams])
@@ -248,8 +248,8 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                         logoPosition={catalog.logo_position || undefined}
                         logoSize={catalog.logo_size || undefined}
                         productImageFit={catalog.product_image_fit || 'cover'}
-                        enableCoverPage={false} // Kullanıcı burada kapak değil ürün sayfasını görmek istiyor
-                        enableCategoryDividers={false} // Sadece ilk ürün sayfasını garanti etmek için
+                        enableCoverPage={false} // KullanÄ±cÄ± burada kapak deÄŸil Ã¼rÃ¼n sayfasÄ±nÄ± gÃ¶rmek istiyor
+                        enableCategoryDividers={false} // Sadece ilk Ã¼rÃ¼n sayfasÄ±nÄ± garanti etmek iÃ§in
                         coverImageUrl={catalog.cover_image_url || undefined}
                         coverDescription={catalog.cover_description || undefined}
                         theme={(catalog as { theme?: string }).theme || 'light'}
@@ -450,7 +450,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <p className="text-[10px] text-purple-600/70 font-medium">{t("catalogs.unlimitedOps")}</p>
               </div>
               <div className="text-right">
-                <span className="text-sm font-black text-purple-700 dark:text-purple-400">∞</span>
+                <span className="text-sm font-black text-purple-700 dark:text-purple-400">âˆ</span>
                 <p className="text-[9px] font-bold text-purple-500/50 uppercase whitespace-nowrap">{t("catalogs.unlimited")}</p>
               </div>
             </div>

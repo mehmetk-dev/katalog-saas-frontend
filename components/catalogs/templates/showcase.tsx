@@ -1,7 +1,6 @@
-import React from "react"
+﻿import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
-import type { CustomAttribute } from "@/lib/actions/products"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
@@ -37,7 +36,7 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
     const safeProducts = products || []
     const [main, ...others] = safeProducts
 
-    // Kullanıcı isteği: Vitrin (Showcase) sağ taraf tek sütun
+    // KullanÄ±cÄ± isteÄŸi: Vitrin (Showcase) saÄŸ taraf tek sÃ¼tun
     const getRightCols = () => "grid-cols-1"
 
     const {
@@ -105,7 +104,7 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
                     )}
                 </div>
 
-                {/* Sağ Alan */}
+                {/* SaÄŸ Alan */}
                 <div className="flex-1 flex items-center justify-end min-w-0 gap-8 text-right relative">
                     {isCollisionRight ? (
                         <div className="flex items-center gap-6 flex-row-reverse text-right">

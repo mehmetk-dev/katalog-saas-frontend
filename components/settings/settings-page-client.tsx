@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import NextImage from "next/image"
-import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2 } from "lucide-react"
+import { User, CreditCard, Globe, Trash2, CheckCircle2, Building2, Mail, Camera, Loader2, Instagram, Youtube, Link2 } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -30,6 +30,57 @@ import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { storage } from "@/lib/storage"
 import { cn } from "@/lib/utils"
+
+// ─── SocialUrlField ──────────────────────────────────────────────────────────
+// URL inputu + anlık domain validasyonu yapan yardımcı bileşen
+interface SocialUrlFieldProps {
+    id: string
+    name: string
+    label: string
+    icon: React.ReactNode
+    placeholder: string
+    defaultValue: string
+    validate: (val: string) => string | null  // hata mesajı | null
+}
+
+function SocialUrlField({ id, name, label, icon, placeholder, defaultValue, validate }: SocialUrlFieldProps) {
+    const [error, setError] = useState<string | null>(null)
+    const [isDirty, setIsDirty] = useState(false)
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.trim()
+        setIsDirty(true)
+        setError(val ? validate(val) : null)
+    }
+
+    return (
+        <div className="space-y-1.5">
+            <Label htmlFor={id} className="flex items-center gap-2 text-foreground">
+                {icon} {label}
+            </Label>
+            <Input
+                id={id}
+                name={name}
+                type="url"
+                placeholder={placeholder}
+                defaultValue={defaultValue}
+                onChange={handleChange}
+                className={cn(
+                    "bg-background border-input focus:bg-background transition-colors",
+                    isDirty && error && "border-destructive focus-visible:ring-destructive/30",
+                    isDirty && !error && defaultValue === "" ? "" : isDirty && !error ? "border-green-500 focus-visible:ring-green-500/30" : ""
+                )}
+            />
+            {isDirty && error && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                    <span className="inline-block w-3 h-3 rounded-full bg-destructive/20 text-destructive text-center leading-3">!</span>
+                    {error}
+                </p>
+            )}
+        </div>
+    )
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function SettingsPageClient() {
     const { user, setUser, isLoading, refreshUser } = useUser()
@@ -309,7 +360,10 @@ export default function SettingsPageClient() {
                         name: (formData.get('fullName') as string) || user.name,
                         company: (formData.get('company') as string) || user.company,
                         avatar_url: avatarUrlToSave || user.avatar_url,
-                        logo_url: logoUrlToSave || user.logo_url
+                        logo_url: logoUrlToSave || user.logo_url,
+                        instagram_url: (formData.get('instagramUrl') as string) || user.instagram_url,
+                        youtube_url: (formData.get('youtubeUrl') as string) || user.youtube_url,
+                        website_url: (formData.get('websiteUrl') as string) || user.website_url,
                     })
                 }
 
@@ -567,11 +621,81 @@ export default function SettingsPageClient() {
                                     </div>
                                 </div>
 
+                                {/* Email (readonly) */}
                                 <div className="space-y-2">
                                     <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
                                         <Mail className="w-3.5 h-3.5" /> {t("auth.email")}
                                     </Label>
                                     <Input id="email" type="email" defaultValue={user?.email} disabled className="bg-muted text-muted-foreground" />
+                                </div>
+
+                                {/* Sosyal Medya & Web */}
+                                <div className="space-y-4 pt-2">
+                                    <div className="flex items-center gap-2 pb-1 border-b">
+                                        <Link2 className="w-4 h-4 text-muted-foreground" />
+                                        <h3 className="text-sm font-semibold text-foreground">Sosyal Medya &amp; Web</h3>
+                                        <span className="text-xs text-muted-foreground">(isteğe bağlı)</span>
+                                    </div>
+                                    <div className="grid gap-4 sm:grid-cols-1">
+
+                                        {/* Instagram */}
+                                        <SocialUrlField
+                                            id="instagramUrl"
+                                            name="instagramUrl"
+                                            label="Instagram"
+                                            icon={<Instagram className="w-3.5 h-3.5 text-pink-500" />}
+                                            placeholder="https://instagram.com/kullanici"
+                                            defaultValue={user?.instagram_url ?? ""}
+                                            validate={(val) => {
+                                                if (!val) return null
+                                                try {
+                                                    const h = new URL(val).hostname
+                                                    if (h !== 'instagram.com' && h !== 'www.instagram.com')
+                                                        return 'Lütfen instagram.com adresi girin'
+                                                } catch { return 'Geçerli bir URL girin' }
+                                                return null
+                                            }}
+                                        />
+
+                                        {/* YouTube */}
+                                        <SocialUrlField
+                                            id="youtubeUrl"
+                                            name="youtubeUrl"
+                                            label="YouTube"
+                                            icon={<Youtube className="w-3.5 h-3.5 text-red-500" />}
+                                            placeholder="https://youtube.com/@kanal"
+                                            defaultValue={user?.youtube_url ?? ""}
+                                            validate={(val) => {
+                                                if (!val) return null
+                                                try {
+                                                    const h = new URL(val).hostname
+                                                    if (h !== 'youtube.com' && h !== 'www.youtube.com' && h !== 'youtu.be')
+                                                        return 'Lütfen youtube.com veya youtu.be adresi girin'
+                                                } catch { return 'Geçerli bir URL girin' }
+                                                return null
+                                            }}
+                                        />
+
+                                        {/* Website */}
+                                        <SocialUrlField
+                                            id="websiteUrl"
+                                            name="websiteUrl"
+                                            label="Web Sitesi"
+                                            icon={<Globe className="w-3.5 h-3.5 text-blue-500" />}
+                                            placeholder="https://sirketiniz.com"
+                                            defaultValue={user?.website_url ?? ""}
+                                            validate={(val) => {
+                                                if (!val) return null
+                                                try {
+                                                    const p = new URL(val).protocol
+                                                    if (p !== 'http:' && p !== 'https:')
+                                                        return 'URL http:// veya https:// ile başlamalı'
+                                                } catch { return 'Geçerli bir URL girin' }
+                                                return null
+                                            }}
+                                        />
+
+                                    </div>
                                 </div>
 
                                 <div className="flex justify-end pt-4 pb-2 md:pb-0">

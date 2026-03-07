@@ -156,11 +156,9 @@ export const updateCatalog = async (req: Request, res: Response) => {
         // SECURITY: Validate input with Zod schema
         const parsed = catalogUpdateSchema.safeParse(req.body);
         if (!parsed.success) {
-            console.error('[CatalogUpdate] Validation failed:', JSON.stringify(parsed.error.issues, null, 2));
             return res.status(400).json({
                 error: 'Validation Error',
-                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi',
-                details: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message, code: i.code }))
+                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi'
             });
         }
         const { name, cover_description, cover_image_url, share_slug } = parsed.data;

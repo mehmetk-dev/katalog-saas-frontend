@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useReducer, useEffect, useRef, useMemo, useCallback, useDeferredValue, useTransition } from "react"
 import { type Catalog } from "@/lib/actions/catalogs"
@@ -112,8 +112,6 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         // Content
         catalogName: catalog?.name || "",
         catalogDescription: catalog?.description || "",
-        // FIX: product_ids may contain stale references to deleted products.
-        // Initial cleanup happens in the useEffect below after productMap is ready.
         selectedProductIds: catalog?.product_ids || [],
         layout: catalog?.layout || "grid",
         // Design (from initialState)
@@ -283,20 +281,6 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         for (const p of products) map.set(p.id, p)
         return map
     }, [products])
-
-    // FIX: One-time cleanup — remove stale product IDs (deleted products) from selectedProductIds
-    // This prevents sending hundreds of invalid UUIDs to the backend on save.
-    const hasCleanedStaleIds = useRef(false)
-    useEffect(() => {
-        if (hasCleanedStaleIds.current || productMap.size === 0) return
-        hasCleanedStaleIds.current = true
-        const currentIds = state.selectedProductIds
-        const validIds = currentIds.filter(id => productMap.has(id))
-        if (validIds.length !== currentIds.length) {
-            console.warn(`[BuilderState] Cleaned ${currentIds.length - validIds.length} stale product IDs from catalog`)
-            dispatch({ type: 'UPDATE', payload: { selectedProductIds: validIds } })
-        }
-    }, [productMap, state.selectedProductIds])
 
     const selectedProducts = useMemo(() =>
         state.selectedProductIds

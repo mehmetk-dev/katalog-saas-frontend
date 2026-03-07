@@ -52,17 +52,36 @@ function TestComponent() {
     )
 }
 
+type AuthStateSession = {
+    user: {
+        id: string
+        email: string
+    } | null
+} | null
+
+type AuthStateChangeCallback = (event: string, session: AuthStateSession) => void | Promise<void>
+
+type MockProfile = Record<string, unknown>
+
+interface MockSupabaseClient {
+    auth: {
+        getUser: ReturnType<typeof vi.fn>
+        onAuthStateChange: ReturnType<typeof vi.fn>
+        signOut: ReturnType<typeof vi.fn>
+        refreshSession: ReturnType<typeof vi.fn>
+    }
+    from: ReturnType<typeof vi.fn>
+    setMockProfile: (data: MockProfile) => void
+}
 describe('User Context Testleri', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let mockSupabaseClient: any
+    let mockSupabaseClient: MockSupabaseClient
     let mockApiFetch: ReturnType<typeof vi.fn>
 
     beforeEach(() => {
         vi.clearAllMocks()
 
         mockApiFetch = vi.fn()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        vi.mocked(apiFetch).mockImplementation(mockApiFetch as any)
+        vi.mocked(apiFetch).mockImplementation(mockApiFetch as never)
 
         const mockUsersBuilder = {
             select: vi.fn().mockReturnThis(),
@@ -90,15 +109,13 @@ describe('User Context Testleri', () => {
                 if (table === 'catalogs') return mockCountBuilder(0)
                 return mockUsersBuilder
             }),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any
+        } as unknown as MockSupabaseClient
 
-        vi.mocked(createClient).mockReturnValue(mockSupabaseClient)
+        vi.mocked(createClient).mockReturnValue(mockSupabaseClient as unknown as ReturnType<typeof createClient>)
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ; (mockSupabaseClient as any).setMockProfile = (data: any) => {
-                mockUsersBuilder.single.mockResolvedValue({ data, error: null })
-            }
+        mockSupabaseClient.setMockProfile = (data: MockProfile) => {
+            mockUsersBuilder.single.mockResolvedValue({ data, error: null })
+        }
     })
 
     describe('User Loading', () => {
@@ -138,7 +155,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -168,7 +185,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -195,7 +212,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -222,7 +239,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -251,7 +268,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -278,7 +295,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -305,7 +322,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -332,7 +349,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -361,7 +378,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
             mockSupabaseClient.auth.signOut.mockResolvedValueOnce({ error: null })
 
             // window.location.href mock
@@ -389,8 +406,7 @@ describe('User Context Testleri', () => {
 
     describe('Auth State Changes', () => {
         it('Auth state değiştiğinde user bilgilerini günceller', async () => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let authStateChangeCallback: any = null
+            let authStateChangeCallback: AuthStateChangeCallback | null = null
 
             mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: (event: string, session: { user: { id: string; email: string } | null } | null) => void) => {
                 authStateChangeCallback = callback
@@ -412,13 +428,13 @@ describe('User Context Testleri', () => {
 
             // Auth state change simüle et
             if (authStateChangeCallback) {
-                ; (mockSupabaseClient as any).setMockProfile({
+                mockSupabaseClient.setMockProfile({
                     id: 'user-1',
                     email: 'test@example.com',
                     plan: 'free',
                 })
 
-                await authStateChangeCallback('SIGNED_IN', {
+                await (authStateChangeCallback as AuthStateChangeCallback)('SIGNED_IN', {
                     user: { id: 'user-1', email: 'test@example.com' },
                 })
 
@@ -429,8 +445,7 @@ describe('User Context Testleri', () => {
         })
 
         it('Logout olduğunda user state temizlenir', async () => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let authStateChangeCallback: any = null
+            let authStateChangeCallback: AuthStateChangeCallback | null = null
 
             mockSupabaseClient.auth.onAuthStateChange.mockImplementation((callback: (event: string, session: { user: { id: string; email: string } | null } | null) => void) => {
                 authStateChangeCallback = callback
@@ -450,7 +465,7 @@ describe('User Context Testleri', () => {
                 error: null,
             })
 
-                ; (mockSupabaseClient as any).setMockProfile(mockUser)
+                mockSupabaseClient.setMockProfile(mockUser)
 
             render(
                 <UserProvider>
@@ -464,7 +479,7 @@ describe('User Context Testleri', () => {
 
             // Logout simüle et
             if (authStateChangeCallback) {
-                await authStateChangeCallback('SIGNED_OUT', null)
+                await (authStateChangeCallback as AuthStateChangeCallback)('SIGNED_OUT', null)
 
                 await waitFor(() => {
                     expect(screen.getByTestId('user-email')).toHaveTextContent('no-email')
@@ -473,3 +488,4 @@ describe('User Context Testleri', () => {
         })
     })
 })
+

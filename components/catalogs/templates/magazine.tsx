@@ -1,4 +1,4 @@
-import React from "react"
+﻿import React from "react"
 import NextImage from "next/image"
 import { ExternalLink, ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
@@ -30,10 +30,9 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
     backgroundImageFit,
     backgroundGradient,
 }: TemplateProps) {
-    const HEADER_HEIGHT = "120px"
     const safeProducts = products || []
 
-    // Asimetrik yapı: İlk ürün HERO, diğerleri GRID
+    // Asimetrik yapÄ±: Ä°lk Ã¼rÃ¼n HERO, diÄŸerleri GRID
     const [heroProduct, ...gridProducts] = safeProducts
 
     const getGridCols = () => {
@@ -54,7 +53,7 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
-    // Arka plan stili oluştur
+    // Arka plan stili oluÅŸtur
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     const borderColor = headerTextColor ? `${headerTextColor}20` : 'rgba(2, 6, 23, 0.1)' // slate-950/10
@@ -109,7 +108,7 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
             >
                 {/* Sol Alan */}
                 <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-8">
-                    {/* Çarpışma varsa ikisini yan yana çiz */}
+                    {/* Ã‡arpÄ±ÅŸma varsa ikisini yan yana Ã§iz */}
                     {isCollisionLeft ? (
                         <>
                             {renderLogo()}
@@ -117,7 +116,7 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
                         </>
                     ) : (
                         <>
-                            {/* Yoksa kendi konumlarında olanları çiz */}
+                            {/* Yoksa kendi konumlarÄ±nda olanlarÄ± Ã§iz */}
                             {logoAlignment === 'left' && renderLogo()}
                             {titlePosition === 'left' && renderTitle('left')}
                         </>
@@ -139,9 +138,9 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
                     )}
                 </div>
 
-                {/* Sağ Alan */}
+                {/* SaÄŸ Alan */}
                 <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-8">
-                    {/* Sadece title sol ve ortadaysa sağda sidebar göster */}
+                    {/* Sadece title sol ve ortadaysa saÄŸda sidebar gÃ¶ster */}
                     {(titlePosition === 'left' || titlePosition === 'center') && !isCollisionRight && renderSidebarInfo('left')}
 
                     {isCollisionRight ? (
@@ -156,7 +155,7 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
                         </>
                     )}
 
-                    {/* Title sağdaysa sidebar sola geçer */}
+                    {/* Title saÄŸdaysa sidebar sola geÃ§er */}
                     {titlePosition === 'right' && !isCollisionLeft && (
                         <div className="absolute left-10">{renderSidebarInfo('right')}</div>
                     )}
@@ -284,7 +283,7 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
             {/* Editorial Footer */}
             <footer className="h-10 px-10 flex items-center justify-between border-t shrink-0" style={{ borderColor: borderColor }}>
                 <span className="text-[9px] font-bold uppercase tracking-[0.4em]" style={{ color: headerTextColor ? `${headerTextColor}4D` : '#cbd5e1' }}>
-                    {catalogName} · Selection Portfolio · Edition {new Date().getFullYear()}
+                    {catalogName} Â· Selection Portfolio Â· Edition {new Date().getFullYear()}
                 </span>
                 <div className="h-full w-[1px] mx-10" style={{ backgroundColor: borderColor }} />
                 <span className="text-[11px] font-black italic tracking-[0.4em]" style={{ color: headerTextColor || '#020617' }}>{pageNumber}</span>

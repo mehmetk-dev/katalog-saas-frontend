@@ -38,7 +38,7 @@ export function BackgroundSection({
             isOpen={!!openSections.background}
             onToggle={() => toggleSection('background')}
         >
-            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-visible">
+            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden">
                 <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {/* BG Color & Gradient */}
@@ -53,52 +53,12 @@ export function BackgroundSection({
                                     <span className="text-xs font-mono font-bold uppercase tracking-tight">{backgroundColor || '#FFFFFF'}</span>
                                 </div>
                                 {showBackgroundColorPicker && (
-                                    <div className="absolute top-full left-0 mt-3 z-50 animate-in zoom-in-95 duration-300">
-                                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 p-4 w-[220px]">
-                                            <HexColorPicker
-                                                color={backgroundColor || '#ffffff'}
-                                                onChange={(hex) => debouncedBackgroundColorChange(hex)}
-                                                style={{ width: '100%', height: '160px' }}
-                                            />
-                                            {/* Hex Input */}
-                                            <div className="mt-3 flex items-center gap-2">
-                                                <div
-                                                    className="w-8 h-8 rounded-lg ring-1 ring-black/10 shrink-0"
-                                                    style={{ backgroundColor: backgroundColor || '#ffffff' }}
-                                                />
-                                                <div className="flex-1 relative">
-                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-mono">#</span>
-                                                    <input
-                                                        type="text"
-                                                        value={(backgroundColor || '#FFFFFF').replace('#', '').toUpperCase()}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 6)
-                                                            if (val.length === 6) {
-                                                                debouncedBackgroundColorChange(`#${val}`)
-                                                            }
-                                                        }}
-                                                        className="w-full h-8 pl-7 pr-2 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-mono font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 uppercase"
-                                                        maxLength={6}
-                                                        spellCheck={false}
-                                                    />
-                                                </div>
-                                            </div>
-                                            {/* Preset Colors */}
-                                            <div className="mt-3 flex gap-1.5 flex-wrap">
-                                                {['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#fef3c7', '#fce7f3', '#dbeafe', '#dcfce7', '#1e293b', '#0f172a', '#000000'].map((color) => (
-                                                    <button
-                                                        key={color}
-                                                        type="button"
-                                                        className={cn(
-                                                            "w-5 h-5 rounded-md ring-1 ring-black/10 hover:scale-125 transition-all duration-150 cursor-pointer",
-                                                            (backgroundColor || '#ffffff').toLowerCase() === color && "ring-2 ring-indigo-500 ring-offset-1"
-                                                        )}
-                                                        style={{ backgroundColor: color }}
-                                                        onClick={() => debouncedBackgroundColorChange(color)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
+                                    <div className="absolute top-full left-0 mt-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                        <HexColorPicker
+                                            color={backgroundColor || '#ffffff'}
+                                            onChange={(hex) => debouncedBackgroundColorChange(hex)}
+                                            style={{ width: '240px', height: '160px' }}
+                                        />
                                     </div>
                                 )}
                             </div>

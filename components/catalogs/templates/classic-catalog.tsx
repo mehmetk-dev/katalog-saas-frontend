@@ -1,4 +1,4 @@
-import React from "react"
+﻿import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
@@ -20,7 +20,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
     showSku,
     showUrls = false,
     pageNumber = 1,
-    totalPages = 1,
+    totalPages: _totalPages = 1,
     logoUrl,
     logoPosition,
     logoSize,
@@ -35,7 +35,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
 }: TemplateProps) {
     const safeProducts = products || []
 
-    // Arka plan stili oluştur
+    // Arka plan stili oluÅŸtur
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     const {
@@ -95,7 +95,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
                         )}
                     </div>
 
-                    {/* Sağ Alan */}
+                    {/* SaÄŸ Alan */}
                     <div className="flex-1 flex items-end justify-end min-w-0 z-10 gap-8 text-right">
                         {isCollisionRight ? (
                             <div className="flex flex-col gap-4 items-end">
@@ -221,7 +221,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
             {/* Footer - Minimalist Page Number */}
             <div className="absolute bottom-6 w-full text-center">
                 <span className="text-[10px] font-serif tracking-[0.3em] text-black/40">
-                    — {pageNumber} —
+                    â€” {pageNumber} â€”
                 </span>
             </div>
         </div>

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
@@ -115,7 +115,7 @@ export function useEditorUpload({
 
                 const timeoutPromise = new Promise<never>((_, reject) => {
                     timeoutId = setTimeout(() => {
-                            currentAttemptController.abort()
+                        currentAttemptController.abort()
                         reject(new Error('UPLOAD_TIMEOUT'))
                     }, TIMEOUT_MS)
                 })

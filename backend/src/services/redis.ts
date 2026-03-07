@@ -1,4 +1,4 @@
- import Redis, { RedisOptions } from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 // Redis bağlantısı - Upstash (rediss://) veya lokal Redis (redis://)
 const REDIS_URL = (process.env.REDIS_URL || 'redis://localhost:6379').trim();
@@ -132,7 +132,7 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
                 } catch {
                     // SECURITY: Corrupted cache data — delete and continue
                     console.warn('Redis corrupted data for key:', key);
-                    await redis.del(key).catch(() => {});
+                    await redis.del(key).catch(() => { });
                     return null;
                 }
             }

@@ -8,6 +8,51 @@ const helpers_1 = require("./helpers");
 const schemas_1 = require("./schemas");
 const media_1 = require("./media");
 const safe_error_1 = require("../../utils/safe-error");
+const parseCategoryList = (categoryValue) => {
+    if (!categoryValue)
+        return [];
+    const normalized = categoryValue
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => item.toLocaleLowerCase('tr-TR'));
+    return [...new Set(normalized)];
+};
+const normalizeNullableText = (value) => {
+    if (value === undefined || value === null)
+        return null;
+    const trimmed = value.trim();
+    return trimmed === '' ? null : trimmed;
+};
+const isNotFoundError = (error) => {
+    const code = error?.code;
+    return code === 'PGRST116';
+};
+const ensureFreePlanCannotCreateCategory = async (params) => {
+    const { userId, plan, incomingCategory } = params;
+    if (plan !== 'free')
+        return { allowed: true };
+    const requestedCategories = parseCategoryList(incomingCategory);
+    if (requestedCategories.length === 0)
+        return { allowed: true };
+    const { data: existingCategoryRows, error } = await supabase_1.supabase
+        .from('products')
+        .select('category')
+        .eq('user_id', userId)
+        .not('category', 'is', null);
+    if (error) {
+        return { allowed: false, message: 'Kategori kontrolü sırasında bir hata oluştu.' };
+    }
+    const existingCategories = new Set((existingCategoryRows || []).flatMap((row) => parseCategoryList(row.category)));
+    const hasNewCategory = requestedCategories.some((category) => !existingCategories.has(category));
+    if (hasNewCategory) {
+        return {
+            allowed: false,
+            message: 'Yeni kategori oluşturma özelliği yalnızca Plus ve Pro planlarda kullanılabilir.'
+        };
+    }
+    return { allowed: true };
+};
 const createProduct = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
@@ -33,6 +78,19 @@ const createProduct = async (req, res) => {
                 message: `Ürün ekleme limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxProducts} adet). Daha fazla eklemek için paketinizi yükseltin.`
             });
         }
+        const categoryCheck = await ensureFreePlanCannotCreateCategory({
+            userId,
+            plan,
+            incomingCategory: category
+        });
+        if (!categoryCheck.allowed) {
+            return res.status(403).json({
+                error: 'Category Plan Restricted',
+                message: categoryCheck.message
+            });
+        }
+        const normalizedMedia = (0, media_1.normalizeCoverAndImages)(images || [], normalizeNullableText(image_url));
+        const normalizedProductUrl = normalizeNullableText(product_url);
         const { data, error } = await supabase_1.supabase
             .from('products')
             .insert({
@@ -43,9 +101,9 @@ const createProduct = async (req, res) => {
             price,
             stock,
             category,
-            image_url: image_url === '' ? null : image_url,
-            images: images || [],
-            product_url: product_url === '' ? null : product_url,
+            image_url: normalizedMedia.image_url,
+            images: normalizedMedia.images,
+            product_url: normalizedProductUrl,
             custom_attributes: custom_attributes || []
         })
             .select()
@@ -84,19 +142,42 @@ const updateProduct = async (req, res) => {
             return res.status(400).json({ error: issue?.message || 'Invalid request body' });
         }
         const { name, sku, description, price, stock, category, image_url, images, product_url, custom_attributes, display_order, is_active } = parsed.data;
+        const user = await (0, redis_1.getOrSetCache)(redis_1.cacheKeys.user(userId), redis_1.cacheTTL.user, async () => {
+            const { data } = await supabase_1.supabase.from('users').select('plan').eq('id', userId).single();
+            return data;
+        });
+        const plan = user?.plan || 'free';
+        if (category !== undefined) {
+            const categoryCheck = await ensureFreePlanCannotCreateCategory({
+                userId,
+                plan,
+                incomingCategory: category
+            });
+            if (!categoryCheck.allowed) {
+                return res.status(403).json({
+                    error: 'Category Plan Restricted',
+                    message: categoryCheck.message
+                });
+            }
+        }
         const { data: existingProduct, error: existingProductError } = await supabase_1.supabase
             .from('products')
             .select('images, image_url')
             .eq('id', id)
             .eq('user_id', userId)
             .single();
-        if (existingProductError)
+        if (existingProductError) {
+            if (isNotFoundError(existingProductError)) {
+                return res.status(404).json({ error: 'Ürün bulunamadı' });
+            }
             throw existingProductError;
+        }
+        const normalizedIncomingCover = image_url === undefined ? undefined : normalizeNullableText(image_url);
         const mergedImages = images ?? existingProduct?.images ?? [];
-        const mergedCover = image_url === undefined
+        const mergedCover = normalizedIncomingCover === undefined
             ? (existingProduct?.image_url ?? null)
-            : (image_url === '' ? null : image_url);
-        const allowCoverFallback = image_url === undefined ? true : (image_url !== '' && image_url !== null);
+            : normalizedIncomingCover;
+        const allowCoverFallback = normalizedIncomingCover === undefined ? true : normalizedIncomingCover !== null;
         const normalizedMedia = (0, media_1.normalizeCoverAndImages)(mergedImages, mergedCover, { allowCoverFallback });
         const updateData = {
             updated_at: new Date().toISOString(),
@@ -116,7 +197,7 @@ const updateProduct = async (req, res) => {
         if (category !== undefined)
             updateData.category = category;
         if (product_url !== undefined)
-            updateData.product_url = product_url === '' ? null : product_url;
+            updateData.product_url = normalizeNullableText(product_url);
         if (custom_attributes !== undefined)
             updateData.custom_attributes = custom_attributes || [];
         if (display_order !== undefined)
@@ -162,8 +243,12 @@ const deleteProduct = async (req, res) => {
             .eq('id', id)
             .eq('user_id', userId)
             .single();
-        if (fetchError)
+        if (fetchError) {
+            if (isNotFoundError(fetchError)) {
+                return res.status(404).json({ error: 'Ürün bulunamadı' });
+            }
             throw fetchError;
+        }
         if (!product) {
             return res.status(404).json({ error: 'Ürün bulunamadı' });
         }

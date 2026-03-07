@@ -8,6 +8,10 @@ import { createProductSchema, updateProductSchema } from './schemas';
 import { cleanupProductPhotos, collectProductPhotoUrls, normalizeCoverAndImages } from './media';
 import { safeErrorMessage } from '../../utils/safe-error';
 
+type SupabaseErrorLike = {
+    code?: string | null;
+};
+
 const parseCategoryList = (categoryValue?: string | null): string[] => {
     if (!categoryValue) return [];
 
@@ -18,6 +22,17 @@ const parseCategoryList = (categoryValue?: string | null): string[] => {
         .map((item) => item.toLocaleLowerCase('tr-TR'));
 
     return [...new Set(normalized)];
+};
+
+const normalizeNullableText = (value?: string | null): string | null => {
+    if (value === undefined || value === null) return null;
+    const trimmed = value.trim();
+    return trimmed === '' ? null : trimmed;
+};
+
+const isNotFoundError = (error: unknown): boolean => {
+    const code = (error as SupabaseErrorLike | null)?.code;
+    return code === 'PGRST116';
 };
 
 const ensureFreePlanCannotCreateCategory = async (params: {
@@ -99,6 +114,9 @@ export const createProduct = async (req: Request, res: Response) => {
             });
         }
 
+        const normalizedMedia = normalizeCoverAndImages(images || [], normalizeNullableText(image_url));
+        const normalizedProductUrl = normalizeNullableText(product_url);
+
         const { data, error } = await supabase
             .from('products')
             .insert({
@@ -109,9 +127,9 @@ export const createProduct = async (req: Request, res: Response) => {
                 price,
                 stock,
                 category,
-                image_url: image_url === '' ? null : image_url,
-                images: images || [],
-                product_url: product_url === '' ? null : product_url,
+                image_url: normalizedMedia.image_url,
+                images: normalizedMedia.images,
+                product_url: normalizedProductUrl,
                 custom_attributes: custom_attributes || []
             })
             .select()
@@ -195,14 +213,20 @@ export const updateProduct = async (req: Request, res: Response) => {
             .eq('user_id', userId)
             .single();
 
-        if (existingProductError) throw existingProductError;
+        if (existingProductError) {
+            if (isNotFoundError(existingProductError)) {
+                return res.status(404).json({ error: 'Ürün bulunamadı' });
+            }
+            throw existingProductError;
+        }
 
+        const normalizedIncomingCover = image_url === undefined ? undefined : normalizeNullableText(image_url);
         const mergedImages = images ?? existingProduct?.images ?? [];
-        const mergedCover = image_url === undefined
+        const mergedCover = normalizedIncomingCover === undefined
             ? (existingProduct?.image_url ?? null)
-            : (image_url === '' ? null : image_url);
+            : normalizedIncomingCover;
 
-        const allowCoverFallback = image_url === undefined ? true : (image_url !== '' && image_url !== null);
+        const allowCoverFallback = normalizedIncomingCover === undefined ? true : normalizedIncomingCover !== null;
         const normalizedMedia = normalizeCoverAndImages(mergedImages, mergedCover, { allowCoverFallback });
 
         const updateData: Record<string, unknown> = {
@@ -217,7 +241,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         if (price !== undefined) updateData.price = Number(price);
         if (stock !== undefined) updateData.stock = Number(stock);
         if (category !== undefined) updateData.category = category;
-        if (product_url !== undefined) updateData.product_url = product_url === '' ? null : product_url;
+        if (product_url !== undefined) updateData.product_url = normalizeNullableText(product_url);
         if (custom_attributes !== undefined) updateData.custom_attributes = custom_attributes || [];
         if (display_order !== undefined) updateData.display_order = display_order;
         if (is_active !== undefined) updateData.is_active = is_active;
@@ -266,7 +290,12 @@ export const deleteProduct = async (req: Request, res: Response) => {
             .eq('user_id', userId)
             .single();
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+            if (isNotFoundError(fetchError)) {
+                return res.status(404).json({ error: 'Ürün bulunamadı' });
+            }
+            throw fetchError;
+        }
         if (!product) {
             return res.status(404).json({ error: 'Ürün bulunamadı' });
         }

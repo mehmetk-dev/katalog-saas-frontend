@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useState } from "react"
 import { toast } from "sonner"
@@ -32,7 +32,7 @@ export function useAdminLogs() {
         } finally {
             setLoadingLogs(false)
         }
-    }, [])
+    }, [t])
 
     const handleLogsPageChange = useCallback(
         (newPage: number) => {

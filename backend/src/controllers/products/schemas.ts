@@ -117,6 +117,7 @@ export const bulkUpdateImagesSchema = z.object({
         productId: uuidString,
         images: z.array(z.string().url()).max(20),
     })).min(1).max(1000),
+    mergeWithExisting: z.boolean().optional(),
 });
 
 export const bulkPriceUpdateSchema = z.object({

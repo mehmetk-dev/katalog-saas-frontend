@@ -35,11 +35,6 @@ if (!cloudName || !apiKey || !apiSecret) {
 export function extractPublicId(photoUrl: string): string | null {
     if (!photoUrl) return null;
 
-    // Eğer bu bir Cloudinary URL'si değilse (örneğin Unsplash test verisiyse) işlem yapma
-    if (!photoUrl.includes('res.cloudinary.com')) {
-        return null; // Sessizce geç, uyarı basmaya gerek yok (demolar için)
-    }
-
     // Cloudinary URL formatını analiz et
     // Format: /image/upload/[transformations]/[version/]/[folder/]/filename.ext
 

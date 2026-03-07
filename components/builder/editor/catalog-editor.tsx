@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react"
 import dynamic from "next/dynamic"
@@ -35,53 +35,56 @@ import { parseColor, rgbToHex } from "@/components/builder/builder-utils"
 // Yeni bir template eklediğinde veya mevcut bir template'in desteklediği
 // sütun sayısını değiştirmek istediğinde, SADECE bu fonksiyonu güncelle.
 //
-// ─── Mevcut Şablon Sütun Ayarları (Doğrulanmış Grid Yapıları) ─────────────────
-// - modern-grid (Modern Izgara): 2 veya 3 sütun
+// ─── Mevcut Şablon Sütun Ayarları ───────────────────────────────────
+// - modern-grid (Modern Izgara): 1–5 arası
 // - compact-list (Kompakt Liste): Sadece 1 sütun (Sabit)
 // - list (Liste): Sadece 1 sütun (Sabit)
-// - classic-catalog (Klasik Katalog): Sadece 1 sütun (Sabit)
-// - industrial (Endüstriyel): Sadece 1 sütun (Sabit)
-// - registry (Kayıt / Satır): Sadece 1 sütun (Sabit)
-// - showcase (Vitrin): Sadece 2 sütun (Sabit - Sağda 1 sütun dikey liste, Solda Kapak)
-// - minimalist (Minimalist): Sadece 2 sütun (Sabit)
-// - elegant-cards (Zarif Kartlar): Sadece 2 sütun (Sabit)
-// - catalog-pro (Katalog Pro): Sadece 2 sütun (Sabit)
-// - magazine (Dergi): 2 veya 3 sütun
-// - luxury (Lüks Katalog): 2 veya 3 sütun
+// - magazine (Dergi): 1 veya 2 sütun
+// - luxury (Lüks Katalog): 1–4 arası
+// - tech-catalog (Teknoloji Kataloğu): 1–4 arası
+// - premium-collection (Premium Koleksiyon): 1–3 arası
+// - product-cards (Ürün Kartları): 1–4 arası
 // - product-tiles (Ürün Döşemeleri): 2 veya 3 sütun
-// - bold (Kalın): 2 veya 3 sütun
-// - fashion-lookbook (Moda Lookbook): 2 veya 3 sütun
-// - clean-white (Temiz Beyaz): 2 veya 3 sütun
-// - retail (Perakende): 2 veya 3 sütun
-// - tech-modern (Teknoloji Modern): 2 veya 3 sütun
-//
-// NOT: Hiçbir standart şablon 4 veya 5 sütun seçeneği sunmamaktadır. Düzenler grid-cols-2 ve grid-cols-3 kullanılarak yazılmıştır.
+// - catalog-minimalist (Minimalist): 1 veya 2 sütun
+// - catalog-elegant (Zarif): 1 veya 2 sütun
+// - photo-gallery (Fotoğraf Galerisi): 2–4 arası
+// - price-list (Fiyat Listesi): Sadece 1 sütun (Sabit)
+// - premium-products (Premium Ürünler): 1–3 arası
+// - industrial (Endüstriyel): Sadece 1 sütun (Sabit)
+// - classic-catalog (Klasik Katalog): Sadece 1 sütun (Sabit)
+// - showcase (Vitrin): Sadece 2 sütun (Sabit)
 const getAvailableColumns = (layout: string): number[] => {
   switch (layout) {
+    case 'modern-grid':
+      return [1, 2, 3, 4, 5]
     case 'compact-list':
     case 'list':
-    case 'classic-catalog':
+      return [1]
+    case 'magazine':
+      return [1, 2]
+    case 'luxury':
+    case 'tech-catalog':
+      return [1, 2, 3, 4]
+    case 'premium-collection':
+    case 'premium-products':
+      return [1, 2, 3]
+    case 'product-cards':
+      return [1, 2, 3, 4]
+    case 'product-tiles':
+      return [2, 3]
+    case 'catalog-minimalist':
+    case 'catalog-elegant':
+      return [1, 2]
+    case 'photo-gallery':
+      return [2, 3, 4]
+    case 'price-list':
     case 'industrial':
-    case 'registry':
+    case 'classic-catalog':
       return [1]
     case 'showcase':
-    case 'minimalist':
-    case 'elegant-cards':
-    case 'catalog-pro':
-      return [2] // Vitrin, Minimalist, Zarif Kartlar ve Katalog Pro sadece 2 sütunlu tasarımları destekler
-    case 'product-tiles':
-      return [3] // Ürün Karoları sadece 3 sütunlu yapıyı destekler
-    case 'modern-grid':
-    case 'magazine':
-    case 'luxury':
-    case 'bold':
-    case 'fashion-lookbook':
-    case 'clean-white':
-    case 'retail':
-    case 'tech-modern':
+      return [2]
     default:
-      // Diğer çoğu şablon 2 veya 3 sütun düzenini destekler.
-      return [2, 3]
+      return [1, 2, 3, 4]
   }
 }
 

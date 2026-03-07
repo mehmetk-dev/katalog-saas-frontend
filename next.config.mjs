@@ -6,13 +6,13 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // React Strict Mode causes double-invoke of effects in dev, which conflicts
+  // with react-pageflip's direct DOM manipulation (removeChild error).
+  // Strict Mode is dev-only so this has zero production impact.
+  reactStrictMode: false,
   // Monorepo / çoklu lockfile ortamlarında Turbopack kökünü sabitle
   turbopack: {
     root: projectRoot,
-  },
-  typescript: {
-    // Temporarily ignore TypeScript errors for production build
-    ignoreBuildErrors: true,
   },
   // Turbopack config removed to fix path resolution issues
   // Standalone output is required for Docker but buggy on Windows during local builds
@@ -116,3 +116,4 @@ export default withSentryConfig(nextConfig, {
     },
   },
 });
+

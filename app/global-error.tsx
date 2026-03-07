@@ -49,10 +49,10 @@ export default function GlobalError({
                                 </div>
                             </div>
 
-                            {process.env.NODE_ENV === 'development' && (
+                            {process.env.NODE_ENV === 'development' && error.digest && (
                                 <div className="mx-6 p-4 bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/10 rounded-xl overflow-hidden">
                                     <p className="text-[10px] font-mono text-red-800 dark:text-red-400 break-all opacity-70">
-                                        DEBUG: {error.message}
+                                        Hata Kodu: {error.digest}
                                     </p>
                                 </div>
                             )}

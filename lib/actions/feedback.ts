@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
@@ -12,8 +12,6 @@ import {
     FEEDBACK_WINDOW_MS,
 } from "@/lib/services/rate-limit"
 import { requireAdmin } from "@/lib/actions/admin"
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL
 
 export type Feedback = {
     id: string
@@ -34,11 +32,11 @@ export async function sendFeedback(data: {
     page_url?: string;
     attachments?: string[];
 }) {
-    // Rate limit: IP başına 10 dakikada en fazla 5 feedback
+    // Rate limit: IP baÅŸÄ±na 10 dakikada en fazla 5 feedback
     const headersList = await headers()
     const rl = checkRateLimit(headersList, "feedback", FEEDBACK_LIMIT, FEEDBACK_WINDOW_MS)
     if (!rl.allowed) {
-        throw new Error("Çok fazla deneme. Lütfen 10 dakika sonra tekrar deneyin.")
+        throw new Error("Ã‡ok fazla deneme. LÃ¼tfen 10 dakika sonra tekrar deneyin.")
     }
 
     // Validate and sanitize input
@@ -48,12 +46,12 @@ export async function sendFeedback(data: {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-        console.error("❌ No user found in sendFeedback")
-        throw new Error("Oturum açmanız gerekiyor")
+        console.error("âŒ No user found in sendFeedback")
+        throw new Error("Oturum aÃ§manÄ±z gerekiyor")
     }
 
 
-    // Kullanıcı profil bilgilerini al
+    // KullanÄ±cÄ± profil bilgilerini al
     const { data: profile } = await supabase
         .from("users")
         .select("full_name")
@@ -75,26 +73,26 @@ export async function sendFeedback(data: {
     })
 
     if (error) {
-        console.error("❌ Database insert error:", error)
+        console.error("âŒ Database insert error:", error)
         throw error
     }
 
 
-    // Admin'e e-posta gönder (asenkron, hata olsa bile devam et)
-    // Environment variable'ları direkt kontrol et
+    // Admin'e e-posta gÃ¶nder (asenkron, hata olsa bile devam et)
+    // Environment variable'larÄ± direkt kontrol et
     const adminEmail = process.env.ADMIN_EMAIL
     const resendApiKey = process.env.RESEND_API_KEY
 
 
     if (!adminEmail) {
-        console.error("❌ ADMIN_EMAIL is not set! Email will not be sent.")
+        console.error("âŒ ADMIN_EMAIL is not set! Email will not be sent.")
         console.error("   Please add ADMIN_EMAIL to your .env.local file")
     } else if (!resendApiKey) {
-        console.error("❌ RESEND_API_KEY is not set! Email will not be sent.")
+        console.error("âŒ RESEND_API_KEY is not set! Email will not be sent.")
         console.error("   Please add RESEND_API_KEY to your .env.local file")
     } else {
         try {
-            // XSS koruması için HTML escape
+            // XSS korumasÄ± iÃ§in HTML escape
             const escapeHtml = (text: string) => {
                 return text
                     .replace(/&/g, '&amp;')
@@ -104,7 +102,7 @@ export async function sendFeedback(data: {
                     .replace(/'/g, '&#039;')
             }
 
-            // URL scheme validation — only allow http/https to prevent javascript: XSS
+            // URL scheme validation â€” only allow http/https to prevent javascript: XSS
             const isSafeUrl = (url: string): boolean => {
                 try {
                     const parsed = new URL(url)
@@ -157,7 +155,7 @@ export async function sendFeedback(data: {
                             overflow: hidden;
                         }
 
-                        /* Üst Bölüm: Minimal Logo/Başlık */
+                        /* Ãœst BÃ¶lÃ¼m: Minimal Logo/BaÅŸlÄ±k */
                         .header {
                             padding: 40px 48px 32px 48px;
                             border-bottom: 1px solid #f3f4f6;
@@ -181,12 +179,12 @@ export async function sendFeedback(data: {
                             letter-spacing: -0.02em;
                         }
 
-                        /* İçerik Bölümü */
+                        /* Ä°Ã§erik BÃ¶lÃ¼mÃ¼ */
                         .content {
                             padding: 32px 48px;
                         }
 
-                        /* Veri Tablosu: Eşit Boşluklu Yapı */
+                        /* Veri Tablosu: EÅŸit BoÅŸluklu YapÄ± */
                         .data-table {
                             width: 100%;
                             border-collapse: collapse;
@@ -219,7 +217,7 @@ export async function sendFeedback(data: {
                             text-decoration: none;
                         }
 
-                        /* Mesaj Alanı: Odak Noktası */
+                        /* Mesaj AlanÄ±: Odak NoktasÄ± */
                         .message-box {
                             background-color: #f8fafc;
                             border-radius: 12px;
@@ -286,14 +284,14 @@ export async function sendFeedback(data: {
                     <div class="wrapper">
                         <div class="container">
                             <div class="header">
-                                <span class="brand-logo">FOGKatalog • Dashboard</span>
+                                <span class="brand-logo">FOGKatalog â€¢ Dashboard</span>
                                 <h1>Yeni Geri Bildirim</h1>
                             </div>
 
                             <div class="content">
                                 <table class="data-table">
                                     <tr class="data-row">
-                                        <td class="data-label">Kullanıcı</td>
+                                        <td class="data-label">KullanÄ±cÄ±</td>
                                         <td class="data-value">${safeUserName}</td>
                                     </tr>
                                     <tr class="data-row">
@@ -301,7 +299,7 @@ export async function sendFeedback(data: {
                                         <td class="data-value"><a href="mailto:${safeUserEmail}">${safeUserEmail}</a></td>
                                     </tr>
                                     <tr class="data-row">
-                                        <td class="data-label">Konu Başlığı</td>
+                                        <td class="data-label">Konu BaÅŸlÄ±ÄŸÄ±</td>
                                         <td class="data-value">${safeSubject}</td>
                                     </tr>
                                     ${safePageUrl ? `
@@ -313,7 +311,7 @@ export async function sendFeedback(data: {
                                 </table>
 
                                 <div class="message-box">
-                                    <span class="message-box-title">Kullanıcı Notu</span>
+                                    <span class="message-box-title">KullanÄ±cÄ± Notu</span>
                                     <div class="message-body">${safeMessage}</div>
                                 </div>
 
@@ -326,7 +324,7 @@ export async function sendFeedback(data: {
                 const displayName = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName
                 return `
                                             <a href="${escapeHtml(url)}" class="attachment-badge" target="_blank" rel="noopener noreferrer">
-                                                📄 ${displayName}
+                                                ğŸ“„ ${displayName}
                                             </a>
                                         `
             }).join('')}
@@ -336,8 +334,8 @@ export async function sendFeedback(data: {
                             </div>
 
                             <div class="footer">
-                                <p>Bu e-posta <strong>FOG İstanbul</strong> sunucuları tarafından otomatik olarak oluşturuldu.</p>
-                                <p>© 2026 Tüm Hakları Saklıdır.</p>
+                                <p>Bu e-posta <strong>FOG Ä°stanbul</strong> sunucularÄ± tarafÄ±ndan otomatik olarak oluÅŸturuldu.</p>
+                                <p>Â© 2026 TÃ¼m HaklarÄ± SaklÄ±dÄ±r.</p>
                             </div>
                         </div>
                     </div>
@@ -355,7 +353,7 @@ export async function sendFeedback(data: {
                 console.error("Failed to send feedback email:", emailResult.error)
             }
         } catch (emailError) {
-            // E-posta gönderme hatası olsa bile feedback kaydı başarılı sayılır
+            // E-posta gÃ¶nderme hatasÄ± olsa bile feedback kaydÄ± baÅŸarÄ±lÄ± sayÄ±lÄ±r
             console.error("Exception in email sending:", emailError instanceof Error ? emailError.message : emailError)
             console.error("=".repeat(50))
         }
@@ -438,13 +436,13 @@ async function deleteAttachments(
                     .remove([filePath])
 
                 if (deleteError) {
-                    console.error(`❌ Failed to delete file ${filePath}:`, deleteError)
+                    console.error(`âŒ Failed to delete file ${filePath}:`, deleteError)
                 }
             } else {
-                console.warn(`⚠️ Could not extract file path from URL: ${url}`)
+                console.warn(`Could not extract file path from URL: ${url}`)
             }
         } catch (error) {
-            console.warn(`⚠️ Error deleting attachment ${url}:`, error)
+            console.warn(`Error deleting attachment ${url}:`, error)
         }
     }
 }
@@ -487,7 +485,7 @@ export async function deleteFeedback(id: string) {
     const supabase = await createServerSupabaseClient()
     await requireAdmin()
 
-    // Önce feedback'i al (attachments için)
+    // Ã–nce feedback'i al (attachments iÃ§in)
     const { data: feedback, error: fetchError } = await supabase
         .from("feedbacks")
         .select("attachments")
@@ -503,12 +501,12 @@ export async function deleteFeedback(id: string) {
         throw new Error("Feedback not found")
     }
 
-    // Storage'dan dosyaları sil (shared helper kullan)
+    // Storage'dan dosyalarÄ± sil (shared helper kullan)
     if (feedback.attachments && Array.isArray(feedback.attachments) && feedback.attachments.length > 0) {
         await deleteAttachments(supabase, feedback.attachments)
     }
 
-    // Veritabanından feedback'i sil
+    // VeritabanÄ±ndan feedback'i sil
     const { error: deleteError } = await supabase
         .from("feedbacks")
         .delete()

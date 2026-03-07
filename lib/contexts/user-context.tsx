@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -23,6 +23,10 @@ export interface User {
   maxProducts: number
   catalogsCount: number
   isAdmin?: boolean
+  // Social links
+  instagram_url?: string | null
+  youtube_url?: string | null
+  website_url?: string | null
 }
 
 export interface UserContextType {
@@ -59,9 +63,9 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     const RETRY_DELAY = 1000 // 1 saniye
 
     try {
-      // BATCH QUERY OPTIMIZATION: Tüm query'leri paralel olarak çalıştır
+      // BATCH QUERY OPTIMIZATION: TÃ¼m query'leri paralel olarak Ã§alÄ±ÅŸtÄ±r
       const [profileResult, productsResult, catalogsResult] = await Promise.all([
-        // 1. User profile (is_admin dahil - ayrı sorgu gereksiz)
+        // 1. User profile (is_admin dahil - ayrÄ± sorgu gereksiz)
         supabase
           .from("users")
           .select("*, is_admin")
@@ -83,12 +87,12 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
       const productsCount = productsResult.count
       const catalogsCount = catalogsResult.count
 
-      // PGRST116 = "Row not found" - bu normal, yeni kullanıcı olabilir
-      // Diğer hatalar için retry yap
+      // PGRST116 = "Row not found" - bu normal, yeni kullanÄ±cÄ± olabilir
+      // DiÄŸer hatalar iÃ§in retry yap
       if (error) {
         console.warn(`Profile fetch error (code: ${error.code}, attempt ${retryCount + 1}/${MAX_RETRIES}):`, error.message)
 
-        // Row not found değilse retry
+        // Row not found deÄŸilse retry
         if (error.code !== 'PGRST116') {
           if (retryCount < MAX_RETRIES - 1) {
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
@@ -97,10 +101,10 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
           console.error("All retry attempts failed for profile fetch:", error.code, error.message)
           return false
         }
-        // PGRST116 ise profil yok ama devam et (yeni kullanıcı)
+        // PGRST116 ise profil yok ama devam et (yeni kullanÄ±cÄ±)
       }
 
-      // Profile varsa plan'ı al, yoksa yeni kullanıcı olabilir
+      // Profile varsa plan'Ä± al, yoksa yeni kullanÄ±cÄ± olabilir
       const plan = profile?.plan ? profile.plan.toLowerCase() : "free"
 
       setUser({
@@ -117,6 +121,10 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 0,
         exportsUsed: profile?.exports_used || 0,
         isAdmin: profile?.is_admin || false,
+        // Social links
+        instagram_url: profile?.instagram_url || null,
+        youtube_url: profile?.youtube_url || null,
+        website_url: profile?.website_url || null,
       })
       return true
     } catch (error) {
@@ -127,7 +135,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         return fetchUserProfile(authUser, retryCount + 1)
       }
 
-      // Tüm denemeler başarısız - mevcut user varsa koru, yoksa null bırak
+      // TÃ¼m denemeler baÅŸarÄ±sÄ±z - mevcut user varsa koru, yoksa null bÄ±rak
       return false
     }
   }, [supabase])
@@ -179,7 +187,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
           setSupabaseUser(authUser)
           supabaseUserIdRef.current = authUser.id
 
-          // OPTIMIZATION: initialUser zaten varsa ve aynı user'sa, client-side fetch ATMA
+          // OPTIMIZATION: initialUser zaten varsa ve aynÄ± user'sa, client-side fetch ATMA
           if (initialUser && initialUser.id === authUser.id) {
             // Using SSR initial user data (skipping client fetch)
             setIsLoading(false)
@@ -223,7 +231,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
         }
 
         if (session?.user) {
-          // OPTIMIZATION: Sadece user değiştiyse fetch yap (ref ile stale closure önlenir)
+          // OPTIMIZATION: Sadece user deÄŸiÅŸtiyse fetch yap (ref ile stale closure Ã¶nlenir)
           const currentUserId = supabaseUserIdRef.current || initialUser?.id
           if (currentUserId && currentUserId === session.user.id && event !== 'SIGNED_IN') {
             // Same user, skipping profile refetch
@@ -247,7 +255,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     return () => {
       subscription.unsubscribe()
     }
-    // NOTE: supabaseUser?.id removed from deps — tracked via supabaseUserIdRef to prevent
+    // NOTE: supabaseUser?.id removed from deps â€” tracked via supabaseUserIdRef to prevent
     // re-subscribing on every auth state change (subscription leak)
   }, [fetchUserProfile, supabase.auth, initialUser])
 
@@ -261,7 +269,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
       const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000))
       await Promise.race([signOutPromise, timeoutPromise])
     } catch (error) {
-      console.error("Çıkış hatası:", error)
+      console.error("Ã‡Ä±kÄ±ÅŸ hatasÄ±:", error)
     } finally {
       // Redirect FIRST, then state will be cleaned by page unload
       if (typeof window !== "undefined") {
@@ -280,10 +288,10 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     if (!user) return false
     if (user.plan === "pro") return true
     if (user.exportsUsed >= user.maxExports) return false
-    // Functional update — avoids stale closure and unnecessary re-renders
+    // Functional update â€” avoids stale closure and unnecessary re-renders
     setUser(prev => prev ? { ...prev, exportsUsed: prev.exportsUsed + 1 } : prev)
     return true
-  }, [user?.plan, user?.exportsUsed, user?.maxExports])
+  }, [user])
 
   const contextValue = useMemo(() => ({
     user,

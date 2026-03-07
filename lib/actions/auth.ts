@@ -44,13 +44,19 @@ export async function getCurrentUser() {
 export async function updateProfile(formData: FormData, avatarUrl?: string | null, logoUrl?: string | null) {
   const fullName = formData.get("fullName") as string
   const company = formData.get("company") as string
+  const instagramUrl = (formData.get("instagramUrl") as string) || null
+  const youtubeUrl = (formData.get("youtubeUrl") as string) || null
+  const websiteUrl = (formData.get("websiteUrl") as string) || null
 
   // Validate and sanitize input
   const validatedData = validate(profileUpdateSchema, {
     full_name: fullName,
     company: company,
     avatar_url: avatarUrl,
-    logo_url: logoUrl
+    logo_url: logoUrl,
+    instagram_url: instagramUrl,
+    youtube_url: youtubeUrl,
+    website_url: websiteUrl,
   })
 
   await apiFetch("/users/me", {

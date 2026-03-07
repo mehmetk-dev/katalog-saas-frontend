@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition, useEffect, useCallback, useMemo } from "react"
 import { toast } from "sonner"
@@ -103,7 +103,7 @@ export function useProductsTable({
         startTransition(async () => {
             try {
                 const formData = new FormData()
-                formData.append("name", `${product.name} (Kopyası)`)
+                formData.append("name", `${product.name} (KopyasÄ±)`)
                 if (product.sku) formData.append("sku", product.sku)
                 if (product.description) formData.append("description", product.description)
                 formData.append("price", product.price.toString())
@@ -115,7 +115,7 @@ export function useProductsTable({
                 if (product.custom_attributes && Array.isArray(product.custom_attributes)) {
                     formData.append("custom_attributes", JSON.stringify(product.custom_attributes))
                 }
-                const newProduct = await createProduct(formData)
+                await createProduct(formData)
                 onDeleted('') // Trigger parent refresh
                 toast.success(t("common.success"))
             } catch {
@@ -170,7 +170,7 @@ export function useProductsTable({
                     await updateProductOrder(orderData)
                     onReorderSuccess?.()
                 } catch {
-                    if (process.env.NODE_ENV === 'development') console.error("Sıralama kaydedilemedi")
+                    if (process.env.NODE_ENV === 'development') console.error("SÄ±ralama kaydedilemedi")
                     toast.error(t("common.error"))
                 }
             })
@@ -188,6 +188,7 @@ export function useProductsTable({
     return {
         t,
         isPending,
+        isCheckingCatalogs,
         isMobile,
         filteredProducts,
         allProducts,

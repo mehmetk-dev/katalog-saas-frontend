@@ -67,10 +67,10 @@ export default function Error({
                         </div>
                     </div>
 
-                    {process.env.NODE_ENV === 'development' && (
+                    {process.env.NODE_ENV === 'development' && error.digest && (
                         <div className="mx-6 p-3 bg-slate-50 border border-slate-100 rounded-lg">
                             <p className="text-[10px] font-mono text-slate-500 break-all leading-tight">
-                                DEBUG ERROR: {error.message}
+                                Hata Kodu: {error.digest}
                             </p>
                         </div>
                     )}

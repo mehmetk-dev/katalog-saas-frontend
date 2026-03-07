@@ -16,7 +16,7 @@ exports.catalogCreateSchema = zod_1.z.object({
     name: zod_1.z.string().max(255).transform((val) => val.trim()).optional(),
     description: zod_1.z.string().max(1000).transform((val) => val.trim()).optional().nullable(),
     layout: zod_1.z.string().max(50).transform((val) => val.trim()).optional(),
-    product_ids: zod_1.z.array(uuidString).max(500).optional(),
+    product_ids: zod_1.z.array(uuidString).max(5000).optional(),
     // Optional styling fields
     primary_color: zod_1.z.string().max(50).optional(),
     show_prices: zod_1.z.boolean().optional(),

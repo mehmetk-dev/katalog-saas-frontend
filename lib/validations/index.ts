@@ -42,6 +42,56 @@ const safeUrl = z
     .nullable()
     .transform((val) => val?.trim() || null)
 
+/** Instagram URL — sadece instagram.com domain'i kabul edilir */
+const instagramUrl = z
+    .string()
+    .max(2048)
+    .refine(
+        (val) => {
+            if (!val || val.trim() === '') return true // boş geçilebilir
+            try {
+                const parsed = new URL(val.trim())
+                return (
+                    (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+                    (parsed.hostname === 'instagram.com' || parsed.hostname === 'www.instagram.com')
+                )
+            } catch {
+                return false
+            }
+        },
+        { message: 'Geçerli bir Instagram adresi giriniz (instagram.com)' }
+    )
+    .optional()
+    .nullable()
+    .transform((val) => val?.trim() || null)
+
+/** YouTube URL — youtube.com veya youtu.be kabul edilir */
+const youtubeUrl = z
+    .string()
+    .max(2048)
+    .refine(
+        (val) => {
+            if (!val || val.trim() === '') return true // boş geçilebilir
+            try {
+                const parsed = new URL(val.trim())
+                return (
+                    (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+                    (
+                        parsed.hostname === 'youtube.com' ||
+                        parsed.hostname === 'www.youtube.com' ||
+                        parsed.hostname === 'youtu.be'
+                    )
+                )
+            } catch {
+                return false
+            }
+        },
+        { message: 'Geçerli bir YouTube adresi giriniz (youtube.com veya youtu.be)' }
+    )
+    .optional()
+    .nullable()
+    .transform((val) => val?.trim() || null)
+
 /** Price validation - positive number with max 2 decimal places */
 const price = z
     .number()
@@ -178,6 +228,9 @@ export const profileUpdateSchema = z.object({
     company: safeString(255).optional(),
     avatar_url: safeUrl,
     logo_url: safeUrl,
+    instagram_url: instagramUrl,
+    youtube_url: youtubeUrl,
+    website_url: safeUrl,   // herhangi bir geçerli website URL'i
 })
 
 // =============================================================================

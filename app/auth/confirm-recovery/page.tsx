@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { RefreshCw, ShieldCheck, Heart, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/client'
 
 /**
  * Bu sayfa email scanner'ların (Gmail/Outlook) linki 
@@ -28,6 +29,12 @@ function ConfirmRecoveryContent() {
     const [isRedirecting, setIsRedirecting] = useState(false)
     const [pageError, setPageError] = useState<string | null>(null)
 
+    const normalizeNextPath = (rawNext: string | null): string => {
+        if (!rawNext) return '/auth/reset-password'
+        const isValidRelativePath = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.includes('\\')
+        return isValidRelativePath ? rawNext : '/auth/reset-password'
+    }
+
     // Check for errors immediately on mount
     useEffect(() => {
         const queryError = searchParams.get('error')
@@ -43,18 +50,30 @@ function ConfirmRecoveryContent() {
         }
     }, [searchParams])
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         setIsRedirecting(true)
         const code = searchParams.get('code')
-        const next = searchParams.get('next') || '/auth/reset-password'
+        const next = normalizeNextPath(searchParams.get('next'))
 
         // Supabase implicit flow puts tokens in hash. If hash has access_token, we can go to reset-password
         const hash = typeof window !== 'undefined' ? window.location.hash : ''
 
         if (code) {
-            router.push(`/auth/callback?code=${code}&next=${next}&type=recovery`)
+            try {
+                const supabase = createClient()
+                const { error } = await supabase.auth.exchangeCodeForSession(code)
+                if (error) {
+                    router.push('/auth/forgot-password?error=invalid_link')
+                    return
+                }
+                router.push(next)
+                return
+            } catch {
+                router.push('/auth/forgot-password?error=invalid_link')
+                return
+            }
         } else if (hash.includes('access_token')) {
-            router.push(`/auth/reset-password${hash}`)
+            router.push(`${next}${hash}`)
         } else if (pageError) {
             router.push(`/auth/forgot-password?error=invalid_link`)
         } else {

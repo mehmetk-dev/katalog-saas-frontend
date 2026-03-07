@@ -10,6 +10,13 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 
 const getSiteUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+
+  // In production, always prefer canonical app URL to avoid localhost redirects.
+  if (process.env.NODE_ENV === "production" && envUrl) {
+    return envUrl
+  }
+
   if (typeof window !== "undefined") {
     const origin = window.location.origin
     // 0.0.0.0 is not a valid redirect target for emails
@@ -18,7 +25,7 @@ const getSiteUrl = () => {
     }
     return origin
   }
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  return envUrl || "http://localhost:3000"
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"

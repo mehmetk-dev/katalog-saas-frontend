@@ -123,14 +123,28 @@ export const CatalogHeader = React.memo(function CatalogHeader({
                                     <Button variant="ghost" size="icon" onClick={onZoomOut} className="h-8 w-8 rounded-full hover:bg-white transition-all shadow-sm" title="Uzaklaştır">
                                         <ZoomOut className="w-3.5 h-3.5" />
                                     </Button>
-                                    <Button variant="ghost" className="h-8 px-2 text-[10px] font-black hover:bg-white rounded-lg transition-all" onClick={onZoomReset} title="Sıfırla">
-                                        {Math.round(zoomScale * 100)}%
+                                    <div className="w-[1px] h-3 bg-slate-200 mx-0.5" />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={onZoomReset}
+                                        className="h-8 px-2 rounded-full text-[10px] font-black hover:bg-white transition-all text-slate-600"
+                                        title="Sıfırla"
+                                    >
+                                        %{Math.round(zoomScale * 100)}
                                     </Button>
+                                    <div className="w-[1px] h-3 bg-slate-200 mx-0.5" />
                                     <Button variant="ghost" size="icon" onClick={onZoomIn} className="h-8 w-8 rounded-full hover:bg-white transition-all shadow-sm" title="Yakınlaştır">
                                         <ZoomIn className="w-3.5 h-3.5" />
                                     </Button>
+                                    <div className="w-[1px] h-3 bg-slate-200 mx-0.5" />
+                                    <Button variant="ghost" size="icon" onClick={onZoomReset} className="h-8 w-8 rounded-full hover:bg-white transition-all shadow-sm" title="Sıfırla">
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                    </Button>
                                 </div>
                             )}
+
+                            <div className="w-[1px] h-4 bg-slate-200 mx-2" />
 
                             {!isMobile && (
                                 <Button variant="ghost" size="icon" onClick={onToggleFullscreen} className="rounded-full hover:bg-slate-100 ml-1">

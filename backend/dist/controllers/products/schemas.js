@@ -118,6 +118,7 @@ exports.bulkUpdateImagesSchema = zod_1.z.object({
         productId: uuidString,
         images: zod_1.z.array(zod_1.z.string().url()).max(20),
     })).min(1).max(1000),
+    mergeWithExisting: zod_1.z.boolean().optional(),
 });
 exports.bulkPriceUpdateSchema = zod_1.z.object({
     productIds: zod_1.z.array(uuidString).min(1).max(1000),

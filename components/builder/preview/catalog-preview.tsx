@@ -207,7 +207,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     }
     if (calculatedPages.length === 0) calculatedPages.push({ type: 'products', products: [] })
     return calculatedPages
-  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.categoryOrder, props.pages])
+  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.categoryOrder, props.pages, t])
 
   const totalPages = pages.length
 
@@ -515,3 +515,4 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     </div>
   )
 })
+
