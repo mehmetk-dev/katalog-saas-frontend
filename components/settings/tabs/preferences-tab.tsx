@@ -42,7 +42,7 @@ export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps
           >
             <span className="text-2xl">????</span>
             <div className="flex flex-col items-start">
-              <span className={cn("font-semibold", language === "tr" ? "text-primary-foreground" : "text-foreground")}>Türkçe</span>
+              <span className={cn("font-semibold", language === "tr" ? "text-primary-foreground" : "text-foreground")}>TÃ¼rkÃ§e</span>
               <span className={cn("text-xs opacity-70", language === "tr" ? "text-primary-foreground" : "text-muted-foreground")}>{t("settings.defaultLanguage")}</span>
             </div>
             {language === "tr" && <CheckCircle2 className="w-5 h-5 ml-auto text-primary-foreground" />}
