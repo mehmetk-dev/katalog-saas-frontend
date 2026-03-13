@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bulkUpdateImages = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductStats = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.getProduct = exports.getProducts = void 0;
+exports.bulkUpdateFields = exports.bulkUpdateImages = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProductStats = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.getProductsByIds = exports.getProduct = exports.getProducts = void 0;
 var read_1 = require("./products/read");
 Object.defineProperty(exports, "getProducts", { enumerable: true, get: function () { return read_1.getProducts; } });
 Object.defineProperty(exports, "getProduct", { enumerable: true, get: function () { return read_1.getProduct; } });
+Object.defineProperty(exports, "getProductsByIds", { enumerable: true, get: function () { return read_1.getProductsByIds; } });
 Object.defineProperty(exports, "checkProductInCatalogs", { enumerable: true, get: function () { return read_1.checkProductInCatalogs; } });
 Object.defineProperty(exports, "checkProductsInCatalogs", { enumerable: true, get: function () { return read_1.checkProductsInCatalogs; } });
 Object.defineProperty(exports, "getProductStats", { enumerable: true, get: function () { return read_1.getProductStats; } });
@@ -19,3 +20,4 @@ Object.defineProperty(exports, "bulkUpdatePrices", { enumerable: true, get: func
 Object.defineProperty(exports, "renameCategory", { enumerable: true, get: function () { return bulk_1.renameCategory; } });
 Object.defineProperty(exports, "deleteCategoryFromProducts", { enumerable: true, get: function () { return bulk_1.deleteCategoryFromProducts; } });
 Object.defineProperty(exports, "bulkUpdateImages", { enumerable: true, get: function () { return bulk_1.bulkUpdateImages; } });
+Object.defineProperty(exports, "bulkUpdateFields", { enumerable: true, get: function () { return bulk_1.bulkUpdateFields; } });

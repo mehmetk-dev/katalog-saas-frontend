@@ -7,48 +7,7 @@ import { getProducts } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// PERF: Reduced from 10_000 → 2_000. For most users 2K covers all products.
-// Users with more products should use search/filter in the editor.
-// Backend caps per-page to 1000, so PAGE_SIZE is set to match.
-// TODO: Implement server-side search + incremental loading in the builder
-//       to avoid sending the full product list in the SSR payload.
-const BUILDER_MAX_PRODUCTS = 2_000
-const BUILDER_PAGE_SIZE = 1_000
-
-async function getBuilderProducts(maxProducts: number = BUILDER_MAX_PRODUCTS) {
-  const firstPage = await getProducts({ page: 1, limit: Math.min(BUILDER_PAGE_SIZE, maxProducts) })
-
-  const firstProducts = firstPage.products || []
-  const totalAvailable = firstPage.metadata?.total || firstProducts.length
-  const effectivePageSize = firstPage.metadata?.limit || Math.min(BUILDER_PAGE_SIZE, maxProducts)
-  const targetCount = Math.min(totalAvailable, maxProducts)
-  const totalPagesToFetch = Math.ceil(targetCount / effectivePageSize)
-
-  if (totalPagesToFetch <= 1) {
-    return {
-      products: firstProducts.slice(0, targetCount),
-      totalAvailable,
-      isTruncated: totalAvailable > maxProducts,
-    }
-  }
-
-  const remainingPageRequests = []
-  for (let page = 2; page <= totalPagesToFetch; page += 1) {
-    remainingPageRequests.push(getProducts({ page, limit: effectivePageSize }))
-  }
-
-  const remainingPages = await Promise.all(remainingPageRequests)
-  const mergedProducts = [
-    ...firstProducts,
-    ...remainingPages.flatMap((res) => res.products || []),
-  ].slice(0, targetCount)
-
-  return {
-    products: mergedProducts,
-    totalAvailable,
-    isTruncated: totalAvailable > maxProducts,
-  }
-}
+const BUILDER_INITIAL_PAGE_SIZE = 24
 
 export const metadata: Metadata = {
   title: "Katalog Oluşturucu",
@@ -75,9 +34,9 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
 /** Async server component — handles data fetching inside Suspense boundary.
  *  This lets Next.js stream the skeleton immediately while data loads. */
 async function BuilderDataLoader({ catalogId }: { catalogId?: string }) {
-  const [catalog, productsPayload] = await Promise.all([
+  const [catalog, initialProductsResponse] = await Promise.all([
     catalogId ? getCatalog(catalogId) : null,
-    getBuilderProducts(),
+    getProducts({ page: 1, limit: BUILDER_INITIAL_PAGE_SIZE }),
   ])
 
   // Eğer ID verilmiş ama katalog bulunamıyorsa, yeni katalog sayfasına yönlendir
@@ -109,9 +68,8 @@ async function BuilderDataLoader({ catalogId }: { catalogId?: string }) {
   return (
     <BuilderPageClient
       catalog={catalog}
-      products={productsPayload.products}
-      productTotalCount={productsPayload.totalAvailable}
-      isProductListTruncated={productsPayload.isTruncated}
+      products={initialProductsResponse.products || []}
+      initialProductsResponse={initialProductsResponse}
     />
   )
 }

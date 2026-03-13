@@ -1,16 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables are loaded once in index.ts via dotenv.config()
-// SECURITY: Only use backend-specific env vars (not NEXT_PUBLIC_ frontend vars)
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-if (!supabaseUrl) {
-    console.error('❌ SUPABASE_URL is missing! Backend cannot connect to database.');
+// Environment variables are loaded once in index.ts via dotenv.config().
+// Use backend-only env vars and fail fast for invalid runtime config.
+function requireEnv(key: 'SUPABASE_URL' | 'SUPABASE_SERVICE_ROLE_KEY'): string {
+    const raw = process.env[key];
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (!value) {
+        throw new Error(`[startup] Missing required environment variable: ${key}`);
+    }
+    return value;
 }
 
-if (!supabaseKey) {
-    console.error('❌ SUPABASE_SERVICE_ROLE_KEY is missing! Admin operations will fail.');
+function assertValidSupabaseUrl(url: string): void {
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            throw new Error();
+        }
+    } catch {
+        throw new Error('[startup] SUPABASE_URL is invalid. Expected a full http(s) URL.');
+    }
 }
+
+const supabaseUrl = requireEnv('SUPABASE_URL');
+const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+assertValidSupabaseUrl(supabaseUrl);
 
 export const supabase = createClient(supabaseUrl, supabaseKey);

@@ -5,7 +5,7 @@ import { CatalogPreview } from "@/components/builder/preview/catalog-preview"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { ShareModal } from "@/components/catalogs/share-modal"
 import { type Catalog } from "@/lib/actions/catalogs"
-import { type Product } from "@/lib/actions/products"
+import { type Product, type ProductsResponse } from "@/lib/actions/products"
 import { LightboxProvider, CatalogPreloader } from "@/lib/contexts/lightbox-context"
 import { ImageLightbox } from "@/components/ui/image-lightbox"
 import { SPLIT_PREVIEW_SOFT_LIMIT } from "@/components/builder/builder-utils"
@@ -25,8 +25,7 @@ import { BuilderProvider, useBuilder } from "./builder-context"
 interface BuilderPageClientProps {
   catalog: Catalog | null
   products: Product[]
-  productTotalCount?: number
-  isProductListTruncated?: boolean
+  initialProductsResponse: ProductsResponse
 }
 
 // ─── Root Component (Provider Wrapper) ──────────────────────────────────────────
@@ -34,15 +33,13 @@ interface BuilderPageClientProps {
 export function BuilderPageClient({
   catalog,
   products,
-  productTotalCount,
-  isProductListTruncated = false,
+  initialProductsResponse,
 }: BuilderPageClientProps) {
   return (
     <BuilderProvider
       catalog={catalog}
       products={products}
-      productTotalCount={productTotalCount}
-      isProductListTruncated={isProductListTruncated}
+      initialProductsResponse={initialProductsResponse}
     >
       <LightboxProvider>
         <CatalogPreloader products={products} />

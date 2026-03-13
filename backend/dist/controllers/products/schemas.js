@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bulkPriceUpdateSchema = exports.bulkUpdateImagesSchema = exports.reorderSchema = exports.bulkDeleteSchema = exports.bulkImportSchema = exports.bulkImportProductSchema = exports.updateProductSchema = exports.createProductSchema = void 0;
+exports.productsByIdsSchema = exports.bulkUpdateFieldsSchema = exports.bulkPriceUpdateSchema = exports.bulkUpdateImagesSchema = exports.reorderSchema = exports.bulkDeleteSchema = exports.bulkImportSchema = exports.bulkImportProductSchema = exports.updateProductSchema = exports.createProductSchema = void 0;
 const zod_1 = require("zod");
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const uuidString = zod_1.z.string().regex(UUID_REGEX, 'Invalid UUID format');
@@ -125,4 +125,21 @@ exports.bulkPriceUpdateSchema = zod_1.z.object({
     changeType: zod_1.z.enum(['increase', 'decrease']),
     changeMode: zod_1.z.enum(['percentage', 'fixed']),
     amount: zod_1.z.number().positive().max(999999),
+});
+/** Schema for Excel bulk field update — each product sends only changed fields */
+exports.bulkUpdateFieldsSchema = zod_1.z.object({
+    updates: zod_1.z.array(zod_1.z.object({
+        id: uuidString,
+        name: zod_1.z.string().trim().min(2).max(200).optional(),
+        sku: zod_1.z.string().max(100).optional().nullable(),
+        description: zod_1.z.string().max(5000).optional().nullable(),
+        price: zod_1.z.number().finite().min(0).max(1000000000).optional(),
+        stock: zod_1.z.number().int().min(0).max(10000000).optional(),
+        category: zod_1.z.string().max(200).optional().nullable(),
+        product_url: zod_1.z.union([zod_1.z.string().url(), zod_1.z.literal('')]).optional().nullable(),
+        custom_attributes: zod_1.z.array(customAttributeSchema).optional().nullable(),
+    })).min(1, 'At least 1 update required').max(500, 'Maximum 500 updates per request'),
+});
+exports.productsByIdsSchema = zod_1.z.object({
+    productIds: zod_1.z.array(uuidString).min(1, 'At least 1 product id required').max(2000, 'Maximum 2000 product ids'),
 });

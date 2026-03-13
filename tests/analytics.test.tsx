@@ -261,7 +261,7 @@ describe('Analytics Testleri', () => {
 
             // Backend'de smartIncrementViewCount çağrılmalı
             // (Bu test mock'lanmış API çağrısını test ediyor)
-            expect(apiFetch).toHaveBeenCalledWith('/catalogs/public/test-slug')
+            expect(apiFetch).toHaveBeenCalledWith('/catalogs/public/test-slug', { timeout: 120000 })
             expect(catalog).toBeDefined()
         })
 

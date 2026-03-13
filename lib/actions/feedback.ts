@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { buildFeedbackEmailHtml } from "@/lib/email/templates/feedback-email"
 import { sendEmail } from "@/lib/services/email"
 import { feedbackSchema, validate } from "@/lib/validations"
 import {
@@ -32,26 +33,22 @@ export async function sendFeedback(data: {
     page_url?: string;
     attachments?: string[];
 }) {
-    // Rate limit: IP baÅŸÄ±na 10 dakikada en fazla 5 feedback
+    // Rate limit: IP basina 10 dakikada en fazla N feedback.
     const headersList = await headers()
     const rl = checkRateLimit(headersList, "feedback", FEEDBACK_LIMIT, FEEDBACK_WINDOW_MS)
     if (!rl.allowed) {
-        throw new Error("Ã‡ok fazla deneme. LÃ¼tfen 10 dakika sonra tekrar deneyin.")
+        throw new Error("Cok fazla deneme. Lutfen 10 dakika sonra tekrar deneyin.")
     }
 
-    // Validate and sanitize input
     const validatedData = validate(feedbackSchema, data)
-
     const supabase = await createServerSupabaseClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-        console.error("âŒ No user found in sendFeedback")
-        throw new Error("Oturum aÃ§manÄ±z gerekiyor")
+        throw new Error("Oturum acmaniz gerekiyor")
     }
 
-
-    // KullanÄ±cÄ± profil bilgilerini al
+    // Kullanici profil bilgilerini al.
     const { data: profile } = await supabase
         .from("users")
         .select("full_name")
@@ -73,279 +70,31 @@ export async function sendFeedback(data: {
     })
 
     if (error) {
-        console.error("âŒ Database insert error:", error)
         throw error
     }
 
-
-    // Admin'e e-posta gÃ¶nder (asenkron, hata olsa bile devam et)
-    // Environment variable'larÄ± direkt kontrol et
+    // Admin e-postasi asenkron: hata olursa feedback kaydi yine korunur.
     const adminEmail = process.env.ADMIN_EMAIL
     const resendApiKey = process.env.RESEND_API_KEY
 
-
     if (!adminEmail) {
-        console.error("âŒ ADMIN_EMAIL is not set! Email will not be sent.")
-        console.error("   Please add ADMIN_EMAIL to your .env.local file")
+        console.error("ADMIN_EMAIL is not set. Feedback email skipped.")
     } else if (!resendApiKey) {
-        console.error("âŒ RESEND_API_KEY is not set! Email will not be sent.")
-        console.error("   Please add RESEND_API_KEY to your .env.local file")
+        console.error("RESEND_API_KEY is not set. Feedback email skipped.")
     } else {
         try {
-            // XSS korumasÄ± iÃ§in HTML escape
-            const escapeHtml = (text: string) => {
-                return text
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;')
-            }
-
-            // URL scheme validation â€” only allow http/https to prevent javascript: XSS
-            const isSafeUrl = (url: string): boolean => {
-                try {
-                    const parsed = new URL(url)
-                    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-                } catch {
-                    return false
-                }
-            }
-
-            const safeUserName = escapeHtml(userName)
-            const safeUserEmail = escapeHtml(userEmail)
-            const safeSubject = escapeHtml(data.subject)
-            const safeMessage = escapeHtml(data.message).replace(/\n/g, '<br>')
-            const safePageUrl = data.page_url ? escapeHtml(data.page_url) : ''
-
-            const emailHtml = `
-                <!DOCTYPE html>
-                <html lang="tr">
-                <head>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Sistem Bildirimi</title>
-                    <style>
-                        /* Modern Font Stack */
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-                        body {
-                            margin: 0;
-                            padding: 0;
-                            background-color: #f9fafb;
-                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                            color: #111827;
-                            -webkit-font-smoothing: antialiased;
-                        }
-
-                        .wrapper {
-                            width: 100%;
-                            table-layout: fixed;
-                            background-color: #f9fafb;
-                            padding: 48px 0;
-                        }
-
-                        .container {
-                            max-width: 600px;
-                            margin: 0 auto;
-                            background-color: #ffffff;
-                            border-radius: 16px;
-                            border: 1px solid #e5e7eb;
-                            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.03);
-                            overflow: hidden;
-                        }
-
-                        /* Ãœst BÃ¶lÃ¼m: Minimal Logo/BaÅŸlÄ±k */
-                        .header {
-                            padding: 40px 48px 32px 48px;
-                            border-bottom: 1px solid #f3f4f6;
-                        }
-
-                        .brand-logo {
-                            font-weight: 700;
-                            font-size: 14px;
-                            letter-spacing: 1px;
-                            text-transform: uppercase;
-                            color: #6366f1; /* Indigo accents */
-                            margin-bottom: 12px;
-                            display: block;
-                        }
-
-                        .header h1 {
-                            font-size: 24px;
-                            font-weight: 700;
-                            margin: 0;
-                            color: #111827;
-                            letter-spacing: -0.02em;
-                        }
-
-                        /* Ä°Ã§erik BÃ¶lÃ¼mÃ¼ */
-                        .content {
-                            padding: 32px 48px;
-                        }
-
-                        /* Veri Tablosu: EÅŸit BoÅŸluklu YapÄ± */
-                        .data-table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            margin-bottom: 32px;
-                        }
-
-                        .data-row {
-                            border-bottom: 1px solid #f3f4f6;
-                        }
-
-                        .data-label {
-                            padding: 16px 0;
-                            color: #6b7280;
-                            font-size: 13px;
-                            font-weight: 500;
-                            width: 140px;
-                            vertical-align: top;
-                        }
-
-                        .data-value {
-                            padding: 16px 0;
-                            color: #111827;
-                            font-size: 14px;
-                            font-weight: 500;
-                            vertical-align: top;
-                        }
-
-                        .data-value a {
-                            color: #6366f1;
-                            text-decoration: none;
-                        }
-
-                        /* Mesaj AlanÄ±: Odak NoktasÄ± */
-                        .message-box {
-                            background-color: #f8fafc;
-                            border-radius: 12px;
-                            padding: 24px;
-                            margin-top: 8px;
-                        }
-
-                        .message-box-title {
-                            font-size: 12px;
-                            font-weight: 700;
-                            color: #94a3b8;
-                            text-transform: uppercase;
-                            letter-spacing: 0.05em;
-                            margin-bottom: 12px;
-                            display: block;
-                        }
-
-                        .message-body {
-                            font-size: 15px;
-                            line-height: 1.6;
-                            color: #334155;
-                            white-space: pre-wrap;
-                        }
-
-                        /* Dosya Ekleri */
-                        .attachment-badge {
-                            display: inline-flex;
-                            align-items: center;
-                            padding: 8px 12px;
-                            background: #fff;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 8px;
-                            margin-top: 8px;
-                            margin-right: 8px;
-                            text-decoration: none;
-                            color: #475569;
-                            font-size: 13px;
-                            transition: all 0.2s;
-                        }
-
-                        /* Alt Bilgi */
-                        .footer {
-                            padding: 32px 48px;
-                            background-color: #fafafa;
-                            border-top: 1px solid #f3f4f6;
-                            text-align: center;
-                        }
-
-                        .footer p {
-                            font-size: 12px;
-                            color: #9ca3af;
-                            margin: 4px 0;
-                        }
-
-                        /* Mobile Adjustments */
-                        @media only screen and (max-width: 600px) {
-                            .container { border-radius: 0; border: none; }
-                            .header, .content, .footer { padding: 32px 24px; }
-                            .data-label { width: 100px; font-size: 12px; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="wrapper">
-                        <div class="container">
-                            <div class="header">
-                                <span class="brand-logo">FOGKatalog â€¢ Dashboard</span>
-                                <h1>Yeni Geri Bildirim</h1>
-                            </div>
-
-                            <div class="content">
-                                <table class="data-table">
-                                    <tr class="data-row">
-                                        <td class="data-label">KullanÄ±cÄ±</td>
-                                        <td class="data-value">${safeUserName}</td>
-                                    </tr>
-                                    <tr class="data-row">
-                                        <td class="data-label">E-posta</td>
-                                        <td class="data-value"><a href="mailto:${safeUserEmail}">${safeUserEmail}</a></td>
-                                    </tr>
-                                    <tr class="data-row">
-                                        <td class="data-label">Konu BaÅŸlÄ±ÄŸÄ±</td>
-                                        <td class="data-value">${safeSubject}</td>
-                                    </tr>
-                                    ${safePageUrl ? `
-                                    <tr class="data-row">
-                                        <td class="data-label">Kaynak Sayfa</td>
-                                        <td class="data-value"><a href="${safePageUrl}">${safePageUrl}</a></td>
-                                    </tr>
-                                    ` : ''}
-                                </table>
-
-                                <div class="message-box">
-                                    <span class="message-box-title">KullanÄ±cÄ± Notu</span>
-                                    <div class="message-body">${safeMessage}</div>
-                                </div>
-
-                                ${data.attachments && data.attachments.length > 0 ? `
-                                <div style="margin-top: 32px;">
-                                    <span class="message-box-title">Ekli Dosyalar</span>
-                                    <div style="display: flex; flex-wrap: wrap;">
-                                        ${data.attachments.filter(url => isSafeUrl(url)).map(url => {
-                const fileName = escapeHtml(url).split('/').pop() || 'dosya'
-                const displayName = fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName
-                return `
-                                            <a href="${escapeHtml(url)}" class="attachment-badge" target="_blank" rel="noopener noreferrer">
-                                                ğŸ“„ ${displayName}
-                                            </a>
-                                        `
-            }).join('')}
-                                    </div>
-                                </div>
-                                ` : ''}
-                            </div>
-
-                            <div class="footer">
-                                <p>Bu e-posta <strong>FOG Ä°stanbul</strong> sunucularÄ± tarafÄ±ndan otomatik olarak oluÅŸturuldu.</p>
-                                <p>Â© 2026 TÃ¼m HaklarÄ± SaklÄ±dÄ±r.</p>
-                            </div>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `
+            const emailHtml = buildFeedbackEmailHtml({
+                userName,
+                userEmail,
+                subject: validatedData.subject,
+                message: validatedData.message,
+                pageUrl: validatedData.page_url ?? undefined,
+                attachments: validatedData.attachments,
+            })
 
             const emailResult = await sendEmail({
                 to: adminEmail,
-                subject: `[Sorun Bildirimi] ${data.subject}`,
+                subject: `[Sorun Bildirimi] ${validatedData.subject}`,
                 html: emailHtml,
             })
 
@@ -353,9 +102,7 @@ export async function sendFeedback(data: {
                 console.error("Failed to send feedback email:", emailResult.error)
             }
         } catch (emailError) {
-            // E-posta gÃ¶nderme hatasÄ± olsa bile feedback kaydÄ± baÅŸarÄ±lÄ± sayÄ±lÄ±r
-            console.error("Exception in email sending:", emailError instanceof Error ? emailError.message : emailError)
-            console.error("=".repeat(50))
+            console.error("Feedback email sending failed:", emailError instanceof Error ? emailError.message : emailError)
         }
     }
 
@@ -369,7 +116,7 @@ export async function getFeedbacks() {
 
     const { data, error } = await supabase
         .from("feedbacks")
-        .select("*")
+        .select("id, user_id, user_name, user_email, subject, message, page_url, attachments, status, created_at")
         .order("created_at", { ascending: false })
 
     if (error) throw error
@@ -436,7 +183,7 @@ async function deleteAttachments(
                     .remove([filePath])
 
                 if (deleteError) {
-                    console.error(`âŒ Failed to delete file ${filePath}:`, deleteError)
+                    console.error(`Failed to delete file ${filePath}:`, deleteError)
                 }
             } else {
                 console.warn(`Could not extract file path from URL: ${url}`)
@@ -485,7 +232,7 @@ export async function deleteFeedback(id: string) {
     const supabase = await createServerSupabaseClient()
     await requireAdmin()
 
-    // Ã–nce feedback'i al (attachments iÃ§in)
+    // Load feedback first to delete attachment files.
     const { data: feedback, error: fetchError } = await supabase
         .from("feedbacks")
         .select("attachments")
@@ -501,12 +248,12 @@ export async function deleteFeedback(id: string) {
         throw new Error("Feedback not found")
     }
 
-    // Storage'dan dosyalarÄ± sil (shared helper kullan)
+    // Delete attachment files from storage (shared helper).
     if (feedback.attachments && Array.isArray(feedback.attachments) && feedback.attachments.length > 0) {
         await deleteAttachments(supabase, feedback.attachments)
     }
 
-    // VeritabanÄ±ndan feedback'i sil
+    // Delete feedback row from database.
     const { error: deleteError } = await supabase
         .from("feedbacks")
         .delete()

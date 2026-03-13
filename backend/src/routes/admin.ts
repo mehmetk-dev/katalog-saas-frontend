@@ -1,29 +1,63 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
 import { supabase } from '../services/supabase';
-import { requireAuth } from '../middlewares/auth';
-import { getOrSetCache, cacheKeys, cacheTTL } from '../services/redis';
+import { requireAuth, type AuthUser } from '../middlewares/auth';
+import { getOrSetCache, cacheKeys, cacheTTL, deleteCache } from '../services/redis';
 import { safeErrorMessage } from '../utils/safe-error';
 
 const router = Router();
+const ADMIN_ROLE_CACHE_TTL_SECONDS = 120;
+const PLAN_VALUES = ['free', 'plus', 'pro'] as const;
+const getAdminRoleCacheKey = (userId: string) => `katalog:admin-role:${userId}`;
+
+function getAuthUser(req: Request): AuthUser | null {
+    const maybeUser = (req as unknown as { user?: AuthUser }).user;
+    if (!maybeUser?.id) return null;
+    return maybeUser;
+}
+
+function isValidUuid(value: string): boolean {
+    // RFC4122 v1-v5 UUID format
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function isValidPlan(value: unknown): value is (typeof PLAN_VALUES)[number] {
+    return typeof value === 'string' && PLAN_VALUES.includes(value as (typeof PLAN_VALUES)[number]);
+}
 
 // Admin authorization middleware - must be used after requireAuth
-// Uses DB-based is_admin field instead of ADMIN_EMAIL env variable for better security
 const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as unknown as { user: { id: string; email: string } }).user;
+    const user = getAuthUser(req);
 
     if (!user?.id) {
         return res.status(401).json({ error: 'Authentication required' });
     }
 
-    try {
-        const { data: profile, error } = await supabase
-            .from('users')
-            .select('is_admin')
-            .eq('id', user.id)
-            .single();
+    // Fast path: allow trusted auth claim to skip extra DB roundtrip.
+    if (user.is_admin === true) {
+        return next();
+    }
 
-        if (error || !profile?.is_admin) {
+    try {
+        const isAdmin = await getOrSetCache<boolean>(
+            getAdminRoleCacheKey(user.id),
+            ADMIN_ROLE_CACHE_TTL_SECONDS,
+            async () => {
+                const { data: profile, error } = await supabase
+                    .from('users')
+                    .select('is_admin')
+                    .eq('id', user.id)
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                return Boolean(profile?.is_admin);
+            }
+        );
+
+        if (!isAdmin) {
             return res.status(403).json({ error: 'Forbidden: Admin access required' });
         }
 
@@ -37,10 +71,9 @@ const requireAdmin = async (req: Request, res: Response, next: NextFunction) => 
 router.use(requireAuth);
 router.use(requireAdmin);
 
-// GET /admin/users - Tüm kullanıcıları getir
-router.get('/users', async (req: Request, res: Response) => {
+// GET /admin/users - Tum kullanicilari getir
+router.get('/users', async (_req: Request, res: Response) => {
     try {
-        // SECURITY: Select only necessary fields instead of select('*') to avoid exposing sensitive data
         const { data: users, error } = await supabase
             .from('users')
             .select('id, email, full_name, company, plan, subscription_status, subscription_end, is_admin, exports_used, created_at, updated_at')
@@ -53,12 +86,12 @@ router.get('/users', async (req: Request, res: Response) => {
     }
 });
 
-// GET /admin/deleted-users - Silinen kullanıcıları getir
-router.get('/deleted-users', async (req: Request, res: Response) => {
+// GET /admin/deleted-users - Silinen kullanicilari getir
+router.get('/deleted-users', async (_req: Request, res: Response) => {
     try {
         const { data: users, error } = await supabase
             .from('deleted_users')
-            .select('*')
+            .select('id, email, full_name, company, plan, deleted_at, created_at')
             .order('deleted_at', { ascending: false });
 
         if (error) throw error;
@@ -69,7 +102,7 @@ router.get('/deleted-users', async (req: Request, res: Response) => {
 });
 
 // GET /admin/stats - Admin istatistikleri
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', async (_req: Request, res: Response) => {
     try {
         const cacheKey = cacheKeys.adminStats();
         const stats = await getOrSetCache(cacheKey, cacheTTL.adminStats, async () => {
@@ -77,7 +110,7 @@ router.get('/stats', async (req: Request, res: Response) => {
                 supabase.from('users').select('id', { count: 'exact', head: true }),
                 supabase.from('products').select('id', { count: 'exact', head: true }),
                 supabase.from('catalogs').select('id', { count: 'exact', head: true }),
-                supabase.from('users').select('exports_used'),
+                supabase.from('users').select('exports_used').gt('exports_used', 0),
                 supabase.from('deleted_users').select('id', { count: 'exact', head: true })
             ]);
 
@@ -98,13 +131,17 @@ router.get('/stats', async (req: Request, res: Response) => {
     }
 });
 
-// PUT /admin/users/:id/plan - Kullanıcı planını güncelle
+// PUT /admin/users/:id/plan - Kullanici planini guncelle
 router.put('/users/:id/plan', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { plan } = req.body;
+        const { plan } = req.body as { plan?: unknown };
 
-        if (!['free', 'plus', 'pro'].includes(plan)) {
+        if (!isValidUuid(id)) {
+            return res.status(400).json({ error: 'Invalid user id' });
+        }
+
+        if (!isValidPlan(plan)) {
             return res.status(400).json({ error: 'Invalid plan' });
         }
 
@@ -115,9 +152,9 @@ router.put('/users/:id/plan', async (req: Request, res: Response) => {
 
         if (error) throw error;
 
-        // Plan değişti, user cache'i temizle
-        const { deleteCache, cacheKeys } = await import('../services/redis');
+        // Plan degisti, ilgili cacheleri temizle
         await deleteCache(cacheKeys.user(id));
+        await deleteCache(getAdminRoleCacheKey(id), true);
 
         res.json({ success: true });
     } catch (error: unknown) {

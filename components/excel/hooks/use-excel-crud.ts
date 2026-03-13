@@ -1,15 +1,13 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { bulkUpdateFields, createProduct, deleteProducts } from "@/lib/actions/products"
+import { bulkImportProducts, bulkUpdateFields, deleteProducts } from "@/lib/actions/products"
 import type { Product, BulkFieldUpdate, CustomAttribute } from "@/lib/actions/products"
 import type { EditedCells, NewRow, CellField } from "../types"
 
 interface UseExcelCrudParams {
-  products: Product[]
   editedCells: EditedCells
   newRows: NewRow[]
   deletedIds: Set<string>
@@ -17,19 +15,50 @@ interface UseExcelCrudParams {
   discardAll: () => void
   refreshData: () => Promise<void>
   t: (key: string, params?: Record<string, unknown>) => string
+  getCachedProduct: (productId: string) => Product | undefined
+}
+
+type PrimitiveField = Exclude<CellField, `attr:${string}`>
+const NEW_ROWS_BULK_CHUNK_SIZE = 200
+
+const primitiveFieldUpdaters: Record<PrimitiveField, (update: BulkFieldUpdate, value: string | number | null) => void> = {
+  name: (update, value) => {
+    update.name = value as string
+  },
+  sku: (update, value) => {
+    update.sku = value as string | null
+  },
+  price: (update, value) => {
+    update.price = Number(value) || 0
+  },
+  stock: (update, value) => {
+    update.stock = Number(value) || 0
+  },
+  category: (update, value) => {
+    update.category = value as string | null
+  },
+  description: (update, value) => {
+    update.description = value as string | null
+  },
+  product_url: (update, value) => {
+    update.product_url = value as string | null
+  },
+}
+
+function isCustomAttributeField(field: string): field is `attr:${string}` {
+  return field.startsWith("attr:")
 }
 
 export function useExcelCrud({
-  products, editedCells, newRows, deletedIds, canSave, discardAll, refreshData, t
+  editedCells, newRows, deletedIds, canSave, discardAll, refreshData, t, getCachedProduct
 }: UseExcelCrudParams) {
-  const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
 
   const buildUpdates = useCallback((): BulkFieldUpdate[] => {
     const updates: BulkFieldUpdate[] = []
 
     editedCells.forEach((fields, productId) => {
-      const product = products.find(p => p.id === productId)
+      const product = getCachedProduct(productId)
       if (!product) return
 
       const update: BulkFieldUpdate = { id: productId }
@@ -37,7 +66,7 @@ export function useExcelCrud({
       const customAttrs = [...((product.custom_attributes as CustomAttribute[]) || [])]
 
       fields.forEach((value, field) => {
-        if ((field as CellField).startsWith("attr:")) {
+        if (isCustomAttributeField(field)) {
           const attrName = field.slice(5)
           hasCustomAttrChange = true
           const idx = customAttrs.findIndex(a => a.name === attrName)
@@ -46,20 +75,12 @@ export function useExcelCrud({
           } else {
             customAttrs.push({ name: attrName, value: String(value ?? "") })
           }
-        } else if (field === "price") {
-          update.price = Number(value) || 0
-        } else if (field === "stock") {
-          update.stock = Number(value) || 0
-        } else if (field === "name") {
-          update.name = value as string
-        } else if (field === "sku") {
-          update.sku = value as string | null
-        } else if (field === "description") {
-          update.description = value as string | null
-        } else if (field === "category") {
-          update.category = value as string | null
-        } else if (field === "product_url") {
-          update.product_url = value as string | null
+          return
+        }
+
+        const applyFieldUpdate = primitiveFieldUpdaters[field as PrimitiveField]
+        if (applyFieldUpdate) {
+          applyFieldUpdate(update, value)
         }
       })
 
@@ -68,7 +89,7 @@ export function useExcelCrud({
     })
 
     return updates
-  }, [editedCells, products])
+  }, [editedCells, getCachedProduct])
 
   const saveAll = useCallback(async (): Promise<boolean> => {
     if (!canSave) return false
@@ -86,20 +107,28 @@ export function useExcelCrud({
         totalUpdated += result.updatedCount
       }
 
-      // 2. Create new rows
-      for (const row of newRows) {
-        if (!row.name || row.name.trim().length < 2) continue
-        const formData = new FormData()
-        formData.append("name", row.name)
-        formData.append("sku", row.sku || "")
-        formData.append("price", String(row.price || 0))
-        formData.append("stock", String(row.stock || 0))
-        formData.append("category", row.category || "")
-        formData.append("description", row.description || "")
-        formData.append("product_url", row.product_url || "")
-        formData.append("custom_attributes", JSON.stringify(row.custom_attributes || []))
-        await createProduct(formData)
-        totalAdded++
+      // 2. Create new rows (batch import for lower request overhead)
+      const normalizedNewRows = newRows
+        .filter((row) => row.name && row.name.trim().length >= 2)
+        .map((row, index) => ({
+          name: row.name.trim(),
+          sku: row.sku || null,
+          description: row.description || null,
+          price: Number(row.price) || 0,
+          stock: Number(row.stock) || 0,
+          category: row.category || null,
+          image_url: null,
+          images: [] as string[],
+          product_url: row.product_url || null,
+          custom_attributes: (row.custom_attributes || []) as CustomAttribute[],
+          order: index,
+        }))
+
+      for (let i = 0; i < normalizedNewRows.length; i += NEW_ROWS_BULK_CHUNK_SIZE) {
+        const chunk = normalizedNewRows.slice(i, i + NEW_ROWS_BULK_CHUNK_SIZE)
+        if (chunk.length === 0) continue
+        await bulkImportProducts(chunk)
+        totalAdded += chunk.length
       }
 
       // 3. Delete marked products
@@ -130,7 +159,7 @@ export function useExcelCrud({
     } finally {
       setIsSaving(false)
     }
-  }, [canSave, buildUpdates, newRows, deletedIds, discardAll, router, t])
+  }, [canSave, buildUpdates, newRows, deletedIds, discardAll, t, refreshData])
 
   return { isSaving, saveAll }
 }

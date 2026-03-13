@@ -6,6 +6,7 @@ const isTls = REDIS_URL.startsWith('rediss://');
 
 let redis: Redis | null = null;
 let redisWarningShown = false;
+type MemoryCacheEntry = { data: string; expires: number };
 
 function getRedisOptions(): RedisOptions {
     const base = {
@@ -65,7 +66,7 @@ export const initRedis = () => {
 };
 
 // In-memory cache fallback (Redis yoksa kullanılır)
-const memoryCache = new Map<string, { data: string; expires: number }>();
+const memoryCache = new Map<string, MemoryCacheEntry>();
 
 // SECURITY: Prevent OOM — cap memory cache size
 const MAX_MEMORY_CACHE_SIZE = 5000;
@@ -196,6 +197,57 @@ export const setCache = async (key: string, data: unknown, ttlSeconds: number = 
     });
 };
 
+function escapeRegex(input: string): string {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function wildcardPatternToRegex(pattern: string): RegExp {
+    const segments = pattern.split('*').map(escapeRegex);
+    return new RegExp(`^${segments.join('.*')}$`);
+}
+
+async function deleteByPatternInRedis(searchPattern: string): Promise<void> {
+    const client = redis;
+    if (!client) return;
+
+    await new Promise<void>((resolve, reject) => {
+        const stream = client.scanStream({
+            match: searchPattern,
+            count: 100
+        });
+
+        const deletionPromises: Promise<void>[] = [];
+
+        stream.on('data', (keys: string[]) => {
+            if (keys.length === 0) return;
+
+            try {
+                const pipeline = client.pipeline();
+                keys.forEach((key) => pipeline.del(key));
+                deletionPromises.push(
+                    pipeline.exec().then(() => undefined)
+                );
+            } catch (err) {
+                console.warn('Redis pipeline error:', err);
+            }
+        });
+
+        stream.on('error', (err) => {
+            console.warn('Redis scan error:', err);
+            reject(err);
+        });
+
+        stream.on('end', async () => {
+            try {
+                await Promise.all(deletionPromises);
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    });
+}
+
 // Cache'i sil
 export const deleteCache = async (pattern: string, exact: boolean = false): Promise<void> => {
     if (exact) {
@@ -217,47 +269,15 @@ export const deleteCache = async (pattern: string, exact: boolean = false): Prom
     // 1. Redis'ten sil
     if (redis) {
         try {
-            return new Promise((resolve, reject) => {
-                const stream = redis!.scanStream({
-                    match: searchPattern,
-                    count: 100
-                });
-
-                const deletionPromises: Promise<any>[] = [];
-
-                stream.on('data', (keys: string[]) => {
-                    if (keys.length > 0) {
-                        try {
-                            const pipeline = redis?.pipeline();
-                            keys.forEach((key: string) => pipeline?.del(key));
-                            deletionPromises.push(pipeline?.exec() || Promise.resolve());
-                        } catch (err) {
-                            console.warn('Redis pipeline error:', err);
-                        }
-                    }
-                });
-
-                stream.on('error', (err) => {
-                    console.warn('Redis scan error:', err);
-                    reject(err);
-                });
-
-                stream.on('end', async () => {
-                    try {
-                        await Promise.all(deletionPromises);
-                        resolve();
-                    } catch (err) {
-                        reject(err);
-                    }
-                });
-            });
+            await deleteByPatternInRedis(searchPattern);
+            return;
         } catch (error) {
             console.warn('Redis delete error:', error);
         }
     }
 
     // 2. Memory cache'den sil
-    const regexPattern = new RegExp('^' + searchPattern.replace(/\*/g, '.*') + '$');
+    const regexPattern = wildcardPatternToRegex(searchPattern);
     for (const key of memoryCache.keys()) {
         if (regexPattern.test(key)) {
             memoryCache.delete(key);

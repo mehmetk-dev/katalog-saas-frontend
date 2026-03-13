@@ -3,7 +3,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from "react"
 
 import { cn } from "@/lib/utils"
-import type { SpreadsheetColumn } from "../types"
+import type { CellField, SpreadsheetColumn } from "../types"
 
 interface SpreadsheetCellProps {
   productId: string
@@ -15,7 +15,7 @@ interface SpreadsheetCellProps {
   tabIndex?: number
   isNewRow?: boolean
   fieldKey?: string
-  setCellValue?: (productId: string, field: any, value: string | number | null) => void
+  setCellValue?: (productId: string, field: CellField, value: string | number | null) => void
   updateNewRow?: (tempId: string, field: string, value: string | number) => void
 }
 
@@ -28,7 +28,7 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
   // ─ Local State for 60fps Typing (Zero-Lag) ─
   const [localValue, setLocalValue] = useState(displayValue)
   const isEditing = useRef(false)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Sync with prop when NOT actively typing (e.g., discard, bulk update, save)
   useEffect(() => {

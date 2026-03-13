@@ -312,7 +312,7 @@ describe('Categories Page Client Testleri', () => {
         })
 
         it('Geçersiz dosya türü için hata gösterilir', async () => {
-            const user = userEvent.setup()
+            const user = userEvent.setup({ applyAccept: false })
             const { toast } = await import('sonner')
 
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
@@ -453,7 +453,7 @@ describe('Categories Page Client Testleri', () => {
             await user.click(cancelButton)
 
             await waitFor(() => {
-                expect(screen.queryByText('Yeni Kategori')).not.toBeInTheDocument()
+                expect(screen.queryByRole('heading', { name: /Yeni Kategori|categories.newCategory/i })).not.toBeInTheDocument()
             })
         })
     })

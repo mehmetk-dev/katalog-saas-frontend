@@ -1,4 +1,4 @@
-export { getProducts, getProduct, checkProductInCatalogs, checkProductsInCatalogs, getProductStats } from './products/read';
+export { getProducts, getProduct, getProductsByIds, checkProductInCatalogs, checkProductsInCatalogs, getProductStats } from './products/read';
 export { createProduct, updateProduct, deleteProduct } from './products/write';
 export {
     bulkDeleteProducts,

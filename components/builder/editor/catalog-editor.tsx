@@ -2,12 +2,13 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react"
 import dynamic from "next/dynamic"
-import type { Product } from "@/lib/actions/products"
 import type { Catalog } from "@/lib/actions/catalogs"
+import type { ProductSortField, ProductSortOrder } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
 import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
+import { useProducts } from "@/lib/hooks/use-products"
 
 import { EditorContentTab } from "./editor-content-tab"
 
@@ -93,7 +94,7 @@ const getAvailableColumns = (layout: string): number[] => {
 /** FIX(F2): CatalogEditor now reads all data from BuilderContext via useBuilder().
  *  No props needed — eliminates 60+ prop drilling. */
 export function CatalogEditor() {
-  const { state, products, productTotalCount, isProductListTruncated, userPlan } = useBuilder()
+  const { state, initialProductsResponse, userPlan } = useBuilder()
 
   // Destructure state for readability
   const {
@@ -124,6 +125,8 @@ export function CatalogEditor() {
     categoryOrder, setCategoryOrder: onCategoryOrderChange,
     coverTheme, setCoverTheme: onCoverThemeChange,
     catalogName, setShowUpgradeModal,
+    loadedProductsCount,
+    upsertLoadedProducts,
   } = state
 
   const onUpgrade = useCallback(() => setShowUpgradeModal(true), [setShowUpgradeModal])
@@ -131,6 +134,7 @@ export function CatalogEditor() {
   const onLogoPositionChange = useCallback((v: NonNullable<Catalog['logo_position']>) => setLogoPosition(v), [setLogoPosition])
   const onLogoSizeChange = useCallback((v: NonNullable<Catalog['logo_size']>) => setLogoSize(v), [setLogoSize])
   const onTitlePositionChange = useCallback((v: NonNullable<Catalog['title_position']>) => setTitlePosition(v), [setTitlePosition])
+  const { productMap } = state
 
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
@@ -208,25 +212,9 @@ export function CatalogEditor() {
   // ─── Search & Pagination ──────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(18)
-
-  useEffect(() => {
-    const calculateItemsPerPage = () => {
-      const width = window.innerWidth
-      // CSS breakpointleri ile tam senkronize: grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6
-      let cols = 2
-      let rows = 4
-      if (width >= 1536) { cols = 6; rows = 3; }       // 2xl: 6 sütun * 3 satır = 18 ürün
-      else if (width >= 1280) { cols = 5; rows = 2; }  // xl: 5 sütun * 2 satır = 10 ürün (Dikeyden tasarruf)
-      else if (width >= 1024) { cols = 4; rows = 2; }  // lg: 4 sütun * 2 satır = 8 ürün
-      else if (width >= 640) { cols = 3; rows = 3; }   // sm: 3 sütun * 3 satır = 9 ürün
-
-      setItemsPerPage(cols * rows)
-    }
-    calculateItemsPerPage()
-    window.addEventListener('resize', calculateItemsPerPage)
-    return () => window.removeEventListener('resize', calculateItemsPerPage)
-  }, [])
+  const itemsPerPage = 24
+  const [sortBy, setSortBy] = useState<ProductSortField>("display_order")
+  const [sortOrder, setSortOrder] = useState<ProductSortOrder>("asc")
 
   const [activeTab, setActiveTab] = useState("content")
   const [searchQuery, setSearchQuery] = useState("")
@@ -253,36 +241,57 @@ export function CatalogEditor() {
     })
   }, [])
 
+  const productsParams = useMemo(() => ({
+    page: currentPage,
+    limit: itemsPerPage,
+    category: selectedCategory === "all" ? undefined : selectedCategory,
+    search: debouncedSearchQuery.trim() || undefined,
+    sortBy,
+    sortOrder,
+  }), [currentPage, itemsPerPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder])
+
+  const initialQueryData = useMemo(() => {
+    const isInitialQuery = currentPage === 1
+      && selectedCategory === "all"
+      && !debouncedSearchQuery.trim()
+      && sortBy === "display_order"
+      && sortOrder === "asc"
+    return isInitialQuery ? initialProductsResponse : undefined
+  }, [currentPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder, initialProductsResponse])
+
+  const productsQuery = useProducts(productsParams, initialQueryData)
+  const productsResponse = productsQuery.data
+  const pagedProducts = useMemo(() => productsResponse?.products || [], [productsResponse])
+  const totalFilteredProducts = productsResponse?.metadata.total || 0
+  const totalPages = Math.max(1, productsResponse?.metadata.totalPages || 1)
+  const startIndex = (currentPage - 1) * itemsPerPage
+
+  useEffect(() => {
+    if (pagedProducts.length > 0) {
+      upsertLoadedProducts(pagedProducts)
+    }
+  }, [pagedProducts, upsertLoadedProducts])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1)
+    }
+  }, [currentPage, totalPages])
+
   // ─── Derived Data ─────────────────────────────────────────────────────────
   const selectedProductIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds])
 
-  const categories = useMemo(() =>
-    [...new Set(products.map(p => p.category).filter(Boolean))] as string[],
-    [products]
-  )
+  const categories = productsResponse?.allCategories || []
 
-  const productIdSet = useMemo(() => new Set(products.map(p => p.id)), [products])
+  const productIdSet = useMemo(() => new Set(Array.from(productMap.keys())), [productMap])
   const validProductIds = useMemo(() => {
     return selectedProductIds.filter(id => productIdSet.has(id))
   }, [selectedProductIds, productIdSet])
-
-  const filteredProducts = useMemo(() => {
-    const query = debouncedSearchQuery.toLowerCase()
-    return products.filter(p => {
-      const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
-      const matchesSearch = !query || p.name.toLowerCase().includes(query)
-      return matchesCategory && matchesSearch
-    })
-  }, [products, selectedCategory, debouncedSearchQuery])
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const visibleProducts = useMemo(() =>
-    filteredProducts.slice(startIndex, startIndex + itemsPerPage),
-    [filteredProducts, startIndex, itemsPerPage]
-  )
+  const filteredProducts = pagedProducts
+  const visibleProducts = pagedProducts
 
   useEffect(() => { setCurrentPage(1) }, [selectedCategory, debouncedSearchQuery])
+  useEffect(() => { setCurrentPage(1) }, [sortBy, sortOrder])
 
   // ─── Product Selection & Sorting ──────────────────────────────────────────
   // PERFORMANCE: Set-based toggle — O(1) add/delete instead of O(n) filter/spread
@@ -295,9 +304,6 @@ export function CatalogEditor() {
       onSelectedProductIdsChange([...selectedProductIds, id])
     }
   }, [selectedProductIds, selectedProductIdSet, onSelectedProductIdsChange])
-
-  // PERF(P5): productMap reused from useBuilderState — no duplicate computation
-  const { productMap } = state
 
   const handleSortDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.stopPropagation()
@@ -365,14 +371,18 @@ export function CatalogEditor() {
               t={t}
               description={description}
               onDescriptionChange={onDescriptionChange}
-              availableProductCount={products.length}
-              totalProductCount={productTotalCount}
-              isProductListTruncated={isProductListTruncated}
+              availableProductCount={loadedProductsCount}
+              totalProductCount={totalFilteredProducts}
+              isProductListTruncated={false}
               searchQuery={searchQuery}
               onSearchChange={handleSearchChange}
               selectedCategory={selectedCategory}
               onCategoryChange={handleCategoryChange}
               categories={categories}
+              sortBy={sortBy}
+              onSortByChange={setSortBy}
+              sortOrder={sortOrder}
+              onSortOrderChange={setSortOrder}
               filteredProducts={filteredProducts}
               visibleProducts={visibleProducts}
               selectedProductIds={selectedProductIds}
@@ -386,6 +396,7 @@ export function CatalogEditor() {
               itemsPerPage={itemsPerPage}
               onPageChange={setCurrentPage}
               productMap={productMap}
+              isLoadingProducts={productsQuery.isLoading || productsQuery.isFetching}
               draggingIndex={draggingIndex}
               dropIndex={dropIndex}
               onSortDragStart={handleSortDragStart}
@@ -463,7 +474,7 @@ export function CatalogEditor() {
               coverTheme={coverTheme}
               onCoverThemeChange={onCoverThemeChange}
               catalogName={catalogName}
-              products={products}
+              products={Array.from(productMap.values())}
               handleUploadClick={handleUploadClick}
               handleFileUpload={handleFileUpload}
               logoInputRef={logoInputRef}

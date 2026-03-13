@@ -14,6 +14,20 @@ type FetchOptions = Omit<RequestInit, "headers"> & {
     timeout?: number;
 };
 
+function hasIdempotencyKey(headers?: Record<string, string>): boolean {
+    if (!headers) return false;
+    return Boolean(headers["Idempotency-Key"] || headers["idempotency-key"]);
+}
+
+function canRetryRequest(method: string, headers?: Record<string, string>): boolean {
+    // Safe/idempotent methods can be retried by default.
+    const safeMethods = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
+    if (safeMethods.has(method)) return true;
+
+    // For non-idempotent methods, require explicit idempotency key.
+    return hasIdempotencyKey(headers);
+}
+
 /**
  * Endpoint tipine göre uygun timeout süresini belirle
  */
@@ -64,6 +78,8 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
         "Content-Type": "application/json",
         ...fetchOptions.headers,
     };
+    const method = (fetchOptions.method || "GET").toUpperCase();
+    const maxRetries = canRetryRequest(method, fetchOptions.headers) ? retries : 0;
 
     // Forward client info for analytics and rate limiting
     if (forwardedFor) headersList["x-forwarded-for"] = forwardedFor;
@@ -83,7 +99,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     let timeoutId: NodeJS.Timeout | null = null;
     let controller: AbortController | null = null;
 
-    while (attempts <= retries) {
+    while (attempts <= maxRetries) {
         // Önceki timeout ve controller'ı temizle (memory leak önleme)
         if (timeoutId) {
             clearTimeout(timeoutId);
@@ -132,7 +148,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 }
 
                 // 5xx hatalar veya 429 için retry
-                if ((response.status >= 500 || response.status === 429) && attempts < retries) {
+                if ((response.status >= 500 || response.status === 429) && attempts < maxRetries) {
                     const delay = response.status === 429 ? connectionError.retryAfter || 30000 : retryDelay * (attempts + 1);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     attempts++;
@@ -162,7 +178,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 const timeoutError: ApiError = new Error('api.error.gatewayTimeout');
                 timeoutError.status = 408;
 
-                if (attempts < retries) {
+                if (attempts < maxRetries) {
                     await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
                     attempts++;
                     lastError = timeoutError;
@@ -173,7 +189,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
             }
 
             // Network hatası - retry
-            if (isNetworkError(error) && attempts < retries) {
+            if (isNetworkError(error) && attempts < maxRetries) {
                 const networkError: ApiError = new Error('api.error.serviceUnavailable');
                 networkError.status = 503;
                 await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, type ReactNode } from "react"
 import type { Catalog } from "@/lib/actions/catalogs"
-import type { Product } from "@/lib/actions/products"
+import type { Product, ProductsResponse } from "@/lib/actions/products"
 import { useBuilderState } from "@/lib/hooks/use-builder-state"
 import { useBuilderHandlers } from "@/lib/hooks/use-builder-handlers"
 import { useUser } from "@/lib/contexts/user-context"
@@ -21,10 +21,8 @@ export interface BuilderContextValue {
     catalog: Catalog | null
     /** Server-loaded products */
     products: Product[]
-    /** Total product count (may be > products.length when truncated) */
-    productTotalCount?: number
-    /** True if the product list was truncated for performance */
-    isProductListTruncated: boolean
+    /** First page response used as initial data for client pagination */
+    initialProductsResponse: ProductsResponse
     /** Current user's plan */
     userPlan: string
 }
@@ -38,8 +36,7 @@ const BuilderContext = createContext<BuilderContextValue | null>(null)
 interface BuilderProviderProps {
     catalog: Catalog | null
     products: Product[]
-    productTotalCount?: number
-    isProductListTruncated?: boolean
+    initialProductsResponse: ProductsResponse
     children: ReactNode
 }
 
@@ -48,8 +45,7 @@ interface BuilderProviderProps {
 export function BuilderProvider({
     catalog,
     products,
-    productTotalCount,
-    isProductListTruncated = false,
+    initialProductsResponse,
     children,
 }: BuilderProviderProps) {
     const { user } = useUser()
@@ -61,8 +57,7 @@ export function BuilderProvider({
         handlers,
         catalog,
         products,
-        productTotalCount,
-        isProductListTruncated,
+        initialProductsResponse,
         userPlan: user?.plan || "free",
     }
 

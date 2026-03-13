@@ -1,33 +1,16 @@
-﻿"use client"
+"use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
-import * as Sentry from "@sentry/nextjs"
+import { useSentryUser } from "@/lib/hooks/use-sentry-user"
+import { useUserAuthLifecycle } from "@/lib/hooks/use-user-auth-lifecycle"
+import { fetchUserProfileDataWithRetry } from "@/lib/user/profile-service"
+import { buildUserFromProfile } from "@/lib/user/user-mapper"
+import type { User } from "@/lib/user/types"
 
-type UserPlan = "free" | "plus" | "pro"
-
-export interface User {
-  id: string
-  name: string
-  email: string
-  company: string
-  avatar_url?: string
-  logo_url?: string
-  plan: UserPlan
-  industry?: string
-  exportsUsed: number
-  maxExports: number
-  productsCount: number
-  maxProducts: number
-  catalogsCount: number
-  isAdmin?: boolean
-  // Social links
-  instagram_url?: string | null
-  youtube_url?: string | null
-  website_url?: string | null
-}
+export type { User, UserPlan } from "@/lib/user/types"
 
 export interface UserContextType {
   user: User | null
@@ -54,103 +37,48 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
   const [user, setUser] = useState<User | null>(initialUser)
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(initialSupabaseUser)
   const [isLoading, setIsLoading] = useState(!initialUser)
+
   const isLoggingOutRef = useRef(false)
   const supabaseUserIdRef = useRef<string | null>(initialSupabaseUser?.id ?? null)
   const [supabase] = useState(() => createClient())
 
-  const fetchUserProfile = useCallback(async (authUser: SupabaseUser, retryCount = 0): Promise<boolean> => {
-    const MAX_RETRIES = 3
-    const RETRY_DELAY = 1000 // 1 saniye
+  const fetchUserProfile = useCallback(
+    async (authUser: SupabaseUser): Promise<boolean> => {
+      try {
+        const { profile, productsCount, catalogsCount } = await fetchUserProfileDataWithRetry(supabase, authUser.id)
 
-    try {
-      // BATCH QUERY OPTIMIZATION: TÃ¼m query'leri paralel olarak Ã§alÄ±ÅŸtÄ±r
-      const [profileResult, productsResult, catalogsResult] = await Promise.all([
-        // 1. User profile (is_admin dahil - ayrÄ± sorgu gereksiz)
-        supabase
-          .from("users")
-          .select("*, is_admin")
-          .eq("id", authUser.id)
-          .single(),
-        // 2. Products count
-        supabase
-          .from("products")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", authUser.id),
-        // 3. Catalogs count
-        supabase
-          .from("catalogs")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", authUser.id)
-      ])
+        setUser(
+          buildUserFromProfile({
+            authUser,
+            profile,
+            productsCount,
+            catalogsCount,
+          }),
+        )
 
-      const { data: profile, error } = profileResult
-      const productsCount = productsResult.count
-      const catalogsCount = catalogsResult.count
-
-      // PGRST116 = "Row not found" - bu normal, yeni kullanÄ±cÄ± olabilir
-      // DiÄŸer hatalar iÃ§in retry yap
-      if (error) {
-        console.warn(`Profile fetch error (code: ${error.code}, attempt ${retryCount + 1}/${MAX_RETRIES}):`, error.message)
-
-        // Row not found deÄŸilse retry
-        if (error.code !== 'PGRST116') {
-          if (retryCount < MAX_RETRIES - 1) {
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
-            return fetchUserProfile(authUser, retryCount + 1)
-          }
-          console.error("All retry attempts failed for profile fetch:", error.code, error.message)
-          return false
-        }
-        // PGRST116 ise profil yok ama devam et (yeni kullanÄ±cÄ±)
+        return true
+      } catch (error) {
+        console.error("Profile fetch failed:", error)
+        return false
       }
+    },
+    [supabase],
+  )
 
-      // Profile varsa plan'Ä± al, yoksa yeni kullanÄ±cÄ± olabilir
-      const plan = profile?.plan ? profile.plan.toLowerCase() : "free"
-
-      setUser({
-        id: authUser.id,
-        email: authUser.email ?? "",
-        name: profile?.full_name || authUser.user_metadata?.full_name || "Kullanıcı",
-        company: profile?.company || "",
-        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
-        logo_url: profile?.logo_url || null,
-        plan: plan as UserPlan,
-        productsCount: productsCount || 0,
-        catalogsCount: catalogsCount || 0,
-        maxProducts: plan === "pro" ? 999999 : plan === "plus" ? 1000 : 50,
-        maxExports: plan === "pro" ? 999999 : plan === "plus" ? 50 : 0,
-        exportsUsed: profile?.exports_used || 0,
-        isAdmin: profile?.is_admin || false,
-        // Social links
-        instagram_url: profile?.instagram_url || null,
-        youtube_url: profile?.youtube_url || null,
-        website_url: profile?.website_url || null,
-      })
-      return true
-    } catch (error) {
-      console.error(`Critical error in fetchUserProfile (attempt ${retryCount + 1}):`, error)
-
-      if (retryCount < MAX_RETRIES - 1) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
-        return fetchUserProfile(authUser, retryCount + 1)
-      }
-
-      // TÃ¼m denemeler baÅŸarÄ±sÄ±z - mevcut user varsa koru, yoksa null bÄ±rak
-      return false
-    }
-  }, [supabase])
-
-  const refreshUser = useCallback(async () => {
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
-    if (authUser) {
-      await fetchUserProfile(authUser)
-    }
-  }, [supabase.auth, fetchUserProfile])
+  const { refreshUser, logout } = useUserAuthLifecycle({
+    supabase,
+    initialUser,
+    fetchUserProfile,
+    setUser,
+    setSupabaseUser,
+    setIsLoading,
+    isLoggingOutRef,
+    supabaseUserIdRef,
+  })
 
   const adjustCatalogsCount = useCallback((delta: number) => {
     if (!delta) return
+
     setUser((prev) => {
       if (!prev) return prev
       return {
@@ -160,123 +88,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     })
   }, [])
 
-  useEffect(() => {
-    // Sentry User Identification
-    if (user) {
-      Sentry.setUser({
-        id: user.id,
-        email: user.email,
-        username: user.name,
-        company: user.company,
-        plan: user.plan
-      })
-    } else {
-      Sentry.setUser(null)
-    }
-  }, [user])
-
-  useEffect(() => {
-    // Get initial session
-    const initAuth = async () => {
-      try {
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser()
-
-        if (authUser) {
-          setSupabaseUser(authUser)
-          supabaseUserIdRef.current = authUser.id
-
-          // OPTIMIZATION: initialUser zaten varsa ve aynÄ± user'sa, client-side fetch ATMA
-          if (initialUser && initialUser.id === authUser.id) {
-            // Using SSR initial user data (skipping client fetch)
-            setIsLoading(false)
-            return
-          }
-
-          const success = await fetchUserProfile(authUser)
-          if (!success) {
-            console.warn("Could not fetch user profile, showing limited info")
-          }
-        }
-      } catch (error) {
-        console.error("Auth init error:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    // OPTIMIZATION: initialUser varsa initAuth'u atla
-    if (initialUser) {
-      // Using SSR initial user (skipping initAuth)
-      setIsLoading(false)
-    } else {
-      initAuth()
-    }
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      try {
-        if (isLoggingOutRef.current && event === "SIGNED_IN") {
-          return
-        }
-
-        if (event === "SIGNED_OUT") {
-          setSupabaseUser(null)
-          supabaseUserIdRef.current = null
-          setUser(null)
-          return
-        }
-
-        if (session?.user) {
-          // OPTIMIZATION: Sadece user deÄŸiÅŸtiyse fetch yap (ref ile stale closure Ã¶nlenir)
-          const currentUserId = supabaseUserIdRef.current || initialUser?.id
-          if (currentUserId && currentUserId === session.user.id && event !== 'SIGNED_IN') {
-            // Same user, skipping profile refetch
-            setSupabaseUser(session.user)
-            return
-          }
-
-          // Auth state changed, fetching profile
-          setSupabaseUser(session.user)
-          supabaseUserIdRef.current = session.user.id
-          await fetchUserProfile(session.user)
-        } else {
-          setSupabaseUser(null)
-          setUser(null)
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-    // NOTE: supabaseUser?.id removed from deps â€” tracked via supabaseUserIdRef to prevent
-    // re-subscribing on every auth state change (subscription leak)
-  }, [fetchUserProfile, supabase.auth, initialUser])
-
-  const logout = useCallback(async () => {
-    if (isLoggingOutRef.current) return
-    isLoggingOutRef.current = true
-
-    try {
-      // Sign out silently without clearing state first to avoid flash
-      const signOutPromise = supabase.auth.signOut()
-      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000))
-      await Promise.race([signOutPromise, timeoutPromise])
-    } catch (error) {
-      console.error("Ã‡Ä±kÄ±ÅŸ hatasÄ±:", error)
-    } finally {
-      // Redirect FIRST, then state will be cleaned by page unload
-      if (typeof window !== "undefined") {
-        window.location.href = "/auth?logged_out=1"
-      }
-    }
-  }, [supabase.auth])
+  useSentryUser(user)
 
   const canExport = useCallback(() => {
     if (!user) return false
@@ -288,29 +100,28 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
     if (!user) return false
     if (user.plan === "pro") return true
     if (user.exportsUsed >= user.maxExports) return false
-    // Functional update â€” avoids stale closure and unnecessary re-renders
-    setUser(prev => prev ? { ...prev, exportsUsed: prev.exportsUsed + 1 } : prev)
+
+    setUser((prev) => (prev ? { ...prev, exportsUsed: prev.exportsUsed + 1 } : prev))
     return true
   }, [user])
 
-  const contextValue = useMemo(() => ({
-    user,
-    supabaseUser,
-    setUser,
-    adjustCatalogsCount,
-    isAuthenticated: !!user,
-    isLoading,
-    logout,
-    refreshUser,
-    incrementExports,
-    canExport,
-  }), [user, supabaseUser, adjustCatalogsCount, isLoading, logout, refreshUser, incrementExports, canExport])
-
-  return (
-    <UserContext.Provider value={contextValue}>
-      {children}
-    </UserContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      user,
+      supabaseUser,
+      setUser,
+      adjustCatalogsCount,
+      isAuthenticated: !!user,
+      isLoading,
+      logout,
+      refreshUser,
+      incrementExports,
+      canExport,
+    }),
+    [user, supabaseUser, adjustCatalogsCount, isLoading, logout, refreshUser, incrementExports, canExport],
   )
+
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
 }
 
 export function useUser() {

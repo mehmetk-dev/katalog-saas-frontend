@@ -5,12 +5,11 @@ import { type Catalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import { useUser } from "@/lib/contexts/user-context"
 import { type SavedState } from "@/lib/hooks/use-catalog-actions"
+import { useBuilderSelectedProducts } from "@/lib/hooks/use-builder-selected-products"
 import {
     type BuilderCatalogData,
     buildSavedStateSnapshot,
     buildInitialCatalogState,
-    resolveInitialPrimaryColor,
-    normalizeLogoPosition,
     arrayFingerprint,
     SPLIT_PREVIEW_SOFT_LIMIT,
 } from "@/components/builder/builder-utils"
@@ -88,6 +87,23 @@ interface UseBuilderStateOptions {
     products: Product[]
 }
 
+const PRODUCT_ID_MAX_LENGTH = 128
+
+function normalizeProductIds(ids: string[]): string[] {
+    const seen = new Set<string>()
+    const normalized: string[] = []
+
+    for (const id of ids) {
+        if (typeof id !== "string") continue
+        const trimmed = id.trim()
+        if (!trimmed || trimmed.length > PRODUCT_ID_MAX_LENGTH || seen.has(trimmed)) continue
+        seen.add(trimmed)
+        normalized.push(trimmed)
+    }
+
+    return normalized
+}
+
 // ─── Hook ───────────────────────────────────────────────────────────────────────
 
 export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
@@ -112,7 +128,7 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         // Content
         catalogName: catalog?.name || "",
         catalogDescription: catalog?.description || "",
-        selectedProductIds: catalog?.product_ids || [],
+        selectedProductIds: normalizeProductIds(catalog?.product_ids || []),
         layout: catalog?.layout || "grid",
         // Design (from initialState)
         primaryColor: initialState.primaryColor,
@@ -146,6 +162,14 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     }))
 
     const [isSelectionUpdatePending, startSelectionTransition] = useTransition()
+    const {
+        productMap,
+        loadedProductsCount,
+        upsertLoadedProducts,
+    } = useBuilderSelectedProducts({
+        initialProducts: products,
+        selectedProductIds: state.selectedProductIds,
+    })
     // PERF(F6): Shared resize listener instead of dedicated one
     const { width: windowWidth } = useWindowSize()
     const isMobile = windowWidth < 768
@@ -275,13 +299,6 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         return stateRef.current!
     }, [])
 
-    // ─── Product Derivations ───────────────────────────────────────────
-    const productMap = useMemo(() => {
-        const map = new Map<string, Product>()
-        for (const p of products) map.set(p.id, p)
-        return map
-    }, [products])
-
     const selectedProducts = useMemo(() =>
         state.selectedProductIds
             .map((id) => productMap.get(id))
@@ -323,7 +340,7 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
                     // Content
                     catalogName: nextState.catalogName,
                     catalogDescription: nextState.catalogDescription,
-                    selectedProductIds: nextState.selectedProductIds,
+                    selectedProductIds: normalizeProductIds(nextState.selectedProductIds),
                     layout: nextState.layout,
                     // Design
                     primaryColor: nextState.primaryColor,
@@ -383,8 +400,9 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
 
     // ─── Handlers ──────────────────────────────────────────────────────
     const handleSelectedProductIdsChange = useCallback((ids: string[]) => {
+        const normalized = normalizeProductIds(ids)
         startSelectionTransition(() => {
-            dispatch({ type: 'UPDATE', payload: { selectedProductIds: ids } })
+            dispatch({ type: 'UPDATE', payload: { selectedProductIds: normalized } })
         })
     }, [])
 
@@ -448,6 +466,8 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         productMap,
         selectedProducts,
         deferredSelectedProducts,
+        loadedProductsCount,
+        upsertLoadedProducts,
         previewProducts,
         effectiveView,
         shouldUseSplitPreviewSampling,

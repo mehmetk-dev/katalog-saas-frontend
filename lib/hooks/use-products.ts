@@ -9,6 +9,8 @@ import {
     updateProduct,
     deleteProduct,
     deleteProducts,
+    type ProductSortField,
+    type ProductSortOrder,
     type ProductsResponse,
 } from "@/lib/actions/products"
 
@@ -19,7 +21,14 @@ import {
  * SSR'dan gelen data → initialData + staleTime:Infinity (cache'le ve refetch yapma)
  */
 export function useProducts(
-    params?: { page?: number; limit?: number; category?: string; search?: string },
+    params?: {
+        page?: number
+        limit?: number
+        category?: string
+        search?: string
+        sortBy?: ProductSortField
+        sortOrder?: ProductSortOrder
+    },
     initialData?: ProductsResponse
 ) {
     return useQuery({

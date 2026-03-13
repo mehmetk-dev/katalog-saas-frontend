@@ -4,21 +4,24 @@ import { supabase } from '../../services/supabase';
 import { cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { getUserId } from './helpers';
 import { safeErrorMessage } from '../../utils/safe-error';
+import { productsByIdsSchema, productsQuerySchema } from './schemas';
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
 
-        let page = parseInt(req.query.page as string) || 1;
-        let limit = parseInt(req.query.limit as string) || 50;
-        const category = req.query.category as string;
-        const search = req.query.search as string;
+        const parsedQuery = productsQuerySchema.safeParse(req.query);
+        if (!parsedQuery.success) {
+            return res.status(400).json({
+                error: parsedQuery.error.errors[0]?.message || 'Invalid query parameters',
+            });
+        }
 
-        if (page < 1) page = 1;
-        if (limit < 1) limit = 12;
-        if (limit > 1000) limit = 1000;
+        const { page, limit, sortBy, sortOrder, select } = parsedQuery.data;
+        const category = parsedQuery.data.category === 'all' ? undefined : parsedQuery.data.category;
+        const search = parsedQuery.data.search;
 
-        const params = { page, limit, category, search };
+        const params = { page, limit, category, search, sortBy, sortOrder, select };
         const cacheKey = cacheKeys.products(userId, params);
 
         const result = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
@@ -27,7 +30,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
             let query = supabase
                 .from('products')
-                .select('*', { count: 'exact' })
+                .select(select === 'id' ? 'id' : '*', { count: 'exact' })
                 .eq('user_id', userId);
 
             if (category && category !== 'all') {
@@ -45,48 +48,60 @@ export const getProducts = async (req: Request, res: Response) => {
                 }
             }
 
-            const { data, error, count } = await query
-                .order('display_order', { ascending: true, nullsFirst: false })
-                .order('created_at', { ascending: false })
+            let orderedQuery = query.order(sortBy, { ascending: sortOrder === 'asc', nullsFirst: false });
+
+            if (sortBy !== 'display_order') {
+                orderedQuery = orderedQuery.order('display_order', { ascending: true, nullsFirst: false });
+            }
+            if (sortBy !== 'created_at') {
+                orderedQuery = orderedQuery.order('created_at', { ascending: false });
+            }
+
+            const { data, error, count } = await orderedQuery
                 .order('id', { ascending: false })
                 .range(from, to);
 
             if (error) throw error;
 
-            const products = (data || []).map((p: Record<string, unknown>) => {
-                let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
-                if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
-                    imgUrl = imgUrl.replace('http://', 'https://');
-                }
+            const products = select === 'id'
+                ? (data || [])
+                : (data || []).map((p: Record<string, unknown>) => {
+                    let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
+                    if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
+                        imgUrl = imgUrl.replace('http://', 'https://');
+                    }
 
-                let imgs = Array.isArray(p.images) ? p.images as string[] : [];
-                imgs = imgs.map((img) =>
-                    (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
-                        ? img.replace('http://', 'https://')
-                        : img
-                );
+                    let imgs = Array.isArray(p.images) ? p.images as string[] : [];
+                    imgs = imgs.map((img) =>
+                        (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
+                            ? img.replace('http://', 'https://')
+                            : img
+                    );
 
-                return {
-                    ...p,
-                    image_url: imgUrl,
-                    images: imgs,
-                    order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
-                };
-            });
+                    return {
+                        ...p,
+                        image_url: imgUrl,
+                        images: imgs,
+                        order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
+                    };
+                });
 
-            // Tüm benzersiz kategorileri getir (filtre için)
-            const { data: categoryData } = await supabase
-                .from('products')
-                .select('category')
-                .eq('user_id', userId)
-                .not('category', 'is', null)
-                .not('category', 'eq', '');
+            let allCategories: string[] | undefined = undefined;
+            if (select !== 'id') {
+                // Tum benzersiz kategorileri getir (filtre icin)
+                const { data: categoryData } = await supabase
+                    .from('products')
+                    .select('category')
+                    .eq('user_id', userId)
+                    .not('category', 'is', null)
+                    .not('category', 'eq', '');
 
-            const allCategories = [...new Set(
-                (categoryData || [])
-                    .map((p: { category: string | null }) => p.category)
-                    .filter(Boolean)
-            )] as string[];
+                allCategories = [...new Set(
+                    (categoryData || [])
+                        .map((p: { category: string | null }) => p.category)
+                        .filter(Boolean)
+                )] as string[];
+            }
 
             return {
                 products,
@@ -141,6 +156,63 @@ export const getProduct = async (req: Request, res: Response) => {
         }
 
         res.json(product);
+    } catch (error: unknown) {
+        res.status(500).json({ error: safeErrorMessage(error) });
+    }
+};
+
+export const getProductsByIds = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const parse = productsByIdsSchema.safeParse(req.body);
+
+        if (!parse.success) {
+            return res.status(400).json({
+                error: parse.error.errors[0]?.message || 'Invalid productIds payload',
+            });
+        }
+
+        const requestedIds = Array.from(new Set(parse.data.productIds));
+        if (requestedIds.length === 0) {
+            return res.json([]);
+        }
+
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('user_id', userId)
+            .in('id', requestedIds);
+
+        if (error) throw error;
+
+        const normalizedProducts = (data || []).map((p: Record<string, unknown>) => {
+            let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
+            if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
+                imgUrl = imgUrl.replace('http://', 'https://');
+            }
+
+            let imgs = Array.isArray(p.images) ? p.images as string[] : [];
+            imgs = imgs.map((img) =>
+                (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
+                    ? img.replace('http://', 'https://')
+                    : img
+            );
+
+            return {
+                ...p,
+                image_url: imgUrl,
+                images: imgs,
+                order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
+            };
+        });
+
+        // Return in requested ID order for deterministic builder state
+        const byId = new Map(normalizedProducts.map((p: Record<string, unknown>) => [p.id, p]));
+        const ordered = requestedIds
+            .map((id) => byId.get(id))
+            .filter((p): p is Record<string, unknown> => !!p);
+
+        res.json(ordered);
     } catch (error: unknown) {
         res.status(500).json({ error: safeErrorMessage(error) });
     }
@@ -270,3 +342,4 @@ export const getProductStats = async (req: Request, res: Response) => {
         res.status(500).json({ error: safeErrorMessage(error) });
     }
 };
+

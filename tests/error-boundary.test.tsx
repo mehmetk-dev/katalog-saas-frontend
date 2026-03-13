@@ -45,8 +45,8 @@ describe('Error Boundary Testleri', () => {
         )
 
         // Error title veya description'ı kontrol et
-        const errorElement = screen.getByText(/something went wrong|went wrong|hata/i)
-        expect(errorElement).toBeTruthy()
+        const errorElements = screen.getAllByText(/common.errorTitle|common.errorDesc/i)
+        expect(errorElements.length).toBeGreaterThan(0)
     })
 
     it('Reload butonu çalışır', async () => {

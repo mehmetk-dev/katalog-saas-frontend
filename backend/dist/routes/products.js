@@ -53,9 +53,11 @@ router.post('/bulk-import', express_2.default.json({ limit: '50mb' }), ProductCo
 router.post('/reorder', ProductController.reorderProducts);
 router.post('/bulk-price-update', ProductController.bulkUpdatePrices);
 router.post('/bulk-image-update', ProductController.bulkUpdateImages);
+router.post('/bulk-update-fields', ProductController.bulkUpdateFields);
 router.post('/rename-category', ProductController.renameCategory);
 router.post('/delete-category', ProductController.deleteCategoryFromProducts);
 router.post('/check-catalogs', ProductController.checkProductsInCatalogs);
+router.post('/by-ids', ProductController.getProductsByIds);
 // Dynamic :id routes last
 router.get('/:id', ProductController.getProduct);
 router.get('/:id/catalogs', ProductController.checkProductInCatalogs);

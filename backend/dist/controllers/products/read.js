@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProductStats = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.getProduct = exports.getProducts = void 0;
+exports.getProductStats = exports.checkProductsInCatalogs = exports.checkProductInCatalogs = exports.getProductsByIds = exports.getProduct = exports.getProducts = void 0;
 const supabase_1 = require("../../services/supabase");
 const redis_1 = require("../../services/redis");
 const helpers_1 = require("./helpers");
 const safe_error_1 = require("../../utils/safe-error");
+const schemas_1 = require("./schemas");
 const getProducts = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
@@ -125,6 +126,54 @@ const getProduct = async (req, res) => {
     }
 };
 exports.getProduct = getProduct;
+const getProductsByIds = async (req, res) => {
+    try {
+        const userId = (0, helpers_1.getUserId)(req);
+        const parse = schemas_1.productsByIdsSchema.safeParse(req.body);
+        if (!parse.success) {
+            return res.status(400).json({
+                error: parse.error.errors[0]?.message || 'Invalid productIds payload',
+            });
+        }
+        const requestedIds = Array.from(new Set(parse.data.productIds));
+        if (requestedIds.length === 0) {
+            return res.json([]);
+        }
+        const { data, error } = await supabase_1.supabase
+            .from('products')
+            .select('*')
+            .eq('user_id', userId)
+            .in('id', requestedIds);
+        if (error)
+            throw error;
+        const normalizedProducts = (data || []).map((p) => {
+            let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
+            if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
+                imgUrl = imgUrl.replace('http://', 'https://');
+            }
+            let imgs = Array.isArray(p.images) ? p.images : [];
+            imgs = imgs.map((img) => (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
+                ? img.replace('http://', 'https://')
+                : img);
+            return {
+                ...p,
+                image_url: imgUrl,
+                images: imgs,
+                order: p.display_order ?? p.order ?? 0
+            };
+        });
+        // Return in requested ID order for deterministic builder state
+        const byId = new Map(normalizedProducts.map((p) => [p.id, p]));
+        const ordered = requestedIds
+            .map((id) => byId.get(id))
+            .filter((p) => !!p);
+        res.json(ordered);
+    }
+    catch (error) {
+        res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
+    }
+};
+exports.getProductsByIds = getProductsByIds;
 const checkProductInCatalogs = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);

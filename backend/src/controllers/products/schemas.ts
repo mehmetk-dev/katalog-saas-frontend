@@ -141,3 +141,17 @@ export const bulkUpdateFieldsSchema = z.object({
         custom_attributes: z.array(customAttributeSchema).optional().nullable(),
     })).min(1, 'At least 1 update required').max(500, 'Maximum 500 updates per request'),
 });
+
+export const productsByIdsSchema = z.object({
+    productIds: z.array(uuidString).min(1, 'At least 1 product id required').max(2000, 'Maximum 2000 product ids'),
+});
+
+export const productsQuerySchema = z.object({
+    page: z.coerce.number().int().min(1).max(100000).default(1),
+    limit: z.coerce.number().int().min(1).max(10000).default(50),
+    category: z.string().trim().max(200).optional(),
+    search: z.string().trim().max(200).optional(),
+    sortBy: z.enum(['display_order', 'created_at', 'name', 'price', 'stock']).default('display_order'),
+    sortOrder: z.enum(['asc', 'desc']).default('asc'),
+    select: z.enum(['id']).optional(),
+});

@@ -6,7 +6,7 @@ import { Sparkles, Search } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import type { Product } from "@/lib/actions/products"
+import type { Product, ProductSortField, ProductSortOrder } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
@@ -30,6 +30,10 @@ interface EditorContentTabProps {
     selectedCategory: string
     onCategoryChange: (category: string) => void
     categories: string[]
+    sortBy: ProductSortField
+    onSortByChange: (value: ProductSortField) => void
+    sortOrder: ProductSortOrder
+    onSortOrderChange: (value: ProductSortOrder) => void
 
     // Products
     filteredProducts: Product[]
@@ -46,6 +50,7 @@ interface EditorContentTabProps {
     startIndex: number
     itemsPerPage: number
     onPageChange: (page: number) => void
+    isLoadingProducts?: boolean
 
     // Sorting / Drag-and-drop
     productMap: Map<string, Product>
@@ -69,6 +74,10 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     selectedCategory,
     onCategoryChange,
     categories,
+    sortBy,
+    onSortByChange,
+    sortOrder,
+    onSortOrderChange,
     filteredProducts,
     visibleProducts,
     selectedProductIds,
@@ -81,6 +90,7 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     startIndex,
     itemsPerPage,
     onPageChange,
+    isLoadingProducts = false,
     productMap,
     draggingIndex,
     dropIndex,
@@ -205,7 +215,7 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                             className="pl-12 h-12 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-medium"
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <div className="flex-1">
                             <Select value={selectedCategory} onValueChange={onCategoryChange}>
                                 <SelectTrigger className="h-11 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm text-xs font-bold px-4">
@@ -214,6 +224,31 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                                 <SelectContent className="rounded-2xl border-border shadow-xl">
                                     <SelectItem value="all">{t('common.all')}</SelectItem>
                                     {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="w-[calc(50%-0.25rem)] sm:w-[164px]">
+                            <Select value={sortBy} onValueChange={(value) => onSortByChange(value as ProductSortField)}>
+                                <SelectTrigger className="h-11 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm text-xs font-bold px-4">
+                                    <SelectValue placeholder={t('common.sort')} />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-border shadow-xl">
+                                    <SelectItem value="display_order">Sıralama</SelectItem>
+                                    <SelectItem value="created_at">Tarih</SelectItem>
+                                    <SelectItem value="name">İsim</SelectItem>
+                                    <SelectItem value="price">Fiyat</SelectItem>
+                                    <SelectItem value="stock">Stok</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="w-[calc(50%-0.25rem)] sm:w-[132px]">
+                            <Select value={sortOrder} onValueChange={(value) => onSortOrderChange(value as ProductSortOrder)}>
+                                <SelectTrigger className="h-11 bg-white dark:bg-slate-900/50 border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-sm text-xs font-bold px-4">
+                                    <SelectValue placeholder={t('common.order')} />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-border shadow-xl">
+                                    <SelectItem value="asc">Artan</SelectItem>
+                                    <SelectItem value="desc">Azalan</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -229,6 +264,11 @@ export const EditorContentTab = React.memo(function EditorContentTab({
 
                 {/* PRODUCTS GRID - COMPACT CARDS */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+                    {isLoadingProducts && visibleProducts.length === 0 && (
+                        <div className="col-span-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                            {t('common.loading')}
+                        </div>
+                    )}
                     {visibleProducts.map(product => (
                         <ProductCard
                             key={product.id}
@@ -296,7 +336,11 @@ export const EditorContentTab = React.memo(function EditorContentTab({
 
                         {/* Sayfa Bilgisi */}
                         <span className="ml-3 text-xs text-slate-500 font-medium">
-                            {t('builder.productsFromTo', { total: filteredProducts.length, from: startIndex + 1, to: Math.min(startIndex + itemsPerPage, filteredProducts.length) })}
+                            {t('builder.productsFromTo', {
+                                total: totalProductCount ?? filteredProducts.length,
+                                from: filteredProducts.length ? startIndex + 1 : 0,
+                                to: Math.min(startIndex + itemsPerPage, totalProductCount ?? filteredProducts.length),
+                            })}
                         </span>
                     </div>
                 )}

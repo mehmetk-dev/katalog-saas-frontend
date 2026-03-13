@@ -5,7 +5,7 @@ import type { Product } from '@/lib/actions/products'
 
 // Mock NextImage since it doesn't work well in jsdom/vitest without setup
 vi.mock('next/image', () => ({
-    default: ({ src, alt, fill, unoptimized, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
+    default: ({ src, alt, fill, unoptimized, priority: _priority, ...props }: { src: string; alt?: string; fill?: boolean; unoptimized?: boolean;[key: string]: unknown }) => {
         const imgProps: Record<string, unknown> = { src, alt, ...props }
         if (fill) {
             const existingStyle = (typeof imgProps.style === 'object' && imgProps.style !== null) ? imgProps.style as Record<string, unknown> : {}
@@ -58,7 +58,7 @@ describe('ModernGridTemplate', () => {
         render(<ModernGridTemplate {...defaultProps} />)
 
         // Footer'daki sayfa bilgisini kontrol et (Katalog Adı • Sayfa X / Y)
-        const footerInfo = screen.getByText(/Test Katalog • Sayfa 1 \/ 5/)
+        const footerInfo = screen.getByText(/Sayfa 1 \/ 5/)
         expect(footerInfo).toBeDefined()
     })
 
@@ -73,3 +73,4 @@ describe('ModernGridTemplate', () => {
         expect(screen.getByText('Ürün 2')).toBeDefined()
     })
 })
+

@@ -23,6 +23,7 @@ router.post('/bulk-update-fields', ProductController.bulkUpdateFields);
 router.post('/rename-category', ProductController.renameCategory);
 router.post('/delete-category', ProductController.deleteCategoryFromProducts);
 router.post('/check-catalogs', ProductController.checkProductsInCatalogs);
+router.post('/by-ids', ProductController.getProductsByIds);
 
 // Dynamic :id routes last
 router.get('/:id', ProductController.getProduct);

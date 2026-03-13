@@ -74,6 +74,7 @@ exports.ActivityDescriptions = {
     productsExported: (count) => `${count} ürün dışa aktardı`,
     productsBulkDeleted: (count) => `${count} ürünü toplu sildi`,
     productsPricesBulkUpdated: (count) => `${count} ürünün fiyatını toplu güncelledi`,
+    productsBulkFieldsUpdated: (count) => `${count} ürünü Excel düzenleyicide güncelledi`,
     productsReordered: (count) => `${count} ürünün sırasını güncelledi`,
     categoryCreated: (name) => `"${name}" kategorisi oluşturdu`,
     categoryDeleted: (name) => `"${name}" kategorisini sildi`,

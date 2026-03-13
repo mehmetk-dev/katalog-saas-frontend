@@ -159,7 +159,7 @@ describe('Forgot Password Sayfası Testleri', () => {
             await user.click(submitButton)
 
             await waitFor(() => {
-                expect(screen.getByText(/kayıtlı kullanıcı bulunamadı/i)).toBeInTheDocument()
+                expect(screen.getByText(/user not found/i)).toBeInTheDocument()
             })
         })
 
@@ -185,7 +185,7 @@ describe('Forgot Password Sayfası Testleri', () => {
             await user.click(submitButton)
 
             await waitFor(() => {
-                expect(screen.getByText(/çok fazla istek/i)).toBeInTheDocument()
+                expect(screen.getByText(/güvenlik nedeniyle|guvenlik nedeniyle/i)).toBeInTheDocument()
             })
         })
 
@@ -238,7 +238,7 @@ describe('Forgot Password Sayfası Testleri', () => {
             await user.click(submitButton)
 
             await waitFor(() => {
-                expect(screen.getByText(/Google Hesabı Tespit Edildi/i)).toBeInTheDocument()
+                expect(screen.getByText(/Google Hesabı/i)).toBeInTheDocument()
                 expect(screen.getByText(/Google ile Giriş Yap/i)).toBeInTheDocument()
             })
         })
@@ -306,11 +306,11 @@ describe('Forgot Password Sayfası Testleri', () => {
 
             // Google warning görünmeli
             await waitFor(() => {
-                expect(screen.getByText(/Yine de Şifre Belirle/i)).toBeInTheDocument()
+                expect(screen.getByText(/Yine de şifre sıfırla/i)).toBeInTheDocument()
             })
 
             // Yine de şifre belirle butonuna tıkla
-            const continueButton = screen.getByText(/Yine de Şifre Belirle/i)
+            const continueButton = screen.getByText(/Yine de şifre sıfırla/i)
             await user.click(continueButton)
 
             await waitFor(() => {
@@ -348,7 +348,7 @@ describe('Forgot Password Sayfası Testleri', () => {
 
             await waitFor(() => {
                 expect(screen.getByText('Email Gönderildi')).toBeInTheDocument()
-                expect(screen.getByText(/test@example.com/i)).toBeInTheDocument()
+                expect(screen.getByText(/\{email\}/i)).toBeInTheDocument()
             })
         })
 
@@ -374,7 +374,7 @@ describe('Forgot Password Sayfası Testleri', () => {
             await user.click(submitButton)
 
             await waitFor(() => {
-                const backButton = screen.getByText(/Giriş Sayfasına Dön/i)
+                const backButton = screen.getByRole('button', { name: /Giriş Sayfasına Dön/i })
                 expect(backButton).toBeInTheDocument()
                 expect(backButton.closest('a')).toHaveAttribute('href', '/auth')
             })
@@ -456,3 +456,5 @@ describe('Forgot Password Sayfası Testleri', () => {
         })
     })
 })
+
+

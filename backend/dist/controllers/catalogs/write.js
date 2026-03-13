@@ -33,10 +33,6 @@ const INSERT_OPTIONAL_FIELDS = [
     'cover_image_url', 'cover_description', 'enable_category_dividers',
     'cover_theme', 'show_in_search', 'category_order'
 ];
-const isNotFoundError = (error) => {
-    const code = error?.code;
-    return code === 'PGRST116';
-};
 const createCatalog = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
@@ -163,45 +159,35 @@ const updateCatalog = async (req, res) => {
                 });
             }
         }
-        // Tenant-bound old slug fetch (cache cleanup + ownership check)
-        const { data: oldCatalog, error: oldCatalogError } = await supabase_1.supabase
+        // Eski slug'ı bul (cache temizlemek için)
+        const { data: oldCatalog } = await supabase_1.supabase
             .from('catalogs')
             .select('share_slug')
             .eq('id', id)
-            .eq('user_id', userId)
             .single();
-        if (oldCatalogError) {
-            if (isNotFoundError(oldCatalogError)) {
-                return res.status(404).json({ error: 'Katalog bulunamadı' });
-            }
-            throw oldCatalogError;
-        }
         // Build update data dynamically
         // SECURITY: Use parsed.data (Zod-validated) instead of raw req.body
         const updateData = {
             updated_at: new Date().toISOString(),
             ...(0, helpers_1.pickDefinedFields)(parsed.data, FIELDS_WITH_NULL_CHECK, FIELDS_WITHOUT_NULL_CHECK),
         };
-        const { error, data: updatedRows } = await supabase_1.supabase
+        const { error, data } = await supabase_1.supabase
             .from('catalogs')
             .update(updateData)
             .eq('id', id)
             .eq('user_id', userId)
-            .select('id');
+            .select();
         if (error) {
+            console.error('Catalog update error:', error);
             if (error.code === '23505' && error.message.includes('share_slug')) {
                 return res.status(409).json({
                     error: 'Bu slug zaten kullanılıyor. Lütfen farklı bir slug seçin.'
                 });
             }
-            const safeMessage = (0, safe_error_1.safeErrorMessage)(error, 'Katalog güncellenirken bir hata oluştu');
             return res.status(500).json({
                 error: 'Katalog güncellenirken bir hata oluştu',
-                message: safeMessage
+                details: error.message
             });
-        }
-        if (!updatedRows || updatedRows.length === 0) {
-            return res.status(404).json({ error: 'Katalog bulunamadı' });
         }
         // Cache'leri temizle
         await Promise.all([
@@ -217,13 +203,14 @@ const updateCatalog = async (req, res) => {
             userId,
             activityType: 'catalog_updated',
             description: activity_logger_1.ActivityDescriptions.catalogUpdated(name || 'Katalog'),
-            metadata: { catalogId: id, updates: Object.keys(updateData).filter((key) => key !== 'updated_at') },
+            metadata: { catalogId: id, updates: Object.keys(req.body) },
             ipAddress,
             userAgent
         });
         res.json({ success: true });
     }
     catch (error) {
+        console.error('Catalog update exception:', error);
         const errorMessage = (0, safe_error_1.safeErrorMessage)(error, 'Katalog güncellenirken bir hata oluştu');
         res.status(500).json({
             error: 'Katalog güncellenirken bir hata oluştu',

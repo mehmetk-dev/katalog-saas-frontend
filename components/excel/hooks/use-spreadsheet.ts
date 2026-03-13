@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
-import type { Product, CustomAttribute, CellField, EditedCells, ValidationErrors, CellError, SpreadsheetColumn, NewRow } from "../types"
+import { useState, useMemo, useCallback, useRef, useEffect } from "react"
+import type { Product, CellField, EditedCells, ValidationErrors, CellError, SpreadsheetColumn, NewRow } from "../types"
 
 // ── Validation ──────────────────────────────────────────
 function validateCell(field: CellField, value: string | number | null): string | null {
@@ -60,10 +60,25 @@ export function useSpreadsheet(products: Product[]) {
   const [newRows, setNewRows] = useState<NewRow[]>([])
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
 
+  const productCacheRef = useRef<Map<string, Product>>(new Map())
+
+  useEffect(() => {
+    if (!products.length) return
+    const next = new Map(productCacheRef.current)
+    products.forEach((product) => {
+      next.set(product.id, product)
+    })
+    productCacheRef.current = next
+  }, [products])
+
+  const productMap = useMemo(() => {
+    return new Map(products.map((product) => [product.id, product]))
+  }, [products])
+
   // ── Columns ──
   const customColumns = useMemo<SpreadsheetColumn[]>(() => {
     const names = new Set<string>()
-    products.forEach(p => {
+    productMap.forEach((p) => {
       p.custom_attributes?.forEach(attr => {
         if (attr.name && attr.name.trim()) names.add(attr.name.trim())
       })
@@ -75,7 +90,7 @@ export function useSpreadsheet(products: Product[]) {
       width: "w-32",
       editable: true,
     }))
-  }, [products])
+  }, [productMap])
 
   const allColumns = useMemo<SpreadsheetColumn[]>(() => [
     { key: "name", label: "columns.name", type: "text", width: "w-48 min-w-[192px]", editable: true },
@@ -90,7 +105,7 @@ export function useSpreadsheet(products: Product[]) {
 
   // ── Cell Operations ──
   const getOriginalValue = useCallback((productId: string, field: CellField): string | number | null => {
-    const product = products.find(p => p.id === productId)
+    const product = productCacheRef.current.get(productId)
     if (!product) return null
 
     if (field.startsWith("attr:")) {
@@ -102,7 +117,7 @@ export function useSpreadsheet(products: Product[]) {
     const val = product[field as keyof Product]
     if (val === undefined || val === null) return null
     return val as string | number
-  }, [products])
+  }, [])
 
   const getCellValue = useCallback((productId: string, field: CellField): string | number | null => {
     const edited = editedCells.get(productId)?.get(field)
@@ -244,6 +259,8 @@ export function useSpreadsheet(products: Product[]) {
     isDirty, dirtyProductCount, hasErrors, errorCount, canSave,
     // Columns
     customColumns, allColumns,
+    productMap,
+    getCachedProduct: (productId: string) => productCacheRef.current.get(productId),
     // Cell ops
     getCellValue, setCellValue, isCellDirty, getCellError,
     // CRUD

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bulkUpdateImages = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = void 0;
+exports.bulkUpdateFields = exports.bulkUpdateImages = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkUpdatePrices = exports.reorderProducts = exports.bulkImportProducts = exports.bulkDeleteProducts = void 0;
 const supabase_1 = require("../../services/supabase");
 const redis_1 = require("../../services/redis");
 const activity_logger_1 = require("../../services/activity-logger");
@@ -532,3 +532,64 @@ const bulkUpdateImages = async (req, res) => {
     }
 };
 exports.bulkUpdateImages = bulkUpdateImages;
+const bulkUpdateFields = async (req, res) => {
+    try {
+        const userId = (0, helpers_1.getUserId)(req);
+        const parsed = schemas_1.bulkUpdateFieldsSchema.safeParse(req.body);
+        if (!parsed.success) {
+            const issue = parsed.error.issues[0];
+            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
+        }
+        const { updates } = parsed.data;
+        const updatedAt = new Date().toISOString();
+        let succeeded = 0;
+        let failed = 0;
+        for (const batch of chunkArray(updates, UPDATE_BATCH_SIZE)) {
+            const results = await Promise.allSettled(batch.map(({ id, ...fields }) => {
+                const updateData = { updated_at: updatedAt };
+                if (fields.name !== undefined)
+                    updateData.name = fields.name;
+                if (fields.sku !== undefined)
+                    updateData.sku = fields.sku;
+                if (fields.description !== undefined)
+                    updateData.description = fields.description;
+                if (fields.price !== undefined)
+                    updateData.price = fields.price;
+                if (fields.stock !== undefined)
+                    updateData.stock = fields.stock;
+                if (fields.category !== undefined)
+                    updateData.category = fields.category;
+                if (fields.product_url !== undefined)
+                    updateData.product_url = fields.product_url === '' ? null : fields.product_url;
+                if (fields.custom_attributes !== undefined)
+                    updateData.custom_attributes = fields.custom_attributes || [];
+                return supabase_1.supabase
+                    .from('products')
+                    .update(updateData)
+                    .eq('id', id)
+                    .eq('user_id', userId);
+            }));
+            succeeded += results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+            failed += results.length - results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+        }
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
+        ]);
+        (0, redis_1.setProductsInvalidated)(userId);
+        const { ipAddress, userAgent } = (0, activity_logger_1.getRequestInfo)(req);
+        await (0, activity_logger_1.logActivity)({
+            userId,
+            activityType: 'products_bulk_fields_updated',
+            description: activity_logger_1.ActivityDescriptions.productsBulkFieldsUpdated(succeeded),
+            metadata: { updatedCount: succeeded, failedCount: failed },
+            ipAddress,
+            userAgent
+        });
+        res.json({ success: true, updatedCount: succeeded, failedCount: failed });
+    }
+    catch (error) {
+        res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
+    }
+};
+exports.bulkUpdateFields = bulkUpdateFields;

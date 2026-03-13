@@ -40,22 +40,43 @@ export interface ProductsResponse {
   allCategories?: string[]
 }
 
+export type ProductSortField = "display_order" | "created_at" | "name" | "price" | "stock"
+export type ProductSortOrder = "asc" | "desc"
+
 export async function getProducts(params?: {
   page?: number
   limit?: number
   category?: string
   search?: string
+  sortBy?: ProductSortField
+  sortOrder?: ProductSortOrder
+  select?: "id"
 }): Promise<ProductsResponse> {
   const queryParams = new URLSearchParams()
   if (params?.page) queryParams.set("page", params.page.toString())
   if (params?.limit) queryParams.set("limit", params.limit.toString())
   if (params?.category) queryParams.set("category", params.category)
   if (params?.search) queryParams.set("search", params.search)
+  if (params?.sortBy) queryParams.set("sortBy", params.sortBy)
+  if (params?.sortOrder) queryParams.set("sortOrder", params.sortOrder)
+  if (params?.select) queryParams.set("select", params.select)
 
   const queryString = queryParams.toString()
   const path = `/products${queryString ? `?${queryString}` : ""}`
 
   return await apiFetch<ProductsResponse>(path)
+}
+
+export async function getProductsByIds(productIds: string[]): Promise<Product[]> {
+  const normalizedIds = Array.from(new Set(productIds.filter((id) => typeof id === "string" && id.length > 0)))
+  if (normalizedIds.length === 0) {
+    return []
+  }
+
+  return await apiFetch<Product[]>("/products/by-ids", {
+    method: "POST",
+    body: JSON.stringify({ productIds: normalizedIds }),
+  })
 }
 
 export async function getAllProductsForExport(): Promise<Product[]> {
@@ -530,21 +551,30 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
 
 export async function getAllProductIds(): Promise<string[]> {
   try {
-    const response = await apiFetch<{ id: string }[] | { products: { id: string }[] }>("/products?limit=9999&select=id")
-    if (Array.isArray(response)) {
-      return response.map(p => p.id)
+    const ids: string[] = []
+    let page = 1
+    const limit = 1000
+
+    while (true) {
+      const response = await getProducts({ page, limit, select: "id" }) as {
+        products: { id: string }[]
+        metadata: { totalPages: number }
+      }
+      ids.push(...(response.products || []).map((p) => p.id).filter(Boolean))
+
+      if (!response.metadata || page >= (response.metadata.totalPages || 1)) {
+        break
+      }
+
+      page += 1
     }
-    // Eğer response formatı { products: [...] } şeklindeyse
-    if (response.products && Array.isArray(response.products)) {
-      return response.products.map(p => p.id)
-    }
-    return []
+
+    return Array.from(new Set(ids))
   } catch (error) {
     console.error("Error fetching all product IDs:", error)
     return []
   }
 }
-
 export interface BulkFieldUpdate {
   id: string
   name?: string
@@ -569,3 +599,4 @@ export async function bulkUpdateFields(updates: BulkFieldUpdate[]) {
   revalidatePath("/dashboard/products")
   return result
 }
+
