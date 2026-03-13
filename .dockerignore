@@ -7,3 +7,4 @@ build
 dist
 README.md
 backend
+tsconfig.tsbuildinfo
