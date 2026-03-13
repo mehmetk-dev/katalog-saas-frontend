@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import type { Product, CellField, EditedCells, ValidationErrors, CellError, SpreadsheetColumn, NewRow } from "../types"
 
-// ── Validation ──────────────────────────────────────────
 function validateCell(field: CellField, value: string | number | null): string | null {
   const str = value === null ? "" : String(value)
 
@@ -27,8 +26,12 @@ function validateCell(field: CellField, value: string | number | null): string |
     }
     case "product_url":
       if (!str || str.trim() === "") return null
-      try { new URL(str); return null }
-      catch { return "urlInvalid" }
+      try {
+        new URL(str)
+        return null
+      } catch {
+        return "urlInvalid"
+      }
     case "sku":
       if (str.length > 100) return "skuMax"
       return null
@@ -54,7 +57,6 @@ function createEmptyRow(): NewRow {
   }
 }
 
-// ── Hook ────────────────────────────────────────────────
 export function useSpreadsheet(products: Product[]) {
   const [editedCells, setEditedCells] = useState<EditedCells>(new Map())
   const [newRows, setNewRows] = useState<NewRow[]>([])
@@ -64,6 +66,7 @@ export function useSpreadsheet(products: Product[]) {
 
   useEffect(() => {
     if (!products.length) return
+
     const next = new Map(productCacheRef.current)
     products.forEach((product) => {
       next.set(product.id, product)
@@ -75,81 +78,101 @@ export function useSpreadsheet(products: Product[]) {
     return new Map(products.map((product) => [product.id, product]))
   }, [products])
 
-  // ── Columns ──
   const customColumns = useMemo<SpreadsheetColumn[]>(() => {
     const names = new Set<string>()
-    productMap.forEach((p) => {
-      p.custom_attributes?.forEach(attr => {
-        if (attr.name && attr.name.trim()) names.add(attr.name.trim())
+    productMap.forEach((product) => {
+      product.custom_attributes?.forEach((attr) => {
+        if (attr.name && attr.name.trim()) {
+          names.add(attr.name.trim())
+        }
       })
     })
-    return Array.from(names).sort().map(name => ({
-      key: `attr:${name}` as CellField,
-      label: name,
-      type: "text" as const,
-      width: "w-32",
-      editable: true,
-    }))
+
+    return Array.from(names)
+      .sort()
+      .map((name) => ({
+        key: `attr:${name}` as CellField,
+        label: name,
+        type: "text" as const,
+        width: "w-32",
+        editable: true,
+      }))
   }, [productMap])
 
-  const allColumns = useMemo<SpreadsheetColumn[]>(() => [
-    { key: "name", label: "columns.name", type: "text", width: "w-48 min-w-[192px]", editable: true },
-    { key: "sku", label: "columns.sku", type: "text", width: "w-28 min-w-[112px]", editable: true },
-    { key: "price", label: "columns.price", type: "number", width: "w-24 min-w-[96px]", editable: true },
-    { key: "stock", label: "columns.stock", type: "number", width: "w-20 min-w-[80px]", editable: true },
-    { key: "category", label: "columns.category", type: "text", width: "w-32 min-w-[128px]", editable: true },
-    { key: "description", label: "columns.description", type: "text", width: "w-48 min-w-[192px]", editable: true },
-    { key: "product_url", label: "columns.productUrl", type: "text", width: "w-36 min-w-[144px]", editable: true },
-    ...customColumns,
-  ], [customColumns])
+  const allColumns = useMemo<SpreadsheetColumn[]>(
+    () => [
+      { key: "name", label: "columns.name", type: "text", width: "w-48 min-w-[192px]", editable: true },
+      { key: "sku", label: "columns.sku", type: "text", width: "w-28 min-w-[112px]", editable: true },
+      { key: "price", label: "columns.price", type: "number", width: "w-24 min-w-[96px]", editable: true },
+      { key: "stock", label: "columns.stock", type: "number", width: "w-20 min-w-[80px]", editable: true },
+      { key: "category", label: "columns.category", type: "text", width: "w-32 min-w-[128px]", editable: true },
+      { key: "description", label: "columns.description", type: "text", width: "w-48 min-w-[192px]", editable: true },
+      { key: "product_url", label: "columns.productUrl", type: "text", width: "w-36 min-w-[144px]", editable: true },
+      ...customColumns,
+    ],
+    [customColumns],
+  )
 
-  // ── Cell Operations ──
   const getOriginalValue = useCallback((productId: string, field: CellField): string | number | null => {
-    const product = productCacheRef.current.get(productId)
+    // Use live map as fallback so first render is never blank before cache effect runs.
+    const product = productCacheRef.current.get(productId) ?? productMap.get(productId)
     if (!product) return null
 
     if (field.startsWith("attr:")) {
       const attrName = field.slice(5)
-      const attr = product.custom_attributes?.find(a => a.name === attrName)
+      const attr = product.custom_attributes?.find((item) => item.name === attrName)
       return attr ? (attr.unit ? `${attr.value} ${attr.unit}` : attr.value) : ""
     }
 
-    const val = product[field as keyof Product]
-    if (val === undefined || val === null) return null
-    return val as string | number
-  }, [])
+    const value = product[field as keyof Product]
+    if (value === undefined || value === null) return null
+    return value as string | number
+  }, [productMap])
 
-  const getCellValue = useCallback((productId: string, field: CellField): string | number | null => {
-    const edited = editedCells.get(productId)?.get(field)
-    if (edited !== undefined) return edited
-    return getOriginalValue(productId, field)
-  }, [editedCells, getOriginalValue])
+  const getCellValue = useCallback(
+    (productId: string, field: CellField): string | number | null => {
+      const edited = editedCells.get(productId)?.get(field)
+      if (edited !== undefined) return edited
+      return getOriginalValue(productId, field)
+    },
+    [editedCells, getOriginalValue],
+  )
 
-  const setCellValue = useCallback((productId: string, field: CellField, value: string | number | null) => {
-    setEditedCells(prev => {
-      const next = new Map(prev)
+  const upsertEditedCell = useCallback(
+    (source: EditedCells, productId: string, field: CellField, value: string | number | null): EditedCells => {
+      const next = new Map(source)
       const productEdits = new Map(next.get(productId) || [])
       const original = getOriginalValue(productId, field)
       const normalizedValue = value === "" ? null : value
 
-      // Same as original → remove edit
       if (normalizedValue === original || String(normalizedValue) === String(original)) {
         productEdits.delete(field)
         if (productEdits.size === 0) next.delete(productId)
         else next.set(productId, productEdits)
       } else {
-        productEdits.set(field, value)
+        productEdits.set(field, normalizedValue)
         next.set(productId, productEdits)
       }
+
       return next
-    })
-  }, [getOriginalValue])
+    },
+    [getOriginalValue],
+  )
 
-  const isCellDirty = useCallback((productId: string, field: CellField): boolean => {
-    return editedCells.get(productId)?.has(field) ?? false
-  }, [editedCells])
+  const setCellValue = useCallback(
+    (productId: string, field: CellField, value: string | number | null) => {
+      setEditedCells((prev) => upsertEditedCell(prev, productId, field, value))
+    },
+    [upsertEditedCell],
+  )
 
-  // ── Validation ──
+  const isCellDirty = useCallback(
+    (productId: string, field: CellField): boolean => {
+      return editedCells.get(productId)?.has(field) ?? false
+    },
+    [editedCells],
+  )
+
   const validationErrors = useMemo<ValidationErrors>(() => {
     const errors: ValidationErrors = new Map()
 
@@ -162,90 +185,97 @@ export function useSpreadsheet(products: Product[]) {
       if (cellErrors.length > 0) errors.set(productId, cellErrors)
     })
 
-    newRows.forEach(row => {
+    newRows.forEach((row) => {
       const cellErrors: CellError[] = []
       const nameErr = validateCell("name", row.name)
-      // Yeni eklenen satırda isim tamamen boşsa (kullanıcı henüz yazmadıysa) hatayı görsel olarak gösterme
       if (nameErr && row.name !== "") cellErrors.push({ field: "name", message: nameErr })
-      
+
       const priceErr = validateCell("price", row.price)
       if (priceErr) cellErrors.push({ field: "price", message: priceErr })
-      
+
       const stockErr = validateCell("stock", row.stock)
       if (stockErr) cellErrors.push({ field: "stock", message: stockErr })
-      
+
       if (cellErrors.length > 0) errors.set(row.tempId, cellErrors)
     })
 
     return errors
   }, [editedCells, newRows])
 
-  const getCellError = useCallback((productId: string, field: CellField): string | null => {
-    const errors = validationErrors.get(productId)
-    if (!errors) return null
-    const err = errors.find(e => e.field === field)
-    return err?.message ?? null
-  }, [validationErrors])
+  const getCellError = useCallback(
+    (productId: string, field: CellField): string | null => {
+      const errors = validationErrors.get(productId)
+      if (!errors) return null
+      const err = errors.find((item) => item.field === field)
+      return err?.message ?? null
+    },
+    [validationErrors],
+  )
 
-  // ── Computed ──
   const isDirty = editedCells.size > 0 || newRows.length > 0 || deletedIds.size > 0
   const dirtyProductCount = editedCells.size
   const hasErrors = validationErrors.size > 0
   const errorCount = Array.from(validationErrors.values()).reduce((sum, errs) => sum + errs.length, 0)
-  
-  // Eğer henüz tam doldurulmamış yeni bir alan varsa kaydetmeyi kapalı tut
-  const hasIncompleteNewRows = newRows.some(r => !r.name || r.name.trim().length < 2)
+  const hasIncompleteNewRows = newRows.some((row) => !row.name || row.name.trim().length < 2)
   const canSave = isDirty && !hasErrors && !hasIncompleteNewRows
 
-  // ── CRUD Operations ──
   const addEmptyRow = useCallback(() => {
-    setNewRows(prev => [...prev, createEmptyRow()])
+    setNewRows((prev) => [...prev, createEmptyRow()])
   }, [])
 
   const updateNewRow = useCallback((tempId: string, field: string, value: string | number) => {
-    setNewRows(prev => prev.map(row =>
-      row.tempId === tempId ? { ...row, [field]: value } : row
-    ))
+    setNewRows((prev) => prev.map((row) => (row.tempId === tempId ? { ...row, [field]: value } : row)))
   }, [])
 
   const removeNewRow = useCallback((tempId: string) => {
-    setNewRows(prev => prev.filter(row => row.tempId !== tempId))
+    setNewRows((prev) => prev.filter((row) => row.tempId !== tempId))
   }, [])
 
   const markForDeletion = useCallback((ids: string[]) => {
-    setDeletedIds(prev => {
+    setDeletedIds((prev) => {
       const next = new Set(prev)
-      ids.forEach(id => next.add(id))
+      ids.forEach((id) => next.add(id))
       return next
     })
   }, [])
 
   const unmarkDeletion = useCallback((id: string) => {
-    setDeletedIds(prev => {
+    setDeletedIds((prev) => {
       const next = new Set(prev)
       next.delete(id)
       return next
     })
   }, [])
 
-  // ── AI-Ready: Bulk Changes ──
-  const applyBulkChanges = useCallback((changes: Array<{
-    productId: string
-    field: CellField
-    value: string | number | null
-  }>) => {
-    setEditedCells(prev => {
-      const next = new Map(prev)
-      for (const { productId, field, value } of changes) {
-        const productEdits = new Map(next.get(productId) || [])
-        productEdits.set(field, value)
-        next.set(productId, productEdits)
-      }
-      return next
+  const applyBulkChanges = useCallback(
+    (
+      changes: Array<{
+        productId: string
+        field: CellField
+        value: string | number | null
+      }>,
+    ) => {
+      setEditedCells((prev) => {
+        let next = new Map(prev)
+        for (const { productId, field, value } of changes) {
+          next = upsertEditedCell(next, productId, field, value)
+        }
+        return next
+      })
+    },
+    [upsertEditedCell],
+  )
+
+  const primeProductCache = useCallback((incomingProducts: Product[]) => {
+    if (!incomingProducts.length) return
+
+    const next = new Map(productCacheRef.current)
+    incomingProducts.forEach((product) => {
+      next.set(product.id, product)
     })
+    productCacheRef.current = next
   }, [])
 
-  // ── Discard ──
   const discardAll = useCallback(() => {
     setEditedCells(new Map())
     setNewRows([])
@@ -253,21 +283,30 @@ export function useSpreadsheet(products: Product[]) {
   }, [])
 
   return {
-    // State
-    editedCells, newRows, deletedIds,
-    // Computed
-    isDirty, dirtyProductCount, hasErrors, errorCount, canSave,
-    // Columns
-    customColumns, allColumns,
+    editedCells,
+    newRows,
+    deletedIds,
+    isDirty,
+    dirtyProductCount,
+    hasErrors,
+    errorCount,
+    canSave,
+    customColumns,
+    allColumns,
     productMap,
+    primeProductCache,
     getCachedProduct: (productId: string) => productCacheRef.current.get(productId),
-    // Cell ops
-    getCellValue, setCellValue, isCellDirty, getCellError,
-    // CRUD
-    addEmptyRow, updateNewRow, removeNewRow, markForDeletion, unmarkDeletion,
-    // AI-ready
+    getCellValue,
+    setCellValue,
+    isCellDirty,
+    getCellError,
+    addEmptyRow,
+    updateNewRow,
+    removeNewRow,
+    markForDeletion,
+    unmarkDeletion,
     applyBulkChanges,
-    // Reset
     discardAll,
   }
 }
+

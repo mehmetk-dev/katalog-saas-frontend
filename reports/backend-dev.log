@@ -1,0 +1,99 @@
+
+> katalog-backend@1.0.0 dev
+> nodemon src/index.ts
+
+[33m[nodemon] 3.1.11[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: ts,json[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[32m[nodemon] restarting child process[39m
+[32m[nodemon] starting `ts-node src/index.ts`[39m
+[dotenv@17.2.3] injecting env (9) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (14) from ..\.env.local -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+^C^CServer is running on port 4000 🚀
+⚠️ Redis not available - running without cache
+[0mGET /api/v1/catalogs [32m200[0m 993.832 ms - -[0m
+[0mGET /api/v1/products?limit=4 [32m200[0m 1033.856 ms - -[0m
+[0mGET /api/v1/catalogs/stats?timeRange=30d [32m200[0m 1440.372 ms - 573[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 421.007 ms - 36[0m
+[0mGET /api/v1/catalogs/stats?timeRange=30d [32m200[0m 194.534 ms - 573[0m
+[0mGET /api/v1/products?limit=4 [32m200[0m 196.101 ms - -[0m
+[0mGET /api/v1/catalogs [32m200[0m 439.964 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 414.440 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 985.540 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 472.836 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 492.975 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 229.238 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 215.514 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 424.656 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 364.078 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 461.278 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 406.425 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 213.510 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=500 [32m200[0m 582.938 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 408.438 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 232.976 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 427.629 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 405.599 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 214.441 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=500 [32m200[0m 207.557 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 439.487 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 209.743 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 430.095 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 413.252 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 211.459 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 189.913 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 400.984 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 189.957 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 408.334 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 382.057 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 193.588 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 395.202 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 578.878 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 385.236 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 403.088 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 186.582 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 399.618 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 393.731 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 184.899 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 402.106 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 202.336 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 389.603 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 368.767 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 198.929 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=500 [32m200[0m 202.591 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 387.283 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 179.960 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 405.914 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 376.538 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 183.965 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 405.466 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 387.208 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 189.573 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 397.848 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 409.121 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 236.804 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 554.938 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 371.748 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 203.879 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 375.155 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 378.913 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 197.563 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 186.844 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 425.858 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 185.630 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 633.948 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 456.530 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 217.629 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 420.568 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 386.652 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 191.760 ms - -[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 181.276 ms - -[0m
+[0mGET /api/v1/users/me [32m200[0m 370.408 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 201.653 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 428.080 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 414.679 ms - 233[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 190.117 ms - -[0m

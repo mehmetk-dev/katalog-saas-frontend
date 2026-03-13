@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { getProducts, type Product, type ProductsResponse } from "@/lib/actions/products"
+import { getProducts, type BulkFieldUpdate, type Product, type ProductsResponse } from "@/lib/actions/products"
 import { useDebouncedValue } from "@/lib/hooks/use-debounce"
 
 interface UseExcelProductsParams {
@@ -19,6 +19,7 @@ interface UseExcelProductsResult {
   setCurrentPage: (page: number) => void
   isLoading: boolean
   refreshCurrentPage: () => Promise<void>
+  applyLocalCommit: (payload: { updates: BulkFieldUpdate[]; deletedIds: string[] }) => void
 }
 
 export function useExcelProducts({ initialProducts, initialMetadata }: UseExcelProductsParams): UseExcelProductsResult {
@@ -86,6 +87,38 @@ export function useExcelProducts({ initialProducts, initialMetadata }: UseExcelP
     await fetchPage(currentPage, debouncedSearch)
   }, [fetchPage, currentPage, debouncedSearch])
 
+  const applyLocalCommit = useCallback((payload: { updates: BulkFieldUpdate[]; deletedIds: string[] }) => {
+    const deletedSet = new Set(payload.deletedIds)
+
+    setProducts((prev) => {
+      const byId = new Map<string, Product>()
+
+      prev.forEach((product) => {
+        if (deletedSet.has(product.id)) return
+        byId.set(product.id, { ...product })
+      })
+
+      payload.updates.forEach((update) => {
+        const existing = byId.get(update.id)
+        if (!existing) return
+
+        const next: Product = { ...existing }
+        if (update.name !== undefined) next.name = update.name
+        if (update.sku !== undefined) next.sku = update.sku
+        if (update.price !== undefined) next.price = update.price
+        if (update.stock !== undefined) next.stock = update.stock
+        if (update.category !== undefined) next.category = update.category
+        if (update.description !== undefined) next.description = update.description
+        if (update.product_url !== undefined) next.product_url = update.product_url
+        if (update.custom_attributes !== undefined) next.custom_attributes = update.custom_attributes
+
+        byId.set(update.id, next)
+      })
+
+      return Array.from(byId.values())
+    })
+  }, [])
+
   return useMemo(() => ({
     products,
     metadata,
@@ -95,5 +128,6 @@ export function useExcelProducts({ initialProducts, initialMetadata }: UseExcelP
     setCurrentPage,
     isLoading,
     refreshCurrentPage,
-  }), [products, metadata, search, currentPage, isLoading, refreshCurrentPage, handleSetSearch])
+    applyLocalCommit,
+  }), [products, metadata, search, currentPage, isLoading, refreshCurrentPage, applyLocalCommit, handleSetSearch])
 }

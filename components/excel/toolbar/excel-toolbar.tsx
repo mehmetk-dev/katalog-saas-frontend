@@ -15,35 +15,42 @@ interface ExcelToolbarProps {
   onDeleteSelected: () => void
   onClearSelection?: () => void
   onOpenAI?: () => void
+  isAIDisabled?: boolean
+  isAIActive?: boolean
 }
 
 export function ExcelToolbar({
-  selectedCount, totalCount, search, onSearchChange,
-  onAddRow, onDeleteSelected, onClearSelection, onOpenAI,
+  selectedCount,
+  totalCount,
+  search,
+  onSearchChange,
+  onAddRow,
+  onDeleteSelected,
+  onClearSelection,
+  onOpenAI,
+  isAIDisabled = false,
+  isAIActive = false,
 }: ExcelToolbarProps) {
   const { t } = useTranslation()
 
   return (
-    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 px-4 py-3 border-b bg-background/80 backdrop-blur-sm">
-      {/* Search */}
-      <div className="relative flex-1 max-w-xs">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-wrap items-center gap-2 border-b bg-background/80 px-4 py-3 backdrop-blur-sm sm:flex-nowrap sm:gap-3">
+      <div className="relative max-w-xs flex-1">
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
-          onChange={e => onSearchChange(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder={t("excel.searchPlaceholder") as string}
-          className="pl-9 h-8 text-sm"
+          className="h-8 pl-9 text-sm"
         />
       </div>
 
-      {/* Count */}
-      <span className="text-xs text-muted-foreground tabular-nums hidden sm:block">
+      <span className="hidden text-xs tabular-nums text-muted-foreground sm:block">
         {totalCount} {t("products.title")}
       </span>
 
       <div className="flex-1" />
 
-      {/* Actions */}
       <Button variant="outline" size="sm" onClick={onAddRow} className="gap-1.5">
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">{t("excel.addProduct")}</span>
@@ -52,7 +59,12 @@ export function ExcelToolbar({
       {selectedCount > 0 && (
         <>
           {onClearSelection && (
-            <Button variant="ghost" size="sm" onClick={onClearSelection} className="gap-1.5 text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearSelection}
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+            >
               <X className="h-4 w-4" />
               <span className="hidden sm:inline">{t("excel.clearSelection")}</span>
             </Button>
@@ -65,9 +77,14 @@ export function ExcelToolbar({
         </>
       )}
 
-      {/* AI Button — Faz 2 */}
       {onOpenAI && (
-        <Button variant="outline" size="sm" onClick={onOpenAI} disabled className="gap-1.5 opacity-50">
+        <Button
+          variant={isAIActive ? "secondary" : "outline"}
+          size="sm"
+          onClick={onOpenAI}
+          disabled={isAIDisabled}
+          className="gap-1.5"
+        >
           <Sparkles className="h-3.5 w-3.5" />
           AI
         </Button>
@@ -75,3 +92,4 @@ export function ExcelToolbar({
     </div>
   )
 }
+

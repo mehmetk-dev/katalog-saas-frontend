@@ -14,6 +14,7 @@ interface UseExcelCrudParams {
   canSave: boolean
   discardAll: () => void
   refreshData: () => Promise<void>
+  applyLocalCommit?: (payload: { updates: BulkFieldUpdate[]; deletedIds: string[] }) => void
   t: (key: string, params?: Record<string, unknown>) => string
   getCachedProduct: (productId: string) => Product | undefined
 }
@@ -50,7 +51,7 @@ function isCustomAttributeField(field: string): field is `attr:${string}` {
 }
 
 export function useExcelCrud({
-  editedCells, newRows, deletedIds, canSave, discardAll, refreshData, t, getCachedProduct
+  editedCells, newRows, deletedIds, canSave, discardAll, refreshData, applyLocalCommit, t, getCachedProduct
 }: UseExcelCrudParams) {
   const [isSaving, setIsSaving] = useState(false)
 
@@ -138,6 +139,11 @@ export function useExcelCrud({
         totalDeleted += idsToDelete.length
       }
 
+      applyLocalCommit?.({
+        updates,
+        deletedIds: idsToDelete,
+      })
+
       discardAll()
       await refreshData()
 
@@ -159,7 +165,7 @@ export function useExcelCrud({
     } finally {
       setIsSaving(false)
     }
-  }, [canSave, buildUpdates, newRows, deletedIds, discardAll, t, refreshData])
+  }, [canSave, buildUpdates, newRows, deletedIds, applyLocalCommit, discardAll, t, refreshData])
 
   return { isSaving, saveAll }
 }
