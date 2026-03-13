@@ -2,10 +2,10 @@ import type { Language } from "@/lib/translations"
 
 const messages = {
   tr: {
-    invalidUrl: "Geçerli bir URL girin",
-    instagramDomain: "Lütfen instagram.com adresi girin",
-    youtubeDomain: "Lütfen youtube.com veya youtu.be adresi girin",
-    websiteProtocol: "URL http:// veya https:// ile baþlamalý",
+    invalidUrl: "GeÃ§erli bir URL girin",
+    instagramDomain: "LÃ¼tfen instagram.com adresi girin",
+    youtubeDomain: "LÃ¼tfen youtube.com veya youtu.be adresi girin",
+    websiteProtocol: "URL http:// veya https:// ile baÅŸlamalÄ±",
   },
   en: {
     invalidUrl: "Please enter a valid URL",
