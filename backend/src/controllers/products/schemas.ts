@@ -126,3 +126,18 @@ export const bulkPriceUpdateSchema = z.object({
     changeMode: z.enum(['percentage', 'fixed']),
     amount: z.number().positive().max(999999),
 });
+
+/** Schema for Excel bulk field update — each product sends only changed fields */
+export const bulkUpdateFieldsSchema = z.object({
+    updates: z.array(z.object({
+        id: uuidString,
+        name: z.string().trim().min(2).max(200).optional(),
+        sku: z.string().max(100).optional().nullable(),
+        description: z.string().max(5000).optional().nullable(),
+        price: z.number().finite().min(0).max(1_000_000_000).optional(),
+        stock: z.number().int().min(0).max(10_000_000).optional(),
+        category: z.string().max(200).optional().nullable(),
+        product_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+        custom_attributes: z.array(customAttributeSchema).optional().nullable(),
+    })).min(1, 'At least 1 update required').max(500, 'Maximum 500 updates per request'),
+});

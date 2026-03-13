@@ -545,4 +545,27 @@ export async function getAllProductIds(): Promise<string[]> {
   }
 }
 
+export interface BulkFieldUpdate {
+  id: string
+  name?: string
+  sku?: string | null
+  description?: string | null
+  price?: number
+  stock?: number
+  category?: string | null
+  product_url?: string | null
+  custom_attributes?: CustomAttribute[]
+}
 
+export async function bulkUpdateFields(updates: BulkFieldUpdate[]) {
+  const result = await apiFetch<{ success: boolean; updatedCount: number; failedCount: number }>(
+    "/products/bulk-update-fields",
+    {
+      method: "POST",
+      body: JSON.stringify({ updates }),
+    }
+  )
+  revalidatePath("/dashboard/excel")
+  revalidatePath("/dashboard/products")
+  return result
+}

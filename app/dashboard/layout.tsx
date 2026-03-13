@@ -1,5 +1,6 @@
 import type React from "react"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import { Toaster } from "sonner"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
@@ -53,11 +54,14 @@ export default async function DashboardLayout({
     exportsUsed: profile?.exports_used || 0,
   }
 
+  const cookieStore = await cookies()
+  const defaultCollapsed = cookieStore.get("sidebar-collapsed")?.value === "true"
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
       <QueryProvider>
         <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
-          <SidebarProvider>
+          <SidebarProvider defaultCollapsed={defaultCollapsed}>
             <div className="h-screen flex bg-background overflow-hidden">
               <DashboardSidebar />
               <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">

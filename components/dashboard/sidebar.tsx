@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, BarChart3, HelpCircle } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, BarChart3, HelpCircle, Table2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,7 @@ export function DashboardSidebar() {
     { href: "/dashboard/analytics", label: t("dashboard.analytics.title"), icon: BarChart3 },
     { href: "/dashboard/products", label: t("dashboard.products"), icon: Package },
     { href: "/dashboard/categories", label: t("sidebar.categories"), icon: FolderOpen, premium: true },
+    { href: "/dashboard/excel", label: t("excel.title"), icon: Table2, premium: true, proOnly: true },
     { href: "/dashboard/catalogs", label: t("sidebar.catalogs"), icon: BookOpen },
     { href: "/dashboard/templates", label: t("sidebar.templates"), icon: Palette },
     { href: "/dashboard/settings", label: t("common.settings"), icon: Settings },

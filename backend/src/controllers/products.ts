@@ -8,4 +8,5 @@ export {
     renameCategory,
     deleteCategoryFromProducts,
     bulkUpdateImages,
+    bulkUpdateFields,
 } from './products/bulk';

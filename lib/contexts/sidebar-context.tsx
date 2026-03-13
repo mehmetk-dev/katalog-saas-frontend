@@ -17,9 +17,9 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 const SIDEBAR_STORAGE_KEY = "sidebar-collapsed"
 
-export function SidebarProvider({ children }: { children: React.ReactNode }) {
+export function SidebarProvider({ children, defaultCollapsed = false }: { children: React.ReactNode, defaultCollapsed?: boolean }) {
     const [isOpen, setIsOpen] = useState(false) // Mobilde overlay sidebar için
-    const [isCollapsed, setIsCollapsed] = useState(false) // Masaüstünde collapse için
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed) // Masaüstünde collapse için
     const [isMobile, setIsMobile] = useState(false)
 
     useEffect(() => {
@@ -55,6 +55,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     // Collapse durumunu kaydet
     useEffect(() => {
         localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isCollapsed))
+        document.cookie = `${SIDEBAR_STORAGE_KEY}=${isCollapsed}; path=/; max-age=31536000`
     }, [isCollapsed])
 
     const toggle = useCallback(() => {

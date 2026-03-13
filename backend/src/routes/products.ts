@@ -19,6 +19,7 @@ router.post('/bulk-import', express.json({ limit: '50mb' }), ProductController.b
 router.post('/reorder', ProductController.reorderProducts);
 router.post('/bulk-price-update', ProductController.bulkUpdatePrices);
 router.post('/bulk-image-update', ProductController.bulkUpdateImages);
+router.post('/bulk-update-fields', ProductController.bulkUpdateFields);
 router.post('/rename-category', ProductController.renameCategory);
 router.post('/delete-category', ProductController.deleteCategoryFromProducts);
 router.post('/check-catalogs', ProductController.checkProductsInCatalogs);

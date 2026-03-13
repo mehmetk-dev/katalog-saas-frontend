@@ -19,6 +19,7 @@ export type ActivityType =
     | 'products_exported'
     | 'products_bulk_deleted'
     | 'products_prices_bulk_updated'
+    | 'products_bulk_fields_updated'
     | 'products_reordered'
     | 'category_created'
     | 'category_deleted'
@@ -110,6 +111,7 @@ export const ActivityDescriptions = {
     productsExported: (count: number) => `${count} ürün dışa aktardı`,
     productsBulkDeleted: (count: number) => `${count} ürünü toplu sildi`,
     productsPricesBulkUpdated: (count: number) => `${count} ürünün fiyatını toplu güncelledi`,
+    productsBulkFieldsUpdated: (count: number) => `${count} ürünü Excel düzenleyicide güncelledi`,
     productsReordered: (count: number) => `${count} ürünün sırasını güncelledi`,
     categoryCreated: (name: string) => `"${name}" kategorisi oluşturdu`,
     categoryDeleted: (name: string) => `"${name}" kategorisini sildi`,

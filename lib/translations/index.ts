@@ -9,6 +9,7 @@ import settings from "./settings"
 import publicPages from "./public-pages"
 import legal from "./legal"
 import admin from "./admin"
+import excel from "./excel"
 
 export type Language = "tr" | "en"
 
@@ -25,6 +26,7 @@ export const translations = {
         ...publicPages.tr,
         ...legal.tr,
         ...admin.tr,
+        ...excel.tr,
     },
     en: {
         ...common.en,
@@ -38,5 +40,7 @@ export const translations = {
         ...publicPages.en,
         ...legal.en,
         ...admin.en,
+        ...excel.en,
     },
 } as const
+
