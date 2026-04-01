@@ -29,18 +29,6 @@ export default async function ExcelPage({
 
   const userPlan = (user?.plan as "free" | "plus" | "pro") || "free"
 
-  if (userPlan !== "pro") {
-    return (
-      <Suspense fallback={<ExcelPageSkeleton />}>
-        <ExcelPageClient
-          initialProducts={[]}
-          initialMetadata={{ total: 0, page: 1, limit: EXCEL_PAGE_SIZE, totalPages: 1 }}
-          userPlan={userPlan}
-        />
-      </Suspense>
-    )
-  }
-
   let productsResponse: Awaited<ReturnType<typeof getProducts>> = {
     products: [],
     metadata: { total: 0, page: 1, limit: EXCEL_PAGE_SIZE, totalPages: 1 },

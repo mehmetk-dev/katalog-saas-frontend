@@ -84,3 +84,12 @@ export interface ExcelAiIntent {
   reason?: string
 }
 
+export interface GeneratedProduct {
+  name: string
+  description: string
+  price: number
+  stock: number
+  category: string
+  sku: string
+}
+

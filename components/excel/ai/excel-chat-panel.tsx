@@ -6,7 +6,7 @@ import { Bot, Loader2, Send, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
-import type { ExcelAiIntent, ExcelAiOperation } from "@/lib/excel-ai/types"
+import type { ExcelAiIntent, ExcelAiOperation, GeneratedProduct } from "@/lib/excel-ai/types"
 import type { Language } from "@/lib/translations"
 
 interface ApplyResult {
@@ -21,6 +21,9 @@ interface ExcelChatPanelProps {
   totalCount: number
   search: string
   onApplyIntent: (intent: ExcelAiIntent) => Promise<ApplyResult>
+  onAddGeneratedProducts?: (products: GeneratedProduct[]) => void
+  maxProducts?: number
+  currentProductCount?: number
 }
 
 interface ChatMessage {
@@ -40,29 +43,43 @@ interface QuickPrompt {
   text: string
 }
 
+interface QuotaInfo {
+  remaining: number
+  limit: number
+}
+
 type IntentApiResponse =
   | {
-      mode: "intent"
-      intent: ExcelAiIntent
-      assistantMessage?: string
-    }
+    mode: "intent"
+    intent: ExcelAiIntent
+    assistantMessage?: string
+    _quota?: QuotaInfo
+  }
   | {
-      mode: "chat"
-      assistantMessage: string
-      capabilities?: string[]
-    }
+    mode: "chat"
+    assistantMessage: string
+    capabilities?: string[]
+    _quota?: QuotaInfo
+  }
   | {
-      mode: "clarification"
-      assistantMessage: string
-      clarificationQuestion: string
-      suggestedCommands?: string[]
-    }
+    mode: "clarification"
+    assistantMessage: string
+    clarificationQuestion: string
+    suggestedCommands?: string[]
+    _quota?: QuotaInfo
+  }
+  | {
+    mode: "generate_products"
+    assistantMessage: string
+    products: GeneratedProduct[]
+    _quota?: QuotaInfo
+  }
 
 function isIntentApiResponse(payload: unknown): payload is IntentApiResponse {
   if (!payload || typeof payload !== "object") return false
   if (!("mode" in payload)) return false
   const mode = (payload as { mode?: unknown }).mode
-  return mode === "intent" || mode === "chat" || mode === "clarification"
+  return mode === "intent" || mode === "chat" || mode === "clarification" || mode === "generate_products"
 }
 
 function extractApiError(payload: unknown): string | null {
@@ -167,6 +184,9 @@ export function ExcelChatPanel({
   totalCount,
   search,
   onApplyIntent,
+  onAddGeneratedProducts,
+  maxProducts,
+  currentProductCount,
 }: ExcelChatPanelProps) {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -177,6 +197,8 @@ export function ExcelChatPanel({
     },
   ])
   const [pendingIntent, setPendingIntent] = useState<ExcelAiIntent | null>(null)
+  const [pendingProducts, setPendingProducts] = useState<GeneratedProduct[] | null>(null)
+  const [quota, setQuota] = useState<QuotaInfo | null>(null)
   const [selectedPresetId, setSelectedPresetId] = useState<QuickPromptPresetId | null>(null)
   const [showQuickPrompts, setShowQuickPrompts] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -251,6 +273,11 @@ export function ExcelChatPanel({
         return
       }
 
+      if (payload && typeof payload === "object" && "_quota" in payload) {
+        const q = (payload as { _quota?: QuotaInfo })._quota
+        if (q) setQuota(q)
+      }
+
       if (!isIntentApiResponse(payload)) {
         const messageText =
           language === "tr"
@@ -264,6 +291,7 @@ export function ExcelChatPanel({
 
       if (payload.mode === "intent") {
         setPendingIntent(payload.intent)
+        setPendingProducts(null)
 
         const scopeLabel = getScopeLabel(payload.intent.scope, language)
         const operationSummary = payload.intent.operations.map((op) => `- ${describeOperation(op, language)}`).join("\n")
@@ -281,7 +309,31 @@ export function ExcelChatPanel({
         return
       }
 
+      if (payload.mode === "generate_products") {
+        setPendingIntent(null)
+        setPendingProducts(payload.products)
+
+        const productList = payload.products
+          .slice(0, 5)
+          .map((p) => `- ${p.name} (${p.category || "-"}) — ${p.price}`)
+          .join("\n")
+        const moreText =
+          payload.products.length > 5
+            ? language === "tr"
+              ? `\n... ve ${payload.products.length - 5} ürün daha`
+              : `\n... and ${payload.products.length - 5} more`
+            : ""
+
+        addMessage({
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `${payload.assistantMessage}\n\n${productList}${moreText}`,
+        })
+        return
+      }
+
       setPendingIntent(null)
+      setPendingProducts(null)
 
       if (payload.mode === "chat") {
         addMessage({
@@ -332,6 +384,20 @@ export function ExcelChatPanel({
     } finally {
       setIsApplying(false)
     }
+  }
+
+  const handleAddGeneratedProducts = () => {
+    if (!pendingProducts || !onAddGeneratedProducts) return
+
+    onAddGeneratedProducts(pendingProducts)
+
+    const successMessage =
+      language === "tr"
+        ? `${pendingProducts.length} ürün tabloya eklendi. Kaydetmeden veritabanına yazılmaz.`
+        : `${pendingProducts.length} products added to the table. No database writes until Save.`
+
+    addMessage({ id: crypto.randomUUID(), role: "assistant", content: successMessage })
+    setPendingProducts(null)
   }
 
   const onInputKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (event) => {
@@ -389,6 +455,26 @@ export function ExcelChatPanel({
               </div>
             </div>
           )}
+
+          {pendingProducts && onAddGeneratedProducts && (
+            <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3">
+              <div className="text-xs font-semibold text-green-700 dark:text-green-400">
+                {language === "tr" ? "Oluşturulan Ürünler" : "Generated Products"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {pendingProducts.length} {language === "tr" ? "ürün tabloya eklenecek" : "products will be added to the table"}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={handleAddGeneratedProducts} disabled={isApplying || isGenerating}>
+                  {language === "tr" ? "Tabloya Ekle" : "Add to Table"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPendingProducts(null)} disabled={isApplying || isGenerating}>
+                  {language === "tr" ? "İptal" : "Dismiss"}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -439,6 +525,22 @@ export function ExcelChatPanel({
           <span className="text-[11px] text-muted-foreground">
             {language === "tr" ? "Seçili" : "Selected"}: {selectedCount} | {language === "tr" ? "Sayfa" : "Page"}: {visibleCount} |{" "}
             {language === "tr" ? "Toplam" : "Total"}: {totalCount}
+            {quota && (
+              <>
+                {" | "}
+                <span className={quota.remaining <= 5 ? "text-destructive font-medium" : ""}>
+                  {language === "tr" ? "Kota" : "Quota"}: {quota.remaining}/{quota.limit}
+                </span>
+              </>
+            )}
+            {maxProducts != null && currentProductCount != null && maxProducts !== Infinity && (
+              <>
+                {" | "}
+                <span className={currentProductCount >= maxProducts ? "text-destructive font-medium" : ""}>
+                  {language === "tr" ? "Ürün" : "Products"}: {currentProductCount}/{maxProducts}
+                </span>
+              </>
+            )}
           </span>
 
           <Button size="sm" onClick={() => void handleGenerateIntent()} disabled={!input.trim() || isGenerating || isApplying}>

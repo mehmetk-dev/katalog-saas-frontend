@@ -27,6 +27,7 @@ interface SpreadsheetTableProps {
   updateNewRow: (tempId: string, field: string, value: string | number) => void
   sortConfig?: { key: CellField; direction: "asc" | "desc" } | null
   onSort?: (key: CellField) => void
+  categoryOptions?: string[]
 }
 
 interface ProductRowProps {
@@ -43,6 +44,7 @@ interface ProductRowProps {
   getCellError: (productId: string, field: CellField) => string | null
   toggleSelect: (id: string) => void
   t: (key: string) => string
+  categoryOptions?: string[]
 }
 
 interface NewProductRowProps {
@@ -52,6 +54,7 @@ interface NewProductRowProps {
   getCellError: (productId: string, field: CellField) => string | null
   updateNewRow: (tempId: string, field: string, value: string | number) => void
   t: (key: string) => string
+  categoryOptions?: string[]
 }
 
 export function SpreadsheetTable({
@@ -69,6 +72,7 @@ export function SpreadsheetTable({
   updateNewRow,
   sortConfig,
   onSort,
+  categoryOptions,
 }: SpreadsheetTableProps) {
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string) => baseT(key) as string, [baseT])
@@ -252,6 +256,7 @@ export function SpreadsheetTable({
               getCellError={getCellError}
               updateNewRow={updateNewRow}
               t={t}
+              categoryOptions={categoryOptions}
             />
           ))}
 
@@ -282,6 +287,7 @@ export function SpreadsheetTable({
                 getCellError={getCellError}
                 toggleSelect={toggleSelect}
                 t={t}
+                categoryOptions={categoryOptions}
               />
             )
           })}
@@ -319,6 +325,7 @@ const ProductRow = memo(function ProductRow({
   getCellError,
   toggleSelect,
   t,
+  categoryOptions,
 }: ProductRowProps) {
   return (
     <tr
@@ -379,6 +386,7 @@ const ProductRow = memo(function ProductRow({
               setCellValue={setCellValue}
               isNewRow={false}
               fieldKey={column.key}
+              restrictToOptions={column.key === "category" ? categoryOptions : undefined}
             />
           </td>
         )
@@ -412,6 +420,7 @@ const NewProductRow = memo(function NewProductRow({
   getCellError,
   updateNewRow,
   t,
+  categoryOptions,
 }: NewProductRowProps) {
   return (
     <tr className="border-b bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50 focus-within:bg-emerald-50 dark:hover:bg-emerald-950/40 dark:focus-within:bg-emerald-950/40 transition-colors group/newrow">
@@ -447,6 +456,7 @@ const NewProductRow = memo(function NewProductRow({
               isNewRow
               fieldKey={fieldKey}
               updateNewRow={updateNewRow}
+              restrictToOptions={column.key === "category" ? categoryOptions : undefined}
             />
           </td>
         )

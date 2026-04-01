@@ -106,6 +106,42 @@ export function checkRateLimit(
   }
 }
 
+/**
+ * User-ID bazlı rate limit. userId doğrudan key olarak kullanılır.
+ * IP bazlı olmadığı için proxy/NAT arkasındaki kullanıcıları doğru ayırır.
+ */
+export function checkUserRateLimit(
+  userId: string,
+  keyPrefix: string,
+  limit: number,
+  windowMs: number,
+): RateLimitResult {
+  scheduleCleanup()
+  const key = `${keyPrefix}:user:${userId}`
+  const now = Date.now()
+  let entry = store.get(key)
+
+  if (!entry || entry.resetAt < now) {
+    if (store.size >= MAX_STORE_SIZE) {
+      evictOldest()
+    }
+    entry = { count: 1, resetAt: now + windowMs }
+    store.set(key, entry)
+    return { allowed: true, remaining: limit - 1, resetAt: entry.resetAt }
+  }
+
+  if (entry.count >= limit) {
+    return { allowed: false, remaining: 0, resetAt: entry.resetAt }
+  }
+
+  entry.count += 1
+  return {
+    allowed: true,
+    remaining: limit - entry.count,
+    resetAt: entry.resetAt,
+  }
+}
+
 /** Auth callback: dakikada en fazla 15 deneme (OAuth redirect) */
 export const AUTH_CALLBACK_LIMIT = 15
 export const AUTH_CALLBACK_WINDOW_MS = 60 * 1000
@@ -117,3 +153,11 @@ export const FEEDBACK_WINDOW_MS = 10 * 60 * 1000
 /** Public iletişim formu: 10 dakikada en fazla 3 */
 export const CONTACT_LIMIT = 3
 export const CONTACT_WINDOW_MS = 10 * 60 * 1000
+
+/** Excel AI chat: kullanıcı başına günlük limit (plana göre) */
+export const AI_CHAT_WINDOW_MS = 24 * 60 * 60 * 1000 // 24 saat
+export const AI_CHAT_LIMITS: Record<string, number> = {
+  free: 20,
+  plus: 50,
+  pro: 100,
+}

@@ -15,13 +15,14 @@ interface SpreadsheetCellProps {
   tabIndex?: number
   isNewRow?: boolean
   fieldKey?: string
+  restrictToOptions?: string[]
   setCellValue?: (productId: string, field: CellField, value: string | number | null) => void
   updateNewRow?: (tempId: string, field: string, value: string | number) => void
 }
 
 export const SpreadsheetCell = memo(function SpreadsheetCell({
   productId, column, value, isDirty, isDeleted, error, tabIndex,
-  isNewRow, fieldKey, setCellValue, updateNewRow
+  isNewRow, fieldKey, restrictToOptions, setCellValue, updateNewRow
 }: SpreadsheetCellProps) {
   const displayValue = value === null || value === undefined ? "" : String(value)
 
@@ -89,7 +90,22 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
 
   return (
     <div className="relative group">
-      {column.type === "textarea" ? (
+      {restrictToOptions ? (
+        <select
+          value={localValue}
+          onChange={e => handleChange(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          disabled={isDeleted}
+          tabIndex={tabIndex}
+          className={baseClasses}
+        >
+          <option value="">{""}</option>
+          {restrictToOptions.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      ) : column.type === "textarea" ? (
         <textarea
           value={localValue}
           onChange={e => handleChange(e.target.value)}

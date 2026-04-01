@@ -5,15 +5,15 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
 import { getProducts, type Product, type ProductsResponse } from "@/lib/actions/products"
+import { getPlanLimits } from "@/lib/constants"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import type { ExcelAiIntent } from "@/lib/excel-ai/types"
+import type { ExcelAiIntent, GeneratedProduct } from "@/lib/excel-ai/types"
 import type { CellField } from "./types"
 import { buildBulkChangesFromIntent, collectExistingCategories } from "./ai/bulk-changes"
 import { ExcelChatPanel } from "./ai/excel-chat-panel"
 import { useExcelCrud } from "./hooks/use-excel-crud"
 import { useExcelProducts } from "./hooks/use-excel-products"
 import { useSpreadsheet } from "./hooks/use-spreadsheet"
-import { ProGate } from "./pro-gate"
 import { SpreadsheetTable } from "./table/spreadsheet-table"
 import { ExcelToolbar } from "./toolbar/excel-toolbar"
 import { SaveBar } from "./toolbar/save-bar"
@@ -28,6 +28,7 @@ interface ExcelPageClientProps {
 interface ExcelPageContentProps {
   initialProducts: Product[]
   initialMetadata: ProductsResponse["metadata"]
+  userPlan: "free" | "plus" | "pro"
   tFn: (key: string, params?: Record<string, unknown>) => string
 }
 
@@ -46,14 +47,10 @@ export function ExcelPageClient({ initialProducts, initialMetadata, userPlan }: 
     [t],
   )
 
-  if (userPlan !== "pro") {
-    return <ProGate onUpgrade={() => router.push("/dashboard/settings?tab=billing")} />
-  }
-
-  return <ExcelPageContent initialProducts={initialProducts} initialMetadata={initialMetadata} tFn={tFn} />
+  return <ExcelPageContent initialProducts={initialProducts} initialMetadata={initialMetadata} userPlan={userPlan} tFn={tFn} />
 }
 
-function ExcelPageContent({ initialProducts, initialMetadata, tFn }: ExcelPageContentProps) {
+function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: ExcelPageContentProps) {
   const { t, language } = useTranslation()
   const router = useRouter()
 
@@ -92,6 +89,10 @@ function ExcelPageContent({ initialProducts, initialMetadata, tFn }: ExcelPageCo
   }, [])
 
   const spreadsheet = useSpreadsheet(products)
+
+  const planLimits = getPlanLimits(userPlan)
+  const currentProductCount = metadata.total + spreadsheet.newRows.length - spreadsheet.deletedIds.size
+  const remainingCapacity = Math.max(0, planLimits.maxProducts - currentProductCount)
 
   const crud = useExcelCrud({
     editedCells: spreadsheet.editedCells,
@@ -284,6 +285,68 @@ function ExcelPageContent({ initialProducts, initialMetadata, tFn }: ExcelPageCo
     [resolveScopeProducts, spreadsheet, language, products],
   )
 
+  const handleAddGeneratedProducts = useCallback(
+    (generated: GeneratedProduct[]) => {
+      if (remainingCapacity <= 0) {
+        const msg = language === "tr"
+          ? `Ürün limitinize ulaştınız (${planLimits.maxProducts}). Daha fazla eklemek için planınızı yükseltin.`
+          : `You've reached your product limit (${planLimits.maxProducts}). Upgrade your plan to add more.`
+        toast.error(msg)
+        return
+      }
+
+      const toAdd = generated.slice(0, remainingCapacity)
+      const trimmed = toAdd.length < generated.length
+
+      spreadsheet.addFilledRows(
+        toAdd.map((p) => ({
+          name: p.name,
+          sku: p.sku || "",
+          price: p.price,
+          stock: p.stock,
+          category: p.category || "",
+          description: p.description || "",
+          product_url: "",
+          custom_attributes: [],
+        })),
+      )
+
+      const base = language === "tr"
+        ? `${toAdd.length} ürün tabloya eklendi. Kaydetmeden veritabanına yazılmaz.`
+        : `${toAdd.length} products added to the table. Save to write to database.`
+
+      if (trimmed) {
+        const trimMsg = language === "tr"
+          ? `${base} (Plan limitiniz nedeniyle ${generated.length - toAdd.length} ürün atlandı.)`
+          : `${base} (${generated.length - toAdd.length} products skipped due to plan limit.)`
+        toast.warning(trimMsg)
+      } else {
+        toast.success(base)
+      }
+    },
+    [spreadsheet, language, remainingCapacity, planLimits.maxProducts],
+  )
+
+  const handleAddRow = useCallback(() => {
+    if (remainingCapacity <= 0) {
+      const msg = language === "tr"
+        ? `Ürün limitinize ulaştınız (${planLimits.maxProducts}). Daha fazla eklemek için planınızı yükseltin.`
+        : `You've reached your product limit (${planLimits.maxProducts}). Upgrade your plan to add more.`
+      toast.error(msg)
+      return
+    }
+    spreadsheet.addEmptyRow()
+  }, [remainingCapacity, planLimits.maxProducts, language, spreadsheet])
+
+  const freeCategoryOptions = useMemo(() => {
+    if (userPlan !== "free") return undefined
+    const cats = new Set<string>()
+    products.forEach((p) => {
+      if (p.category) p.category.split(",").forEach((c) => { const trimmed = c.trim(); if (trimmed) cats.add(trimmed) })
+    })
+    return Array.from(cats).sort()
+  }, [products, userPlan])
+
   const pageOffset = (metadata.page - 1) * metadata.limit
 
   return (
@@ -300,7 +363,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, tFn }: ExcelPageCo
             totalCount={metadata.total}
             search={search}
             onSearchChange={setSearch}
-            onAddRow={spreadsheet.addEmptyRow}
+            onAddRow={handleAddRow}
             onDeleteSelected={handleDeleteSelected}
             onClearSelection={() => setSelectedIds([])}
             onOpenAI={() => setIsAiPanelOpen((prev) => !prev)}
@@ -337,6 +400,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, tFn }: ExcelPageCo
             isCellDirty={spreadsheet.isCellDirty}
             getCellError={spreadsheet.getCellError}
             updateNewRow={spreadsheet.updateNewRow}
+            categoryOptions={freeCategoryOptions}
           />
 
           {metadata.totalPages > 1 && (
@@ -380,6 +444,9 @@ function ExcelPageContent({ initialProducts, initialMetadata, tFn }: ExcelPageCo
               totalCount={metadata.total}
               search={search}
               onApplyIntent={handleApplyAiIntent}
+              onAddGeneratedProducts={handleAddGeneratedProducts}
+              maxProducts={planLimits.maxProducts}
+              currentProductCount={currentProductCount}
             />
           </aside>
         )}

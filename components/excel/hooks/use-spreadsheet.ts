@@ -223,6 +223,16 @@ export function useSpreadsheet(products: Product[]) {
     setNewRows((prev) => [...prev, createEmptyRow()])
   }, [])
 
+  const addFilledRows = useCallback((rows: Array<Omit<NewRow, "tempId">>) => {
+    setNewRows((prev) => [
+      ...prev,
+      ...rows.map((row) => ({
+        ...row,
+        tempId: crypto.randomUUID(),
+      })),
+    ])
+  }, [])
+
   const updateNewRow = useCallback((tempId: string, field: string, value: string | number) => {
     setNewRows((prev) => prev.map((row) => (row.tempId === tempId ? { ...row, [field]: value } : row)))
   }, [])
@@ -301,6 +311,7 @@ export function useSpreadsheet(products: Product[]) {
     isCellDirty,
     getCellError,
     addEmptyRow,
+    addFilledRows,
     updateNewRow,
     removeNewRow,
     markForDeletion,

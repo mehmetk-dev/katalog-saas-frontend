@@ -359,3 +359,9 @@
 [0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 671.126 ms - 36[0m
 [0mGET /api/v1/users/me [32m200[0m 446.283 ms - 232[0m
 [0mGET /api/v1/products?page=1&limit=100 [32m200[0m 620.804 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 406.576 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 412.678 ms - 232[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 573.152 ms - -[0m
+[0mGET /api/v1/notifications?limit=20&unread_only=false [32m200[0m 373.858 ms - 36[0m
+[0mGET /api/v1/users/me [32m200[0m 410.028 ms - 232[0m
+[0mGET /api/v1/products?page=1&limit=100 [32m200[0m 184.153 ms - -[0m
