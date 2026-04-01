@@ -74,7 +74,6 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
     language: params.language,
     userPlan: params.userPlan,
     refreshUser: params.refreshUser,
-    routerRefresh: params.routerRefresh,
     startTransition: params.startTransition,
     products: params.products,
     selectedIds: params.selectedIds,

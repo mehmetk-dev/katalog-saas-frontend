@@ -53,7 +53,7 @@ export function ProductsToolbar({
     const { t } = useTranslation()
 
     return (
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl p-1.5 shadow-sm border border-gray-200 dark:border-gray-800">
+        <div className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-gray-900 rounded-xl p-1 sm:p-1.5 shadow-sm border border-gray-200 dark:border-gray-800">
             {/* Tümünü Seç Checkbox */}
             <div className="flex items-center justify-center h-8 w-8 shrink-0">
                 <Tooltip>
@@ -71,7 +71,7 @@ export function ProductsToolbar({
             </div>
 
             {/* Arama - Compact */}
-            <div className="relative flex-1 min-w-0 max-w-[200px] group transition-all focus-within:max-w-[280px]">
+            <div className="relative flex-1 min-w-0 max-w-[120px] sm:max-w-[200px] group transition-all focus-within:max-w-[280px]">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground transition-colors group-focus-within:text-violet-500" />
                 <Input
                     placeholder={t("products.searchPlaceholder") as string}

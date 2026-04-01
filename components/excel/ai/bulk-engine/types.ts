@@ -1,11 +1,16 @@
 import type { Product } from "@/lib/actions/products"
 import type {
+  ExcelAiEnrichDescriptionOperation,
+  ExcelAiFillEmptyOperation,
+  ExcelAiFixNameOperation,
   ExcelAiGenerateCategoryOperation,
   ExcelAiGenerateDescriptionOperation,
   ExcelAiGeneratePriceOperation,
   ExcelAiGenerateSkuOperation,
   ExcelAiIntent,
   ExcelAiOperation,
+  ExcelAiRoundPriceOperation,
+  ExcelAiTranslateOperation,
 } from "@/lib/excel-ai/types"
 
 import type { CellField } from "../../types"
@@ -14,7 +19,15 @@ export type Language = "tr" | "en"
 
 export type PrimitiveOperation = Exclude<
   ExcelAiOperation,
-  ExcelAiGenerateDescriptionOperation | ExcelAiGenerateCategoryOperation | ExcelAiGenerateSkuOperation | ExcelAiGeneratePriceOperation
+  | ExcelAiGenerateDescriptionOperation
+  | ExcelAiGenerateCategoryOperation
+  | ExcelAiGenerateSkuOperation
+  | ExcelAiGeneratePriceOperation
+  | ExcelAiEnrichDescriptionOperation
+  | ExcelAiFixNameOperation
+  | ExcelAiTranslateOperation
+  | ExcelAiRoundPriceOperation
+  | ExcelAiFillEmptyOperation
 >
 
 export interface BulkCellChange {

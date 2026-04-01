@@ -3,7 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Search, Share2, Download, Maximize2, ZoomIn, ZoomOut, RotateCcw, LayoutList, BookOpen } from "lucide-react"
+import { Search, Share2, Download, Maximize2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface CatalogHeaderProps {
@@ -20,8 +20,6 @@ interface CatalogHeaderProps {
     onZoomIn: () => void
     onZoomOut: () => void
     onZoomReset: () => void
-    viewMode: "list" | "book"
-    onViewModeChange: (mode: "list" | "book") => void
     isMobile: boolean
     t: (key: string) => string
 }
@@ -40,8 +38,6 @@ export const CatalogHeader = React.memo(function CatalogHeader({
     onZoomIn,
     onZoomOut,
     onZoomReset,
-    viewMode,
-    onViewModeChange,
     isMobile,
     t,
 }: CatalogHeaderProps) {
@@ -90,35 +86,6 @@ export const CatalogHeader = React.memo(function CatalogHeader({
                             </Button>
 
                             {!isMobile && (
-                                <div className="flex items-center gap-0.5 bg-slate-100 rounded-full p-0.5 ml-2 border border-slate-200">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => onViewModeChange("list")}
-                                        className={cn(
-                                            "h-8 px-3 rounded-full text-[10px] font-black transition-all",
-                                            viewMode === "list" ? "bg-white shadow-sm text-violet-600" : "text-slate-500 hover:text-slate-700"
-                                        )}
-                                    >
-                                        <LayoutList className="w-3.5 h-3.5 mr-1.5" />
-                                        LİSTE
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => onViewModeChange("book")}
-                                        className={cn(
-                                            "h-8 px-3 rounded-full text-[10px] font-black transition-all",
-                                            viewMode === "book" ? "bg-white shadow-sm text-violet-600" : "text-slate-500 hover:text-slate-700"
-                                        )}
-                                    >
-                                        <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                                        KİTAP
-                                    </Button>
-                                </div>
-                            )}
-
-                            {!isMobile && viewMode === "list" && (
                                 <div className="flex items-center gap-0.5 bg-slate-100 rounded-full p-0.5 ml-2 border border-slate-200">
                                     <Button variant="ghost" size="icon" onClick={onZoomOut} className="h-8 w-8 rounded-full hover:bg-white transition-all shadow-sm" title="Uzaklaştır">
                                         <ZoomOut className="w-3.5 h-3.5" />

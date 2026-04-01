@@ -135,6 +135,32 @@ function describeOperation(op: ExcelAiOperation, language: Language): string {
     return language === "tr" ? "Ortalama fiyat hesapla" : "Generate average price"
   }
 
+  if (op.type === "enrich_description") {
+    return language === "tr" ? "Mevcut açıklamaları zenginleştir" : "Enrich existing descriptions"
+  }
+
+  if (op.type === "fix_name") {
+    return language === "tr" ? "Ürün adlarını düzelt" : "Fix product names"
+  }
+
+  if (op.type === "translate") {
+    const targetLabel = op.targetLanguage === "tr" ? (language === "tr" ? "Türkçe" : "Turkish") : (language === "tr" ? "İngilizce" : "English")
+    return language === "tr" ? `${op.field} alanını ${targetLabel}'ye çevir` : `Translate ${op.field} to ${targetLabel}`
+  }
+
+  if (op.type === "round_price") {
+    const strategyLabel = op.strategy === "charm"
+      ? (language === "tr" ? "psikolojik" : "charm")
+      : op.strategy === "floor"
+        ? (language === "tr" ? "aşağı" : "floor")
+        : (language === "tr" ? "en yakın" : "nearest")
+    return language === "tr" ? `Fiyatları yuvarla (${strategyLabel})` : `Round prices (${strategyLabel})`
+  }
+
+  if (op.type === "fill_empty") {
+    return language === "tr" ? `Boş ${op.field} alanlarını doldur` : `Fill empty ${op.field} fields`
+  }
+
   return language === "tr" ? `${op.field} alanını temizle` : `Clear ${op.field}`
 }
 

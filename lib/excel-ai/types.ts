@@ -67,6 +67,37 @@ export interface ExcelAiGeneratePriceOperation {
   strategy?: "scope_average" | "category_average"
 }
 
+export interface ExcelAiEnrichDescriptionOperation {
+  type: "enrich_description"
+  field: "description"
+  style?: string
+  maxLength?: number
+}
+
+export interface ExcelAiFixNameOperation {
+  type: "fix_name"
+  field: "name"
+}
+
+export interface ExcelAiTranslateOperation {
+  type: "translate"
+  field: ExcelAiTextField
+  targetLanguage: "tr" | "en"
+}
+
+export interface ExcelAiRoundPriceOperation {
+  type: "round_price"
+  field: "price"
+  strategy?: "floor" | "nearest" | "charm"
+}
+
+export interface ExcelAiFillEmptyOperation {
+  type: "fill_empty"
+  field: "description" | "category" | "sku" | "price"
+  style?: string
+  maxLength?: number
+}
+
 export type ExcelAiOperation =
   | ExcelAiSetOperation
   | ExcelAiMultiplyOperation
@@ -77,6 +108,11 @@ export type ExcelAiOperation =
   | ExcelAiGenerateCategoryOperation
   | ExcelAiGenerateSkuOperation
   | ExcelAiGeneratePriceOperation
+  | ExcelAiEnrichDescriptionOperation
+  | ExcelAiFixNameOperation
+  | ExcelAiTranslateOperation
+  | ExcelAiRoundPriceOperation
+  | ExcelAiFillEmptyOperation
 
 export interface ExcelAiIntent {
   scope: ExcelAiScope

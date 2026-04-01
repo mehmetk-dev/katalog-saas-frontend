@@ -53,12 +53,12 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
     ]
 
     return (
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
             {cards.map((card, idx) => (
                 <div
                     key={idx}
                     className={cn(
-                        "relative overflow-hidden rounded-xl p-4 sm:p-5 transition-all duration-300",
+                        "relative overflow-hidden rounded-xl p-2.5 sm:p-4 md:p-5 transition-all duration-300",
                         "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800",
                         "border-l-4 shadow-sm hover:shadow-md hover:-translate-y-0.5",
                         card.theme,
@@ -73,21 +73,21 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
                     <div className="flex flex-col h-full relative z-10">
                         {/* Icon Container */}
                         <div className={cn(
-                            "flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-lg mb-3 shrink-0",
+                            "flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 rounded-lg mb-2 sm:mb-3 shrink-0",
                             card.iconBg
                         )}>
-                            <card.icon className={cn("w-4 h-4 sm:w-5 sm:h-5", card.iconColor)} />
+                            <card.icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5", card.iconColor)} />
                         </div>
 
                         {/* Typography Hierarchy */}
                         <div className="flex flex-col mt-auto">
                             <span className={cn(
-                                "text-2xl sm:text-4xl font-extrabold tracking-tight",
+                                "text-xl sm:text-2xl md:text-4xl font-extrabold tracking-tight",
                                 card.iconColor
                             )}>
                                 {card.value.toLocaleString()}
                             </span>
-                            <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mt-1">
+                            <span className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mt-0.5 sm:mt-1">
                                 {card.label as string}
                             </span>
                         </div>

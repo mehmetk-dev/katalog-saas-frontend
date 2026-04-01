@@ -37,6 +37,7 @@ const products = {
             // New translations
             switchedToManualSort: "Manuel sıralamaya geçildi",
             perPage: "/ sayfa",
+            showing: "Gösterilen",
             productsSelected: "{count} ürün seçili",
             allSelected: "Tüm ürün seçildi ({count})",
             bulkImageUpload: "Toplu Fotoğraf Yükle",
@@ -224,6 +225,7 @@ const products = {
             // New translations
             switchedToManualSort: "Switched to manual sort",
             perPage: "/ page",
+            showing: "Showing",
             productsSelected: "{count} products selected",
             allSelected: "All {count} products selected",
             bulkImageUpload: "Bulk Image Upload",

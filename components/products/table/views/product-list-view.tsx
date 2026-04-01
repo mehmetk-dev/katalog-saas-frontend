@@ -91,7 +91,7 @@ export function ProductListView({
                                 onDrop={(e) => handleDrop(e, product.id)}
                                 onDragEnd={handleDragEnd}
                                 className={cn(
-                                    "group grid grid-cols-[auto_1fr_auto] md:grid-cols-[80px_1fr_100px_100px_100px_100px] gap-4 px-4 py-3 items-center cursor-move transition-all duration-200",
+                                    "group grid grid-cols-[auto_1fr_auto] md:grid-cols-[80px_1fr_100px_100px_100px_100px] gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 items-center cursor-move transition-all duration-200",
                                     "hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-purple-50/30 dark:hover:from-violet-950/20 dark:hover:to-purple-950/10",
                                     isSelected && "bg-violet-50 dark:bg-violet-950/30",
                                     isDragging && "opacity-50 scale-[0.98]",
@@ -114,7 +114,7 @@ export function ProductListView({
                                             className="h-4 w-4"
                                         />
                                     </div>
-                                    <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 ring-1 ring-black/5">
+                                    <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 ring-1 ring-black/5">
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <Package className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                                         </div>
@@ -138,9 +138,9 @@ export function ProductListView({
                                 </div>
 
                                 {/* Ürün Bilgisi */}
-                                <div className="min-w-0 flex flex-col gap-0.5 pl-2">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-medium text-sm truncate">{product.name}</h3>
+                                <div className="min-w-0 flex flex-col gap-0 sm:gap-0.5 pl-1 sm:pl-2">
+                                    <div className="flex items-center gap-1 sm:gap-2">
+                                        <h3 className="font-medium text-xs sm:text-sm truncate">{product.name}</h3>
                                         {product.product_url && isSafeUrl(product.product_url) && (
                                             <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:text-violet-600" onClick={(e) => e.stopPropagation()}>
                                                 <ExternalLink className="w-3 h-3" />
@@ -148,7 +148,7 @@ export function ProductListView({
                                         )}
                                     </div>
                                     {product.sku && (
-                                        <p className="text-[11px] text-muted-foreground font-mono tracking-tight">{product.sku}</p>
+                                        <p className="text-[10px] sm:text-[11px] text-muted-foreground font-mono tracking-tight truncate max-w-[120px] sm:max-w-none">{product.sku}</p>
                                     )}
                                     <div className="flex items-center gap-2 mt-1 md:hidden">
                                         <span className="font-bold text-sm text-violet-600 dark:text-violet-400">{getCurrencySymbol(product)}</span>
@@ -198,22 +198,22 @@ export function ProductListView({
                                 </div>
 
                                 {/* Aksiyonlar */}
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-0.5 sm:gap-1">
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className={cn("h-8 w-8 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                                        className="h-7 w-7 sm:h-8 sm:w-8 transition-opacity hidden sm:inline-flex opacity-0 group-hover:opacity-100"
                                         onClick={(e) => { e.stopPropagation(); setPreviewProduct(product); }}
                                     >
-                                        <Eye className="w-4 h-4 text-muted-foreground" />
+                                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className={cn("h-8 w-8 transition-opacity", isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                                        className="h-7 w-7 sm:h-8 sm:w-8 transition-opacity hidden sm:inline-flex opacity-0 group-hover:opacity-100"
                                         onClick={(e) => { e.stopPropagation(); onEdit(product); }}
                                     >
-                                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                                        <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                                     </Button>
                                     <DropdownMenu modal={false}>
                                         <DropdownMenuTrigger asChild>

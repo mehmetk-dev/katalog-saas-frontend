@@ -17,7 +17,6 @@ interface UseProductsBulkActionsParams {
   language: string
   userPlan: "free" | "plus" | "pro"
   refreshUser: () => Promise<void>
-  routerRefresh: () => void
   startTransition: (callback: () => void) => void
   products: Product[]
   selectedIds: string[]
@@ -43,7 +42,6 @@ export function useProductsBulkActions({
   language,
   userPlan,
   refreshUser,
-  routerRefresh,
   startTransition,
   products,
   selectedIds,
@@ -171,13 +169,12 @@ export function useProductsBulkActions({
         }))
 
         toast.success(t("toasts.testProductsAdded") as string)
-        routerRefresh()
         await refreshUser()
       } catch {
         toast.error(t("toasts.testProductsFailed") as string)
       }
     })
-  }, [willExceedProductLimit, getLimitErrorMessage, setShowLimitModal, startTransition, language, userPlan, setProducts, products, adjustMetadataTotal, setStats, t, routerRefresh, refreshUser])
+  }, [willExceedProductLimit, getLimitErrorMessage, setShowLimitModal, startTransition, language, userPlan, setProducts, products, adjustMetadataTotal, setStats, t, refreshUser])
 
   return {
     handleAddProduct,
