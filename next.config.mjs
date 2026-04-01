@@ -14,9 +14,9 @@ const nextConfig = {
   turbopack: {
     root: projectRoot,
   },
-  // Turbopack config removed to fix path resolution issues
-  // Standalone output is required for Docker but buggy on Windows during local builds
-  output: process.platform === "win32" ? undefined : "standalone",
+  // Standalone output only for Docker deployments — disabled for Nixpacks/Coolify
+  // To re-enable for Docker: output: "standalone",
+  // output: process.platform === "win32" ? undefined : "standalone",
   images: {
     // Görsel optimizasyonu aç
     unoptimized: false,
