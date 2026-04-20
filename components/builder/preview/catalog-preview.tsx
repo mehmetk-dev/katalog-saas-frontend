@@ -178,9 +178,12 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
       const categoryKeys = Array.from(groupedByCategory.keys())
       const order = props.categoryOrder
       if (order && order.length > 0) {
+        // PERF: O(1) lookup instead of O(n) indexOf per comparison (O(n²) overall)
+        const orderIndex = new Map<string, number>()
+        for (let i = 0; i < order.length; i++) orderIndex.set(order[i], i)
         categoryKeys.sort((a, b) => {
-          const idxA = order.indexOf(a)
-          const idxB = order.indexOf(b)
+          const idxA = orderIndex.get(a) ?? -1
+          const idxB = orderIndex.get(b) ?? -1
           if (idxA === -1 && idxB === -1) return 0
           if (idxA === -1) return 1
           if (idxB === -1) return -1
@@ -265,6 +268,33 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     }
   }, [totalPages, currentPage])
 
+  // PERF: Destructure primitives so useCallback deps are stable per-field,
+  // otherwise `[props]` invalidates the memo on every parent render.
+  const {
+    catalogName,
+    coverImageUrl,
+    coverDescription,
+    logoUrl,
+    primaryColor,
+    theme,
+    headerTextColor,
+    showPrices,
+    showDescriptions,
+    showAttributes,
+    showSku,
+    showUrls,
+    productImageFit,
+    columnsPerRow,
+    backgroundColor,
+    backgroundImage,
+    backgroundImageFit,
+    backgroundGradient,
+    logoPosition,
+    logoSize,
+    titlePosition,
+  } = props
+  const productsLength = props.products?.length ?? 0
+
   // A2: Shared page content renderer — eliminates duplicate cover/divider/template rendering
   const renderPageContent = useCallback((
     page: CatalogPage,
@@ -275,13 +305,13 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     if (page.type === 'cover') {
       return (
         <CoverPage
-          catalogName={props.catalogName}
-          coverImageUrl={props.coverImageUrl}
-          coverDescription={props.coverDescription}
-          logoUrl={props.logoUrl}
-          primaryColor={props.primaryColor}
-          productCount={props.products?.length || 0}
-          theme={props.theme}
+          catalogName={catalogName}
+          coverImageUrl={coverImageUrl}
+          coverDescription={coverDescription}
+          logoUrl={logoUrl}
+          primaryColor={primaryColor}
+          productCount={productsLength}
+          theme={theme}
         />
       )
     }
@@ -290,60 +320,68 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
         <CategoryDivider
           categoryName={page.categoryName}
           firstProductImage={page.firstProductImage}
-          primaryColor={props.primaryColor}
-          theme={props.theme}
+          primaryColor={primaryColor}
+          theme={theme}
         />
       )
     }
     return (
       <TemplateComponent
         products={page.products}
-        primaryColor={props.primaryColor}
-        catalogName={props.catalogName}
+        primaryColor={primaryColor}
+        catalogName={catalogName}
         pageNumber={pageNumber}
         totalPages={pageTotalPages}
         isFreeUser={isFreeUser}
-        headerTextColor={props.headerTextColor}
-        showPrices={props.showPrices ?? true}
-        showDescriptions={props.showDescriptions ?? true}
-        showAttributes={props.showAttributes ?? true}
-        showSku={props.showSku ?? true}
-        showUrls={props.showUrls}
-        productImageFit={props.productImageFit}
-        columnsPerRow={props.columnsPerRow}
-        backgroundColor={props.backgroundColor}
-        backgroundImage={props.backgroundImage}
-        backgroundImageFit={props.backgroundImageFit}
-        backgroundGradient={props.backgroundGradient}
-        logoUrl={props.logoUrl}
-        logoPosition={props.logoPosition}
-        logoSize={props.logoSize}
-        titlePosition={props.titlePosition}
+        headerTextColor={headerTextColor}
+        showPrices={showPrices ?? true}
+        showDescriptions={showDescriptions ?? true}
+        showAttributes={showAttributes ?? true}
+        showSku={showSku ?? true}
+        showUrls={showUrls}
+        productImageFit={productImageFit}
+        columnsPerRow={columnsPerRow}
+        backgroundColor={backgroundColor}
+        backgroundImage={backgroundImage}
+        backgroundImageFit={backgroundImageFit}
+        backgroundGradient={backgroundGradient}
+        logoUrl={logoUrl}
+        logoPosition={logoPosition}
+        logoSize={logoSize}
+        titlePosition={titlePosition}
       />
     )
-  }, [props, isFreeUser])
+  }, [
+    catalogName, coverImageUrl, coverDescription, logoUrl, primaryColor, theme,
+    productsLength, isFreeUser, headerTextColor, showPrices, showDescriptions,
+    showAttributes, showSku, showUrls, productImageFit, columnsPerRow,
+    backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient,
+    logoPosition, logoSize, titlePosition,
+  ])
 
+  const layoutKey = props.layout
+  const isExporting = props.isExporting
   const renderPage = useCallback((page: CatalogPage | undefined, pageIndex: number) => {
     if (!page) return null
-    const TemplateComponent = (ALL_TEMPLATES[props.layout as keyof typeof ALL_TEMPLATES] || ALL_TEMPLATES['modern-grid']) as React.ComponentType<TemplateProps>
+    const TemplateComponent = (ALL_TEMPLATES[layoutKey as keyof typeof ALL_TEMPLATES] || ALL_TEMPLATES['modern-grid']) as React.ComponentType<TemplateProps>
 
     return (
       <div
-        key={`page-container-${props.layout}-${pageIndex}`}
+        key={`page-container-${layoutKey}-${pageIndex}`}
         className="catalog-page-wrapper relative shrink-0"
         style={{
-          width: props.isExporting ? A4_WIDTH : A4_WIDTH * scale,
-          height: props.isExporting ? A4_HEIGHT : A4_HEIGHT * scale,
+          width: isExporting ? A4_WIDTH : A4_WIDTH * scale,
+          height: isExporting ? A4_HEIGHT : A4_HEIGHT * scale,
           marginBottom: viewMode === 'multi' ? 40 : 0
         }}
       >
         <div
-          key={`page-${props.layout}-${pageIndex}`}
+          key={`page-${layoutKey}-${pageIndex}`}
           className="catalog-page catalog-light shadow-2xl overflow-hidden absolute top-0 left-1/2 -translate-x-1/2 bg-white"
           style={{
             width: A4_WIDTH,
             height: A4_HEIGHT,
-            transform: props.isExporting ? 'none' : `scale(${scale})`,
+            transform: isExporting ? 'none' : `scale(${scale})`,
             transformOrigin: 'top center',
           }}
         >
@@ -357,7 +395,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
         </div>
       </div>
     )
-  }, [props.layout, props.isExporting, scale, viewMode, renderPageContent, totalPages, isFreeUser])
+  }, [layoutKey, isExporting, scale, viewMode, renderPageContent, totalPages, isFreeUser])
 
   if (props.showControls === false) {
     // Thumbnail'lar (Tasarım Ayarları Kartları) için sadece ilk sayfayı göster ve tam sığdır

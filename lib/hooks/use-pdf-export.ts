@@ -138,6 +138,14 @@ export function usePdfExport({
             const pageElements = Array.from(pages)
             const totalPages = pageElements.length
 
+            // Warn user about very large catalogs
+            if (totalPages > 200) {
+                toast.warning(
+                    `${totalPages} sayfalık büyük bir katalog. İşlem uzun sürebilir ve yüksek bellek kullanabilir. Düşük kalitede dışa aktarılacak.`,
+                    { duration: 6000 }
+                )
+            }
+
             // Sayfa sayÄ±sÄ±na gÃ¶re kalite ayarlarÄ±nÄ± belirle
             const settings = getPdfQualitySettings(totalPages)
 
@@ -184,6 +192,15 @@ export function usePdfExport({
                     })
 
                     const clone = page.cloneNode(true) as HTMLElement
+
+                    // Sanitize cloned DOM: remove script/style tags and on* event attributes
+                    clone.querySelectorAll('script, style').forEach(el => el.remove())
+                    clone.querySelectorAll('*').forEach(el => {
+                        for (const attr of Array.from(el.attributes)) {
+                            if (attr.name.startsWith('on')) el.removeAttribute(attr.name)
+                        }
+                    })
+
                     document.body.appendChild(clone)
 
                     clone.style.position = 'fixed'

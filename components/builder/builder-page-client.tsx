@@ -119,40 +119,40 @@ function BuilderContent() {
               </div>
             ) : (
               <>
-            {shouldUseSplitPreviewSampling && (
-              <div className="sticky top-0 z-20 px-3 py-2 text-xs border-b border-amber-200 bg-amber-50 text-amber-800">
-                {t('builder.splitPreviewMode', { limit: SPLIT_PREVIEW_SOFT_LIMIT })}
-              </div>
-            )}
+                {shouldUseSplitPreviewSampling && (
+                  <div className="sticky top-0 z-20 px-3 py-2 text-xs border-b border-amber-200 bg-amber-50 text-amber-800">
+                    {t('builder.splitPreviewMode', { limit: SPLIT_PREVIEW_SOFT_LIMIT })}
+                  </div>
+                )}
 
-            <CatalogPreview
-              catalogName={state.catalogName}
-              products={previewProducts}
-              layout={state.layout}
-              primaryColor={state.primaryColor}
-              headerTextColor={state.headerTextColor}
-              showPrices={state.showPrices}
-              showDescriptions={state.showDescriptions}
-              showAttributes={state.showAttributes}
-              showSku={state.showSku}
-              showUrls={state.showUrls}
-              productImageFit={state.productImageFit}
-              columnsPerRow={state.columnsPerRow}
-              backgroundColor={state.backgroundColor}
-              backgroundImage={state.backgroundImage}
-              backgroundImageFit={state.backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
-              backgroundGradient={state.backgroundGradient}
-              logoUrl={state.logoUrl ?? undefined}
-              logoPosition={state.logoPosition ?? undefined}
-              logoSize={state.logoSize}
-              titlePosition={state.titlePosition}
-              enableCoverPage={state.enableCoverPage}
-              coverImageUrl={state.coverImageUrl ?? undefined}
-              coverDescription={state.coverDescription ?? undefined}
-              enableCategoryDividers={state.enableCategoryDividers}
-              categoryOrder={state.categoryOrder}
-              theme={state.coverTheme}
-            />
+                <CatalogPreview
+                  catalogName={state.catalogName}
+                  products={previewProducts}
+                  layout={state.layout}
+                  primaryColor={state.primaryColor}
+                  headerTextColor={state.headerTextColor}
+                  showPrices={state.showPrices}
+                  showDescriptions={state.showDescriptions}
+                  showAttributes={state.showAttributes}
+                  showSku={state.showSku}
+                  showUrls={state.showUrls}
+                  productImageFit={state.productImageFit}
+                  columnsPerRow={state.columnsPerRow}
+                  backgroundColor={state.backgroundColor}
+                  backgroundImage={state.backgroundImage}
+                  backgroundImageFit={state.backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
+                  backgroundGradient={state.backgroundGradient}
+                  logoUrl={state.logoUrl ?? undefined}
+                  logoPosition={state.logoPosition ?? undefined}
+                  logoSize={state.logoSize}
+                  titlePosition={state.titlePosition}
+                  enableCoverPage={state.enableCoverPage}
+                  coverImageUrl={state.coverImageUrl ?? undefined}
+                  coverDescription={state.coverDescription ?? undefined}
+                  enableCategoryDividers={state.enableCategoryDividers}
+                  categoryOrder={state.categoryOrder}
+                  theme={state.coverTheme}
+                />
               </>
             )}
           </div>
@@ -179,7 +179,7 @@ function BuilderContent() {
         onOpenChange={state.setShowShareModal}
         catalog={catalog}
         isPublished={state.isPublished}
-        shareUrl={catalog?.share_slug ? `${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/catalog/${catalog.share_slug}` : ""}
+        shareUrl={catalog?.share_slug && process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/catalog/${catalog.share_slug}` : ""}
         onDownloadPdf={handlers.handleDownloadPDF}
       />
 

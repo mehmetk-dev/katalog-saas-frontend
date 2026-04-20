@@ -487,7 +487,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
         onOpenChange={(open) => !open && setShareCatalog(null)}
         catalog={shareCatalog}
         isPublished={!!shareCatalog?.is_published}
-        shareUrl={shareCatalog?.share_slug ? `${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/catalog/${shareCatalog.share_slug}` : ''}
+        shareUrl={shareCatalog?.share_slug && process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/catalog/${shareCatalog.share_slug}` : ''}
         onDownloadPdf={async () => { }}
       />
     </div>

@@ -37,12 +37,15 @@ interface EditorContentTabProps {
 
     // Products
     filteredProducts: Product[]
+    allProductIds: string[]
     visibleProducts: Product[]
     selectedProductIds: string[]
     selectedProductIdSet: Set<string>
     validProductIds: string[]
     onSelectedProductIdsChange: (ids: string[]) => void
     toggleProduct: (id: string) => void
+    /** PERF(O2): Lazy fetch trigger for "Select All" button */
+    onPrefetchAllProductIds?: () => void
 
     // Pagination
     currentPage: number
@@ -51,6 +54,7 @@ interface EditorContentTabProps {
     itemsPerPage: number
     onPageChange: (page: number) => void
     isLoadingProducts?: boolean
+    isLoadingAllProductIds?: boolean
 
     // Sorting / Drag-and-drop
     productMap: Map<string, Product>
@@ -79,18 +83,21 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     sortOrder,
     onSortOrderChange,
     filteredProducts,
+    allProductIds,
     visibleProducts,
     selectedProductIds,
     selectedProductIdSet,
     validProductIds,
     onSelectedProductIdsChange,
     toggleProduct,
+    onPrefetchAllProductIds,
     currentPage,
     totalPages,
     startIndex,
     itemsPerPage,
     onPageChange,
     isLoadingProducts = false,
+    isLoadingAllProductIds = false,
     productMap,
     draggingIndex,
     dropIndex,
@@ -157,10 +164,19 @@ export const EditorContentTab = React.memo(function EditorContentTab({
         }
     }, [hasVirtualizedSorting])
 
+    // PERF(Y2): rAF throttle — scroll event her frame setState tetiklemesin,
+    // 120+ seçili üründe virtualizasyon açıkken ana thread'de jank'ı engeller.
+    const scrollRafRef = React.useRef<number>(0)
     const handleSortListScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
         if (!hasVirtualizedSorting) return
-        setSortScrollTop(e.currentTarget.scrollTop)
+        const st = e.currentTarget.scrollTop
+        cancelAnimationFrame(scrollRafRef.current)
+        scrollRafRef.current = requestAnimationFrame(() => setSortScrollTop(st))
     }, [hasVirtualizedSorting])
+
+    React.useEffect(() => {
+        return () => cancelAnimationFrame(scrollRafRef.current)
+    }, [])
 
     return (
         <div className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -253,10 +269,13 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                             </Select>
                         </div>
                         <SelectAllButton
-                            filteredProducts={filteredProducts}
+                            allProductIds={allProductIds}
                             selectedProductIdSet={selectedProductIdSet}
                             selectedProductIds={selectedProductIds}
                             onSelectedProductIdsChange={onSelectedProductIdsChange}
+                            isLoadingAllProductIds={isLoadingAllProductIds}
+                            totalProductCount={totalProductCount}
+                            onPrefetchAllProductIds={onPrefetchAllProductIds}
                             t={t}
                         />
                     </div>

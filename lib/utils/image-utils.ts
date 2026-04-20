@@ -81,6 +81,47 @@ export async function optimizeImage(
  */
 
 /**
+ * Universal image URL optimizer — applies width/quality params for known CDNs.
+ * Cloudinary: w_{width},c_limit,f_auto,q_auto
+ * Unsplash:   &w={width}&q=75
+ * Pexels:     ?auto=compress&w={width}
+ * Pixabay:    URL param injection not supported, returns as-is
+ * Unknown:    Returns original URL unchanged
+ */
+export function getOptimizedImageUrl(url: string, width: number): string {
+    if (!url || url.startsWith('/') || url.startsWith('data:')) return url
+
+    // Cloudinary
+    if (url.includes('cloudinary.com')) {
+        return getCloudinaryResizedUrl(url, width)
+    }
+
+    // Unsplash — supports w, q, fm params
+    if (url.includes('unsplash.com')) {
+        try {
+            const u = new URL(url)
+            u.searchParams.set('w', String(width))
+            u.searchParams.set('q', '75')
+            u.searchParams.set('fm', 'webp')
+            u.searchParams.set('auto', 'format')
+            return u.toString()
+        } catch { return url }
+    }
+
+    // Pexels
+    if (url.includes('pexels.com')) {
+        try {
+            const u = new URL(url)
+            u.searchParams.set('auto', 'compress')
+            u.searchParams.set('w', String(width))
+            return u.toString()
+        } catch { return url }
+    }
+
+    return url
+}
+
+/**
  * Generates an optimized Cloudinary URL with specified width and quality.
  * Handles both raw URLs and existing transformation params.
  */

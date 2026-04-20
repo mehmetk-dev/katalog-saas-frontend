@@ -1,13 +1,18 @@
 "use client"
 
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useRef } from "react"
 import NextImage from "next/image"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLightbox } from "@/lib/contexts/lightbox-context"
-import { getCloudinaryResizedUrl } from "@/lib/utils/image-utils"
+import { getOptimizedImageUrl } from "@/lib/utils/image-utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { Product } from "@/lib/actions/products"
+
+// PERF: Auto-eager-load the first N product images (roughly first catalog page).
+// Module-level counter — resets on page navigation (full remount).
+let _mountCounter = 0
+const EAGER_IMAGE_THRESHOLD = 12
 
 interface ProductImageGalleryProps {
     product: Product
@@ -37,7 +42,15 @@ export function ProductImageGallery({
     aspectRatio,
     priority = false
 }: ProductImageGalleryProps) {
+    // PERF: Auto-priority for first N images — no template changes needed
+    const autoEager = React.useMemo(() => {
+        const idx = _mountCounter++
+        return idx < EAGER_IMAGE_THRESHOLD
+    }, [])
+    const shouldPrioritize = priority || autoEager
+
     const [currentIndex, setCurrentIndex] = useState(0)
+    const [isLoaded, setIsLoaded] = useState(false)
     const { openLightbox } = useLightbox()
     const { t } = useTranslation()
 
@@ -70,11 +83,21 @@ export function ProductImageGallery({
     const hasMultiple = allImages.length > 1
     const currentImage = allImages[currentIndex] || "/placeholder.svg"
 
-    // Grid görünümü için optimize edilmiş (küçültülmüş) görsel kullan
-    // 800px genişlik genelde gridler için yeterli ve safe (2x pixel density)
+    // Grid görünümü için optimize edilmiş görsel kullan
+    // 400px genişlik katalog grid'i için yeterli (2-3 sütun × ~200-350px)
     const displayImage = React.useMemo(() => {
-        return getCloudinaryResizedUrl(currentImage, 800)
+        return getOptimizedImageUrl(currentImage, 400)
     }, [currentImage])
+
+    // Reset loading state when image changes (gallery navigation)
+    const prevImageRef = useRef(displayImage)
+    if (prevImageRef.current !== displayImage) {
+        prevImageRef.current = displayImage
+        setIsLoaded(false)
+    }
+
+    const handleLoad = useCallback(() => setIsLoaded(true), [])
+    const handleError = useCallback(() => setIsLoaded(true), [])
 
     const goNext = useCallback((e: React.MouseEvent) => {
         e.stopPropagation()
@@ -113,17 +136,27 @@ export function ProductImageGallery({
                 )}
                 onClick={handleImageClick}
             >
+                {/* Shimmer skeleton — visible until image loads */}
+                {!isLoaded && (
+                    <div className="absolute inset-0 z-[1] bg-gray-100 animate-pulse">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                    </div>
+                )}
+
                 <NextImage
                     src={displayImage}
                     alt={product.name}
                     fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    unoptimized // Optimized URL used manually
-                    priority={priority}
-                    loading={priority ? "eager" : "lazy"}
+                    sizes="(max-width: 768px) 50vw, 400px"
+                    unoptimized
+                    priority={shouldPrioritize}
+                    loading={shouldPrioritize ? "eager" : "lazy"}
+                    onLoad={handleLoad}
+                    onError={handleError}
                     className={cn(
-                        "w-full h-full transition-transform duration-300",
+                        "w-full h-full transition-all duration-300",
                         fitClass,
+                        isLoaded ? "opacity-100" : "opacity-0",
                         interactive && "group-hover:scale-105",
                         imageClassName
                     )}

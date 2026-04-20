@@ -307,6 +307,13 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     )
     const deferredSelectedProducts = useDeferredValue(selectedProducts)
 
+    // PERF(Y1): Tüketicilerin tekrar tekrar `new Set(selectedProductIds)` yapmasını
+    // engelle — tek bir kaynaktan memoize edilmiş Set paylaş.
+    const selectedProductIdSet = useMemo(
+        () => new Set(state.selectedProductIds),
+        [state.selectedProductIds]
+    )
+
     // ─── Beforeunload Warning ──────────────────────────────────────────
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -407,7 +414,11 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     }, [])
 
     // ─── Return ────────────────────────────────────────────────────────
-    return {
+    // PERF: Memoize the returned object so consumers via context don't re-render
+    // when identity changes without any real data change. `state` from useReducer
+    // has stable identity across renders unless dispatch was called, and `setters`
+    // is stable (useMemo []), so this memo is valid.
+    return useMemo(() => ({
         // UI state
         showUpgradeModal: state.showUpgradeModal, setShowUpgradeModal: setters.setShowUpgradeModal,
         showShareModal: state.showShareModal, setShowShareModal: setters.setShowShareModal,
@@ -465,11 +476,29 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         getState,
         productMap,
         selectedProducts,
+        selectedProductIdSet,
         deferredSelectedProducts,
         loadedProductsCount,
         upsertLoadedProducts,
         previewProducts,
         effectiveView,
         shouldUseSplitPreviewSampling,
-    }
+    }), [
+        state,
+        setters,
+        isMobile,
+        isSelectionUpdatePending,
+        handleSelectedProductIdsChange,
+        hasUnsavedChanges,
+        getState,
+        productMap,
+        selectedProducts,
+        selectedProductIdSet,
+        deferredSelectedProducts,
+        loadedProductsCount,
+        upsertLoadedProducts,
+        previewProducts,
+        effectiveView,
+        shouldUseSplitPreviewSampling,
+    ])
 }

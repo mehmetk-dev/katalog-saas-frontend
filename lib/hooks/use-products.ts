@@ -43,12 +43,15 @@ export function useProducts(
 
 /**
  * Tüm ürün ID'lerini çek (katalog builder'da kullanılır)
+ * PERF(O2): `enabled` ile lazy çağır — 10k üründe 10 sıralı sunucu çağrısı
+ * builder açılışında değil, kullanıcı "Tümünü Seç" butonuna yaklaştığında başlasın.
  */
-export function useAllProductIds(initialData?: string[]) {
+export function useAllProductIds(initialData?: string[], options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: queryKeys.productIds(),
         queryFn: () => getAllProductIds(),
         initialData,
+        enabled: options?.enabled ?? true,
         staleTime: initialData ? Infinity : 10 * 60 * 1000,
         // initialData yoksa sadece stale olduğunda yeniden çek
         refetchOnMount: initialData ? false : true,

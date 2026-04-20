@@ -82,7 +82,8 @@ export function useCatalogActions({
                 if (data.isPublished) {
                     setHasUnpushedChanges(true)
                 }
-                router.refresh()
+                // PERF(K1): No router.refresh() — client state already in sync.
+                // server action revalidatePath handles cache invalidation for other routes.
             } catch (error) {
                 console.error('Autosave failed:', error)
             } finally {
@@ -144,7 +145,8 @@ export function useCatalogActions({
                 if (isPublished) {
                     setHasUnpushedChanges(true)
                 }
-                router.refresh()
+                // PERF(K2): No router.refresh() — server action already called
+                // revalidatePath("/dashboard", "layout"); builder client state is fresh.
             } catch (error) {
                 console.error('Catalog save error:', error)
                 const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
@@ -172,14 +174,14 @@ export function useCatalogActions({
                 setIsDirty(false)
                 setLastSavedState(buildSavedStateSnapshot(data))
                 toast.success("Yayındaki katalog güncellendi! 🚀")
-                router.refresh()
+                // PERF(K2): No router.refresh() — revalidateCatalogPublic handles public page cache.
             } catch (error) {
                 console.error('Catalog publish/push error:', error)
                 const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
                 toast.error(`Güncelleme sırasında bir hata oluştu: ${errorMessage}`)
             }
         })
-    }, [currentCatalogId, catalog?.share_slug, setHasUnpushedChanges, setIsDirty, setLastSavedState, router])
+    }, [currentCatalogId, catalog?.share_slug, setHasUnpushedChanges, setIsDirty, setLastSavedState])
 
     // ─── Update Slug ────────────────────────────────────────────────────
     const handleUpdateSlug = useCallback(() => {

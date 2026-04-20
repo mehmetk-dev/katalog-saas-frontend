@@ -1,6 +1,7 @@
 
 
 import * as Sentry from "@sentry/nextjs";
+import { sentryBeforeSend } from "@/lib/sentry/before-send";
 
 Sentry.init({
     // Hardcoded DSN to match server/edge and ensure it works even if env vars are missing
@@ -49,6 +50,10 @@ Sentry.init({
 
     // CIRCUMVENT ad-blockers (if configured in next.config.mjs)
     tunnel: "/monitoring",
+
+    // Beklenen iş-mantığı hatalarını filtrele (server action'dan yansıyan
+    // "Limit Reached" vb. client tarafında da yakalanıyor).
+    beforeSend: sentryBeforeSend,
 });
 
 

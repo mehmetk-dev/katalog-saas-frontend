@@ -4,6 +4,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { sentryBeforeSend } from "@/lib/sentry/before-send";
 
 Sentry.init({
   dsn: "https://868079ea0eaa70b831e1783792021d35@o4510766025080832.ingest.de.sentry.io/4510766042710096",
@@ -18,4 +19,7 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+
+  // Beklenen iş-mantığı hatalarını filtrele — server config ile aynı politika.
+  beforeSend: sentryBeforeSend,
 });

@@ -89,8 +89,12 @@ export async function deleteAccount() {
     method: "DELETE",
   })
 
-  // Sign out from Supabase Auth
-  await supabase.auth.signOut()
+  // Sign out from Supabase Auth — if this fails, still redirect
+  try {
+    await supabase.auth.signOut()
+  } catch (error) {
+    console.error("Sign out after account deletion failed:", error)
+  }
 
   redirect("/")
 }

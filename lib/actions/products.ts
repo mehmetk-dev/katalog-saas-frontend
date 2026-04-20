@@ -277,7 +277,16 @@ export async function checkProductsInCatalogs(productIds: string[]): Promise<Pro
   }
 }
 
+const BULK_IMPORT_MAX_ITEMS = 5000
+
 export async function bulkImportProducts(products: Omit<Product, "id" | "user_id" | "created_at" | "updated_at">[]) {
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error("Import listesi boş olamaz.")
+  }
+  if (products.length > BULK_IMPORT_MAX_ITEMS) {
+    throw new Error(`Tek seferde en fazla ${BULK_IMPORT_MAX_ITEMS} ürün import edilebilir.`)
+  }
+
   try {
     // Toplu import için retry ve daha uzun timeout kullan
     const importedProducts = await apiFetch<Product[]>("/products/bulk-import", {

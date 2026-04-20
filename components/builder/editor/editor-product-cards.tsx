@@ -43,11 +43,11 @@ export const ProductCard = React.memo(function ProductCard({
                         src={product.image_url || "/placeholder.svg"}
                         alt={product.name}
                         fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
                         className={cn(
                             "object-cover transition-all duration-300",
                             isSelected ? "scale-105" : "group-hover:scale-110"
                         )}
-                        unoptimized
                     />
                     <div className={cn(
                         "absolute inset-0 transition-opacity duration-200",
@@ -128,7 +128,7 @@ export const SortableProductItem = React.memo(function SortableProductItem({
                 <GripVertical className="w-3.5 h-3.5" />
             </div>
             <div className="w-8 h-8 rounded shrink-0 border border-border overflow-hidden relative">
-                <NextImage src={product.image_url || "/placeholder.svg"} alt={product.name} fill className="object-cover" unoptimized />
+                <NextImage src={product.image_url || "/placeholder.svg"} alt={product.name} fill sizes="32px" className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-bold truncate text-foreground">{product.name}</p>
@@ -159,36 +159,56 @@ export const SortableProductItem = React.memo(function SortableProductItem({
 
 // PERFORMANCE: Memoized SelectAll button to avoid O(n) .every() on each render
 export const SelectAllButton = React.memo(function SelectAllButton({
-    filteredProducts,
+    allProductIds,
     selectedProductIdSet,
     selectedProductIds,
     onSelectedProductIdsChange,
+    isLoadingAllProductIds = false,
+    totalProductCount,
+    onPrefetchAllProductIds,
     t,
 }: {
-    filteredProducts: Product[]
+    allProductIds: string[]
     selectedProductIdSet: Set<string>
     selectedProductIds: string[]
     onSelectedProductIdsChange: (ids: string[]) => void
+    isLoadingAllProductIds?: boolean
+    /** PERF(O2): Total product count — used to infer "all selected" without fetching IDs */
+    totalProductCount?: number
+    /** PERF(O2): Called on hover/focus/click to start lazy fetching all IDs */
+    onPrefetchAllProductIds?: () => void
     t: (key: string) => string
 }) {
-    const isAllSelected = useMemo(
-        () => filteredProducts.length > 0 && filteredProducts.every(p => selectedProductIdSet.has(p.id)),
-        [filteredProducts, selectedProductIdSet]
-    )
+    // PERF(O2): If IDs already loaded, do exact match; otherwise infer from count
+    const isAllSelected = useMemo(() => {
+        if (allProductIds.length > 0) {
+            return allProductIds.every(id => selectedProductIdSet.has(id))
+        }
+        if (typeof totalProductCount === 'number' && totalProductCount > 0) {
+            return selectedProductIdSet.size >= totalProductCount
+        }
+        return false
+    }, [allProductIds, selectedProductIdSet, totalProductCount])
 
     const handleClick = useCallback(() => {
-        const filteredIdSet = new Set(filteredProducts.map(p => p.id))
         if (isAllSelected) {
-            onSelectedProductIdsChange(selectedProductIds.filter(id => !filteredIdSet.has(id)))
-        } else {
-            onSelectedProductIdsChange([...new Set([...selectedProductIds, ...filteredProducts.map(p => p.id)])])
+            onSelectedProductIdsChange([])
+            return
         }
-    }, [filteredProducts, isAllSelected, selectedProductIds, onSelectedProductIdsChange])
+        if (allProductIds.length === 0) {
+            // Lazy: request fetch; click will be re-run once IDs arrive.
+            onPrefetchAllProductIds?.()
+            return
+        }
+        onSelectedProductIdsChange([...new Set([...selectedProductIds, ...allProductIds])])
+    }, [allProductIds, isAllSelected, selectedProductIds, onSelectedProductIdsChange, onPrefetchAllProductIds])
 
     return (
         <Button
             variant="ghost"
             size="sm"
+            onMouseEnter={onPrefetchAllProductIds}
+            onFocus={onPrefetchAllProductIds}
             className={cn(
                 "h-11 rounded-2xl border border-slate-200/60 bg-white font-black text-[10px] uppercase px-4 transition-all",
                 isAllSelected
@@ -196,6 +216,7 @@ export const SelectAllButton = React.memo(function SelectAllButton({
                     : "text-indigo-600 hover:bg-indigo-50"
             )}
             onClick={handleClick}
+            disabled={isLoadingAllProductIds}
         >
             {isAllSelected ? t('builder.clearSelection') : t('builder.selectAll')}
         </Button>

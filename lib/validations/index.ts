@@ -15,12 +15,12 @@ import { z } from 'zod'
 // COMMON SCHEMAS
 // =============================================================================
 
-/** Safe string that strips potential XSS patterns */
+/** Safe string that strips potential XSS patterns and HTML tags */
 const safeString = (maxLength: number = 255) =>
     z
         .string()
         .max(maxLength)
-        .transform((val) => val.trim())
+        .transform((val) => val.trim().replace(/<[^>]*>/g, ''))
 
 /** URL validation with protocol check — blocks javascript:, data:, vbscript: schemes */
 const safeUrl = z
@@ -148,14 +148,14 @@ export const bulkPriceUpdateSchema = z.object({
 // =============================================================================
 
 export const catalogCreateSchema = z.object({
-    name: z.string().max(255).transform((val) => val.trim()).optional(),
-    description: z.string().max(1000).transform((val) => val.trim()).optional().nullable(),
+    name: safeString(255).optional(),
+    description: safeString(1000).optional().nullable(),
     layout: z.string().max(50).transform((val) => val.trim()).optional(),
 })
 
 export const catalogUpdateSchema = z.object({
-    name: z.string().max(255).transform((val) => val.trim()).optional(),
-    description: z.string().max(1000).transform((val) => val.trim()).optional().nullable(),
+    name: safeString(255).optional(),
+    description: safeString(1000).optional().nullable(),
     layout: z.string().max(50).transform((val) => val.trim()).optional(),
     primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$|^rgba?\(.+\)$/).optional(),
     is_published: z.boolean().optional(),

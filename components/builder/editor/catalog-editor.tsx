@@ -8,7 +8,7 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
 import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
-import { useProducts } from "@/lib/hooks/use-products"
+import { useAllProductIds, useProducts } from "@/lib/hooks/use-products"
 
 import { EditorContentTab } from "./editor-content-tab"
 
@@ -127,6 +127,7 @@ export function CatalogEditor() {
     catalogName, setShowUpgradeModal,
     loadedProductsCount,
     upsertLoadedProducts,
+    selectedProductIdSet,
   } = state
 
   const onUpgrade = useCallback(() => setShowUpgradeModal(true), [setShowUpgradeModal])
@@ -260,7 +261,15 @@ export function CatalogEditor() {
   }, [currentPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder, initialProductsResponse])
 
   const productsQuery = useProducts(productsParams, initialQueryData)
+  // PERF(O2): Tüm ürün ID'lerini sadece "Tümünü Seç" butonu etkileşime girince çek.
+  // İlk builder açılışında 10k ürün için 10 seri sunucu çağrısını engelliyor.
+  const [allIdsRequested, setAllIdsRequested] = useState(false)
+  const allProductIdsQuery = useAllProductIds(undefined, { enabled: allIdsRequested })
+  const prefetchAllProductIds = useCallback(() => {
+    if (!allIdsRequested) setAllIdsRequested(true)
+  }, [allIdsRequested])
   const productsResponse = productsQuery.data
+  const allProductIds = useMemo(() => allProductIdsQuery.data || [], [allProductIdsQuery.data])
   const pagedProducts = useMemo(() => productsResponse?.products || [], [productsResponse])
   const totalFilteredProducts = productsResponse?.metadata.total || 0
   const totalPages = Math.max(1, productsResponse?.metadata.totalPages || 1)
@@ -279,14 +288,13 @@ export function CatalogEditor() {
   }, [currentPage, totalPages])
 
   // ─── Derived Data ─────────────────────────────────────────────────────────
-  const selectedProductIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds])
-
+  // PERF(Y1): selectedProductIdSet artık context state'inden geliyor (tek kaynak).
   const categories = productsResponse?.allCategories || []
 
-  const productIdSet = useMemo(() => new Set(Array.from(productMap.keys())), [productMap])
+  // PERF(Y6): productMap.has(id) zaten O(1) — ayrı Set allocate etmeye gerek yok.
   const validProductIds = useMemo(() => {
-    return selectedProductIds.filter(id => productIdSet.has(id))
-  }, [selectedProductIds, productIdSet])
+    return selectedProductIds.filter(id => productMap.has(id))
+  }, [selectedProductIds, productMap])
   const filteredProducts = pagedProducts
   const visibleProducts = pagedProducts
 
@@ -311,10 +319,22 @@ export function CatalogEditor() {
     setDraggingIndex(index)
   }, [])
 
+  // PERF(Y3): rAF throttle — dragover ~60fps tetikleniyor; her event'te setState
+  // yapmak 500+ seçili üründe jank'a yol açıyor.
+  const dropIndexRafRef = useRef<number>(0)
+  const pendingDropIndexRef = useRef<number | null>(null)
   const handleSortDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault()
     e.stopPropagation()
-    setDropIndex(index)
+    if (pendingDropIndexRef.current === index) return
+    pendingDropIndexRef.current = index
+    cancelAnimationFrame(dropIndexRafRef.current)
+    dropIndexRafRef.current = requestAnimationFrame(() => {
+      setDropIndex(pendingDropIndexRef.current)
+    })
+  }, [])
+  useEffect(() => {
+    return () => cancelAnimationFrame(dropIndexRafRef.current)
   }, [])
 
   const handleSortDrop = useCallback((e: React.DragEvent, index: number) => {
@@ -384,12 +404,14 @@ export function CatalogEditor() {
               sortOrder={sortOrder}
               onSortOrderChange={setSortOrder}
               filteredProducts={filteredProducts}
+              allProductIds={allProductIds}
               visibleProducts={visibleProducts}
               selectedProductIds={selectedProductIds}
               selectedProductIdSet={selectedProductIdSet}
               validProductIds={validProductIds}
               onSelectedProductIdsChange={onSelectedProductIdsChange}
               toggleProduct={toggleProduct}
+              onPrefetchAllProductIds={prefetchAllProductIds}
               currentPage={currentPage}
               totalPages={totalPages}
               startIndex={startIndex}
@@ -397,6 +419,7 @@ export function CatalogEditor() {
               onPageChange={setCurrentPage}
               productMap={productMap}
               isLoadingProducts={productsQuery.isLoading || productsQuery.isFetching}
+              isLoadingAllProductIds={allProductIdsQuery.isLoading || allProductIdsQuery.isFetching}
               draggingIndex={draggingIndex}
               dropIndex={dropIndex}
               onSortDragStart={handleSortDragStart}

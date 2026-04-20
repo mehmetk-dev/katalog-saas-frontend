@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, type ReactNode } from "react"
+import React, { createContext, useContext, useMemo, type ReactNode } from "react"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { Product, ProductsResponse } from "@/lib/actions/products"
 import { useBuilderState } from "@/lib/hooks/use-builder-state"
@@ -51,15 +51,18 @@ export function BuilderProvider({
     const { user } = useUser()
     const state = useBuilderState({ catalog, products })
     const handlers = useBuilderHandlers({ catalog, state })
+    const userPlan = user?.plan || "free"
 
-    const value: BuilderContextValue = {
+    // PERF: Stable context value — prevents every consumer from re-rendering
+    // when BuilderProvider re-renders but state/handlers identities are unchanged.
+    const value = useMemo<BuilderContextValue>(() => ({
         state,
         handlers,
         catalog,
         products,
         initialProductsResponse,
-        userPlan: user?.plan || "free",
-    }
+        userPlan,
+    }), [state, handlers, catalog, products, initialProductsResponse, userPlan])
 
     return (
         <BuilderContext.Provider value={value}>

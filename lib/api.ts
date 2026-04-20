@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isNetworkError } from "@/lib/utils/retry";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
 type FetchOptions = Omit<RequestInit, "headers"> & {
     headers?: Record<string, string>;
@@ -51,7 +51,13 @@ interface ApiError extends Error {
     isRateLimit?: boolean;
     retryAfter?: number;
     details?: unknown;
+    /** True for expected business-logic errors (plan limit, unauthorized, not found).
+     *  Sentry `beforeSend` filters these to reduce noise. */
+    isExpected?: boolean;
 }
+
+/** HTTP statuslardan iş-mantığı (beklenen) olanlar — Sentry'ye gönderme. */
+const EXPECTED_STATUS_CODES = new Set([401, 402, 403, 404, 409, 422, 429]);
 
 export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     // Timeout'u endpoint tipine göre otomatik belirle (kullanıcı belirtmemişse)
@@ -139,6 +145,8 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 );
                 connectionError.status = response.status;
                 connectionError.details = errorData;
+                // Plan limit / auth / not found — kullanıcı aksiyonu; Sentry noise'u değil.
+                connectionError.isExpected = EXPECTED_STATUS_CODES.has(response.status);
 
                 // 429 Rate Limit
                 if (response.status === 429) {
@@ -149,7 +157,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
                 // 5xx hatalar veya 429 için retry
                 if ((response.status >= 500 || response.status === 429) && attempts < maxRetries) {
-                    const delay = response.status === 429 ? connectionError.retryAfter || 30000 : retryDelay * (attempts + 1);
+                    const delay = response.status === 429 ? connectionError.retryAfter || 30000 : retryDelay * Math.pow(2, attempts) + Math.random() * 500;
                     await new Promise(resolve => setTimeout(resolve, delay));
                     attempts++;
                     lastError = connectionError;
@@ -179,7 +187,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 timeoutError.status = 408;
 
                 if (attempts < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
+                    await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempts) + Math.random() * 500));
                     attempts++;
                     lastError = timeoutError;
                     continue;
@@ -192,7 +200,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
             if (isNetworkError(error) && attempts < maxRetries) {
                 const networkError: ApiError = new Error('api.error.serviceUnavailable');
                 networkError.status = 503;
-                await new Promise(resolve => setTimeout(resolve, retryDelay * (attempts + 1)));
+                await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempts) + Math.random() * 500));
                 attempts++;
                 lastError = networkError;
                 continue;

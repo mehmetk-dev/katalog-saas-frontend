@@ -6,6 +6,10 @@ import { getProductsByIds, type Product } from "@/lib/actions/products"
 
 const PRODUCT_ID_MAX_LENGTH = 128
 const FETCH_CHUNK_SIZE = 200
+// PERF: Cap on retained product cache to prevent unbounded heap growth on long sessions.
+// Selected products are always preserved; only non-selected excess entries are evicted.
+const PRODUCT_CACHE_SOFT_LIMIT = 2000
+const REQUEST_SET_SOFT_LIMIT = 5000
 
 function isValidProductId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= PRODUCT_ID_MAX_LENGTH
@@ -66,6 +70,37 @@ export function useBuilderSelectedProducts({
     upsertLoadedProducts(initialProducts)
   }, [initialProducts, upsertLoadedProducts])
 
+  // PERF: Evict non-selected cache entries when the cache grows beyond the soft limit.
+  // Keeps insertion order (Map iterates in insertion order) → oldest non-selected first.
+  useEffect(() => {
+    if (loadedProductsById.size <= PRODUCT_CACHE_SOFT_LIMIT) return
+    const selectedSet = new Set(selectedProductIds)
+    setLoadedProductsById((prev) => {
+      if (prev.size <= PRODUCT_CACHE_SOFT_LIMIT) return prev
+      const overflow = prev.size - PRODUCT_CACHE_SOFT_LIMIT
+      if (overflow <= 0) return prev
+      const next = new Map(prev)
+      let removed = 0
+      for (const id of prev.keys()) {
+        if (removed >= overflow) break
+        if (!selectedSet.has(id)) {
+          next.delete(id)
+          removed++
+        }
+      }
+      return removed > 0 ? next : prev
+    })
+
+    // Also bound the requested-ids ref to prevent set bloat.
+    if (requestedSelectedProductIdsRef.current.size > REQUEST_SET_SOFT_LIMIT) {
+      const trimmed = new Set<string>()
+      for (const id of requestedSelectedProductIdsRef.current) {
+        if (selectedSet.has(id)) trimmed.add(id)
+      }
+      requestedSelectedProductIdsRef.current = trimmed
+    }
+  }, [loadedProductsById, selectedProductIds])
+
   useEffect(() => {
     const normalizedSelectedIds = normalizeIds(selectedProductIds)
     const missingSelectedIds = normalizedSelectedIds.filter((id) => !loadedProductsById.has(id))
@@ -79,9 +114,14 @@ export function useBuilderSelectedProducts({
 
     let cancelled = false
     const run = async () => {
+      // PERF(K4): Paralel chunk fetch — 10k seçili üründe 50 seri çağrı yerine
+      // hepsi aynı anda backend'e gider; tek sonuç geldiğinde UI'a yazılır.
+      const chunks: string[][] = []
       for (let i = 0; i < idsToFetch.length; i += FETCH_CHUNK_SIZE) {
-        const chunk = idsToFetch.slice(i, i + FETCH_CHUNK_SIZE)
+        chunks.push(idsToFetch.slice(i, i + FETCH_CHUNK_SIZE))
+      }
 
+      await Promise.all(chunks.map(async (chunk) => {
         try {
           const chunkProducts = await getProductsByIds(chunk)
           if (cancelled) return
@@ -91,7 +131,7 @@ export function useBuilderSelectedProducts({
           chunk.forEach((id) => requestedSelectedProductIdsRef.current.delete(id))
           console.error("Failed to load selected builder products:", error)
         }
-      }
+      }))
     }
 
     void run()

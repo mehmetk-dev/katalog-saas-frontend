@@ -112,7 +112,7 @@ export async function updateSession(request: NextRequest) {
           maxAge: 60 * 60 * 24 * 7, // 1 week cookie life
           path: "/",
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: process.env.NODE_ENV !== "development",
           sameSite: "lax",
         });
       }

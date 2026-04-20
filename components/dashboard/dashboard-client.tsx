@@ -6,8 +6,6 @@ import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight,
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
 import NextImage from "next/image"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -132,8 +130,7 @@ function formatCatalogDate(
 export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats }: DashboardClientProps) {
     const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-    const { user, isLoading, adjustCatalogsCount } = useUser()
-    const router = useRouter()
+    const { user, isLoading } = useUser()
     const { createNewCatalog, isCreating } = useCreateCatalog()
 
     // Veri normalizasyonu: Catalogs ve Products'ın her zaman array olmasını sağla
@@ -352,15 +349,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                             </div>
                             <p className="text-muted-foreground mb-4">{t("products.noProductsDesc")}</p>
                             <Button
-                                onClick={async () => {
-                                    const maxCatalogs = user?.plan === 'pro' ? 999999 : (user?.plan === 'plus' ? 10 : 1)
-                                    if (currentCatalogs.length >= maxCatalogs) {
-                                        toast.error(t("catalogs.limitReached"))
-                                        router.push("/dashboard/catalogs?limit_reached=true")
-                                        return
-                                    }
-                                    createNewCatalog()
-                                }}
+                                onClick={createNewCatalog}
                                 disabled={isCreating}
                                 className={cn(
                                     "bg-gradient-to-r from-violet-600 to-indigo-600",
