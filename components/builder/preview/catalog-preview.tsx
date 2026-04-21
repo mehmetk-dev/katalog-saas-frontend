@@ -103,9 +103,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
   const { t } = useTranslation()
   const isFreeUser = user?.plan === "free"
 
-  // PERF(P1): Stabilize translated label so `t` doesn't invalidate the heavy `pages` useMemo
-  const uncategorizedLabel = useRef(t('preview.uncategorized') as string || 'Kategorisiz')
-  uncategorizedLabel.current = t('preview.uncategorized') as string || 'Kategorisiz'
+  const uncategorizedLabel = t('preview.uncategorized') as string || 'Kategorisiz'
   const [currentPage, setCurrentPage] = useState(0)
   const [viewMode, setViewMode] = useState<"single" | "multi">("single")
   const [scale, setScale] = useState(0.5) // Start small, auto-fit will adjust
@@ -170,7 +168,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     if (props.enableCategoryDividers) {
       const groupedByCategory = new Map<string, Product[]>()
       for (const product of products) {
-        const categoryName = product.category || uncategorizedLabel.current
+        const categoryName = product.category || uncategorizedLabel
         const current = groupedByCategory.get(categoryName)
         if (current) {
           current.push(product)
@@ -214,8 +212,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     }
     if (calculatedPages.length === 0) calculatedPages.push({ type: 'products', products: [] })
     return calculatedPages
-  // PERF(P1): `t` removed from deps — uncategorizedLabel ref keeps it fresh without re-triggering
-  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.categoryOrder, props.pages])
+  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.categoryOrder, props.pages, uncategorizedLabel])
 
   const totalPages = pages.length
 

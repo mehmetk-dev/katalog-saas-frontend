@@ -28,7 +28,7 @@ import { ProductsFilterSheet } from "./filters/filter-sheet"
 import { ProductsPagination } from "./table/pagination"
 import { ProductsBulkPriceModal } from "./bulk/bulk-price-modal"
 import { ProductsBulkActionsBar } from "./toolbar/bulk-actions-bar"
-import { DEFAULT_ITEMS_PER_PAGE, PAGE_SIZE_OPTIONS } from "./products-page-utils"
+import { PAGE_SIZE_OPTIONS } from "./products-page-utils"
 import type { ProductsPageClientProps } from "./products-page-types"
 import { useProductsPageController } from "./hooks/use-products-page-controller"
 
@@ -101,7 +101,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     setSortOrder,
     setStockFilter,
     setPriceRange,
-    setItemsPerPage,
     setPriceChangeType,
     setPriceChangeMode,
     setPriceChangeAmount,

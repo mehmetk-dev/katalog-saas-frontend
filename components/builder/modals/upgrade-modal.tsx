@@ -117,7 +117,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
     },
   ], [t]) // deps: t for language changes
 
-  const handleUpgrade = async (planId: string) => {
+  const handleUpgrade = async (_planId: string) => {
     // S1: Payment integration required — currently disabled
     // TODO: Integrate payment gateway (Iyzico/Stripe) before enabling upgrades
     // For now, show a toast informing users to contact support

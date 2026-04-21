@@ -142,7 +142,7 @@ export function useEditorUpload({
             }
         }
         throw new Error('UPLOAD_FAILED')
-    }, [])
+    }, [t])
 
     // Logo/BG/Cover Upload Logic
     const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg' | 'cover') => {
@@ -217,7 +217,7 @@ export function useEditorUpload({
             uploadAbortControllers.current.delete(uploadKey)
             if (e.target) e.target.value = ''
         }
-    }, [onLogoUrlChange, onCoverImageUrlChange, onBackgroundImageChange, uploadFileWithRetry])
+    }, [onLogoUrlChange, onCoverImageUrlChange, onBackgroundImageChange, uploadFileWithRetry, t])
 
     // Arka plan resmi kaldırıldığında devam eden upload'ları iptal et
     useEffect(() => {

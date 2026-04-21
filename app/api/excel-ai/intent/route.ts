@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import { requestSchema, aiResponseSchema } from "@/lib/excel-ai/schemas"
-import type { Language, ParsedAiResponse } from "@/lib/excel-ai/schemas"
+import type { Language } from "@/lib/excel-ai/schemas"
 import { checkUserRateLimit, AI_CHAT_WINDOW_MS, AI_CHAT_LIMITS } from "@/lib/services/rate-limit"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { fetchCatalogProfile } from "@/lib/excel-ai/profile"

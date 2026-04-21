@@ -37,7 +37,6 @@ const AI_ALL_SCOPE_MAX_PRODUCTS = 5000
 
 export function ExcelPageClient({ initialProducts, initialMetadata, userPlan }: ExcelPageClientProps) {
   const { t } = useTranslation()
-  const router = useRouter()
 
   const tFn = useCallback(
     (key: string, params?: Record<string, unknown>) => {

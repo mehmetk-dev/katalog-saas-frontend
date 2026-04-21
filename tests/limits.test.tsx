@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { ProductsPageClient } from '@/components/products/products-page-client'
 import { CatalogsPageClient } from '@/components/catalogs/catalogs-page-client'
-import type { Product } from '@/lib/actions/products'
 import type { Catalog } from '@/lib/actions/catalogs'
 
 // Mock dependencies

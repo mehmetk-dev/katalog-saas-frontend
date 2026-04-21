@@ -401,7 +401,7 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
         }
     }, [resolveUrlErrorMessage, searchParams])
 
-    const handleForgotPassword = useCallback(async (e: React.FormEvent) => {
+    const handleForgotPassword = useCallback(async (_e: React.FormEvent) => {
         // Note: e.preventDefault() and setError(null) already called by handleSubmit
 
         const sanitizedEmail = sanitizeText(email)

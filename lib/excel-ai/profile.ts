@@ -1,5 +1,5 @@
 import type { CatalogProfile } from "./schemas"
-import { extractTopKeywords, TOKEN_STOPWORDS } from "./helpers"
+import { extractTopKeywords } from "./helpers"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export const PROFILE_SAMPLE_LIMIT = 250
