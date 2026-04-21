@@ -57,9 +57,11 @@ export function useDashboardStats(
         queryKey: queryKeys.dashboardStats(timeRange),
         queryFn: () => getDashboardStats(timeRange),
         initialData: initialData ?? undefined,
-        staleTime: initialData ? Infinity : 5 * 60 * 1000,
-        // initialData yoksa sadece stale olduğunda yeniden çek
-        refetchOnMount: initialData ? false : true,
+        // Fix #10: Use reasonable staleTime instead of Infinity — prevents stale data on timeRange switch
+        staleTime: 5 * 60 * 1000,
+        refetchOnMount: true,
+        // Fix #15: Auto-refresh every 60s for near-real-time analytics
+        refetchInterval: 60 * 1000,
     })
 }
 
@@ -76,7 +78,8 @@ export function useCreateCatalog() {
         onSuccess: () => {
             // Katalog listesini ve stats'i yenile
             queryClient.invalidateQueries({ queryKey: queryKeys.catalogs() })
-            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats() })
+            // Fix #6: Prefix-based invalidate — clears all timeRange variants (7d/30d/90d)
+            queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
         },
     })
 }
@@ -93,7 +96,7 @@ export function useUpdateCatalog() {
         onSuccess: (_result, variables) => {
             queryClient.invalidateQueries({ queryKey: queryKeys.catalog(variables.id) })
             queryClient.invalidateQueries({ queryKey: queryKeys.catalogs() })
-            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats() })
+            queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
         },
     })
 }
@@ -108,7 +111,7 @@ export function useDeleteCatalog() {
         mutationFn: (id: string) => deleteCatalog(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.catalogs() })
-            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats() })
+            queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
         },
     })
 }
@@ -123,6 +126,6 @@ export function useInvalidateCatalogs() {
     const queryClient = useQueryClient()
     return () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.catalogs() })
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats() })
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
     }
 }

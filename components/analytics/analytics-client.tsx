@@ -93,17 +93,22 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
     const { ref: pieChartRef, size: pieChartSize } = useElementSize<HTMLDivElement>()
 
     // React Query — timeRange değişince otomatik refetch, cache ile dedup
-    const { data: stats, isLoading } = useDashboardStats(timeRange, initialStats)
+    // Fix #3: Only use initialStats for 30d (SSR default), other ranges fetch fresh
+    const initialDataForRange = timeRange === "30d" ? initialStats : undefined
+    const { data: stats, isLoading } = useDashboardStats(timeRange, initialDataForRange)
 
     const validatedStats = useMemo(() => stats || {
         totalViews: 0,
+        periodViews: 0,
         publishedCatalogs: 0,
         totalCatalogs: 0,
         totalProducts: 0,
         topCatalogs: [],
         uniqueVisitors: 0,
         deviceStats: [],
-        dailyViews: []
+        dailyViews: [],
+        prevTotalViews: 0,
+        prevUniqueVisitors: 0,
     }, [stats])
 
     // Grafik Verisi Hazırlığı (Zaman akışını korumak için eksik günleri 0 ile doldurur)
@@ -117,7 +122,8 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
         for (let i = daysCount - 1; i >= 0; i--) {
             const d = new Date()
             d.setDate(now.getDate() - i)
-            const dateStr = d.toISOString().split('T')[0]
+            // Fix #8: Use locale date string to match PostgreSQL CURRENT_DATE
+            const dateStr = d.toLocaleDateString('sv-SE') // YYYY-MM-DD lokal
             const match = rawData.find(rd => rd.view_date === dateStr)
 
             data.push({
@@ -146,21 +152,29 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
         return data.length > 0 ? data : []
     }, [validatedStats.deviceStats, t])
 
-    // KPI Trendleri
+    // Fix #11: Dynamic trend label based on timeRange
+    const trendLabel = useMemo(() => {
+        if (timeRange === '7d') return t("dashboard.analytics.vsLast7Days")
+        if (timeRange === '90d') return t("dashboard.analytics.vsLast90Days")
+        return t("dashboard.analytics.vsLastMonth")
+    }, [timeRange, t])
+
+    // KPI Trendleri — Fix #3: Use previous period data from backend
+    // Fix #2: totalViews (all-time) as main value, trend compares period vs prev period
     const kpiStats = useMemo(() => [
         {
             label: t("dashboard.analytics.totalViews"),
             value: validatedStats.totalViews,
             icon: Eye,
             color: "violet" as const,
-            trend: calculateTrend(validatedStats.totalViews, 0)
+            trend: calculateTrend(validatedStats.periodViews, validatedStats.prevTotalViews)
         },
         {
             label: t("dashboard.analytics.uniqueVisitors"),
             value: validatedStats.uniqueVisitors || 0,
             icon: Users,
             color: "blue" as const,
-            trend: calculateTrend(validatedStats.uniqueVisitors || 0, 0)
+            trend: calculateTrend(validatedStats.uniqueVisitors || 0, validatedStats.prevUniqueVisitors)
         },
         {
             label: t("dashboard.analytics.publishedCatalogs"),
@@ -246,7 +260,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             {stat.trend.value}%
                                         </Badge>
                                         <span className="text-[10px] text-muted-foreground">
-                                            {t("dashboard.analytics.vsLastMonth")}
+                                            {trendLabel}
                                         </span>
                                     </>
                                 ) : (

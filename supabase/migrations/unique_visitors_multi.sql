@@ -3,6 +3,7 @@ CREATE OR REPLACE FUNCTION get_unique_visitors_multi(p_catalog_ids UUID[], p_day
 RETURNS BIGINT
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     v_count BIGINT;

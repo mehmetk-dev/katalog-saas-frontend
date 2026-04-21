@@ -198,10 +198,13 @@ describe('Dashboard Client Testleri', () => {
 
     const mockStats = {
         totalViews: 150,
+        periodViews: 45,
         totalProducts: 2,
         totalCatalogs: 2,
         publishedCatalogs: 1,
         topCatalogs: [],
+        prevTotalViews: 30,
+        prevUniqueVisitors: 20,
     }
 
     beforeEach(() => {

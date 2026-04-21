@@ -192,13 +192,17 @@ export const getPublicCatalogMeta = cache(async (slug: string) => {
 export interface DashboardStats {
   totalCatalogs: number
   publishedCatalogs: number
-  totalViews: number
+  totalViews: number        // All-time total (from catalogs.view_count)
+  periodViews: number      // Current period views (from catalog_views)
   totalProducts: number
-  topCatalogs: { id: string; name: string; views: number }[]
+  topCatalogs: { id: string; name: string; views: number; periodViews: number }[]
   // Detaylı analitik verileri (catalog_views tablosundan)
   uniqueVisitors?: number
   deviceStats?: { device_type: string; view_count: number; percentage: number }[]
   dailyViews?: { view_date: string; view_count: number }[]
+  // Trend hesaplama için önceki dönem
+  prevTotalViews: number
+  prevUniqueVisitors: number
 }
 
 export async function getDashboardStats(timeRange: "7d" | "30d" | "90d" = "30d") {
