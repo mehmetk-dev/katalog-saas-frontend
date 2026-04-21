@@ -55,6 +55,9 @@ export function useCatalogActions({
     const [, setIsAutoSaving] = useState(false)
     const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const isSavingRef = useRef(false)
+    // FIX(L7): Guard against state updates after unmount
+    const isMountedRef = useRef(true)
+    useEffect(() => { return () => { isMountedRef.current = false } }, [])
 
     // Ref for autosave to read fresh state without stale closure
     const getStateRef = useRef(getState)
@@ -69,14 +72,15 @@ export function useCatalogActions({
 
         autoSaveTimeoutRef.current = setTimeout(async () => {
             // Guard: prevent concurrent autosaves (race condition fix)
-            if (isSavingRef.current) return
+            if (isSavingRef.current || !isMountedRef.current) return
             isSavingRef.current = true
 
             const data = getStateRef.current()
-            setIsAutoSaving(true)
+            if (isMountedRef.current) setIsAutoSaving(true)
             try {
                 await updateCatalog(currentCatalogId, buildCatalogPayload(data))
 
+                if (!isMountedRef.current) return
                 setLastSavedState(buildSavedStateSnapshot(data))
                 setIsDirty(false)
                 if (data.isPublished) {
@@ -87,7 +91,7 @@ export function useCatalogActions({
             } catch (error) {
                 console.error('Autosave failed:', error)
             } finally {
-                setIsAutoSaving(false)
+                if (isMountedRef.current) setIsAutoSaving(false)
                 isSavingRef.current = false
             }
         }, 3000)
@@ -115,7 +119,8 @@ export function useCatalogActions({
     const isUrlOutdated = !!(isPublished && catalog?.share_slug && catalog.share_slug !== expectedSlug)
 
     // ─── Save ───────────────────────────────────────────────────────────
-    const handleSave = useCallback(() => {
+    // FIX(L12): Returns a Promise so callers (handleSaveAndExit) can await completion.
+    const handleSave = useCallback((): Promise<void> => {
         let finalName = catalogName?.trim()
         if (!finalName) {
             const currentDate = new Date().toLocaleDateString('tr-TR')
@@ -123,35 +128,39 @@ export function useCatalogActions({
             setCatalogName(finalName)
         }
 
-        startTransition(async () => {
-            try {
-                const data = getStateRef.current()
-                // Override name with the final validated name
-                data.catalogName = finalName!
+        return new Promise<void>((resolve, reject) => {
+            startTransition(async () => {
+                try {
+                    const data = getStateRef.current()
+                    // Override name with the final validated name
+                    data.catalogName = finalName!
 
-                if (currentCatalogId) {
-                    await updateCatalog(currentCatalogId, buildCatalogPayload(data))
-                    toast.success(t('toasts.catalogSaved') as string)
-                } else {
-                    const newCatalog = await createCatalog(buildCatalogPayload(data))
-                    setCurrentCatalogId(newCatalog.id)
-                    toast.success(t('toasts.catalogCreated') as string)
-                    refreshUser()
-                    router.replace(`/dashboard/builder?id=${newCatalog.id}`)
-                }
+                    if (currentCatalogId) {
+                        await updateCatalog(currentCatalogId, buildCatalogPayload(data))
+                        toast.success(t('toasts.catalogSaved') as string)
+                    } else {
+                        const newCatalog = await createCatalog(buildCatalogPayload(data))
+                        setCurrentCatalogId(newCatalog.id)
+                        toast.success(t('toasts.catalogCreated') as string)
+                        refreshUser()
+                        router.replace(`/dashboard/builder?id=${newCatalog.id}`)
+                    }
 
-                setLastSavedState(buildSavedStateSnapshot(data))
-                setIsDirty(false)
-                if (isPublished) {
-                    setHasUnpushedChanges(true)
+                    setLastSavedState(buildSavedStateSnapshot(data))
+                    setIsDirty(false)
+                    if (isPublished) {
+                        setHasUnpushedChanges(true)
+                    }
+                    // PERF(K2): No router.refresh() — server action already called
+                    // revalidatePath("/dashboard", "layout"); builder client state is fresh.
+                    resolve()
+                } catch (error) {
+                    console.error('Catalog save error:', error)
+                    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
+                    toast.error(`${t('toasts.catalogSaveFailed') as string}: ${errorMessage}`)
+                    reject(error)
                 }
-                // PERF(K2): No router.refresh() — server action already called
-                // revalidatePath("/dashboard", "layout"); builder client state is fresh.
-            } catch (error) {
-                console.error('Catalog save error:', error)
-                const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
-                toast.error(`${t('toasts.catalogSaveFailed') as string}: ${errorMessage}`)
-            }
+            })
         })
     }, [catalogName, currentCatalogId, isPublished, t, setCatalogName, setCurrentCatalogId, setLastSavedState, setIsDirty, setHasUnpushedChanges, refreshUser, router])
 

@@ -10,6 +10,7 @@
  */
 
 import { z } from 'zod'
+import { MAX_PRODUCT_IMAGES } from '@/lib/constants'
 
 // =============================================================================
 // COMMON SCHEMAS
@@ -124,7 +125,7 @@ export const productCreateSchema = z.object({
     stock: z.union([z.number(), z.string().transform(Number)]).pipe(stock).default(0),
     category: z.string().max(255).transform((val) => val.trim()).optional().nullable(),
     image_url: safeUrl,
-    images: z.array(z.string().url().max(2048)).max(10).optional().default([]),
+    images: z.array(z.string().url().max(2048)).max(MAX_PRODUCT_IMAGES, `En fazla ${MAX_PRODUCT_IMAGES} görsel eklenebilir`).optional().default([]),
     product_url: safeUrl,
     custom_attributes: z.array(customAttributeSchema).max(50).optional().default([]),
     order: z.number().int().min(0).optional(),

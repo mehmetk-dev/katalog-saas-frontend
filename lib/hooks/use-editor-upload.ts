@@ -39,26 +39,18 @@ export function useEditorUpload({
         }
     }, [])
 
-    // Sayfa açıldığında oturumu arka planda tazele
-    useEffect(() => {
-        const refreshSessionInBackground = async () => {
-            try {
-                const { createClient } = await import("@/lib/supabase/client")
-                const supabase = createClient()
-                await supabase.auth.refreshSession()
-            } catch {
-                // Silent error
-            }
-        }
-        refreshSessionInBackground()
-    }, [])
-
-    // Fotoğraf yükleme alanına tıklandığında session check
+    // FIX(L8): Lazy session refresh — only when user clicks upload, not on every mount
+    const sessionRefreshedRef = useRef(false)
     const handleUploadClick = useCallback(async () => {
         try {
             const { createClient } = await import("@/lib/supabase/client")
             const supabase = createClient()
-            await supabase.auth.getSession()
+            if (!sessionRefreshedRef.current) {
+                await supabase.auth.refreshSession()
+                sessionRefreshedRef.current = true
+            } else {
+                await supabase.auth.getSession()
+            }
         } catch {
             // Session check failed silently — upload will handle auth errors
         }
@@ -101,8 +93,13 @@ export function useEditorUpload({
                 }
                 onProgress?.(attempt > 0 ? t('builder.upload.uploadingRetry', { attempt: attempt + 1 }) : t('builder.upload.uploading'))
 
-                const fileExtension = file.name.split('.').pop() || 'jpg'
-                const fileName = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExtension}`
+                // FIX(S1): Derive extension from MIME type, not filename (prevents shell.php.jpg attacks)
+                const ALLOWED_MIME: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg' }
+                const fileExtension = ALLOWED_MIME[file.type]
+                if (!fileExtension) throw new Error('UNSUPPORTED_FILE_TYPE')
+                // FIX(S1): crypto.randomUUID for collision-safe filenames
+                const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substring(2, 12)}`
+                const fileName = `${type}-${uniqueId}.${fileExtension}`
                 const folder = type === 'logo' ? 'company-logos' : (type === 'cover' ? 'catalog-covers' : 'catalog-backgrounds')
 
                 const uploadPromise = storage.upload(file, {
@@ -211,6 +208,7 @@ export function useEditorUpload({
             let userMessage = t('builder.upload.failed')
             if (errorMessage === 'SESSION_TIMEOUT') userMessage = t('builder.upload.sessionError')
             else if (errorMessage === 'UPLOAD_TIMEOUT') userMessage = t('builder.upload.timeoutError')
+            else if (errorMessage === 'UNSUPPORTED_FILE_TYPE') userMessage = t('builder.upload.unsupportedType') || 'Desteklenmeyen dosya türü. PNG, JPG, WEBP kullanın.'
             else if (errorMessage.includes('too large')) userMessage = t('builder.upload.tooLarge')
             else userMessage = t('builder.upload.unexpectedError')
 

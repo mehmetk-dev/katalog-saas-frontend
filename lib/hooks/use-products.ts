@@ -29,15 +29,15 @@ export function useProducts(
         sortBy?: ProductSortField
         sortOrder?: ProductSortOrder
     },
-    initialData?: ProductsResponse
+    initialData?: ProductsResponse,
+    options?: { staleTime?: number; refetchOnMount?: boolean }
 ) {
     return useQuery({
         queryKey: queryKeys.products(params as Record<string, unknown>),
         queryFn: () => getProducts(params),
         initialData,
-        staleTime: initialData ? Infinity : 5 * 60 * 1000,
-        // initialData yoksa sadece stale olduğunda yeniden çek
-        refetchOnMount: initialData ? false : true,
+        staleTime: options?.staleTime ?? 5 * 60 * 1000,
+        refetchOnMount: options?.refetchOnMount ?? true,
     })
 }
 

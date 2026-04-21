@@ -53,7 +53,7 @@ export function useProductsPageState({
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   const [stockFilter, setStockFilter] = useState<StockFilter>("all")
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all")
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
   const [currentPage, setCurrentPage] = useState(parsePageFromQuery(searchParams.get("page")))
   const [itemsPerPage, setItemsPerPage] = useState(parseLimitFromQuery(searchParams.get("limit")))
 
@@ -66,6 +66,23 @@ export function useProductsPageState({
     setMetadata(initialMetadata)
     setStats(initialStats)
   }, [initialProducts, initialMetadata, initialStats])
+
+  // Sync priceRange max with actual product price stats
+  useEffect(() => {
+    const prices = products.map((p) => Number(p.price) || 0)
+    const maxPrice = prices.length > 0 ? Math.max(...prices, 0) : 0
+    setPriceRange(prev => {
+      // Initialize if never set
+      if (prev[1] === 0 && maxPrice > 0) {
+        return [0, maxPrice]
+      }
+      // Clamp if current max exceeds new dataset ceiling
+      if (prev[1] > maxPrice) {
+        return [Math.min(prev[0], maxPrice), maxPrice]
+      }
+      return prev
+    })
+  }, [products])
 
   useEffect(() => {
     setViewMode("list")

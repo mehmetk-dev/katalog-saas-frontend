@@ -68,12 +68,10 @@ export function TemplateSection({
 
     const handleTemplateSelect = (templateId: string, isPro: boolean) => {
         if (clickPrevented) return // Don't select if dragging
-        // TODO: Geçici olarak tüm şablonlar free'ye açık — test süreci bitti mi kontrol et
-        // if (isPro && userPlan === "free") {
-        //     onUpgrade()
-        //     return
-        // }
-        void isPro // lint suppress
+        if (isPro && userPlan === "free") {
+            onUpgrade()
+            return
+        }
         onLayoutChange(templateId)
     }
 

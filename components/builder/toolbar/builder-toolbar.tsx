@@ -146,7 +146,7 @@ export function BuilderToolbar({
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-widest">{t('builder.liveLabel')}</span>
                             <a
-                                href={`/catalog/${catalog?.share_slug}`}
+                                href={catalog?.share_slug ? new URL(`/catalog/${encodeURIComponent(catalog.share_slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin).toString() : '#'}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="ml-1 p-1 hover:bg-emerald-100 rounded-md transition-all group/link"
@@ -280,7 +280,8 @@ export function BuilderToolbar({
 
                                         <DropdownMenuItem onClick={() => {
                                             if (catalog?.share_slug) {
-                                                window.open(`${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/catalog/${catalog.share_slug}`, '_blank')
+                                                const url = new URL(`/catalog/${encodeURIComponent(catalog.share_slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
+                                                window.open(url.toString(), '_blank')
                                             }
                                         }} className="rounded-xl h-10 font-bold text-xs text-emerald-600 bg-emerald-50/30 hover:bg-emerald-50">
                                             <ArrowUpRight className="w-4 h-4 mr-2.5" />
@@ -289,8 +290,8 @@ export function BuilderToolbar({
 
                                         <DropdownMenuItem onClick={() => {
                                             if (catalog?.share_slug) {
-                                                const url = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/catalog/${catalog.share_slug}`
-                                                navigator.clipboard.writeText(url)
+                                                const url = new URL(`/catalog/${encodeURIComponent(catalog.share_slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
+                                                navigator.clipboard.writeText(url.toString())
                                                 toast.success(t('builder.linkCopied'))
                                             }
                                         }} className="rounded-xl h-10 font-bold text-xs">

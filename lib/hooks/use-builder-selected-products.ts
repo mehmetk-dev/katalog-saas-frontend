@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getProductsByIds, type Product } from "@/lib/actions/products"
 
 const PRODUCT_ID_MAX_LENGTH = 128
-const FETCH_CHUNK_SIZE = 200
+const FETCH_CHUNK_SIZE = 500
+const FETCH_CONCURRENCY_LIMIT = 3
 // PERF: Cap on retained product cache to prevent unbounded heap growth on long sessions.
 // Selected products are always preserved; only non-selected excess entries are evicted.
 const PRODUCT_CACHE_SOFT_LIMIT = 2000
@@ -121,17 +122,22 @@ export function useBuilderSelectedProducts({
         chunks.push(idsToFetch.slice(i, i + FETCH_CHUNK_SIZE))
       }
 
-      await Promise.all(chunks.map(async (chunk) => {
-        try {
-          const chunkProducts = await getProductsByIds(chunk)
-          if (cancelled) return
-          upsertLoadedProducts(chunkProducts)
-        } catch (error) {
-          // Allow retry on future render cycles.
-          chunk.forEach((id) => requestedSelectedProductIdsRef.current.delete(id))
-          console.error("Failed to load selected builder products:", error)
-        }
-      }))
+      // FIX(N1): Limit concurrency to prevent backend overload (was: all chunks in parallel)
+      for (let i = 0; i < chunks.length; i += FETCH_CONCURRENCY_LIMIT) {
+        if (cancelled) return
+        const batch = chunks.slice(i, i + FETCH_CONCURRENCY_LIMIT)
+        await Promise.all(batch.map(async (chunk) => {
+          try {
+            const chunkProducts = await getProductsByIds(chunk)
+            if (cancelled) return
+            upsertLoadedProducts(chunkProducts)
+          } catch (error) {
+            // Allow retry on future render cycles.
+            chunk.forEach((id) => requestedSelectedProductIdsRef.current.delete(id))
+            console.error("Failed to load selected builder products:", error)
+          }
+        }))
+      }
     }
 
     void run()

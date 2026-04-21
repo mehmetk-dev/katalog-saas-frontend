@@ -10,6 +10,7 @@ export interface ProductsTableProps {
     onSelectedIdsChange: (ids: string[]) => void
     onEdit: (product: Product) => void
     onDeleted: (id: string) => void
+    onSaved?: (product: Product) => void
     viewMode?: "grid" | "list"
     onProductsReorder?: (products: Product[]) => void
     onReorderSuccess?: () => void

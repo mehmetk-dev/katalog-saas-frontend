@@ -1,5 +1,8 @@
 // ─── Site-wide Constants ────────────────────────────────────────────────────────
 
+/** Maximum number of images per product — shared between FE validation and BE schema */
+export const MAX_PRODUCT_IMAGES = 20
+
 /** Canonical base URL — used for SEO, sitemap, OG tags */
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fogcatalog.com"
 

@@ -220,7 +220,7 @@ export function CatalogEditor() {
   const [activeTab, setActiveTab] = useState("content")
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
-  const [_isFilterPending, startFilterTransition] = useTransition()
+  const [isFilterPending, startFilterTransition] = useTransition()
 
   const debouncedSearchUpdate = useDebouncedCallback(
     (query: string) => {
@@ -260,7 +260,8 @@ export function CatalogEditor() {
     return isInitialQuery ? initialProductsResponse : undefined
   }, [currentPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder, initialProductsResponse])
 
-  const productsQuery = useProducts(productsParams, initialQueryData)
+  // FIX: Builder opens with SSR initialData — no need to refetch on mount.
+  const productsQuery = useProducts(productsParams, initialQueryData, { refetchOnMount: false })
   // PERF(O2): Tüm ürün ID'lerini sadece "Tümünü Seç" butonu etkileşime girince çek.
   // İlk builder açılışında 10k ürün için 10 seri sunucu çağrısını engelliyor.
   const [allIdsRequested, setAllIdsRequested] = useState(false)
@@ -296,7 +297,6 @@ export function CatalogEditor() {
     return selectedProductIds.filter(id => productMap.has(id))
   }, [selectedProductIds, productMap])
   const filteredProducts = pagedProducts
-  const visibleProducts = pagedProducts
 
   useEffect(() => { setCurrentPage(1) }, [selectedCategory, debouncedSearchQuery])
   useEffect(() => { setCurrentPage(1) }, [sortBy, sortOrder])
@@ -405,7 +405,7 @@ export function CatalogEditor() {
               onSortOrderChange={setSortOrder}
               filteredProducts={filteredProducts}
               allProductIds={allProductIds}
-              visibleProducts={visibleProducts}
+              visibleProducts={filteredProducts}
               selectedProductIds={selectedProductIds}
               selectedProductIdSet={selectedProductIdSet}
               validProductIds={validProductIds}
@@ -418,7 +418,7 @@ export function CatalogEditor() {
               itemsPerPage={itemsPerPage}
               onPageChange={setCurrentPage}
               productMap={productMap}
-              isLoadingProducts={productsQuery.isLoading || productsQuery.isFetching}
+              isLoadingProducts={productsQuery.isLoading || productsQuery.isFetching || isFilterPending}
               isLoadingAllProductIds={allProductIdsQuery.isLoading || allProductIdsQuery.isFetching}
               draggingIndex={draggingIndex}
               dropIndex={dropIndex}
@@ -430,7 +430,8 @@ export function CatalogEditor() {
           </TabsContent>
 
           <TabsContent value="design" className="m-0">
-            <EditorDesignTab
+            {/* FIX(P6): Only compute 40+ design props when design tab is active */}
+            {activeTab === 'design' && <EditorDesignTab
               t={t}
               openSections={openSections}
               toggleSection={toggleSection}
@@ -506,7 +507,7 @@ export function CatalogEditor() {
               userPlan={userPlan}
               onUpgrade={onUpgrade}
               selectedProductIds={selectedProductIds}
-            />
+            />}
           </TabsContent>
         </div>
       </Tabs>

@@ -31,6 +31,7 @@ export function StorytellingSection({
 }: StorytellingSectionProps) {
     const { t } = useTranslation()
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+    const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null)
 
     // Eşsiz kategorileri alıyoruz
     const uniqueCategories = useMemo(() => {
@@ -55,23 +56,32 @@ export function StorytellingSection({
         setDraggedIdx(idx)
     }
 
+    // PERF(P5): Only track visual drop target — no state/callback spam per frame
     const handleDragOver = (e: React.DragEvent, idx: number) => {
+        e.preventDefault()
+        if (draggedIdx === null || draggedIdx === idx) return
+        setDropTargetIdx(idx)
+    }
+
+    const handleDrop = (e: React.DragEvent, idx: number) => {
         e.preventDefault()
         if (draggedIdx === null || draggedIdx === idx) return
 
         const newOrder = [...uniqueCategories]
         const draggedItem = newOrder[draggedIdx]
-        newOrder.splice(draggedIdx, 1) // Çek
-        newOrder.splice(idx, 0, draggedItem) // Bırakılan yere ekle
+        newOrder.splice(draggedIdx, 1)
+        newOrder.splice(idx, 0, draggedItem)
 
         if (onCategoryOrderChange) {
             onCategoryOrderChange(newOrder)
-            setDraggedIdx(idx) // Sürüklenen elemanın index'ini güncelle ki ui pırpır etmesin
         }
+        setDraggedIdx(null)
+        setDropTargetIdx(null)
     }
 
     const handleDragEnd = () => {
         setDraggedIdx(null)
+        setDropTargetIdx(null)
     }
     return (
         <SectionWrapper
@@ -375,10 +385,11 @@ export function StorytellingSection({
                                             draggable
                                             onDragStart={() => handleDragStart(idx)}
                                             onDragOver={(e) => handleDragOver(e, idx)}
+                                            onDrop={(e) => handleDrop(e, idx)}
                                             onDragEnd={handleDragEnd}
                                             className={cn(
                                                 "flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl cursor-grab active:cursor-grabbing border border-transparent transition-all",
-                                                draggedIdx === idx ? "opacity-50 border-indigo-500 scale-[0.98]" : "hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"
+                                                draggedIdx === idx ? "opacity-50 border-indigo-500 scale-[0.98]" : dropTargetIdx === idx ? "border-indigo-300 bg-indigo-50/50 dark:bg-indigo-900/20" : "hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"
                                             )}
                                         >
                                             <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />

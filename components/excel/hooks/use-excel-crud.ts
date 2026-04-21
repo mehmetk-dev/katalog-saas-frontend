@@ -159,8 +159,18 @@ export function useExcelCrud({
       }
 
       return true
-    } catch {
-      toast.error(t("common.error"))
+    } catch (error: unknown) {
+      const apiError = error as { status?: number; details?: { error?: string; message?: string; attemptedCount?: number; rolledBackCount?: number } }
+      if (apiError.status === 207) {
+        const attempted = apiError.details?.attemptedCount ?? 0
+        const rolledBack = apiError.details?.rolledBackCount ?? 0
+        toast.error(
+          t("excel.partialFailure", { attempted, rolledBack }) ||
+          `${rolledBack}/${attempted} ürün geri alındı. İçe aktarım başarısız.`
+        )
+      } else {
+        toast.error(t("common.error"))
+      }
       return false
     } finally {
       setIsSaving(false)

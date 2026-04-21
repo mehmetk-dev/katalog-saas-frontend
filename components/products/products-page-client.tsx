@@ -65,6 +65,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     hasActiveFilters,
     paginatedProducts,
     totalPagesCount,
+    filteredCount,
     categoryStats,
     handlePageChange,
     handleAddProduct,
@@ -116,7 +117,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
 
           <ProductsToolbar
             selectedCount={selectedIds.length}
-            totalFilteredCount={metadata.total}
+            totalFilteredCount={filteredCount}
             onSelectAll={handleToolbarSelectAll}
             search={search}
             onSearchChange={handleSearchChange}
@@ -155,7 +156,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             maxPrice={priceStats.max}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearAllFilters}
-            filteredCount={metadata.total}
+            filteredCount={filteredCount}
           />
         </div>
 
@@ -186,6 +187,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
               onSelectedIdsChange={setSelectedIds}
               onEdit={handleEditProduct}
               onDeleted={handleProductDeleted}
+              onSaved={handleProductSaved}
               viewMode={viewMode}
               onProductsReorder={(newProducts: Product[]) => handleTableReorder(newProducts)}
               onReorderSuccess={async () => {
@@ -198,7 +200,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             currentPage={currentPage}
             totalPages={totalPagesCount}
             itemsPerPage={itemsPerPage}
-            totalItems={metadata.total}
+            totalItems={filteredCount}
             onPageChange={handlePageChange}
             onItemsPerPageChange={handleItemsPerPageChange}
             pageSizeOptions={PAGE_SIZE_OPTIONS}

@@ -23,7 +23,9 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     selectedCategory: state.selectedCategory,
     stockFilter: state.stockFilter,
     priceRange: state.priceRange,
+    metadataTotal: state.metadata.total,
     metadataTotalPages: state.metadata.totalPages,
+    itemsPerPage: state.itemsPerPage,
     t: (key, params) => String(t(key, params)),
   })
 
@@ -106,6 +108,7 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     hasActiveFilters: derived.hasActiveFilters,
     paginatedProducts: derived.paginatedProducts,
     totalPagesCount: derived.totalPagesCount,
+    filteredCount: derived.filteredCount,
     categoryStats: derived.categoryStats,
 
     handlePageChange: state.handlePageChange,

@@ -23,8 +23,8 @@
 
 ### 4. checkProductsInCatalogs O(n×m) karşılaştırma — büyük veride yavaş
 - **Dosya:** `backend/src/controllers/products/read.ts:262-273`
-- **Sorun:** Her productId için tüm catalog'ların `product_ids` array'ini `.includes()` ile tarıyor. 1000 ürün × 50 katalog = 50.000 karşılaştırma. `product_ids` JSONB array — Supabase `.contains()` ile tek sorguda yapılabilir.
-- **Çözüm:** Tek bir Supabase sorgusu ile tüm eşleşmeleri bul: `select('id, name, product_ids').contains('product_ids', productIds)` → JS tarafında map'le
+- **Sorun:** Her productId için tüm catalog'ların `product_ids` array'ini `.includes()` ile tarıyor. 1000 ürün × 50 katalog = 50.000 karşılaştırma. `product_ids` `uuid[]` (dizi) — JSONB değil.
+- **Çözüm:** Supabase PostgreSQL `overlaps()` (dizi operatorü) ile tek sorguda eşleşen catalog'ları bul: `select('id, name, product_ids').overlaps('product_ids', productIds)` → JS tarafında map'le. Alternatif: birden fazla `.or()` + `.cs('product_ids', [id])` yerine toplu sorgu
 
 ### 5. useProducts staleTime: Infinity — SSR initialData ile zamanında güncellenmez
 - **Dosya:** `lib/hooks/use-products.ts:38`
@@ -33,8 +33,8 @@
 
 ### 6. deleteProduct sonrası catalog product_ids temizlenmiyor — dangling referans
 - **Dosya:** `backend/src/controllers/products/write.ts:281-341`
-- **Sorun:** Ürün silindiğinde `catalogs.product_ids` array'inden silinen ürünün ID'si çıkarılmıyor. Katalog hâlâ silinmiş ürün ID'sine referans içeriyor → builder'da "ürün bulunamadı" hatası.
-- **Çözüm:** Ürün silme sonrası kullanıcının tüm catalog'larından ilgili ID'yi çıkar (RPC veya batch update ile)
+- **Sorun:** Backend kodunda ürün silme sonrası `catalogs.product_ids` cleanup yok. Ancak `supabase/migrations/product_catalog_cleanup.sql` içinde `remove_product_from_catalogs()` trigger fonksiyonu ve `on_product_deleted` trigger tanımı mevcut — **eğer bu migration üretim DB'ye uygulandıysa** sorun trigger ile çözülür. Kod seviyesinde cleanup eksikliği hâlâ risk.
+- **Çözüm:** Migration'ı DB'ye uygula (henüz yapılmadıysa). Alternatif: backend delete handler'a catalog cleanup RPC'si ekle.
 
 ---
 
@@ -45,15 +45,15 @@
 - **Sorun:** Her `getProducts` çağrısında ayrı bir sorgu ile tüm kategorileri çekiyor. Bu veri sadece filtre dropdown'ı için lazım ve çok sık değişmez.
 - **Çözüm:** Kategorileri ayrı bir cache'li endpoint'a taşı, veya `select !== 'id'` koşulunda bile her seferinde çekme — client tarafında `allCategories`'i ayrı bir hook ile çek
 
-### 8. getProducts 4 sıralama (order) uygulanıyor — gereksiz sort yükü
+### 8. getProducts birden fazla `order()` çağrısı — sadeleştirilebilir
 - **Dosya:** `backend/src/controllers/products/read.ts:51-62`
-- **Sorun:** `sortBy` + `display_order` + `created_at` + `id` — 4 farklı `order()` çağrısı. PostgreSQL her biri için ayrı sort yapıyor. `id` ile sıralama gereksiz (tie-breaker değil, deterministik değil).
+- **Sorun:** `sortBy` + `display_order` + `created_at` + `id` — 4 `order()` çağrısı. PostgreSQL bunları tek `ORDER BY` zincirine çevirir, dolayısıyla 4 ayrı "sort yükü" oluşmaz. Ancak `id` ile sıralama gereksiz (tie-breaker değil, deterministik değil) ve kod kalitesini düşürür.
 - **Çözüm:** Sadece `sortBy` + tek bir tie-breaker (örn. `created_at`) kullan, `id` sıralamasını kaldır
 
 ### 9. updateProduct `updated_at` JS tarafında üretiliyor — timezone/senkronizasyon riski
 - **Dosya:** `backend/src/controllers/products/write.ts:233`
-- **Sorun:** `updated_at: new Date().toISOString()` — Node.js sunucunun saatini kullanıyor. PostgreSQL `CURRENT_TIMESTAMP` ile tutarsız olabilir (farklı sunucular, timezone farkı).
-- **Çözüm:** `updated_at`'ı PostgreSQL trigger'ı ile otomatik yönet (zaten `update_updated_at_column` fonksiyonu var), veya en azından Supabase update'den çıkar
+- **Sorun:** `updated_at: new Date().toISOString()` — Node.js sunucunun saatini kullanıyor. PostgreSQL `CURRENT_TIMESTAMP` ile tutarsız olabilir (farklı sunucular, timezone farkı). Repo içinde `products` tablosu için `update_updated_at_column` trigger'ı net olarak görünmüyor.
+- **Çözüm:** `updated_at`'ı PostgreSQL trigger'ı ile otomatik yönet ve backend update payload'ından çıkar. Eğer trigger yoksa migration ekle.
 
 ### 10. bulkUpdatePrices her ürün için ayrı UPDATE sorgusu — N sorgu
 - **Dosya:** `backend/src/controllers/products/bulk.ts:346-367`
@@ -80,39 +80,48 @@
 - **Sorun:** `${product.name} (KopyasÄ±)` — "ı" harfi bozuk. UTF-8 encoding sorunu. Ayrıca i18n kullanılmıyor.
 - **Çözüm:** `t("products.copy", { name: product.name })` ile çeviriden çek, i18n key ekle
 
-### 15. handleDuplicate `onDeleted('')` ile parent refresh tetikliyor — kötü isimlendirme
-- **Dosya:** `components/products/table/hooks/use-products-table.ts:119`
-- **Sorun:** Kopyalama başarılı olduktan sonra `onDeleted('')` çağrılıyor — bu isim kafa karıştırıcı, aslında bir silme değil "refresh" anlamında.
-- **Çözüm:** `onRefresh` veya `onMutationComplete` gibi daha açık bir callback ismi kullan
+---
+
+## P0.5 — Yüksek (Doğruluk / Davranış Hatası) — Doğrulamada Atlananlar
+
+### 16. handleDuplicate `onDeleted('')` davranış hatası üretiyor (isimlendirme de hatalı)
+- **Dosya:** `components/products/table/hooks/use-products-table.ts:119` + `components/products/hooks/use-products-bulk-actions.ts:91`
+- **Sorun:** Kopyalama başarılı olduktan sonra `onDeleted('')` çağrılıyor. Parent `handleProductDeleted('')` içinde `products.filter((p) => p.id !== '')` hiçbir ürünü filtrelemez (boş string eşleşmez), ama `adjustMetadataTotal(-1)` çalışır. Sonuç: **total 1 eksik gözükür, hiçbir ürün silinmemiştir**.
+- **Çözüm:** `onDeleted` yerine `onRefresh` veya `onMutationComplete` callback'i kullan. Duplicate sonrası `handleProductSaved(newProduct)` çağrısı yap, metadata total artır.
+
+### 17. priceRange ve stockFilter UI state "ghost" — gerçek filtreleme uygulanmıyor
+- **Dosya:** `components/products/hooks/use-products-page-derived.ts:49`
+- **Sorun:** `priceRange` ve `stockFilter` state'leri tanımlı (`use-products-page-state.ts:56`), `hasActiveFilters` içinde kontrol ediliyor, ama `paginatedProducts = products` (filtreleme yok). Kullanıcı slider/ dropdown kullanır ama ürün listesi değişmez.
+- **Çözüm:** `useProductsPageDerived` içinde `priceRange` ve `stockFilter`'a göre `products.filter(...)` uygula. Veya eğer backend pagination kullanılıyorsa filtre parametrelerini `getProducts` query'ine ekle.
 
 ---
 
 ## P2 — Orta (Kod Kalitesi / UX)
 
-### 16. priceRange default [0, 100000] — düşük fiyatlı ürünlerde filtre çalışmaz
+### 19. priceRange default [0, 100000] — düşük fiyatlı ürünlerde slider verimsiz
 - **Dosya:** `components/products/hooks/use-products-page-state.ts:56`
 - **Sorun:** `priceRange` sabit `[0, 100000]` ile başlıyor. Ürün fiyatları 0-5000 arasındaysa slider'ın tamamı kullanılamaz. Ayrıca 100000 üstü fiyatlar filtrelenemez.
 - **Çözüm:** `priceStats.max`'a göre dinamik range başlat, veya backend'den min/max fiyat dön
 
-### 17. getAllProductIds while(true) döngüsü — sonsuz döngü riski
+### 20. getAllProductIds while(true) döngüsü — stil riski
 - **Dosya:** `lib/actions/products.ts:567-579`
-- **Sorun:** `while (true)` ile sayfalama yapıyor. Eğer backend hep aynı `totalPages` dönerse sonsuz döngüye girer. Güvenlik sınırı yok.
+- **Sorun:** `while (true)` ile sayfalama yapıyor. Break koşulu (`page >= totalPages`) nedeniyle pratikte sonsuz döngü olasılığı düşük, ama stil olarak riskli.
 - **Çözüm:** Maksimum iterasyon sayısı ekle (örn. `maxPages = 100`), veya RPC ile tek sorguda tüm ID'leri çek
 
-### 18. productModal 500ms DB consistency wait — hack
+### 21. productModal 500ms DB consistency wait — hack
 - **Dosya:** `components/products/modals/product-modal.tsx:144`
 - **Sorun:** `await new Promise((r) => setTimeout(r, 500))` — update sonrası DB'nin güncellenmesini beklemek için. Bu race condition'ı gizler, garanti etmez.
 - **Çözüm:** Backend update endpoint'ini güncel ürün verisini döndürecek şekilde değiştir (`RETURNING *`), frontend bekleme yerine dönen veriyi kullan
 
-### 19. bulkImportProducts frontend limit 5000, backend schema 10000 — tutarsız
+### 22. bulkImportProducts frontend limit 5000, backend schema 10000 — tutarsız
 - **Dosya:** `lib/actions/products.ts:280` vs `backend/src/controllers/products/schemas.ts:101`
 - **Sorun:** Frontend `BULK_IMPORT_MAX_ITEMS = 5000` ama backend `max(10000)` kabul ediyor. Kullanıcı 7500 ürün import etmeye çalışırsa frontend reddeder ama direkt API'ye istek yapılırsa backend kabul eder.
 - **Çözüm:** Her iki tarafı aynı değere eşitle (5000 veya 10000)
 
-### 20. searchParams Promise olarak alınıyor — Next.js 16 uyumu ama tip güvensiz
+### 23. searchParams Promise olarak alınıyor — Next.js 16 uyumlu, clamp/allowlist var
 - **Dosya:** `app/dashboard/products/page.tsx:20-22`
-- **Sorun:** `searchParams: Promise<{...}>` — Next.js 16'da doğru ama `await searchParams` sonrası tip güvenliği yok (string|undefined). `Number.parseInt` NaN dönebilir.
-- **Çözüm:** Zod ile searchParams'ı validate et (backend'deki `productsQuerySchema` gibi)
+- **Sorun:** `searchParams: Promise<{...}>` — Next.js 16'da doğru. Mevcut kodda `Number.isFinite` + `> 0` clamp ve `PRODUCTS_PAGE_SIZE_OPTIONS.includes` allowlist var, dolayısıyla tamamen güvensiz değil. Ancak `Number.parseInt` NaN dönebilir ve tip güvenliği zayıf.
+- **Çözüm:** Zod ile searchParams'ı validate et (backend'deki `productsQuerySchema` gibi) — mevcut koruyucuların üzerine ek güvenlik katmanı
 
 ---
 
@@ -120,26 +129,39 @@
 
 | # | Durum | Not |
 |---|-------|-----|
-| 1 | ⬜ | |
-| 2 | ⬜ | |
-| 3 | ⬜ | |
-| 4 | ⬜ | |
-| 5 | ⬜ | |
-| 6 | ⬜ | |
-| 7 | ⬜ | |
-| 8 | ⬜ | |
-| 9 | ⬜ | |
-| 10 | ⬜ | |
-| 11 | ⬜ | |
-| 12 | ⬜ | |
-| 13 | ⬜ | |
-| 14 | ⬜ | |
-| 15 | ⬜ | |
-| 16 | ⬜ | |
-| 17 | ⬜ | |
-| 18 | ⬜ | |
-| 19 | ⬜ | |
-| 20 | ⬜ | |
+| 1 | ✅ | FE max(10)→max(20), MAX_PRODUCT_IMAGES constant eklendi |
+| 2 | ✅ | chunkArray ile DB_CHUNK_SIZE=100 batch insert |
+| 3 | ✅ | get_product_stats RPC migration + backend tek sorgu |
+| 4 | ✅ | overlaps() ile DB-seviye filtreleme, O(n×m)→tek sorgu |
+| 5 | ✅ | staleTime Infinity → 5dk, refetchOnMount: true |
+| 6 | ✅ | deleteProduct sonrası remove_product_from_catalogs RPC çağrısı eklendi |
+| 7 | ✅ | allCategories ayrı cache key + 4x TTL ile cache'lendi |
+| 8 | ✅ | .order('id') kaldırıldı, sortBy + created_at yeterli |
+| 9 | ✅ | JS updated_at kaldırıldı, PostgreSQL trigger migration eklendi |
+| 10 | ✅ | bulk_update_product_prices RPC ile tek sorgu |
+| 11 | ✅ | bulk_reorder_products RPC ile tek sorgu |
+| 12 | ✅ | Ortak MAX_PRODUCT_IMAGES constant ile çözüldü (#1 ile birlikte) |
+| 13 | ✅ | bulkDeleteProducts sonrası catalog cleanup eklendi (#6 ile aynı RPC) |
+| 14 | ✅ | i18n key eklendi, encoding düzeltildi |
+| 15 | ✅ | #16 ile birleştirildi (onSaved callback) |
+| 16 | ✅ | onDeleted('') → onSaved(newProduct), metadata total artırılıyor |
+| 17 | ✅ | priceRange/stockFilter filtreleme artık uygulanıyor |
+| 18 | ✅ | (eski #16 slot, #16'ya taşındı) |
+| 19 | ✅ | priceRange [0,100000] → dinamik maxPrice ile başlatılıyor |
+| 20 | ✅ | while(true) → while(page<=maxPages), maxPages=100 |
+| 21 | ✅ | setTimeout hack kaldırıldı, BE .select().single() + FE returned product |
+| 22 | ✅ | FE BULK_IMPORT_MAX_ITEMS 5000→10000, BE ile eşitlendi |
+| 23 | ✅ | Zod searchParamsSchema ile tip-güvenli parse eklendi |
+
+---
+
+## Doğrulama Özeti
+
+| Kategori | Sayı | Durum |
+|----------|------|-------|
+| **Kesin Doğru** | 10 | Kodda doğrulanmış, değişiklik gerekiyor |
+| **Kısmen Doğru** | 6 | Ana tespit doğru, teknik detay/öneride düzeltme yapıldı |
+| **Atlanan Kritik** | 2 | Doğrulamada yoktu, kodda gerçek ve ciddi |
 
 ---
 
@@ -150,12 +172,14 @@
 | `backend/src/controllers/products/read.ts` | #3, #4, #7, #8 |
 | `backend/src/controllers/products/write.ts` | #6, #9 |
 | `backend/src/controllers/products/bulk.ts` | #2, #10, #11, #13 |
-| `backend/src/controllers/products/schemas.ts` | #1, #12, #19 |
+| `backend/src/controllers/products/schemas.ts` | #1, #12, #22 |
 | `lib/validations/index.ts` | #1, #12 |
 | `lib/hooks/use-products.ts` | #5 |
-| `lib/actions/products.ts` | #17, #19 |
-| `components/products/table/hooks/use-products-table.ts` | #14, #15 |
-| `components/products/modals/product-modal.tsx` | #18 |
-| `components/products/hooks/use-products-page-state.ts` | #16 |
-| `app/dashboard/products/page.tsx` | #20 |
-| `supabase/migrations/` | #3 (RPC), #6 (trigger/RPC) |
+| `lib/actions/products.ts` | #20, #22 |
+| `components/products/table/hooks/use-products-table.ts` | #14, #16 |
+| `components/products/hooks/use-products-bulk-actions.ts` | #16 |
+| `components/products/hooks/use-products-page-derived.ts` | #17 |
+| `components/products/hooks/use-products-page-state.ts` | #18, #19 |
+| `components/products/modals/product-modal.tsx` | #21 |
+| `app/dashboard/products/page.tsx` | #23 |
+| `supabase/migrations/` | #3 (RPC), #6 (trigger/RPC), #9 (trigger) |

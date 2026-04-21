@@ -41,5 +41,6 @@ export interface ProductsPageDerived {
   hasActiveFilters: boolean
   paginatedProducts: Product[]
   totalPagesCount: number
+  filteredCount: number
   categoryStats: Array<[string, { count: number; totalValue: number }]>
 }

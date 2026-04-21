@@ -140,9 +140,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     setIsSaving(true)
     try {
       if (isEditing) {
-        await updateProduct(product.id, formData)
-        await new Promise((r) => setTimeout(r, 500)) // DB consistency wait
-        onSaved({
+        const updatedProduct = await updateProduct(product.id, formData)
+        onSaved(updatedProduct || {
           ...product,
           name, sku, description,
           price: parseFloat(price) || 0,

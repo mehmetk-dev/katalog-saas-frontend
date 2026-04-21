@@ -230,7 +230,6 @@ export const updateProduct = async (req: Request, res: Response) => {
         const normalizedMedia = normalizeCoverAndImages(mergedImages, mergedCover, { allowCoverFallback });
 
         const updateData: Record<string, unknown> = {
-            updated_at: new Date().toISOString(),
             image_url: normalizedMedia.image_url,
             images: normalizedMedia.images,
         };
@@ -246,11 +245,13 @@ export const updateProduct = async (req: Request, res: Response) => {
         if (display_order !== undefined) updateData.display_order = display_order;
         if (is_active !== undefined) updateData.is_active = is_active;
 
-        const { error } = await supabase
+        const { data: updatedProduct, error } = await supabase
             .from('products')
             .update(updateData)
             .eq('id', id)
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .select()
+            .single();
 
         if (error) throw error;
 
@@ -272,7 +273,7 @@ export const updateProduct = async (req: Request, res: Response) => {
             userAgent
         });
 
-        res.json({ success: true });
+        res.json({ success: true, product: updatedProduct });
     } catch (error: unknown) {
         res.status(500).json({ error: safeErrorMessage(error) });
     }
@@ -309,6 +310,15 @@ export const deleteProduct = async (req: Request, res: Response) => {
             .eq('user_id', userId);
 
         if (error) throw error;
+
+        // Remove product ID from all catalogs' product_ids arrays
+        const { error: catalogCleanupError } = await supabase.rpc('remove_product_from_catalogs', {
+            p_product_id: id,
+            p_user_id: userId,
+        });
+        if (catalogCleanupError) {
+            console.error('Failed to cleanup catalog references for deleted product:', catalogCleanupError);
+        }
 
         await Promise.all([
             deleteCache(cacheKeys.products(userId)),

@@ -102,6 +102,10 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
   const { user } = useUser()
   const { t } = useTranslation()
   const isFreeUser = user?.plan === "free"
+
+  // PERF(P1): Stabilize translated label so `t` doesn't invalidate the heavy `pages` useMemo
+  const uncategorizedLabel = useRef(t('preview.uncategorized') as string || 'Kategorisiz')
+  uncategorizedLabel.current = t('preview.uncategorized') as string || 'Kategorisiz'
   const [currentPage, setCurrentPage] = useState(0)
   const [viewMode, setViewMode] = useState<"single" | "multi">("single")
   const [scale, setScale] = useState(0.5) // Start small, auto-fit will adjust
@@ -166,7 +170,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     if (props.enableCategoryDividers) {
       const groupedByCategory = new Map<string, Product[]>()
       for (const product of products) {
-        const categoryName = product.category || (t('preview.uncategorized') as string || 'Kategorisiz')
+        const categoryName = product.category || uncategorizedLabel.current
         const current = groupedByCategory.get(categoryName)
         if (current) {
           current.push(product)
@@ -210,11 +214,12 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     }
     if (calculatedPages.length === 0) calculatedPages.push({ type: 'products', products: [] })
     return calculatedPages
-  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.categoryOrder, props.pages, t])
+  // PERF(P1): `t` removed from deps — uncategorizedLabel ref keeps it fresh without re-triggering
+  }, [props.products, props.layout, props.columnsPerRow, props.enableCoverPage, props.enableCategoryDividers, props.categoryOrder, props.pages])
 
   const totalPages = pages.length
 
-  const MULTI_VIRTUALIZATION_THRESHOLD = 10
+  const MULTI_VIRTUALIZATION_THRESHOLD = 50
   const MULTI_OVERSCAN_PAGES = 3
   const estimatedMultiPageHeight = A4_HEIGHT * scale + 40
   const shouldVirtualizeMultiPages = viewMode === 'multi' && totalPages > MULTI_VIRTUALIZATION_THRESHOLD
@@ -259,14 +264,14 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
   const virtualOffsetY = virtualStartPage * estimatedMultiPageHeight
   const virtualTotalHeight = totalPages * estimatedMultiPageHeight
 
-  // PERF(F9): Clamp page index safely — no setState during render
-  const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1))
-
+  // FIX(L9): Single source of truth — safeCurrentPage is the only clamped page index.
+  // Sync currentPage state when totalPages shrinks so user doesn't need many back-clicks.
   useEffect(() => {
     if (currentPage >= totalPages && totalPages > 0) {
       setCurrentPage(totalPages - 1)
     }
   }, [totalPages, currentPage])
+  const safeCurrentPage = Math.min(currentPage, Math.max(0, totalPages - 1))
 
   // PERF: Destructure primitives so useCallback deps are stable per-field,
   // otherwise `[props]` invalidates the memo on every parent render.
@@ -367,7 +372,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
 
     return (
       <div
-        key={`page-container-${layoutKey}-${pageIndex}`}
+        key={`page-container-${pageIndex}`}
         className="catalog-page-wrapper relative shrink-0"
         style={{
           width: isExporting ? A4_WIDTH : A4_WIDTH * scale,
@@ -376,7 +381,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
         }}
       >
         <div
-          key={`page-${layoutKey}-${pageIndex}`}
+          key={`page-${pageIndex}`}
           className="catalog-page catalog-light shadow-2xl overflow-hidden absolute top-0 left-1/2 -translate-x-1/2 bg-white"
           style={{
             width: A4_WIDTH,

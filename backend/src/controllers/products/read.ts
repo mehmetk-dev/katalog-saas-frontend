@@ -58,7 +58,6 @@ export const getProducts = async (req: Request, res: Response) => {
             }
 
             const { data, error, count } = await orderedQuery
-                .order('id', { ascending: false })
                 .range(from, to);
 
             if (error) throw error;
@@ -88,19 +87,22 @@ export const getProducts = async (req: Request, res: Response) => {
 
             let allCategories: string[] | undefined = undefined;
             if (select !== 'id') {
-                // Tum benzersiz kategorileri getir (filtre icin)
-                const { data: categoryData } = await supabase
-                    .from('products')
-                    .select('category')
-                    .eq('user_id', userId)
-                    .not('category', 'is', null)
-                    .not('category', 'eq', '');
+                // Cache categories separately with longer TTL — they change infrequently
+                const categoriesCacheKey = cacheKeys.products(userId) + ':categories';
+                allCategories = await getOrSetCache(categoriesCacheKey, cacheTTL.products * 4, async () => {
+                    const { data: categoryData } = await supabase
+                        .from('products')
+                        .select('category')
+                        .eq('user_id', userId)
+                        .not('category', 'is', null)
+                        .not('category', 'eq', '');
 
-                allCategories = [...new Set(
-                    (categoryData || [])
-                        .map((p: { category: string | null }) => p.category)
-                        .filter(Boolean)
-                )] as string[];
+                    return [...new Set(
+                        (categoryData || [])
+                            .map((p: { category: string | null }) => p.category)
+                            .filter(Boolean)
+                    )] as string[];
+                });
             }
 
             return {
@@ -250,25 +252,28 @@ export const checkProductsInCatalogs = async (req: Request, res: Response) => {
             return res.json({ productsInCatalogs: [], catalogs: [] });
         }
 
+        // Only fetch catalogs that contain at least one of the requested productIds
         const { data: catalogs, error } = await supabase
             .from('catalogs')
             .select('id, name, product_ids')
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .overlaps('product_ids', productIds);
 
         if (error) throw error;
 
+        // Build a map: productId → catalogs containing it
+        const productIdSet = new Set(productIds);
         const productsInCatalogs: { productId: string; catalogs: { id: string; name: string }[] }[] = [];
 
-        for (const productId of productIds) {
-            const catalogsContaining = catalogs?.filter(c =>
-                c.product_ids?.includes(productId)
-            ).map(c => ({ id: c.id, name: c.name })) || [];
-
-            if (catalogsContaining.length > 0) {
-                productsInCatalogs.push({
-                    productId,
-                    catalogs: catalogsContaining
-                });
+        for (const catalog of catalogs || []) {
+            const matchingIds = (catalog.product_ids || []).filter((id: string) => productIdSet.has(id));
+            for (const productId of matchingIds) {
+                let entry = productsInCatalogs.find(p => p.productId === productId);
+                if (!entry) {
+                    entry = { productId, catalogs: [] };
+                    productsInCatalogs.push(entry);
+                }
+                entry.catalogs.push({ id: catalog.id, name: catalog.name });
             }
         }
 
@@ -288,53 +293,19 @@ export const getProductStats = async (req: Request, res: Response) => {
         // Use redis cache to speed up stats
         const cacheKey = cacheKeys.stats(userId, { type: 'products' });
         const result = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
-            // First get exact total count (doesn't fetch rows)
-            const { count: totalCount, error: countError } = await supabase
-                .from('products')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId);
+            // Single RPC call instead of N+1 batch fetching
+            const { data, error } = await supabase
+                .rpc('get_product_stats', { p_user_id: userId });
 
-            if (countError) throw countError;
+            if (error) throw error;
 
-            const total = totalCount || 0;
-
-            const stats = {
-                total,
-                inStock: 0,
-                lowStock: 0,
-                outOfStock: 0,
-                totalValue: 0
+            return {
+                total: data?.total || 0,
+                inStock: data?.inStock || 0,
+                lowStock: data?.lowStock || 0,
+                outOfStock: data?.outOfStock || 0,
+                totalValue: Number(data?.totalValue) || 0,
             };
-
-            // Fetch all stock/price pairs in batches of 1000 (Supabase default limit)
-            const BATCH_SIZE = 1000;
-            const totalBatches = Math.ceil(total / BATCH_SIZE);
-
-            for (let batch = 0; batch < totalBatches; batch++) {
-                const from = batch * BATCH_SIZE;
-                const to = from + BATCH_SIZE - 1;
-
-                const { data, error } = await supabase
-                    .from('products')
-                    .select('stock, price')
-                    .eq('user_id', userId)
-                    .range(from, to);
-
-                if (error) throw error;
-
-                (data || []).forEach(p => {
-                    const stock = p.stock || 0;
-                    const price = Number(p.price) || 0;
-
-                    if (stock >= 10) stats.inStock++;
-                    else if (stock > 0 && stock < 10) stats.lowStock++;
-                    else if (stock === 0) stats.outOfStock++;
-
-                    stats.totalValue += (stock * price);
-                });
-            }
-
-            return stats;
         });
 
         res.json(result);

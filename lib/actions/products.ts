@@ -210,12 +210,12 @@ export async function updateProduct(id: string, formData: FormData) {
   // Validate and sanitize input
   const validatedUpdates = validate(productUpdateSchema, updates)
 
-  await apiFetch(`/products/${id}`, {
+  const data = await apiFetch<{ success: boolean; product: Product }>(`/products/${id}`, {
     method: "PUT",
     body: JSON.stringify(validatedUpdates),
   })
   revalidatePath("/dashboard/products")
-  return { success: true }
+  return data.product
 }
 
 export async function deleteProduct(id: string) {
@@ -277,7 +277,7 @@ export async function checkProductsInCatalogs(productIds: string[]): Promise<Pro
   }
 }
 
-const BULK_IMPORT_MAX_ITEMS = 5000
+const BULK_IMPORT_MAX_ITEMS = 10000
 
 export async function bulkImportProducts(products: Omit<Product, "id" | "user_id" | "created_at" | "updated_at">[]) {
   if (!Array.isArray(products) || products.length === 0) {
@@ -563,8 +563,9 @@ export async function getAllProductIds(): Promise<string[]> {
     const ids: string[] = []
     let page = 1
     const limit = 1000
+    const maxPages = 100
 
-    while (true) {
+    while (page <= maxPages) {
       const response = await getProducts({ page, limit, select: "id" }) as {
         products: { id: string }[]
         metadata: { totalPages: number }

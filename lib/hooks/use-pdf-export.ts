@@ -23,7 +23,26 @@ function formatTimeLeft(seconds: number): string {
     return secs > 0 ? `~${mins} dk ${secs} sn` : `~${mins} dk`
 }
 
-// Arka planda donmayÄ±/yavaÅŸlamayÄ± Ã¶nleyen Ã¶zel bekleme fonksiyonu (setTimeout alternatifi)
+// FIX(S2): Trusted domain whitelist for image fetch during PDF export
+const TRUSTED_IMAGE_DOMAINS = [
+    'res.cloudinary.com',
+    'cloudinary.com',
+    'supabase.co',
+    'supabase.com',
+]
+const MAX_IMAGE_BLOB_SIZE = 10 * 1024 * 1024 // 10MB per image
+
+function isImageUrlTrusted(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+        return TRUSTED_IMAGE_DOMAINS.some(domain => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`))
+    } catch {
+        return false
+    }
+}
+
+// Arka planda donmayı/yavaşlamayı önleyen özel bekleme fonksiyonu (setTimeout alternatifi)
 const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
     if (ms === 0) {
         const channel = new MessageChannel()
@@ -35,23 +54,23 @@ const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
 })
 
 /**
- * Sayfa sayÄ±sÄ±na gÃ¶re PDF kalite ayarlarÄ±nÄ± dinamik belirler.
- * BÃ¼yÃ¼k kataloglarda bellek tÃ¼kenmesini Ã¶nlemek iÃ§in kalite dÃ¼ÅŸÃ¼rÃ¼lÃ¼r.
+ * Sayfa sayısına göre PDF kalite ayarlarını dinamik belirler.
+ * Büyük kataloglarda bellek tükenmesini önlemek için kalite düşürülür.
  */
 function getPdfQualitySettings(totalPages: number) {
     if (totalPages > 200) {
-        // Ã‡ok bÃ¼yÃ¼k katalog (200+ sayfa): minimum kalite, maksimum stabilite
+        // Çok büyük katalog (200+ sayfa): minimum kalite, maksimum stabilite
         return { pixelRatio: 1, quality: 0.4, chunkSize: 3, chunkDelay: 800, imageTimeout: 5000 }
     }
     if (totalPages > 100) {
-        // BÃ¼yÃ¼k katalog (100-200 sayfa): dÃ¼ÅŸÃ¼k kalite
+        // Büyük katalog (100-200 sayfa): düşük kalite
         return { pixelRatio: 1.2, quality: 0.5, chunkSize: 3, chunkDelay: 500, imageTimeout: 6000 }
     }
     if (totalPages > 50) {
         // Orta katalog (50-100 sayfa): orta kalite
         return { pixelRatio: 1.5, quality: 0.65, chunkSize: 4, chunkDelay: 300, imageTimeout: 7000 }
     }
-    // Normal katalog (<50 sayfa): yÃ¼ksek kalite
+    // Normal katalog (<50 sayfa): yüksek kalite
     return { pixelRatio: 2, quality: 0.85, chunkSize: 5, chunkDelay: 100, imageTimeout: 8000 }
 }
 
@@ -119,15 +138,13 @@ export function usePdfExport({
 
             const container = document.getElementById('catalog-export-container')
             if (!container) {
-                setIsExporting(false)
-                setPhase("error", { errorMessage: "Export hazÄ±rlÄ±ÄŸÄ± tamamlanamadÄ±. LÃ¼tfen tekrar deneyin." })
+                setPhase("error", { errorMessage: "Export hazırlığı tamamlanamadı. Lütfen tekrar deneyin." })
                 return
             }
 
             const pages = container.querySelectorAll('.catalog-page-wrapper')
             if (pages.length === 0) {
-                setIsExporting(false)
-                setPhase("error", { errorMessage: "Sayfa yapÄ±sÄ± oluÅŸturulamadÄ±. LÃ¼tfen tekrar deneyin." })
+                setPhase("error", { errorMessage: "Sayfa yapısı oluşturulamadı. Lütfen tekrar deneyin." })
                 return
             }
 
@@ -146,15 +163,14 @@ export function usePdfExport({
                 )
             }
 
-            // Sayfa sayÄ±sÄ±na gÃ¶re kalite ayarlarÄ±nÄ± belirle
+            // Sayfa sayısına göre kalite ayarlarını belirle
             const settings = getPdfQualitySettings(totalPages)
-
             setPhase("rendering", { percent: 10, totalPages, currentPage: 0 })
 
             // Track timing for ETA estimation
             const startTime = Date.now()
 
-            // FIX(F3): Image cache â€” avoid re-fetching the same image URL across pages
+            // FIX(F3): Image cache — avoid re-fetching the same image URL across pages
             // Limit cache size to prevent OOM on large catalogs
             const IMAGE_CACHE_LIMIT = 500
             const imageCache = new Map<string, string>()
@@ -167,7 +183,6 @@ export function usePdfExport({
 
                 for (let i = chunkStart; i < chunkEnd; i++) {
                     if (cancelledRef.current) {
-                        setIsExporting(false)
                         return
                     }
 
@@ -237,6 +252,13 @@ export function usePdfExport({
                                     return
                                 }
 
+                                // FIX(S2): Only fetch from trusted domains
+                                if (!isImageUrlTrusted(originalSrc)) {
+                                    console.warn('PDF export: skipping untrusted image URL', originalSrc)
+                                    img.style.display = 'none'
+                                    return
+                                }
+
                                 const controller = new AbortController()
                                 const timeoutId = setTimeout(() => controller.abort(), settings.imageTimeout)
 
@@ -250,6 +272,13 @@ export function usePdfExport({
                                 if (!response.ok) throw new Error('Network error')
 
                                 const blob = await response.blob()
+
+                                // FIX(S2): Reject oversized blobs to prevent memory abuse
+                                if (blob.size > MAX_IMAGE_BLOB_SIZE) {
+                                    console.warn('PDF export: skipping oversized image', originalSrc, blob.size)
+                                    img.style.display = 'none'
+                                    return
+                                }
                                 const base64 = await new Promise<string>((resolve, reject) => {
                                     const reader = new FileReader()
                                     reader.onloadend = () => resolve(reader.result as string)
@@ -272,7 +301,7 @@ export function usePdfExport({
                                 img.removeAttribute('loading')
 
                             } catch {
-                                // Image fetch failed â€” use transparent placeholder
+                                // Image fetch failed — use transparent placeholder
                                 img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                                 img.style.objectFit = 'contain'
                             }
@@ -292,7 +321,7 @@ export function usePdfExport({
                         if (i > 0) pdf.addPage()
                         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
 
-                        // Bellek serbest bÄ±rak â€” bÃ¼yÃ¼k base64 string'leri temizle
+                        // Bellek serbest bırak — büyük base64 string'leri temizle
                         imgData = null
 
                     } finally {
@@ -312,7 +341,6 @@ export function usePdfExport({
             imageCache.clear()
 
             if (cancelledRef.current) {
-                setIsExporting(false)
                 return
             }
 
@@ -321,7 +349,6 @@ export function usePdfExport({
 
             pdf.save(`${slugify(catalogName || "katalog")}.pdf`)
 
-            setIsExporting(false)
             setPhase("done", { percent: 100, estimatedTimeLeft: "" })
 
             // Background: increment export quota
@@ -333,9 +360,10 @@ export function usePdfExport({
             }).catch(() => { /* Export quota update is non-critical */ })
 
         } catch (err) {
-            setIsExporting(false)
             const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
             setPhase("error", { errorMessage: msg, percent: 0, estimatedTimeLeft: "" })
+        } finally {
+            setIsExporting(false)
         }
     }, [catalogName, canExport, refreshUser, onShowUpgradeModal, setPhase])
 

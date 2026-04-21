@@ -114,6 +114,7 @@ const products = {
                 warranty: "Garanti",
             },
             uncategorized: "Kategorisiz",
+            copyName: "{name} (Kopyası)",
             tools: "Araçlar",
         },
         importExport: {
@@ -302,6 +303,7 @@ const products = {
                 warranty: "Warranty",
             },
             uncategorized: "Uncategorized",
+            copyName: "{name} (Copy)",
             tools: "Tools",
         },
         importExport: {

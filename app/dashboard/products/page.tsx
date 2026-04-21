@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { Metadata } from "next"
+import { z } from "zod"
 
 import { getProducts, getProductStats } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
@@ -12,23 +13,26 @@ export const metadata: Metadata = {
 }
 
 const DEFAULT_PRODUCTS_PAGE_SIZE = 12
-const PRODUCTS_PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
+const PRODUCTS_PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100] as const
+
+const searchParamsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().refine(
+    (v) => PRODUCTS_PAGE_SIZE_OPTIONS.includes(v as (typeof PRODUCTS_PAGE_SIZE_OPTIONS)[number]),
+    { message: "Invalid page size" }
+  ).default(DEFAULT_PRODUCTS_PAGE_SIZE),
+  category: z.string().default("all"),
+  search: z.string().default(""),
+})
 
 export default async function ProductsPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string; limit?: string; category?: string; search?: string }>
 }) {
-  const params = await searchParams
-  const requestedPage = Number.parseInt(params.page || "1", 10)
-  const requestedLimit = Number.parseInt(params.limit || String(DEFAULT_PRODUCTS_PAGE_SIZE), 10)
-
-  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
-  const limit = PRODUCTS_PAGE_SIZE_OPTIONS.includes(requestedLimit)
-    ? requestedLimit
-    : DEFAULT_PRODUCTS_PAGE_SIZE
-  const category = params.category || "all"
-  const search = params.search || ""
+  const rawParams = await searchParams
+  const parsed = searchParamsSchema.safeParse(rawParams)
+  const { page, limit, category, search } = parsed.success ? parsed.data : { page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, category: "all", search: "" }
 
   let productsResponse: import('@/lib/actions/products').ProductsResponse = { products: [], metadata: { total: 0, page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, totalPages: 1 } };
   let statsResponse = { total: 0, inStock: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };

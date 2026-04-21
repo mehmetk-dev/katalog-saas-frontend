@@ -137,6 +137,19 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 timeoutId = null;
             }
 
+            // 207 Multi-Status is technically 2xx but indicates partial failure
+            // Treat it as an error so callers don't silently process incomplete data
+            if (response.status === 207) {
+                const partialData = await response.json().catch(() => ({}));
+                const partialError: ApiError = new Error(
+                    partialData.error || partialData.message || 'Partial failure'
+                );
+                partialError.status = 207;
+                partialError.details = partialData;
+                partialError.isExpected = true;
+                throw partialError;
+            }
+
             // Diğer HTTP hataları
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
