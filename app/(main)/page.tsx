@@ -8,7 +8,6 @@ import { PublicFooter } from "@/components/layout/public-footer"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 import { HeroSection } from "./_components/hero-section"
-import { SocialProofSection } from "./_components/social-proof-section"
 import { FeaturesSection } from "./_components/features-section"
 import { MobileSection } from "./_components/mobile-section"
 import { HowItWorksSection } from "./_components/how-it-works-section"
@@ -53,7 +52,6 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
       <PublicHeader />
       <HeroSection t={t} />
-      <SocialProofSection t={t} />
       <FeaturesSection t={t} />
       <MobileSection t={t} />
       <HowItWorksSection t={t} />
