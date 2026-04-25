@@ -110,6 +110,10 @@ export const PageRenderer = React.memo(function PageRenderer({
         logoPosition: catalog.logo_position || 'header-left',
         logoSize: catalog.logo_size,
         titlePosition: catalog.title_position || 'left',
+        backgroundColor: catalog.background_color || undefined,
+        backgroundImage: catalog.background_image || undefined,
+        backgroundImageFit: (catalog.background_image_fit as 'cover' | 'contain' | 'fill') || undefined,
+        backgroundGradient: catalog.background_gradient || undefined,
     }
 
     return <TemplateComponent {...props} />

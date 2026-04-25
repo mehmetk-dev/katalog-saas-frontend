@@ -122,17 +122,22 @@ const getVisitorInfo = (req) => {
         ? forwarded.split(',')[0].trim()
         : (req.headers['x-real-ip'] || req.socket?.remoteAddress || '0.0.0.0');
     const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 500);
+    // Fix #14: Detect bots/crawlers — don't count them as real views
+    const isBot = /bot|crawler|spider|headless|lighthouse|pingdom|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|screaming|semrush|ahrefs|mj12bot|dotbot/i.test(userAgent);
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
         deviceType = /ipad|tablet/i.test(userAgent) ? 'tablet' : 'mobile';
     }
     // SECURITY: Use SHA-256 instead of MD5 for visitor hashing
     const visitorHash = crypto_1.default.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex');
-    return { ip, userAgent, deviceType, visitorHash };
+    return { ip, userAgent, deviceType, visitorHash, isBot };
 };
 const smartIncrementViewCount = async (catalogId, ownerId, visitorInfo, isOwner) => {
     try {
         if (isOwner)
+            return;
+        // Fix #14: Skip view tracking for bots/crawlers
+        if (visitorInfo.isBot)
             return;
         const { data: inserted, error } = await supabase_1.supabase.rpc('smart_increment_view_count', {
             p_catalog_id: catalogId,
@@ -144,11 +149,32 @@ const smartIncrementViewCount = async (catalogId, ownerId, visitorInfo, isOwner)
         });
         if (error) {
             console.error('[Analytics] RPC Error:', error.message);
-            await supabase_1.supabase.rpc('increment_view_count', { catalog_id: catalogId });
+            // Fix #9: Fallback dedup — insert relies on unique index
+            // idx_catalog_views_unique_daily (catalog_id, visitor_hash, view_date)
+            // If duplicate, insert fails → fallbackInserted is null → no increment
+            const { data: fallbackInserted } = await supabase_1.supabase
+                .from('catalog_views')
+                .insert({
+                catalog_id: catalogId,
+                visitor_hash: visitorInfo.visitorHash,
+                view_date: new Date().toLocaleDateString('sv-SE'),
+                ip_address: visitorInfo.ip,
+                user_agent: visitorInfo.userAgent,
+                device_type: visitorInfo.deviceType,
+                is_owner: false,
+            })
+                .select('id')
+                .single();
+            // Only increment view_count if insert succeeded (new unique view)
+            if (fallbackInserted) {
+                await supabase_1.supabase.rpc('increment_view_count', { catalog_id: catalogId });
+            }
         }
-        if (inserted || !error) {
-            await (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(ownerId));
-        }
+        // Her durumda (başarılı insert veya fallback) cache'i invalidate et
+        await Promise.all([
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.catalogs(ownerId)),
+            (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(ownerId))
+        ]);
     }
     catch (err) {
         console.error('[Analytics] Critical error:', err);

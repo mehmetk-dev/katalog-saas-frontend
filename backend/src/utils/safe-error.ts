@@ -36,7 +36,14 @@ function isSensitiveMessage(message: string): boolean {
  * In production, replaces sensitive messages with a generic one.
  */
 export function safeErrorMessage(error: unknown, fallback = 'Bir hata oluştu'): string {
-    const message = error instanceof Error ? error.message : String(error || fallback);
+    let message: string;
+    if (error instanceof Error) {
+        message = error.message;
+    } else if (error && typeof error === 'object' && 'message' in error && typeof (error as Record<string, unknown>).message === 'string') {
+        message = (error as Record<string, unknown>).message as string;
+    } else {
+        message = typeof error === 'string' ? error : fallback;
+    }
 
     if (process.env.NODE_ENV === 'production' && isSensitiveMessage(message)) {
         return fallback;

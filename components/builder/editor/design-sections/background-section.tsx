@@ -38,7 +38,7 @@ export function BackgroundSection({
             isOpen={!!openSections.background}
             onToggle={() => toggleSection('background')}
         >
-            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden">
+            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem]">
                 <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {/* BG Color & Gradient */}
@@ -53,7 +53,7 @@ export function BackgroundSection({
                                     <span className="text-xs font-mono font-bold uppercase tracking-tight">{backgroundColor || '#FFFFFF'}</span>
                                 </div>
                                 {showBackgroundColorPicker && (
-                                    <div className="absolute top-full left-0 mt-3 z-50 bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                    <div className="absolute top-full left-0 mt-3 z-[9999] bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
                                         <HexColorPicker
                                             color={backgroundColor || '#ffffff'}
                                             onChange={(hex) => debouncedBackgroundColorChange(hex)}

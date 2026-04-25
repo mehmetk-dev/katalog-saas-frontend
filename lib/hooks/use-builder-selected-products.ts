@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getProductsByIds, type Product } from "@/lib/actions/products"
 
 const PRODUCT_ID_MAX_LENGTH = 128
-const FETCH_CHUNK_SIZE = 500
+const FETCH_CHUNK_SIZE = 100
 const FETCH_CONCURRENCY_LIMIT = 3
 // PERF: Cap on retained product cache to prevent unbounded heap growth on long sessions.
 // Selected products are always preserved; only non-selected excess entries are evicted.
@@ -45,6 +45,9 @@ export function useBuilderSelectedProducts({
   )
 
   const requestedSelectedProductIdsRef = useRef<Set<string>>(new Set())
+  // Track when an ID last failed so we don't hammer the backend on every drag event.
+  const failedIdTimestampsRef = useRef<Map<string, number>>(new Map())
+  const RETRY_DELAY_MS = 30_000
 
   const upsertLoadedProducts = useCallback((incoming: Product[]) => {
     if (!incoming.length) return
@@ -104,8 +107,14 @@ export function useBuilderSelectedProducts({
 
   useEffect(() => {
     const normalizedSelectedIds = normalizeIds(selectedProductIds)
+    const now = Date.now()
     const missingSelectedIds = normalizedSelectedIds.filter((id) => !loadedProductsById.has(id))
-    const idsToFetch = missingSelectedIds.filter((id) => !requestedSelectedProductIdsRef.current.has(id))
+    const idsToFetch = missingSelectedIds.filter((id) => {
+      if (requestedSelectedProductIdsRef.current.has(id)) return false
+      const failedAt = failedIdTimestampsRef.current.get(id)
+      if (failedAt !== undefined && (now - failedAt) < RETRY_DELAY_MS) return false
+      return true
+    })
 
     if (idsToFetch.length === 0) {
       return
@@ -132,8 +141,13 @@ export function useBuilderSelectedProducts({
             if (cancelled) return
             upsertLoadedProducts(chunkProducts)
           } catch (error) {
-            // Allow retry on future render cycles.
-            chunk.forEach((id) => requestedSelectedProductIdsRef.current.delete(id))
+            // Mark failed IDs with a timestamp — they can be retried after RETRY_DELAY_MS.
+            // Do NOT remove from requestedRef immediately to avoid hammering on every drag event.
+            const now = Date.now()
+            chunk.forEach((id) => {
+              requestedSelectedProductIdsRef.current.delete(id)
+              failedIdTimestampsRef.current.set(id, now)
+            })
             console.error("Failed to load selected builder products:", error)
           }
         }))

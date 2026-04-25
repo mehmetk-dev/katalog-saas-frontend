@@ -260,10 +260,10 @@ export function BuilderToolbar({
                         {/* MORE OPTIONS */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl shrink-0 hover:bg-slate-50">
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl shrink-0 hover:bg-slate-50">
                                     <MoreVertical className="w-5 h-5 text-slate-400" />
                                     {hasUnpushedChanges && isPublished && !isMobile && (
-                                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white" />
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
                                     )}
                                 </Button>
                             </DropdownMenuTrigger>

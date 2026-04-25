@@ -73,6 +73,8 @@ const common = {
             offlineMode: "İnternet bağlantısı yok — Çevrimdışı modasınız",
             slowConnection: "Yavaş bağlantı algılandı — İşlemler uzun sürebilir",
             justNow: "Az önce",
+            sort: "Sırala",
+            order: "Sıralama",
         },
         toasts: {
             // New modal toasts
@@ -229,6 +231,8 @@ const common = {
             offlineMode: "No internet connection — You are offline",
             slowConnection: "Slow connection detected — Operations may take longer",
             justNow: "Just now",
+            sort: "Sort",
+            order: "Order",
         },
         toasts: {
             // New modal toasts

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.productsByIdsSchema = exports.bulkUpdateFieldsSchema = exports.bulkPriceUpdateSchema = exports.bulkUpdateImagesSchema = exports.reorderSchema = exports.bulkDeleteSchema = exports.bulkImportSchema = exports.bulkImportProductSchema = exports.updateProductSchema = exports.createProductSchema = void 0;
+exports.productsQuerySchema = exports.productsByIdsSchema = exports.bulkUpdateFieldsSchema = exports.bulkPriceUpdateSchema = exports.bulkUpdateImagesSchema = exports.reorderSchema = exports.bulkDeleteSchema = exports.bulkImportSchema = exports.bulkImportProductSchema = exports.updateProductSchema = exports.createProductSchema = void 0;
 const zod_1 = require("zod");
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const uuidString = zod_1.z.string().regex(UUID_REGEX, 'Invalid UUID format');
@@ -142,4 +142,13 @@ exports.bulkUpdateFieldsSchema = zod_1.z.object({
 });
 exports.productsByIdsSchema = zod_1.z.object({
     productIds: zod_1.z.array(uuidString).min(1, 'At least 1 product id required').max(2000, 'Maximum 2000 product ids'),
+});
+exports.productsQuerySchema = zod_1.z.object({
+    page: zod_1.z.coerce.number().int().min(1).max(100000).default(1),
+    limit: zod_1.z.coerce.number().int().min(1).max(10000).default(50),
+    category: zod_1.z.string().trim().max(200).optional(),
+    search: zod_1.z.string().trim().max(200).optional(),
+    sortBy: zod_1.z.enum(['display_order', 'created_at', 'name', 'price', 'stock']).default('display_order'),
+    sortOrder: zod_1.z.enum(['asc', 'desc']).default('asc'),
+    select: zod_1.z.enum(['id']).optional(),
 });

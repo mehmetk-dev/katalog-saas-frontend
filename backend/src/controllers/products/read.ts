@@ -179,13 +179,23 @@ export const getProductsByIds = async (req: Request, res: Response) => {
             return res.json([]);
         }
 
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('user_id', userId)
-            .in('id', requestedIds);
+        // FIX: Chunk .in() queries to avoid HeadersOverflowError.
+        // Supabase JS encodes .in() as URL query params — 500 UUIDs ≈ 18KB URL
+        // which overflows undici's default 16KB header parser limit.
+        const SUPABASE_IN_CHUNK = 50;
+        let data: Record<string, unknown>[] = [];
 
-        if (error) throw error;
+        for (let i = 0; i < requestedIds.length; i += SUPABASE_IN_CHUNK) {
+            const chunk = requestedIds.slice(i, i + SUPABASE_IN_CHUNK);
+            const { data: chunkData, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('user_id', userId)
+                .in('id', chunk);
+
+            if (error) throw error;
+            if (chunkData) data = data.concat(chunkData);
+        }
 
         const normalizedProducts = (data || []).map((p: Record<string, unknown>) => {
             let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
@@ -216,6 +226,7 @@ export const getProductsByIds = async (req: Request, res: Response) => {
 
         res.json(ordered);
     } catch (error: unknown) {
+        console.error('[getProductsByIds] Error:', error);
         res.status(500).json({ error: safeErrorMessage(error) });
     }
 };

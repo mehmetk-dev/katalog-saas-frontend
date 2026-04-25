@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
+import { useQuery, useQueryClient, useMutation, keepPreviousData } from "@tanstack/react-query"
 import { queryKeys } from "@/lib/contexts/query-provider"
 import {
     getProducts,
@@ -36,6 +36,7 @@ export function useProducts(
         queryKey: queryKeys.products(params as Record<string, unknown>),
         queryFn: () => getProducts(params),
         initialData,
+        placeholderData: keepPreviousData,
         staleTime: options?.staleTime ?? 5 * 60 * 1000,
         refetchOnMount: options?.refetchOnMount ?? true,
     })

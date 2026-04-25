@@ -17,6 +17,7 @@ vi.mock("@/lib/actions/products", () => ({
 
 const PERF_METRICS: Record<string, number> = {}
 const TOTAL_PRODUCTS = Number(process.env.TOTAL_PRODUCTS || "2000")
+const BUILDER_FETCH_CHUNK_SIZE = 500
 
 function makeProduct(index: number): Product {
   return {
@@ -75,10 +76,10 @@ describe("Load Regression (2000+ products)", () => {
     PERF_METRICS.builder_hydration_ms = Number(tookMs.toFixed(2))
     PERF_METRICS.builder_fetch_calls = vi.mocked(getProductsByIds).mock.calls.length
 
-    const expectedCalls = Math.ceil(total / 200)
+    const expectedCalls = Math.ceil(total / BUILDER_FETCH_CHUNK_SIZE)
     expect(vi.mocked(getProductsByIds)).toHaveBeenCalledTimes(expectedCalls)
     expect(
-      vi.mocked(getProductsByIds).mock.calls.every((call) => call[0].length <= 200)
+      vi.mocked(getProductsByIds).mock.calls.every((call) => call[0].length <= BUILDER_FETCH_CHUNK_SIZE)
     ).toBe(true)
     expect(tookMs).toBeLessThan(6000)
   })
@@ -171,7 +172,7 @@ afterAll(() => {
     "## Metrics",
     `- Total products: ${TOTAL_PRODUCTS}`,
     `- Builder hydration (${TOTAL_PRODUCTS} selected): ${PERF_METRICS.builder_hydration_ms ?? "n/a"} ms`,
-    `- Builder fetch calls: ${PERF_METRICS.builder_fetch_calls ?? "n/a"} (expected ${Math.ceil(TOTAL_PRODUCTS / 200)}, chunk size 200)`,
+    `- Builder fetch calls: ${PERF_METRICS.builder_fetch_calls ?? "n/a"} (expected ${Math.ceil(TOTAL_PRODUCTS / BUILDER_FETCH_CHUNK_SIZE)}, chunk size ${BUILDER_FETCH_CHUNK_SIZE})`,
     `- Excel hook init (${TOTAL_PRODUCTS} rows): ${PERF_METRICS.excel_hook_init_ms ?? "n/a"} ms`,
     `- Excel apply 500 changes: ${PERF_METRICS.excel_apply_500_changes_ms ?? "n/a"} ms`,
     `- Excel table first render: ${PERF_METRICS.excel_table_initial_render_ms ?? "n/a"} ms`,

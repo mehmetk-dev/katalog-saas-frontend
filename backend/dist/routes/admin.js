@@ -8,6 +8,7 @@ const safe_error_1 = require("../utils/safe-error");
 const router = (0, express_1.Router)();
 const ADMIN_ROLE_CACHE_TTL_SECONDS = 120;
 const PLAN_VALUES = ['free', 'plus', 'pro'];
+const getAdminRoleCacheKey = (userId) => `katalog:admin-role:${userId}`;
 function getAuthUser(req) {
     const maybeUser = req.user;
     if (!maybeUser?.id)
@@ -27,8 +28,12 @@ const requireAdmin = async (req, res, next) => {
     if (!user?.id) {
         return res.status(401).json({ error: 'Authentication required' });
     }
+    // Fast path: allow trusted auth claim to skip extra DB roundtrip.
+    if (user.is_admin === true) {
+        return next();
+    }
     try {
-        const isAdmin = await (0, redis_1.getOrSetCache)(`katalog:admin-role:${user.id}`, ADMIN_ROLE_CACHE_TTL_SECONDS, async () => {
+        const isAdmin = await (0, redis_1.getOrSetCache)(getAdminRoleCacheKey(user.id), ADMIN_ROLE_CACHE_TTL_SECONDS, async () => {
             const { data: profile, error } = await supabase_1.supabase
                 .from('users')
                 .select('is_admin')
@@ -90,7 +95,7 @@ router.get('/stats', async (_req, res) => {
                 supabase_1.supabase.from('users').select('id', { count: 'exact', head: true }),
                 supabase_1.supabase.from('products').select('id', { count: 'exact', head: true }),
                 supabase_1.supabase.from('catalogs').select('id', { count: 'exact', head: true }),
-                supabase_1.supabase.from('users').select('exports_used'),
+                supabase_1.supabase.from('users').select('exports_used').gt('exports_used', 0),
                 supabase_1.supabase.from('deleted_users').select('id', { count: 'exact', head: true })
             ]);
             const totalExports = exportsResult.data?.reduce((acc, curr) => acc + (curr.exports_used || 0), 0) || 0;
@@ -127,7 +132,7 @@ router.put('/users/:id/plan', async (req, res) => {
             throw error;
         // Plan degisti, ilgili cacheleri temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.user(id));
-        await (0, redis_1.deleteCache)(`katalog:admin-role:${id}`, true);
+        await (0, redis_1.deleteCache)(getAdminRoleCacheKey(id), true);
         res.json({ success: true });
     }
     catch (error) {

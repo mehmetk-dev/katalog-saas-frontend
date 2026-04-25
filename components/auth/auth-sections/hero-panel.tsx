@@ -15,6 +15,7 @@ export function HeroPanel({ t }: HeroPanelProps) {
                     src="/auth-hero-bg.webp"
                     alt="Background"
                     fill
+                    sizes="(max-width: 1024px) 0vw, 50vw"
                     className="object-cover"
                     priority
                 />

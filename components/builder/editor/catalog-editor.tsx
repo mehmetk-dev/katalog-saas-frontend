@@ -37,55 +37,52 @@ import { parseColor, rgbToHex } from "@/components/builder/builder-utils"
 // sütun sayısını değiştirmek istediğinde, SADECE bu fonksiyonu güncelle.
 //
 // ─── Mevcut Şablon Sütun Ayarları ───────────────────────────────────
-// - modern-grid (Modern Izgara): 1–5 arası
-// - compact-list (Kompakt Liste): Sadece 1 sütun (Sabit)
-// - list (Liste): Sadece 1 sütun (Sabit)
-// - magazine (Dergi): 1 veya 2 sütun
-// - luxury (Lüks Katalog): 1–4 arası
-// - tech-catalog (Teknoloji Kataloğu): 1–4 arası
-// - premium-collection (Premium Koleksiyon): 1–3 arası
-// - product-cards (Ürün Kartları): 1–4 arası
-// - product-tiles (Ürün Döşemeleri): 2 veya 3 sütun
-// - catalog-minimalist (Minimalist): 1 veya 2 sütun
-// - catalog-elegant (Zarif): 1 veya 2 sütun
-// - photo-gallery (Fotoğraf Galerisi): 2–4 arası
-// - price-list (Fiyat Listesi): Sadece 1 sütun (Sabit)
-// - premium-products (Premium Ürünler): 1–3 arası
-// - industrial (Endüstriyel): Sadece 1 sütun (Sabit)
-// - classic-catalog (Klasik Katalog): Sadece 1 sütun (Sabit)
-// - showcase (Vitrin): Sadece 2 sütun (Sabit)
+// Gerçek template kodu incelenerek belirlenen kolon kısıtlamaları:
+// - modern-grid: getGridCols() sadece case 2, 3 → [2, 3]
+// - compact-list / list: sabit 1 sütun → [1]
+// - magazine: getGridCols() sadece case 2, 3 → [2, 3]
+// - bold: getGridCols() case 2, 3, 4 → [2, 3, 4]
+// - luxury: getGridCols() case 2, 3, 4 → [2, 3, 4]
+// - tech-modern: getGridCols() case 2, 3, 4 → [2, 3, 4]
+// - clean-white: getGridCols() case 2, 3, 4 → [2, 3, 4]
+// - retail: getGridCols() case 2, 3, 4 → [2, 3, 4]
+// - minimalist: hardcoded grid-cols-2, columnsPerRow yok → [2]
+// - elegant-cards: hardcoded grid-cols-2, _getGridCols kullanılmıyor → [2]
+// - catalog-pro: hardcoded grid-cols-2 → [2]
+// - showcase: columnsPerRow yoksayılıyor → [2]
+// - product-tiles: hardcoded grid-cols-3 → [3]
+// - classic-catalog / industrial / fashion-lookbook: sabit 1 sütun → [1]
 const getAvailableColumns = (layout: string): number[] => {
   switch (layout) {
     case 'modern-grid':
-      return [1, 2, 3, 4, 5]
+      return [2, 3]
     case 'compact-list':
     case 'list':
+    case 'classic-catalog':
+    case 'industrial':
+    case 'fashion-lookbook':
       return [1]
     case 'magazine':
-      return [1, 2]
-    case 'luxury':
-    case 'tech-catalog':
-      return [1, 2, 3, 4]
-    case 'premium-collection':
-    case 'premium-products':
-      return [1, 2, 3]
-    case 'product-cards':
-      return [1, 2, 3, 4]
-    case 'product-tiles':
       return [2, 3]
-    case 'catalog-minimalist':
-    case 'catalog-elegant':
-      return [1, 2]
-    case 'photo-gallery':
+    case 'bold':
+      return [2, 3]
+    case 'luxury':
+    case 'tech-modern':
+    case 'tech-catalog':
+    case 'clean-white':
+    case 'retail':
       return [2, 3, 4]
-    case 'price-list':
-    case 'industrial':
-    case 'classic-catalog':
-      return [1]
+    case 'minimalist':
+    case 'catalog-minimalist':
+    case 'elegant-cards':
+    case 'catalog-elegant':
+    case 'catalog-pro':
     case 'showcase':
       return [2]
+    case 'product-tiles':
+      return [3]
     default:
-      return [1, 2, 3, 4]
+      return [2, 3]
   }
 }
 
@@ -283,10 +280,10 @@ export function CatalogEditor() {
   }, [pagedProducts, upsertLoadedProducts])
 
   useEffect(() => {
-    if (currentPage > totalPages) {
+    if (currentPage > totalPages && !productsQuery.isPlaceholderData && !productsQuery.isLoading) {
       setCurrentPage(1)
     }
-  }, [currentPage, totalPages])
+  }, [currentPage, totalPages, productsQuery.isPlaceholderData, productsQuery.isLoading])
 
   // ─── Derived Data ─────────────────────────────────────────────────────────
   // PERF(Y1): selectedProductIdSet artık context state'inden geliyor (tek kaynak).
@@ -341,13 +338,21 @@ export function CatalogEditor() {
     e.preventDefault()
     e.stopPropagation()
     const from = Number(e.dataTransfer.getData("text"))
-    const newList = [...selectedProductIds]
-    const [moved] = newList.splice(from, 1)
-    newList.splice(index, 0, moved)
-    onSelectedProductIdsChange(newList)
+
+    // FIX: Drag indices come from validProductIds rendering, so splice on
+    // validProductIds first, then rebuild the full selectedProductIds list.
+    // Without this, unloaded IDs at the start of selectedProductIds shift
+    // indices and the visible order appears unchanged after drop.
+    const reordered = [...validProductIds]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(index, 0, moved)
+
+    const validSet = new Set(validProductIds)
+    const nonValidIds = selectedProductIds.filter(id => !validSet.has(id))
+    onSelectedProductIdsChange([...reordered, ...nonValidIds])
     setDraggingIndex(null)
     setDropIndex(null)
-  }, [selectedProductIds, onSelectedProductIdsChange])
+  }, [selectedProductIds, validProductIds, onSelectedProductIdsChange])
 
   const handleRemoveProduct = useCallback((id: string) => {
     onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))

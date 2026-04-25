@@ -45,7 +45,7 @@ export function BrandingSection({
             isOpen={!!openSections.branding}
             onToggle={() => toggleSection('branding')}
         >
-            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem] overflow-hidden">
+            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem]">
                 <CardContent className="p-5">
                     <div className="flex flex-col md:flex-row gap-6">
                         {/* 1. Left Column: Logo Upload (Visual Focus) */}
@@ -161,61 +161,51 @@ export function BrandingSection({
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    {/* Primary Color Compact */}
-                                    <div className="group relative" ref={primaryColorPickerRef}>
+                                    {/* Primary Color */}
+                                    <div className="relative" ref={primaryColorPickerRef}>
                                         <div
                                             onClick={() => setShowPrimaryColorPicker(!showPrimaryColorPicker)}
-                                            className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all duration-200"
+                                            className="h-14 w-full rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-indigo-300"
                                         >
-                                            <div
-                                                className="w-9 h-9 rounded-lg shadow-sm ring-1 ring-black/5 shrink-0"
-                                                style={{ backgroundColor: primaryColor }}
-                                            />
+                                            <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: primaryColor }} />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-[10px] font-bold text-slate-700 truncate">{t('builder.headerCard') as string}</span>
-                                                <span className="text-[10px] font-mono text-slate-400 truncate tracking-tight">{primaryColorParsed.hexColor}</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 truncate tracking-widest">{t('builder.headerCard') as string}</span>
+                                                <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{primaryColorParsed.hexColor}</span>
                                             </div>
                                         </div>
                                         {showPrimaryColorPicker && (
-                                            <div className="absolute bottom-full left-0 mb-2 z-50 animate-in zoom-in-95 duration-200">
-                                                <div className="bg-white p-3 rounded-2xl shadow-2xl border border-slate-100">
-                                                    <HexColorPicker
-                                                        color={primaryColorParsed.hexColor}
-                                                        onChange={(hex) => {
-                                                            const r = parseInt(hex.substring(1, 3), 16), g = parseInt(hex.substring(3, 5), 16), b = parseInt(hex.substring(5, 7), 16)
-                                                            debouncedPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
-                                                        }}
-                                                        style={{ width: '100%', height: '140px' }}
-                                                    />
-                                                </div>
+                                            <div className="absolute bottom-full left-0 mb-3 z-[9999] bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                                <HexColorPicker
+                                                    color={primaryColorParsed.hexColor}
+                                                    onChange={(hex) => {
+                                                        const r = parseInt(hex.substring(1, 3), 16), g = parseInt(hex.substring(3, 5), 16), b = parseInt(hex.substring(5, 7), 16)
+                                                        debouncedPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
+                                                    }}
+                                                    style={{ width: '200px', height: '160px' }}
+                                                />
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Text Color Compact */}
-                                    <div className="group relative" ref={headerTextColorPickerRef}>
+                                    {/* Header Text Color */}
+                                    <div className="relative" ref={headerTextColorPickerRef}>
                                         <div
                                             onClick={() => setShowHeaderTextColorPicker(!showHeaderTextColorPicker)}
-                                            className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 hover:shadow-sm cursor-pointer transition-all duration-200"
+                                            className="h-14 w-full rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-indigo-300"
                                         >
-                                            <div
-                                                className="w-9 h-9 rounded-lg shadow-sm ring-1 ring-slate-200 shrink-0"
-                                                style={{ backgroundColor: headerTextColor || '#ffffff' }}
-                                            />
+                                            <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: headerTextColor || '#ffffff' }} />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-[10px] font-bold text-slate-700 truncate">{t('builder.textColor') as string}</span>
-                                                <span className="text-[10px] font-mono text-slate-400 truncate tracking-tight">{headerTextColor || '#FFFFFF'}</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 truncate tracking-widest">{t('builder.textColor') as string}</span>
+                                                <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{headerTextColor || '#FFFFFF'}</span>
                                             </div>
                                         </div>
                                         {showHeaderTextColorPicker && (
-                                            <div className="absolute bottom-full right-0 mb-2 z-50 animate-in zoom-in-95 duration-200">
-                                                <div className="bg-white p-3 rounded-2xl shadow-2xl border border-slate-100">
-                                                    <HexColorPicker
-                                                        color={headerTextColor || '#ffffff'}
-                                                        onChange={(hex) => debouncedHeaderTextColorChange(hex)}
-                                                        style={{ width: '100%', height: '140px' }}
-                                                    />
-                                                </div>
+                                            <div className="absolute bottom-full right-0 mb-3 z-[9999] bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                                <HexColorPicker
+                                                    color={headerTextColor || '#ffffff'}
+                                                    onChange={(hex) => debouncedHeaderTextColorChange(hex)}
+                                                    style={{ width: '200px', height: '160px' }}
+                                                />
                                             </div>
                                         )}
                                     </div>

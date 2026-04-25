@@ -41,6 +41,13 @@ const STATIC_PREVIEW_PROPS = {
     showControls: false,
 }
 
+// FIX: fashion-lookbook uses headerTextColor for ALL body text (not just header bar).
+// With white backgroundColor, white headerTextColor = invisible. Override per-template.
+const TEMPLATE_PREVIEW_OVERRIDES: Record<string, Partial<typeof STATIC_PREVIEW_PROPS>> = {
+    'fashion-lookbook': { headerTextColor: '#1a1a1a' },
+    'minimalist': { headerTextColor: '#1a1a1a' },
+}
+
 /** FIX(F8): Lazy-render template previews — only render CatalogPreview
  *  when the card is scrolled into the visible area (IntersectionObserver).
  *  Reduces initial render cost from 16× full preview → ~3-4× visible only. */
@@ -97,7 +104,7 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
         >
             {/* Preview Container - Takes most of the space */}
             <div className="absolute inset-0 pb-14">
-                <div className="w-full h-full catalog-light pointer-events-none">
+                <div className="w-full h-full pointer-events-none">
                     {isVisible ? (
                         <ResponsiveContainer>
                             <CatalogPreview
@@ -105,6 +112,7 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
                                 catalogName={templateName}
                                 products={products}
                                 {...STATIC_PREVIEW_PROPS}
+                                {...(TEMPLATE_PREVIEW_OVERRIDES[templateId] || {})}
                             />
                         </ResponsiveContainer>
                     ) : (

@@ -10,7 +10,6 @@ const schemas_1 = require("./schemas");
 const safe_error_1 = require("../../utils/safe-error");
 const DB_CHUNK_SIZE = 100;
 const UPDATE_BATCH_SIZE = 50;
-const REORDER_BATCH_SIZE = 200;
 const MAX_ACTIVITY_ID_SAMPLE = 100;
 const parseCategoryList = (categoryValue) => {
     if (!categoryValue)
@@ -75,6 +74,14 @@ const bulkDeleteProducts = async (req, res) => {
                 .eq('user_id', userId);
             if (error)
                 throw error;
+        }
+        // Remove deleted product IDs from all catalogs' product_ids arrays (single batch RPC)
+        const { error: catalogCleanupError } = await supabase_1.supabase.rpc('remove_products_from_catalogs', {
+            p_product_ids: ids,
+            p_user_id: userId,
+        });
+        if (catalogCleanupError) {
+            console.error('Failed to cleanup catalog references for bulk deleted products:', catalogCleanupError);
         }
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
@@ -175,12 +182,41 @@ const bulkImportProducts = async (req, res) => {
             product_url: p.product_url || null,
             custom_attributes: p.custom_attributes || [],
         }));
-        const { data, error } = await supabase_1.supabase
-            .from('products')
-            .insert(productsToInsert)
-            .select();
-        if (error)
-            throw error;
+        const insertedProducts = [];
+        const insertedIds = [];
+        let chunkError = null;
+        for (const chunk of chunkArray(productsToInsert, DB_CHUNK_SIZE)) {
+            const { data, error } = await supabase_1.supabase
+                .from('products')
+                .insert(chunk)
+                .select();
+            if (error) {
+                chunkError = error;
+                // Best-effort rollback: delete already-inserted products from previous chunks
+                if (insertedIds.length > 0) {
+                    for (const rollbackChunk of chunkArray(insertedIds, DB_CHUNK_SIZE)) {
+                        await supabase_1.supabase.from('products').delete().in('id', rollbackChunk).eq('user_id', userId);
+                    }
+                }
+                break;
+            }
+            if (data?.length) {
+                insertedProducts.push(...data);
+                for (const row of data) {
+                    if (typeof row.id === 'string')
+                        insertedIds.push(row.id);
+                }
+            }
+        }
+        if (chunkError) {
+            // Return partial failure info instead of generic 500
+            return res.status(207).json({
+                error: 'Partial import failure',
+                message: `${insertedIds.length} products imported before failure, rolled back.`,
+                attemptedCount: productsToInsert.length,
+                rolledBackCount: insertedIds.length,
+            });
+        }
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
             (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
@@ -190,12 +226,12 @@ const bulkImportProducts = async (req, res) => {
         await (0, activity_logger_1.logActivity)({
             userId,
             activityType: 'products_imported',
-            description: activity_logger_1.ActivityDescriptions.productsImported(data?.length || 0),
-            metadata: { count: data?.length || 0 },
+            description: activity_logger_1.ActivityDescriptions.productsImported(insertedProducts.length),
+            metadata: { count: insertedProducts.length },
             ipAddress,
             userAgent
         });
-        res.status(201).json(data);
+        res.status(201).json(insertedProducts);
     }
     catch (error) {
         res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
@@ -213,20 +249,13 @@ const reorderProducts = async (req, res) => {
         if (hasDuplicateValues(order.map((item) => item.id))) {
             return res.status(400).json({ error: 'Duplicate product ids are not allowed' });
         }
-        const updatedAt = new Date().toISOString();
-        for (const chunk of chunkArray(order, REORDER_BATCH_SIZE)) {
-            const chunkResults = await Promise.all(chunk.map((item) => supabase_1.supabase
-                .from('products')
-                .update({
-                display_order: item.order,
-                updated_at: updatedAt
-            })
-                .eq('id', item.id)
-                .eq('user_id', userId)));
-            const chunkError = chunkResults.find((result) => result.error)?.error;
-            if (chunkError)
-                throw chunkError;
-        }
+        // Use RPC for single-query bulk reorder instead of N individual UPDATEs
+        const { error: rpcError } = await supabase_1.supabase.rpc('bulk_reorder_products', {
+            p_user_id: userId,
+            p_updates: order.map(item => ({ id: item.id, order: item.order })),
+        });
+        if (rpcError)
+            throw rpcError;
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
             (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
@@ -289,25 +318,24 @@ const bulkUpdatePrices = async (req, res) => {
             newPrice = Math.round(newPrice * 100) / 100;
             return { id: product.id, price: newPrice };
         });
-        const updatedAt = new Date().toISOString();
         const updatedProducts = [];
-        for (const chunk of chunkArray(priceUpdates, UPDATE_BATCH_SIZE)) {
-            const chunkResults = await Promise.all(chunk.map((update) => supabase_1.supabase
-                .from('products')
-                .update({ price: update.price, updated_at: updatedAt })
-                .eq('id', update.id)
-                .eq('user_id', userId)
-                .select('id, price')
-                .single()));
-            const chunkError = chunkResults.find((result) => result.error)?.error;
-            if (chunkError)
-                throw chunkError;
-            chunkResults.forEach((result) => {
-                if (result.data) {
-                    updatedProducts.push(result.data);
-                }
-            });
-        }
+        // Use RPC for single-query bulk update instead of N individual UPDATEs
+        const { error: rpcError } = await supabase_1.supabase.rpc('bulk_update_product_prices', {
+            p_user_id: userId,
+            p_updates: priceUpdates,
+        });
+        if (rpcError)
+            throw rpcError;
+        // Fetch updated products for response
+        const { data: fetchedUpdated, error: fetchError } = await supabase_1.supabase
+            .from('products')
+            .select('id, price')
+            .in('id', priceUpdates.map(u => u.id))
+            .eq('user_id', userId);
+        if (fetchError)
+            throw fetchError;
+        if (fetchedUpdated?.length)
+            updatedProducts.push(...fetchedUpdated);
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
             (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
@@ -406,12 +434,11 @@ const deleteCategoryFromProducts = async (req, res) => {
         if (categoryUpdates.length === 0) {
             return res.json([]);
         }
-        const updatedAt = new Date().toISOString();
         const updatedProducts = [];
         for (const chunk of chunkArray(categoryUpdates, UPDATE_BATCH_SIZE)) {
             const chunkResults = await Promise.all(chunk.map(({ id, newCategory }) => supabase_1.supabase
                 .from('products')
-                .update({ category: newCategory, updated_at: updatedAt })
+                .update({ category: newCategory })
                 .eq('id', id)
                 .eq('user_id', userId)
                 .select('id, category')
@@ -486,7 +513,6 @@ const bulkUpdateImages = async (req, res) => {
                 }
             }
         }
-        const updatedAt = new Date().toISOString();
         const results = [];
         for (const chunk of chunkArray(updates, UPDATE_BATCH_SIZE)) {
             const chunkResults = await Promise.all(chunk.map(async ({ productId, images }) => {
@@ -499,7 +525,6 @@ const bulkUpdateImages = async (req, res) => {
                     .update({
                     images: normalizedImages,
                     image_url: normalizedImages.length > 0 ? normalizedImages[0] : null,
-                    updated_at: updatedAt
                 })
                     .eq('id', productId)
                     .eq('user_id', userId)
@@ -541,12 +566,11 @@ const bulkUpdateFields = async (req, res) => {
             return res.status(400).json({ error: issue?.message || 'Invalid request body' });
         }
         const { updates } = parsed.data;
-        const updatedAt = new Date().toISOString();
         let succeeded = 0;
         let failed = 0;
         for (const batch of chunkArray(updates, UPDATE_BATCH_SIZE)) {
             const results = await Promise.allSettled(batch.map(({ id, ...fields }) => {
-                const updateData = { updated_at: updatedAt };
+                const updateData = {};
                 if (fields.name !== undefined)
                     updateData.name = fields.name;
                 if (fields.sku !== undefined)

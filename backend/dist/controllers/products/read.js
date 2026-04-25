@@ -9,24 +9,23 @@ const schemas_1 = require("./schemas");
 const getProducts = async (req, res) => {
     try {
         const userId = (0, helpers_1.getUserId)(req);
-        let page = parseInt(req.query.page) || 1;
-        let limit = parseInt(req.query.limit) || 50;
-        const category = req.query.category;
-        const search = req.query.search;
-        if (page < 1)
-            page = 1;
-        if (limit < 1)
-            limit = 12;
-        if (limit > 1000)
-            limit = 1000;
-        const params = { page, limit, category, search };
+        const parsedQuery = schemas_1.productsQuerySchema.safeParse(req.query);
+        if (!parsedQuery.success) {
+            return res.status(400).json({
+                error: parsedQuery.error.errors[0]?.message || 'Invalid query parameters',
+            });
+        }
+        const { page, limit, sortBy, sortOrder, select } = parsedQuery.data;
+        const category = parsedQuery.data.category === 'all' ? undefined : parsedQuery.data.category;
+        const search = parsedQuery.data.search;
+        const params = { page, limit, category, search, sortBy, sortOrder, select };
         const cacheKey = redis_1.cacheKeys.products(userId, params);
         const result = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.products, async () => {
             const from = (page - 1) * limit;
             const to = from + limit - 1;
             let query = supabase_1.supabase
                 .from('products')
-                .select('*', { count: 'exact' })
+                .select(select === 'id' ? 'id' : '*', { count: 'exact' })
                 .eq('user_id', userId);
             if (category && category !== 'all') {
                 // SECURITY: Escape PostgREST special characters to prevent filter injection
@@ -41,39 +40,51 @@ const getProducts = async (req, res) => {
                     query = query.or(`name.ilike.%${sanitizedSearch}%,sku.ilike.%${sanitizedSearch}%`);
                 }
             }
-            const { data, error, count } = await query
-                .order('display_order', { ascending: true, nullsFirst: false })
-                .order('created_at', { ascending: false })
-                .order('id', { ascending: false })
+            let orderedQuery = query.order(sortBy, { ascending: sortOrder === 'asc', nullsFirst: false });
+            if (sortBy !== 'display_order') {
+                orderedQuery = orderedQuery.order('display_order', { ascending: true, nullsFirst: false });
+            }
+            if (sortBy !== 'created_at') {
+                orderedQuery = orderedQuery.order('created_at', { ascending: false });
+            }
+            const { data, error, count } = await orderedQuery
                 .range(from, to);
             if (error)
                 throw error;
-            const products = (data || []).map((p) => {
-                let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
-                if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
-                    imgUrl = imgUrl.replace('http://', 'https://');
-                }
-                let imgs = Array.isArray(p.images) ? p.images : [];
-                imgs = imgs.map((img) => (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
-                    ? img.replace('http://', 'https://')
-                    : img);
-                return {
-                    ...p,
-                    image_url: imgUrl,
-                    images: imgs,
-                    order: p.display_order ?? p.order ?? 0
-                };
-            });
-            // Tüm benzersiz kategorileri getir (filtre için)
-            const { data: categoryData } = await supabase_1.supabase
-                .from('products')
-                .select('category')
-                .eq('user_id', userId)
-                .not('category', 'is', null)
-                .not('category', 'eq', '');
-            const allCategories = [...new Set((categoryData || [])
-                    .map((p) => p.category)
-                    .filter(Boolean))];
+            const products = select === 'id'
+                ? (data || [])
+                : (data || []).map((p) => {
+                    let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
+                    if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {
+                        imgUrl = imgUrl.replace('http://', 'https://');
+                    }
+                    let imgs = Array.isArray(p.images) ? p.images : [];
+                    imgs = imgs.map((img) => (typeof img === 'string' && img.startsWith('http://') && !img.includes('localhost'))
+                        ? img.replace('http://', 'https://')
+                        : img);
+                    return {
+                        ...p,
+                        image_url: imgUrl,
+                        images: imgs,
+                        order: p.display_order ?? p.order ?? 0
+                    };
+                });
+            let allCategories = undefined;
+            if (select !== 'id') {
+                // Cache categories separately with longer TTL — they change infrequently
+                const categoriesCacheKey = redis_1.cacheKeys.products(userId) + ':categories';
+                allCategories = await (0, redis_1.getOrSetCache)(categoriesCacheKey, redis_1.cacheTTL.products * 4, async () => {
+                    const { data: categoryData } = await supabase_1.supabase
+                        .from('products')
+                        .select('category')
+                        .eq('user_id', userId)
+                        .not('category', 'is', null)
+                        .not('category', 'eq', '');
+                    return [...new Set((categoryData || [])
+                            .map((p) => p.category)
+                            .filter(Boolean))];
+                });
+            }
             return {
                 products,
                 metadata: {
@@ -170,6 +181,7 @@ const getProductsByIds = async (req, res) => {
         res.json(ordered);
     }
     catch (error) {
+        console.error('[getProductsByIds] Error:', error);
         res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
     }
 };
@@ -203,20 +215,26 @@ const checkProductsInCatalogs = async (req, res) => {
         if (!Array.isArray(productIds) || productIds.length === 0) {
             return res.json({ productsInCatalogs: [], catalogs: [] });
         }
+        // Only fetch catalogs that contain at least one of the requested productIds
         const { data: catalogs, error } = await supabase_1.supabase
             .from('catalogs')
             .select('id, name, product_ids')
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .overlaps('product_ids', productIds);
         if (error)
             throw error;
+        // Build a map: productId → catalogs containing it
+        const productIdSet = new Set(productIds);
         const productsInCatalogs = [];
-        for (const productId of productIds) {
-            const catalogsContaining = catalogs?.filter(c => c.product_ids?.includes(productId)).map(c => ({ id: c.id, name: c.name })) || [];
-            if (catalogsContaining.length > 0) {
-                productsInCatalogs.push({
-                    productId,
-                    catalogs: catalogsContaining
-                });
+        for (const catalog of catalogs || []) {
+            const matchingIds = (catalog.product_ids || []).filter((id) => productIdSet.has(id));
+            for (const productId of matchingIds) {
+                let entry = productsInCatalogs.find(p => p.productId === productId);
+                if (!entry) {
+                    entry = { productId, catalogs: [] };
+                    productsInCatalogs.push(entry);
+                }
+                entry.catalogs.push({ id: catalog.id, name: catalog.name });
             }
         }
         res.json({
@@ -235,47 +253,18 @@ const getProductStats = async (req, res) => {
         // Use redis cache to speed up stats
         const cacheKey = redis_1.cacheKeys.stats(userId, { type: 'products' });
         const result = await (0, redis_1.getOrSetCache)(cacheKey, redis_1.cacheTTL.products, async () => {
-            // First get exact total count (doesn't fetch rows)
-            const { count: totalCount, error: countError } = await supabase_1.supabase
-                .from('products')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId);
-            if (countError)
-                throw countError;
-            const total = totalCount || 0;
-            const stats = {
-                total,
-                inStock: 0,
-                lowStock: 0,
-                outOfStock: 0,
-                totalValue: 0
+            // Single RPC call instead of N+1 batch fetching
+            const { data, error } = await supabase_1.supabase
+                .rpc('get_product_stats', { p_user_id: userId });
+            if (error)
+                throw error;
+            return {
+                total: data?.total || 0,
+                inStock: data?.inStock || 0,
+                lowStock: data?.lowStock || 0,
+                outOfStock: data?.outOfStock || 0,
+                totalValue: Number(data?.totalValue) || 0,
             };
-            // Fetch all stock/price pairs in batches of 1000 (Supabase default limit)
-            const BATCH_SIZE = 1000;
-            const totalBatches = Math.ceil(total / BATCH_SIZE);
-            for (let batch = 0; batch < totalBatches; batch++) {
-                const from = batch * BATCH_SIZE;
-                const to = from + BATCH_SIZE - 1;
-                const { data, error } = await supabase_1.supabase
-                    .from('products')
-                    .select('stock, price')
-                    .eq('user_id', userId)
-                    .range(from, to);
-                if (error)
-                    throw error;
-                (data || []).forEach(p => {
-                    const stock = p.stock || 0;
-                    const price = Number(p.price) || 0;
-                    if (stock >= 10)
-                        stats.inStock++;
-                    else if (stock > 0 && stock < 10)
-                        stats.lowStock++;
-                    else if (stock === 0)
-                        stats.outOfStock++;
-                    stats.totalValue += (stock * price);
-                });
-            }
-            return stats;
         });
         res.json(result);
     }

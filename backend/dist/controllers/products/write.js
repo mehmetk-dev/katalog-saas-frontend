@@ -180,7 +180,6 @@ const updateProduct = async (req, res) => {
         const allowCoverFallback = normalizedIncomingCover === undefined ? true : normalizedIncomingCover !== null;
         const normalizedMedia = (0, media_1.normalizeCoverAndImages)(mergedImages, mergedCover, { allowCoverFallback });
         const updateData = {
-            updated_at: new Date().toISOString(),
             image_url: normalizedMedia.image_url,
             images: normalizedMedia.images,
         };
@@ -204,11 +203,13 @@ const updateProduct = async (req, res) => {
             updateData.display_order = display_order;
         if (is_active !== undefined)
             updateData.is_active = is_active;
-        const { error } = await supabase_1.supabase
+        const { data: updatedProduct, error } = await supabase_1.supabase
             .from('products')
             .update(updateData)
             .eq('id', id)
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .select()
+            .single();
         if (error)
             throw error;
         (0, redis_1.setProductsInvalidated)(userId);
@@ -226,7 +227,7 @@ const updateProduct = async (req, res) => {
             ipAddress,
             userAgent
         });
-        res.json({ success: true });
+        res.json({ success: true, product: updatedProduct });
     }
     catch (error) {
         res.status(500).json({ error: (0, safe_error_1.safeErrorMessage)(error) });
@@ -260,6 +261,14 @@ const deleteProduct = async (req, res) => {
             .eq('user_id', userId);
         if (error)
             throw error;
+        // Remove product ID from all catalogs' product_ids arrays
+        const { error: catalogCleanupError } = await supabase_1.supabase.rpc('remove_product_from_catalogs', {
+            p_product_id: id,
+            p_user_id: userId,
+        });
+        if (catalogCleanupError) {
+            console.error('Failed to cleanup catalog references for deleted product:', catalogCleanupError);
+        }
         await Promise.all([
             (0, redis_1.deleteCache)(redis_1.cacheKeys.products(userId)),
             (0, redis_1.deleteCache)(redis_1.cacheKeys.stats(userId))
