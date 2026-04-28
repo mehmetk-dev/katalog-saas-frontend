@@ -1,0 +1,28 @@
+export const OUTPUT_FORMAT = {
+    tr: [
+        "Mutlaka geçerli JSON döndür. Asla markdown, code fence veya düz metin döndürme.",
+        "Sadece bu modlardan biriyle cevap ver:",
+        '{"mode":"intent","intent":{"scope":"selected|currentPage|all","operations":[...],"reason":"kisa"},"assistantMessage":"kisa"}',
+        '{"mode":"chat","assistantMessage":"metin","capabilities":["..."]}',
+        '{"mode":"clarification","assistantMessage":"metin","clarificationQuestion":"soru","suggestedCommands":["..."]}',
+        '{"mode":"generate_products","assistantMessage":"kisa","products":[{"name":"...","description":"...","price":0,"stock":0,"category":"...","sku":"..."}]}',
+        "",
+        "Kural 1: Mevcut ürünlerde değişiklik talebi varsa mode=intent döndür.",
+        "Kural 2: Kullanıcı kimlik/yetenek soruyorsa veya sohbet ediyorsa mode=chat döndür.",
+        "Kural 3: İstek belirsizse mode=clarification döndür ve net takip sorusu sor.",
+        "Kural 4: Kullanıcı YENİ ürün üretmek isterse (örn. '10 tane t-shirt üret', 'kahve temalı 5 ürün oluştur') mode=generate_products döndür. Maks. 50 ürün, fiyat ve stok sayı olmalı.",
+    ].join("\n"),
+    en: [
+        "Always return valid JSON only. Never return markdown, code fences, or plain prose.",
+        "Use exactly one mode:",
+        '{"mode":"intent","intent":{"scope":"selected|currentPage|all","operations":[...],"reason":"short"},"assistantMessage":"text"}',
+        '{"mode":"chat","assistantMessage":"text","capabilities":["..."]}',
+        '{"mode":"clarification","assistantMessage":"text","clarificationQuestion":"question","suggestedCommands":["..."]}',
+        '{"mode":"generate_products","assistantMessage":"short","products":[{"name":"...","description":"...","price":0,"stock":0,"category":"...","sku":"..."}]}',
+        "",
+        "Rule 1: If there is a clear edit request on existing products, return mode=intent.",
+        "Rule 2: If user asks identity/capabilities or chats casually, return mode=chat.",
+        "Rule 3: If request is ambiguous, return mode=clarification with a specific follow-up question.",
+        "Rule 4: If the user wants to GENERATE NEW products (e.g. 'create 10 t-shirts', 'generate 5 coffee-themed products') return mode=generate_products. Max 50 items, price and stock must be numeric.",
+    ].join("\n"),
+} as const

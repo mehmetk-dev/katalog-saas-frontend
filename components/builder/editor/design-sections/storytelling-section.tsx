@@ -39,9 +39,11 @@ export function StorytellingSection({
 
         // Mevcut categoryOrder'a göre sırala, sıralamada olmayanları sona ekle
         if (categoryOrder && categoryOrder.length > 0) {
+            const orderIndex = new Map<string, number>()
+            for (let i = 0; i < categoryOrder.length; i++) orderIndex.set(categoryOrder[i], i)
             cats.sort((a, b) => {
-                const idxA = categoryOrder.indexOf(a)
-                const idxB = categoryOrder.indexOf(b)
+                const idxA = orderIndex.get(a) ?? -1
+                const idxB = orderIndex.get(b) ?? -1
                 if (idxA === -1 && idxB === -1) return 0
                 if (idxA === -1) return 1
                 if (idxB === -1) return -1

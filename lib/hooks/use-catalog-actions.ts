@@ -120,7 +120,7 @@ export function useCatalogActions({
 
     // ─── Save ───────────────────────────────────────────────────────────
     // FIX(L12): Returns a Promise so callers (handleSaveAndExit) can await completion.
-    const handleSave = useCallback((): Promise<void> => {
+    const handleSave = useCallback((): Promise<string | null> => {
         let finalName = catalogName?.trim()
         if (!finalName) {
             const currentDate = new Date().toLocaleDateString('tr-TR')
@@ -128,7 +128,7 @@ export function useCatalogActions({
             setCatalogName(finalName)
         }
 
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<string | null>((resolve, reject) => {
             startTransition(async () => {
                 try {
                     const data = getStateRef.current()
@@ -138,12 +138,14 @@ export function useCatalogActions({
                     if (currentCatalogId) {
                         await updateCatalog(currentCatalogId, buildCatalogPayload(data))
                         toast.success(t('toasts.catalogSaved') as string)
+                        resolve(currentCatalogId)
                     } else {
                         const newCatalog = await createCatalog(buildCatalogPayload(data))
                         setCurrentCatalogId(newCatalog.id)
                         toast.success(t('toasts.catalogCreated') as string)
                         refreshUser()
                         router.replace(`/dashboard/builder?id=${newCatalog.id}`)
+                        resolve(newCatalog.id)
                     }
 
                     setLastSavedState(buildSavedStateSnapshot(data))
@@ -153,7 +155,6 @@ export function useCatalogActions({
                     }
                     // PERF(K2): No router.refresh() — server action already called
                     // revalidatePath("/dashboard", "layout"); builder client state is fresh.
-                    resolve()
                 } catch (error) {
                     console.error('Catalog save error:', error)
                     const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'

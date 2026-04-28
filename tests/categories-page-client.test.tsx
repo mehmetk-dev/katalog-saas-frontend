@@ -40,6 +40,9 @@ vi.mock('@/lib/contexts/i18n-provider', () => ({
                 'common.update': 'Güncelle',
                 'common.upload': 'Yükle',
                 'common.change': 'Değiştir',
+                'common.delete': 'Sil',
+                'toasts.retryingConnection': 'Bağlantı yoğun, tekrar deneniyor ({attempt}/{max})...',
+                'auth.sessionExpired': 'Oturum süresi doldu. Lütfen tekrar giriş yapın.',
             }
             return translations[key] || key
         },
@@ -57,9 +60,25 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/lib/utils/image-utils', () => ({
-    convertToWebP: vi.fn(async (file: File) => ({
+    optimizeImage: vi.fn(async (file: File) => ({
         blob: new Blob([file], { type: 'image/webp' }),
         fileName: file.name.replace(/\.[^.]+$/, '.webp'),
+    })),
+}))
+
+vi.mock('@/lib/storage', () => ({
+    storage: {
+        upload: vi.fn().mockResolvedValue({ url: 'https://example.com/test.webp' }),
+    },
+}))
+
+vi.mock('@/lib/supabase/client', () => ({
+    getSessionSafe: vi.fn().mockResolvedValue({ access_token: 'mock-token' }),
+    createClient: vi.fn(() => ({
+        auth: {
+            refreshSession: vi.fn().mockResolvedValue({ error: null }),
+            getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'mock-token' } } }),
+        },
     })),
 }))
 

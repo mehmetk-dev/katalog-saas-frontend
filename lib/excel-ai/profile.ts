@@ -23,12 +23,16 @@ export async function fetchCatalogProfile(
         return null
     }
 
+    if (countResult.error) {
+        console.error("[excel-ai/intent] profile count query failed:", countResult.error)
+    }
+
     const rows = (sampleResult.data || []) as Array<{
         name: string | null
         category: string | null
         updated_at: string | null
     }>
-    const totalProducts = countResult.count || rows.length
+    const totalProducts = countResult.count ?? rows.length
 
     if (rows.length === 0) {
         return {

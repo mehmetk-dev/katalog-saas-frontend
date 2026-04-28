@@ -2,17 +2,21 @@
 
 import { useState, useCallback, useRef } from "react"
 import { toast } from "sonner"
-import type { Product } from "@/lib/actions/products"
-import { slugify } from "@/components/builder/builder-utils"
 import { type PdfProgressState, type PdfExportPhase, PDF_PROGRESS_INITIAL_STATE } from "@/components/ui/pdf-progress-modal"
+import {
+    cancelPdfExportJob,
+    createPdfExportJob,
+    getPdfExportJob,
+    getPdfExportShareLink,
+} from "@/lib/actions/pdf-exports"
 
 interface UsePdfExportOptions {
+    catalogId: string | null
     catalogName: string
-    selectedProducts: Product[]
+    hasUnsavedChanges: boolean
     canExport: () => boolean
-    user: { plan?: string } | null
-    t: (key: string, params?: Record<string, unknown>) => string
     refreshUser: () => void
+    onSaveCatalog: () => Promise<string | null | void>
     onShowUpgradeModal: () => void
 }
 
@@ -23,69 +27,19 @@ function formatTimeLeft(seconds: number): string {
     return secs > 0 ? `~${mins} dk ${secs} sn` : `~${mins} dk`
 }
 
-// FIX(S2): Trusted domain whitelist for image fetch during PDF export
-const TRUSTED_IMAGE_DOMAINS = [
-    'res.cloudinary.com',
-    'cloudinary.com',
-    'supabase.co',
-    'supabase.com',
-]
-const MAX_IMAGE_BLOB_SIZE = 10 * 1024 * 1024 // 10MB per image
-
-function isImageUrlTrusted(url: string): boolean {
-    try {
-        const parsed = new URL(url)
-        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
-        return TRUSTED_IMAGE_DOMAINS.some(domain => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`))
-    } catch {
-        return false
-    }
-}
-
-// Arka planda donmayı/yavaşlamayı önleyen özel bekleme fonksiyonu (setTimeout alternatifi)
-const yieldToMain = (ms: number = 0) => new Promise<void>(resolve => {
-    if (ms === 0) {
-        const channel = new MessageChannel()
-        channel.port1.onmessage = () => resolve()
-        channel.port2.postMessage(null)
-    } else {
-        setTimeout(resolve, ms)
-    }
-})
-
-/**
- * Sayfa sayısına göre PDF kalite ayarlarını dinamik belirler.
- * Büyük kataloglarda bellek tükenmesini önlemek için kalite düşürülür.
- */
-function getPdfQualitySettings(totalPages: number) {
-    if (totalPages > 200) {
-        // Çok büyük katalog (200+ sayfa): minimum kalite, maksimum stabilite
-        return { pixelRatio: 1, quality: 0.4, chunkSize: 3, chunkDelay: 800, imageTimeout: 5000 }
-    }
-    if (totalPages > 100) {
-        // Büyük katalog (100-200 sayfa): düşük kalite
-        return { pixelRatio: 1.2, quality: 0.5, chunkSize: 3, chunkDelay: 500, imageTimeout: 6000 }
-    }
-    if (totalPages > 50) {
-        // Orta katalog (50-100 sayfa): orta kalite
-        return { pixelRatio: 1.5, quality: 0.65, chunkSize: 4, chunkDelay: 300, imageTimeout: 7000 }
-    }
-    // Normal katalog (<50 sayfa): yüksek kalite
-    return { pixelRatio: 2, quality: 0.85, chunkSize: 5, chunkDelay: 100, imageTimeout: 8000 }
-}
-
 export function usePdfExport({
+    catalogId,
     catalogName,
-    selectedProducts: _selectedProducts,
+    hasUnsavedChanges,
     canExport,
-    user: _user,
-    t: _t,
     refreshUser,
+    onSaveCatalog,
     onShowUpgradeModal,
 }: UsePdfExportOptions) {
     const [isExporting, setIsExporting] = useState(false)
     const [pdfProgress, setPdfProgress] = useState<PdfProgressState>(PDF_PROGRESS_INITIAL_STATE)
     const cancelledRef = useRef(false)
+    const activeJobIdRef = useRef<string | null>(null)
 
     const setPhase = useCallback((phase: PdfExportPhase, extra?: Partial<PdfProgressState>) => {
         setPdfProgress(prev => ({ ...prev, phase, ...extra }))
@@ -98,6 +52,11 @@ export function usePdfExport({
 
     const cancelExport = useCallback(() => {
         cancelledRef.current = true
+        const activeJobId = activeJobIdRef.current
+        if (activeJobId) {
+            void cancelPdfExportJob(activeJobId).catch(() => undefined)
+        }
+        activeJobIdRef.current = null
         setIsExporting(false)
         setPdfProgress({
             phase: "cancelled",
@@ -126,246 +85,74 @@ export function usePdfExport({
             setPhase("preparing", { percent: 5, currentPage: 0, totalPages: 0, estimatedTimeLeft: "" })
             setIsExporting(true)
 
-            // FIX(F3): Import heavy libraries once upfront instead of per-page
-            const [{ jsPDF }, { toJpeg }] = await Promise.all([
-                import("jspdf"),
-                import("html-to-image"),
-            ])
+            let targetCatalogId = catalogId
+            if (!targetCatalogId || hasUnsavedChanges) {
+                const savedCatalogId = await onSaveCatalog()
+                targetCatalogId = typeof savedCatalogId === "string" ? savedCatalogId : catalogId
+            }
 
-            // Wait for React to render ghost container with all pages
-            await yieldToMain(1500)
-            if (cancelledRef.current) return
-
-            const container = document.getElementById('catalog-export-container')
-            if (!container) {
-                setPhase("error", { errorMessage: "Export hazırlığı tamamlanamadı. Lütfen tekrar deneyin." })
+            if (!targetCatalogId) {
+                setPhase("error", { errorMessage: "PDF için önce katalog kaydedilmeli.", percent: 0 })
                 return
             }
 
-            const pages = container.querySelectorAll('.catalog-page-wrapper')
-            if (pages.length === 0) {
-                setPhase("error", { errorMessage: "Sayfa yapısı oluşturulamadı. Lütfen tekrar deneyin." })
-                return
-            }
+            setPhase("processing", { percent: 12, estimatedTimeLeft: "~1 dk" })
+            const { job } = await createPdfExportJob(targetCatalogId, "standard")
+            activeJobIdRef.current = job.id
 
-            const pdf = new jsPDF('p', 'mm', 'a4')
-            const pdfWidth = pdf.internal.pageSize.getWidth()
-            const pdfHeight = pdf.internal.pageSize.getHeight()
+            const startedAt = Date.now()
+            let lastPercent = Math.max(15, job.progress || 0)
 
-            const pageElements = Array.from(pages)
-            const totalPages = pageElements.length
+            while (!cancelledRef.current) {
+                const { job: latestJob } = await getPdfExportJob(job.id)
+                lastPercent = Math.max(lastPercent, latestJob.progress || 0)
 
-            // Warn user about very large catalogs
-            if (totalPages > 200) {
-                toast.warning(
-                    `${totalPages} sayfalık büyük bir katalog. İşlem uzun sürebilir ve yüksek bellek kullanabilir. Düşük kalitede dışa aktarılacak.`,
-                    { duration: 6000 }
-                )
-            }
-
-            // Sayfa sayısına göre kalite ayarlarını belirle
-            const settings = getPdfQualitySettings(totalPages)
-            setPhase("rendering", { percent: 10, totalPages, currentPage: 0 })
-
-            // Track timing for ETA estimation
-            const startTime = Date.now()
-
-            // FIX(F3): Image cache — avoid re-fetching the same image URL across pages
-            // Limit cache size to prevent OOM on large catalogs
-            const IMAGE_CACHE_LIMIT = 500
-            const imageCache = new Map<string, string>()
-
-            // Process pages in chunks to avoid memory pressure
-            let processedCount = 0
-
-            for (let chunkStart = 0; chunkStart < pageElements.length; chunkStart += settings.chunkSize) {
-                const chunkEnd = Math.min(chunkStart + settings.chunkSize, pageElements.length)
-
-                for (let i = chunkStart; i < chunkEnd; i++) {
-                    if (cancelledRef.current) {
-                        return
-                    }
-
-                    const wrapper = pageElements[i] as HTMLElement
-                    const page = wrapper.classList.contains('catalog-page') ? wrapper : wrapper.querySelector('.catalog-page') as HTMLElement
-                    if (!page) continue
-
-                    processedCount++
-
-                    // Calculate progress & ETA
-                    const elapsed = (Date.now() - startTime) / 1000
-                    const avgPerPage = processedCount > 1 ? elapsed / (processedCount - 1) : 3
-                    const remaining = (totalPages - processedCount) * avgPerPage
-                    const percent = 10 + Math.round((processedCount / totalPages) * 80) // 10-90% range for rendering
-
-                    setPdfProgress({
-                        phase: "rendering",
-                        currentPage: processedCount,
-                        totalPages,
-                        percent,
-                        estimatedTimeLeft: formatTimeLeft(remaining),
+                if (latestJob.status === "completed") {
+                    setPhase("saving", { percent: 96, estimatedTimeLeft: "" })
+                    const share = await getPdfExportShareLink(job.id)
+                    activeJobIdRef.current = null
+                    setPhase("done", {
+                        percent: 100,
+                        estimatedTimeLeft: "",
+                        downloadUrl: share.url,
+                        shareUrl: share.url,
                     })
-
-                    const clone = page.cloneNode(true) as HTMLElement
-
-                    // Sanitize cloned DOM: remove script/style tags and on* event attributes
-                    clone.querySelectorAll('script, style').forEach(el => el.remove())
-                    clone.querySelectorAll('*').forEach(el => {
-                        for (const attr of Array.from(el.attributes)) {
-                            if (attr.name.startsWith('on')) el.removeAttribute(attr.name)
-                        }
-                    })
-
-                    document.body.appendChild(clone)
-
-                    clone.style.position = 'fixed'
-                    clone.style.top = '0'
-                    clone.style.left = '0'
-                    clone.style.zIndex = '-9999'
-                    clone.style.transform = 'none'
-                    clone.style.translate = 'none'
-                    clone.style.margin = '0'
-                    clone.style.boxShadow = 'none'
-                    clone.style.width = '794px'
-                    clone.style.height = '1123px'
-                    clone.style.overflow = 'hidden'
-                    clone.className = 'catalog-page catalog-light bg-white'
-
-                    try {
-                        // Convert images to base64 (CORS fix)
-                        // FIX(F3): Use cache to avoid re-downloading same images
-                        const images = clone.querySelectorAll('img')
-                        const imagePromises = Array.from(images).map(async (img) => {
-                            try {
-                                if (!img.src || img.src.startsWith('data:')) return
-
-                                const originalSrc = img.src
-
-                                // Check cache first
-                                const cached = imageCache.get(originalSrc)
-                                if (cached) {
-                                    img.src = cached
-                                    img.style.display = 'block'
-                                    img.removeAttribute('crossOrigin')
-                                    img.removeAttribute('srcset')
-                                    img.removeAttribute('loading')
-                                    return
-                                }
-
-                                // FIX(S2): Only fetch from trusted domains
-                                if (!isImageUrlTrusted(originalSrc)) {
-                                    console.warn('PDF export: skipping untrusted image URL', originalSrc)
-                                    img.style.display = 'none'
-                                    return
-                                }
-
-                                const controller = new AbortController()
-                                const timeoutId = setTimeout(() => controller.abort(), settings.imageTimeout)
-
-                                const response = await fetch(originalSrc, {
-                                    signal: controller.signal,
-                                    mode: 'cors',
-                                    credentials: 'omit'
-                                })
-                                clearTimeout(timeoutId)
-
-                                if (!response.ok) throw new Error('Network error')
-
-                                const blob = await response.blob()
-
-                                // FIX(S2): Reject oversized blobs to prevent memory abuse
-                                if (blob.size > MAX_IMAGE_BLOB_SIZE) {
-                                    console.warn('PDF export: skipping oversized image', originalSrc, blob.size)
-                                    img.style.display = 'none'
-                                    return
-                                }
-                                const base64 = await new Promise<string>((resolve, reject) => {
-                                    const reader = new FileReader()
-                                    reader.onloadend = () => resolve(reader.result as string)
-                                    reader.onerror = reject
-                                    reader.readAsDataURL(blob)
-                                })
-
-                                // Cache for reuse on other pages (with size limit)
-                                if (imageCache.size >= IMAGE_CACHE_LIMIT) {
-                                    // Evict oldest entry (first inserted)
-                                    const firstKey = imageCache.keys().next().value
-                                    if (firstKey) imageCache.delete(firstKey)
-                                }
-                                imageCache.set(originalSrc, base64)
-
-                                img.src = base64
-                                img.style.display = 'block'
-                                img.removeAttribute('crossOrigin')
-                                img.removeAttribute('srcset')
-                                img.removeAttribute('loading')
-
-                            } catch {
-                                // Image fetch failed — use transparent placeholder
-                                img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                                img.style.objectFit = 'contain'
-                            }
-                        })
-
-                        await Promise.allSettled(imagePromises)
-                        await yieldToMain(200)
-
-                        // FIX(F3): toJpeg imported once at top, not per-page
-                        let imgData: string | null = await toJpeg(clone, {
-                            quality: settings.quality,
-                            pixelRatio: settings.pixelRatio,
-                            backgroundColor: '#ffffff',
-                            cacheBust: true,
-                        })
-
-                        if (i > 0) pdf.addPage()
-                        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
-
-                        // Bellek serbest bırak — büyük base64 string'leri temizle
-                        imgData = null
-
-                    } finally {
-                        if (document.body.contains(clone)) {
-                            document.body.removeChild(clone)
-                        }
-                    }
-                }
-
-                // Between chunks: yield to browser & GC
-                if (chunkEnd < pageElements.length) {
-                    await yieldToMain(settings.chunkDelay)
-                }
-            }
-
-            // FIX(F3): Release image cache to free memory after all pages processed
-            imageCache.clear()
-
-            if (cancelledRef.current) {
-                return
-            }
-
-            // Phase: SAVING
-            setPhase("saving", { percent: 95, currentPage: totalPages, totalPages, estimatedTimeLeft: "" })
-
-            pdf.save(`${slugify(catalogName || "katalog")}.pdf`)
-
-            setPhase("done", { percent: 100, estimatedTimeLeft: "" })
-
-            // Background: increment export quota
-            import("@/lib/actions/user").then(async ({ incrementUserExports }) => {
-                const result = await incrementUserExports(catalogName)
-                if (!result.error) {
+                    toast.success("PDF hazırlandı.")
+                    window.open(share.url, "_blank", "noopener,noreferrer")
                     refreshUser()
+                    return
                 }
-            }).catch(() => { /* Export quota update is non-critical */ })
+
+                if (latestJob.status === "failed") {
+                    throw new Error(latestJob.error_message || "PDF export başarısız oldu.")
+                }
+
+                if (latestJob.status === "cancelled" || latestJob.status === "expired") {
+                    setPhase("cancelled", { percent: 0, estimatedTimeLeft: "" })
+                    return
+                }
+
+                const elapsedSeconds = Math.max(1, (Date.now() - startedAt) / 1000)
+                const estimatedTotalSeconds = lastPercent > 15 ? elapsedSeconds / (lastPercent / 100) : 90
+                setPdfProgress({
+                    phase: "processing",
+                    currentPage: latestJob.page_count || 0,
+                    totalPages: latestJob.page_count || 0,
+                    percent: Math.min(95, Math.max(15, lastPercent)),
+                    estimatedTimeLeft: formatTimeLeft(Math.max(5, estimatedTotalSeconds - elapsedSeconds)),
+                })
+
+                await new Promise(resolve => setTimeout(resolve, 2000))
+            }
 
         } catch (err) {
             const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
             setPhase("error", { errorMessage: msg, percent: 0, estimatedTimeLeft: "" })
         } finally {
+            activeJobIdRef.current = null
             setIsExporting(false)
         }
-    }, [catalogName, canExport, refreshUser, onShowUpgradeModal, setPhase])
+    }, [catalogId, hasUnsavedChanges, catalogName, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase])
 
     return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal }
 }

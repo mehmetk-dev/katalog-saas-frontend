@@ -44,7 +44,7 @@ interface EditorContentTabProps {
     validProductIds: string[]
     onSelectedProductIdsChange: (ids: string[]) => void
     toggleProduct: (id: string) => void
-    /** PERF(O2): Lazy fetch trigger for "Select All" button */
+    /** PERF(O2): Click-only lazy fetch trigger for "Select All" button */
     onPrefetchAllProductIds?: () => void
 
     // Pagination

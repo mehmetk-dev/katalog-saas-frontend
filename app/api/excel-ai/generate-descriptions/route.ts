@@ -50,7 +50,7 @@ function buildSystemPrompt(language: "tr" | "en"): string {
       "Cikis semasi:",
       '{"descriptions":[{"productId":"...","description":"..."}]}',
       "Her urun icin urun adina uygun, dogal ve kisa bir aciklama yaz.",
-      "Id'leri aynen koru. Uydurma productId üretme.",
+      "Id'leri aynen koru. Uydurma productId uretme.",
       "Fiyata, stoga, garantiye dair bilinmeyen iddialar ekleme.",
       "Marka/model teknik bilgisi verilmediyse varsayim yapma.",
     ].join("\n")
@@ -129,22 +129,37 @@ export async function POST(request: NextRequest) {
     const language = parsedRequest.data.language || "tr"
     const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b"
 
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${groqApiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.3,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: buildSystemPrompt(language) },
-          { role: "user", content: buildUserPrompt(parsedRequest.data) },
-        ],
-      }),
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 20_000)
+
+    let groqResponse: Response
+    try {
+      groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${groqApiKey}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model,
+          temperature: 0.3,
+          max_tokens: 4096,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: buildSystemPrompt(language) },
+            { role: "user", content: buildUserPrompt(parsedRequest.data) },
+          ],
+        }),
+      })
+    } catch (fetchError) {
+      clearTimeout(timeout)
+      if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+        return NextResponse.json({ error: "Groq request timed out" }, { status: 504 })
+      }
+      throw fetchError
+    }
+    clearTimeout(timeout)
 
     if (!groqResponse.ok) {
       const errorText = await groqResponse.text()

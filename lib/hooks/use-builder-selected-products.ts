@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getProductsByIds, type Product } from "@/lib/actions/products"
 
 const PRODUCT_ID_MAX_LENGTH = 128
-const FETCH_CHUNK_SIZE = 100
+const FETCH_CHUNK_SIZE = 500
 const FETCH_CONCURRENCY_LIMIT = 3
 // PERF: Cap on retained product cache to prevent unbounded heap growth on long sessions.
 // Selected products are always preserved; only non-selected excess entries are evicted.
@@ -135,11 +135,10 @@ export function useBuilderSelectedProducts({
       for (let i = 0; i < chunks.length; i += FETCH_CONCURRENCY_LIMIT) {
         if (cancelled) return
         const batch = chunks.slice(i, i + FETCH_CONCURRENCY_LIMIT)
-        await Promise.all(batch.map(async (chunk) => {
+        const batchProducts = await Promise.all(batch.map(async (chunk) => {
           try {
             const chunkProducts = await getProductsByIds(chunk)
-            if (cancelled) return
-            upsertLoadedProducts(chunkProducts)
+            return cancelled ? [] : chunkProducts
           } catch (error) {
             // Mark failed IDs with a timestamp — they can be retried after RETRY_DELAY_MS.
             // Do NOT remove from requestedRef immediately to avoid hammering on every drag event.
@@ -149,8 +148,11 @@ export function useBuilderSelectedProducts({
               failedIdTimestampsRef.current.set(id, now)
             })
             console.error("Failed to load selected builder products:", error)
+            return []
           }
         }))
+        if (cancelled) return
+        upsertLoadedProducts(batchProducts.flat())
       }
     }
 

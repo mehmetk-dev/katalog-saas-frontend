@@ -175,7 +175,7 @@ export const SelectAllButton = React.memo(function SelectAllButton({
     isLoadingAllProductIds?: boolean
     /** PERF(O2): Total product count — used to infer "all selected" without fetching IDs */
     totalProductCount?: number
-    /** PERF(O2): Called on hover/focus/click to start lazy fetching all IDs */
+    /** PERF(O2): Called on click to start lazy fetching all IDs */
     onPrefetchAllProductIds?: () => void
     t: (key: string) => string
 }) {
@@ -207,8 +207,6 @@ export const SelectAllButton = React.memo(function SelectAllButton({
         <Button
             variant="ghost"
             size="sm"
-            onMouseEnter={onPrefetchAllProductIds}
-            onFocus={onPrefetchAllProductIds}
             className={cn(
                 "h-11 rounded-2xl border border-slate-200/60 bg-white font-black text-[10px] uppercase px-4 transition-all",
                 isAllSelected

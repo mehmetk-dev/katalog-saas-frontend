@@ -3,8 +3,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { FileDown, Loader2, CheckCircle2, XCircle, X } from "lucide-react"
+import { Copy, ExternalLink, FileDown, Loader2, CheckCircle2, XCircle, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 export type PdfExportPhase = "idle" | "preparing" | "rendering" | "processing" | "saving" | "done" | "error" | "cancelled"
 
@@ -15,6 +16,8 @@ export interface PdfProgressState {
     percent: number
     estimatedTimeLeft: string
     errorMessage?: string
+    downloadUrl?: string
+    shareUrl?: string
 }
 
 const INITIAL_STATE: PdfProgressState = {
@@ -70,7 +73,7 @@ export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) 
         rendering: tr(t, "pdf.phraseRendering", "Sayfa {current} / {total} işleniyor...", { current: state.currentPage, total: state.totalPages }),
         processing: tr(t, "pdf.phraseProcessing", "PDF dosyası oluşturuluyor..."),
         saving: tr(t, "pdf.phraseSaving", "PDF kaydediliyor..."),
-        done: tr(t, "pdf.phraseDone", "PDF başarıyla indirildi!"),
+        done: tr(t, "pdf.phraseDone", "PDF hazır!"),
         error: tr(t, "pdf.phraseError", "PDF oluşturulamadı"),
         cancelled: tr(t, "pdf.phraseCancelled", "PDF indirme iptal edildi"),
     }
@@ -140,8 +143,31 @@ export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) 
                             </Button>
                         )}
                         {canClose && onCancel && (
-                            <Button variant="default" size="sm" onClick={onCancel}>
+                            <Button variant="outline" size="sm" onClick={onCancel}>
                                 {tr(t, "common.close", "Kapat")}
+                            </Button>
+                        )}
+                        {state.phase === "done" && state.shareUrl && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    void navigator.clipboard.writeText(state.shareUrl || "")
+                                    toast.success("PDF linki kopyalandı.")
+                                }}
+                            >
+                                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                Linki Kopyala
+                            </Button>
+                        )}
+                        {state.phase === "done" && state.downloadUrl && (
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => window.open(state.downloadUrl, "_blank", "noopener,noreferrer")}
+                            >
+                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                PDF Aç
                             </Button>
                         )}
                     </div>

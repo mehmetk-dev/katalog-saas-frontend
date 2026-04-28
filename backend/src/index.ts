@@ -157,6 +157,7 @@ import adminRoutes from './routes/admin';
 import healthRoutes from './routes/health';
 import notificationRoutes from './routes/notifications';
 import authRoutes from './routes/auth';
+import pdfExportRoutes from './routes/pdf-exports';
 
 // Health check routes (no auth required)
 app.use('/health', healthRoutes);
@@ -170,6 +171,7 @@ app.use('/api/v1/catalogs', catalogRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/pdf-exports', pdfExportRoutes);
 
 // Initialize Redis (optional - works without it)
 initRedis();
@@ -180,8 +182,8 @@ app.use(notFoundHandler);
 // Global error handler (must be last middleware)
 app.use(errorHandler);
 
-// Start Server
-app.listen(PORT, () => {
+// Start Server - bind to 0.0.0.0 so mobile devices on LAN can connect
+app.listen(Number(PORT), '0.0.0.0', () => {
     // eslint-disable-next-line no-console
-    console.log(`Server is running on port ${PORT} 🚀`);
+    console.log(`Server is running on 0.0.0.0:${PORT} 🚀`);
 });

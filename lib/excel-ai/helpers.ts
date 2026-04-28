@@ -1,18 +1,28 @@
-import type { Language, CatalogProfile } from "./schemas"
+import type { Language, CatalogProfile } from './schemas'
 
-// ─── Text Utilities ─────────────────────────────────────────────────────────
-
+// Text Utilities
 export const TOKEN_STOPWORDS = new Set([
-    "ve", "ile", "icin", "için", "the", "and", "for",
-    "set", "model", "pro", "plus", "new", "yeni", "urun", "ürün",
+    've',
+    'ile',
+    'icin',
+    'the',
+    'and',
+    'for',
+    'set',
+    'model',
+    'pro',
+    'plus',
+    'new',
+    'yeni',
+    'urun',
 ])
 
 export function normalizeForMatch(input: string): string {
     return input
-        .toLocaleLowerCase("tr")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ı/g, "i")
+        .toLocaleLowerCase('tr')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\u0131/g, 'i')
         .trim()
 }
 
@@ -22,7 +32,7 @@ export function includesAnyToken(input: string, tokens: readonly string[]): bool
 
 export function clampText(value: string, maxLength = 220): string {
     if (value.length <= maxLength) return value
-    return `${value.slice(0, maxLength - 1).trimEnd()}…`
+    return `${value.slice(0, maxLength - 1).trimEnd()}...`
 }
 
 export function extractTopKeywords(productNames: string[]): string[] {
@@ -38,49 +48,51 @@ export function extractTopKeywords(productNames: string[]): string[] {
     })
 
     return Array.from(counts.entries())
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "tr"))
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr'))
         .slice(0, 3)
         .map(([keyword]) => keyword)
 }
 
-// ─── Scope Resolution ───────────────────────────────────────────────────────
+// Scope Resolution
+export const SELECTED_SCOPE_TOKENS = ['secili', 'isaretli', 'checked', 'selected'] as const
+export const ALL_SCOPE_TOKENS = ['tum', 'hepsi', 'hepsini', 'all', 'everything'] as const
 
-export const SELECTED_SCOPE_TOKENS = ["secili", "isaretli", "checked", "selected"] as const
-export const ALL_SCOPE_TOKENS = ["tum", "hepsi", "hepsini", "all", "everything"] as const
-
-export function resolveScopeFromMessage(message: string): "selected" | "currentPage" | "all" {
-    if (includesAnyToken(message, SELECTED_SCOPE_TOKENS)) return "selected"
-    if (includesAnyToken(message, ALL_SCOPE_TOKENS)) return "all"
-    return "currentPage"
+export function resolveScopeFromMessage(message: string): 'selected' | 'currentPage' | 'all' {
+    if (includesAnyToken(message, SELECTED_SCOPE_TOKENS)) return 'selected'
+    if (includesAnyToken(message, ALL_SCOPE_TOKENS)) return 'all'
+    return 'currentPage'
 }
 
-// ─── Guardrail Patterns ─────────────────────────────────────────────────────
-
+// Guardrail Patterns
 export const UNSUPPORTED_CAPABILITY_PATTERNS = [
-    "urun ekle", "urun sil", "urun ara", "arama yap",
-    "create product", "delete product", "search product",
+    'urun ekle',
+    'urun sil',
+    'urun ara',
+    'arama yap',
+    'create product',
+    'delete product',
+    'search product',
 ] as const
 
-// ─── User Note Builder ──────────────────────────────────────────────────────
-
+// User Note Builder
 export function buildUserNoteLine(profile: CatalogProfile | null, language: Language): string {
     if (!profile || profile.totalProducts === 0) {
-        return language === "tr"
-            ? "Kullanıcı notu: Katalog verin arttıkça daha hedefli öneriler verebilirim."
-            : "User note: As your catalog grows, I can provide more tailored guidance."
+        return language === 'tr'
+            ? 'Kullanici notu: Katalog verin arttikca daha hedefli oneriler verebilirim.'
+            : 'User note: As your catalog grows, I can provide more tailored guidance.'
     }
 
     const topCategory = profile.topCategories[0]?.name
     const topKeyword = profile.topKeywords[0]
 
-    if (language === "tr") {
+    if (language === 'tr') {
         if (topCategory && topKeyword) {
-            return `Kullanıcı notu: Kataloğunda ${topCategory} kategorisi ve ${topKeyword} odaklı ürünler öne çıkıyor.`
+            return `Kullanici notu: Katalogunda ${topCategory} kategorisi ve ${topKeyword} odakli urunler one cikiyor.`
         }
         if (topCategory) {
-            return `Kullanıcı notu: Kataloğunda en yoğun kategori ${topCategory}.`
+            return `Kullanici notu: Katalogunda en yogun kategori ${topCategory}.`
         }
-        return `Kullanıcı notu: Kataloğunda ${profile.totalProducts} ürün bulunuyor.`
+        return `Kullanici notu: Katalogunda ${profile.totalProducts} urun bulunuyor.`
     }
 
     if (topCategory && topKeyword) {

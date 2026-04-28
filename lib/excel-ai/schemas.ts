@@ -11,9 +11,12 @@ export const PRESET_IDS = [
     "set_all_stock_zero",
 ] as const
 
-export const PROFILE_SAMPLE_LIMIT = 250
-
 // ─── Zod Schemas ────────────────────────────────────────────────────────────
+
+export const conversationTurnSchema = z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().trim().min(1).max(2000),
+})
 
 export const requestSchema = z.object({
     message: z.string().trim().min(2).max(1200),
@@ -23,6 +26,8 @@ export const requestSchema = z.object({
     search: z.string().trim().max(200).optional(),
     language: z.enum(["tr", "en"]).optional(),
     presetId: z.enum(PRESET_IDS).optional(),
+    /** Last 3-4 turns of the conversation for context-aware follow-ups. */
+    history: z.array(conversationTurnSchema).max(8).optional(),
 })
 
 export const fieldSchema = z.enum(AI_FIELDS)

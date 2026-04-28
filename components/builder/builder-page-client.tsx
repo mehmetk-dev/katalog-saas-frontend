@@ -200,52 +200,6 @@ function BuilderContent() {
         t={handlers.t}
       />
 
-      {/* GHOST CONTAINER (PDF Export) */}
-      {handlers.isExporting && (
-        <div
-          id="catalog-export-container"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: '-9999px',
-            width: '1000px',
-            zIndex: -100,
-            opacity: 0,
-            pointerEvents: 'none',
-            overflow: 'visible'
-          }}
-        >
-          <CatalogPreview
-            catalogName={state.catalogName}
-            products={state.selectedProducts}
-            layout={state.layout}
-            primaryColor={state.primaryColor}
-            headerTextColor={state.headerTextColor}
-            showPrices={state.showPrices}
-            showDescriptions={state.showDescriptions}
-            showAttributes={state.showAttributes}
-            showSku={state.showSku}
-            showUrls={state.showUrls}
-            productImageFit={state.productImageFit}
-            columnsPerRow={state.columnsPerRow}
-            backgroundColor={state.backgroundColor}
-            backgroundImage={state.backgroundImage}
-            backgroundImageFit={state.backgroundImageFit as 'cover' | 'contain' | 'fill' | undefined}
-            backgroundGradient={state.backgroundGradient}
-            logoUrl={state.logoUrl ?? undefined}
-            logoPosition={state.logoPosition ?? undefined}
-            logoSize={state.logoSize}
-            titlePosition={state.titlePosition}
-            isExporting={true}
-            enableCoverPage={state.enableCoverPage}
-            coverImageUrl={state.coverImageUrl ?? undefined}
-            coverDescription={state.coverDescription ?? undefined}
-            enableCategoryDividers={state.enableCategoryDividers}
-            categoryOrder={state.categoryOrder}
-            theme={state.coverTheme}
-          />
-        </div>
-      )}
     </div>
   )
 }

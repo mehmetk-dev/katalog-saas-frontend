@@ -133,6 +133,7 @@ export function CatalogEditor() {
   const onLogoSizeChange = useCallback((v: NonNullable<Catalog['logo_size']>) => setLogoSize(v), [setLogoSize])
   const onTitlePositionChange = useCallback((v: NonNullable<Catalog['title_position']>) => setTitlePosition(v), [setTitlePosition])
   const { productMap } = state
+  const loadedProductsArray = useMemo(() => Array.from(productMap.values()), [productMap])
 
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
@@ -503,7 +504,7 @@ export function CatalogEditor() {
               coverTheme={coverTheme}
               onCoverThemeChange={onCoverThemeChange}
               catalogName={catalogName}
-              products={Array.from(productMap.values())}
+              products={loadedProductsArray}
               handleUploadClick={handleUploadClick}
               handleFileUpload={handleFileUpload}
               logoInputRef={logoInputRef}

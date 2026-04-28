@@ -57,10 +57,10 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
     }, [])
 
     return (
-        <section className="relative pt-32 pb-20 md:pt-40 lg:pt-48 md:pb-32 overflow-hidden bg-slate-50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
+        <section className="relative pt-24 pb-16 md:pt-32 lg:pt-36 md:pb-24 overflow-hidden bg-slate-50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
             <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
                 {/* Title Centered */}
-                <div className="text-center mb-24 lg:mb-32">
+                <div className="text-center mb-16 lg:mb-20">
                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-[#2b2b5f] max-w-4xl mx-auto tracking-tight">
                         {t('landing.heroAlternativeTitle')}
                     </h1>
@@ -136,15 +136,15 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                                         const isActive = index === currentSlide
 
                                         const unscaledScreenHeight = scale > 0 ? screenDims.h / scale : 0
-                                        const maxScrollY = Math.max(0, 1131 - unscaledScreenHeight)
-                                        const translateY = (isActive && isMounted) ? -maxScrollY : 0
+                                        const maxScrollY = screenDims.h > 0 ? Math.max(0, 1131 - unscaledScreenHeight) : 0
+                                        const translateY = (isActive && isMounted && screenDims.h > 0) ? -maxScrollY : 0
 
                                         return (
                                             <div
                                                 key={slide.key}
                                                 className={cn(
                                                     "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-                                                    isActive ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                                                    (isActive && isMounted && screenDims.w > 0) ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
                                                 )}
                                             >
                                                 <div className="w-full h-full relative">

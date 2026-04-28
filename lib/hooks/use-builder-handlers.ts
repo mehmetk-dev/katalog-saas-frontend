@@ -26,6 +26,16 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
     const { user, canExport, refreshUser } = useUser()
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+    const {
+        currentCatalogId,
+        hasUnsavedChanges,
+        setCatalogName,
+        setShowExitDialog,
+        setShowShareModal,
+        setShowUpgradeModal,
+        setView,
+    } = state
+    const showUpgradeModal = useCallback(() => setShowUpgradeModal(true), [setShowUpgradeModal])
 
     // ─── Catalog CRUD Actions ──────────────────────────────────────────
     const {
@@ -56,50 +66,50 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
 
     // ─── PDF Export ────────────────────────────────────────────────────
     const { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal } = usePdfExport({
+        catalogId: state.currentCatalogId,
         catalogName: state.catalogName,
-        selectedProducts: state.selectedProducts,
+        hasUnsavedChanges: state.hasUnsavedChanges,
         canExport,
-        user,
-        t,
         refreshUser,
-        onShowUpgradeModal: () => state.setShowUpgradeModal(true),
+        onSaveCatalog: handleSave,
+        onShowUpgradeModal: showUpgradeModal,
     })
 
     // ─── UI Handlers ───────────────────────────────────────────────────
     const handleShare = useCallback(() => {
-        if (!state.currentCatalogId || !catalog?.share_slug) {
+        if (!currentCatalogId || !catalog?.share_slug) {
             toast.error(t('toasts.saveCatalogFirst') as string)
             return
         }
-        state.setShowShareModal(true)
-    }, [state, catalog?.share_slug, t])
+        setShowShareModal(true)
+    }, [currentCatalogId, catalog?.share_slug, setShowShareModal, t])
 
-    const handleViewChange = useCallback((v: "split" | "editor" | "preview") => state.setView(v), [state])
+    const handleViewChange = useCallback((v: "split" | "editor" | "preview") => setView(v), [setView])
 
-    const handleCatalogNameChange = useCallback((name: string) => state.setCatalogName(name), [state])
+    const handleCatalogNameChange = useCallback((name: string) => setCatalogName(name), [setCatalogName])
 
     const handleExit = useCallback(() => {
-        if (state.hasUnsavedChanges) {
-            state.setShowExitDialog(true)
+        if (hasUnsavedChanges) {
+            setShowExitDialog(true)
         } else {
             router.push('/dashboard')
         }
-    }, [state, router])
+    }, [hasUnsavedChanges, setShowExitDialog, router])
 
     const handleExitWithoutSaving = useCallback(() => {
-        state.setShowExitDialog(false)
+        setShowExitDialog(false)
         router.push('/dashboard')
-    }, [state, router])
+    }, [setShowExitDialog, router])
 
     const handleSaveAndExit = useCallback(async () => {
         try {
             await handleSave()
-            state.setShowExitDialog(false)
+            setShowExitDialog(false)
             router.push('/dashboard')
         } catch {
             // Save failed — user stays on page, toast already shown by handleSave
         }
-    }, [handleSave, state, router])
+    }, [handleSave, setShowExitDialog, router])
 
     return {
         // From useCatalogActions

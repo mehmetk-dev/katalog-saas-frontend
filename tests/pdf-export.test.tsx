@@ -6,6 +6,7 @@ import { useUser } from '@/lib/contexts/user-context'
 import { useRouter } from 'next/navigation'
 import type { Catalog } from '@/lib/actions/catalogs'
 import type { ProductsResponse } from '@/lib/actions/products'
+import { createPdfExportJob } from '@/lib/actions/pdf-exports'
 
 vi.mock('@/lib/contexts/user-context')
 vi.mock('@/lib/contexts/i18n-provider', () => ({
@@ -38,6 +39,14 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 }))
 vi.mock('@/lib/actions/user', () => ({
   incrementUserExports: vi.fn().mockResolvedValue({ success: true }),
+}))
+vi.mock('@/lib/actions/pdf-exports', () => ({
+  createPdfExportJob: vi.fn().mockResolvedValue({
+    job: { id: 'job-1', status: 'queued', progress: 15 },
+  }),
+  getPdfExportJob: vi.fn(() => new Promise(() => undefined)),
+  getPdfExportShareLink: vi.fn(),
+  cancelPdfExportJob: vi.fn().mockResolvedValue({ job: { id: 'job-1', status: 'cancelled' } }),
 }))
 
 vi.mock('@/components/builder/editor/catalog-editor', () => ({
@@ -120,9 +129,10 @@ describe('BuilderPageClient PDF Export', () => {
     })
 
     await waitFor(() => {
-      const ghost = document.getElementById('catalog-export-container')
-      expect(ghost).not.toBeNull()
-    }, { timeout: 4000 })
+      expect(createPdfExportJob).toHaveBeenCalledWith('1', 'standard')
+    })
+
+    expect(document.getElementById('catalog-export-container')).toBeNull()
   })
 })
 
