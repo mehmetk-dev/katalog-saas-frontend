@@ -64,6 +64,54 @@ const requiredEnvVars = [
         example: 'abcdefghijklmnop'
     },
     {
+        key: 'SMTP_HOST',
+        required: false,
+        description: 'SMTP server host (defaults to smtp.zoho.com)',
+        example: 'smtp.zoho.com'
+    },
+    {
+        key: 'SMTP_PORT',
+        required: false,
+        description: 'SMTP server port (defaults to 465)',
+        example: '465'
+    },
+    {
+        key: 'SMTP_USER',
+        required: false,
+        description: 'SMTP username / email address',
+        example: 'noreply@yourdomain.com'
+    },
+    {
+        key: 'SMTP_PASS',
+        required: false,
+        description: 'SMTP password / app password',
+        example: 'your-app-password'
+    },
+    {
+        key: 'R2_ACCOUNT_ID',
+        required: false,
+        description: 'Cloudflare R2 account ID for PDF export storage',
+        example: 'your_account_id'
+    },
+    {
+        key: 'R2_ACCESS_KEY_ID',
+        required: false,
+        description: 'Cloudflare R2 access key ID',
+        example: 'your_access_key_id'
+    },
+    {
+        key: 'R2_SECRET_ACCESS_KEY',
+        required: false,
+        description: 'Cloudflare R2 secret access key',
+        example: 'your_secret_access_key'
+    },
+    {
+        key: 'R2_BUCKET',
+        required: false,
+        description: 'Cloudflare R2 bucket name for PDF exports',
+        example: 'fogcatalog-pdf-exports'
+    },
+    {
         key: 'METRICS_SECRET',
         required: false,
         description: 'Secret token for Prometheus metrics endpoint',

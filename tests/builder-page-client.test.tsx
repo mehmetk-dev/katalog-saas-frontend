@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BuilderPageClient } from '@/components/builder/builder-page-client'
 import { useUser, type UserContextType, type User } from '@/lib/contexts/user-context'
 import { useRouter } from 'next/navigation'
@@ -143,6 +143,10 @@ describe('BuilderPageClient Final Audit Tests', () => {
     } as unknown as UserContextType)
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('ENDPOINT: handleSave -> updateCatalog cagrilmali', async () => {
     render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
 
@@ -156,6 +160,42 @@ describe('BuilderPageClient Final Audit Tests', () => {
       expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
         name: 'Updated Name',
       }))
+    })
+  })
+
+  it('AUTOSAVE: mevcut katalog degistiginde updateCatalog cagrilmali', async () => {
+    vi.useFakeTimers()
+    render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
+
+    const input = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'Autosave Name' } })
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000)
+    })
+
+    expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
+      name: 'Autosave Name',
+    }))
+  })
+
+  it('PUBLISH: unsaved degisiklikleri yayindan sonra kaydedilmis saymali', async () => {
+    render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
+
+    const input = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
+    fireEvent.change(input, { target: { value: 'Published Name' } })
+
+    const publishBtn = screen.getByText('builder.publishBtn')
+    fireEvent.click(publishBtn)
+
+    await waitFor(() => {
+      expect(catalogActions.publishCatalog).toHaveBeenCalled()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTitle('builder.noChangesToSave')).toBeInTheDocument()
     })
   })
 

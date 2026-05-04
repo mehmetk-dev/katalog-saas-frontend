@@ -13,23 +13,19 @@ let redis = null;
 exports.redis = redis;
 let redisWarningShown = false;
 function getRedisOptions() {
-    const base = {
-        maxRetriesPerRequest: 1,
+    return {
+        maxRetriesPerRequest: 3,
         enableReadyCheck: false,
         lazyConnect: true,
-        retryStrategy: () => null,
+        // TLS (Upstash) bağlantılarında retry izin ver — ilk el sıkışmasında geçici hata olabilir
+        // Non-TLS (local Redis) bağlantılarında retry yok — hemen fallback
+        retryStrategy: isTls
+            ? ((times) => Math.min(times * 200, 3000)) // max 3s between retries
+            : (() => null),
+        connectTimeout: isTls ? 15000 : 5000,
     };
-    // rediss:// (TLS) kullanıyorsa hostname'i TLS servername olarak ver (Upstash vb. için)
-    if (isTls) {
-        try {
-            const hostname = new URL(REDIS_URL).hostname;
-            return { ...base, tls: { servername: hostname, rejectUnauthorized: true } };
-        }
-        catch {
-            return { ...base, tls: {} };
-        }
-    }
-    return base;
+    // NOT: rediss:// URL'i ioredis tarafından otomatik TLS olarak işlenir —
+    // ekstra tls config'i çakışıp bağlantıyı bozar. Özel servername gerekmez.
 }
 // Redis bağlantısını başlat
 const initRedis = () => {
@@ -38,23 +34,35 @@ const initRedis = () => {
         return;
     }
     try {
+        let connected = false;
         exports.redis = redis = new ioredis_1.default(REDIS_URL, getRedisOptions());
-        redis.on('error', () => {
-            if (!redisWarningShown) {
-                console.warn('⚠️ Redis not available - running without cache');
-                redisWarningShown = true;
+        redis.on('error', (err) => {
+            // Sadece bağlantı kurulduktan sonraki hatalarda null'a düş
+            // TLS el sıkışması sırasındaki geçici hataları yoksay
+            console.error('[Redis] error event (connected=' + connected + '):', err.message);
+            if (connected) {
+                if (!redisWarningShown) {
+                    console.warn('⚠️ Redis connection lost - running without cache');
+                    redisWarningShown = true;
+                }
+                exports.redis = redis = null;
             }
-            exports.redis = redis = null;
         });
-        redis.on('connect', () => {
+        redis.on('ready', () => {
+            connected = true;
+            console.log('[Redis] ✅ Connected to Upstash Redis');
         });
         // Bağlantıyı test et
-        redis.connect().catch(() => {
-            if (!redisWarningShown) {
-                console.warn('⚠️ Redis not available - running without cache');
-                redisWarningShown = true;
+        redis.connect().catch((err) => {
+            // lazyConnect + connect() başarısız olursa
+            console.error('[Redis] connect() rejected (connected=' + connected + '):', err.message);
+            if (!connected) {
+                if (!redisWarningShown) {
+                    console.warn('⚠️ Redis not available - running without cache');
+                    redisWarningShown = true;
+                }
+                exports.redis = redis = null;
             }
-            exports.redis = redis = null;
         });
     }
     catch (error) {

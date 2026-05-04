@@ -307,8 +307,8 @@ CREATE POLICY users_select_own ON public.users
   FOR SELECT USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS users_update_own ON public.users;
-CREATE POLICY users_update_own ON public.users
-  FOR UPDATE USING (auth.uid() = id);
+-- SECURITY: Profile updates go through backend/service-role allowlists.
+-- Do not grant direct UPDATE on public.users; it contains plan and admin columns.
 
 -- PRODUCTS POLICIES
 DROP POLICY IF EXISTS products_select_own ON public.products;
@@ -571,8 +571,8 @@ ALTER TABLE public.catalogs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY users_select_own ON public.users
     FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY users_update_own ON public.users
-    FOR UPDATE USING (auth.uid() = id);
+-- SECURITY: Profile updates go through backend/service-role allowlists.
+-- Do not grant direct UPDATE on public.users; it contains plan and admin columns.
 
 -- Products: Sadece kendi ürünlerini görebilir
 CREATE POLICY products_select_own ON public.products

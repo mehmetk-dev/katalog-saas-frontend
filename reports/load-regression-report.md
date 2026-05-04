@@ -1,14 +1,14 @@
 # Load Regression Report
 
-Generated: 2026-04-28T18:56:51.112Z
+Generated: 2026-05-04T18:23:51.048Z
 
 ## Metrics
 - Total products: 2000
-- Builder hydration (2000 selected): 88.01 ms
+- Builder hydration (2000 selected): 99.54 ms
 - Builder fetch calls: 4 (expected 4, chunk size 500)
-- Excel hook init (2000 rows): 3.18 ms
-- Excel apply 500 changes: 12.43 ms
-- Excel table first render: 201.53 ms
+- Excel hook init (2000 rows): 3.13 ms
+- Excel apply 500 changes: 13.31 ms
+- Excel table first render: 332.71 ms
 - Excel table rendered <tr>: 36 (virtualized)
 
 ## Notes

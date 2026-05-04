@@ -71,10 +71,26 @@ type BuilderAction =
     | { type: 'UPDATE'; payload: Partial<BuilderCoreState> }
     | { type: 'SYNC_CATALOG'; payload: BuilderCoreState }
 
+const NON_DIRTY_UPDATE_KEYS = new Set<keyof BuilderCoreState>([
+    'showUpgradeModal',
+    'showShareModal',
+    'showExitDialog',
+    'view',
+    'currentCatalogId',
+    'isPublished',
+    'hasUnpushedChanges',
+    'isDirty',
+    'lastSavedState',
+])
+
 function builderReducer(state: BuilderCoreState, action: BuilderAction): BuilderCoreState {
     switch (action.type) {
-        case 'UPDATE':
-            return { ...state, ...action.payload }
+        case 'UPDATE': {
+            const touchesCatalogData = Object.keys(action.payload).some(
+                (key) => !NON_DIRTY_UPDATE_KEYS.has(key as keyof BuilderCoreState)
+            )
+            return { ...state, ...action.payload, isDirty: action.payload.isDirty ?? (touchesCatalogData ? true : state.isDirty) }
+        }
         case 'SYNC_CATALOG':
             return action.payload
         default:

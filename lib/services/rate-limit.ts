@@ -18,7 +18,15 @@ const store = new Map<string, { count: number; resetAt: number }>()
 const WINDOW_MS = 60 * 1000 // 1 dakika
 const CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 dakikada bir eski kayıtları temizle
 
+function shouldTrustProxyHeaders(): boolean {
+  return process.env.TRUST_PROXY_HEADERS === "true"
+}
+
 function getClientIdFromHeaders(headers: Headers): string {
+  if (!shouldTrustProxyHeaders()) {
+    return "unknown"
+  }
+
   const forwarded = headers.get("x-forwarded-for")
   const realIp = headers.get("x-real-ip")
   if (forwarded) {

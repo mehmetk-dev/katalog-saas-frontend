@@ -1,22 +1,36 @@
 "use server"
 
-import { Resend } from "resend"
+import nodemailer from "nodemailer"
 
-// Singleton Resend instance — lazy initialized on first use
-let resendSingleton: Resend | null = null
-let lastApiKey: string | undefined
+// Singleton transporter — lazy initialized on first use
+let transporterSingleton: nodemailer.Transporter | null = null
+let lastConfigHash: string | undefined
 
-function getResendInstance(): Resend | null {
-    const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
+function getSmtpConfig() {
+    const host = process.env.SMTP_HOST || "smtp.zoho.com"
+    const port = Number(process.env.SMTP_PORT) || 465
+    const secure = port === 465
+    const user = process.env.SMTP_USER
+    const pass = process.env.SMTP_PASS
+    return { host, port, secure, user, pass }
+}
+
+function getTransporter(): nodemailer.Transporter | null {
+    const { host, port, secure, user, pass } = getSmtpConfig()
+    if (!user || !pass) {
         return null
     }
-    // Re-create if API key changed (e.g., env reload)
-    if (!resendSingleton || lastApiKey !== apiKey) {
-        resendSingleton = new Resend(apiKey)
-        lastApiKey = apiKey
+    const configHash = `${host}:${port}:${user}:${pass}`
+    if (!transporterSingleton || lastConfigHash !== configHash) {
+        transporterSingleton = nodemailer.createTransport({
+            host,
+            port,
+            secure,
+            auth: { user, pass },
+        })
+        lastConfigHash = configHash
     }
-    return resendSingleton
+    return transporterSingleton
 }
 
 interface SendEmailOptions {
@@ -27,44 +41,35 @@ interface SendEmailOptions {
 }
 
 export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
-    const apiKey = process.env.RESEND_API_KEY
+    const { user } = getSmtpConfig()
 
-    if (!apiKey) {
-        console.error("RESEND_API_KEY not found - Email cannot be sent")
+    if (!user) {
+        console.error("SMTP_USER not found - Email cannot be sent")
         return { success: false, error: "Email service not configured" }
     }
 
     try {
-        // Daha profesyonel görünen gönderen adresi
-        // Not: Eğer RESEND_FROM_EMAIL doğrulanmamış bir domain içeriyorsa,
-        // Resend API hatası verecektir. Bu durumda default onboarding@resend.dev kullanılır
-        let fromEmail = from || process.env.RESEND_FROM_EMAIL || "FogCatalog <onboarding@resend.dev>"
-
-        // Eğer custom domain kullanılıyorsa ve hata alırsak, default'a geri dön
-        // Şimdilik her zaman default kullan (domain doğrulaması gerektirir)
-        // Kullanıcı domain doğrulamak isterse, Resend dashboard'dan yapabilir
-        if (fromEmail.includes('@') && !fromEmail.includes('@resend.dev') && !fromEmail.includes('onboarding@resend.dev')) {
-            fromEmail = "FogCatalog <onboarding@resend.dev>"
+        const transporter = getTransporter()
+        if (!transporter) {
+            console.error("Failed to create SMTP transporter")
+            return { success: false, error: "SMTP credentials not available" }
         }
 
-        const resendInstance = getResendInstance()
-        if (!resendInstance) {
-            console.error("Failed to create Resend instance")
-            return { success: false, error: "Resend API key not available" }
-        }
-        const { data, error } = await resendInstance.emails.send({
+        const fromEmail = from || process.env.SMTP_FROM || `FogCatalog <${user}>`
+
+        const info = await transporter.sendMail({
             from: fromEmail,
             to,
             subject,
             html,
         })
 
-        if (error) {
-            console.error("Resend API error:", error.message)
-            return { success: false, error: error.message }
+        if (info.rejected.length > 0) {
+            console.error("SMTP rejected recipients:", info.rejected)
+            return { success: false, error: "Email rejected by server" }
         }
 
-        return { success: true, data }
+        return { success: true, data: { messageId: info.messageId } }
     } catch (error) {
         console.error("Exception in sendEmail:", error instanceof Error ? error.message : error)
         return {

@@ -29,7 +29,6 @@ function formatTimeLeft(seconds: number): string {
 
 export function usePdfExport({
     catalogId,
-    catalogName,
     hasUnsavedChanges,
     canExport,
     refreshUser,
@@ -146,14 +145,14 @@ export function usePdfExport({
             }
 
         } catch (err) {
+            if (cancelledRef.current) return
             const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
             setPhase("error", { errorMessage: msg, percent: 0, estimatedTimeLeft: "" })
         } finally {
             activeJobIdRef.current = null
             setIsExporting(false)
         }
-    }, [catalogId, hasUnsavedChanges, catalogName, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase])
+    }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase])
 
     return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal }
 }
-

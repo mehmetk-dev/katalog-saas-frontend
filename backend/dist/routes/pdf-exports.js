@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middlewares/auth");
+const pdf_exports_1 = require("../controllers/pdf-exports");
+const router = (0, express_1.Router)();
+router.get('/:id/render-data', pdf_exports_1.getPdfExportRenderData);
+router.get('/:id/public-download', pdf_exports_1.publicDownloadPdfExport);
+router.use(auth_1.requireAuth);
+router.get('/', pdf_exports_1.listPdfExports);
+router.post('/', pdf_exports_1.createPdfExport);
+router.get('/:id/share-link', pdf_exports_1.getPdfExportShareLink);
+router.get('/:id', pdf_exports_1.getPdfExport);
+router.delete('/:id', pdf_exports_1.cancelPdfExport);
+router.get('/:id/download', pdf_exports_1.downloadPdfExport);
+exports.default = router;

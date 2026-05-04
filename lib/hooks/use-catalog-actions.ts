@@ -251,6 +251,7 @@ export function useCatalogActions({
                 setIsPublished(newPublishState)
                 setHasUnpushedChanges(false)
                 setIsDirty(false)
+                setLastSavedState(buildSavedStateSnapshot(data))
 
                 if (newPublishState) {
                     const shareUrl = `${window.location.origin}/catalog/${shareSlug}`
@@ -274,7 +275,7 @@ export function useCatalogActions({
                 toast.error("İşlem sırasında bir hata oluştu.")
             }
         })
-    }, [currentCatalogId, catalog?.share_slug, isPublished, expectedSlug, t, setIsPublished, setHasUnpushedChanges, setIsDirty])
+    }, [currentCatalogId, catalog?.share_slug, isPublished, expectedSlug, t, setIsPublished, setHasUnpushedChanges, setIsDirty, setLastSavedState])
 
     return {
         isPending,

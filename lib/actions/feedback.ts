@@ -75,12 +75,12 @@ export async function sendFeedback(data: {
 
     // Admin e-postasi asenkron: hata olursa feedback kaydi yine korunur.
     const adminEmail = process.env.ADMIN_EMAIL
-    const resendApiKey = process.env.RESEND_API_KEY
+    const smtpUser = process.env.SMTP_USER
 
     if (!adminEmail) {
         console.error("ADMIN_EMAIL is not set. Feedback email skipped.")
-    } else if (!resendApiKey) {
-        console.error("RESEND_API_KEY is not set. Feedback email skipped.")
+    } else if (!smtpUser) {
+        console.error("SMTP_USER is not set. Feedback email skipped.")
     } else {
         try {
             const emailHtml = buildFeedbackEmailHtml({

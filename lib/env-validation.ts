@@ -31,19 +31,34 @@ const requiredEnvVars: EnvVar[] = [
         description: 'Backend API URL'
     },
     {
-        key: 'RESEND_API_KEY',
+        key: 'SMTP_HOST',
         required: false,
-        description: 'Resend API key for sending emails (optional, needed for feedback email notifications)'
+        description: 'SMTP server host (defaults to smtp.zoho.com)'
+    },
+    {
+        key: 'SMTP_PORT',
+        required: false,
+        description: 'SMTP server port (defaults to 465)'
+    },
+    {
+        key: 'SMTP_USER',
+        required: false,
+        description: 'SMTP username / email address (needed for sending emails)'
+    },
+    {
+        key: 'SMTP_PASS',
+        required: false,
+        description: 'SMTP password / app password (needed for sending emails)'
+    },
+    {
+        key: 'SMTP_FROM',
+        required: false,
+        description: 'From email address (optional, defaults to "FogCatalog <SMTP_USER>")'
     },
     {
         key: 'ADMIN_EMAIL',
         required: false,
         description: 'Admin email address for receiving feedback notifications (optional)'
-    },
-    {
-        key: 'RESEND_FROM_EMAIL',
-        required: false,
-        description: 'From email address for Resend (optional, defaults to "FogCatalog <onboarding@resend.dev>")'
     },
 ]
 

@@ -346,6 +346,18 @@ const catalog = {
             singlePage: "Tek Sayfa",
             allPages: "Tüm Sayfalar",
         },
+        pdf: {
+            modalTitle: "PDF İndirme",
+            modalDesc: "Katalog PDF olarak hazırlanıyor",
+            phrasePreparing: "Katalog hazırlanıyor...",
+            phraseRendering: "Sayfa {current} / {total} işleniyor...",
+            phraseProcessing: "PDF dosyası oluşturuluyor...",
+            phraseSaving: "PDF kaydediliyor...",
+            phraseDone: "PDF hazır!",
+            phraseError: "PDF oluşturulamadı",
+            phraseCancelled: "PDF indirme iptal edildi",
+            estimated: "Tahmini: {time}",
+        },
     },
     en: {
         catalogs: {
@@ -693,6 +705,18 @@ const catalog = {
             uncategorized: "Uncategorized",
             singlePage: "Single Page",
             allPages: "All Pages",
+        },
+        pdf: {
+            modalTitle: "PDF Download",
+            modalDesc: "Catalog is being prepared as PDF",
+            phrasePreparing: "Preparing catalog...",
+            phraseRendering: "Processing page {current} / {total}...",
+            phraseProcessing: "Generating PDF file...",
+            phraseSaving: "Saving PDF...",
+            phraseDone: "PDF is ready!",
+            phraseError: "PDF could not be created",
+            phraseCancelled: "PDF download cancelled",
+            estimated: "Estimated: {time}",
         },
     },
 } as const

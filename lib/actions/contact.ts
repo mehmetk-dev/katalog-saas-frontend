@@ -62,10 +62,10 @@ export async function sendContactMessage(data: {
     }
 
     const adminEmail = ADMIN_EMAIL
-    const resendApiKey = process.env.RESEND_API_KEY
+    const smtpUser = process.env.SMTP_USER
 
-    if (!adminEmail || !resendApiKey) {
-        console.error("❌ ADMIN_EMAIL or RESEND_API_KEY not set — contact email not sent")
+    if (!adminEmail || !smtpUser) {
+        console.error("❌ ADMIN_EMAIL or SMTP_USER not set — contact email not sent")
         return {
             success: false,
             error: "E-posta servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",

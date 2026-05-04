@@ -58,13 +58,10 @@ CREATE POLICY "Admins can view all activity logs" ON activity_logs
     );
 
 -- 8. Insert izni
-CREATE POLICY "Service role can insert logs" ON activity_logs
-    FOR INSERT
-    WITH CHECK (true);
+-- SECURITY: Do not allow direct client inserts; backend service_role bypasses RLS for audit logs.
 
 -- 9. Yetkiler
 GRANT SELECT ON activity_logs TO authenticated;
-GRANT INSERT ON activity_logs TO authenticated;
 GRANT ALL ON activity_logs TO service_role;
 
 -- 10. Tablo açıklaması

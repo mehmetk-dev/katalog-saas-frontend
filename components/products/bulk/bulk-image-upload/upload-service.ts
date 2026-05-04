@@ -67,7 +67,10 @@ async function uploadSingleImageWithRetry(image: ImageFile, signal: AbortSignal)
             const timeoutPromise = new Promise<never>((_, reject) => {
                 const timerId = setTimeout(() => reject(new Error("UPLOAD_TIMEOUT")), TIMEOUT_MS)
                 // Upload bittiğinde timeout'u temizle — memory leak önlenir
-                uploadPromise.finally(() => clearTimeout(timerId))
+                void uploadPromise.then(
+                    () => clearTimeout(timerId),
+                    () => clearTimeout(timerId),
+                )
             })
 
             const result = (await Promise.race([uploadPromise, timeoutPromise])) as { url: string } | null

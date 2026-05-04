@@ -117,21 +117,20 @@ export const SPLIT_PREVIEW_SOFT_LIMIT = 1000
 export function arrayFingerprint(arr: string[]): string {
     const len = arr.length
     if (len === 0) return '0'
-    if (len <= 3) return `${len}:${arr.join(',')}`
+    let checksum = 2166136261
 
-    const q1 = Math.floor(len / 4)
-    const q2 = Math.floor(len / 2)
-    const q3 = Math.floor(3 * len / 4)
-    const samples = `${arr[0]}|${arr[q1]}|${arr[q2]}|${arr[q3]}|${arr[len - 1]}`
-
-    let checksum = 0
-    const step = Math.max(1, Math.floor(len / 8))
-    for (let i = 0; i < len; i += step) {
+    for (let i = 0; i < len; i++) {
         const id = arr[i]
-        checksum = (checksum * 31 + id.charCodeAt(0) + id.charCodeAt(id.length - 1)) | 0
+        checksum ^= i + 1
+        checksum = Math.imul(checksum, 16777619)
+
+        for (let j = 0; j < id.length; j++) {
+            checksum ^= id.charCodeAt(j)
+            checksum = Math.imul(checksum, 16777619)
+        }
     }
 
-    return `${len}:${samples}:${checksum}`
+    return `${len}:${checksum >>> 0}`
 }
 
 /** Normalize logo position to a valid value */

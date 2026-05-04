@@ -150,13 +150,23 @@ const getProductsByIds = async (req, res) => {
         if (requestedIds.length === 0) {
             return res.json([]);
         }
-        const { data, error } = await supabase_1.supabase
-            .from('products')
-            .select('*')
-            .eq('user_id', userId)
-            .in('id', requestedIds);
-        if (error)
-            throw error;
+        // FIX: Chunk .in() queries to avoid HeadersOverflowError.
+        // Supabase JS encodes .in() as URL query params — 500 UUIDs ≈ 18KB URL
+        // which overflows undici's default 16KB header parser limit.
+        const SUPABASE_IN_CHUNK = 50;
+        let data = [];
+        for (let i = 0; i < requestedIds.length; i += SUPABASE_IN_CHUNK) {
+            const chunk = requestedIds.slice(i, i + SUPABASE_IN_CHUNK);
+            const { data: chunkData, error } = await supabase_1.supabase
+                .from('products')
+                .select('*')
+                .eq('user_id', userId)
+                .in('id', chunk);
+            if (error)
+                throw error;
+            if (chunkData)
+                data = data.concat(chunkData);
+        }
         const normalizedProducts = (data || []).map((p) => {
             let imgUrl = typeof p.image_url === 'string' ? p.image_url : null;
             if (imgUrl && imgUrl.startsWith('http://') && !imgUrl.includes('localhost')) {

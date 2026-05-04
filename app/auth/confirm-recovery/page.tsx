@@ -7,6 +7,27 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
 
+interface RecoveryRedirectTarget {
+    accessToken: string
+    refreshToken: string
+    redirectPath: string
+}
+
+export function buildRecoveryRedirectTarget(redirectPath: string, hash: string): RecoveryRedirectTarget | null {
+    const normalizedHash = hash.startsWith('#') ? hash.slice(1) : hash
+    const hashParams = new URLSearchParams(normalizedHash)
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+
+    if (!accessToken || !refreshToken) return null
+
+    return {
+        accessToken,
+        refreshToken,
+        redirectPath,
+    }
+}
+
 /**
  * Bu sayfa email scanner'ların (Gmail/Outlook) linki 
  * önden "tüketip" geçersiz kılmasını engellemek için yapılmıştır.
@@ -72,12 +93,33 @@ function ConfirmRecoveryContent() {
                 router.push('/auth/forgot-password?error=invalid_link')
                 return
             }
-        } else if (hash.includes('access_token')) {
-            router.push(`${next}${hash}`)
-        } else if (pageError) {
-            router.push(`/auth/forgot-password?error=invalid_link`)
         } else {
-            // No code, no hash, no error - likely PKCE flow handled differently or missing data
+            const recoveryTarget = buildRecoveryRedirectTarget(next, hash)
+            if (recoveryTarget) {
+                try {
+                    const supabase = createClient()
+                    const { error } = await supabase.auth.setSession({
+                        access_token: recoveryTarget.accessToken,
+                        refresh_token: recoveryTarget.refreshToken,
+                    })
+                    if (typeof window !== 'undefined') {
+                        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+                    }
+                    if (error) {
+                        router.push('/auth/forgot-password?error=invalid_link')
+                        return
+                    }
+                    router.push(recoveryTarget.redirectPath)
+                    return
+                } catch {
+                    router.push('/auth/forgot-password?error=invalid_link')
+                    return
+                }
+            }
+            if (pageError) {
+                router.push(`/auth/forgot-password?error=invalid_link`)
+                return
+            }
             router.push('/auth/forgot-password?error=invalid_link')
         }
     }

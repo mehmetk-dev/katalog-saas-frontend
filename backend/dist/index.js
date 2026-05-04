@@ -144,6 +144,7 @@ const admin_1 = __importDefault(require("./routes/admin"));
 const health_1 = __importDefault(require("./routes/health"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const pdf_exports_1 = __importDefault(require("./routes/pdf-exports"));
 // Health check routes (no auth required)
 app.use('/health', health_1.default);
 // Public auth routes (no auth required) - with stricter rate limiting for brute-force protection
@@ -154,14 +155,15 @@ app.use('/api/v1/catalogs', catalogs_1.default);
 app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/admin', admin_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
+app.use('/api/v1/pdf-exports', pdf_exports_1.default);
 // Initialize Redis (optional - works without it)
 (0, redis_1.initRedis)();
 // 404 handler for undefined routes
 app.use(errorHandler_1.notFoundHandler);
 // Global error handler (must be last middleware)
 app.use(errorHandler_1.errorHandler);
-// Start Server
-app.listen(PORT, () => {
+// Start Server - bind to 0.0.0.0 so mobile devices on LAN can connect
+app.listen(Number(PORT), '0.0.0.0', () => {
     // eslint-disable-next-line no-console
-    console.log(`Server is running on port ${PORT} 🚀`);
+    console.log(`Server is running on 0.0.0.0:${PORT} 🚀`);
 });
