@@ -23,18 +23,7 @@ export function useQuickPrompts(language: Language): QuickPrompt[] {
 
 export function initialAssistantMessage(language: Language): string {
     if (language === "tr") {
-        return [
-            "Ben FogCatalog Yapay Zeka Asistanıyım.",
-            "Bu panelde ürünleri toplu düzenler, yeni ürün önerisi oluşturur ve düşük stok kontrolü yaparım.",
-            "Kapsamı yaz: seçili, mevcut sayfa veya tüm ürünler.",
-            "Örnek: tüm ürünlere SKU üret, seçili ürünlerin fiyatını %10 artır, açıklamaları zenginleştir, ürün adlarını düzelt, 5 kahve ürünü oluştur.",
-            "Not: Değişiklikleri önce yerelde uygularım, veritabanına sadece Kaydet ile yazarım.",
-        ].join("\n")
+        return "Merhaba! 👋 Ürünlerinde toplu değişiklik yapmak istersen buradayım. Aşağıdaki hızlı komutları dene veya ne istediğini yaz."
     }
-    return [
-        "I am the FogCatalog AI Assistant.",
-        "You can ask for bulk edits, new product suggestions, or low-stock checks.",
-        "Example: Increase selected products by 10%, enrich descriptions, fix product names, create 5 coffee products, or ask what can you do?",
-        "Note: edits stay local until Save.",
-    ].join("\n")
+    return "Hey! 👋 I'm here to help with bulk product edits. Try the quick commands below or tell me what you need."
 }

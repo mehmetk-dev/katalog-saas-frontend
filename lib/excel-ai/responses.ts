@@ -74,113 +74,53 @@ export function buildAboutFogCatalogResponse(language: Language, profile?: Catal
 
 // ─── Identity Response ──────────────────────────────────────────────────────
 
-export function buildIdentityResponse(language: Language, profile?: CatalogProfile | null): ParsedAiResponse {
+export function buildIdentityResponse(language: Language, _profile?: CatalogProfile | null): ParsedAiResponse {
     if (language === "tr") {
-        const userNote = buildUserNoteLine(profile || null, "tr")
         return {
             mode: "chat",
             assistantMessage: [
-                "Ben FogCatalog Yapay Zeka Asistanıyım.",
+                "Ben FogCatalog AI Asistanıyım. 🤖",
                 "",
-                "Bu platformda ürün verilerinde toplu düzenleme yapmanıza yardımcı oluyorum:",
-                "• Fiyat güncelleme — seçili veya tüm ürünlerde yüzdelik artış/azalış",
-                "• Açıklama üretimi — ürün adına göre profesyonel açıklamalar",
-                "• Açıklama zenginleştirme — mevcut açıklamaları daha detaylı hale getirme",
-                "• Kategori yerleştirme — ürünleri mevcut kategorilere akıllı eşleme",
-                "• SKU oluşturma — otomatik stok kodu üretimi",
-                "• İsim düzeltme — ürün adlarını profesyonelleştirme",
-                "• Çeviri — ürün verilerini Türkçe/İngilizce'ye çevirme",
-                "• Fiyat yuvarlama — düzgün fiyat formatına dönüştürme",
-                "• Boş alan doldurma — eksik alanları akıllıca tamamlama",
-                "• Alan temizleme — fiyat, stok, kategori, açıklama gibi alanları topluca boşaltma",
-                "• Metin ekleme — ürün adı, SKU, kategori, açıklama veya URL alanının başına/sonuna metin ekleme",
-                "• Ortalama fiyat — eksik fiyatları genel veya kategori ortalamasıyla tamamlama",
-                "• Stok uyarısı — düşük stoklu ürünleri listeleme",
-                "• Yeni ürün önerisi — sayı ve tema verildiğinde ürün önerip onayla tabloya ekleme",
+                "📊 Toplu düzenleme — fiyat, stok, SKU, kategori, açıklama, çeviri, yuvarlama, temizleme",
+                "✍️ İçerik üretimi — açıklama yaz/zenginleştir, isimleri düzelt, boş alanları doldur",
+                "🆕 Ürün oluşturma — '5 kahve ürünü oluştur' gibi komutlarla",
+                "⚠️ Stok kontrolü — düşük stoklu ürünleri listele",
                 "",
-                "Örnek komutlar:",
-                "→ 'Seçili ürünlerin fiyatını %10 artır'",
-                "→ 'Tüm ürünlere SKU üret'",
-                "→ 'Ürün adına göre açıklama yaz'",
-                "→ 'Açıklamaları zenginleştir'",
-                "→ 'Ürün isimlerini düzelt'",
-                "→ 'Açıklamaları İngilizce'ye çevir'",
-                "→ 'Fiyatları yuvarla'",
-                "→ 'Boş açıklamaları doldur'",
-                "→ '10 tane kahve ürünü oluştur'",
-                "→ 'Tüm açıklamaları temizle'",
-                "→ 'Düşük stoklu ürünleri göster'",
-                "",
-                "FogCatalog hakkında bilgi almak için 'FogCatalog nedir?' diye sorabilirsiniz.",
-                clampText(userNote),
+                "Kapsam: seçili · sayfa · tüm ürünler",
+                "Örnek: 'Seçili fiyatları %10 artır', 'Tüm ürünlere açıklama yaz', 'Boş alanları doldur'",
             ].join("\n"),
         }
     }
 
-    const userNote = buildUserNoteLine(profile || null, "en")
     return {
         mode: "chat",
         assistantMessage: [
-            "I am the FogCatalog AI Assistant.",
+            "I'm the FogCatalog AI Assistant. 🤖",
             "",
-            "I help you make bulk edits to product data on this platform:",
-            "• Price updates — percentage increase/decrease for selected or all products",
-            "• Description generation — professional descriptions from product names",
-            "• Description enrichment — enhance existing descriptions with more detail",
-            "• Category mapping — smart mapping of products to existing categories",
-            "• SKU generation — automatic stock code creation",
-            "• Name fixing — capitalize and professionalize product names",
-            "• Translation — translate product data to Turkish/English",
-            "• Price rounding — clean up price formatting",
-            "• Fill empty fields — auto-complete missing data",
-            "• Clear fields — clear fields such as price, stock, category, or descriptions in bulk",
-            "• Add text — append or prepend text to name, SKU, category, description, or URL fields",
-            "• Average price — fill missing prices from overall or category averages",
-            "• Stock alert — list products with low stock levels",
-            "• New product suggestions — generate products from a count and theme, then add after confirmation",
+            "📊 Bulk editing — price, stock, SKU, category, descriptions, translate, rounding, clearing",
+            "✍️ Content — write/enrich descriptions, fix names, fill blanks",
+            "🆕 Product creation — e.g. 'create 5 coffee products'",
+            "⚠️ Stock alerts — list low-stock items",
             "",
-            "Example commands:",
-            "→ 'Increase selected prices by 10%'",
-            "→ 'Generate SKU for all products'",
-            "→ 'Write descriptions from product names'",
-            "→ 'Enrich existing descriptions'",
-            "→ 'Fix product names'",
-            "→ 'Translate descriptions to English'",
-            "→ 'Round prices'",
-            "→ 'Fill empty descriptions'",
-            "→ 'Create 10 coffee products'",
-            "→ 'Clear all descriptions'",
-            "→ 'Show low stock products'",
-            "",
-            "Ask 'What is FogCatalog?' to learn about the platform.",
-            clampText(userNote),
+            "Scope: selected · page · all products",
+            "Example: 'Increase selected prices by 10%', 'Write descriptions for all', 'Fill empty fields'",
         ].join("\n"),
     }
 }
 
 // ─── Greeting Response ──────────────────────────────────────────────────────
 
-export function buildGreetingResponse(language: Language, profile?: CatalogProfile | null): ParsedAiResponse {
+export function buildGreetingResponse(language: Language, _profile?: CatalogProfile | null): ParsedAiResponse {
     if (language === "tr") {
         return {
             mode: "chat",
-            assistantMessage: [
-                "Selam! 👋 İyiyim, teşekkürler.",
-                "Ürün verilerinde toplu düzenleme yapman gerekirse buradayım.",
-                "Örnek: 'seçili fiyatları %10 artır', 'tüm ürünlere SKU üret', 'boş açıklamaları doldur'.",
-                clampText(buildUserNoteLine(profile || null, "tr")),
-            ].join("\n"),
+            assistantMessage: "Selam! 👋 Nasıl yardımcı olabilirim?",
         }
     }
 
     return {
         mode: "chat",
-        assistantMessage: [
-            "Hey! 👋 I'm doing well, thanks.",
-            "I'm here whenever you need bulk edits on your product data.",
-            "Example: 'increase selected prices by 10%', 'generate SKU for all', 'fill empty descriptions'.",
-            clampText(buildUserNoteLine(profile || null, "en")),
-        ].join("\n"),
+        assistantMessage: "Hey! 👋 How can I help?",
     }
 }
 
@@ -223,43 +163,17 @@ export function buildCasualConversationResponse(category: CasualCategory, langua
 
 // ─── Name Aware Response ────────────────────────────────────────────────────
 
-export function buildNameAwareResponse(language: Language, name: string, profile?: CatalogProfile | null): ParsedAiResponse {
+export function buildNameAwareResponse(language: Language, name: string, _profile?: CatalogProfile | null): ParsedAiResponse {
     if (language === "tr") {
         return {
             mode: "chat",
-            assistantMessage: [
-                `Memnun oldum ${name}! Ben FogCatalog Yapay Zeka Asistanıyım. 👋`,
-                "",
-                "Bu ekranda ürün verilerinde toplu düzenleme yapıyorum:",
-                "• Fiyat güncelleme, açıklama üretimi, kategori yerleştirme, SKU oluşturma",
-                "",
-                "Hemen dene:",
-                "→ 'Seçili ürünlerin fiyatını %10 artır'",
-                "→ 'Tüm ürünlere SKU üret'",
-                "→ 'Ürün adına göre açıklama yaz'",
-                "",
-                "FogCatalog hakkında bilgi almak için 'FogCatalog nedir?' diye sorabilirsin.",
-                clampText(buildUserNoteLine(profile || null, "tr")),
-            ].join("\n"),
+            assistantMessage: `Memnun oldum ${name}! 👋 Ürünlerinde toplu değişiklik yapmak istersen buradayım. Ne yapmamı istersin?`,
         }
     }
 
     return {
         mode: "chat",
-        assistantMessage: [
-            `Nice to meet you ${name}! I am the FogCatalog AI Assistant. 👋`,
-            "",
-            "In this screen I make bulk edits to product data:",
-            "• Price updates, description generation, category mapping, SKU creation",
-            "",
-            "Try it out:",
-            "→ 'Increase selected prices by 10%'",
-            "→ 'Generate SKU for all products'",
-            "→ 'Write descriptions from product names'",
-            "",
-            "Ask 'What is FogCatalog?' to learn about the platform.",
-            clampText(buildUserNoteLine(profile || null, "en")),
-        ].join("\n"),
+        assistantMessage: `Nice to meet you ${name}! 👋 I'm here to help with bulk product edits. What would you like to do?`,
     }
 }
 
