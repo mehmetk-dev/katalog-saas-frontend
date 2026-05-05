@@ -18,7 +18,6 @@ export const ABOUT_FOGCATALOG_PATTERNS = [
     'kim olustur',
     'kimin projesi',
     'hangi ozellik',
-    'neler yapabil',
     'ne ozellikleri',
     'ne islevleri',
     'fiyat ne',

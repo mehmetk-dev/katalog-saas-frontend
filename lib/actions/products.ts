@@ -40,23 +40,31 @@ export interface ProductsResponse {
   allCategories?: string[]
 }
 
-export type ProductSortField = "display_order" | "created_at" | "name" | "price" | "stock"
+export type ProductSortField = "display_order" | "created_at" | "name" | "price" | "stock" | "category"
 export type ProductSortOrder = "asc" | "desc"
 
-export async function getProducts(params?: {
+export interface GetProductsParams {
   page?: number
   limit?: number
   category?: string
   search?: string
+  stockFilter?: "all" | "in_stock" | "low_stock" | "out_of_stock"
+  minPrice?: number
+  maxPrice?: number
   sortBy?: ProductSortField
   sortOrder?: ProductSortOrder
   select?: "id"
-}): Promise<ProductsResponse> {
+}
+
+export async function getProducts(params?: GetProductsParams): Promise<ProductsResponse> {
   const queryParams = new URLSearchParams()
   if (params?.page) queryParams.set("page", params.page.toString())
   if (params?.limit) queryParams.set("limit", params.limit.toString())
   if (params?.category) queryParams.set("category", params.category)
   if (params?.search) queryParams.set("search", params.search)
+  if (params?.stockFilter && params.stockFilter !== "all") queryParams.set("stockFilter", params.stockFilter)
+  if (params?.minPrice !== undefined && params.minPrice > 0) queryParams.set("minPrice", params.minPrice.toString())
+  if (params?.maxPrice !== undefined && params.maxPrice > 0) queryParams.set("maxPrice", params.maxPrice.toString())
   if (params?.sortBy) queryParams.set("sortBy", params.sortBy)
   if (params?.sortOrder) queryParams.set("sortOrder", params.sortOrder)
   if (params?.select) queryParams.set("select", params.select)
@@ -558,7 +566,7 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
   return await bulkImportProducts(dummyProductsWithOrder);
 }
 
-export async function getAllProductIds(): Promise<string[]> {
+export async function getAllProductIds(filters?: Omit<GetProductsParams, "page" | "limit" | "select">): Promise<string[]> {
   try {
     const ids: string[] = []
     let page = 1
@@ -566,7 +574,7 @@ export async function getAllProductIds(): Promise<string[]> {
     const maxPages = 100
 
     while (page <= maxPages) {
-      const response = await getProducts({ page, limit, select: "id" }) as {
+      const response = await getProducts({ ...filters, page, limit, select: "id" }) as {
         products: { id: string }[]
         metadata: { totalPages: number }
       }

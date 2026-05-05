@@ -4,13 +4,19 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 
 import type { Product } from "@/lib/actions/products"
+import type { SortField, StockFilter } from "@/components/products/products-page-utils"
 
 interface UseProductsSelectionActionsParams {
   t: (key: string, params?: Record<string, unknown>) => string
   products: Product[]
   selectedIds: string[]
   paginatedProducts: Product[]
-  sortField: string
+  sortField: SortField
+  search: string
+  selectedCategory: string
+  stockFilter: StockFilter
+  priceRange: [number, number]
+  hasMaxPriceFilter: boolean
   priceStatsMax: number
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>
@@ -30,6 +36,11 @@ export function useProductsSelectionActions({
   selectedIds,
   paginatedProducts,
   sortField,
+  search,
+  selectedCategory,
+  stockFilter,
+  priceRange,
+  hasMaxPriceFilter,
   priceStatsMax,
   setSelectedIds,
   setProducts,
@@ -48,7 +59,7 @@ export function useProductsSelectionActions({
     setStockFilter("all")
     setPriceRange([0, priceStatsMax])
     setCurrentPage(1)
-    updateUrl({ search: "", category: "all", page: 1 })
+    updateUrl({ search: "", category: "all", stockFilter: "all", minPrice: null, maxPrice: null, page: 1 })
   }, [setSearch, setSelectedCategory, setStockFilter, setPriceRange, priceStatsMax, setCurrentPage, updateUrl])
 
   const selectCurrentPage = useCallback(() => {
@@ -78,7 +89,13 @@ export function useProductsSelectionActions({
     try {
       toast.loading(t("common.loading") as string || "Tum urunler seciliyor...", { id: "select-all" })
       const { getAllProductIds } = await import("@/lib/actions/products")
-      const allIds = await getAllProductIds()
+      const allIds = await getAllProductIds({
+        search,
+        category: selectedCategory,
+        stockFilter,
+        minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+        maxPrice: hasMaxPriceFilter && priceRange[1] > 0 ? priceRange[1] : undefined,
+      })
       if (allIds && allIds.length > 0) {
         setSelectedIds(allIds)
         toast.success(t("products.allSelected", { count: allIds.length }) as string || `Toplam ${allIds.length} urun secildi`, { id: "select-all" })
@@ -90,16 +107,17 @@ export function useProductsSelectionActions({
       setSelectedIds(products.map((p) => p.id))
       toast.dismiss("select-all")
     }
-  }, [setSelectedIds, t, products])
+  }, [setSelectedIds, t, products, search, selectedCategory, stockFilter, priceRange, hasMaxPriceFilter])
 
   const handleTableReorder = useCallback((newProducts: Product[]) => {
     setProducts(newProducts)
     if (sortField !== "order") {
       setSortField("order")
       setSortOrder("asc")
+      updateUrl({ sortBy: "order", sortOrder: "asc" })
       toast.info((t("products.switchedToManualSort") as string) || "Manuel siralamaya gecildi")
     }
-  }, [setProducts, sortField, setSortField, setSortOrder, t])
+  }, [setProducts, sortField, setSortField, setSortOrder, updateUrl, t])
 
   return {
     clearAllFilters,

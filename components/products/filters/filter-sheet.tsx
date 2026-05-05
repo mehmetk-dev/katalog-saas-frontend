@@ -97,7 +97,6 @@ export function ProductsFilterSheet({
                                             onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
                                         } else {
                                             onSortFieldChange(opt.value)
-                                            onSortOrderChange("desc")
                                         }
                                     }}
                                 >

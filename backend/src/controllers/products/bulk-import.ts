@@ -96,8 +96,25 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
                 chunkError = error;
                 // Best-effort rollback: delete already-inserted products from previous chunks
                 if (insertedIds.length > 0) {
+                    let rollbackFailed = false;
                     for (const rollbackChunk of chunkArray(insertedIds, DB_CHUNK_SIZE)) {
-                        await supabase.from('products').delete().in('id', rollbackChunk).eq('user_id', userId);
+                        try {
+                            const { error: rollbackError } = await supabase.from('products').delete().in('id', rollbackChunk).eq('user_id', userId);
+                            if (rollbackError) {
+                                rollbackFailed = true;
+                                console.error('[bulk-import] Rollback chunk failed:', rollbackError);
+                            }
+                        } catch (rollbackErr) {
+                            rollbackFailed = true;
+                            console.error('[bulk-import] Rollback exception:', rollbackErr);
+                        }
+                    }
+                    if (rollbackFailed) {
+                        return res.status(500).json({
+                            error: 'Import failed and rollback incomplete',
+                            message: 'Ürünlerin bir kısmı kaydedildi ancak geri alma işlemi başarısız oldu. Lütfen ürünlerinizi kontrol edin ve gereksizleri silin.',
+                            insertedCount: insertedIds.length,
+                        });
                     }
                 }
                 break;

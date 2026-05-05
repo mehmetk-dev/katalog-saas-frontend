@@ -25,7 +25,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     priceRange: state.priceRange,
     metadataTotal: state.metadata.total,
     metadataTotalPages: state.metadata.totalPages,
-    itemsPerPage: state.itemsPerPage,
     t: (key, params) => String(t(key, params)),
   })
 
@@ -40,14 +39,18 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     selectedIds: state.selectedIds,
     paginatedProducts: derived.paginatedProducts,
     selectedCategory: state.selectedCategory,
+    stockFilter: state.stockFilter,
     currentPage: state.currentPage,
     itemsPerPage: state.itemsPerPage,
     search: state.search,
+    priceRange: state.priceRange,
+    hasMaxPriceFilter: state.searchParams.has("maxPrice"),
     priceStatsMax: derived.priceStats.max,
     priceChangeType: state.priceChangeType,
     priceChangeMode: state.priceChangeMode,
     priceChangeAmount: state.priceChangeAmount,
     sortField: state.sortField,
+    sortOrder: state.sortOrder,
     editingProduct: state.editingProduct,
     setProducts: state.setProducts,
     setStats: state.setStats,
@@ -71,6 +74,37 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     willExceedProductLimit: state.willExceedProductLimit,
     updateUrl: state.updateUrl,
   })
+
+  const handleSortFieldChange = (field: typeof state.sortField) => {
+    const nextSortOrder = field === "order" ? "asc" : "desc"
+    state.setSortField(field)
+    state.setSortOrder(nextSortOrder)
+    state.setCurrentPage(1)
+    state.updateUrl({ sortBy: field, sortOrder: nextSortOrder, page: 1 })
+  }
+
+  const handleSortOrderChange = (order: typeof state.sortOrder) => {
+    state.setSortOrder(order)
+    state.setCurrentPage(1)
+    state.updateUrl({ sortOrder: order, page: 1 })
+  }
+
+  const handleStockFilterChange = (filter: typeof state.stockFilter) => {
+    state.setStockFilter(filter)
+    state.setCurrentPage(1)
+    state.updateUrl({ stockFilter: filter, page: 1 })
+  }
+
+  const handlePriceRangeChange = (range: [number, number]) => {
+    state.setPriceRange(range)
+    state.setCurrentPage(1)
+    const shouldClearMax = derived.priceStats.max > 0 && range[1] >= derived.priceStats.max
+    state.updateUrl({
+      minPrice: range[0] > 0 ? range[0] : null,
+      maxPrice: range[1] > 0 && !shouldClearMax ? range[1] : null,
+      page: 1,
+    })
+  }
 
   return {
     t,
@@ -115,6 +149,10 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     handleSearchChange: state.handleSearchChange,
     handleCategoryChange: state.handleCategoryChange,
     handleItemsPerPageChange: state.handleItemsPerPageChange,
+    handleSortFieldChange,
+    handleSortOrderChange,
+    handleStockFilterChange,
+    handlePriceRangeChange,
 
     ...actions,
 

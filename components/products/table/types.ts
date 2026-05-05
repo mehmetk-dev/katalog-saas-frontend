@@ -12,6 +12,7 @@ export interface ProductsTableProps {
     onDeleted: (id: string) => void
     onSaved?: (product: Product) => void
     viewMode?: "grid" | "list"
+    reorderOffset?: number
     onProductsReorder?: (products: Product[]) => void
     onReorderSuccess?: () => void
 }

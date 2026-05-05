@@ -52,6 +52,7 @@ export function ImportExportModal({
     const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [importProgress, setImportProgress] = useState({ percent: 0, message: '' })
+    const [importWarnings, setImportWarnings] = useState<string[]>([])
 
     const open = controlledOpen !== undefined ? controlledOpen : internalOpen
     const canImport = userPlan === 'plus' || userPlan === 'pro'
@@ -78,6 +79,7 @@ export function ImportExportModal({
         setColumnMappings([])
         setCurrentPage(1)
         setImportProgress({ percent: 0, message: '' })
+        setImportWarnings([])
     }
 
     const totalPages = Math.max(1, Math.ceil(csvData.length / ROWS_PER_PAGE))
@@ -150,7 +152,11 @@ export function ImportExportModal({
             return
         }
 
-        const products = buildImportProducts({ csvData, csvHeaders, columnMappings, isFreeUser, onProgress: importTimeout.setProgress })
+        const { products, warnings } = buildImportProducts({ csvData, csvHeaders, columnMappings, isFreeUser, onProgress: importTimeout.setProgress })
+        setImportWarnings(warnings)
+        if (warnings.length > 0) {
+            warnings.forEach((w) => toast.warning(w))
+        }
         if (!products.length) {
             toast.error(t('toasts.noValidProducts'))
             return
@@ -258,6 +264,7 @@ export function ImportExportModal({
                             totalPages={totalPages}
                             rowsPerPage={ROWS_PER_PAGE}
                             mappingSummary={mappingSummary}
+                            importWarnings={importWarnings}
                             onMappingChange={(columnIndex, systemField) => {
                                 setColumnMappings((prev) => {
                                     const next = [...prev]

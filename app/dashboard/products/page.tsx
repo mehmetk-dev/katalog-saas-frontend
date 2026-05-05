@@ -6,6 +6,7 @@ import { getProducts, getProductStats } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { ProductsPageClient } from "@/components/products/products-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
+import { mapSortFieldToProductSort, type SortField, type SortOrder, type StockFilter } from "@/components/products/products-page-utils"
 
 export const metadata: Metadata = {
   title: "Ürünler",
@@ -23,16 +24,23 @@ const searchParamsSchema = z.object({
   ).default(DEFAULT_PRODUCTS_PAGE_SIZE),
   category: z.string().default("all"),
   search: z.string().default(""),
+  stockFilter: z.enum(["all", "in_stock", "low_stock", "out_of_stock"]).default("all"),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  sortBy: z.enum(["order", "created_at", "name", "price", "stock", "category"]).default("order"),
+  sortOrder: z.enum(["asc", "desc"]).default("asc"),
 })
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; limit?: string; category?: string; search?: string }>
+  searchParams: Promise<{ page?: string; limit?: string; category?: string; search?: string; stockFilter?: StockFilter; minPrice?: string; maxPrice?: string; sortBy?: SortField; sortOrder?: SortOrder }>
 }) {
   const rawParams = await searchParams
   const parsed = searchParamsSchema.safeParse(rawParams)
-  const { page, limit, category, search } = parsed.success ? parsed.data : { page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, category: "all", search: "" }
+  const { page, limit, category, search, stockFilter, minPrice, maxPrice, sortBy, sortOrder } = parsed.success
+    ? parsed.data
+    : { page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, category: "all", search: "", stockFilter: "all" as const, minPrice: undefined, maxPrice: undefined, sortBy: "order" as const, sortOrder: "asc" as const }
 
   let productsResponse: import('@/lib/actions/products').ProductsResponse = { products: [], metadata: { total: 0, page: 1, limit: DEFAULT_PRODUCTS_PAGE_SIZE, totalPages: 1 } };
   let statsResponse = { total: 0, inStock: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };
@@ -40,7 +48,7 @@ export default async function ProductsPage({
 
   try {
     const [pRes, sRes, uRes] = await Promise.all([
-      getProducts({ page, limit, category, search }),
+      getProducts({ page, limit, category, search, stockFilter, minPrice, maxPrice, sortBy: mapSortFieldToProductSort(sortBy), sortOrder }),
       getProductStats(),
       getCurrentUser(),
     ]);

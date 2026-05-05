@@ -112,10 +112,10 @@ export function ExcelChatPanel({
                     language === "tr"
                         ? apiError === "Unauthorized"
                             ? "Oturum doğrulaması başarısız oldu. Sayfayı yenileyip tekrar dene."
-                            : "Yapay zeka isteği şu anda işlenemedi. Komutu daha net yazarak tekrar deneyebilirsin."
+                            : apiError || "Yapay zeka isteği şu anda işlenemedi. Komutu daha net yazarak tekrar deneyebilirsin."
                         : apiError === "Unauthorized"
                             ? "Authentication failed. Refresh the page and try again."
-                            : "AI request could not be processed right now. Try again with a clearer command."
+                            : apiError || "AI request could not be processed right now. Try again with a clearer command."
 
                 setPendingIntent(null)
                 addMessage({ id: crypto.randomUUID(), role: "assistant", content: messageText })
@@ -231,14 +231,15 @@ export function ExcelChatPanel({
                         : `Applied: ${result.changedCells} cells updated across ${result.targetProducts} products. No database writes until Save.`,
             })
             setPendingIntent(null)
-        } catch {
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : null
             addMessage({
                 id: crypto.randomUUID(),
                 role: "assistant",
                 content:
                     language === "tr"
-                        ? "Uygulama sırasında hata oluştu. Komutu daraltıp tekrar deneyebilirsin."
-                        : "Failed to apply intent. Try narrowing the command and retry.",
+                        ? errorMessage || "Uygulama sırasında hata oluştu. Komutu daraltıp tekrar deneyebilirsin."
+                        : errorMessage || "Failed to apply intent. Try narrowing the command and retry.",
             })
         } finally {
             setIsApplying(false)
@@ -345,4 +346,3 @@ export function ExcelChatPanel({
         </div>
     )
 }
-

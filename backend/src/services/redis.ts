@@ -1,7 +1,8 @@
 import Redis, { RedisOptions } from 'ioredis';
 
 // Redis bağlantısı - Upstash (rediss://) veya lokal Redis (redis://)
-const REDIS_URL = (process.env.REDIS_URL || 'redis://localhost:6379').trim();
+// NOT: REDIS_URL tanımlı değilse hiç bağlanmaya çalışma (localhost fallback susturuldu)
+const REDIS_URL = (process.env.REDIS_URL || '').trim();
 const isTls = REDIS_URL.startsWith('rediss://');
 
 let redis: Redis | null = null;

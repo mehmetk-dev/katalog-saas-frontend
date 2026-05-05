@@ -1,0 +1,16 @@
+
+> catalogpro@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.106:3000
+- Environments: .env.local
+✓ Ready in 782ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Error: An error occurred while loading instrumentation hook: Could not parse module '[project]/instrumentation.ts', file not found
+    at module evaluation (C:\ana-projeler\katalog-app\.next\dev\server\chunks\[project]_instrumentation_ts_0zq9-xz._.js:5:11)
+    at Object.<anonymous> (C:\ana-projeler\katalog-app\.next\dev\server\instrumentation.js:3:3) {
+  code: 'MODULE_UNPARSABLE'
+}
+[?25h

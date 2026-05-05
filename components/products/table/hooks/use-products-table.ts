@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { deleteProduct, createProduct, updateProductOrder, checkProductInCatalogs } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { buildProductOrderPayload } from "@/components/products/products-page-utils"
 import { type Product, type ProductsTableProps } from "../types"
 
 export function useProductsTable({
@@ -15,6 +16,7 @@ export function useProductsTable({
     onSelectedIdsChange,
     onDeleted,
     onSaved,
+    reorderOffset = 0,
     onProductsReorder,
     onReorderSuccess,
 }: ProductsTableProps) {
@@ -167,7 +169,7 @@ export function useProductsTable({
 
             startTransition(async () => {
                 try {
-                    const orderData = newProducts.map((p, index) => ({ id: p.id, order: index }))
+                    const orderData = buildProductOrderPayload(newProducts, reorderOffset)
                     await updateProductOrder(orderData)
                     onReorderSuccess?.()
                 } catch {

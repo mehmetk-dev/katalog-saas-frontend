@@ -14,7 +14,6 @@ interface UseProductsPageDerivedParams {
   priceRange: [number, number]
   metadataTotal: number
   metadataTotalPages: number
-  itemsPerPage: number
   t: (key: string, params?: Record<string, unknown>) => string
 }
 
@@ -27,7 +26,6 @@ export function useProductsPageDerived({
   priceRange,
   metadataTotal,
   metadataTotalPages,
-  itemsPerPage,
   t,
 }: UseProductsPageDerivedParams): ProductsPageDerived {
   const categories = useMemo(() => {
@@ -51,39 +49,9 @@ export function useProductsPageDerived({
     priceRange[0] !== 0 ||
     priceRange[1] !== priceStats.max
 
-  const filteredProducts = useMemo(() => {
-    let result = products
-
-    if (stockFilter !== "all") {
-      result = result.filter((p) => {
-        const stock = p.stock ?? 0
-        if (stockFilter === "in_stock") return stock >= 10
-        if (stockFilter === "low_stock") return stock > 0 && stock < 10
-        if (stockFilter === "out_of_stock") return stock === 0
-        return true
-      })
-    }
-
-    if (priceStats.max > 0 && (priceRange[0] !== 0 || priceRange[1] !== priceStats.max)) {
-      result = result.filter((p) => {
-        const price = Number(p.price) || 0
-        return price >= priceRange[0] && price <= priceRange[1]
-      })
-    }
-
-    return result
-  }, [products, stockFilter, priceRange, priceStats.max])
-
-  const hasClientSideFilters =
-    stockFilter !== "all" ||
-    (priceStats.max > 0 && (priceRange[0] !== 0 || priceRange[1] !== priceStats.max))
-
-  const filteredCount = hasClientSideFilters ? filteredProducts.length : metadataTotal
-
-  const paginatedProducts = filteredProducts
-  const totalPagesCount = hasClientSideFilters
-    ? Math.max(1, Math.ceil(filteredCount / Math.max(1, itemsPerPage)))
-    : metadataTotalPages
+  const filteredCount = metadataTotal
+  const paginatedProducts = products
+  const totalPagesCount = metadataTotalPages
 
   const categoryStats = useMemo(() => {
     const statsMap: Record<string, { count: number; totalValue: number }> = {}

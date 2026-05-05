@@ -1,6 +1,7 @@
 "use client"
 
 import type { Product, ProductStats } from "@/lib/actions/products"
+import type { SortField, SortOrder, StockFilter } from "@/components/products/products-page-utils"
 
 import { useProductsSelectionActions } from "./use-products-selection-actions"
 import { useProductsBulkActions } from "./use-products-bulk-actions"
@@ -17,14 +18,18 @@ interface UseProductsPageActionsParams {
   selectedIds: string[]
   paginatedProducts: Product[]
   selectedCategory: string
+  stockFilter: StockFilter
   currentPage: number
   itemsPerPage: number
   search: string
+  priceRange: [number, number]
+  hasMaxPriceFilter: boolean
   priceStatsMax: number
   priceChangeType: "increase" | "decrease"
   priceChangeMode: "percentage" | "fixed"
   priceChangeAmount: number
-  sortField: string
+  sortField: SortField
+  sortOrder: SortOrder
   editingProduct: Product | null
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>
   setStats: React.Dispatch<React.SetStateAction<ProductStats>>
@@ -56,6 +61,11 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
     selectedIds: params.selectedIds,
     paginatedProducts: params.paginatedProducts,
     sortField: params.sortField,
+    search: params.search,
+    selectedCategory: params.selectedCategory,
+    stockFilter: params.stockFilter,
+    priceRange: params.priceRange,
+    hasMaxPriceFilter: params.hasMaxPriceFilter,
     priceStatsMax: params.priceStatsMax,
     setSelectedIds: params.setSelectedIds,
     setProducts: params.setProducts,
@@ -96,11 +106,15 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
 
   const importExportActions = useProductsImportExportActions({
     t: params.t,
-    products: params.products,
     currentPage: params.currentPage,
     itemsPerPage: params.itemsPerPage,
     search: params.search,
     selectedCategory: params.selectedCategory,
+    stockFilter: params.stockFilter,
+    priceRange: params.priceRange,
+    hasMaxPriceFilter: params.hasMaxPriceFilter,
+    sortField: params.sortField,
+    sortOrder: params.sortOrder,
     setProducts: params.setProducts,
     setStats: params.setStats,
     setMetadata: params.setMetadata,

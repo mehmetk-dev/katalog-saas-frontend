@@ -17,11 +17,11 @@ export const getProducts = async (req: Request, res: Response) => {
             });
         }
 
-        const { page, limit, sortBy, sortOrder, select } = parsedQuery.data;
+        const { page, limit, sortBy, sortOrder, select, stockFilter, minPrice, maxPrice } = parsedQuery.data;
         const category = parsedQuery.data.category === 'all' ? undefined : parsedQuery.data.category;
         const search = parsedQuery.data.search;
 
-        const params = { page, limit, category, search, sortBy, sortOrder, select };
+        const params = { page, limit, category, search, sortBy, sortOrder, select, stockFilter, minPrice, maxPrice };
         const cacheKey = cacheKeys.products(userId, params);
 
         const result = await getOrSetCache(cacheKey, cacheTTL.products, async () => {
@@ -46,6 +46,21 @@ export const getProducts = async (req: Request, res: Response) => {
                 if (sanitizedSearch.length > 0) {
                     query = query.or(`name.ilike.%${sanitizedSearch}%,sku.ilike.%${sanitizedSearch}%`);
                 }
+            }
+
+            if (stockFilter === 'in_stock') {
+                query = query.gte('stock', 10);
+            } else if (stockFilter === 'low_stock') {
+                query = query.gt('stock', 0).lt('stock', 10);
+            } else if (stockFilter === 'out_of_stock') {
+                query = query.eq('stock', 0);
+            }
+
+            if (minPrice !== undefined) {
+                query = query.gte('price', minPrice);
+            }
+            if (maxPrice !== undefined && maxPrice >= (minPrice ?? 0)) {
+                query = query.lte('price', maxPrice);
             }
 
             let orderedQuery = query.order(sortBy, { ascending: sortOrder === 'asc', nullsFirst: false });

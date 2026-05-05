@@ -11,16 +11,23 @@ const ALLOWED_IMAGE_HOSTS = [
     'plus.unsplash.com',
 ];
 
+const isTrustedImageUrl = (url: string): boolean => {
+    try {
+        const parsed = new URL(url);
+        const hostname = parsed.hostname;
+        const isKnownCdn = ALLOWED_IMAGE_HOSTS.some(host => hostname === host || hostname.endsWith(`.${host}`));
+        const isSupabaseStorage = hostname.endsWith('.supabase.co') && parsed.pathname.startsWith('/storage/v1/object/public/');
+        return isKnownCdn || isSupabaseStorage;
+    } catch {
+        return false;
+    }
+};
+
 /** Validates that image URLs come from trusted CDN sources */
 const trustedImageUrl = z.union([
     z.string().url().max(2048).refine((url) => {
-        try {
-            const hostname = new URL(url).hostname;
-            return ALLOWED_IMAGE_HOSTS.some(host => hostname === host || hostname.endsWith(`.${host}`));
-        } catch {
-            return false;
-        }
-    }, 'Image URL must be from a trusted source (Cloudinary)'),
+        return isTrustedImageUrl(url);
+    }, 'Image URL must be from a trusted source (Cloudinary or Supabase Storage)'),
     z.literal(''),
 ]).optional().nullable();
 
@@ -39,10 +46,7 @@ export const createProductSchema = z.object({
     category: z.string().max(200).optional().nullable(),
     image_url: trustedImageUrl,
     images: z.array(z.string().url().max(2048).refine((url) => {
-        try {
-            const hostname = new URL(url).hostname;
-            return ALLOWED_IMAGE_HOSTS.some(host => hostname === host || hostname.endsWith(`.${host}`));
-        } catch { return false; }
+        return isTrustedImageUrl(url);
     }, 'Image URL must be from a trusted source')).max(20).optional(),
     product_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
     custom_attributes: z.array(customAttributeSchema).optional().nullable(),
@@ -63,10 +67,7 @@ export const updateProductSchema = z.object({
     category: z.string().max(200).optional().nullable(),
     image_url: trustedImageUrl,
     images: z.array(z.string().url().max(2048).refine((url) => {
-        try {
-            const hostname = new URL(url).hostname;
-            return ALLOWED_IMAGE_HOSTS.some(host => hostname === host || hostname.endsWith(`.${host}`));
-        } catch { return false; }
+        return isTrustedImageUrl(url);
     }, 'Image URL must be from a trusted source')).max(20).optional(),
     product_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
     custom_attributes: z.array(customAttributeSchema).optional().nullable(),
@@ -88,10 +89,7 @@ export const bulkImportProductSchema = z.object({
     category: z.string().max(200).optional().nullable(),
     image_url: trustedImageUrl,
     images: z.array(z.string().url().max(2048).refine((url) => {
-        try {
-            const hostname = new URL(url).hostname;
-            return ALLOWED_IMAGE_HOSTS.some(host => hostname === host || hostname.endsWith(`.${host}`));
-        } catch { return false; }
+        return isTrustedImageUrl(url);
     }, 'Image URL must be from a trusted source')).max(20).optional(),
     product_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
     custom_attributes: z.array(customAttributeSchema).optional().nullable(),
@@ -115,7 +113,9 @@ export const reorderSchema = z.object({
 export const bulkUpdateImagesSchema = z.object({
     updates: z.array(z.object({
         productId: uuidString,
-        images: z.array(z.string().url()).max(20),
+        images: z.array(z.string().url().max(2048).refine((url) => {
+            return isTrustedImageUrl(url);
+        }, 'Image URL must be from a trusted source')).max(20),
     })).min(1).max(1000),
     mergeWithExisting: z.boolean().optional(),
 });
@@ -151,7 +151,10 @@ export const productsQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(10000).default(50),
     category: z.string().trim().max(200).optional(),
     search: z.string().trim().max(200).optional(),
-    sortBy: z.enum(['display_order', 'created_at', 'name', 'price', 'stock']).default('display_order'),
+    stockFilter: z.enum(['all', 'in_stock', 'low_stock', 'out_of_stock']).optional(),
+    minPrice: z.coerce.number().finite().min(0).optional(),
+    maxPrice: z.coerce.number().finite().min(0).optional(),
+    sortBy: z.enum(['display_order', 'created_at', 'name', 'price', 'stock', 'category']).default('display_order'),
     sortOrder: z.enum(['asc', 'desc']).default('asc'),
     select: z.enum(['id']).optional(),
 });

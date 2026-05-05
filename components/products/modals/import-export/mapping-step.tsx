@@ -19,6 +19,7 @@ interface MappingStepProps {
     totalPages: number
     rowsPerPage: number
     mappingSummary: { mapped: number; custom: number; skipped: number; total: number }
+    importWarnings: string[]
     onMappingChange: (columnIndex: number, systemField: string) => void
     onCustomNameChange: (columnIndex: number, customName: string) => void
     onCellEdit: (rowIndex: number, colIndex: number, value: string) => void
@@ -39,6 +40,7 @@ export function MappingStep({
     totalPages,
     rowsPerPage,
     mappingSummary,
+    importWarnings,
     onMappingChange,
     onCustomNameChange,
     onCellEdit,
@@ -46,6 +48,7 @@ export function MappingStep({
     onImport,
     onPageChange,
 }: MappingStepProps) {
+    const isCategoryMapped = columnMappings.some((m) => m.systemField === 'category')
     return (
         <div className="space-y-4">
             <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shrink-0">
@@ -97,6 +100,31 @@ export function MappingStep({
                         <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t('importExport.freePlanLimit')}</p>
                         <p className="text-xs text-amber-600 dark:text-amber-400">{t('importExport.freePlanLimitDesc')}</p>
                     </div>
+                </div>
+            )}
+
+            {isFreeUser && isCategoryMapped && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800">
+                    <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/50">
+                        <Crown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-red-800 dark:text-red-200">Kategori sütunu eşlendi ancak kaydedilmeyecek</p>
+                        <p className="text-xs text-red-600 dark:text-red-400">Free planda kategori bilgisi içe aktarılamaz. Kategori sütunundaki değerler atlanacak. Kategorileri kaydetmek için planınızı yükseltin.</p>
+                    </div>
+                </div>
+            )}
+
+            {importWarnings.length > 0 && (
+                <div className="space-y-2">
+                    {importWarnings.map((warning, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-950/30 dark:border-orange-800">
+                            <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/50">
+                                <Sparkles className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <p className="text-sm text-orange-800 dark:text-orange-200">{warning}</p>
+                        </div>
+                    ))}
                 </div>
             )}
 

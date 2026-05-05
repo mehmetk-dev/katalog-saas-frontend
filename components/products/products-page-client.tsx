@@ -85,6 +85,10 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     handleSearchChange,
     handleCategoryChange,
     handleItemsPerPageChange,
+    handleSortFieldChange,
+    handleSortOrderChange,
+    handleStockFilterChange,
+    handlePriceRangeChange,
     handleTableReorder,
     handleImportProducts,
     handleBulkImageUploadSuccess,
@@ -140,18 +144,17 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             onOpenChange={setShowFilters}
             sortField={sortField}
             sortOrder={sortOrder}
-            onSortFieldChange={(field) => setSortField(field as typeof sortField)}
-            onSortOrderChange={setSortOrder}
+            onSortFieldChange={(field) => handleSortFieldChange(field as typeof sortField)}
+            onSortOrderChange={handleSortOrderChange}
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
             categories={categories}
             stockFilter={stockFilter}
             onStockFilterChange={(filter) => {
-              setStockFilter(filter as typeof stockFilter)
-              handlePageChange(1)
+              handleStockFilterChange(filter as typeof stockFilter)
             }}
             priceRange={priceRange}
-            onPriceRangeChange={setPriceRange}
+            onPriceRangeChange={handlePriceRangeChange}
             maxPrice={priceStats.max}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearAllFilters}
@@ -188,6 +191,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
               onDeleted={handleProductDeleted}
               onSaved={handleProductSaved}
               viewMode={viewMode}
+              reorderOffset={(currentPage - 1) * itemsPerPage}
               onProductsReorder={(newProducts: Product[]) => handleTableReorder(newProducts)}
               onReorderSuccess={async () => {
                 // no-op: controller refreshes where needed

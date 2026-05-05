@@ -5,15 +5,19 @@ import { toast } from "sonner"
 
 import { bulkImportProducts, getAllProductsForExport, type Product, type ProductStats } from "@/lib/actions/products"
 import { downloadProductsCsv } from "@/components/products/export/download-products-csv"
-import { calculateStatsDelta } from "@/components/products/products-page-utils"
+import { calculateStatsDelta, mapSortFieldToProductSort, type SortField, type SortOrder, type StockFilter } from "@/components/products/products-page-utils"
 
 interface UseProductsImportExportActionsParams {
   t: (key: string, params?: Record<string, unknown>) => string
-  products: Product[]
   currentPage: number
   itemsPerPage: number
   search: string
   selectedCategory: string
+  stockFilter: StockFilter
+  priceRange: [number, number]
+  hasMaxPriceFilter: boolean
+  sortField: SortField
+  sortOrder: SortOrder
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>
   setStats: React.Dispatch<React.SetStateAction<ProductStats>>
   setMetadata: React.Dispatch<React.SetStateAction<{ total: number; page: number; limit: number; totalPages: number }>>
@@ -27,11 +31,15 @@ interface UseProductsImportExportActionsParams {
 
 export function useProductsImportExportActions({
   t,
-  products,
   currentPage,
   itemsPerPage,
   search,
   selectedCategory,
+  stockFilter,
+  priceRange,
+  hasMaxPriceFilter,
+  sortField,
+  sortOrder,
   setProducts,
   setStats,
   setMetadata,
@@ -70,7 +78,7 @@ export function useProductsImportExportActions({
 
     const imported = await bulkImportProducts(productsToImport as Array<Omit<Product, "id" | "user_id" | "created_at" | "updated_at">>)
     const importedList = Array.isArray(imported) ? imported : []
-    setProducts([...importedList, ...products])
+    setProducts((prev) => [...importedList, ...prev])
     adjustMetadataTotal(importedList.length)
 
     const delta = calculateStatsDelta(importedList)
@@ -85,16 +93,26 @@ export function useProductsImportExportActions({
 
     routerRefresh()
     await refreshUser()
-  }, [willExceedProductLimit, getLimitErrorMessage, setProducts, products, adjustMetadataTotal, setStats, routerRefresh, refreshUser])
+  }, [willExceedProductLimit, getLimitErrorMessage, setProducts, adjustMetadataTotal, setStats, routerRefresh, refreshUser])
 
   const handleBulkImageUploadSuccess = useCallback(async () => {
     const { getProducts } = await import("@/lib/actions/products")
-    const response = await getProducts({ page: currentPage, limit: itemsPerPage, search, category: selectedCategory })
+    const response = await getProducts({
+      page: currentPage,
+      limit: itemsPerPage,
+      search,
+      category: selectedCategory,
+      stockFilter,
+      minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+      maxPrice: hasMaxPriceFilter && priceRange[1] > 0 ? priceRange[1] : undefined,
+      sortBy: mapSortFieldToProductSort(sortField),
+      sortOrder,
+    })
     setProducts(response.products)
     setMetadata(response.metadata)
     setShowBulkImageModal(false)
     toast.success(t("toasts.photosUpdated") as string)
-  }, [currentPage, itemsPerPage, search, selectedCategory, setProducts, setMetadata, setShowBulkImageModal, t])
+  }, [currentPage, itemsPerPage, search, selectedCategory, stockFilter, priceRange, hasMaxPriceFilter, sortField, sortOrder, setProducts, setMetadata, setShowBulkImageModal, t])
 
   return {
     downloadAllProducts,

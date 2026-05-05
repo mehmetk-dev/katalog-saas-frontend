@@ -69,5 +69,13 @@ export function extractApiError(payload: unknown): string | null {
     if (!payload || typeof payload !== "object") return null
     if (!("error" in payload)) return null
     const errorValue = (payload as { error?: unknown }).error
-    return typeof errorValue === "string" && errorValue.trim().length > 0 ? errorValue : null
+    const technicalError = typeof errorValue === "string" && errorValue.trim().length > 0 ? errorValue : null
+    if (technicalError === "Unauthorized") return technicalError
+
+    const messageValue = (payload as { message?: unknown }).message
+    if (typeof messageValue === "string" && messageValue.trim().length > 0) {
+        return messageValue
+    }
+
+    return technicalError
 }

@@ -9,6 +9,10 @@ import {
   PAGE_SIZE_OPTIONS,
   parseLimitFromQuery,
   parsePageFromQuery,
+  parsePriceFromQuery,
+  parseSortFieldFromQuery,
+  parseSortOrderFromQuery,
+  parseStockFilterFromQuery,
   type SortField,
   type SortOrder,
   type StockFilter,
@@ -49,11 +53,14 @@ export function useProductsPageState({
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   const [viewMode, setViewMode] = useState<ViewMode>("list")
-  const [sortField, setSortField] = useState<SortField>("created_at")
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
-  const [stockFilter, setStockFilter] = useState<StockFilter>("all")
+  const [sortField, setSortField] = useState<SortField>(parseSortFieldFromQuery(searchParams.get("sortBy")))
+  const [sortOrder, setSortOrder] = useState<SortOrder>(parseSortOrderFromQuery(searchParams.get("sortOrder")))
+  const [stockFilter, setStockFilter] = useState<StockFilter>(parseStockFilterFromQuery(searchParams.get("stockFilter")))
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all")
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    parsePriceFromQuery(searchParams.get("minPrice")),
+    parsePriceFromQuery(searchParams.get("maxPrice")),
+  ])
   const [currentPage, setCurrentPage] = useState(parsePageFromQuery(searchParams.get("page")))
   const [itemsPerPage, setItemsPerPage] = useState(parseLimitFromQuery(searchParams.get("limit")))
 
