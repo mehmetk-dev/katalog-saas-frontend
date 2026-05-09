@@ -22,7 +22,7 @@ import {
 } from "@/lib/hooks/use-notifications"
 import { useCancelPdfExportJob, usePdfExportJobs, usePdfExportShareLink } from "@/lib/hooks/use-pdf-export-jobs"
 import { getPdfExportProgressDisplay } from "@/lib/pdf-export-progress"
-import type { PdfExportJob } from "@/lib/actions/pdf-exports"
+import type { PdfExportJob } from "@/lib/actions/pdf-export-types"
 
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
@@ -279,6 +279,11 @@ function PdfExportStatusCard({
     const isFailed = job.status === "failed"
     const isCompleted = job.status === "completed"
 
+    const translate = useCallback((key: string, fallback: string) => {
+        const result = t(key)
+        return result === key ? fallback : result
+    }, [t])
+
     return (
         <div className="border-b bg-violet-50/60 p-3 dark:bg-violet-950/20">
             <div className="flex gap-3">
@@ -294,7 +299,7 @@ function PdfExportStatusCard({
                 <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-foreground">{t("common.pdf.pdfExportTitle")}</p>
+                            <p className="truncate text-sm font-semibold text-foreground">{translate("common.pdf.pdfExportTitle", "PDF Export")}</p>
                             <p className="text-xs font-medium text-violet-700 dark:text-violet-300">{title}</p>
                         </div>
                         <span className="shrink-0 text-xs font-bold text-violet-700 dark:text-violet-300">
@@ -317,7 +322,7 @@ function PdfExportStatusCard({
                                 disabled={!downloadUrl || isLoadingLink}
                                 onClick={() => downloadUrl && window.open(downloadUrl, "_blank", "noopener,noreferrer")}
                             >
-                                {isLoadingLink ? t("common.pdf.preparingLink") : t("common.pdf.downloadButton")}
+                                {isLoadingLink ? translate("common.pdf.preparingLink", "Hazırlanıyor") : translate("common.pdf.downloadButton", "İndir")}
                             </Button>
                         )}
                     </div>

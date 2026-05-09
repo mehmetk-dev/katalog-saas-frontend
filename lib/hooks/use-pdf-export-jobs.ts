@@ -3,16 +3,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
-    cancelPdfExportJob,
-    listPdfExportJobs,
-} from "@/lib/actions/pdf-exports"
-import { clientGetPdfExportShareLink } from "@/lib/hooks/pdf-export-client-api"
+    clientCancelPdfExportJob,
+    clientGetPdfExportShareLink,
+    clientListPdfExportJobs,
+} from "@/lib/hooks/pdf-export-client-api"
 import { queryKeys } from "@/lib/contexts/query-provider"
 
 export function usePdfExportJobs() {
     return useQuery({
         queryKey: queryKeys.pdfExports(),
-        queryFn: () => listPdfExportJobs(),
+        queryFn: () => clientListPdfExportJobs(),
         staleTime: 5 * 1000,
         refetchInterval: 5_000,
         refetchOnWindowFocus: true,
@@ -39,7 +39,7 @@ export function useCancelPdfExportJob() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: (jobId: string) => cancelPdfExportJob(jobId),
+        mutationFn: (jobId: string) => clientCancelPdfExportJob(jobId),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: queryKeys.pdfExports() })
         },
