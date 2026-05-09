@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
     cancelPdfExportJob,
-    getPdfExportShareLink,
     listPdfExportJobs,
 } from "@/lib/actions/pdf-exports"
+import { clientGetPdfExportShareLink } from "@/lib/hooks/pdf-export-client-api"
 import { queryKeys } from "@/lib/contexts/query-provider"
 
 export function usePdfExportJobs() {
@@ -22,7 +22,13 @@ export function usePdfExportJobs() {
 export function usePdfExportShareLink(jobId: string | null | undefined) {
     return useQuery({
         queryKey: jobId ? queryKeys.pdfExportShareLink(jobId) : ["pdf-exports", "share-link", "none"],
-        queryFn: () => getPdfExportShareLink(jobId as string),
+        queryFn: async () => {
+            try {
+                return await clientGetPdfExportShareLink(jobId as string)
+            } catch {
+                return null
+            }
+        },
         enabled: Boolean(jobId),
         staleTime: 60 * 1000,
         retry: false,

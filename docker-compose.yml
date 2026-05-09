@@ -49,7 +49,7 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       # DİKKAT: Typonu düzelttim (fogistanul -> fogistanbul) ve HTTPS ekledim
-      - ALLOWED_ORIGINS=http://localhost:3000,https://fogcatalog.com
+      - ALLOWED_ORIGINS=http://localhost:3000,https://fogcatalog.com,https://www.fogcatalog.com
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - WORKER_EXPORT_SECRET=${WORKER_EXPORT_SECRET}
       - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}

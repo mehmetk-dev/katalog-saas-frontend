@@ -37,6 +37,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+if (!isDev) {
+    console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+}
+
 // Middleware
 app.use(cors({
     origin: (origin, callback) => {
@@ -51,10 +55,7 @@ app.use(cors({
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            // Log rejected origins for debugging
-            if (!isDev) {
-                console.warn(`CORS rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
-            }
+            console.warn(`[CORS] Rejected origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
