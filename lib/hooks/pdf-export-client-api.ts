@@ -28,9 +28,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`
     }
-    if (session?.user?.id) {
-        headers["x-user-id"] = session.user.id
-    }
     return headers
 }
 
