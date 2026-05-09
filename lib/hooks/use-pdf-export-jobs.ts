@@ -22,16 +22,11 @@ export function usePdfExportJobs() {
 export function usePdfExportShareLink(jobId: string | null | undefined) {
     return useQuery({
         queryKey: jobId ? queryKeys.pdfExportShareLink(jobId) : ["pdf-exports", "share-link", "none"],
-        queryFn: async () => {
-            try {
-                return await clientGetPdfExportShareLink(jobId as string)
-            } catch {
-                return null
-            }
-        },
+        queryFn: () => clientGetPdfExportShareLink(jobId as string),
         enabled: Boolean(jobId),
         staleTime: 60 * 1000,
-        retry: false,
+        retry: 2,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     })
 }
 

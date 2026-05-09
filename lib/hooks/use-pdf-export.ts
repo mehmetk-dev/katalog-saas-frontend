@@ -129,7 +129,22 @@ export function usePdfExport({
                     if (!dismissedRef.current) {
                         setPhase("uploading", { percent: 96, estimatedTimeLeft: "", stageLabel: "Yükleniyor" })
                     }
-                    const share = await clientGetPdfExportShareLink(job.id)
+                    let share: { url: string; expiresAt: string } | null = null
+                    let shareError: Error | null = null
+                    for (let attempt = 0; attempt < 3; attempt++) {
+                        try {
+                            share = await clientGetPdfExportShareLink(job.id)
+                            break
+                        } catch (err) {
+                            shareError = err instanceof Error ? err : new Error(String(err))
+                            if (attempt < 2) {
+                                await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)))
+                            }
+                        }
+                    }
+                    if (!share) {
+                        throw shareError || new Error("PDF indirme linki alınamadı. Lütfen bildirimler üzerinden tekrar deneyin.")
+                    }
                     const wasDismissed = dismissedRef.current
                     activeJobIdRef.current = null
                     dismissedRef.current = false

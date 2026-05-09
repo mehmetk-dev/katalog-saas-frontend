@@ -44,6 +44,9 @@ export function NotificationDropdown() {
     const pdfExportJob = useMemo(() => selectVisiblePdfExportJob(pdfExportData?.jobs ?? []), [pdfExportData?.jobs])
     const pdfExportDisplay = pdfExportJob ? getPdfExportProgressDisplay(pdfExportJob) : null
     const pdfShareLink = usePdfExportShareLink(pdfExportJob?.status === "completed" ? pdfExportJob.id : null)
+    const retryShareLink = useCallback(() => {
+        pdfShareLink.refetch()
+    }, [pdfShareLink])
     const cancelPdfExport = useCancelPdfExportJob()
 
     const handleMarkAsRead = (id: string) => markAsRead.mutate(id)
@@ -128,7 +131,7 @@ export function NotificationDropdown() {
                 {/* Notifications List */}
                 <ScrollArea className="h-[320px]">
                     {pdfExportJob && pdfExportDisplay && (
-                        <PdfExportStatusCard
+<PdfExportStatusCard
                             job={pdfExportJob}
                             title={pdfExportDisplay.title}
                             description={pdfExportDisplay.description}
@@ -136,6 +139,8 @@ export function NotificationDropdown() {
                             isActive={pdfExportDisplay.isActive}
                             downloadUrl={pdfShareLink.data?.url}
                             isLoadingLink={pdfShareLink.isFetching}
+                            shareLinkError={pdfShareLink.isError}
+                            onRetryShareLink={retryShareLink}
                             onCancel={() => cancelPdfExport.mutate(pdfExportJob.id)}
                         />
                     )}
@@ -264,6 +269,8 @@ function PdfExportStatusCard({
     isActive,
     downloadUrl,
     isLoadingLink,
+    shareLinkError,
+    onRetryShareLink,
     onCancel,
 }: {
     job: PdfExportJob
@@ -273,11 +280,14 @@ function PdfExportStatusCard({
     isActive: boolean
     downloadUrl?: string
     isLoadingLink: boolean
+    shareLinkError: boolean
+    onRetryShareLink: () => void
     onCancel: () => void
 }) {
     const { t } = useTranslation()
     const isFailed = job.status === "failed"
     const isCompleted = job.status === "completed"
+    const canDownload = isCompleted && downloadUrl && !isLoadingLink
 
     const translate = useCallback((key: string, fallback: string) => {
         const result = t(key)
@@ -292,6 +302,8 @@ function PdfExportStatusCard({
                         <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
                     ) : isFailed ? (
                         <AlertTriangle className="h-4 w-4 text-red-500" />
+                    ) : shareLinkError ? (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
                     ) : (
                         <Download className="h-4 w-4 text-green-600" />
                     )}
@@ -308,21 +320,37 @@ function PdfExportStatusCard({
                     </div>
                     <Progress value={percent} className="h-2 bg-white/70 dark:bg-slate-900/60" />
                     <p className="text-xs text-muted-foreground">{description}</p>
+                    {shareLinkError && isCompleted && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                            {translate("common.pdf.shareLinkError", "İndirme linki alınamadı. Tekrar deneyin.")}
+                        </p>
+                    )}
                     <div className="flex items-center justify-end gap-2">
                         {isActive && (
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onCancel}>
                                 {t("common.cancel")}
                             </Button>
                         )}
-                        {isCompleted && (
+                        {isCompleted && !shareLinkError && (
                             <Button
                                 variant="default"
                                 size="sm"
                                 className="h-7 text-xs"
-                                disabled={!downloadUrl || isLoadingLink}
+                                disabled={!canDownload}
                                 onClick={() => downloadUrl && window.open(downloadUrl, "_blank", "noopener,noreferrer")}
                             >
                                 {isLoadingLink ? translate("common.pdf.preparingLink", "Hazırlanıyor") : translate("common.pdf.downloadButton", "İndir")}
+                            </Button>
+                        )}
+                        {isCompleted && shareLinkError && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                disabled={isLoadingLink}
+                                onClick={onRetryShareLink}
+                            >
+                                {isLoadingLink ? translate("common.pdf.preparingLink", "Hazırlanıyor") : translate("common.pdf.retryLink", "Tekrar Dene")}
                             </Button>
                         )}
                     </div>

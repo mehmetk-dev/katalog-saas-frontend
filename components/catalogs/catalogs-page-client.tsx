@@ -73,6 +73,10 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [shareCatalog, setShareCatalog] = useState<Catalog | null>(null)
 
+  useEffect(() => {
+    setCatalogs(initialCatalogs)
+  }, [initialCatalogs])
+
   // URL'deki "limit_reached=true" parametresini modal aÃ§Ä±ldÄ±ktan sonra temizle
   useEffect(() => {
     if (searchParams.get("limit_reached") === "true") {
@@ -217,8 +221,9 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
           {filteredCatalogs.map((catalog) => {
-            const catalogProducts = catalog.product_ids && Array.isArray(userProducts)
-              ? catalog.product_ids.map(id => userProducts.find(p => p.id === id)).filter(Boolean) as Product[]
+            const catalogProductIds = Array.isArray(catalog.product_ids) ? catalog.product_ids : []
+            const catalogProducts = Array.isArray(userProducts)
+              ? catalogProductIds.map(id => userProducts.find(p => p.id === id)).filter(Boolean) as Product[]
               : []
 
             return (
@@ -350,7 +355,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                       <Badge variant={catalog.is_published ? "default" : "secondary"} className="rounded-sm font-normal text-xs">
                         {catalog.is_published ? t("catalogs.published") : t("catalogs.draft")}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{catalogProducts.length} {t("catalogs.products")}</span>
+                      <span className="text-xs text-muted-foreground">{catalogProductIds.length} {t("catalogs.products")}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -493,5 +498,4 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
     </div>
   )
 }
-
 

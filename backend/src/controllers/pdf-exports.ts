@@ -329,21 +329,31 @@ export async function downloadPdfExport(req: Request, res: Response) {
 
 export async function getPdfExportShareLink(req: Request, res: Response) {
     try {
-        const job = await getOwnedJob(req.params.id, getRequestUserId(req))
-        if (!job) return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        const userId = getRequestUserId(req)
+        const jobId = req.params.id
+        const job = await getOwnedJob(jobId, userId)
+        if (!job) {
+            console.error(`[pdf-exports] share-link 404: job=${jobId} not found for user=${userId}`)
+            return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        }
         if (job.status !== 'completed' || !job.file_path) {
+            console.warn(`[pdf-exports] share-link 409: job=${jobId} status=${job.status} file_path=${job.file_path ? 'set' : 'null'}`)
             return res.status(409).json({ error: 'PDF henüz hazır değil.' })
         }
 
         const ttlSeconds = 7 * 24 * 60 * 60
         const signedUrl = await buildSignedUrlForJob(job, ttlSeconds)
-        if (!signedUrl) return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
+        if (!signedUrl) {
+            console.error(`[pdf-exports] share-link 404: signed URL generation failed for job=${jobId} file_path=${job.file_path} expires_at=${job.expires_at}`)
+            return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
+        }
 
         return res.json({
             url: signedUrl,
             expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
         })
     } catch (error) {
+        console.error(`[pdf-exports] share-link error for job=${req.params.id}:`, error instanceof Error ? error.message : error)
         return res.status(500).json({ error: safeErrorMessage(error) })
     }
 }
