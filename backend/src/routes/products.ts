@@ -2,6 +2,7 @@ import { Router } from 'express';
 import express from 'express';
 
 import { requireAuth } from '../middlewares/auth';
+import { expensiveReadLimiter, heavyMutationLimiter } from '../middlewares/rate-limiters';
 import * as ProductController from '../controllers/products';
 
 const router = Router();
@@ -10,18 +11,18 @@ const router = Router();
 router.use(requireAuth);
 
 // Specific routes first (before dynamic :id routes)
-router.get('/', ProductController.getProducts);
-router.get('/stats', ProductController.getProductStats);
+router.get('/', expensiveReadLimiter, ProductController.getProducts);
+router.get('/stats', expensiveReadLimiter, ProductController.getProductStats);
 router.post('/', ProductController.createProduct);
-router.post('/bulk-delete', ProductController.bulkDeleteProducts);
+router.post('/bulk-delete', heavyMutationLimiter, ProductController.bulkDeleteProducts);
 // SECURITY: Bulk import needs higher body limit (50MB) for large CSV/JSON imports
-router.post('/bulk-import', express.json({ limit: '50mb' }), ProductController.bulkImportProducts);
-router.post('/reorder', ProductController.reorderProducts);
-router.post('/bulk-price-update', ProductController.bulkUpdatePrices);
-router.post('/bulk-image-update', ProductController.bulkUpdateImages);
-router.post('/bulk-update-fields', ProductController.bulkUpdateFields);
-router.post('/rename-category', ProductController.renameCategory);
-router.post('/delete-category', ProductController.deleteCategoryFromProducts);
+router.post('/bulk-import', heavyMutationLimiter, express.json({ limit: '50mb' }), ProductController.bulkImportProducts);
+router.post('/reorder', heavyMutationLimiter, ProductController.reorderProducts);
+router.post('/bulk-price-update', heavyMutationLimiter, ProductController.bulkUpdatePrices);
+router.post('/bulk-image-update', heavyMutationLimiter, ProductController.bulkUpdateImages);
+router.post('/bulk-update-fields', heavyMutationLimiter, ProductController.bulkUpdateFields);
+router.post('/rename-category', heavyMutationLimiter, ProductController.renameCategory);
+router.post('/delete-category', heavyMutationLimiter, ProductController.deleteCategoryFromProducts);
 router.post('/check-catalogs', ProductController.checkProductsInCatalogs);
 router.post('/by-ids', ProductController.getProductsByIds);
 

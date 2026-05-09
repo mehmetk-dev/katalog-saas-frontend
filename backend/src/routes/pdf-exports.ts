@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { requireAuth } from '../middlewares/auth';
+import { heavyMutationLimiter, publicPdfLimiter } from '../middlewares/rate-limiters';
 import {
     cancelPdfExport,
     createPdfExport,
@@ -14,12 +15,12 @@ import {
 
 const router = Router();
 
-router.get('/:id/render-data', getPdfExportRenderData);
-router.get('/:id/public-download', publicDownloadPdfExport);
+router.get('/:id/render-data', publicPdfLimiter, getPdfExportRenderData);
+router.get('/:id/public-download', publicPdfLimiter, publicDownloadPdfExport);
 
 router.use(requireAuth);
 router.get('/', listPdfExports);
-router.post('/', createPdfExport);
+router.post('/', heavyMutationLimiter, createPdfExport);
 router.get('/:id/share-link', getPdfExportShareLink);
 router.get('/:id', getPdfExport);
 router.delete('/:id', cancelPdfExport);

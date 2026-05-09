@@ -5,12 +5,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import client from 'prom-client';
 
 import { initRedis } from './services/redis';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import { apiLimiter, authLimiter, notFoundLimiter, suspiciousProbeLimiter } from './middlewares/rate-limiters';
 import { validateEnvAndExit } from './utils/env-validation';
 
 // Load environment variables
@@ -35,25 +35,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
     'http://127.0.0.1:3000'
 ];
 
-// Rate limiting configuration - higher limit for development
 const isDev = process.env.NODE_ENV !== 'production';
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDev ? 10000 : 1000, // Increased: 10000 for dev, 1000 for production
-    message: { error: 'Too many requests, please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// Auth rate limiter - stricter limits for login/signup to prevent brute-force attacks
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: isDev ? 100 : 10, // 10 attempts per 15 min in production
-    message: { error: 'Too many login attempts, please try again in 15 minutes.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-    skipSuccessfulRequests: true, // Don't count successful logins
-});
 
 // Middleware
 app.use(cors({
@@ -80,6 +62,9 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Rate limit common scanner/probe paths before they reach heavier middleware.
+app.use(suspiciousProbeLimiter);
 
 // SECURITY: Block no-origin mutative requests without auth (defense-in-depth)
 // SSR always sends Authorization header, so this only blocks raw curl/script abuse
@@ -117,6 +102,10 @@ app.use(helmet({
     xXssProtection: true, // Enable XSS filter
 }));
 app.use(morgan('dev'));
+
+// Apply API rate limiting before body parsing to avoid parsing abusive payloads.
+app.use('/api/', apiLimiter);
+
 app.use(compression()); // gzip/brotli response compression
 // SECURITY: Default 2MB limit to prevent DoS. Bulk import route has its own 50MB limit.
 app.use(express.json({ limit: '2mb' }));
@@ -141,9 +130,6 @@ app.get('/metrics', async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Metrics unavailable' });
     }
 });
-
-// Apply rate limiting to API routes
-app.use('/api/', apiLimiter);
 
 // Basic Route
 app.get('/', (req: Request, res: Response) => {
@@ -175,6 +161,9 @@ app.use('/api/v1/pdf-exports', pdfExportRoutes);
 
 // Initialize Redis (optional - works without it)
 initRedis();
+
+// Limit repeated misses such as bot scans for WordPress/PHP/env files.
+app.use(notFoundLimiter);
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);
