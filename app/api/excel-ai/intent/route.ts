@@ -204,19 +204,36 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // aaa Groq AI Fallthrough aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-        const groqApiKey = process.env.GROQ_API_KEY
-        if (!groqApiKey) {
-            console.warn('[excel-ai/intent] GROQ_API_KEY is not configured.')
+        // aaa AI Provider Fallthrough aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        const aiProvider = process.env.AI_PROVIDER || 'groq'
+        const providerConfig = aiProvider === 'openrouter'
+            ? {
+                  apiKey: process.env.OPENROUTER_API_KEY,
+                  baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
+                  defaultModel: process.env.AI_MODEL || 'meta-llama/llama-3.3-70b-instruct',
+                  headers: {
+                      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://fogcatalog.com',
+                      'X-Title': 'FogCatalog',
+                  },
+              }
+            : {
+                  apiKey: process.env.GROQ_API_KEY,
+                  baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
+                  defaultModel: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+                  headers: {},
+              }
+
+        if (!providerConfig.apiKey) {
+            console.warn(`[excel-ai/intent] ${aiProvider.toUpperCase()} API key is not configured.`)
             return jsonWithQuota(buildAiServiceFallback(language))
         }
 
-        const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
+        const model = providerConfig.defaultModel
 
-        const groqController = new AbortController()
-        const groqTimeout = setTimeout(() => groqController.abort(), 15_000)
+        const aiController = new AbortController()
+        const aiTimeout = setTimeout(() => aiController.abort(), 15_000)
 
-        // Build request body a tools mode or legacy JSON mode
+        // Build request body — tools mode or legacy JSON mode
         const systemPrompt = buildSystemPrompt(language, { useTools })
         const userPrompt = buildUserPrompt(parsedRequest.data, parsedRequest.data.history)
         const messages = [
@@ -224,7 +241,7 @@ export async function POST(request: NextRequest) {
             { role: 'user' as const, content: userPrompt },
         ]
 
-        const groqBody: Record<string, unknown> = {
+        const requestBody: Record<string, unknown> = {
             model,
             temperature: 0.1,
             max_tokens: 1024,
@@ -232,33 +249,37 @@ export async function POST(request: NextRequest) {
         }
 
         if (useTools) {
-            groqBody.tools = buildGroqTools(language)
-            groqBody.tool_choice = 'auto'
-            groqBody.parallel_tool_calls = false
+            requestBody.tools = buildGroqTools(language)
+            requestBody.tool_choice = 'auto'
+            requestBody.parallel_tool_calls = false
         } else {
-            groqBody.response_format = { type: 'json_object' }
+            requestBody.response_format = { type: 'json_object' }
         }
 
         let groqResponse: Response
         try {
-            groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            const fetchHeaders: Record<string, string> = {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${providerConfig.apiKey}`,
+            }
+            for (const [k, v] of Object.entries(providerConfig.headers)) {
+                fetchHeaders[k] = v
+            }
+            groqResponse = await fetch(providerConfig.baseUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${groqApiKey}`,
-                },
-                signal: groqController.signal,
-                body: JSON.stringify(groqBody),
+                headers: fetchHeaders,
+                signal: aiController.signal,
+                body: JSON.stringify(requestBody),
             })
         } catch (fetchError) {
             if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
-                console.warn('[excel-ai/intent] Groq request timed out (15s)')
+                console.warn(`[excel-ai/intent] ${aiProvider} request timed out (15s)`)
             } else {
-                console.warn('[excel-ai/intent] Groq fetch error:', fetchError)
+                console.warn(`[excel-ai/intent] ${aiProvider} fetch error:`, fetchError)
             }
             return jsonWithQuota(buildAiServiceFallback(language))
         } finally {
-            clearTimeout(groqTimeout)
+            clearTimeout(aiTimeout)
         }
 
         if (!groqResponse.ok) {

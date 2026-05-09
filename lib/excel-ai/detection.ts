@@ -231,8 +231,8 @@ export function extractUserNameFromMessage(message: string): string | null {
     if (!trimmed) return null
 
     const patterns = [
-        /(?:benim adim|adim)\s+([a-zA-ZÇĞİÖŞÜçğıöşü]{2,40})/i,
-        /(?:my name is|i am)\s+([a-zA-ZÇĞİÖŞÜçğıöşü]{2,40})/i,
+        /(?:benim ad[ıi]m|ad[ıi]m)\s+([a-zA-ZÇĞİÖŞÜçğıöşü]{2,40})/i,
+        /(?:my name is|i am|i'm)\s+([a-zA-ZÇĞİÖŞÜçğıöşü]{2,40})/i,
     ]
 
     for (const pattern of patterns) {

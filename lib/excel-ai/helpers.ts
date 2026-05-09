@@ -54,7 +54,11 @@ export function extractTopKeywords(productNames: string[]): string[] {
 }
 
 // Scope Resolution
-export const SELECTED_SCOPE_TOKENS = ['secili', 'isaretli', 'checked', 'selected'] as const
+export const SELECTED_SCOPE_TOKENS = [
+    'secili', 'isaretli', 'checked', 'selected',
+    'bu urune', 'bu urunu', 'bu urunun', 'buna', 'suna', 'su urune',
+    'this product', 'this one', 'this item',
+] as const
 export const ALL_SCOPE_TOKENS = ['tum', 'hepsi', 'hepsini', 'all', 'everything'] as const
 
 export function resolveScopeFromMessage(message: string): 'selected' | 'currentPage' | 'all' {
@@ -78,7 +82,7 @@ export const UNSUPPORTED_CAPABILITY_PATTERNS = [
 export function buildUserNoteLine(profile: CatalogProfile | null, language: Language): string {
     if (!profile || profile.totalProducts === 0) {
         return language === 'tr'
-            ? 'Kullanici notu: Katalog verin arttikca daha hedefli oneriler verebilirim.'
+            ? 'Kullanıcı notu: Katalog veriniz arttıkça daha hedefli öneriler verebilirim.'
             : 'User note: As your catalog grows, I can provide more tailored guidance.'
     }
 
@@ -87,12 +91,12 @@ export function buildUserNoteLine(profile: CatalogProfile | null, language: Lang
 
     if (language === 'tr') {
         if (topCategory && topKeyword) {
-            return `Kullanici notu: Katalogunda ${topCategory} kategorisi ve ${topKeyword} odakli urunler one cikiyor.`
+            return `Kullanıcı notu: Katalogunda ${topCategory} kategorisi ve ${topKeyword} odaklı ürünler öne çıkıyor.`
         }
         if (topCategory) {
-            return `Kullanici notu: Katalogunda en yogun kategori ${topCategory}.`
+            return `Kullanıcı notu: Katalogunda en yoğun kategori ${topCategory}.`
         }
-        return `Kullanici notu: Katalogunda ${profile.totalProducts} urun bulunuyor.`
+        return `Kullanıcı notu: Katalogunda ${profile.totalProducts} ürün bulunuyor.`
     }
 
     if (topCategory && topKeyword) {

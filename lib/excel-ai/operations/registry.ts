@@ -591,7 +591,7 @@ export function buildFewShotExamples(language: Language): string {
             const json = JSON.stringify({
                 mode: 'intent',
                 intent: { ...ex.output, reason: 'few-shot example' },
-                assistantMessage: language === 'tr' ? 'Onizleme hazir.' : 'Preview ready.',
+                assistantMessage: language === 'tr' ? 'Önizleme hazır.' : 'Preview ready.',
             })
             lines.push(`User: ${userText}`)
             lines.push(`Assistant: ${json}`)

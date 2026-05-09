@@ -241,6 +241,7 @@ export function ExcelChatPanel({
                         ? errorMessage || "Uygulama sırasında hata oluştu. Komutu daraltıp tekrar deneyebilirsin."
                         : errorMessage || "Failed to apply intent. Try narrowing the command and retry.",
             })
+            setPendingIntent(null)
         } finally {
             setIsApplying(false)
         }
