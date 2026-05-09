@@ -31,6 +31,7 @@ const INITIAL_STATE: PdfProgressState = {
 interface PdfProgressModalProps {
     state: PdfProgressState
     onCancel?: () => void
+    onDismiss?: () => void
     /** i18n translation function – fallback strings embedded */
     t?: (key: string, params?: Record<string, unknown>) => string
 }
@@ -62,7 +63,7 @@ const PHASE_ICONS: Record<PdfExportPhase, React.ReactNode> = {
     cancelled: <X className="h-6 w-6 text-orange-500" />,
 }
 
-export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) {
+export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressModalProps) {
     const open = state.phase !== "idle"
     const canClose = state.phase === "done" || state.phase === "error" || state.phase === "cancelled"
     const canCancel = state.phase === "preparing" || state.phase === "rendering" || state.phase === "processing"
@@ -140,6 +141,11 @@ export function PdfProgressModal({ state, onCancel, t }: PdfProgressModalProps) 
                         {canCancel && onCancel && (
                             <Button variant="outline" size="sm" onClick={onCancel}>
                                 {tr(t, "common.cancel", "İptal")}
+                            </Button>
+                        )}
+                        {canCancel && onDismiss && (
+                            <Button variant="secondary" size="sm" onClick={onDismiss}>
+                                {tr(t, "pdf.continueInBackground", "Arka planda sürdür")}
                             </Button>
                         )}
                         {canClose && onCancel && (

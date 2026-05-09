@@ -38,15 +38,26 @@ export function usePdfExport({
     const [isExporting, setIsExporting] = useState(false)
     const [pdfProgress, setPdfProgress] = useState<PdfProgressState>(PDF_PROGRESS_INITIAL_STATE)
     const cancelledRef = useRef(false)
+    const dismissedRef = useRef(false)
     const activeJobIdRef = useRef<string | null>(null)
 
     const setPhase = useCallback((phase: PdfExportPhase, extra?: Partial<PdfProgressState>) => {
+        if (dismissedRef.current && phase !== "done" && phase !== "error" && phase !== "cancelled") {
+            return
+        }
         setPdfProgress(prev => ({ ...prev, phase, ...extra }))
     }, [])
 
     const resetProgress = useCallback(() => {
         setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
         cancelledRef.current = false
+        dismissedRef.current = false
+    }, [])
+
+    const dismissPdfModal = useCallback(() => {
+        dismissedRef.current = true
+        setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
+        toast.info("PDF arka planda hazırlanıyor.")
     }, [])
 
     const cancelExport = useCallback(() => {
@@ -74,6 +85,7 @@ export function usePdfExport({
     const handleDownloadPDF = useCallback(async () => {
         try {
             cancelledRef.current = false
+            dismissedRef.current = false
 
             if (!canExport()) {
                 onShowUpgradeModal()
@@ -107,9 +119,13 @@ export function usePdfExport({
                 lastPercent = Math.max(lastPercent, latestJob.progress || 0)
 
                 if (latestJob.status === "completed") {
-                    setPhase("saving", { percent: 96, estimatedTimeLeft: "" })
+                    if (!dismissedRef.current) {
+                        setPhase("saving", { percent: 96, estimatedTimeLeft: "" })
+                    }
                     const share = await getPdfExportShareLink(job.id)
+                    const wasDismissed = dismissedRef.current
                     activeJobIdRef.current = null
+                    dismissedRef.current = false
                     setPhase("done", {
                         percent: 100,
                         estimatedTimeLeft: "",
@@ -117,7 +133,9 @@ export function usePdfExport({
                         shareUrl: share.url,
                     })
                     toast.success("PDF hazırlandı.")
-                    window.open(share.url, "_blank", "noopener,noreferrer")
+                    if (!wasDismissed) {
+                        window.open(share.url, "_blank", "noopener,noreferrer")
+                    }
                     refreshUser()
                     return
                 }
@@ -133,13 +151,15 @@ export function usePdfExport({
 
                 const elapsedSeconds = Math.max(1, (Date.now() - startedAt) / 1000)
                 const estimatedTotalSeconds = lastPercent > 15 ? elapsedSeconds / (lastPercent / 100) : 90
-                setPdfProgress({
-                    phase: "processing",
-                    currentPage: latestJob.page_count || 0,
-                    totalPages: latestJob.page_count || 0,
-                    percent: Math.min(95, Math.max(15, lastPercent)),
-                    estimatedTimeLeft: formatTimeLeft(Math.max(5, estimatedTotalSeconds - elapsedSeconds)),
-                })
+                if (!dismissedRef.current) {
+                    setPdfProgress({
+                        phase: "processing",
+                        currentPage: latestJob.page_count || 0,
+                        totalPages: latestJob.page_count || 0,
+                        percent: Math.min(95, Math.max(15, lastPercent)),
+                        estimatedTimeLeft: formatTimeLeft(Math.max(5, estimatedTotalSeconds - elapsedSeconds)),
+                    })
+                }
 
                 await new Promise(resolve => setTimeout(resolve, 2000))
             }
@@ -154,5 +174,5 @@ export function usePdfExport({
         }
     }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase])
 
-    return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal }
+    return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal, dismissPdfModal }
 }

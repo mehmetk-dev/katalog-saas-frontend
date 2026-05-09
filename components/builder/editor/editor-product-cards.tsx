@@ -2,9 +2,9 @@
 
 import React, { useMemo, useCallback } from "react"
 import { GripVertical, Trash2, CheckSquare, Package } from "lucide-react"
-import NextImage from "next/image"
 
 import { Button } from "@/components/ui/button"
+import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import type { Product } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
@@ -39,15 +39,16 @@ export const ProductCard = React.memo(function ProductCard({
                     : "border-slate-100 dark:border-slate-800 hover:shadow-md"
             )}>
                 <div className="absolute inset-0">
-                    <NextImage
-                        src={product.image_url || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                        className={cn(
+                    <ProductImageGallery
+                        product={product}
+                        className="w-full h-full"
+                        imageClassName={cn(
                             "object-cover transition-all duration-300",
                             isSelected ? "scale-105" : "group-hover:scale-110"
                         )}
+                        showNavigation={false}
+                        showImageCount={false}
+                        interactive={false}
                     />
                     <div className={cn(
                         "absolute inset-0 transition-opacity duration-200",
@@ -128,7 +129,13 @@ export const SortableProductItem = React.memo(function SortableProductItem({
                 <GripVertical className="w-3.5 h-3.5" />
             </div>
             <div className="w-8 h-8 rounded shrink-0 border border-border overflow-hidden relative">
-                <NextImage src={product.image_url || "/placeholder.svg"} alt={product.name} fill sizes="32px" className="object-cover" />
+                <ProductImageGallery
+                    product={product}
+                    className="w-full h-full"
+                    showNavigation={false}
+                    showImageCount={false}
+                    interactive={false}
+                />
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-bold truncate text-foreground">{product.name}</p>

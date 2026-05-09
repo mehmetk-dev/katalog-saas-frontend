@@ -197,6 +197,7 @@ function BuilderContent() {
           ? handlers.closePdfModal
           : handlers.cancelExport
         }
+        onDismiss={handlers.dismissPdfModal}
         t={handlers.t}
       />
 

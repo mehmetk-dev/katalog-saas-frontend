@@ -23,6 +23,7 @@ interface ProductImageGalleryProps {
     interactive?: boolean // Tıklama ile lightbox aç
     aspectRatio?: string // Özel aspect ratio (örn: "aspect-square")
     priority?: boolean // İlk görseli anında (lazy-load olmadan) yükle
+    showImageCount?: boolean // Birden fazla görsel badge'i göster
 }
 
 /**
@@ -40,7 +41,8 @@ export function ProductImageGallery({
     showNavigation = true,
     interactive = true,
     aspectRatio,
-    priority = false
+    priority = false,
+    showImageCount = true
 }: ProductImageGalleryProps) {
     // PERF: Auto-priority for first N images — no template changes needed
     const autoEager = React.useMemo(() => {
@@ -201,7 +203,7 @@ export function ProductImageGallery({
                 )}
 
                 {/* Birden fazla görsel badge'i (her zaman görünür) */}
-                {hasMultiple && (
+                {hasMultiple && showImageCount && (
                     <div className="absolute top-1 right-1 z-10 px-1.5 py-0.5 rounded bg-black/50 text-white text-[10px] font-medium">
                         {currentIndex + 1}/{allImages.length}
                     </div>
