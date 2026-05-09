@@ -155,7 +155,10 @@ const common = {
             phraseCancelled: "PDF indirme iptal edildi",
             modalTitle: "PDF İndirme",
             modalDesc: "Katalog PDF olarak hazırlanıyor",
-            estimated: "Tahmini: {time}"
+            estimated: "Tahmini: {time}",
+            pdfExportTitle: "PDF Export",
+            downloadButton: "İndir",
+            preparingLink: "Hazırlanıyor"
         }
     },
     en: {
@@ -313,7 +316,10 @@ const common = {
             phraseCancelled: "PDF download cancelled",
             modalTitle: "PDF Download",
             modalDesc: "Preparing catalog as PDF",
-            estimated: "Estimated: {time}"
+            estimated: "Estimated: {time}",
+            pdfExportTitle: "PDF Export",
+            downloadButton: "Download",
+            preparingLink: "Preparing"
         }
     },
 } as const

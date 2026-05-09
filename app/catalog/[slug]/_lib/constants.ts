@@ -16,28 +16,9 @@ export const DEFAULT_PRIMARY_COLOR = 'rgba(124, 58, 237, 1)'
 
 // -- Page size per layout --------------------------------------------------
 
-/** Layouts with a fixed number of products per page */
-const STATIC_PAGE_SIZES: Record<string, number> = {
-    'classic-catalog': 3,
-    'compact-list': 10,
-    'retail': 12,
-    'minimalist': 4,
-    'fashion-lookbook': 5,
-    'industrial': 8,
-    'showcase': 5,
-    'luxury': 6,
-    'product-tiles': 6,
-    'catalog-pro': 4,
-}
-
-/** Layouts whose page size depends on the column count */
-const DYNAMIC_PAGE_SIZES: Record<string, (columns: number) => number> = {
-    'magazine': (columns) => columns === 2 ? 5 : 7,
-}
+import { getItemsPerPage } from "@/lib/constants"
 
 /** Returns how many products fit on a single page for the given layout. */
 export function getPageSize(layout: string, columnsPerRow: number): number {
-    const dynamicSizer = DYNAMIC_PAGE_SIZES[layout]
-    if (dynamicSizer) return dynamicSizer(columnsPerRow)
-    return STATIC_PAGE_SIZES[layout] ?? columnsPerRow * 3
+    return getItemsPerPage(layout, columnsPerRow)
 }

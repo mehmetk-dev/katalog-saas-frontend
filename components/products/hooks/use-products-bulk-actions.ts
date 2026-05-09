@@ -82,7 +82,7 @@ export function useProductsBulkActions({
     } else {
       setProducts([savedProduct, ...products])
       adjustMetadataTotal(1)
-      void refreshUser()
+      refreshUser().catch(() => undefined)
     }
     setShowProductModal(false)
     setEditingProduct(null)

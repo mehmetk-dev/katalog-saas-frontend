@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import type { Product } from "@/lib/actions/products"
 import type { CatalogPage } from "./catalog-preview"
+import { getItemsPerPage } from "@/lib/constants"
 
 interface UseCatalogPagesOptions {
   products: Product[]
@@ -26,25 +27,6 @@ interface CategorySection {
   products: Product[]
   startPage: number
   productPageCount: number
-}
-
-function getItemsPerPage(layout: string, columnsPerRow?: number): number {
-  const layoutKey = layout?.toLowerCase() || 'modern-grid'
-
-  if (layoutKey === 'classic-list' || layoutKey === 'classic-catalog') return 3
-  if (layoutKey === 'minimal-gallery' || layoutKey === 'minimalist') return 4
-  if (layoutKey === 'magazine') return 1 + (columnsPerRow || 3) * 2
-  if (layoutKey === 'showcase' || layoutKey === 'fashion-lookbook') return 5
-  if (layoutKey === 'industrial') return 8
-  if (layoutKey === 'luxury') return 6
-  if (layoutKey === 'compact-list' || layoutKey === 'list') return 10
-  if (layoutKey === 'retail') return (columnsPerRow || 3) * 5
-  if (layoutKey === 'catalog-pro') return (columnsPerRow || 3) * 3
-  if (layoutKey === 'product-tiles') return 6
-  if (columnsPerRow === 2) return 6
-  if (columnsPerRow === 3) return 9
-  if (columnsPerRow === 4) return 12
-  return 9
 }
 
 export function useCatalogPages({

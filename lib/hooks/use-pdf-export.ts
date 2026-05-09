@@ -4,18 +4,19 @@ import { useState, useCallback, useRef } from "react"
 import { toast } from "sonner"
 import { type PdfProgressState, type PdfExportPhase, PDF_PROGRESS_INITIAL_STATE } from "@/components/ui/pdf-progress-modal"
 import {
-    cancelPdfExportJob,
-    createPdfExportJob,
-    getPdfExportJob,
-    getPdfExportShareLink,
-} from "@/lib/actions/pdf-exports"
+    clientCancelPdfExportJob,
+    clientCreatePdfExportJob,
+    clientGetPdfExportJob,
+    clientGetPdfExportShareLink,
+} from "@/lib/hooks/pdf-export-client-api"
+import { getPdfExportProgressDisplay, type PdfExportTrackingStage } from "@/lib/pdf-export-progress"
 
 interface UsePdfExportOptions {
     catalogId: string | null
     catalogName: string
     hasUnsavedChanges: boolean
     canExport: () => boolean
-    refreshUser: () => void
+    refreshUser: () => Promise<void>
     onSaveCatalog: () => Promise<string | null | void>
     onShowUpgradeModal: () => void
 }
@@ -64,7 +65,7 @@ export function usePdfExport({
         cancelledRef.current = true
         const activeJobId = activeJobIdRef.current
         if (activeJobId) {
-            void cancelPdfExportJob(activeJobId).catch(() => undefined)
+            void clientCancelPdfExportJob(activeJobId).catch(() => undefined)
         }
         activeJobIdRef.current = null
         setIsExporting(false)
@@ -107,36 +108,48 @@ export function usePdfExport({
                 return
             }
 
-            setPhase("processing", { percent: 12, estimatedTimeLeft: "~1 dk" })
-            const { job } = await createPdfExportJob(targetCatalogId, "standard")
+            setPhase("queued", {
+                percent: 0,
+                estimatedTimeLeft: "~1 dk",
+                stageLabel: "Sırada",
+                stageDescription: "PDF işi worker kuyruğuna alınıyor.",
+            })
+            const { job } = await clientCreatePdfExportJob(targetCatalogId, "standard")
             activeJobIdRef.current = job.id
 
             const startedAt = Date.now()
             let lastPercent = Math.max(15, job.progress || 0)
 
             while (!cancelledRef.current) {
-                const { job: latestJob } = await getPdfExportJob(job.id)
+                const { job: latestJob } = await clientGetPdfExportJob(job.id)
                 lastPercent = Math.max(lastPercent, latestJob.progress || 0)
+                const display = getPdfExportProgressDisplay(latestJob)
 
                 if (latestJob.status === "completed") {
                     if (!dismissedRef.current) {
-                        setPhase("saving", { percent: 96, estimatedTimeLeft: "" })
+                        setPhase("uploading", { percent: 96, estimatedTimeLeft: "", stageLabel: "Yükleniyor" })
                     }
-                    const share = await getPdfExportShareLink(job.id)
+                    const share = await clientGetPdfExportShareLink(job.id)
                     const wasDismissed = dismissedRef.current
                     activeJobIdRef.current = null
                     dismissedRef.current = false
-                    setPhase("done", {
-                        percent: 100,
-                        estimatedTimeLeft: "",
-                        downloadUrl: share.url,
-                        shareUrl: share.url,
-                    })
+                    if (wasDismissed) {
+                        setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
+                    } else {
+                        setPhase("done", {
+                            percent: 100,
+                            estimatedTimeLeft: "",
+                            stageLabel: "Hazır",
+                            stageDescription: "PDF hazır, indirebilirsin.",
+                            downloadUrl: share.url,
+                            shareUrl: share.url,
+                        })
+                    }
                     toast.success("PDF hazırlandı.")
                     if (!wasDismissed) {
                         window.open(share.url, "_blank", "noopener,noreferrer")
                     }
-                    refreshUser()
+                    refreshUser().catch(() => undefined)
                     return
                 }
 
@@ -153,11 +166,13 @@ export function usePdfExport({
                 const estimatedTotalSeconds = lastPercent > 15 ? elapsedSeconds / (lastPercent / 100) : 90
                 if (!dismissedRef.current) {
                     setPdfProgress({
-                        phase: "processing",
+                        phase: mapPdfStageToModalPhase(display.stage),
                         currentPage: latestJob.page_count || 0,
                         totalPages: latestJob.page_count || 0,
-                        percent: Math.min(95, Math.max(15, lastPercent)),
+                        percent: Math.min(95, Math.max(15, display.percent || lastPercent)),
                         estimatedTimeLeft: formatTimeLeft(Math.max(5, estimatedTotalSeconds - elapsedSeconds)),
+                        stageLabel: display.title,
+                        stageDescription: display.description,
                     })
                 }
 
@@ -175,4 +190,25 @@ export function usePdfExport({
     }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase])
 
     return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal, dismissPdfModal }
+}
+
+function mapPdfStageToModalPhase(stage: PdfExportTrackingStage): PdfExportPhase {
+    switch (stage) {
+        case "queued":
+            return "queued"
+        case "preparing":
+            return "preparing"
+        case "rendering":
+            return "rendering"
+        case "generating":
+            return "generating"
+        case "uploading":
+            return "uploading"
+        case "done":
+            return "done"
+        case "error":
+            return "error"
+        case "cancelled":
+            return "cancelled"
+    }
 }

@@ -26,7 +26,7 @@ interface UseCatalogActionsOptions {
     setIsDirty: (dirty: boolean) => void
     setIsPublished: (published: boolean) => void
     setHasUnpushedChanges: (unpushed: boolean) => void
-    refreshUser: () => void
+    refreshUser: () => Promise<void>
     t: (key: string, params?: Record<string, unknown>) => string
 }
 
@@ -143,7 +143,7 @@ export function useCatalogActions({
                         const newCatalog = await createCatalog(buildCatalogPayload(data))
                         setCurrentCatalogId(newCatalog.id)
                         toast.success(t('toasts.catalogCreated') as string)
-                        refreshUser()
+                        refreshUser().catch(() => undefined)
                         router.replace(`/dashboard/builder?id=${newCatalog.id}`)
                         resolve(newCatalog.id)
                     }

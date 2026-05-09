@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Bell, Check, CheckCheck, Trash2, ExternalLink, Package, Download, CreditCard, Sparkles, X } from "lucide-react"
+import { useState, useCallback, useMemo } from "react"
+import { Bell, Check, CheckCheck, Trash2, ExternalLink, Package, Download, CreditCard, Sparkles, X, Loader2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -19,6 +20,9 @@ import {
     useDeleteNotification,
     useDeleteAllNotifications,
 } from "@/lib/hooks/use-notifications"
+import { useCancelPdfExportJob, usePdfExportJobs, usePdfExportShareLink } from "@/lib/hooks/use-pdf-export-jobs"
+import { getPdfExportProgressDisplay } from "@/lib/pdf-export-progress"
+import type { PdfExportJob } from "@/lib/actions/pdf-exports"
 
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
@@ -36,6 +40,11 @@ export function NotificationDropdown() {
     const markAllAsRead = useMarkAllNotificationsAsRead()
     const deleteOne = useDeleteNotification()
     const deleteAll = useDeleteAllNotifications()
+    const { data: pdfExportData } = usePdfExportJobs()
+    const pdfExportJob = useMemo(() => selectVisiblePdfExportJob(pdfExportData?.jobs ?? []), [pdfExportData?.jobs])
+    const pdfExportDisplay = pdfExportJob ? getPdfExportProgressDisplay(pdfExportJob) : null
+    const pdfShareLink = usePdfExportShareLink(pdfExportJob?.status === "completed" ? pdfExportJob.id : null)
+    const cancelPdfExport = useCancelPdfExportJob()
 
     const handleMarkAsRead = (id: string) => markAsRead.mutate(id)
     const handleMarkAllAsRead = () => markAllAsRead.mutate()
@@ -118,6 +127,19 @@ export function NotificationDropdown() {
 
                 {/* Notifications List */}
                 <ScrollArea className="h-[320px]">
+                    {pdfExportJob && pdfExportDisplay && (
+                        <PdfExportStatusCard
+                            job={pdfExportJob}
+                            title={pdfExportDisplay.title}
+                            description={pdfExportDisplay.description}
+                            percent={pdfExportDisplay.percent}
+                            isActive={pdfExportDisplay.isActive}
+                            downloadUrl={pdfShareLink.data?.url}
+                            isLoadingLink={pdfShareLink.isFetching}
+                            onCancel={() => cancelPdfExport.mutate(pdfExportJob.id)}
+                        />
+                    )}
+
                     {isLoading && notifications.length === 0 ? (
                         <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
                             {t("settings.notifications.loading")}
@@ -220,5 +242,87 @@ export function NotificationDropdown() {
                 )}
             </DropdownMenuContent>
         </DropdownMenu>
+    )
+}
+
+function selectVisiblePdfExportJob(jobs: PdfExportJob[]): PdfExportJob | null {
+    const active = jobs.find((job) => job.status === "queued" || job.status === "processing")
+    if (active) return active
+
+    const recentCutoff = Date.now() - 2 * 60 * 60 * 1000
+    return jobs.find((job) => {
+        if (!["completed", "failed", "cancelled"].includes(job.status)) return false
+        return new Date(job.updated_at || job.created_at).getTime() >= recentCutoff
+    }) ?? null
+}
+
+function PdfExportStatusCard({
+    job,
+    title,
+    description,
+    percent,
+    isActive,
+    downloadUrl,
+    isLoadingLink,
+    onCancel,
+}: {
+    job: PdfExportJob
+    title: string
+    description: string
+    percent: number
+    isActive: boolean
+    downloadUrl?: string
+    isLoadingLink: boolean
+    onCancel: () => void
+}) {
+    const { t } = useTranslation()
+    const isFailed = job.status === "failed"
+    const isCompleted = job.status === "completed"
+
+    return (
+        <div className="border-b bg-violet-50/60 p-3 dark:bg-violet-950/20">
+            <div className="flex gap-3">
+                <div className="mt-0.5 shrink-0">
+                    {isActive ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
+                    ) : isFailed ? (
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                    ) : (
+                        <Download className="h-4 w-4 text-green-600" />
+                    )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-foreground">{t("common.pdf.pdfExportTitle")}</p>
+                            <p className="text-xs font-medium text-violet-700 dark:text-violet-300">{title}</p>
+                        </div>
+                        <span className="shrink-0 text-xs font-bold text-violet-700 dark:text-violet-300">
+                            {Math.round(percent)}%
+                        </span>
+                    </div>
+                    <Progress value={percent} className="h-2 bg-white/70 dark:bg-slate-900/60" />
+                    <p className="text-xs text-muted-foreground">{description}</p>
+                    <div className="flex items-center justify-end gap-2">
+                        {isActive && (
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onCancel}>
+                                {t("common.cancel")}
+                            </Button>
+                        )}
+                        {isCompleted && (
+                            <Button
+                                variant="default"
+                                size="sm"
+                                className="h-7 text-xs"
+                                disabled={!downloadUrl || isLoadingLink}
+                                onClick={() => downloadUrl && window.open(downloadUrl, "_blank", "noopener,noreferrer")}
+                            >
+                                {isLoadingLink ? t("common.pdf.preparingLink") : t("common.pdf.downloadButton")}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }

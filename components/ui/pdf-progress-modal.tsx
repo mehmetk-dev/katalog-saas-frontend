@@ -7,7 +7,18 @@ import { Copy, ExternalLink, FileDown, Loader2, CheckCircle2, XCircle, X } from 
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
-export type PdfExportPhase = "idle" | "preparing" | "rendering" | "processing" | "saving" | "done" | "error" | "cancelled"
+export type PdfExportPhase =
+    | "idle"
+    | "queued"
+    | "preparing"
+    | "rendering"
+    | "generating"
+    | "uploading"
+    | "processing"
+    | "saving"
+    | "done"
+    | "error"
+    | "cancelled"
 
 export interface PdfProgressState {
     phase: PdfExportPhase
@@ -15,6 +26,8 @@ export interface PdfProgressState {
     totalPages: number
     percent: number
     estimatedTimeLeft: string
+    stageLabel?: string
+    stageDescription?: string
     errorMessage?: string
     downloadUrl?: string
     shareUrl?: string
@@ -54,8 +67,11 @@ function tr(t: PdfProgressModalProps["t"], key: string, fallback: string, params
 /** Static phase icons — safe to define at module scope (no props dependency) */
 const PHASE_ICONS: Record<PdfExportPhase, React.ReactNode> = {
     idle: null,
+    queued: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
     preparing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
     rendering: <FileDown className="h-6 w-6 text-violet-500 animate-pulse" />,
+    generating: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
+    uploading: <Loader2 className="h-6 w-6 animate-spin text-green-500" />,
     processing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
     saving: <Loader2 className="h-6 w-6 animate-spin text-green-500" />,
     done: <CheckCircle2 className="h-6 w-6 text-green-500" />,
@@ -66,10 +82,13 @@ const PHASE_ICONS: Record<PdfExportPhase, React.ReactNode> = {
 export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressModalProps) {
     const open = state.phase !== "idle"
     const canClose = state.phase === "done" || state.phase === "error" || state.phase === "cancelled"
-    const canCancel = state.phase === "preparing" || state.phase === "rendering" || state.phase === "processing"
+    const canCancel = state.phase === "queued" || state.phase === "preparing" || state.phase === "rendering" || state.phase === "generating" || state.phase === "uploading" || state.phase === "processing"
 
     const phaseLabels: Record<PdfExportPhase, string> = {
         idle: "",
+        queued: tr(t, "pdf.phraseQueued", "Sırada"),
+        generating: tr(t, "pdf.phraseGenerating", "PDF oluşturuluyor"),
+        uploading: tr(t, "pdf.phraseUploading", "Yükleniyor"),
         preparing: tr(t, "pdf.phrasePreparing", "Katalog hazırlanıyor..."),
         rendering: tr(t, "pdf.phraseRendering", "Sayfa {current} / {total} işleniyor...", { current: state.currentPage, total: state.totalPages }),
         processing: tr(t, "pdf.phraseProcessing", "PDF dosyası oluşturuluyor..."),
@@ -78,6 +97,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
         error: tr(t, "pdf.phraseError", "PDF oluşturulamadı"),
         cancelled: tr(t, "pdf.phraseCancelled", "PDF indirme iptal edildi"),
     }
+    const activePhase = state.phase === "queued" || state.phase === "preparing" || state.phase === "rendering" || state.phase === "generating" || state.phase === "uploading" || state.phase === "processing" || state.phase === "saving"
 
     return (
         <Dialog open={open} onOpenChange={() => { /* controlled externally */ }}>
@@ -105,11 +125,14 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                         state.phase === "error" && "text-red-600",
                         state.phase === "cancelled" && "text-orange-600",
                     )}>
-                        {phaseLabels[state.phase]}
+                        {state.stageLabel || phaseLabels[state.phase]}
                     </p>
+                    {state.stageDescription && (
+                        <p className="text-center text-xs text-muted-foreground">{state.stageDescription}</p>
+                    )}
 
                     {/* Progress bar */}
-                    {(state.phase === "preparing" || state.phase === "rendering" || state.phase === "processing" || state.phase === "saving") && (
+                    {activePhase && (
                         <div className="space-y-2">
                             <Progress
                                 value={state.percent}

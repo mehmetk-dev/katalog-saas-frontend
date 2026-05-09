@@ -27,7 +27,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
     try {
         await updateJob(jobId, {
             status: 'processing',
-            progress: 10,
+            progress: 15,
             attempts: job.attemptsMade + 1,
             started_at: new Date().toISOString(),
         });
@@ -42,7 +42,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
         });
 
         await page.goto(renderUrl, { waitUntil: 'networkidle', timeout: 120_000 });
-        await updateJob(jobId, { progress: 45 });
+        await updateJob(jobId, { progress: 35 });
 
         await page.waitForFunction(
             () => (window as typeof window & { __PDF_EXPORT_READY?: boolean }).__PDF_EXPORT_READY === true,
@@ -50,7 +50,9 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             { timeout: 120_000 },
         );
         const pageCount = await page.locator('.catalog-page-wrapper').count().catch(() => null);
-        await updateJob(jobId, { progress: 80, page_count: pageCount });
+        await updateJob(jobId, { progress: 65, page_count: pageCount });
+
+        await updateJob(jobId, { progress: 75 });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -60,6 +62,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
         });
 
         const relativePath = getPdfExportRelativePath(userId, jobId);
+        await updateJob(jobId, { progress: 90 });
         const { size } = await writePdfExportFile(relativePath, pdfBuffer);
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 

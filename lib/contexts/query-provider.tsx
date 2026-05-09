@@ -18,6 +18,8 @@ export const queryKeys = {
 
     // Notifications
     notifications: (limit?: number) => ["notifications", limit ?? 20] as const,
+    pdfExports: () => ["pdf-exports"] as const,
+    pdfExportShareLink: (id: string) => ["pdf-exports", id, "share-link"] as const,
 
     // User (for consistency - actual user data is in UserContext)
     user: () => ["user"] as const,
