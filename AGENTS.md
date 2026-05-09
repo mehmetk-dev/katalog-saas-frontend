@@ -85,11 +85,14 @@
 | **Prometheus** | Metrics collection |
 | **Resend** | Transactional emails |
 
-### Opsiyonel
+### Queue & Cache
 
 | Teknoloji | Kullanım Amacı |
 |-----------|----------------|
-| **Redis (IORedis)** | Caching (opsiyonel) |
+| **Redis (IORedis)** | Backend cache; PDF export için BullMQ queue altyapısı |
+| **BullMQ** | Asenkron PDF export job kuyruğu |
+| **Playwright** | Worker servisinde server-side PDF render |
+| **Cloudflare R2 / S3 uyumlu storage** | Üretilen PDF dosyalarının saklanması ve signed URL ile paylaşımı |
 
 ---
 
@@ -115,6 +118,23 @@
 │  └──────────────────────────────────────────────────────────────────────┘         │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+### 🚀 Production Deployment Topolojisi
+
+> **Kaynak gerçek:** Proje production'da geliştirici makinesinden değil, sunucuda **Coolify** üzerinden çalışır. AI assistant'lar deploy kararlarını buna göre vermelidir.
+
+| Servis | Production Çalışma Şekli | Not |
+|--------|--------------------------|-----|
+| **Frontend / Next.js** | Coolify üzerinde **Nixpacks** ile deploy edilir | `next.config.mjs` içinde standalone output Nixpacks/Coolify için kapalıdır. Root `Dockerfile` alternatif Docker senaryosu içindir. |
+| **Backend / Express API** | Ayrı backend servisi olarak çalışır | Port `4000`; frontend server actions `NEXT_PUBLIC_API_URL` / internal `API_URL` üzerinden bu servise gider. |
+| **PDF Export Worker** | Backend kaynak kodundan ayrı worker servisi olarak çalışır | Dockerfile yolu: `backend/Dockerfile.worker`. Playwright image kullanır, BullMQ kuyruğunu dinler. |
+| **Database & Auth** | Managed Supabase | PostgreSQL, Supabase Auth ve RLS production veri kaynağıdır. Local migration dosyaları schema source'u gibi okunur ama canlı DB Supabase'dedir. |
+| **Redis** | Backend/worker tarafından kullanılan ayrı servis | Backend cache ve PDF export queue için kullanılır. PDF export kuyruğu için `REDIS_URL` production'da gereklidir. |
+| **PDF Storage** | S3 uyumlu R2 storage | Worker PDF üretir, storage'a yazar, backend signed URL üretir. |
+
+Üretimde mimari **tek container app** değildir: Next.js frontend, Express backend, Redis ve PDF worker ayrı süreç/servis olarak düşünülmelidir. Bu ayrımı bozacak refactor veya deploy önerileri projeyi yanlış yöne götürür.
 
 ---
 
@@ -436,6 +456,7 @@
 │   ├── auth.ts                            # /api/v1/auth/*
 │   ├── admin.ts                           # /api/v1/admin/*
 │   ├── notifications.ts                   # /api/v1/notifications/*
+│   ├── pdf-exports.ts                     # /api/v1/pdf-exports/* (async PDF jobs)
 │   └── health.ts                          # /health (liveness probe)
 │
 ├── 📂 controllers/                        ← İş Mantığı (Business Logic)
@@ -460,7 +481,8 @@
 │   │   └── types.ts                       #   TypeScript tipleri
 │   │
 │   ├── users.ts                           # Kullanıcı profil & plan yönetimi
-│   └── notifications.ts                   # Bildirim CRUD
+│   ├── notifications.ts                   # Bildirim CRUD
+│   └── pdf-exports.ts                     # PDF export job create/status/cancel/share-link
 │
 ├── 📂 middlewares/                        ← Ara Katmanlar
 │   ├── auth.ts                            # JWT doğrulama (Supabase verify)
@@ -469,8 +491,15 @@
 ├── 📂 services/                           ← Dış Servis Entegrasyonları
 │   ├── supabase.ts                        # Supabase Admin client
 │   ├── cloudinary.ts                      # Cloudinary upload/delete
-│   ├── redis.ts                           # Redis cache (opsiyonel)
+│   ├── redis.ts                           # Redis cache
+│   ├── pdf-export-queue.ts                # BullMQ queue (Redis)
+│   ├── pdf-export-storage.ts              # S3/R2 PDF storage
+│   ├── pdf-export-token.ts                # Worker render token
 │   └── activity-logger.ts                 # Activity log servisi
+│
+├── 📂 workers/                            ← Ayrı production worker servisleri
+│   ├── pdf-export-worker.ts               # Playwright ile PDF render + queue consumer
+│   └── pdf-export-cleanup.ts              # Süresi dolan PDF export kayıtlarını temizler
 │
 ├── 📂 types/
 │   └── auth.ts                            # Auth type tanımları
@@ -484,6 +513,7 @@
 ├── package.json                           # Dependencies (express, helmet, cors...)
 ├── tsconfig.json                          # TypeScript config
 ├── Dockerfile                             # Backend container
+├── Dockerfile.worker                      # PDF export worker container (Playwright)
 ├── .env / .env.example                    # Environment variables
 └── dist/                                  # ⛔ Build output (git-ignored)
 ```
@@ -556,8 +586,10 @@
 │   └── instrumentation.ts                 # Sentry server instrumentation
 │
 ├── 🐳 DevOps & Deploy
-│   ├── Dockerfile                         # Frontend container
-│   ├── docker-compose.yml                 # Full stack orchestration
+│   ├── Dockerfile                         # Frontend container (alternatif; production ana yol Nixpacks/Coolify)
+│   ├── backend/Dockerfile                 # Express API container
+│   ├── backend/Dockerfile.worker          # PDF export worker container
+│   ├── docker-compose.yml                 # Full stack orchestration referansı
 │   └── .dockerignore
 │
 ├── 🔐 Environment
@@ -581,19 +613,16 @@
 │   └── .gitignore
 │
 └── 📚 Dokümantasyon
-    ├── AGENTS.md                          # ⭐ Bu dosya — kapsamlı proje referansı
-    ├── README.md                          # Proje tanıtım
-    ├── AI_CONTEXT.md                      # AI context özet
-    ├── ENVIRONMENT_SETUP.md               # Ortam kurulum rehberi
-    ├── LOCAL_DB_QUICKSTART.md             # Veritabanı hızlı başlangıç
-    ├── SUPABASE_EMAIL_SETUP.md            # Email ayarları
-    ├── TROUBLESHOOTING_CLOUDINARY.md      # Cloudinary sorun giderme
-    ├── PERFORMANCE_OPTIMIZATIONS.md       # Performans notları
-    ├── BUILDER_PERFORMANCE_EXECUTION_PLAN.md
-    ├── CACHE_ARCHITECTURE_EXPLANATION.md
-    ├── PROJECT_AUDIT_AND_ROADMAP.md       # Audit & yol haritası
-    ├── WORK_LOG.md                        # Geliştirme günlüğü
-    └── spaghetti-report.md / storytelling-catalog.md
+    ├── AGENTS.md                          # ⭐ Bu dosya — kapsamlı AI proje referansı
+    ├── CLAUDE.md                          # Claude için aynı proje referansı
+    ├── README.md                          # Proje tanıtım ve hızlı başlangıç
+    ├── AI_CATALOG_DESIGNER_SPEC.md        # Planlanan AI katalog tasarımcısı speği
+    ├── PDF_SERVER_EXPORT_PLAN.md          # Server-side PDF export planı
+    ├── CODEBASE_DETAILED_AUDIT.md         # Detaylı kod tabanı audit'i
+    ├── SECURITY_PERFORMANCE_AUDIT.md      # Güvenlik/performans audit'i
+    ├── EXCEL_FEATURE_PROGRESS.md          # Excel özelliği ilerleme notları
+    ├── REACT_NATIVE_MOBILE_APP_PLAN.md    # Mobil app planı
+    └── reports/                           # Performans ve audit raporları
 ```
 
 ---
@@ -1153,8 +1182,24 @@ CLOUDINARY_API_KEY=xxx
 CLOUDINARY_API_SECRET=xxx
 CLOUDINARY_DELETED_FOLDER=deleted-images
 
-# Redis (optional)
+# Redis (cache için opsiyonel, PDF export queue için production'da gerekli)
 REDIS_URL=redis://default:xxx@host:port
+
+# PDF export worker / queue
+WORKER_EXPORT_SECRET=change-me
+PDF_EXPORT_RENDER_ORIGIN=http://frontend:3000
+PDF_EXPORT_WORKER_CONCURRENCY=1
+PDF_EXPORT_READY_TIMEOUT_MS=300000
+PDF_EXPORT_GOTO_TIMEOUT_MS=120000
+PDF_EXPORT_CLEANUP_INTERVAL_MS=3600000
+
+# R2 / S3 compatible PDF storage
+R2_ACCOUNT_ID=xxx
+R2_ACCESS_KEY_ID=xxx
+R2_SECRET_ACCESS_KEY=xxx
+R2_BUCKET=pdf-exports
+R2_ENDPOINT=https://xxx.r2.cloudflarestorage.com
+R2_PDF_EXPORT_PREFIX=pdf-exports
 
 # Security
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
@@ -1199,15 +1244,21 @@ npm run type-check
 
 1. **RLS Aktif:** Supabase'de Row Level Security etkin. Tüm sorgular user_id bazında filtrelenir.
 
-2. **Dual Architecture:** Frontend (Next.js) + Backend (Express) ayrı çalışır. Server actions backend'e API call yapar.
+2. **Production Coolify/Nixpacks:** Ana deploy sunucuda Coolify üzerinden yapılır. Frontend için Nixpacks yolu esastır; Dockerfile'lar alternatif/referans olarak düşünülmelidir.
 
-3. **Cloudinary Unsigned:** Upload'lar unsigned preset ile yapılır. Delete işlemleri backend'de (signed).
+3. **Multi-Service Architecture:** Frontend (Next.js), Backend (Express), Redis ve PDF Worker ayrı servislerdir. Server actions backend'e API call yapar; PDF export backend'den BullMQ kuyruğuna yazılır ve worker tarafından işlenir.
 
-4. **Büyük Dosyalar:** `catalog-editor.tsx`, `import-export-modal.tsx`, `translations.ts` çok büyük.
+4. **Supabase Production DB:** Canlı database Supabase'dedir. RLS aktiftir; migration dosyaları schema geçmişini gösterir ama deploy sırasında canlı Supabase durumu dikkate alınmalıdır.
 
-5. **i18n:** Çeviriler `lib/translations.ts`'de. Yeni string eklerken her iki dili de ekle.
+5. **Redis Kritik:** Redis sadece cache değildir; PDF export queue için production'da gereklidir. `REDIS_URL` yoksa backend PDF export job oluşturamaz.
 
-6. **Template System:** Şablonlar DB'de (`templates` tablosu) + React components (`components/catalogs/templates/`).
+6. **Worker Dockerfile:** PDF export worker `backend/Dockerfile.worker` ile çalışır. Bu servis Playwright runtime ister ve frontend'i `PDF_EXPORT_RENDER_ORIGIN` ile görmelidir.
+
+7. **Cloudinary Unsigned:** Upload'lar unsigned preset ile yapılır. Delete işlemleri backend'de (signed).
+
+8. **i18n:** Çeviriler `lib/translations/` altında modülerdir. Yeni string eklerken Türkçe ve İngilizce karşılığını birlikte ekle.
+
+9. **Template System:** Şablonlar DB'de (`templates` tablosu) + React components (`components/catalogs/templates/`).
 
 ### 📋 Sık Kullanılan Komut Patternleri
 
@@ -1240,6 +1291,6 @@ const stats = await getDashboardStats("30d")
 
 ---
 
-> 📅 **Son Güncelleme:** 8 Şubat 2026  
+> 📅 **Son Güncelleme:** 9 Mayıs 2026
 > 👤 **Hazırlayan:** Antigravity (Senior Full-Stack Architect)  
 > 📊 **Versiyon:** 1.0

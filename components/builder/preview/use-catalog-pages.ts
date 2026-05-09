@@ -1,53 +1,52 @@
-import { useMemo } from "react"
-import type { Product } from "@/lib/actions/products"
-import type { CatalogPage } from "./catalog-preview"
-import { getItemsPerPage } from "@/lib/constants"
+import { useMemo } from 'react'
+import type { Product } from '@/lib/actions/products'
+import type { CatalogPage } from './catalog-preview'
+import { getItemsPerPage } from '@/lib/constants'
 
-interface UseCatalogPagesOptions {
-  products: Product[]
-  layout: string
-  columnsPerRow?: number
-  enableCoverPage?: boolean
-  enableCategoryDividers?: boolean
-  categoryOrder?: string[]
-  pages?: CatalogPage[]
-  uncategorizedLabel: string
+export interface UseCatalogPagesOptions {
+    products: Product[]
+    layout: string
+    columnsPerRow?: number
+    enableCoverPage?: boolean
+    enableCategoryDividers?: boolean
+    categoryOrder?: string[]
+    pages?: CatalogPage[]
+    uncategorizedLabel: string
 }
 
 export interface CatalogPagesModel {
-  totalPages: number
-  getPage: (index: number) => CatalogPage | undefined
-  getPagesRange: (start: number, end: number) => CatalogPage[]
-  getAllPages: () => CatalogPage[]
+    totalPages: number
+    getPage: (index: number) => CatalogPage | undefined
+    getPagesRange: (start: number, end: number) => CatalogPage[]
+    getAllPages: () => CatalogPage[]
 }
 
 interface CategorySection {
-  categoryName: string
-  firstProductImage?: string
-  products: Product[]
-  startPage: number
-  productPageCount: number
+    categoryName: string
+    firstProductImage?: string
+    products: Product[]
+    startPage: number
+    productPageCount: number
 }
 
-export function useCatalogPages({
-  products,
-  layout,
-  columnsPerRow,
-  enableCoverPage,
-  enableCategoryDividers,
-  categoryOrder,
-  pages: externalPages,
-  uncategorizedLabel,
+export function createCatalogPagesModel({
+    products,
+    layout,
+    columnsPerRow,
+    enableCoverPage,
+    enableCategoryDividers,
+    categoryOrder,
+    pages: externalPages,
+    uncategorizedLabel,
 }: UseCatalogPagesOptions): CatalogPagesModel {
-  return useMemo(() => {
     if (externalPages && externalPages.length > 0) {
-      const getPage = (index: number) => externalPages[index]
-      return {
-        totalPages: externalPages.length,
-        getPage,
-        getPagesRange: (start: number, end: number) => externalPages.slice(start, end),
-        getAllPages: () => externalPages,
-      }
+        const getPage = (index: number) => externalPages[index]
+        return {
+            totalPages: externalPages.length,
+            getPage,
+            getPagesRange: (start: number, end: number) => externalPages.slice(start, end),
+            getAllPages: () => externalPages,
+        }
     }
 
     const productList = products || []
@@ -55,131 +54,168 @@ export function useCatalogPages({
     const coverOffset = enableCoverPage ? 1 : 0
 
     if (!enableCategoryDividers) {
-      const productPageCount = productList.length > 0
-        ? Math.ceil(productList.length / itemsPerPage)
-        : (enableCoverPage ? 0 : 1)
-      const totalPages = coverOffset + productPageCount
+        const productPageCount =
+            productList.length > 0
+                ? Math.ceil(productList.length / itemsPerPage)
+                : enableCoverPage
+                  ? 0
+                  : 1
+        const totalPages = coverOffset + productPageCount
 
-      const getPage = (index: number): CatalogPage | undefined => {
-        if (enableCoverPage && index === 0) return { type: 'cover' }
-        const productPageIndex = index - coverOffset
-        if (productPageIndex < 0 || productPageIndex >= productPageCount) return undefined
-        const start = productPageIndex * itemsPerPage
-        return { type: 'products', products: productList.slice(start, start + itemsPerPage) }
-      }
+        const getPage = (index: number): CatalogPage | undefined => {
+            if (enableCoverPage && index === 0) return { type: 'cover' }
+            const productPageIndex = index - coverOffset
+            if (productPageIndex < 0 || productPageIndex >= productPageCount) return undefined
+            const start = productPageIndex * itemsPerPage
+            return { type: 'products', products: productList.slice(start, start + itemsPerPage) }
+        }
 
-      return {
-        totalPages,
-        getPage,
-        getPagesRange: (start: number, end: number) => {
-          const result: CatalogPage[] = []
-          for (let index = Math.max(0, start); index < Math.min(totalPages, end); index++) {
-            const page = getPage(index)
-            if (page) result.push(page)
-          }
-          return result
-        },
-        getAllPages: () => {
-          const result: CatalogPage[] = []
-          for (let index = 0; index < totalPages; index++) {
-            const page = getPage(index)
-            if (page) result.push(page)
-          }
-          return result
-        },
-      }
+        return {
+            totalPages,
+            getPage,
+            getPagesRange: (start: number, end: number) => {
+                const result: CatalogPage[] = []
+                for (let index = Math.max(0, start); index < Math.min(totalPages, end); index++) {
+                    const page = getPage(index)
+                    if (page) result.push(page)
+                }
+                return result
+            },
+            getAllPages: () => {
+                const result: CatalogPage[] = []
+                for (let index = 0; index < totalPages; index++) {
+                    const page = getPage(index)
+                    if (page) result.push(page)
+                }
+                return result
+            },
+        }
     }
 
     const groupedByCategory = new Map<string, Product[]>()
     for (const product of productList) {
-      const categoryName = product.category || uncategorizedLabel
-      const current = groupedByCategory.get(categoryName)
-      if (current) {
-        current.push(product)
-      } else {
-        groupedByCategory.set(categoryName, [product])
-      }
+        const categoryName = product.category || uncategorizedLabel
+        const current = groupedByCategory.get(categoryName)
+        if (current) {
+            current.push(product)
+        } else {
+            groupedByCategory.set(categoryName, [product])
+        }
     }
 
     const categoryKeys = Array.from(groupedByCategory.keys())
     if (categoryOrder && categoryOrder.length > 0) {
-      const orderIndex = new Map<string, number>()
-      for (let i = 0; i < categoryOrder.length; i++) orderIndex.set(categoryOrder[i], i)
-      categoryKeys.sort((a, b) => {
-        const idxA = orderIndex.get(a) ?? -1
-        const idxB = orderIndex.get(b) ?? -1
-        if (idxA === -1 && idxB === -1) return 0
-        if (idxA === -1) return 1
-        if (idxB === -1) return -1
-        return idxA - idxB
-      })
+        const orderIndex = new Map<string, number>()
+        for (let i = 0; i < categoryOrder.length; i++) orderIndex.set(categoryOrder[i], i)
+        categoryKeys.sort((a, b) => {
+            const idxA = orderIndex.get(a) ?? -1
+            const idxB = orderIndex.get(b) ?? -1
+            if (idxA === -1 && idxB === -1) return 0
+            if (idxA === -1) return 1
+            if (idxB === -1) return -1
+            return idxA - idxB
+        })
     }
 
     const sections: CategorySection[] = []
     let totalPages = coverOffset
     for (const categoryName of categoryKeys) {
-      const categoryProducts = groupedByCategory.get(categoryName)!
-      const productPageCount = Math.ceil(categoryProducts.length / itemsPerPage)
-      sections.push({
-        categoryName,
-        firstProductImage: categoryProducts[0]?.image_url ?? undefined,
-        products: categoryProducts,
-        startPage: totalPages,
-        productPageCount,
-      })
-      totalPages += 1 + productPageCount
+        const categoryProducts = groupedByCategory.get(categoryName)!
+        const productPageCount = Math.ceil(categoryProducts.length / itemsPerPage)
+        sections.push({
+            categoryName,
+            firstProductImage: categoryProducts[0]?.image_url ?? undefined,
+            products: categoryProducts,
+            startPage: totalPages,
+            productPageCount,
+        })
+        totalPages += 1 + productPageCount
     }
 
     if (totalPages === 0) totalPages = 1
 
     const getPage = (index: number): CatalogPage | undefined => {
-      if (enableCoverPage && index === 0) return { type: 'cover' }
-      if (sections.length === 0) {
-        return index === coverOffset ? { type: 'products', products: [] } : undefined
-      }
-
-      for (const section of sections) {
-        if (index === section.startPage) {
-          return {
-            type: 'divider',
-            categoryName: section.categoryName,
-            firstProductImage: section.firstProductImage,
-          }
+        if (enableCoverPage && index === 0) return { type: 'cover' }
+        if (sections.length === 0) {
+            return index === coverOffset ? { type: 'products', products: [] } : undefined
         }
 
-        const productPageStart = section.startPage + 1
-        const productPageIndex = index - productPageStart
-        if (productPageIndex >= 0 && productPageIndex < section.productPageCount) {
-          const start = productPageIndex * itemsPerPage
-          return {
-            type: 'products',
-            products: section.products.slice(start, start + itemsPerPage),
-          }
-        }
-      }
+        for (const section of sections) {
+            if (index === section.startPage) {
+                return {
+                    type: 'divider',
+                    categoryName: section.categoryName,
+                    firstProductImage: section.firstProductImage,
+                }
+            }
 
-      return undefined
+            const productPageStart = section.startPage + 1
+            const productPageIndex = index - productPageStart
+            if (productPageIndex >= 0 && productPageIndex < section.productPageCount) {
+                const start = productPageIndex * itemsPerPage
+                return {
+                    type: 'products',
+                    products: section.products.slice(start, start + itemsPerPage),
+                }
+            }
+        }
+
+        return undefined
     }
 
     return {
-      totalPages,
-      getPage,
-      getPagesRange: (start: number, end: number) => {
-        const result: CatalogPage[] = []
-        for (let index = Math.max(0, start); index < Math.min(totalPages, end); index++) {
-          const page = getPage(index)
-          if (page) result.push(page)
-        }
-        return result
-      },
-      getAllPages: () => {
-        const result: CatalogPage[] = []
-        for (let index = 0; index < totalPages; index++) {
-          const page = getPage(index)
-          if (page) result.push(page)
-        }
-        return result
-      },
+        totalPages,
+        getPage,
+        getPagesRange: (start: number, end: number) => {
+            const result: CatalogPage[] = []
+            for (let index = Math.max(0, start); index < Math.min(totalPages, end); index++) {
+                const page = getPage(index)
+                if (page) result.push(page)
+            }
+            return result
+        },
+        getAllPages: () => {
+            const result: CatalogPage[] = []
+            for (let index = 0; index < totalPages; index++) {
+                const page = getPage(index)
+                if (page) result.push(page)
+            }
+            return result
+        },
     }
-  }, [products, layout, columnsPerRow, enableCoverPage, enableCategoryDividers, categoryOrder, externalPages, uncategorizedLabel])
+}
+
+export function useCatalogPages({
+    products,
+    layout,
+    columnsPerRow,
+    enableCoverPage,
+    enableCategoryDividers,
+    categoryOrder,
+    pages,
+    uncategorizedLabel,
+}: UseCatalogPagesOptions): CatalogPagesModel {
+    return useMemo(
+        () =>
+            createCatalogPagesModel({
+                products,
+                layout,
+                columnsPerRow,
+                enableCoverPage,
+                enableCategoryDividers,
+                categoryOrder,
+                pages,
+                uncategorizedLabel,
+            }),
+        [
+            products,
+            layout,
+            columnsPerRow,
+            enableCoverPage,
+            enableCategoryDividers,
+            categoryOrder,
+            pages,
+            uncategorizedLabel,
+        ]
+    )
 }

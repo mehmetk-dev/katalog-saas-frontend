@@ -1,7 +1,6 @@
 import {
     DeleteObjectCommand,
     GetObjectCommand,
-    HeadObjectCommand,
     PutObjectCommand,
     S3Client,
 } from '@aws-sdk/client-s3';
@@ -41,8 +40,41 @@ export function getR2Client(): S3Client {
     return cachedClient;
 }
 
-export function getPdfExportRelativePath(userId: string, jobId: string): string {
-    return `${userId}/${jobId}.pdf`;
+function slugifyPdfSegment(value: unknown): string {
+    if (typeof value !== 'string') return '';
+    const normalized = value
+        .trim()
+        .toLocaleLowerCase('tr-TR')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    return normalized.slice(0, 80);
+}
+
+function formatExportDate(date: Date): string {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+}
+
+export function getPdfExportRelativePath(options: {
+    jobId: string;
+    catalogName?: unknown;
+    catalogSlug?: unknown;
+    createdAt?: Date;
+}): string {
+    const baseName =
+        slugifyPdfSegment(options.catalogSlug) || slugifyPdfSegment(options.catalogName) || 'catalog';
+    const date = formatExportDate(options.createdAt ?? new Date());
+    return `${baseName}-${date}-${options.jobId.slice(0, 12)}.pdf`;
 }
 
 function toObjectKey(relativePath: string): string {
@@ -69,17 +101,6 @@ export async function writePdfExportFile(
         }),
     );
     return { key: Key, size: buffer.byteLength };
-}
-
-export async function pdfExportFileExists(relativePath: string): Promise<boolean> {
-    try {
-        await getR2Client().send(
-            new HeadObjectCommand({ Bucket: getBucket(), Key: toObjectKey(relativePath) }),
-        );
-        return true;
-    } catch {
-        return false;
-    }
 }
 
 export async function deletePdfExportFile(relativePath: string | null): Promise<void> {
@@ -111,4 +132,3 @@ export async function getPdfExportSignedUrl(
 
     return getSignedUrl(getR2Client(), command, { expiresIn: ttlSeconds });
 }
-

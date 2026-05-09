@@ -33,9 +33,25 @@ FogCatalog, en güncel ve performanslı teknolojiler üzerine inşa edilmiştir.
 - **Runtime:** [Node.js](https://nodejs.org/) & [Express.js](https://expressjs.com/)
 - **Veritabanı:** [PostgreSQL](https://www.postgresql.org/) (via [Supabase](https://supabase.com/))
 - **Oturum Yönetimi:** [Supabase Auth](https://supabase.com/auth) (JWT & RBAC)
-- **Storage:** [Supabase Storage](https://supabase.com/storage) (Ürün ve Katalog görselleri)
-- **Caching:** [Redis](https://redis.io/) (via [IORedis](https://github.com/luin/ioredis))
+- **Storage:** Cloudinary (ürün görselleri) + S3 uyumlu R2 storage (PDF export çıktıları)
+- **Caching & Queue:** [Redis](https://redis.io/) (via [IORedis](https://github.com/luin/ioredis)) + BullMQ
+- **PDF Worker:** Playwright tabanlı ayrı worker servisi (`backend/Dockerfile.worker`)
 - **İzleme (Monitoring):** [Prometheus](https://prometheus.io/) & [Sentry](https://sentry.io/)
+
+---
+
+## 🚀 Production Deployment
+
+Production ortamı **Coolify** üzerinde çalışır. Frontend için ana deploy yolu **Nixpacks**'tir; root `Dockerfile` Docker tabanlı alternatif senaryo için tutulur. Sistem tek servis değildir:
+
+- **Frontend:** Next.js app, Coolify/Nixpacks ile yayınlanır.
+- **Backend:** Express API ayrı servis olarak çalışır.
+- **Worker:** PDF export için `backend/Dockerfile.worker` ile ayrı Playwright worker servisi çalışır.
+- **Database/Auth:** Managed Supabase kullanılır; RLS aktiftir.
+- **Redis:** Backend cache ve BullMQ PDF export kuyruğu için kullanılır.
+- **PDF Storage:** Üretilen PDF'ler S3 uyumlu R2 storage'a yazılır ve signed URL ile paylaşılır.
+
+AI assistant veya geliştirici deploy önerisi yaparken bu çoklu servis yapısını korumalıdır.
 
 ---
 
@@ -65,10 +81,6 @@ cd ..
 ### 2. Environment (Ortam) Değişkenleri
 
 > ⚠️ **KRİTİK UYARI:** Local development için **ASLA** production database kullanmayın!
-
-**📚 Detaylı Setup Kılavuzları:**
-- 🚀 **[LOCAL_DB_QUICKSTART.md](./LOCAL_DB_QUICKSTART.md)** - Hızlı başlangıç (5 dakika)
-- 📖 **[ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md)** - Detaylı environment kurulumu
 
 Uygulamanın tam fonksiyonel çalışması için çevresel değişkenlerin doğru set edilmesi kritik önem taşır.
 
@@ -110,6 +122,19 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 CLOUDINARY_DELETED_FOLDER=deletedproducts
+
+# Redis / Queue
+REDIS_URL=redis://default:password@host:6379
+
+# PDF Worker / Storage
+WORKER_EXPORT_SECRET=change_me
+PDF_EXPORT_RENDER_ORIGIN=http://frontend:3000
+R2_ACCOUNT_ID=your_r2_account
+R2_ACCESS_KEY_ID=your_r2_access_key
+R2_SECRET_ACCESS_KEY=your_r2_secret
+R2_BUCKET=your_bucket
+R2_ENDPOINT=https://your-account.r2.cloudflarestorage.com
+R2_PDF_EXPORT_PREFIX=pdf-exports
 ```
 
 ### 3. Çalıştırma
@@ -141,10 +166,15 @@ fogcatalog/
 │   ├── actions/            # Server Actions (Veri mutasyonları)
 │   ├── supabase/           # Veritabanı istemcileri
 │   └── translations/       # Çoklu dil dosyaları
-├── backend/                # Express.js API Katmanı
+├── backend/                # Express.js API + worker kaynakları
 │   ├── src/controllers/    # İş mantığı (Business Logic)
 │   ├── src/routes/         # API uç noktaları
-│   └── src/middlewares/    # Güvenlik ve Doğrulama
+│   ├── src/services/       # Supabase, Redis, Cloudinary, PDF queue/storage
+│   ├── src/workers/        # PDF export worker ve cleanup job'ları
+│   ├── src/middlewares/    # Güvenlik ve doğrulama
+│   ├── Dockerfile          # Backend API container
+│   └── Dockerfile.worker   # PDF export worker container
+├── docker-compose.yml      # Full-stack referans: frontend, backend, worker, redis
 └── supabase/               # SQL Migration dosyaları
 ```
 
