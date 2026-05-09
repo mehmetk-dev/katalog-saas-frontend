@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { chromium } from 'playwright';
+import { chromium, type Browser, type BrowserContext } from 'playwright';
 
 import { supabase } from '../services/supabase';
 import { createPdfExportWorker, type PdfExportBullJob } from '../services/pdf-export-queue';
@@ -20,9 +20,32 @@ async function updateJob(jobId: string, patch: Record<string, unknown>): Promise
     if (error) throw error;
 }
 
+let sharedBrowser: Browser | null = null;
+
+async function getBrowser(): Promise<Browser> {
+    if (sharedBrowser && sharedBrowser.isConnected()) {
+        return sharedBrowser;
+    }
+    sharedBrowser = await chromium.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--no-zygote',
+        ],
+    });
+    return sharedBrowser;
+}
+
+const READY_TIMEOUT_MS = Number(process.env.PDF_EXPORT_READY_TIMEOUT_MS || 300_000);
+
+const MAX_CHUNK_TIMEOUT_MS = READY_TIMEOUT_MS + 120_000;
+
 async function renderPdf(job: PdfExportBullJob): Promise<void> {
     const { jobId, userId } = job.data;
-    let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
 
     try {
         await updateJob(jobId, {
@@ -35,56 +58,94 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
         const token = createPdfExportToken(jobId);
         const renderUrl = `${getFrontendOrigin()}/export/catalog/${jobId}?token=${encodeURIComponent(token)}`;
 
-        browser = await chromium.launch({ headless: true });
+        const browser = await getBrowser();
         const page = await browser.newPage({
             viewport: { width: 794, height: 1123 },
             deviceScaleFactor: job.data.quality === 'high' ? 2 : 1,
         });
 
-        await page.goto(renderUrl, { waitUntil: 'networkidle', timeout: 120_000 });
-        await updateJob(jobId, { progress: 35 });
+        try {
+            await page.route('**/*', (route) => {
+                const resourceType = route.request().resourceType();
 
-        await page.waitForFunction(
-            () => (window as typeof window & { __PDF_EXPORT_READY?: boolean }).__PDF_EXPORT_READY === true,
-            null,
-            { timeout: 120_000 },
-        );
-        const pageCount = await page.locator('.catalog-page-wrapper').count().catch(() => null);
-        await updateJob(jobId, { progress: 65, page_count: pageCount });
+                if (resourceType === 'image') {
+                    return route.continue();
+                }
 
-        await updateJob(jobId, { progress: 75 });
+                if (resourceType === 'font') {
+                    const fontUrl = route.request().url();
+                    if (fontUrl.includes('fonts.googleapis.com') || fontUrl.includes('fonts.gstatic.com')) {
+                        return route.abort();
+                    }
+                    return route.continue();
+                }
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            preferCSSPageSize: true,
-            margin: { top: '0', right: '0', bottom: '0', left: '0' },
-        });
+                if (resourceType === 'script') {
+                    const urlLower = route.request().url().toLowerCase();
+                    if (
+                        urlLower.includes('analytics') ||
+                        urlLower.includes('sentry') ||
+                        urlLower.includes('gtag') ||
+                        urlLower.includes('google-analytics') ||
+                        urlLower.includes('googletagmanager') ||
+                        urlLower.includes('hotjar') ||
+                        urlLower.includes('clarity') ||
+                        urlLower.includes('facebook') ||
+                        urlLower.includes('tiktok')
+                    ) {
+                        return route.abort();
+                    }
+                    return route.continue();
+                }
 
-        const relativePath = getPdfExportRelativePath(userId, jobId);
-        await updateJob(jobId, { progress: 90 });
-        const { size } = await writePdfExportFile(relativePath, pdfBuffer);
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+                return route.continue();
+            });
 
-        await updateJob(jobId, {
-            status: 'completed',
-            progress: 100,
-            file_path: relativePath,
-            file_size_bytes: size,
-            completed_at: new Date().toISOString(),
-            expires_at: expiresAt,
-            error_message: null,
-        });
+            await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+            await updateJob(jobId, { progress: 35 });
 
+            await page.waitForFunction(
+                () => (window as typeof window & { __PDF_EXPORT_READY?: boolean }).__PDF_EXPORT_READY === true,
+                null,
+                { timeout: READY_TIMEOUT_MS },
+            );
+            const pageCount = await page.locator('.catalog-page-wrapper').count().catch(() => null);
+            await updateJob(jobId, { progress: 70, page_count: pageCount });
+
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                preferCSSPageSize: true,
+                margin: { top: '0', right: '0', bottom: '0', left: '0' },
+            });
+
+            const relativePath = getPdfExportRelativePath(userId, jobId);
+            await updateJob(jobId, { progress: 90 });
+            const { size } = await writePdfExportFile(relativePath, pdfBuffer);
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+            await updateJob(jobId, {
+                status: 'completed',
+                progress: 100,
+                file_path: relativePath,
+                file_size_bytes: size,
+                completed_at: new Date().toISOString(),
+                expires_at: expiresAt,
+                error_message: null,
+            });
+        } finally {
+            await page.close().catch(() => undefined);
+        }
     } catch (error) {
+        if (sharedBrowser && !sharedBrowser.isConnected()) {
+            sharedBrowser = null;
+        }
         await updateJob(jobId, {
             status: 'failed',
             progress: 0,
             error_message: error instanceof Error ? error.message : 'PDF export failed',
         }).catch(() => undefined);
         throw error;
-    } finally {
-        await browser?.close().catch(() => undefined);
     }
 }
 
@@ -99,6 +160,7 @@ worker.on('failed', (job, error) => {
 });
 
 async function shutdown(): Promise<void> {
+    await sharedBrowser?.close().catch(() => undefined);
     await worker.close();
     process.exit(0);
 }

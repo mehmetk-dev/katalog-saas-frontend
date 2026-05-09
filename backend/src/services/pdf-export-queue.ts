@@ -33,8 +33,8 @@ export function getPdfExportQueue(): Queue<PdfExportQueuePayload> {
         queue = new Queue<PdfExportQueuePayload>(PDF_EXPORT_QUEUE_NAME, {
             connection: createBullConnection(),
             defaultJobOptions: {
-                attempts: 2,
-                backoff: { type: 'exponential', delay: 30_000 },
+attempts: 2,
+            backoff: { type: 'exponential', delay: 60_000 },
                 removeOnComplete: 100,
                 removeOnFail: 500,
             },
@@ -61,7 +61,7 @@ export function createPdfExportWorker(
     return new Worker<PdfExportQueuePayload, void, string>(PDF_EXPORT_QUEUE_NAME, processor, {
         connection: createBullConnection(),
         concurrency: Number.isFinite(concurrency) && concurrency > 0 ? concurrency : 1,
-        lockDuration: 10 * 60 * 1000,
+        lockDuration: 30 * 60 * 1000,
     });
 }
 

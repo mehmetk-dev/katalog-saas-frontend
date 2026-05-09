@@ -169,10 +169,15 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
 
     async function markReadyAfterAssets() {
       await document.fonts?.ready.catch(() => undefined)
-      const images = Array.from(document.images)
-      await Promise.all(images.map((image) => image.decode?.().catch(() => undefined)))
 
-      // Extra safety: wait for a frame to ensure layout is complete
+      const images = Array.from(document.images)
+      const CONCURRENT_IMAGE_LOAD = 6
+      for (let i = 0; i < images.length; i += CONCURRENT_IMAGE_LOAD) {
+        if (cancelled) return
+        const chunk = images.slice(i, i + CONCURRENT_IMAGE_LOAD)
+        await Promise.all(chunk.map((img) => img.decode?.().catch(() => undefined)))
+      }
+
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
 
       if (!cancelled) {
