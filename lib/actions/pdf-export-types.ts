@@ -12,6 +12,9 @@ export interface PdfExportJob {
   file_path: string | null
   file_size_bytes: number | null
   error_message: string | null
+  attempts: number
+  started_at: string | null
+  completed_at: string | null
   created_at: string
   updated_at: string
   expires_at: string | null

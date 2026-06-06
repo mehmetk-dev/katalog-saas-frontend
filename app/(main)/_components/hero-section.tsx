@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -20,6 +20,33 @@ const CAROUSEL_SLIDES = [
     { key: 'modern-grid', color: '#3b82f6' },
     { key: 'product-tiles', color: '#10b981' },
     { key: 'minimalist', color: '#171717' },
+]
+
+const SEO_PREVIEW_ITEMS = [
+    {
+        name: "Dijital Ürün Kataloğu",
+        description: "Online paylaşım ve QR kod desteği",
+    },
+    {
+        name: "PDF Katalog Tasarımı",
+        description: "Profesyonel şablonlarla dışa aktarım",
+    },
+    {
+        name: "Excel Ürün Aktarımı",
+        description: "Toplu ürün yükleme ve düzenleme",
+    },
+    {
+        name: "Online Katalog Linki",
+        description: "Müşterilerle hızlı katalog paylaşımı",
+    },
+    {
+        name: "Katalog Analitikleri",
+        description: "Görüntülenme ve etkileşim takibi",
+    },
+    {
+        name: "QR Kodlu Katalog",
+        description: "Satış ekipleri için kolay erişim",
+    },
 ]
 
 export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionProps) {
@@ -55,6 +82,25 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
         resizeObserver.observe(screenRef.current)
         return () => resizeObserver.disconnect()
     }, [])
+
+    const activeSlide = CAROUSEL_SLIDES[currentSlide] ?? CAROUSEL_SLIDES[0]
+    const ActiveTemplateComponent = ALL_TEMPLATES[activeSlide.key]
+    const activeProducts = useMemo(() => (
+        getPreviewProductsByLayout(activeSlide.key).map((product, productIndex) => {
+            const previewItem = SEO_PREVIEW_ITEMS[productIndex % SEO_PREVIEW_ITEMS.length]
+
+            return {
+                ...product,
+                name: previewItem.name,
+                description: previewItem.description,
+                category: "Dijital Katalog",
+            }
+        }).slice(0, 8)
+    ), [activeSlide.key])
+
+    const unscaledScreenHeight = scale > 0 ? screenDims.h / scale : 0
+    const maxScrollY = screenDims.h > 0 ? Math.max(0, 1131 - unscaledScreenHeight) : 0
+    const translateY = (isMounted && screenDims.h > 0) ? -maxScrollY : 0
 
     return (
         <section className="relative pt-24 pb-16 md:pt-32 lg:pt-36 md:pb-24 overflow-hidden bg-slate-50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
@@ -128,23 +174,12 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                             <div className="absolute top-[5.3%] bottom-[15.3%] left-[15.5%] right-[15.5%] z-20 bg-black overflow-hidden rounded-sm md:rounded-md lg:rounded-lg">
                                 <div ref={screenRef} className="w-full h-full relative">
 
-                                    {CAROUSEL_SLIDES.map((slide, index) => {
-                                        const TemplateComponent = ALL_TEMPLATES[slide.key]
-                                        if (!TemplateComponent) return null
-
-                                        const products = getPreviewProductsByLayout(slide.key)
-                                        const isActive = index === currentSlide
-
-                                        const unscaledScreenHeight = scale > 0 ? screenDims.h / scale : 0
-                                        const maxScrollY = screenDims.h > 0 ? Math.max(0, 1131 - unscaledScreenHeight) : 0
-                                        const translateY = (isActive && isMounted && screenDims.h > 0) ? -maxScrollY : 0
-
-                                        return (
+                                    {ActiveTemplateComponent ? (
                                             <div
-                                                key={slide.key}
+                                                key={activeSlide.key}
                                                 className={cn(
                                                     "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-                                                    (isActive && isMounted && screenDims.w > 0) ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                                                    (isMounted && screenDims.w > 0) ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
                                                 )}
                                             >
                                                 <div className="w-full h-full relative">
@@ -165,10 +200,10 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                                                             }}
                                                         >
                                                             <div className="pointer-events-none p-6 h-full w-full">
-                                                                <TemplateComponent
-                                                                catalogName="FogCatalog"
-                                                                products={products.slice(0, 8)} // User requested 8 items
-                                                                primaryColor={slide.color}
+                                                                <ActiveTemplateComponent
+                                                                catalogName="Dijital Katalog"
+                                                                products={activeProducts}
+                                                                primaryColor={activeSlide.color}
                                                                 showPrices={true}
                                                                 showDescriptions={true}
                                                                 showAttributes={false}
@@ -180,8 +215,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                                                 </div>
                                             </div>
                                         </div>
-                                        )
-                                    })}
+                                    ) : null}
 
                                 </div>
                             </div>

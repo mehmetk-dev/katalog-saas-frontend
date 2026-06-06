@@ -9,14 +9,28 @@ import {
 } from "@/lib/hooks/pdf-export-client-api"
 import { queryKeys } from "@/lib/contexts/query-provider"
 
+const PDF_EXPORT_POLL_INTERVAL = 3_000
+const PDF_EXPORT_ACTIVE_POLL_INTERVAL = 2_000
+
+function getActiveJobCount(jobs: { status: string }[]): number {
+    return jobs.filter((j) => j.status === "queued" || j.status === "processing").length
+}
+
 export function usePdfExportJobs() {
-    return useQuery({
+    const query = useQuery({
         queryKey: queryKeys.pdfExports(),
         queryFn: () => clientListPdfExportJobs(),
-        staleTime: 5 * 1000,
-        refetchInterval: 5_000,
+        staleTime: 10_000,
+        refetchInterval: (query) => {
+            const jobs = query.state.data?.jobs
+            if (!jobs) return PDF_EXPORT_POLL_INTERVAL
+            const activeCount = getActiveJobCount(jobs)
+            if (activeCount > 0) return PDF_EXPORT_ACTIVE_POLL_INTERVAL
+            return PDF_EXPORT_POLL_INTERVAL
+        },
         refetchOnWindowFocus: true,
     })
+    return query
 }
 
 export function usePdfExportShareLink(jobId: string | null | undefined) {
@@ -24,9 +38,10 @@ export function usePdfExportShareLink(jobId: string | null | undefined) {
         queryKey: jobId ? queryKeys.pdfExportShareLink(jobId) : ["pdf-exports", "share-link", "none"],
         queryFn: () => clientGetPdfExportShareLink(jobId as string),
         enabled: Boolean(jobId),
-        staleTime: 60 * 1000,
+        staleTime: 2 * 60 * 1000,
         retry: 2,
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+        retryDelay: 2000,
+        refetchOnWindowFocus: false,
     })
 }
 

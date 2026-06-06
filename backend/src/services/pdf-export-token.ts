@@ -23,17 +23,27 @@ export function createPdfExportToken(jobId: string, ttlMs = TOKEN_TTL_MS): strin
 }
 
 export function verifyPdfExportToken(jobId: string, token: unknown): boolean {
-    if (typeof token !== 'string') return false;
+    try {
+        const secret = process.env.WORKER_EXPORT_SECRET?.trim();
+        if (!secret) return false;
 
-    const [tokenJobId, rawExpiresAt, signature] = token.split('.');
-    const expiresAt = Number(rawExpiresAt);
-    if (tokenJobId !== jobId || !Number.isFinite(expiresAt) || expiresAt < Date.now() || !signature) {
+        if (typeof token !== 'string') return false;
+
+        const [tokenJobId, rawExpiresAt, signature] = token.split('.');
+        const expiresAt = Number(rawExpiresAt);
+        if (tokenJobId !== jobId || !Number.isFinite(expiresAt) || expiresAt < Date.now() || !signature) {
+            return false;
+        }
+
+        const expected = crypto
+            .createHmac('sha256', secret)
+            .update(`${jobId}.${expiresAt}`)
+            .digest('base64url');
+        const providedBuffer = Buffer.from(signature);
+        const expectedBuffer = Buffer.from(expected);
+        return providedBuffer.length === expectedBuffer.length
+            && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+    } catch {
         return false;
     }
-
-    const expected = sign(jobId, expiresAt);
-    const providedBuffer = Buffer.from(signature);
-    const expectedBuffer = Buffer.from(expected);
-    return providedBuffer.length === expectedBuffer.length
-        && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
 }

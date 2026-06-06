@@ -119,10 +119,26 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
         let cancelled = false
 
         async function markReadyAfterAssets() {
-            await document.fonts?.ready.catch(() => undefined)
+            try {
+                await document.fonts?.ready.catch(() => undefined)
 
-            await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-            await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+                const images = Array.from(document.querySelectorAll<HTMLImageElement>('img[src]'))
+                const imagePromises = images.map(
+                    (img) =>
+                        new Promise<void>((resolve) => {
+                            if (img.complete && img.naturalWidth > 0) return resolve()
+                            img.addEventListener('load', () => resolve(), { once: true })
+                            img.addEventListener('error', () => resolve(), { once: true })
+                        })
+                )
+                await Promise.all(imagePromises)
+
+                await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+                await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+                await new Promise<void>((resolve) => setTimeout(resolve, 500))
+            } catch {
+                // swallow — still proceed to mark ready
+            }
 
             if (!cancelled) {
                 ;(window as typeof window & { __PDF_EXPORT_READY?: boolean }).__PDF_EXPORT_READY =

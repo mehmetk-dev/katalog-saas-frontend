@@ -18,7 +18,7 @@ import { getSessionSafe } from "@/lib/supabase/client"
 import type { PdfExportJob, PdfExportQuality } from "@/lib/actions/pdf-export-types"
 
 const API_BASE =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1"
+    process.env.NEXT_PUBLIC_API_URL || "/api"
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
     const session = await getSessionSafe()

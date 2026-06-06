@@ -75,6 +75,15 @@ const common = {
             justNow: "Az önce",
             sort: "Sırala",
             order: "Sıralama",
+            pdf: {
+                pdfExportTitle: "PDF Export",
+                downloadButton: "İndir",
+                preparingLink: "Hazırlanıyor",
+                expired: "Süresi dolmuş",
+                expiredDesc: "PDF indirme linkinin süresi dolmuş. Lütfen yeni bir PDF oluşturun.",
+                shareLinkError: "İndirme linki alınamadı. Tekrar deneyin.",
+                retryLink: "Tekrar Dene",
+            },
         },
         toasts: {
             // New modal toasts
@@ -156,9 +165,6 @@ const common = {
             modalTitle: "PDF İndirme",
             modalDesc: "Katalog PDF olarak hazırlanıyor",
             estimated: "Tahmini: {time}",
-            pdfExportTitle: "PDF Export",
-            downloadButton: "İndir",
-            preparingLink: "Hazırlanıyor"
         }
     },
     en: {
@@ -236,6 +242,15 @@ const common = {
             justNow: "Just now",
             sort: "Sort",
             order: "Order",
+            pdf: {
+                pdfExportTitle: "PDF Export",
+                downloadButton: "Download",
+                preparingLink: "Preparing",
+                expired: "Expired",
+                expiredDesc: "The PDF download link has expired. Please create a new PDF.",
+                shareLinkError: "Could not retrieve download link. Please try again.",
+                retryLink: "Retry",
+            },
         },
         toasts: {
             // New modal toasts
@@ -317,9 +332,6 @@ const common = {
             modalTitle: "PDF Download",
             modalDesc: "Preparing catalog as PDF",
             estimated: "Estimated: {time}",
-            pdfExportTitle: "PDF Export",
-            downloadButton: "Download",
-            preparingLink: "Preparing"
         }
     },
 } as const

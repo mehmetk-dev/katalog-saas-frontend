@@ -79,11 +79,14 @@ async function getCatalogExportName(
 }
 
 let sharedBrowser: Browser | null = null
+let browserCrashCount = 0
+const MAX_BROWSER_CRASHES = 3
 
 async function getBrowser(): Promise<Browser> {
     if (sharedBrowser && sharedBrowser.isConnected()) {
         return sharedBrowser
     }
+    browserCrashCount = 0
     sharedBrowser = await chromium.launch({
         headless: true,
         args: [
@@ -96,6 +99,19 @@ async function getBrowser(): Promise<Browser> {
         ],
     })
     return sharedBrowser
+}
+
+async function recoverBrowser(): Promise<void> {
+    if (sharedBrowser) {
+        try {
+            if (sharedBrowser.isConnected()) {
+                await sharedBrowser.close()
+            }
+        } catch {
+            // browser already dead
+        }
+        sharedBrowser = null
+    }
 }
 
 const READY_TIMEOUT_MS = Number(process.env.PDF_EXPORT_READY_TIMEOUT_MS || 300_000)
@@ -127,18 +143,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             await page.route('**/*', (route) => {
                 const resourceType = route.request().resourceType()
 
-                if (resourceType === 'image') {
-                    return route.continue()
-                }
-
-                if (resourceType === 'font') {
-                    const fontUrl = route.request().url()
-                    if (
-                        fontUrl.includes('fonts.googleapis.com') ||
-                        fontUrl.includes('fonts.gstatic.com')
-                    ) {
-                        return route.abort()
-                    }
+                if (resourceType === 'image' || resourceType === 'font' || resourceType === 'stylesheet') {
                     return route.continue()
                 }
 
@@ -221,8 +226,9 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             await page.close().catch(() => undefined)
         }
     } catch (error) {
-        if (sharedBrowser && !sharedBrowser.isConnected()) {
-            sharedBrowser = null
+        browserCrashCount++
+        if (browserCrashCount >= MAX_BROWSER_CRASHES || (error instanceof Error && error.message?.includes('Browser closed'))) {
+            await recoverBrowser()
         }
         await updateJob(jobId, {
             status: 'failed',
@@ -244,7 +250,7 @@ worker.on('failed', (job, error) => {
 })
 
 async function shutdown(): Promise<void> {
-    await sharedBrowser?.close().catch(() => undefined)
+    await recoverBrowser()
     await worker.close()
     process.exit(0)
 }

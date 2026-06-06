@@ -193,10 +193,17 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                             <Button
                                 variant="default"
                                 size="sm"
-                                onClick={() => window.open(state.downloadUrl, "_blank", "noopener,noreferrer")}
+                                asChild
                             >
-                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                                PDF Aç
+                                <a
+                                    href={state.downloadUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    download
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                    PDF İndir
+                                </a>
                             </Button>
                         )}
                     </div>

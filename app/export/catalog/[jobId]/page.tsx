@@ -41,24 +41,32 @@ function toExportUser(row: Record<string, unknown> | null, productsCount: number
 }
 
 async function getRenderData(jobId: string, token: string): Promise<RenderData | null> {
-  const response = await fetch(
-    `${getApiBaseUrl()}/pdf-exports/${jobId}/render-data?token=${encodeURIComponent(token)}`,
-    { cache: "no-store" },
-  )
+  try {
+    const response = await fetch(
+      `${getApiBaseUrl()}/pdf-exports/${jobId}/render-data?token=${encodeURIComponent(token)}`,
+      { cache: "no-store" },
+    )
 
-  if (!response.ok) return null
-  return response.json()
+    if (!response.ok) return null
+    return await response.json()
+  } catch {
+    return null
+  }
 }
 
 export default async function ExportCatalogPage({ params, searchParams }: ExportCatalogPageProps) {
   const { jobId } = await params
   const { token } = await searchParams
 
-  if (!token || !verifyPdfExportToken(jobId, token)) {
+  try {
+    if (!token || !verifyPdfExportToken(jobId, token)) {
+      notFound()
+    }
+  } catch {
     notFound()
   }
 
-  const renderData = await getRenderData(jobId, token)
+  const renderData = await getRenderData(jobId, token!)
   if (!renderData) {
     notFound()
   }

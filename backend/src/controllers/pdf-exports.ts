@@ -8,7 +8,7 @@ import {
     removePdfExportQueueJob,
 } from '../services/pdf-export-queue'
 import { getPdfExportSignedUrl } from '../services/pdf-export-storage'
-import { verifyPdfExportToken } from '../services/pdf-export-token'
+import { createPdfExportToken, verifyPdfExportToken } from '../services/pdf-export-token'
 import { safeErrorMessage } from '../utils/safe-error'
 import type { AuthUser } from '../middlewares/auth'
 
@@ -32,6 +32,7 @@ const PDF_EXPORT_PRODUCT_SELECT = [
 
 const PRODUCT_FETCH_CHUNK_SIZE = 75
 const PRODUCT_FETCH_CONCURRENCY = 4
+const PDF_PUBLIC_LINK_TTL_SECONDS = 7 * 24 * 60 * 60
 
 type PdfExportStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'expired'
 
@@ -46,6 +47,9 @@ interface PdfExportJobRow {
     file_path: string | null
     file_size_bytes: number | null
     error_message: string | null
+    attempts: number
+    started_at: string | null
+    completed_at: string | null
     created_at: string
     updated_at: string
     expires_at: string | null
@@ -67,6 +71,13 @@ function buildDownloadFilename(
             .slice(0, 80)
             .trim() || `catalog-${jobId}`
     return `${safe}.pdf`
+}
+
+function getPublicApiBaseUrl(req: Request): string {
+    const configured = process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL
+    if (configured?.trim()) return configured.trim().replace(/\/$/, '')
+
+    return `${req.protocol}://${req.get('host')}/api/v1`
 }
 
 async function getOwnedCatalog(catalogId: string, userId: string) {
@@ -164,11 +175,17 @@ export async function createPdfExport(req: Request, res: Response) {
             .eq('user_id', userId)
             .in('status', ['queued', 'processing'])
             .order('created_at', { ascending: false })
-            .limit(1)
+            .limit(5)
 
         if (activeError) throw activeError
+        const matchingActiveJob = activeJobs?.find((job) => job.catalog_id === parsed.data.catalogId)
+        if (matchingActiveJob) {
+            return res.status(200).json({ job: matchingActiveJob, reused: true })
+        }
         if (activeJobs?.[0]) {
-            return res.status(200).json({ job: activeJobs[0], reused: true })
+            return res.status(409).json({
+                error: 'Devam eden başka bir PDF export işi var. Lütfen tamamlanmasını bekleyin.',
+            })
         }
 
         const { data: profile, error: profileError } = await supabase
@@ -298,15 +315,28 @@ async function buildSignedUrlForJob(
     ttlSeconds: number
 ): Promise<string | null> {
     if (job.status !== 'completed' || !job.file_path) return null
-    if (job.expires_at && new Date(job.expires_at).getTime() < Date.now()) return null
+    if (job.expires_at && new Date(job.expires_at).getTime() < Date.now()) {
+        console.warn(`[pdf-exports] buildSignedUrl: job=${job.id} expired at ${job.expires_at}`)
+        return null
+    }
 
-    const catalog = await getOwnedCatalog(job.catalog_id, job.user_id)
-    // Completed jobs are marked only after R2 upload succeeds. Avoid a separate HEAD check here:
-    // some R2 credentials permit signed GET URLs but not HeadObject, causing false "not found" errors.
-    return getPdfExportSignedUrl(job.file_path, {
-        ttlSeconds,
-        downloadFilename: buildDownloadFilename(catalog, job.id),
-    })
+    let catalog: { name?: unknown } | null | undefined
+    try {
+        catalog = await getOwnedCatalog(job.catalog_id, job.user_id)
+    } catch (error) {
+        console.warn(`[pdf-exports] buildSignedUrl: catalog lookup failed for job=${job.id} catalogId=${job.catalog_id}:`, error instanceof Error ? error.message : error)
+        // Continue with null catalog — use fallback filename
+    }
+
+    try {
+        return getPdfExportSignedUrl(job.file_path, {
+            ttlSeconds,
+            downloadFilename: buildDownloadFilename(catalog, job.id),
+        })
+    } catch (error) {
+        console.error(`[pdf-exports] buildSignedUrl: signed URL generation failed for job=${job.id} filePath=${job.file_path}:`, error instanceof Error ? error.message : error)
+        throw error
+    }
 }
 
 export async function downloadPdfExport(req: Request, res: Response) {
@@ -341,16 +371,12 @@ export async function getPdfExportShareLink(req: Request, res: Response) {
             return res.status(409).json({ error: 'PDF henüz hazır değil.' })
         }
 
-        const ttlSeconds = 7 * 24 * 60 * 60
-        const signedUrl = await buildSignedUrlForJob(job, ttlSeconds)
-        if (!signedUrl) {
-            console.error(`[pdf-exports] share-link 404: signed URL generation failed for job=${jobId} file_path=${job.file_path} expires_at=${job.expires_at}`)
-            return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
-        }
+        const token = createPdfExportToken(job.id, PDF_PUBLIC_LINK_TTL_SECONDS * 1000)
+        const publicUrl = `${getPublicApiBaseUrl(req)}/pdf-exports/${encodeURIComponent(job.id)}/public-download?token=${encodeURIComponent(token)}`
 
         return res.json({
-            url: signedUrl,
-            expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+            url: publicUrl,
+            expiresAt: new Date(Date.now() + PDF_PUBLIC_LINK_TTL_SECONDS * 1000).toISOString(),
         })
     } catch (error) {
         console.error(`[pdf-exports] share-link error for job=${req.params.id}:`, error instanceof Error ? error.message : error)
@@ -401,7 +427,14 @@ export async function getPdfExportRenderData(req: Request, res: Response) {
             .eq('id', jobId)
             .single()
 
-        if (jobError || !job) return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        if (jobError || !job) {
+            console.error(`[pdf-exports] render-data: job not found id=${jobId}`, jobError?.message)
+            return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        }
+
+        if (job.status !== 'processing' && job.status !== 'queued') {
+            console.warn(`[pdf-exports] render-data: job=${jobId} status=${job.status} (expected processing/queued)`)
+        }
 
         const catalog = await getOwnedCatalog(job.catalog_id, job.user_id)
         if (!catalog) return res.status(404).json({ error: 'Katalog bulunamadı.' })
@@ -423,6 +456,7 @@ export async function getPdfExportRenderData(req: Request, res: Response) {
             user: userResult.data,
         })
     } catch (error) {
+        console.error(`[pdf-exports] render-data error for job=${req.params.id}:`, error instanceof Error ? error.message : error)
         return res.status(500).json({ error: safeErrorMessage(error) })
     }
 }

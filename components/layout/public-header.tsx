@@ -1,11 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import { Sparkles, Menu, X, ArrowRight } from "lucide-react"
+import dynamic from "next/dynamic"
+import { Sparkles, Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import { AnimatePresence, motion } from "framer-motion"
+
+const PublicMobileMenu = dynamic(
+    () => import("./public-mobile-menu").then((mod) => mod.PublicMobileMenu),
+    { ssr: false },
+)
 
 export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
     const { t, language, setLanguage } = useTranslation()
@@ -82,92 +87,15 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                 </div>
             </div>
 
-            {/* Mobile Menu Overlay */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, x: '100%' }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: '100%' }}
-                        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                        className="fixed inset-0 z-[100] bg-white md:hidden flex flex-col h-screen w-screen overflow-hidden"
-                    >
-                        {/* Static Header Placeholder (Empty but takes space to keep main logo visible) */}
-                        <div className="h-20 flex-shrink-0 flex items-center justify-end px-6">
-                            {/* Empty space where the fixed header logo remains visible beneath or aligned with overlay */}
-                        </div>
-
-                        {/* Content Area - Designed like a Book Index */}
-                        <nav className="flex-1 flex flex-col px-8 pt-6 relative overflow-hidden bg-white uppercase">
-                            {/* Large Background Decoration - Horizontal and Centered Watermark */}
-                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-[0.04] select-none text-center">
-                                <span className="text-[120px] font-black text-black leading-none tracking-tighter">KATALOG</span>
-                            </div>
-
-                            <div className="space-y-2">
-                                {menuItems.map((link, i) => (
-                                    <motion.div
-                                        key={link.href}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.1 + (i * 0.1) }}
-                                        className="relative z-10"
-                                    >
-                                        <Link
-                                            href={link.href}
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="py-6 border-b border-slate-100 block group active:bg-slate-50 transition-colors"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-[#cf1414] mb-1 tracking-[0.3em] uppercase">BÖLÜM {link.index}</span>
-                                                    <h3 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                                                        {link.label}
-                                                    </h3>
-                                                </div>
-                                                <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-[#cf1414] group-hover:border-[#cf1414] transition-all">
-                                                    <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </nav>
-
-                        {/* Footer Section - Stuck to Bottom */}
-                        <div className="p-8 bg-white border-t border-slate-100 flex-shrink-0">
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 }}
-                            >
-                                <Link href="/auth?tab=signup" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <Button size="lg" className="w-full h-16 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-100 text-lg font-black uppercase tracking-tight rounded-none flex items-center justify-between px-8 transition-colors">
-                                        <span>{t('header.createCatalog')}</span>
-                                        <Sparkles className="w-6 h-6" />
-                                    </Button>
-                                </Link>
-
-                                <div className="flex items-center justify-center gap-10 mt-8">
-                                    <button
-                                        onClick={() => setLanguage('tr')}
-                                        className={`text-xs font-black tracking-[0.2em] transition-colors ${language === 'tr' ? 'text-[#cf1414] border-b-2 border-[#cf1414]' : 'text-slate-300 hover:text-slate-600'}`}
-                                    >
-                                        TR
-                                    </button>
-                                    <button
-                                        onClick={() => setLanguage('en')}
-                                        className={`text-xs font-black tracking-[0.2em] transition-colors ${language === 'en' ? 'text-[#cf1414] border-b-2 border-[#cf1414]' : 'text-slate-300 hover:text-slate-600'}`}
-                                    >
-                                        EN
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {isMobileMenuOpen ? (
+                <PublicMobileMenu
+                    menuItems={menuItems}
+                    language={language}
+                    setLanguage={setLanguage}
+                    createCatalogLabel={t('header.createCatalog')}
+                    onClose={() => setIsMobileMenuOpen(false)}
+                />
+            ) : null}
         </header>
     )
 }

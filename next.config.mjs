@@ -68,6 +68,19 @@ const nextConfig = {
   // Production optimizations
   poweredByHeader: false,
   compress: true,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+        ],
+      },
+    ];
+  },
   // Bundle analyzer için (development)
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config, { isServer }) => {

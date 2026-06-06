@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Bell, Check, CheckCheck, Trash2, ExternalLink, Package, Download, CreditCard, Sparkles, X, Loader2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
@@ -30,6 +30,12 @@ export function NotificationDropdown() {
     const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const [isOpen, setIsOpen] = useState(false)
+    const [now, setNow] = useState(() => Date.now())
+
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 30_000)
+        return () => clearInterval(timer)
+    }, [])
 
     // React Query hooks — auto-refetch, dedup, optimistic updates hepsi built-in
     const { data, isLoading } = useNotifications()
@@ -41,9 +47,10 @@ export function NotificationDropdown() {
     const deleteOne = useDeleteNotification()
     const deleteAll = useDeleteAllNotifications()
     const { data: pdfExportData } = usePdfExportJobs()
-    const pdfExportJob = useMemo(() => selectVisiblePdfExportJob(pdfExportData?.jobs ?? []), [pdfExportData?.jobs])
+    const pdfExportJob = useMemo(() => selectVisiblePdfExportJob(pdfExportData?.jobs ?? [], now), [pdfExportData?.jobs, now])
     const pdfExportDisplay = pdfExportJob ? getPdfExportProgressDisplay(pdfExportJob) : null
-    const pdfShareLink = usePdfExportShareLink(pdfExportJob?.status === "completed" ? pdfExportJob.id : null)
+    const canFetchShareLink = pdfExportJob?.status === "completed" && pdfExportJob.file_path && (!pdfExportJob.expires_at || new Date(pdfExportJob.expires_at).getTime() > now)
+    const pdfShareLink = usePdfExportShareLink(canFetchShareLink ? pdfExportJob.id : null)
     const retryShareLink = useCallback(() => {
         pdfShareLink.refetch()
     }, [pdfShareLink])
@@ -142,6 +149,7 @@ export function NotificationDropdown() {
                             shareLinkError={pdfShareLink.isError}
                             onRetryShareLink={retryShareLink}
                             onCancel={() => cancelPdfExport.mutate(pdfExportJob.id)}
+                            now={now}
                         />
                     )}
 
@@ -250,13 +258,14 @@ export function NotificationDropdown() {
     )
 }
 
-function selectVisiblePdfExportJob(jobs: PdfExportJob[]): PdfExportJob | null {
+function selectVisiblePdfExportJob(jobs: PdfExportJob[], now: number): PdfExportJob | null {
     const active = jobs.find((job) => job.status === "queued" || job.status === "processing")
     if (active) return active
 
-    const recentCutoff = Date.now() - 2 * 60 * 60 * 1000
+    const recentCutoff = now - 30 * 60 * 1000
     return jobs.find((job) => {
         if (!["completed", "failed", "cancelled"].includes(job.status)) return false
+        if (job.status === "completed" && job.expires_at && new Date(job.expires_at).getTime() < now) return false
         return new Date(job.updated_at || job.created_at).getTime() >= recentCutoff
     }) ?? null
 }
@@ -272,6 +281,7 @@ function PdfExportStatusCard({
     shareLinkError,
     onRetryShareLink,
     onCancel,
+    now,
 }: {
     job: PdfExportJob
     title: string
@@ -283,10 +293,12 @@ function PdfExportStatusCard({
     shareLinkError: boolean
     onRetryShareLink: () => void
     onCancel: () => void
+    now: number
 }) {
     const { t } = useTranslation()
     const isFailed = job.status === "failed"
-    const isCompleted = job.status === "completed"
+    const isExpired = job.status === "expired" || (job.status === "completed" && job.expires_at ? new Date(job.expires_at).getTime() < now : false)
+    const isCompleted = job.status === "completed" && !isExpired
     const canDownload = isCompleted && downloadUrl && !isLoadingLink
 
     const translate = useCallback((key: string, fallback: string) => {
@@ -302,6 +314,8 @@ function PdfExportStatusCard({
                         <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
                     ) : isFailed ? (
                         <AlertTriangle className="h-4 w-4 text-red-500" />
+                    ) : isExpired ? (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
                     ) : shareLinkError ? (
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                     ) : (
@@ -312,14 +326,24 @@ function PdfExportStatusCard({
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-foreground">{translate("common.pdf.pdfExportTitle", "PDF Export")}</p>
-                            <p className="text-xs font-medium text-violet-700 dark:text-violet-300">{title}</p>
+                            <p className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                                {isExpired ? translate("common.pdf.expired", "Süresi dolmuş") : title}
+                            </p>
                         </div>
                         <span className="shrink-0 text-xs font-bold text-violet-700 dark:text-violet-300">
-                            {Math.round(percent)}%
+                            {isExpired ? "—" : `${Math.round(percent)}%`}
                         </span>
                     </div>
-                    <Progress value={percent} className="h-2 bg-white/70 dark:bg-slate-900/60" />
-                    <p className="text-xs text-muted-foreground">{description}</p>
+                    {isExpired ? (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                            {translate("common.pdf.expiredDesc", "PDF indirme linkinin süresi dolmuş. Lütfen yeni bir PDF oluşturun.")}
+                        </p>
+                    ) : (
+                        <>
+                            <Progress value={percent} className="h-2 bg-white/70 dark:bg-slate-900/60" />
+                            <p className="text-xs text-muted-foreground">{description}</p>
+                        </>
+                    )}
                     {shareLinkError && isCompleted && (
                         <p className="text-xs text-amber-600 dark:text-amber-400">
                             {translate("common.pdf.shareLinkError", "İndirme linki alınamadı. Tekrar deneyin.")}
@@ -337,9 +361,20 @@ function PdfExportStatusCard({
                                 size="sm"
                                 className="h-7 text-xs"
                                 disabled={!canDownload}
-                                onClick={() => downloadUrl && window.open(downloadUrl, "_blank", "noopener,noreferrer")}
+                                asChild={!canDownload ? undefined : true}
                             >
-                                {isLoadingLink ? translate("common.pdf.preparingLink", "Hazırlanıyor") : translate("common.pdf.downloadButton", "İndir")}
+                                {canDownload && downloadUrl ? (
+                                    <a
+                                        href={downloadUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        download
+                                    >
+                                        {isLoadingLink ? translate("common.pdf.preparingLink", "Hazırlanıyor") : translate("common.pdf.downloadButton", "İndir")}
+                                    </a>
+                                ) : (
+                                    translate("common.pdf.preparingLink", "Hazırlanıyor")
+                                )}
                             </Button>
                         )}
                         {isCompleted && shareLinkError && (

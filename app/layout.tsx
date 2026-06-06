@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Montserrat } from "next/font/google"
+import Script from "next/script"
 
 import "./globals.css"
 import { I18nProvider } from "@/lib/contexts/i18n-provider"
@@ -19,18 +20,19 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
   display: "swap",
   preload: true,
-  weight: ["400", "500", "700", "900"],
+  weight: ["300", "700", "900"],
 });
 
 const siteUrl = SITE_URL
+const gaId = process.env.NEXT_PUBLIC_GA_ID
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "FogCatalog - Ürün Katalog Oluşturucu",
+    default: "Dijital Ürün Kataloğu Oluşturucu | FogCatalog",
     template: "%s | FogCatalog",
   },
-  description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. 15+ premium şablon, PDF dışa aktarma, QR kod ve etkileşimli paylaşım.",
+  description: "FogCatalog ile dakikalar içinde dijital ürün kataloğu oluşturun. PDF dışa aktarma, QR kod, online paylaşım ve 15+ profesyonel katalog şablonu kullanın.",
   keywords: [
     "katalog", "ürün kataloğu", "PDF katalog", "dijital katalog", "katalog oluşturma",
     "catalog builder", "digital catalog", "product catalog", "online catalog", "PDF catalog creator",
@@ -56,22 +58,23 @@ export const metadata: Metadata = {
     alternateLocale: ["en_US"],
     url: siteUrl,
     siteName: "FogCatalog",
-    title: "FogCatalog - Ürün Katalog Oluşturucu",
-    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun. 15+ premium şablon, PDF dışa aktarma, QR kod ve etkileşimli paylaşım.",
+    title: "Dijital Ürün Kataloğu Oluşturucu | FogCatalog",
+    description: "FogCatalog ile dakikalar içinde dijital ürün kataloğu oluşturun. PDF dışa aktarma, QR kod, online paylaşım ve 15+ profesyonel katalog şablonu kullanın.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.webp",
         width: 1200,
         height: 630,
+        type: "image/webp",
         alt: "FogCatalog - Digital Catalog Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "FogCatalog - Ürün Katalog Oluşturucu",
-    description: "Dakikalar içinde profesyonel dijital ürün katalogları oluşturun.",
-    images: ["/og-image.png"],
+    title: "Dijital Ürün Kataloğu Oluşturucu | FogCatalog",
+    description: "PDF, QR kod ve online paylaşım özellikli dijital ürün katalogları oluşturun.",
+    images: ["/og-image.webp"],
     creator: "@fogcatalog",
   },
   alternates: {
@@ -79,10 +82,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/favicon_io/favicon.ico' },
+      { url: '/favicon_io/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon_io/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
       { url: '/logo.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/apple-icon.png' },
+      { url: '/favicon_io/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   manifest: "/manifest.json",
@@ -163,11 +169,22 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
-        {/* Preconnect to image CDNs — start DNS/TLS early for faster image loads */}
-        <link rel="preconnect" href="https://res.cloudinary.com" />
+        {gaId && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script
+              id="google-analytics"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`,
+              }}
+            />
+          </>
+        )}
+        {/* Preconnect to the first-viewport demo image CDN. */}
         <link rel="preconnect" href="https://images.unsplash.com" />
         {/* PWA */}
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="FogCatalog" />

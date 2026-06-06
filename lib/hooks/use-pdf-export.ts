@@ -150,6 +150,7 @@ export function usePdfExport({
                     dismissedRef.current = false
                     if (wasDismissed) {
                         setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
+                        toast.success("PDF hazırlandı. Bildirimler üzerinden indirebilirsiniz.")
                     } else {
                         setPhase("done", {
                             percent: 100,
@@ -161,9 +162,6 @@ export function usePdfExport({
                         })
                     }
                     toast.success("PDF hazırlandı.")
-                    if (!wasDismissed) {
-                        window.open(share.url, "_blank", "noopener,noreferrer")
-                    }
                     refreshUser().catch(() => undefined)
                     return
                 }

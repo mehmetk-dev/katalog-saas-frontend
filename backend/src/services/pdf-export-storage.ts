@@ -123,12 +123,22 @@ export async function getPdfExportSignedUrl(
         ? `attachment; filename="${options.downloadFilename.replace(/"/g, '')}"`
         : undefined;
 
-    const command = new GetObjectCommand({
-        Bucket: getBucket(),
-        Key: toObjectKey(relativePath),
-        ResponseContentType: 'application/pdf',
-        ResponseContentDisposition: filename,
-    });
+    const Key = toObjectKey(relativePath);
+    const Bucket = getBucket();
 
-    return getSignedUrl(getR2Client(), command, { expiresIn: ttlSeconds });
+    try {
+        const command = new GetObjectCommand({
+            Bucket,
+            Key,
+            ResponseContentType: 'application/pdf',
+            ResponseContentDisposition: filename,
+        });
+
+        const url = await getSignedUrl(getR2Client(), command, { expiresIn: ttlSeconds });
+        return url;
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[pdf-export-storage] getPdfExportSignedUrl failed: bucket=${Bucket} key=${Key} ttl=${ttlSeconds} error=${errMsg}`);
+        throw new Error(`Signed URL generation failed for key "${Key}": ${errMsg}`);
+    }
 }
