@@ -66,7 +66,7 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                         </button>
                     </div>
 
-                    <Link href="/auth?tab=signup">
+                    <Link href="/auth?tab=signup" prefetch={false}>
                         <Button
                             size="sm"
                             className="hidden sm:inline-flex h-10 px-6 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-500/20 rounded-full transition-all duration-300 hover:scale-105 font-black uppercase text-[11px] tracking-wider"

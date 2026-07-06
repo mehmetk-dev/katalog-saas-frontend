@@ -77,7 +77,12 @@ function getPublicApiBaseUrl(req: Request): string {
     const configured = process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL
     if (configured?.trim()) return configured.trim().replace(/\/$/, '')
 
-    return `${req.protocol}://${req.get('host')}/api/v1`
+    const fallback = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
+    if (fallback?.trim()) return `${fallback.trim().replace(/\/$/, '')}/api/v1`
+
+    const host = req.get('host') || ''
+    console.warn(`[pdf-exports] PUBLIC_API_URL not set, falling back to request host: ${host}`)
+    return `${req.protocol}://${host}/api/v1`
 }
 
 async function getOwnedCatalog(catalogId: string, userId: string) {
@@ -314,7 +319,10 @@ async function buildSignedUrlForJob(
     job: PdfExportJobRow,
     ttlSeconds: number
 ): Promise<string | null> {
-    if (job.status !== 'completed' || !job.file_path) return null
+    if (job.status !== 'completed' || !job.file_path) {
+        console.warn(`[pdf-exports] buildSignedUrl: job=${job.id} not ready (status=${job.status} file_path=${job.file_path ? 'set' : 'null'})`)
+        return null
+    }
     if (job.expires_at && new Date(job.expires_at).getTime() < Date.now()) {
         console.warn(`[pdf-exports] buildSignedUrl: job=${job.id} expired at ${job.expires_at}`)
         return null
@@ -329,31 +337,46 @@ async function buildSignedUrlForJob(
     }
 
     try {
-        return getPdfExportSignedUrl(job.file_path, {
+        const filename = buildDownloadFilename(catalog, job.id)
+        console.log(`[pdf-exports] buildSignedUrl: generating signed URL for job=${job.id} filePath=${job.file_path} filename=${filename} ttlSeconds=${ttlSeconds}`)
+        return await getPdfExportSignedUrl(job.file_path, {
             ttlSeconds,
-            downloadFilename: buildDownloadFilename(catalog, job.id),
+            downloadFilename: filename,
         })
     } catch (error) {
-        console.error(`[pdf-exports] buildSignedUrl: signed URL generation failed for job=${job.id} filePath=${job.file_path}:`, error instanceof Error ? error.message : error)
-        throw error
+        const errMsg = error instanceof Error ? error.message : String(error)
+        console.error(`[pdf-exports] buildSignedUrl: signed URL generation FAILED for job=${job.id} filePath=${job.file_path}: ${errMsg}`)
+        throw new Error(`PDF indirme linki oluşturulamadı: ${errMsg}`)
     }
 }
 
 export async function downloadPdfExport(req: Request, res: Response) {
     try {
-        const job = await getOwnedJob(req.params.id, getRequestUserId(req))
-        if (!job) return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        const userId = getRequestUserId(req)
+        const jobId = req.params.id
+        const job = await getOwnedJob(jobId, userId)
+        if (!job) {
+            console.warn(`[pdf-exports] download: job=${jobId} not found for user=${userId}`)
+            return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        }
         if (job.status !== 'completed' || !job.file_path) {
+            console.warn(`[pdf-exports] download: job=${jobId} status=${job.status} file_path=${job.file_path ? 'set' : 'null'}`)
             return res.status(409).json({ error: 'PDF henüz hazır değil.' })
         }
         if (job.expires_at && new Date(job.expires_at).getTime() < Date.now()) {
+            console.warn(`[pdf-exports] download: job=${jobId} expired at ${job.expires_at}`)
             return res.status(410).json({ error: 'PDF indirme linkinin süresi doldu.' })
         }
         const signedUrl = await buildSignedUrlForJob(job, 15 * 60)
-        if (!signedUrl) return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
+        if (!signedUrl) {
+            console.error(`[pdf-exports] download: buildSignedUrlForJob returned null for job=${jobId}`)
+            return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
+        }
         return res.redirect(302, signedUrl)
     } catch (error) {
-        return res.status(500).json({ error: safeErrorMessage(error) })
+        const errMsg = safeErrorMessage(error)
+        console.error(`[pdf-exports] download error for job=${req.params.id}:`, error instanceof Error ? error.message : error)
+        return res.status(500).json({ error: errMsg })
     }
 }
 
@@ -388,6 +411,7 @@ export async function publicDownloadPdfExport(req: Request, res: Response) {
     try {
         const jobId = req.params.id
         if (!verifyPdfExportToken(jobId, req.query.token)) {
+            console.warn(`[pdf-exports] public-download: token verification failed for job=${jobId}`)
             return res.status(403).json({ error: 'Forbidden' })
         }
 
@@ -397,20 +421,30 @@ export async function publicDownloadPdfExport(req: Request, res: Response) {
             .eq('id', jobId)
             .single()
 
-        if (error || !job) return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        if (error || !job) {
+            console.warn(`[pdf-exports] public-download: job=${jobId} not found in DB`)
+            return res.status(404).json({ error: 'PDF export bulunamadı.' })
+        }
         const typedJob = job as PdfExportJobRow
         if (typedJob.status !== 'completed' || !typedJob.file_path) {
+            console.warn(`[pdf-exports] public-download: job=${jobId} status=${typedJob.status} file_path=${typedJob.file_path ? 'set' : 'null'}`)
             return res.status(409).json({ error: 'PDF henüz hazır değil.' })
         }
         if (typedJob.expires_at && new Date(typedJob.expires_at).getTime() < Date.now()) {
+            console.warn(`[pdf-exports] public-download: job=${jobId} expired at ${typedJob.expires_at}`)
             return res.status(410).json({ error: 'PDF indirme linkinin süresi doldu.' })
         }
 
         const signedUrl = await buildSignedUrlForJob(typedJob, 15 * 60)
-        if (!signedUrl) return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
+        if (!signedUrl) {
+            console.error(`[pdf-exports] public-download: buildSignedUrlForJob returned null for job=${jobId}`)
+            return res.status(404).json({ error: 'PDF dosyası bulunamadı.' })
+        }
         return res.redirect(302, signedUrl)
     } catch (error) {
-        return res.status(500).json({ error: safeErrorMessage(error) })
+        const errMsg = safeErrorMessage(error)
+        console.error(`[pdf-exports] public-download error for job=${req.params.id}:`, error instanceof Error ? error.message : error)
+        return res.status(500).json({ error: errMsg })
     }
 }
 

@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.bulkUpdateFields = exports.bulkUpdateImages = exports.bulkUpdatePrices = exports.reorderProducts = exports.deleteCategoryFromProducts = exports.renameCategory = exports.bulkImportProducts = exports.bulkDeleteProducts = void 0;
+var bulk_delete_1 = require("./bulk-delete");
+Object.defineProperty(exports, "bulkDeleteProducts", { enumerable: true, get: function () { return bulk_delete_1.bulkDeleteProducts; } });
+var bulk_import_1 = require("./bulk-import");
+Object.defineProperty(exports, "bulkImportProducts", { enumerable: true, get: function () { return bulk_import_1.bulkImportProducts; } });
+var bulk_category_1 = require("./bulk-category");
+Object.defineProperty(exports, "renameCategory", { enumerable: true, get: function () { return bulk_category_1.renameCategory; } });
+Object.defineProperty(exports, "deleteCategoryFromProducts", { enumerable: true, get: function () { return bulk_category_1.deleteCategoryFromProducts; } });
+var bulk_update_1 = require("./bulk-update");
+Object.defineProperty(exports, "reorderProducts", { enumerable: true, get: function () { return bulk_update_1.reorderProducts; } });
+Object.defineProperty(exports, "bulkUpdatePrices", { enumerable: true, get: function () { return bulk_update_1.bulkUpdatePrices; } });
+Object.defineProperty(exports, "bulkUpdateImages", { enumerable: true, get: function () { return bulk_update_1.bulkUpdateImages; } });
+Object.defineProperty(exports, "bulkUpdateFields", { enumerable: true, get: function () { return bulk_update_1.bulkUpdateFields; } });

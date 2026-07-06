@@ -81,7 +81,7 @@ export function PublicMobileMenu({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
                     >
-                        <Link href="/auth?tab=signup" onClick={onClose}>
+                        <Link href="/auth?tab=signup" prefetch={false} onClick={onClose}>
                             <Button size="lg" className="w-full h-16 bg-[#cf1414] hover:bg-black text-white shadow-xl shadow-red-100 text-lg font-black uppercase tracking-tight rounded-none flex items-center justify-between px-8 transition-colors">
                                 <span>{createCatalogLabel}</span>
                                 <Sparkles className="w-6 h-6" />
