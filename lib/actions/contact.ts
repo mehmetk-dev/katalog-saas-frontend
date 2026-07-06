@@ -35,6 +35,13 @@ export async function sendContactMessage(data: {
     subject: string
     message: string
 }): Promise<{ success: boolean; error?: string }> {
+    console.warn("[contact] submit received", {
+        subject: data.subject,
+        hasName: Boolean(data.name?.trim()),
+        hasEmail: Boolean(data.email?.trim()),
+        messageLength: data.message?.length ?? 0,
+    })
+
     // Rate limit: IP başına 10 dakikada en fazla 3 contact message
     const headersList = await headers()
     const rl = checkRateLimit(
@@ -44,6 +51,7 @@ export async function sendContactMessage(data: {
         CONTACT_WINDOW_MS
     )
     if (!rl.allowed) {
+        console.warn("[contact] rate limit exceeded")
         return {
             success: false,
             error: "Çok fazla deneme. Lütfen 10 dakika sonra tekrar deneyin.",
@@ -55,6 +63,7 @@ export async function sendContactMessage(data: {
     try {
         validatedData = validate(contactFormSchema, data)
     } catch (err) {
+        console.warn("[contact] validation failed", err instanceof Error ? err.message : err)
         return {
             success: false,
             error: err instanceof Error ? err.message : "Geçersiz form verisi.",
@@ -63,9 +72,16 @@ export async function sendContactMessage(data: {
 
     const adminEmail = ADMIN_EMAIL
     const smtpUser = process.env.SMTP_USER
+    const smtpPass = process.env.SMTP_PASS
 
-    if (!adminEmail || !smtpUser) {
-        console.error("❌ ADMIN_EMAIL or SMTP_USER not set — contact email not sent")
+    if (!adminEmail || !smtpUser || !smtpPass) {
+        console.error("[contact] email service is not configured", {
+            missing: {
+                ADMIN_EMAIL: !adminEmail,
+                SMTP_USER: !smtpUser,
+                SMTP_PASS: !smtpPass,
+            },
+        })
         return {
             success: false,
             error: "E-posta servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
@@ -111,7 +127,7 @@ export async function sendContactMessage(data: {
         })
 
         if (!result.success) {
-            console.error("❌ Contact email send failed:", result.error)
+            console.error("[contact] email send failed:", result.error)
             return {
                 success: false,
                 error: "Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.",
@@ -120,7 +136,7 @@ export async function sendContactMessage(data: {
 
         return { success: true }
     } catch (err) {
-        console.error("❌ Contact email exception:", err)
+        console.error("[contact] email exception:", err)
         return {
             success: false,
             error: "Beklenmedik bir hata oluştu. Lütfen daha sonra tekrar deneyin.",

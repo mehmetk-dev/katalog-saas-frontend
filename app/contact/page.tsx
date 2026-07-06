@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Mail, MapPin, Send, Sparkles, Globe, Instagram, Twitter, MessageSquare, HelpCircle, DollarSign, Handshake, Loader2, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Mail, MapPin, Send, Sparkles, Globe, Instagram, Twitter, MessageSquare, HelpCircle, DollarSign, Handshake, Loader2, CheckCircle2 } from "lucide-react"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Button } from "@/components/ui/button"
@@ -9,12 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { sendContactMessage } from "@/lib/actions/contact"
-import { toast } from "sonner"
+import { Toaster, toast } from "sonner"
 
 export default function ContactPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const subjects = [
     { id: 'genel', label: 'Genel', icon: MessageSquare },
@@ -205,6 +206,7 @@ export default function ContactPage() {
                 ) : (
                   <form className="flex-1 space-y-6 md:space-y-8" onSubmit={async (e) => {
                     e.preventDefault()
+                    setFormError(null)
                     const form = e.currentTarget
                     const formData = new FormData(form)
                     const name = (formData.get("name") as string)?.trim()
@@ -212,11 +214,15 @@ export default function ContactPage() {
                     const message = (formData.get("message") as string)?.trim()
 
                     if (!name || !email || !selectedSubject || !message) {
-                      toast.error("Lütfen tüm alanları doldurun.")
+                      const error = "Lütfen tüm alanları doldurun ve bir konu seçin."
+                      setFormError(error)
+                      toast.error(error)
                       return
                     }
                     if (message.length < 10) {
-                      toast.error("Mesaj en az 10 karakter olmalıdır.")
+                      const error = "Mesaj en az 10 karakter olmalıdır."
+                      setFormError(error)
+                      toast.error(error)
                       return
                     }
 
@@ -229,10 +235,15 @@ export default function ContactPage() {
                         setSelectedSubject("")
                         toast.success("Mesajınız başarıyla gönderildi!")
                       } else {
-                        toast.error(result.error || "Mesaj gönderilemedi.")
+                        const error = result.error || "Mesaj gönderilemedi."
+                        setFormError(error)
+                        toast.error(error)
                       }
-                    } catch {
-                      toast.error("Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.")
+                    } catch (error) {
+                      console.error("Contact form submit failed:", error)
+                      const message = "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin."
+                      setFormError(message)
+                      toast.error(message)
                     } finally {
                       setIsSubmitting(false)
                     }
@@ -315,7 +326,12 @@ export default function ContactPage() {
                               <button
                                 key={subj.id}
                                 type="button"
-                                onClick={() => setSelectedSubject(subj.id)}
+                                disabled={isSubmitting}
+                                aria-pressed={selectedSubject === subj.id}
+                                onClick={() => {
+                                  setSelectedSubject(subj.id)
+                                  setFormError(null)
+                                }}
                                 className={cn(
                                   "flex items-center justify-center gap-1.5 sm:gap-2",
                                   "text-[9px] sm:text-[10px] uppercase font-bold",
@@ -369,6 +385,19 @@ export default function ContactPage() {
                         </label>
                       </div>
                     </div>
+
+                    {formError && (
+                      <div
+                        role="alert"
+                        className={cn(
+                          "flex items-start gap-2 rounded-xl border border-red-200",
+                          "bg-red-50 px-4 py-3 text-sm text-red-700"
+                        )}
+                      >
+                        <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                        <span>{formError}</span>
+                      </div>
+                    )}
 
                     <div className="pt-4 md:pt-6">
                       <Button
@@ -429,6 +458,7 @@ export default function ContactPage() {
       </main>
 
       <PublicFooter />
+      <Toaster position="top-center" richColors />
     </div>
   )
 }
