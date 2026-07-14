@@ -158,6 +158,7 @@ async function renderPdf(job) {
             attempts: job.attemptsMade + 1,
             started_at: new Date().toISOString(),
         });
+        console.log(`[pdf-export-worker] started ${jobId} catalog=${catalogId}`);
         phase = 'loading-render-page';
         const token = (0, pdf_export_token_1.createPdfExportToken)(jobId);
         const frontendOrigin = await discoverFrontendOrigin();
@@ -166,6 +167,9 @@ async function renderPdf(job) {
         const page = await browser.newPage({
             viewport: { width: 794, height: 1123 },
             deviceScaleFactor: job.data.quality === 'high' ? 2 : 1,
+        });
+        page.on('pageerror', (error) => {
+            console.error(`[pdf-export-worker] browser error ${jobId}: ${getErrorMessage(error)}`);
         });
         try {
             await page.route('**/*', (route) => {
@@ -192,19 +196,44 @@ async function renderPdf(job) {
             });
             await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: GOTO_TIMEOUT_MS });
             await updateJob(jobId, { progress: 35 });
-            await page.waitForFunction(() => window
-                .__PDF_EXPORT_READY === true, null, { timeout: READY_TIMEOUT_MS });
+            console.log(`[pdf-export-worker] render page loaded ${jobId}; waiting for ready signal`);
+            phase = 'waiting-render-ready';
+            try {
+                await page.waitForFunction(() => window
+                    .__PDF_EXPORT_READY === true, null, { timeout: READY_TIMEOUT_MS });
+            }
+            catch (error) {
+                const diagnostics = await page.evaluate(() => {
+                    const images = Array.from(document.querySelectorAll('img'));
+                    return {
+                        ready: Boolean(window
+                            .__PDF_EXPORT_READY),
+                        pageCount: document.querySelectorAll('.catalog-page-wrapper').length,
+                        imageCount: images.length,
+                        pendingImages: images.filter((image) => !image.complete).length,
+                        failedImages: images.filter((image) => image.complete && image.naturalWidth === 0).length,
+                        bodyText: document.body?.innerText.slice(0, 240) || '',
+                    };
+                }).catch((diagnosticError) => ({
+                    diagnosticError: getErrorMessage(diagnosticError),
+                }));
+                console.error(`[pdf-export-worker] render readiness timeout ${jobId}: ${JSON.stringify(diagnostics)}`);
+                throw error;
+            }
+            console.log(`[pdf-export-worker] render ready ${jobId}`);
             const pageCount = await page
                 .locator('.catalog-page-wrapper')
                 .count()
                 .catch(() => null);
             await updateJob(jobId, { progress: 50, page_count: pageCount });
+            phase = 'waiting-images';
             await page.waitForFunction(() => {
                 const images = Array.from(document.querySelectorAll('img'));
                 if (images.length === 0)
                     return true;
                 return images.every((img) => img.complete);
             }, null, { timeout: READY_TIMEOUT_MS });
+            console.log(`[pdf-export-worker] assets ready ${jobId} pages=${pageCount ?? 'unknown'}`);
             await updateJob(jobId, { progress: 70 });
             phase = 'rendering-pdf';
             const pdfBuffer = await page.pdf({

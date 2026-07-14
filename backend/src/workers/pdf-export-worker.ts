@@ -180,6 +180,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             attempts: job.attemptsMade + 1,
             started_at: new Date().toISOString(),
         })
+        console.log(`[pdf-export-worker] started ${jobId} catalog=${catalogId}`)
 
         phase = 'loading-render-page'
         const token = createPdfExportToken(jobId)
@@ -190,6 +191,9 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
         const page = await browser.newPage({
             viewport: { width: 794, height: 1123 },
             deviceScaleFactor: job.data.quality === 'high' ? 2 : 1,
+        })
+        page.on('pageerror', (error) => {
+            console.error(`[pdf-export-worker] browser error ${jobId}: ${getErrorMessage(error)}`)
         })
 
         try {
@@ -223,14 +227,42 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
 
             await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: GOTO_TIMEOUT_MS })
             await updateJob(jobId, { progress: 35 })
+            console.log(`[pdf-export-worker] render page loaded ${jobId}; waiting for ready signal`)
 
-            await page.waitForFunction(
-                () =>
-                    (window as typeof window & { __PDF_EXPORT_READY?: boolean })
-                        .__PDF_EXPORT_READY === true,
-                null,
-                { timeout: READY_TIMEOUT_MS }
-            )
+            phase = 'waiting-render-ready'
+            try {
+                await page.waitForFunction(
+                    () =>
+                        (window as typeof window & { __PDF_EXPORT_READY?: boolean })
+                            .__PDF_EXPORT_READY === true,
+                    null,
+                    { timeout: READY_TIMEOUT_MS }
+                )
+            } catch (error) {
+                const diagnostics = await page.evaluate(() => {
+                    const images = Array.from(document.querySelectorAll<HTMLImageElement>('img'))
+                    return {
+                        ready: Boolean(
+                            (window as typeof window & { __PDF_EXPORT_READY?: boolean })
+                                .__PDF_EXPORT_READY
+                        ),
+                        pageCount: document.querySelectorAll('.catalog-page-wrapper').length,
+                        imageCount: images.length,
+                        pendingImages: images.filter((image) => !image.complete).length,
+                        failedImages: images.filter(
+                            (image) => image.complete && image.naturalWidth === 0
+                        ).length,
+                        bodyText: document.body?.innerText.slice(0, 240) || '',
+                    }
+                }).catch((diagnosticError) => ({
+                    diagnosticError: getErrorMessage(diagnosticError),
+                }))
+                console.error(
+                    `[pdf-export-worker] render readiness timeout ${jobId}: ${JSON.stringify(diagnostics)}`
+                )
+                throw error
+            }
+            console.log(`[pdf-export-worker] render ready ${jobId}`)
 
             const pageCount = await page
                 .locator('.catalog-page-wrapper')
@@ -238,6 +270,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
                 .catch(() => null)
             await updateJob(jobId, { progress: 50, page_count: pageCount })
 
+            phase = 'waiting-images'
             await page.waitForFunction(
                 () => {
                     const images = Array.from(document.querySelectorAll<HTMLImageElement>('img'))
@@ -247,6 +280,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
                 null,
                 { timeout: READY_TIMEOUT_MS }
             )
+            console.log(`[pdf-export-worker] assets ready ${jobId} pages=${pageCount ?? 'unknown'}`)
             await updateJob(jobId, { progress: 70 })
 
             phase = 'rendering-pdf'

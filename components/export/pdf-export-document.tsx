@@ -9,6 +9,7 @@ import { UserProvider, type User } from '@/lib/contexts/user-context'
 import type { TemplateProps } from '@/components/catalogs/templates/types'
 import { PdfExportModeProvider } from '@/components/ui/product-image-gallery'
 import { createCatalogPagesModel } from '@/components/builder/preview/use-catalog-pages'
+import { waitForPdfExportAssets } from '@/lib/pdf-export-assets'
 
 // Static imports — no lazy loading, no ssr:false
 // Templates MUST be statically imported so Playwright can render them immediately
@@ -120,18 +121,7 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
 
         async function markReadyAfterAssets() {
             try {
-                await document.fonts?.ready.catch(() => undefined)
-
-                const images = Array.from(document.querySelectorAll<HTMLImageElement>('img[src]'))
-                const imagePromises = images.map(
-                    (img) =>
-                        new Promise<void>((resolve) => {
-                            if (img.complete && img.naturalWidth > 0) return resolve()
-                            img.addEventListener('load', () => resolve(), { once: true })
-                            img.addEventListener('error', () => resolve(), { once: true })
-                        })
-                )
-                await Promise.all(imagePromises)
+                await waitForPdfExportAssets(document)
 
                 await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
                 await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
