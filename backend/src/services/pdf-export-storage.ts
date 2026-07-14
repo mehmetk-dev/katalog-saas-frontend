@@ -7,6 +7,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 let cachedClient: S3Client | null = null;
+const STORED_OBJECT_KEY_PREFIX = 'r2-key:';
 
 function requireEnv(name: string): string {
     const value = process.env[name]?.trim();
@@ -77,19 +78,37 @@ export function getPdfExportRelativePath(options: {
     return `${baseName}-${date}-${options.jobId.slice(0, 12)}.pdf`;
 }
 
-function toObjectKey(relativePath: string): string {
-    const cleaned = relativePath.replace(/^\/+/, '');
-    if (cleaned.includes('..')) {
+function cleanObjectKey(value: string): string {
+    const cleaned = value.trim().replace(/^\/+/, '');
+    if (!cleaned || cleaned.includes('..')) {
         throw new Error('Invalid PDF export key');
     }
+    return cleaned;
+}
+
+function toObjectKey(relativePath: string): string {
+    const cleaned = cleanObjectKey(relativePath);
     const prefix = getKeyPrefix();
     return prefix ? `${prefix}/${cleaned}` : cleaned;
+}
+
+export function toPdfExportStoragePath(objectKey: string): string {
+    return `${STORED_OBJECT_KEY_PREFIX}${cleanObjectKey(objectKey)}`;
+}
+
+export function resolvePdfExportObjectKey(storagePath: string): string {
+    const value = storagePath.trim();
+    if (value.startsWith(STORED_OBJECT_KEY_PREFIX)) {
+        return cleanObjectKey(value.slice(STORED_OBJECT_KEY_PREFIX.length));
+    }
+
+    return toObjectKey(value);
 }
 
 export async function writePdfExportFile(
     relativePath: string,
     buffer: Buffer,
-): Promise<{ key: string; size: number }> {
+): Promise<{ key: string; storagePath: string; size: number }> {
     const Key = toObjectKey(relativePath);
     await getR2Client().send(
         new PutObjectCommand({
@@ -100,14 +119,21 @@ export async function writePdfExportFile(
             CacheControl: 'private, max-age=0, no-store',
         }),
     );
-    return { key: Key, size: buffer.byteLength };
+    return {
+        key: Key,
+        storagePath: toPdfExportStoragePath(Key),
+        size: buffer.byteLength,
+    };
 }
 
-export async function deletePdfExportFile(relativePath: string | null): Promise<void> {
-    if (!relativePath) return;
+export async function deletePdfExportFile(storagePath: string | null): Promise<void> {
+    if (!storagePath) return;
     try {
         await getR2Client().send(
-            new DeleteObjectCommand({ Bucket: getBucket(), Key: toObjectKey(relativePath) }),
+            new DeleteObjectCommand({
+                Bucket: getBucket(),
+                Key: resolvePdfExportObjectKey(storagePath),
+            }),
         );
     } catch {
         // Cleanup is best effort; the scheduled janitor can retry stale files.
@@ -115,7 +141,7 @@ export async function deletePdfExportFile(relativePath: string | null): Promise<
 }
 
 export async function getPdfExportSignedUrl(
-    relativePath: string,
+    storagePath: string,
     options: { ttlSeconds?: number; downloadFilename?: string } = {},
 ): Promise<string> {
     const ttlSeconds = Math.max(60, Math.min(7 * 24 * 60 * 60, options.ttlSeconds ?? 15 * 60));
@@ -123,7 +149,7 @@ export async function getPdfExportSignedUrl(
         ? `attachment; filename="${options.downloadFilename.replace(/"/g, '')}"`
         : undefined;
 
-    const Key = toObjectKey(relativePath);
+    const Key = resolvePdfExportObjectKey(storagePath);
     const Bucket = getBucket();
 
     try {

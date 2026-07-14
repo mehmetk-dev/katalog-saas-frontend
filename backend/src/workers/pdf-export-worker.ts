@@ -54,9 +54,59 @@ async function discoverFrontendOrigin(): Promise<string> {
 }
 
 async function updateJob(jobId: string, patch: Record<string, unknown>): Promise<void> {
-    const { error } = await supabase.from('pdf_export_jobs').update(patch).eq('id', jobId)
+    const { data, error } = await supabase
+        .from('pdf_export_jobs')
+        .update(patch)
+        .eq('id', jobId)
+        .select('id')
+        .maybeSingle()
 
-    if (error) throw error
+    if (error) {
+        throw new Error(`PDF export job update failed: ${getErrorMessage(error)}`)
+    }
+    if (!data) {
+        throw new Error(`PDF export job not found: ${jobId}`)
+    }
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message
+    if (error && typeof error === 'object' && 'message' in error) {
+        const message = (error as { message?: unknown }).message
+        if (typeof message === 'string' && message.trim()) return message
+    }
+    if (typeof error === 'string' && error.trim()) return error
+
+    try {
+        return JSON.stringify(error)
+    } catch {
+        return 'Unknown PDF export error'
+    }
+}
+
+async function updateJobWithRetry(
+    jobId: string,
+    patch: Record<string, unknown>,
+    attempts = 3
+): Promise<void> {
+    let lastError: unknown
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+            await updateJob(jobId, patch)
+            return
+        } catch (error) {
+            lastError = error
+            if (attempt < attempts) {
+                console.warn(
+                    `[pdf-export-worker] job update retry ${attempt}/${attempts - 1} for ${jobId}: ${getErrorMessage(error)}`
+                )
+                await new Promise((resolve) => setTimeout(resolve, attempt * 750))
+            }
+        }
+    }
+
+    throw lastError
 }
 
 async function getCatalogExportName(
@@ -120,8 +170,10 @@ const GOTO_TIMEOUT_MS = Number(process.env.PDF_EXPORT_GOTO_TIMEOUT_MS || 120_000
 
 async function renderPdf(job: PdfExportBullJob): Promise<void> {
     const { jobId, userId, catalogId } = job.data
+    let phase = 'initializing'
 
     try {
+        phase = 'marking-processing'
         await updateJob(jobId, {
             status: 'processing',
             progress: 15,
@@ -129,6 +181,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             started_at: new Date().toISOString(),
         })
 
+        phase = 'loading-render-page'
         const token = createPdfExportToken(jobId)
         const frontendOrigin = await discoverFrontendOrigin()
         const renderUrl = `${frontendOrigin}/export/catalog/${jobId}?token=${encodeURIComponent(token)}`
@@ -196,6 +249,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             )
             await updateJob(jobId, { progress: 70 })
 
+            phase = 'rendering-pdf'
             const pdfBuffer = await page.pdf({
                 format: 'A4',
                 printBackground: true,
@@ -210,32 +264,48 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
                 catalogSlug: catalogName?.share_slug,
             })
             await updateJob(jobId, { progress: 90 })
-            const { size } = await writePdfExportFile(relativePath, pdfBuffer)
+            phase = 'uploading-r2'
+            const { key, storagePath, size } = await writePdfExportFile(relativePath, pdfBuffer)
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-            await updateJob(jobId, {
+            console.log(
+                `[pdf-export-worker] uploaded ${jobId} to R2 key=${key} size=${size}`
+            )
+
+            phase = 'finalizing-job'
+            await updateJobWithRetry(jobId, {
                 status: 'completed',
                 progress: 100,
-                file_path: relativePath,
+                file_path: storagePath,
+                error_message: null,
+            })
+
+            await updateJobWithRetry(jobId, {
                 file_size_bytes: size,
                 completed_at: new Date().toISOString(),
                 expires_at: expiresAt,
-                error_message: null,
+            }).catch((error) => {
+                console.error(
+                    `[pdf-export-worker] metadata update failed for completed job ${jobId}: ${getErrorMessage(error)}`
+                )
             })
+            browserCrashCount = 0
         } finally {
             await page.close().catch(() => undefined)
         }
     } catch (error) {
-        browserCrashCount++
-        if (browserCrashCount >= MAX_BROWSER_CRASHES || (error instanceof Error && error.message?.includes('Browser closed'))) {
+        const errorMessage = getErrorMessage(error)
+        const browserFailed = /browser.*closed|target.*closed|browser.*crash/i.test(errorMessage)
+        if (browserFailed) browserCrashCount++
+        if (browserCrashCount >= MAX_BROWSER_CRASHES || browserFailed) {
             await recoverBrowser()
         }
         await updateJob(jobId, {
             status: 'failed',
             progress: 0,
-            error_message: error instanceof Error ? error.message : 'PDF export failed',
+            error_message: `${phase}: ${errorMessage}`.slice(0, 1000),
         }).catch(() => undefined)
-        throw error
+        throw new Error(`[${phase}] ${errorMessage}`)
     }
 }
 

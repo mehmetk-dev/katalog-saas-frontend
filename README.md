@@ -129,6 +129,7 @@ REDIS_URL=redis://default:password@host:6379
 # PDF Worker / Storage
 WORKER_EXPORT_SECRET=change_me
 PDF_EXPORT_RENDER_ORIGIN=http://frontend:3000
+PUBLIC_API_URL=https://api.example.com/api/v1
 R2_ACCOUNT_ID=your_r2_account
 R2_ACCESS_KEY_ID=your_r2_access_key
 R2_SECRET_ACCESS_KEY=your_r2_secret

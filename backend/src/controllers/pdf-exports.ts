@@ -80,9 +80,12 @@ function getPublicApiBaseUrl(req: Request): string {
     const fallback = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
     if (fallback?.trim()) return `${fallback.trim().replace(/\/$/, '')}/api/v1`
 
-    const host = req.get('host') || ''
+    const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim()
+    const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim()
+    const host = forwardedHost || req.get('host') || ''
+    const protocol = forwardedProto || req.protocol
     console.warn(`[pdf-exports] PUBLIC_API_URL not set, falling back to request host: ${host}`)
-    return `${req.protocol}://${host}/api/v1`
+    return `${protocol}://${host}/api/v1`
 }
 
 async function getOwnedCatalog(catalogId: string, userId: string) {

@@ -2,12 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getR2Client = getR2Client;
 exports.getPdfExportRelativePath = getPdfExportRelativePath;
+exports.toPdfExportStoragePath = toPdfExportStoragePath;
+exports.resolvePdfExportObjectKey = resolvePdfExportObjectKey;
 exports.writePdfExportFile = writePdfExportFile;
 exports.deletePdfExportFile = deletePdfExportFile;
 exports.getPdfExportSignedUrl = getPdfExportSignedUrl;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 let cachedClient = null;
+const STORED_OBJECT_KEY_PREFIX = 'r2-key:';
 function requireEnv(name) {
     const value = process.env[name]?.trim();
     if (!value) {
@@ -67,13 +70,27 @@ function getPdfExportRelativePath(options) {
     const date = formatExportDate(options.createdAt ?? new Date());
     return `${baseName}-${date}-${options.jobId.slice(0, 12)}.pdf`;
 }
-function toObjectKey(relativePath) {
-    const cleaned = relativePath.replace(/^\/+/, '');
-    if (cleaned.includes('..')) {
+function cleanObjectKey(value) {
+    const cleaned = value.trim().replace(/^\/+/, '');
+    if (!cleaned || cleaned.includes('..')) {
         throw new Error('Invalid PDF export key');
     }
+    return cleaned;
+}
+function toObjectKey(relativePath) {
+    const cleaned = cleanObjectKey(relativePath);
     const prefix = getKeyPrefix();
     return prefix ? `${prefix}/${cleaned}` : cleaned;
+}
+function toPdfExportStoragePath(objectKey) {
+    return `${STORED_OBJECT_KEY_PREFIX}${cleanObjectKey(objectKey)}`;
+}
+function resolvePdfExportObjectKey(storagePath) {
+    const value = storagePath.trim();
+    if (value.startsWith(STORED_OBJECT_KEY_PREFIX)) {
+        return cleanObjectKey(value.slice(STORED_OBJECT_KEY_PREFIX.length));
+    }
+    return toObjectKey(value);
 }
 async function writePdfExportFile(relativePath, buffer) {
     const Key = toObjectKey(relativePath);
@@ -84,24 +101,31 @@ async function writePdfExportFile(relativePath, buffer) {
         ContentType: 'application/pdf',
         CacheControl: 'private, max-age=0, no-store',
     }));
-    return { key: Key, size: buffer.byteLength };
+    return {
+        key: Key,
+        storagePath: toPdfExportStoragePath(Key),
+        size: buffer.byteLength,
+    };
 }
-async function deletePdfExportFile(relativePath) {
-    if (!relativePath)
+async function deletePdfExportFile(storagePath) {
+    if (!storagePath)
         return;
     try {
-        await getR2Client().send(new client_s3_1.DeleteObjectCommand({ Bucket: getBucket(), Key: toObjectKey(relativePath) }));
+        await getR2Client().send(new client_s3_1.DeleteObjectCommand({
+            Bucket: getBucket(),
+            Key: resolvePdfExportObjectKey(storagePath),
+        }));
     }
     catch {
         // Cleanup is best effort; the scheduled janitor can retry stale files.
     }
 }
-async function getPdfExportSignedUrl(relativePath, options = {}) {
+async function getPdfExportSignedUrl(storagePath, options = {}) {
     const ttlSeconds = Math.max(60, Math.min(7 * 24 * 60 * 60, options.ttlSeconds ?? 15 * 60));
     const filename = options.downloadFilename
         ? `attachment; filename="${options.downloadFilename.replace(/"/g, '')}"`
         : undefined;
-    const Key = toObjectKey(relativePath);
+    const Key = resolvePdfExportObjectKey(storagePath);
     const Bucket = getBucket();
     try {
         const command = new client_s3_1.GetObjectCommand({

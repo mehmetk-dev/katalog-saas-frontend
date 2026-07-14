@@ -22,6 +22,8 @@ async function proxyPdfExportRequest(request: NextRequest, context: RouteContext
 
     if (authorization) headers.set("authorization", authorization)
     if (contentType) headers.set("content-type", contentType)
+    headers.set("x-forwarded-host", request.nextUrl.host)
+    headers.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""))
 
     const hasBody = request.method !== "GET" && request.method !== "HEAD"
     const response = await fetch(getTargetUrl(request, path), {
