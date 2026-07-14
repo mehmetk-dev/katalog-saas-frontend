@@ -6,6 +6,7 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: process.env.NEXT_OUTPUT_MODE === "standalone" ? "standalone" : undefined,
   // React Strict Mode causes double-invoke of effects in dev, which conflicts
   // with react-pageflip's direct DOM manipulation (removeChild error).
   // Strict Mode is dev-only so this has zero production impact.
@@ -14,9 +15,6 @@ const nextConfig = {
   turbopack: {
     root: projectRoot,
   },
-  // Standalone output only for Docker deployments — disabled for Nixpacks/Coolify
-  // To re-enable for Docker: output: "standalone",
-  // output: process.platform === "win32" ? undefined : "standalone",
   images: {
     // Görsel optimizasyonu aç
     unoptimized: false,
@@ -68,6 +66,14 @@ const nextConfig = {
   // Production optimizations
   poweredByHeader: false,
   compress: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://backend:4000/api/v1/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {

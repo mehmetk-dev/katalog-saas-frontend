@@ -1,0 +1,137 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --save 60 1
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ALLOWED_ORIGINS: https://fogcatalog.com,https://www.fogcatalog.com
+      TRUST_PROXY_HEADERS: "true"
+      REDIS_URL: redis://redis:6379
+      WORKER_EXPORT_SECRET: ${WORKER_EXPORT_SECRET}
+      PUBLIC_API_URL: https://fogcatalog.com/api/v1
+      FRONTEND_URL: https://fogcatalog.com
+      STORAGE_PROVIDER: ${NEXT_PUBLIC_STORAGE_PROVIDER:-cloudinary}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      CLOUDINARY_DELETED_FOLDER: ${CLOUDINARY_DELETED_FOLDER:-deletedproducts}
+      SMTP_HOST: ${SMTP_HOST:-smtp.zoho.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_BUCKET: ${R2_BUCKET}
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      R2_PDF_EXPORT_PREFIX: ${R2_PDF_EXPORT_PREFIX:-pdf-exports}
+      METRICS_SECRET: ${METRICS_SECRET:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:4000/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_APP_URL: https://fogcatalog.com
+        NEXT_PUBLIC_API_URL: /api/v1
+        NEXT_PUBLIC_STORAGE_PROVIDER: ${NEXT_PUBLIC_STORAGE_PROVIDER:-cloudinary}
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+        NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_APP_URL: https://fogcatalog.com
+      NEXT_PUBLIC_API_URL: /api/v1
+      NEXT_PUBLIC_STORAGE_PROVIDER: ${NEXT_PUBLIC_STORAGE_PROVIDER:-cloudinary}
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+      NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+      API_URL: http://backend:4000/api/v1
+      WORKER_EXPORT_SECRET: ${WORKER_EXPORT_SECRET}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  pdf-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    environment:
+      NODE_ENV: production
+      SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      REDIS_URL: redis://redis:6379
+      WORKER_EXPORT_SECRET: ${WORKER_EXPORT_SECRET}
+      PDF_EXPORT_RENDER_ORIGIN: http://frontend:3000
+      PDF_EXPORT_WORKER_CONCURRENCY: ${PDF_EXPORT_WORKER_CONCURRENCY:-1}
+      PDF_EXPORT_CLEANUP_INTERVAL_MS: ${PDF_EXPORT_CLEANUP_INTERVAL_MS:-3600000}
+      PDF_EXPORT_READY_TIMEOUT_MS: ${PDF_EXPORT_READY_TIMEOUT_MS:-300000}
+      PDF_EXPORT_GOTO_TIMEOUT_MS: ${PDF_EXPORT_GOTO_TIMEOUT_MS:-120000}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_BUCKET: ${R2_BUCKET}
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      R2_PDF_EXPORT_PREFIX: ${R2_PDF_EXPORT_PREFIX:-pdf-exports}
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    stop_grace_period: 6m
+    restart: unless-stopped
+
+volumes:
+  redis_data:
