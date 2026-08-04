@@ -4,6 +4,7 @@ import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { getItemsPerPage } from "@/lib/constants"
 
 /**
  * Industrial Template - "The Structural Blueprint"
@@ -33,6 +34,7 @@ export const IndustrialTemplate = React.memo(function IndustrialTemplate({
     headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
+    const itemsPerPage = getItemsPerPage('industrial')
 
     const {
         isHeaderLogo,
@@ -149,7 +151,7 @@ export const IndustrialTemplate = React.memo(function IndustrialTemplate({
 
             {/* Content List - Heavy Machinery Rows (6 Items - Expanded) */}
             <div className="flex-1 px-8 py-6 flex flex-col justify-between overflow-hidden z-10 w-full bg-zinc-100/50">
-                {safeProducts.slice(0, 6).map((product, idx) => {
+                {safeProducts.slice(0, itemsPerPage).map((product, idx) => {
                     const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {
@@ -166,7 +168,7 @@ export const IndustrialTemplate = React.memo(function IndustrialTemplate({
                             {/* Left: Index & Stripe */}
                             <div className="w-10 bg-black flex flex-col items-center justify-center gap-1 shrink-0 text-white z-20">
                                 <span className="text-[10px] font-mono font-bold -rotate-90 whitespace-nowrap tracking-widest opacity-50">NO</span>
-                                <span className="text-sm font-mono font-bold">{(idx + 1 + (pageNumber - 1) * 6).toString().padStart(2, '0')}</span>
+                                <span className="text-sm font-mono font-bold">{(idx + 1 + (pageNumber - 1) * itemsPerPage).toString().padStart(2, '0')}</span>
                             </div>
 
                             {/* Image Section */}

@@ -73,6 +73,7 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
                         const { data, error } = await supabase
                             .from('products')
                             .select(PRODUCT_FIELDS)
+                            .eq('user_id', userId)
                             .in('id', chunk)
                             .limit(CHUNK_SIZE);   // ← CRITICAL: without this PostgREST default max-rows can silently cap results
                         if (error) {

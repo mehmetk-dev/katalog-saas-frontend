@@ -3,6 +3,9 @@
 /** Maximum number of images per product — shared between FE validation and BE schema */
 export const MAX_PRODUCT_IMAGES = 20
 
+/** Backend katalog şemasıyla aynı üst sınır. */
+export const MAX_CATALOG_PRODUCTS = 5000
+
 /** Canonical base URL — used for SEO, sitemap, OG tags */
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fogcatalog.com"
 
@@ -64,6 +67,13 @@ export const TEMPLATES = [
         isPro: false,
         description: "Kompakt 3x3 karo görünümü",
         image: "/templates/modern-grid.png"
+    },
+    {
+        id: "clean-white",
+        name: "Temiz Beyaz",
+        isPro: false,
+        description: "Minimalist ve ferah beyaz ürün düzeni",
+        image: "/templates/minimalist.png"
     },
     // Pro şablonlar
     {
@@ -136,6 +146,20 @@ export const TEMPLATES = [
         description: "Premium ürünler için altın tema",
         image: "/templates/minimalist.png"
     },
+    {
+        id: "retail",
+        name: "Perakende",
+        isPro: true,
+        description: "Mağaza ve fiyat listeleri için yoğun ürün düzeni",
+        image: "/templates/modern-grid.png"
+    },
+    {
+        id: "tech-modern",
+        name: "Modern Teknoloji",
+        isPro: true,
+        description: "Teknoloji ürünleri için koyu ve modern görünüm",
+        image: "/templates/bold.png"
+    },
 ]
 
 // ─── Catalog Layout Page Size ───────────────────────────────────────────────────
@@ -153,11 +177,11 @@ export function getItemsPerPage(layout: string, columnsPerRow?: number): number 
     if (layoutKey === 'minimal-gallery' || layoutKey === 'minimalist') return 4
     if (layoutKey === 'magazine') return 1 + (columnsPerRow || 3) * 2
     if (layoutKey === 'showcase' || layoutKey === 'fashion-lookbook') return 5
-    if (layoutKey === 'industrial') return 8
+    if (layoutKey === 'industrial') return 6
     if (layoutKey === 'luxury') return 6
     if (layoutKey === 'compact-list' || layoutKey === 'list') return 10
     if (layoutKey === 'retail') return (columnsPerRow || 3) * 5
-    if (layoutKey === 'catalog-pro') return (columnsPerRow || 3) * 3
+    if (layoutKey === 'catalog-pro' || layoutKey === 'elegant-cards') return 4
     if (layoutKey === 'product-tiles') return 6
     if (columnsPerRow === 2) return 6
     if (columnsPerRow === 3) return 9

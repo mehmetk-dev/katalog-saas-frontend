@@ -25,7 +25,6 @@ interface UseCatalogActionsOptions {
     setLastSavedState: (state: SavedState) => void
     setIsDirty: (dirty: boolean) => void
     setIsPublished: (published: boolean) => void
-    setHasUnpushedChanges: (unpushed: boolean) => void
     refreshUser: () => Promise<void>
     t: (key: string, params?: Record<string, unknown>) => string
 }
@@ -44,7 +43,6 @@ export function useCatalogActions({
     setLastSavedState,
     setIsDirty,
     setIsPublished,
-    setHasUnpushedChanges,
     refreshUser,
     t,
 }: UseCatalogActionsOptions) {
@@ -83,9 +81,6 @@ export function useCatalogActions({
                 if (!isMountedRef.current) return
                 setLastSavedState(buildSavedStateSnapshot(data))
                 setIsDirty(false)
-                if (data.isPublished) {
-                    setHasUnpushedChanges(true)
-                }
                 // PERF(K1): No router.refresh() — client state already in sync.
                 // server action revalidatePath handles cache invalidation for other routes.
             } catch (error) {
@@ -150,9 +145,6 @@ export function useCatalogActions({
 
                     setLastSavedState(buildSavedStateSnapshot(data))
                     setIsDirty(false)
-                    if (isPublished) {
-                        setHasUnpushedChanges(true)
-                    }
                     // PERF(K2): No router.refresh() — server action already called
                     // revalidatePath("/dashboard", "layout"); builder client state is fresh.
                 } catch (error) {
@@ -163,35 +155,7 @@ export function useCatalogActions({
                 }
             })
         })
-    }, [catalogName, currentCatalogId, isPublished, t, setCatalogName, setCurrentCatalogId, setLastSavedState, setIsDirty, setHasUnpushedChanges, refreshUser, router])
-
-    // ─── Push Updates ───────────────────────────────────────────────────
-    const handlePushUpdates = useCallback(() => {
-        if (!currentCatalogId) return
-
-        startTransition(async () => {
-            try {
-                const data = getStateRef.current()
-                await updateCatalog(currentCatalogId, buildCatalogPayload(data))
-
-                const shareSlug = catalog?.share_slug
-                if (shareSlug) {
-                    const { revalidateCatalogPublic } = await import("@/lib/actions/catalogs")
-                    await revalidateCatalogPublic(shareSlug)
-                }
-
-                setHasUnpushedChanges(false)
-                setIsDirty(false)
-                setLastSavedState(buildSavedStateSnapshot(data))
-                toast.success("Yayındaki katalog güncellendi! 🚀")
-                // PERF(K2): No router.refresh() — revalidateCatalogPublic handles public page cache.
-            } catch (error) {
-                console.error('Catalog publish/push error:', error)
-                const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata'
-                toast.error(`Güncelleme sırasında bir hata oluştu: ${errorMessage}`)
-            }
-        })
-    }, [currentCatalogId, catalog?.share_slug, setHasUnpushedChanges, setIsDirty, setLastSavedState])
+    }, [catalogName, currentCatalogId, t, setCatalogName, setCurrentCatalogId, setLastSavedState, setIsDirty, refreshUser, router])
 
     // ─── Update Slug ────────────────────────────────────────────────────
     const handleUpdateSlug = useCallback(() => {
@@ -207,6 +171,10 @@ export function useCatalogActions({
                 }
                 await revalidateCatalogPublic(expectedSlug)
 
+                // The catalog prop owns the current public slug. Refresh it so
+                // share/copy/view actions immediately use the new URL.
+                router.refresh()
+
                 toast.success("Katalog linki güncellendi!", {
                     description: "Yeni link oluşturuldu."
                 })
@@ -214,7 +182,7 @@ export function useCatalogActions({
                 toast.error("Link güncellenirken hata oluştu.")
             }
         })
-    }, [currentCatalogId, expectedSlug, catalog?.share_slug])
+    }, [currentCatalogId, expectedSlug, catalog?.share_slug, router])
 
     // ─── Publish / Unpublish ────────────────────────────────────────────
     const handlePublish = useCallback(() => {
@@ -249,7 +217,6 @@ export function useCatalogActions({
                 }
 
                 setIsPublished(newPublishState)
-                setHasUnpushedChanges(false)
                 setIsDirty(false)
                 setLastSavedState(buildSavedStateSnapshot(data))
 
@@ -275,14 +242,13 @@ export function useCatalogActions({
                 toast.error("İşlem sırasında bir hata oluştu.")
             }
         })
-    }, [currentCatalogId, catalog?.share_slug, isPublished, expectedSlug, t, setIsPublished, setHasUnpushedChanges, setIsDirty, setLastSavedState])
+    }, [currentCatalogId, catalog?.share_slug, isPublished, expectedSlug, t, setIsPublished, setIsDirty, setLastSavedState])
 
     return {
         isPending,
         expectedSlug,
         isUrlOutdated,
         handleSave,
-        handlePushUpdates,
         handleUpdateSlug,
         handlePublish,
     }

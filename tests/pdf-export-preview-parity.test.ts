@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createCatalogPagesModel } from '@/components/builder/preview/use-catalog-pages'
-import { buildPages } from '@/components/export/pdf-export-document'
+import { buildPages, resolvePdfDesignSettings } from '@/components/export/pdf-export-document'
 import type { Product } from '@/lib/actions/products'
 
 function product(id: string, category: string): Product {
@@ -25,6 +25,18 @@ function product(id: string, category: string): Product {
 }
 
 describe('PDF export / preview page parity', () => {
+    it('uses the saved cover theme and the same safe design defaults as the builder', () => {
+        expect(resolvePdfDesignSettings({
+            cover_theme: 'luxury',
+            description: 'Catalog metadata description',
+        })).toEqual({
+            coverTheme: 'luxury',
+            coverDescription: 'Catalog metadata description',
+            columnsPerRow: 3,
+            logoPosition: 'header-left',
+        })
+    })
+
     it('uses the same page sequence and page numbering as preview export mode', () => {
         const products = [
             product('1', 'B'),

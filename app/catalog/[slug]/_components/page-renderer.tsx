@@ -68,7 +68,7 @@ export const PageRenderer = React.memo(function PageRenderer({
             <CoverPage
                 catalogName={catalog.name}
                 coverImageUrl={catalog.cover_image_url}
-                coverDescription={catalog.cover_description}
+                coverDescription={catalog.cover_description || catalog.description}
                 logoUrl={catalog.logo_url}
                 primaryColor={primaryColor}
                 productCount={filteredProductCount}

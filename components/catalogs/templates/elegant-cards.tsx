@@ -5,6 +5,7 @@ import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { cn } from "@/lib/utils"
 import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { getItemsPerPage } from "@/lib/constants"
 
 /**
  * Elegant Cards Template - "The Floating Glass"
@@ -35,6 +36,7 @@ export const ElegantCardsTemplate = React.memo(function ElegantCardsTemplate({
     headerTextColor = '#000000',
 }: TemplateProps) {
     const safeProducts = products || []
+    const itemsPerPage = getItemsPerPage('elegant-cards')
 
     const _getGridCols = () => {
         switch (columnsPerRow) {
@@ -156,7 +158,7 @@ export const ElegantCardsTemplate = React.memo(function ElegantCardsTemplate({
                 "flex-1 px-14 pb-12 grid grid-cols-2 grid-rows-2",
                 "gap-12 overflow-hidden relative z-10"
             )}>
-                {safeProducts.slice(0, 4).map((product) => {
+                {safeProducts.slice(0, itemsPerPage).map((product) => {
                     const productUrl = sanitizeHref(product.product_url)
                     const Wrapper = (showUrls && productUrl) ? 'a' : 'div'
                     const wrapperProps = (showUrls && productUrl) ? {

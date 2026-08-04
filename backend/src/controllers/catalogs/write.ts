@@ -7,6 +7,39 @@ import { getUserId, getPlanLimits, generateShareSlug, pickDefinedFields } from '
 import { catalogCreateSchema, catalogUpdateSchema } from './schemas';
 import { safeErrorMessage } from '../../utils/safe-error';
 import type { CatalogUpdatePayload } from './types';
+import { findMissingProductIds } from './product-ownership';
+
+const PRODUCT_OWNERSHIP_CHUNK_SIZE = 100;
+const PRODUCT_OWNERSHIP_CONCURRENCY = 6;
+
+async function getMissingOwnedProductIds(userId: string, productIds: string[]): Promise<string[]> {
+    const requestedIds = Array.from(new Set(productIds));
+    if (requestedIds.length === 0) return [];
+
+    const chunks: string[][] = [];
+    for (let index = 0; index < requestedIds.length; index += PRODUCT_OWNERSHIP_CHUNK_SIZE) {
+        chunks.push(requestedIds.slice(index, index + PRODUCT_OWNERSHIP_CHUNK_SIZE));
+    }
+
+    const ownedIds: string[] = [];
+    for (let index = 0; index < chunks.length; index += PRODUCT_OWNERSHIP_CONCURRENCY) {
+        const batch = chunks.slice(index, index + PRODUCT_OWNERSHIP_CONCURRENCY);
+        const results = await Promise.all(batch.map(async (chunk) => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('id')
+                .eq('user_id', userId)
+                .in('id', chunk)
+                .limit(chunk.length);
+
+            if (error) throw error;
+            return (data || []).map((product) => product.id as string);
+        }));
+        ownedIds.push(...results.flat());
+    }
+
+    return findMissingProductIds(requestedIds, ownedIds);
+}
 
 // Fields that require both undefined AND null checks before writing
 const FIELDS_WITH_NULL_CHECK = [
@@ -49,6 +82,16 @@ export const createCatalog = async (req: Request, res: Response) => {
             });
         }
         const { name: rawName, description, layout, product_ids } = parsed.data;
+
+        if (product_ids?.length) {
+            const missingProductIds = await getMissingOwnedProductIds(userId, product_ids);
+            if (missingProductIds.length > 0) {
+                return res.status(400).json({
+                    error: 'Validation Error',
+                    message: 'Bir veya daha fazla ürün geçersiz ya da bu hesaba ait değil.'
+                });
+            }
+        }
 
         const name = rawName?.trim() || `Yeni Katalog ${new Date().toLocaleDateString('tr-TR')}`;
 
@@ -161,7 +204,17 @@ export const updateCatalog = async (req: Request, res: Response) => {
                 message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi'
             });
         }
-        const { name, cover_description, cover_image_url, share_slug } = parsed.data;
+        const { name, cover_description, cover_image_url, share_slug, product_ids } = parsed.data;
+
+        if (product_ids?.length) {
+            const missingProductIds = await getMissingOwnedProductIds(userId, product_ids);
+            if (missingProductIds.length > 0) {
+                return res.status(400).json({
+                    error: 'Validation Error',
+                    message: 'Bir veya daha fazla ürün geçersiz ya da bu hesaba ait değil.'
+                });
+            }
+        }
 
         // Validate cover_description length (max 500 chars)
         if (cover_description !== undefined && cover_description !== null && cover_description.length > 500) {
@@ -188,6 +241,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
             .from('catalogs')
             .select('share_slug')
             .eq('id', id)
+            .eq('user_id', userId)
             .single();
 
         // Build update data dynamically
@@ -212,9 +266,12 @@ export const updateCatalog = async (req: Request, res: Response) => {
                 });
             }
             return res.status(500).json({
-                error: 'Katalog güncellenirken bir hata oluştu',
-                details: error.message
+                error: 'Katalog güncellenirken bir hata oluştu'
             });
+        }
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'Katalog bulunamadı veya yetkiniz yok.' });
         }
 
         // Cache'leri temizle

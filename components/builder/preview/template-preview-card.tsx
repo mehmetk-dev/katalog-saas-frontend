@@ -95,6 +95,7 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
             onClick={onSelect}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.() } }}
             aria-pressed={isSelected}
+            aria-label={`${templateName}${isPro ? ' (PRO)' : ''}`}
             className={cn(
                 "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-white",
                 isSelected
@@ -153,5 +154,8 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
 }, (prevProps, nextProps) => {
     // Sadece seçim durumu değişirse yeniden render et
     return prevProps.isSelected === nextProps.isSelected &&
-        prevProps.templateId === nextProps.templateId
+        prevProps.templateId === nextProps.templateId &&
+        prevProps.templateName === nextProps.templateName &&
+        prevProps.isPro === nextProps.isPro &&
+        prevProps.onSelect === nextProps.onSelect
 })

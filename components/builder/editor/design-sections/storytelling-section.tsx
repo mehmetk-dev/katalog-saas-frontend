@@ -85,6 +85,15 @@ export function StorytellingSection({
         setDraggedIdx(null)
         setDropTargetIdx(null)
     }
+
+    const moveCategory = (idx: number, direction: -1 | 1) => {
+        const targetIdx = idx + direction
+        if (targetIdx < 0 || targetIdx >= uniqueCategories.length) return
+        const newOrder = [...uniqueCategories]
+        const [moved] = newOrder.splice(idx, 1)
+        newOrder.splice(targetIdx, 0, moved)
+        onCategoryOrderChange?.(newOrder)
+    }
     return (
         <SectionWrapper
             id="storytelling"
@@ -112,6 +121,10 @@ export function StorytellingSection({
                                 <p className="text-[10px] text-slate-500">{t('builder.coverPageDesc') as string}</p>
                             </div>
                             <button
+                                type="button"
+                                role="switch"
+                                aria-checked={enableCoverPage}
+                                aria-label={t('builder.coverPage') as string}
                                 onClick={() => onEnableCoverPageChange?.(!enableCoverPage)}
                                 className={cn(
                                     "relative inline-flex h-6 w-11 shrink-0",
@@ -152,6 +165,9 @@ export function StorytellingSection({
                                             return (
                                                 <button
                                                     key={key}
+                                                    type="button"
+                                                    aria-pressed={isSelected}
+                                                    aria-label={t(`coverThemes.${key}`) as string || theme.name}
                                                     onClick={() => onCoverThemeChange?.(key)}
                                                     className={cn(
                                                         "flex items-center gap-2.5 px-3 py-2.5",
@@ -356,6 +372,10 @@ export function StorytellingSection({
                                 <p className="text-[10px] text-slate-500">{t('builder.categoryDividersDesc') as string}</p>
                             </div>
                             <button
+                                type="button"
+                                role="switch"
+                                aria-checked={enableCategoryDividers}
+                                aria-label={t('builder.categoryDividers') as string}
                                 onClick={() => onEnableCategoryDividersChange?.(!enableCategoryDividers)}
                                 className={cn(
                                     "relative inline-flex h-6 w-11 shrink-0",
@@ -389,6 +409,18 @@ export function StorytellingSection({
                                             onDragOver={(e) => handleDragOver(e, idx)}
                                             onDrop={(e) => handleDrop(e, idx)}
                                             onDragEnd={handleDragEnd}
+                                            role="listitem"
+                                            tabIndex={0}
+                                            aria-label={`${category}. ${t('builder.keyboardReorder') as string}`}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'ArrowUp') {
+                                                    event.preventDefault()
+                                                    moveCategory(idx, -1)
+                                                } else if (event.key === 'ArrowDown') {
+                                                    event.preventDefault()
+                                                    moveCategory(idx, 1)
+                                                }
+                                            }}
                                             className={cn(
                                                 "flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl cursor-grab active:cursor-grabbing border border-transparent transition-all",
                                                 draggedIdx === idx ? "opacity-50 border-indigo-500 scale-[0.98]" : dropTargetIdx === idx ? "border-indigo-300 bg-indigo-50/50 dark:bg-indigo-900/20" : "hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"

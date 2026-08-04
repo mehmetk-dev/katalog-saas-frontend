@@ -111,9 +111,8 @@ export const SPLIT_PREVIEW_SOFT_LIMIT = 1000
 
 // ─── Pure Utility Functions ───────────────────────────────────────────────────
 
-/** Lightweight fingerprint for large arrays — avoids O(n) comparison on every render.
- *  Uses length + 5 sample points + a rolling char-code checksum for collision resistance.
- *  Still O(1) since we only sample a fixed number of elements. */
+/** Order-sensitive O(n) fingerprint for large arrays.
+ *  Avoids allocating/sorting copies while still detecting adjacent reorders. */
 export function arrayFingerprint(arr: string[]): string {
     const len = arr.length
     if (len === 0) return '0'
@@ -211,7 +210,7 @@ export function buildInitialCatalogState(
         catalogName: catalog?.name || '',
         catalogDescription: catalog?.description || '',
         selectedProductIds: catalog?.product_ids || [],
-        layout: catalog?.layout || 'grid',
+        layout: catalog?.layout || 'modern-grid',
         primaryColor: resolveInitialPrimaryColor(catalog?.primary_color),
         showPrices: catalog?.show_prices ?? true,
         showDescriptions: catalog?.show_descriptions ?? true,

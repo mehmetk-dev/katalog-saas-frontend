@@ -80,14 +80,12 @@ function BuilderContent() {
           isMobile={state.isMobile}
           isPublished={state.isPublished}
           hasUnsavedChanges={state.hasUnsavedChanges}
-          hasUnpushedChanges={state.hasUnpushedChanges}
           isUrlOutdated={handlers.isUrlOutdated}
           isPending={handlers.isPending}
           view={state.view}
           onViewChange={handlers.handleViewChange}
           onSave={handlers.handleSave}
           onPublish={handlers.handlePublish}
-          onPushUpdates={handlers.handlePushUpdates}
           onUpdateSlug={handlers.handleUpdateSlug}
           onShare={handlers.handleShare}
           onDownloadPDF={handlers.handleDownloadPDF}
@@ -148,7 +146,7 @@ function BuilderContent() {
                   titlePosition={state.titlePosition}
                   enableCoverPage={state.enableCoverPage}
                   coverImageUrl={state.coverImageUrl ?? undefined}
-                  coverDescription={state.coverDescription ?? undefined}
+                  coverDescription={state.coverDescription || state.catalogDescription || undefined}
                   enableCategoryDividers={state.enableCategoryDividers}
                   categoryOrder={state.categoryOrder}
                   theme={state.coverTheme}

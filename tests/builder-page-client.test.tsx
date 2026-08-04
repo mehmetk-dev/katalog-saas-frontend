@@ -181,6 +181,28 @@ describe('BuilderPageClient Final Audit Tests', () => {
     }))
   })
 
+  it('PUBLISHED AUTOSAVE: kaydedilen degisikligi sahte bir yayin guncellemesi olarak gostermemeli', async () => {
+    vi.useFakeTimers()
+    render(
+      <BuilderPageClient
+        catalog={{ ...mockCatalog, is_published: true } as unknown as Catalog}
+        products={[]}
+        initialProductsResponse={mockInitialProductsResponse}
+      />
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('builder.catalogNamePlaceholder'), {
+      target: { value: 'Live Autosave Name' },
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000)
+    })
+
+    expect(screen.queryByText('builder.updatePublish')).not.toBeInTheDocument()
+    expect(screen.getByText('builder.shareBtn')).toBeInTheDocument()
+  })
+
   it('PUBLISH: unsaved degisiklikleri yayindan sonra kaydedilmis saymali', async () => {
     render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
 

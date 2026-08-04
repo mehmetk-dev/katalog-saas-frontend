@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
     ArrowLeft, Copy, Globe, MoreVertical,
-    RefreshCw, AlertTriangle, Save, Share2, Eye, Pencil, Download,
+    AlertTriangle, Save, Share2, Eye, Pencil, Download,
     ArrowUpRight
 } from "lucide-react"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
@@ -26,14 +26,12 @@ interface BuilderToolbarProps {
     isMobile: boolean
     isPublished: boolean
     hasUnsavedChanges: boolean
-    hasUnpushedChanges: boolean
     isUrlOutdated: boolean
     isPending: boolean
     view: "split" | "editor" | "preview"
     onViewChange: (view: "split" | "editor" | "preview") => void
     onSave: () => void
     onPublish: () => void
-    onPushUpdates: () => void
     onUpdateSlug: () => void
     onShare: () => void
     onDownloadPDF: () => void
@@ -48,14 +46,12 @@ export function BuilderToolbar({
     isMobile,
     isPublished,
     hasUnsavedChanges,
-    hasUnpushedChanges,
     isUrlOutdated,
     isPending,
     view,
     onViewChange,
     onSave,
     onPublish,
-    onPushUpdates,
     onUpdateSlug,
     onShare,
     onDownloadPDF,
@@ -66,15 +62,6 @@ export function BuilderToolbar({
 
     // Dynamic Action Button State
     const getMainAction = () => {
-        if (isPublished && hasUnpushedChanges) {
-            return {
-                label: t('builder.updatePublish'),
-                icon: <RefreshCw className={cn("w-4 h-4", isPending && "animate-spin")} />,
-                onClick: onPushUpdates,
-                className: "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-200",
-                showIndicator: true
-            }
-        }
         if (isPublished) {
             return {
                 label: t('builder.shareBtn'),
@@ -186,49 +173,19 @@ export function BuilderToolbar({
                         {/* DESKTOP ONLY: Direct Primary Actions */}
                         {!isMobile && (
                             <>
-                                {/* Eğer yayındaysa ve değişiklik varsa "Güncelle" ve yanına "Paylaş" butonu gelir */}
-                                {isPublished && hasUnpushedChanges && (
-                                    <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={onPushUpdates}
-                                        disabled={isPending}
-                                        className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg shadow-orange-200 transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
-                                    >
-                                        <RefreshCw className={cn("w-3.5 h-3.5 mr-2", isPending && "animate-spin")} />
-                                        {t('builder.updatePublish')}
-                                    </Button>
-                                )}
-
-                                {/* Ana Aksiyon: Ya Paylaş (yayındaysa), ya Yayınla (yayınlanmamışsa) */}
-                                {(!hasUnpushedChanges || !isPublished) && (
-                                    <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={mainAction.onClick}
-                                        disabled={isPending}
-                                        className={cn(
-                                            "h-9 px-4 font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap",
-                                            mainAction.className
-                                        )}
-                                    >
-                                        {mainAction.icon}
-                                        <span className="ml-2">{mainAction.label}</span>
-                                    </Button>
-                                )}
-
-                                {/* Yayındaysa her zaman Paylaş butonunu PC'de göster */}
-                                {isPublished && hasUnpushedChanges && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={onShare}
-                                        className="h-9 px-4 border-slate-200 hover:bg-slate-50 font-black text-[11px] uppercase tracking-wider rounded-xl transition-all whitespace-nowrap"
-                                    >
-                                        <Share2 className="w-3.5 h-3.5 mr-2 text-indigo-600" />
-                                        {t('builder.shareBtn')}
-                                    </Button>
-                                )}
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={mainAction.onClick}
+                                    disabled={isPending}
+                                    className={cn(
+                                        "h-9 px-4 font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap",
+                                        mainAction.className
+                                    )}
+                                >
+                                    {mainAction.icon}
+                                    <span className="ml-2">{mainAction.label}</span>
+                                </Button>
                             </>
                         )}
 
@@ -262,9 +219,6 @@ export function BuilderToolbar({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl shrink-0 hover:bg-slate-50">
                                     <MoreVertical className="w-5 h-5 text-slate-400" />
-                                    {hasUnpushedChanges && isPublished && !isMobile && (
-                                        <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" />
-                                    )}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-60 p-2 rounded-2xl shadow-2xl border-slate-100">
@@ -369,7 +323,7 @@ export function BuilderToolbar({
                         >
                             {mainAction.icon}
                             <span className="ml-2">
-                                {isPublished && hasUnpushedChanges ? (t('builder.updatePublish') as string || "Yayını Güncelle") : mainAction.label}
+                                {mainAction.label}
                             </span>
                         </Button>
                     </div>

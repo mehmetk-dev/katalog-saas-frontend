@@ -11,6 +11,8 @@ const pdf_export_queue_1 = require("../services/pdf-export-queue");
 const pdf_export_storage_1 = require("../services/pdf-export-storage");
 const pdf_export_token_1 = require("../services/pdf-export-token");
 const pdf_export_cleanup_1 = require("./pdf-export-cleanup");
+const redis_1 = require("../services/redis");
+const pdf_export_usage_1 = require("./pdf-export-usage");
 let cachedFrontendOrigin = null;
 function probeFrontend(host, port) {
     return new Promise((resolve) => {
@@ -81,22 +83,23 @@ function getErrorMessage(error) {
         return 'Unknown PDF export error';
     }
 }
-async function updateJobWithRetry(jobId, patch, attempts = 3) {
-    let lastError;
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-        try {
-            await updateJob(jobId, patch);
-            return;
-        }
-        catch (error) {
-            lastError = error;
-            if (attempt < attempts) {
-                console.warn(`[pdf-export-worker] job update retry ${attempt}/${attempts - 1} for ${jobId}: ${getErrorMessage(error)}`);
-                await new Promise((resolve) => setTimeout(resolve, attempt * 750));
-            }
-        }
+async function completeExportAtomically(params) {
+    if (!(0, pdf_export_usage_1.shouldConsumePdfExportQuota)('completed')) {
+        throw new Error('Completed PDF export must consume quota');
     }
-    throw lastError;
+    const { error } = await supabase_1.supabase.rpc('complete_pdf_export_job', {
+        p_job_id: params.jobId,
+        p_user_id: params.userId,
+        p_file_path: params.storagePath,
+        p_file_size_bytes: params.fileSize,
+        p_expires_at: params.expiresAt,
+    });
+    if (error) {
+        throw new Error(`PDF export atomic completion failed: ${getErrorMessage(error)}`);
+    }
+    await (0, redis_1.deleteCache)(redis_1.cacheKeys.user(params.userId), true).catch((cacheError) => {
+        console.warn(`[pdf-export-worker] user cache invalidation failed for ${params.userId}: ${getErrorMessage(cacheError)}`);
+    });
 }
 async function getCatalogExportName(catalogId, userId) {
     const { data, error } = await supabase_1.supabase
@@ -254,18 +257,12 @@ async function renderPdf(job) {
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
             console.log(`[pdf-export-worker] uploaded ${jobId} to R2 key=${key} size=${size}`);
             phase = 'finalizing-job';
-            await updateJobWithRetry(jobId, {
-                status: 'completed',
-                progress: 100,
-                file_path: storagePath,
-                error_message: null,
-            });
-            await updateJobWithRetry(jobId, {
-                file_size_bytes: size,
-                completed_at: new Date().toISOString(),
-                expires_at: expiresAt,
-            }).catch((error) => {
-                console.error(`[pdf-export-worker] metadata update failed for completed job ${jobId}: ${getErrorMessage(error)}`);
+            await completeExportAtomically({
+                jobId,
+                userId,
+                storagePath,
+                fileSize: size,
+                expiresAt,
             });
             browserCrashCount = 0;
         }

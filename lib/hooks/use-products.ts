@@ -12,6 +12,7 @@ import {
     type ProductSortField,
     type ProductSortOrder,
     type ProductsResponse,
+    type GetProductsParams,
 } from "@/lib/actions/products"
 
 // ─── Queries ────────────────────────────────────────────────
@@ -47,10 +48,14 @@ export function useProducts(
  * PERF(O2): `enabled` ile lazy çağır — 10k üründe 10 sıralı sunucu çağrısı
  * builder açılışında değil, kullanıcı "Tümünü Seç" butonuna yaklaştığında başlasın.
  */
-export function useAllProductIds(initialData?: string[], options?: { enabled?: boolean }) {
+export function useAllProductIds(
+    filters?: Omit<GetProductsParams, "page" | "limit" | "select">,
+    initialData?: string[],
+    options?: { enabled?: boolean }
+) {
     return useQuery({
-        queryKey: queryKeys.productIds(),
-        queryFn: () => getAllProductIds(),
+        queryKey: queryKeys.productIds(filters as Record<string, unknown> | undefined),
+        queryFn: () => getAllProductIds(filters),
         initialData,
         enabled: options?.enabled ?? true,
         staleTime: initialData ? Infinity : 10 * 60 * 1000,

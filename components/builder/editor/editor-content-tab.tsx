@@ -44,8 +44,8 @@ interface EditorContentTabProps {
     validProductIds: string[]
     onSelectedProductIdsChange: (ids: string[]) => void
     toggleProduct: (id: string) => void
-    /** PERF(O2): Click-only lazy fetch trigger for "Select All" button */
-    onPrefetchAllProductIds?: () => void
+    /** PERF(O2): Click-only lazy fetch for the active filter. */
+    onPrefetchAllProductIds?: () => Promise<string[]>
 
     // Pagination
     currentPage: number
@@ -63,6 +63,7 @@ interface EditorContentTabProps {
     onSortDragStart: (e: React.DragEvent, index: number) => void
     onSortDragOver: (e: React.DragEvent, index: number) => void
     onSortDrop: (e: React.DragEvent, index: number) => void
+    onSortMove: (index: number, direction: -1 | 1) => void
     onRemoveProduct: (id: string) => void
 }
 
@@ -104,6 +105,7 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     onSortDragStart,
     onSortDragOver,
     onSortDrop,
+    onSortMove,
     onRemoveProduct,
 }: EditorContentTabProps) {
     const SORT_VIRTUALIZATION_THRESHOLD = 120
@@ -249,11 +251,11 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                                     <SelectValue placeholder={t('common.sort')} />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl border-border shadow-xl">
-                                    <SelectItem value="display_order">Sıralama</SelectItem>
-                                    <SelectItem value="created_at">Tarih</SelectItem>
-                                    <SelectItem value="name">İsim</SelectItem>
-                                    <SelectItem value="price">Fiyat</SelectItem>
-                                    <SelectItem value="stock">Stok</SelectItem>
+                                    <SelectItem value="display_order">{t('builder.sortDisplayOrder')}</SelectItem>
+                                    <SelectItem value="created_at">{t('builder.sortCreatedAt')}</SelectItem>
+                                    <SelectItem value="name">{t('builder.sortName')}</SelectItem>
+                                    <SelectItem value="price">{t('builder.sortPrice')}</SelectItem>
+                                    <SelectItem value="stock">{t('builder.sortStock')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -263,8 +265,8 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                                     <SelectValue placeholder={t('common.order')} />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl border-border shadow-xl">
-                                    <SelectItem value="asc">Artan</SelectItem>
-                                    <SelectItem value="desc">Azalan</SelectItem>
+                                    <SelectItem value="asc">{t('builder.sortAscending')}</SelectItem>
+                                    <SelectItem value="desc">{t('builder.sortDescending')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -274,7 +276,6 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                             selectedProductIds={selectedProductIds}
                             onSelectedProductIdsChange={onSelectedProductIdsChange}
                             isLoadingAllProductIds={isLoadingAllProductIds}
-                            totalProductCount={totalProductCount}
                             onPrefetchAllProductIds={onPrefetchAllProductIds}
                             t={t}
                         />
@@ -417,6 +418,7 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                                                 onDragStart={onSortDragStart}
                                                 onDragOver={onSortDragOver}
                                                 onDrop={onSortDrop}
+                                                onMove={onSortMove}
                                                 onRemove={onRemoveProduct}
                                             />
                                         )
@@ -438,6 +440,7 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                                             onDragStart={onSortDragStart}
                                             onDragOver={onSortDragOver}
                                             onDrop={onSortDrop}
+                                            onMove={onSortMove}
                                             onRemove={onRemoveProduct}
                                         />
                                     )

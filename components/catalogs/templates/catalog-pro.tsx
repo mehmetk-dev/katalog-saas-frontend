@@ -4,6 +4,7 @@ import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { getItemsPerPage } from "@/lib/constants"
 
 /**
  * Catalog Pro Template - "The Bauhaus Vanguard"
@@ -35,7 +36,7 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
 }: TemplateProps) {
     const safeProducts = products || []
     // FORCE 2x2 Grid (4 items)
-    const itemsPerPage = 4
+    const itemsPerPage = getItemsPerPage('catalog-pro')
 
     const getGridCols = () => {
         return "grid-cols-2"

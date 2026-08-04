@@ -42,7 +42,6 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         isPending,
         isUrlOutdated,
         handleSave,
-        handlePushUpdates,
         handleUpdateSlug,
         handlePublish,
     } = useCatalogActions({
@@ -59,7 +58,6 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         setLastSavedState: state.setLastSavedState,
         setIsDirty: state.setIsDirty,
         setIsPublished: state.setIsPublished,
-        setHasUnpushedChanges: state.setHasUnpushedChanges,
         refreshUser,
         t,
     })
@@ -116,7 +114,6 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         isPending,
         isUrlOutdated,
         handleSave,
-        handlePushUpdates,
         handleUpdateSlug,
         handlePublish,
 

@@ -8,6 +8,8 @@ import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import type { Product } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { MAX_CATALOG_PRODUCTS } from "@/lib/constants"
+import { toast } from "sonner"
 
 // PERFORMANCE: Memoized product card to avoid re-rendering all cards when one is toggled
 export const ProductCard = React.memo(function ProductCard({
@@ -99,6 +101,7 @@ export const SortableProductItem = React.memo(function SortableProductItem({
     onDragStart,
     onDragOver,
     onDrop,
+    onMove,
     onRemove,
 }: {
     product: Product
@@ -108,8 +111,10 @@ export const SortableProductItem = React.memo(function SortableProductItem({
     onDragStart: (e: React.DragEvent, index: number) => void
     onDragOver: (e: React.DragEvent, index: number) => void
     onDrop: (e: React.DragEvent, index: number) => void
+    onMove: (index: number, direction: -1 | 1) => void
     onRemove: (id: string) => void
 }) {
+    const { t } = useTranslation()
     const isDragging = draggingIndex === index
     const isDropTarget = dropIndex === index && draggingIndex !== index
 
@@ -119,6 +124,19 @@ export const SortableProductItem = React.memo(function SortableProductItem({
             onDragStart={(e) => onDragStart(e, index)}
             onDragOver={(e) => onDragOver(e, index)}
             onDrop={(e) => onDrop(e, index)}
+            role="listitem"
+            tabIndex={0}
+            aria-label={`${product.name}. ${t('builder.keyboardReorder') as string}`}
+            onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return
+                if (event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    onMove(index, -1)
+                } else if (event.key === 'ArrowDown') {
+                    event.preventDefault()
+                    onMove(index, 1)
+                }
+            }}
             className={cn(
                 "flex items-center gap-3 p-2 bg-card rounded-lg border border-border shadow-sm transition-all group",
                 isDragging && "opacity-50 scale-95 border-dashed border-primary pre-drag",
@@ -160,6 +178,7 @@ export const SortableProductItem = React.memo(function SortableProductItem({
         prev.onDragStart === next.onDragStart &&
         prev.onDragOver === next.onDragOver &&
         prev.onDrop === next.onDrop &&
+        prev.onMove === next.onMove &&
         prev.onRemove === next.onRemove
     )
 })
@@ -171,7 +190,6 @@ export const SelectAllButton = React.memo(function SelectAllButton({
     selectedProductIds,
     onSelectedProductIdsChange,
     isLoadingAllProductIds = false,
-    totalProductCount,
     onPrefetchAllProductIds,
     t,
 }: {
@@ -180,35 +198,43 @@ export const SelectAllButton = React.memo(function SelectAllButton({
     selectedProductIds: string[]
     onSelectedProductIdsChange: (ids: string[]) => void
     isLoadingAllProductIds?: boolean
-    /** PERF(O2): Total product count — used to infer "all selected" without fetching IDs */
-    totalProductCount?: number
-    /** PERF(O2): Called on click to start lazy fetching all IDs */
-    onPrefetchAllProductIds?: () => void
+    /** PERF(O2): Fetches IDs lazily and returns the exact active-filter result. */
+    onPrefetchAllProductIds?: () => Promise<string[]>
     t: (key: string) => string
 }) {
-    // PERF(O2): If IDs already loaded, do exact match; otherwise infer from count
+    // Exact IDs are required: selected products outside the active filter make
+    // count-based inference incorrect.
     const isAllSelected = useMemo(() => {
-        if (allProductIds.length > 0) {
-            return allProductIds.every(id => selectedProductIdSet.has(id))
-        }
-        if (typeof totalProductCount === 'number' && totalProductCount > 0) {
-            return selectedProductIdSet.size >= totalProductCount
-        }
-        return false
-    }, [allProductIds, selectedProductIdSet, totalProductCount])
+        return allProductIds.length > 0
+            && allProductIds.every(id => selectedProductIdSet.has(id))
+    }, [allProductIds, selectedProductIdSet])
 
-    const handleClick = useCallback(() => {
+    const handleClick = useCallback(async () => {
         if (isAllSelected) {
-            onSelectedProductIdsChange([])
+            const filteredIdSet = new Set(allProductIds)
+            onSelectedProductIdsChange(
+                selectedProductIds.filter((id) => !filteredIdSet.has(id))
+            )
             return
         }
-        if (allProductIds.length === 0) {
-            // Lazy: request fetch; click will be re-run once IDs arrive.
-            onPrefetchAllProductIds?.()
+
+        let idsToSelect = allProductIds
+        if (idsToSelect.length === 0) {
+            try {
+                idsToSelect = await onPrefetchAllProductIds?.() ?? []
+            } catch {
+                toast.error(t('builder.productIdsLoadFailed'))
+                return
+            }
+        }
+
+        const mergedIds = [...new Set([...selectedProductIds, ...idsToSelect])]
+        if (mergedIds.length > MAX_CATALOG_PRODUCTS) {
+            toast.error(t('builder.catalogProductLimit'))
             return
         }
-        onSelectedProductIdsChange([...new Set([...selectedProductIds, ...allProductIds])])
-    }, [allProductIds, isAllSelected, selectedProductIds, onSelectedProductIdsChange, onPrefetchAllProductIds])
+        onSelectedProductIdsChange(mergedIds)
+    }, [allProductIds, isAllSelected, selectedProductIds, onSelectedProductIdsChange, onPrefetchAllProductIds, t])
 
     return (
         <Button
@@ -222,6 +248,7 @@ export const SelectAllButton = React.memo(function SelectAllButton({
             )}
             onClick={handleClick}
             disabled={isLoadingAllProductIds}
+            aria-label={isAllSelected ? t('builder.clearSelection') : t('builder.selectAll')}
         >
             {isAllSelected ? t('builder.clearSelection') : t('builder.selectAll')}
         </Button>

@@ -7,6 +7,8 @@ import { createPdfExportWorker, type PdfExportBullJob } from '../services/pdf-ex
 import { getPdfExportRelativePath, writePdfExportFile } from '../services/pdf-export-storage'
 import { createPdfExportToken } from '../services/pdf-export-token'
 import { cleanupExpiredPdfExports } from './pdf-export-cleanup'
+import { cacheKeys, deleteCache } from '../services/redis'
+import { shouldConsumePdfExportQuota } from './pdf-export-usage'
 
 let cachedFrontendOrigin: string | null = null
 
@@ -84,29 +86,34 @@ function getErrorMessage(error: unknown): string {
     }
 }
 
-async function updateJobWithRetry(
-    jobId: string,
-    patch: Record<string, unknown>,
-    attempts = 3
-): Promise<void> {
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-        try {
-            await updateJob(jobId, patch)
-            return
-        } catch (error) {
-            lastError = error
-            if (attempt < attempts) {
-                console.warn(
-                    `[pdf-export-worker] job update retry ${attempt}/${attempts - 1} for ${jobId}: ${getErrorMessage(error)}`
-                )
-                await new Promise((resolve) => setTimeout(resolve, attempt * 750))
-            }
-        }
+async function completeExportAtomically(params: {
+    jobId: string
+    userId: string
+    storagePath: string
+    fileSize: number
+    expiresAt: string
+}): Promise<void> {
+    if (!shouldConsumePdfExportQuota('completed')) {
+        throw new Error('Completed PDF export must consume quota')
     }
 
-    throw lastError
+    const { error } = await supabase.rpc('complete_pdf_export_job', {
+        p_job_id: params.jobId,
+        p_user_id: params.userId,
+        p_file_path: params.storagePath,
+        p_file_size_bytes: params.fileSize,
+        p_expires_at: params.expiresAt,
+    })
+
+    if (error) {
+        throw new Error(`PDF export atomic completion failed: ${getErrorMessage(error)}`)
+    }
+
+    await deleteCache(cacheKeys.user(params.userId), true).catch((cacheError) => {
+        console.warn(
+            `[pdf-export-worker] user cache invalidation failed for ${params.userId}: ${getErrorMessage(cacheError)}`
+        )
+    })
 }
 
 async function getCatalogExportName(
@@ -307,21 +314,12 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             )
 
             phase = 'finalizing-job'
-            await updateJobWithRetry(jobId, {
-                status: 'completed',
-                progress: 100,
-                file_path: storagePath,
-                error_message: null,
-            })
-
-            await updateJobWithRetry(jobId, {
-                file_size_bytes: size,
-                completed_at: new Date().toISOString(),
-                expires_at: expiresAt,
-            }).catch((error) => {
-                console.error(
-                    `[pdf-export-worker] metadata update failed for completed job ${jobId}: ${getErrorMessage(error)}`
-                )
+            await completeExportAtomically({
+                jobId,
+                userId,
+                storagePath,
+                fileSize: size,
+                expiresAt,
             })
             browserCrashCount = 0
         } finally {

@@ -81,6 +81,16 @@ function numberValue(value: unknown, fallback: number): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
+export function resolvePdfDesignSettings(catalog: RenderCatalog) {
+    return {
+        coverTheme: stringValue(catalog.cover_theme, 'modern'),
+        coverDescription:
+            stringValue(catalog.cover_description) || stringValue(catalog.description),
+        columnsPerRow: numberValue(catalog.columns_per_row, 3),
+        logoPosition: stringValue(catalog.logo_position, 'header-left'),
+    }
+}
+
 // -- Page types --
 type CatalogPage =
     | { type: 'cover' }
@@ -147,6 +157,7 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
     const primaryColor = stringValue(catalog.primary_color, '#7c3aed')
     const catalogName = stringValue(catalog.name, 'Katalog')
     const isFreeUser = user?.plan === 'free'
+    const designSettings = resolvePdfDesignSettings(catalog)
 
     const pages = useMemo(() => buildPages(catalog, products), [catalog, products])
     const TemplateComponent = (TEMPLATE_MAP[layout] ??
@@ -170,11 +181,11 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
                                     <CoverPage
                                         catalogName={catalogName}
                                         coverImageUrl={stringValue(catalog.cover_image_url)}
-                                        coverDescription={stringValue(catalog.cover_description)}
+                                        coverDescription={designSettings.coverDescription}
                                         logoUrl={stringValue(catalog.logo_url)}
                                         primaryColor={primaryColor}
                                         productCount={products.length}
-                                        theme={stringValue(catalog.theme)}
+                                        theme={designSettings.coverTheme}
                                     />
                                 )}
                                 {page.type === 'divider' && (
@@ -182,7 +193,7 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
                                         categoryName={page.categoryName}
                                         firstProductImage={page.firstProductImage}
                                         primaryColor={primaryColor}
-                                        theme={stringValue(catalog.theme)}
+                                        theme={designSettings.coverTheme}
                                     />
                                 )}
                                 {page.type === 'products' && (
@@ -211,12 +222,9 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
                                                 | 'contain'
                                                 | 'fill'
                                         }
-                                        columnsPerRow={numberValue(catalog.columns_per_row, 2)}
+                                        columnsPerRow={designSettings.columnsPerRow}
                                         logoUrl={stringValue(catalog.logo_url)}
-                                        logoPosition={stringValue(
-                                            catalog.logo_position,
-                                            'top-left'
-                                        )}
+                                        logoPosition={designSettings.logoPosition}
                                         logoSize={stringValue(catalog.logo_size, 'medium')}
                                         titlePosition={
                                             stringValue(catalog.title_position, 'center') as

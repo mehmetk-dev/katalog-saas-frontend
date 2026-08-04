@@ -590,7 +590,7 @@ export async function getAllProductIds(filters?: Omit<GetProductsParams, "page" 
     return Array.from(new Set(ids))
   } catch (error) {
     console.error("Error fetching all product IDs:", error)
-    return []
+    throw error
   }
 }
 export interface BulkFieldUpdate {

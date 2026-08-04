@@ -216,21 +216,6 @@ export async function createPdfExport(req: Request, res: Response) {
                 .json({ error: 'Yüksek kalite PDF için Plus veya Pro plan gerekir.' })
         }
 
-        // Atomic increment to prevent race condition on concurrent exports
-        const { data: updatedUser, error: incError } = await supabase
-            .from('users')
-            .update({ exports_used: used + 1 })
-            .eq('id', userId)
-            .eq('exports_used', used)
-            .select('id')
-            .single()
-
-        if (incError || !updatedUser) {
-            return res.status(409).json({
-                error: 'Aynı anda başka bir export işlemi devam ediyor. Lütfen tekrar deneyin.',
-            })
-        }
-
         const { data: job, error } = await supabase
             .from('pdf_export_jobs')
             .insert({

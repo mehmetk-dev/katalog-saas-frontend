@@ -29,7 +29,6 @@ export interface BuilderCoreState {
     // Catalog Identity
     currentCatalogId: string | null
     isPublished: boolean
-    hasUnpushedChanges: boolean
     // Content
     catalogName: string
     catalogDescription: string
@@ -78,7 +77,6 @@ const NON_DIRTY_UPDATE_KEYS = new Set<keyof BuilderCoreState>([
     'view',
     'currentCatalogId',
     'isPublished',
-    'hasUnpushedChanges',
     'isDirty',
     'lastSavedState',
 ])
@@ -140,12 +138,11 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         // Catalog Identity
         currentCatalogId: catalog?.id || null,
         isPublished: catalog?.is_published || false,
-        hasUnpushedChanges: false,
         // Content
         catalogName: catalog?.name || "",
         catalogDescription: catalog?.description || "",
         selectedProductIds: normalizeProductIds(catalog?.product_ids || []),
-        layout: catalog?.layout || "grid",
+        layout: initialState.layout,
         // Design (from initialState)
         primaryColor: initialState.primaryColor,
         headerTextColor: initialState.headerTextColor,
@@ -199,7 +196,6 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         setView: (v: BuilderView) => dispatch({ type: 'UPDATE', payload: { view: v } }),
         setCurrentCatalogId: (v: string | null) => dispatch({ type: 'UPDATE', payload: { currentCatalogId: v } }),
         setIsPublished: (v: boolean) => dispatch({ type: 'UPDATE', payload: { isPublished: v } }),
-        setHasUnpushedChanges: (v: boolean) => dispatch({ type: 'UPDATE', payload: { hasUnpushedChanges: v } }),
         setCatalogName: (v: string) => dispatch({ type: 'UPDATE', payload: { catalogName: v } }),
         setCatalogDescription: (v: string) => dispatch({ type: 'UPDATE', payload: { catalogDescription: v } }),
         setLayout: (v: string) => dispatch({ type: 'UPDATE', payload: { layout: v } }),
@@ -359,7 +355,6 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
                     // Catalog identity
                     currentCatalogId: catalog.id || null,
                     isPublished: nextState.isPublished,
-                    hasUnpushedChanges: false,
                     // Content
                     catalogName: nextState.catalogName,
                     catalogDescription: nextState.catalogDescription,
@@ -446,7 +441,6 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         // Catalog identity
         currentCatalogId: state.currentCatalogId, setCurrentCatalogId: setters.setCurrentCatalogId,
         isPublished: state.isPublished, setIsPublished: setters.setIsPublished,
-        hasUnpushedChanges: state.hasUnpushedChanges, setHasUnpushedChanges: setters.setHasUnpushedChanges,
 
         // Content
         catalogName: state.catalogName, setCatalogName: setters.setCatalogName,

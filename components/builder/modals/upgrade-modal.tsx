@@ -1,5 +1,6 @@
 ﻿"use client"
 
+import Link from "next/link"
 import { useState, useMemo } from "react"
 import { Check, MousePointer2, Link2, ShieldCheck, CalendarPlus, BadgeCheck } from "lucide-react"
 
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/contexts/user-context"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { buildCheckoutHref } from "@/lib/billing/plans"
 
 interface UpgradeModalProps {
   open: boolean
@@ -116,14 +118,6 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
       ],
     },
   ], [t]) // deps: t for language changes
-
-  const handleUpgrade = async (_planId: string) => {
-    // S1: Payment integration required — currently disabled
-    // TODO: Integrate payment gateway (Iyzico/Stripe) before enabling upgrades
-    // For now, show a toast informing users to contact support
-    const { toast } = await import("sonner")
-    toast.info(t("upgradeModal.contactForUpgrade") || "Plan yükseltme için lütfen bizimle iletişime geçin.")
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -236,22 +230,33 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                     ))}
                   </ul>
 
-                  <Button
-                    onClick={() => plan.id !== "free" && !isCurrent && handleUpgrade(plan.id)}
-                    className={cn(
-                      "w-full h-9 rounded-xl font-bold transition-all text-[11px]",
-                      isCurrent
-                        ? "bg-muted text-muted-foreground cursor-default"
-                        : plan.id === "pro"
+                  {isCurrent || plan.id === "free" ? (
+                    <Button
+                      className={cn(
+                        "w-full h-9 rounded-xl font-bold transition-all text-[11px]",
+                        isCurrent
+                          ? "bg-muted text-muted-foreground cursor-default"
+                          : "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20"
+                      )}
+                      disabled
+                    >
+                      {isCurrent ? t("upgradeModal.current") : t("upgradeModal.select")}
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      className={cn(
+                        "w-full h-9 rounded-xl font-bold transition-all text-[11px]",
+                        plan.id === "pro"
                           ? "bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
-                          : plan.id === "plus"
-                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                            : "bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20"
-                    )}
-                    disabled={isCurrent || plan.id === "free"}
-                  >
-                    {isCurrent ? t("upgradeModal.current") : t("upgradeModal.select")}
-                  </Button>
+                          : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      )}
+                    >
+                      <Link href={buildCheckoutHref(plan.id === "plus" ? "plus" : "pro", isYearly ? "yearly" : "monthly")}>
+                        {t("upgradeModal.select")}
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               )
             })}

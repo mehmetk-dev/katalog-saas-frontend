@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
 import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
 import { useAllProductIds, useProducts } from "@/lib/hooks/use-products"
+import { MAX_CATALOG_PRODUCTS } from "@/lib/constants"
+import { toast } from "sonner"
 
 import { EditorContentTab } from "./editor-content-tab"
 
@@ -262,11 +264,19 @@ export function CatalogEditor() {
   const productsQuery = useProducts(productsParams, initialQueryData, { refetchOnMount: false })
   // PERF(O2): Tüm ürün ID'lerini sadece "Tümünü Seç" butonu etkileşime girince çek.
   // İlk builder açılışında 10k ürün için 10 seri sunucu çağrısını engelliyor.
-  const [allIdsRequested, setAllIdsRequested] = useState(false)
-  const allProductIdsQuery = useAllProductIds(undefined, { enabled: allIdsRequested })
-  const prefetchAllProductIds = useCallback(() => {
-    if (!allIdsRequested) setAllIdsRequested(true)
-  }, [allIdsRequested])
+  const allProductIdFilters = useMemo(() => ({
+    category: selectedCategory === "all" ? undefined : selectedCategory,
+    search: debouncedSearchQuery.trim() || undefined,
+    sortBy,
+    sortOrder,
+  }), [selectedCategory, debouncedSearchQuery, sortBy, sortOrder])
+  const allProductIdsQuery = useAllProductIds(allProductIdFilters, undefined, { enabled: false })
+  const refetchAllProductIds = allProductIdsQuery.refetch
+  const prefetchAllProductIds = useCallback(async () => {
+    const result = await refetchAllProductIds()
+    if (result.error) throw result.error
+    return result.data || []
+  }, [refetchAllProductIds])
   const productsResponse = productsQuery.data
   const allProductIds = useMemo(() => allProductIdsQuery.data || [], [allProductIdsQuery.data])
   const pagedProducts = useMemo(() => productsResponse?.products || [], [productsResponse])
@@ -306,10 +316,14 @@ export function CatalogEditor() {
       // Remove: filter is unavoidable but we avoid unnecessary copies
       onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))
     } else {
+      if (selectedProductIds.length >= MAX_CATALOG_PRODUCTS) {
+        toast.error(t('builder.catalogProductLimit'))
+        return
+      }
       // Add: push to end, no full-copy needed (spread is still O(n) but unavoidable for immutability)
       onSelectedProductIdsChange([...selectedProductIds, id])
     }
-  }, [selectedProductIds, selectedProductIdSet, onSelectedProductIdsChange])
+  }, [selectedProductIds, selectedProductIdSet, onSelectedProductIdsChange, t])
 
   const handleSortDragStart = useCallback((e: React.DragEvent, index: number) => {
     e.stopPropagation()
@@ -353,6 +367,19 @@ export function CatalogEditor() {
     onSelectedProductIdsChange([...reordered, ...nonValidIds])
     setDraggingIndex(null)
     setDropIndex(null)
+  }, [selectedProductIds, validProductIds, onSelectedProductIdsChange])
+
+  const handleSortMove = useCallback((index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= validProductIds.length) return
+
+    const reordered = [...validProductIds]
+    const [moved] = reordered.splice(index, 1)
+    reordered.splice(targetIndex, 0, moved)
+
+    const validSet = new Set(validProductIds)
+    const unloadedIds = selectedProductIds.filter((id) => !validSet.has(id))
+    onSelectedProductIdsChange([...reordered, ...unloadedIds])
   }, [selectedProductIds, validProductIds, onSelectedProductIdsChange])
 
   const handleRemoveProduct = useCallback((id: string) => {
@@ -431,6 +458,7 @@ export function CatalogEditor() {
               onSortDragStart={handleSortDragStart}
               onSortDragOver={handleSortDragOver}
               onSortDrop={handleSortDrop}
+              onSortMove={handleSortMove}
               onRemoveProduct={handleRemoveProduct}
             />
           </TabsContent>

@@ -148,19 +148,11 @@ export const bulkPriceUpdateSchema = z.object({
 // CATALOG SCHEMAS
 // =============================================================================
 
-export const catalogCreateSchema = z.object({
-    name: safeString(255).optional(),
-    description: safeString(1000).optional().nullable(),
-    layout: z.string().max(50).transform((val) => val.trim()).optional(),
-})
-
-export const catalogUpdateSchema = z.object({
+const catalogFieldsSchema = z.object({
     name: safeString(255).optional(),
     description: safeString(1000).optional().nullable(),
     layout: z.string().max(50).transform((val) => val.trim()).optional(),
     primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$|^rgba?\(.+\)$/).optional(),
-    is_published: z.boolean().optional(),
-    share_slug: z.string().max(100).regex(/^[a-z0-9-]+$/, 'Slug sadece küçük harf, rakam ve tire içerebilir').optional(),
     product_ids: z.array(z.string().uuid()).max(5000).optional(),
     show_prices: z.boolean().optional(),
     show_descriptions: z.boolean().optional(),
@@ -183,8 +175,16 @@ export const catalogUpdateSchema = z.object({
     cover_image_url: safeUrl,
     cover_description: z.string().max(500).transform((val) => val.trim()).optional().nullable(),
     enable_category_dividers: z.boolean().optional(),
+    category_order: z.array(safeString(200)).max(5000).optional(),
     cover_theme: z.string().max(50).transform((val) => val.trim()).optional(),
     show_in_search: z.boolean().optional(),
+})
+
+export const catalogCreateSchema = catalogFieldsSchema
+
+export const catalogUpdateSchema = catalogFieldsSchema.extend({
+    is_published: z.boolean().optional(),
+    share_slug: z.string().max(100).regex(/^[a-z0-9-]+$/, 'Slug sadece küçük harf, rakam ve tire içerebilir').optional(),
 })
 
 // =============================================================================

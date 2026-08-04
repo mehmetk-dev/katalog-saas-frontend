@@ -8,6 +8,7 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { buildCheckoutHref } from "@/lib/billing/plans"
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(true)
@@ -227,7 +228,13 @@ export default function PricingPage() {
                         : "bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 hover:scale-[1.02]"
                     )}
                   >
-                    <Link href={plan.href}>
+                    <Link
+                      href={
+                        plan.id === "free"
+                          ? plan.href
+                          : buildCheckoutHref(plan.id === "plus" ? "plus" : "pro", isYearly ? "yearly" : "monthly")
+                      }
+                    >
                       {plan.cta}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
