@@ -437,34 +437,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                         ))}
                                     </ul>
 
-                                    <dl className="space-y-3 py-5 text-sm">
-                                        <SummaryRow
-                                            label={t('checkout.summary.period')}
-                                            value={
-                                                billingCycle === 'yearly'
-                                                    ? t('checkout.yearly')
-                                                    : t('checkout.monthly')
-                                            }
-                                        />
-                                        <SummaryRow
-                                            label={t('checkout.summary.subtotal')}
-                                            value={formatMoney(totals.subtotal)}
-                                        />
-                                        <SummaryRow
-                                            label={t('checkout.summary.vat')}
-                                            value={formatMoney(totals.vat)}
-                                        />
-                                        {totals.savings > 0 && (
-                                            <div className="flex items-center justify-between gap-4 text-emerald-700">
-                                                <dt>{t('checkout.summary.savings')}</dt>
-                                                <dd className="font-black">
-                                                    -{formatMoney(totals.savings)}
-                                                </dd>
-                                            </div>
-                                        )}
-                                    </dl>
-
-                                    <div className="border-y border-slate-950 py-5">
+                                    <div className="mt-5 border-y border-slate-950 py-5">
                                         <div className="flex items-end justify-between gap-4">
                                             <span className="font-black">
                                                 {t('checkout.summary.total')}
@@ -473,13 +446,6 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                 {formatMoney(totals.total)}
                                             </span>
                                         </div>
-                                        {billingCycle === 'yearly' && (
-                                            <p className="mt-2 text-right text-xs text-slate-500">
-                                                {t('checkout.summary.monthlyEquivalent', {
-                                                    amount: formatMoney(totals.monthlyEquivalent),
-                                                })}
-                                            </p>
-                                        )}
                                     </div>
 
                                     <div className="space-y-4 pt-5">
@@ -630,15 +596,6 @@ function CheckoutField({ id, label, className, ...props }: CheckoutFieldProps) {
                 className={cn('h-12 rounded-none border-slate-300 bg-white px-4', className)}
                 {...props}
             />
-        </div>
-    )
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">{label}</dt>
-            <dd className="font-bold">{value}</dd>
         </div>
     )
 }

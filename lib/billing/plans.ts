@@ -3,7 +3,9 @@ export type BillingCycle = 'monthly' | 'yearly'
 
 export interface CheckoutPlan {
     id: PaidPlanId
+    /** Customer-facing, VAT-inclusive monthly price. */
     monthlyPrice: number
+    /** Customer-facing, VAT-inclusive yearly price. */
     yearlyPrice: number
 }
 
@@ -34,10 +36,10 @@ export function normalizeBillingCycle(value: string | string[] | undefined): Bil
 
 export function getCheckoutTotals(planId: PaidPlanId, cycle: BillingCycle) {
     const plan = CHECKOUT_PLANS[planId]
-    const subtotal = cycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
-    const vat = subtotal * VAT_RATE
-    const total = subtotal + vat
-    const monthlyEquivalent = cycle === 'yearly' ? subtotal / 12 : subtotal
+    const total = cycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
+    const subtotal = roundCurrency(total / (1 + VAT_RATE))
+    const vat = roundCurrency(total - subtotal)
+    const monthlyEquivalent = roundCurrency(cycle === 'yearly' ? total / 12 : total)
     const savings = cycle === 'yearly' ? plan.monthlyPrice * 12 - plan.yearlyPrice : 0
 
     return {
@@ -47,6 +49,10 @@ export function getCheckoutTotals(planId: PaidPlanId, cycle: BillingCycle) {
         monthlyEquivalent,
         savings,
     }
+}
+
+function roundCurrency(value: number) {
+    return Math.round((value + Number.EPSILON) * 100) / 100
 }
 
 export function buildCheckoutHref(planId: PaidPlanId, cycle: BillingCycle) {

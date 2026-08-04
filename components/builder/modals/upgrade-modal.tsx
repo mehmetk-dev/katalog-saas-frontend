@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/contexts/user-context"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import { buildCheckoutHref } from "@/lib/billing/plans"
+import { buildCheckoutHref, CHECKOUT_PLANS } from "@/lib/billing/plans"
 
 interface UpgradeModalProps {
   open: boolean
@@ -83,7 +83,10 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
       name: t("upgradeModal.plans.plus.name"),
       description: t("upgradeModal.plans.plus.desc"),
       icon: PlanIcons.plus,
-      price: { monthly: 500, yearly: 5000 },
+      price: {
+        monthly: CHECKOUT_PLANS.plus.monthlyPrice,
+        yearly: CHECKOUT_PLANS.plus.yearlyPrice,
+      },
       popular: true,
       color: "from-blue-500/10 to-transparent",
       accentColor: "blue",
@@ -103,7 +106,10 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
       name: t("upgradeModal.plans.pro.name"),
       description: t("upgradeModal.plans.pro.desc"),
       icon: PlanIcons.pro,
-      price: { monthly: 1000, yearly: 10000 },
+      price: {
+        monthly: CHECKOUT_PLANS.pro.monthlyPrice,
+        yearly: CHECKOUT_PLANS.pro.yearlyPrice,
+      },
       color: "from-purple-500/10 to-transparent",
       accentColor: "purple",
       bgColor: "bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/10 dark:to-card/40",
@@ -160,7 +166,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
           <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto md:overflow-x-visible pt-5 pb-4 md:pb-0 md:pt-0 snap-x snap-mandatory scrollbar-none">
             {plans.map((plan) => {
               const isCurrent = currentPlan === plan.id
-              const monthlyPrice = isYearly ? (plan.id === "plus" ? 417 : plan.id === "pro" ? 833 : 0) : plan.price.monthly
+              const monthlyPrice = isYearly ? Math.round(plan.price.yearly / 12) : plan.price.monthly
 
               return (
                 <div
@@ -189,7 +195,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                     </div>
                   </div>
 
-                  <div className="mb-4 text-left border-b border-border/10 pb-4 h-[44px] flex items-end">
+                  <div className="mb-4 text-left border-b border-border/10 pb-4 min-h-[52px] flex items-end">
                     {monthlyPrice === 0 ? (
                       <span className="text-xl font-black text-foreground">{t("upgradeModal.free")}</span>
                     ) : (
@@ -203,6 +209,9 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                           <span className="text-2xl font-black text-foreground leading-none">₺{monthlyPrice}</span>
                           <span className="text-[10px] text-muted-foreground font-medium">{t("upgradeModal.perMonth")}</span>
                         </div>
+                        <span className="mt-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                          {t("upgradeModal.vatIncluded")}
+                        </span>
                       </div>
                     )}
                   </div>

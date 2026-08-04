@@ -59,13 +59,21 @@ describe('checkout flow', () => {
         expect(normalizeBillingCycle('unexpected')).toBe('yearly')
     })
 
-    it('calculates VAT and yearly savings for the selected plan', () => {
+    it('treats listed prices as VAT-inclusive and splits the total correctly', () => {
         expect(getCheckoutTotals('pro', 'yearly')).toEqual({
-            subtotal: 10000,
-            vat: 2000,
-            total: 12000,
-            monthlyEquivalent: 10000 / 12,
+            subtotal: 8333.33,
+            vat: 1666.67,
+            total: 10000,
+            monthlyEquivalent: 833.33,
             savings: 2000,
+        })
+
+        expect(getCheckoutTotals('plus', 'monthly')).toEqual({
+            subtotal: 416.67,
+            vat: 83.33,
+            total: 500,
+            monthlyEquivalent: 500,
+            savings: 0,
         })
     })
 
@@ -75,7 +83,9 @@ describe('checkout flow', () => {
         )
 
         expect(screen.getByRole('heading', { name: 'Güvenli Ödeme' })).toBeInTheDocument()
-        expect(screen.getByText('₺12.000,00')).toBeInTheDocument()
+        expect(screen.getByText('Ödenecek tutar').parentElement).toHaveTextContent('₺10.000,00')
+        expect(screen.queryByText('Ara toplam')).not.toBeInTheDocument()
+        expect(screen.queryByText('KDV (%20)')).not.toBeInTheDocument()
 
         const continueButton = screen.getByRole('button', { name: 'Güvenli ödemeye geç' })
         expect(continueButton).toBeDisabled()

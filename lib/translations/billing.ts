@@ -50,6 +50,7 @@ const billing = {
             cancelAnytime: "İstediğiniz Zaman İptal",
             support247Badge: "7/24 Destek",
             perMonth: "/ay",
+            vatIncluded: "KDV dâhil",
             yearlyBonus: "2 Ay Bizden!",
             plans: {
                 free: { name: "Başlangıç", desc: "Kataloğunu oluştur, linkle ve hemen paylaş." },
@@ -93,6 +94,7 @@ const billing = {
             subtitle: "Paketinizi kontrol edin, fatura bilgilerinizi tamamlayın ve banka güvencesiyle ödeme adımına geçin.",
             backToPlans: "Planlara geri dön",
             month: "ay",
+            vatIncluded: "KDV dâhil",
             monthly: "Aylık",
             yearly: "Yıllık",
             twoMonthsFree: "2 ay avantajlı",
@@ -159,7 +161,7 @@ const billing = {
                 subtotal: "Ara toplam",
                 vat: "KDV (%20)",
                 savings: "Yıllık avantaj",
-                total: "Toplam",
+                total: "Ödenecek tutar",
                 monthlyEquivalent: "Aylık karşılığı {amount}",
             },
             agreements: {
@@ -230,6 +232,7 @@ const billing = {
             cancelAnytime: "Cancel Anytime",
             support247Badge: "24/7 Support",
             perMonth: "/mo",
+            vatIncluded: "VAT included",
             yearlyBonus: "2 Months Free!",
             plans: {
                 free: { name: "Starter", desc: "Create your catalog, link it, and share instantly." },
@@ -273,6 +276,7 @@ const billing = {
             subtitle: "Review your plan, complete your billing details, and continue to the bank-secured payment step.",
             backToPlans: "Back to plans",
             month: "month",
+            vatIncluded: "VAT included",
             monthly: "Monthly",
             yearly: "Yearly",
             twoMonthsFree: "2 months included",
@@ -339,7 +343,7 @@ const billing = {
                 subtotal: "Subtotal",
                 vat: "VAT (20%)",
                 savings: "Yearly savings",
-                total: "Total",
+                total: "Amount due",
                 monthlyEquivalent: "Equivalent to {amount} per month",
             },
             agreements: {

@@ -8,7 +8,7 @@ import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import { buildCheckoutHref } from "@/lib/billing/plans"
+import { buildCheckoutHref, CHECKOUT_PLANS } from "@/lib/billing/plans"
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(true)
@@ -38,7 +38,10 @@ export default function PricingPage() {
       name: t('pricingPage.plus'), // "Plus"
       subtitle: "Büyüyen işletmeler için.",
       icon: Zap,
-      price: { monthly: 500, yearly: 5000 },
+      price: {
+        monthly: CHECKOUT_PLANS.plus.monthlyPrice,
+        yearly: CHECKOUT_PLANS.plus.yearlyPrice,
+      },
       theme: "light",
       features: [
         t('plans.features.catalogsCount', { count: 10 }),
@@ -56,7 +59,10 @@ export default function PricingPage() {
       name: t('pricingPage.pro'), // "Pro Visionary"
       subtitle: "Sınırları kaldırın.",
       icon: Diamond,
-      price: { monthly: 1000, yearly: 10000 },
+      price: {
+        monthly: CHECKOUT_PLANS.pro.monthlyPrice,
+        yearly: CHECKOUT_PLANS.pro.yearlyPrice,
+      },
       popular: true,
       theme: "dark", // Special Dark Theme
       features: [
@@ -195,6 +201,11 @@ export default function PricingPage() {
                     {isYearly && price > 0 && (
                       <p className={cn("text-xs font-bold uppercase tracking-widest mt-2", isDark ? "text-emerald-400" : "text-emerald-600")}>
                         ₺{plan.price.yearly} / yıl
+                      </p>
+                    )}
+                    {price > 0 && (
+                      <p className={cn("text-[10px] font-bold uppercase tracking-widest mt-2", isDark ? "text-slate-400" : "text-slate-500")}>
+                        {t('checkout.vatIncluded')}
                       </p>
                     )}
                   </div>
