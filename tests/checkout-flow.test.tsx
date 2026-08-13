@@ -124,6 +124,13 @@ describe('checkout flow', () => {
         expect(screen.getByText('Ödenecek tutar').parentElement).toHaveTextContent('₺10.000,00')
         expect(screen.queryByText('Ara toplam')).not.toBeInTheDocument()
         expect(screen.queryByText('KDV (%20)')).not.toBeInTheDocument()
+        expect(screen.queryByText('Visa')).not.toBeInTheDocument()
+        expect(screen.queryByText('Mastercard')).not.toBeInTheDocument()
+        expect(screen.queryByText('TROY')).not.toBeInTheDocument()
+        expect(screen.queryByText('256-bit SSL')).not.toBeInTheDocument()
+        expect(
+            screen.getByText('Kart bilgilerinizi bankanın güvenli ödeme ekranında gireceksiniz.')
+        ).toBeInTheDocument()
 
         const continueButton = screen.getByRole('button', { name: 'Güvenli ödemeye geç' })
         expect(continueButton).toBeDisabled()
@@ -138,7 +145,7 @@ describe('checkout flow', () => {
         fireEvent.change(screen.getByLabelText('T.C. kimlik numarası'), {
             target: { value: '11111111111' },
         })
-        fireEvent.change(screen.getByLabelText('Fatura adresi'), {
+        fireEvent.change(screen.getByLabelText('Bireysel fatura adresi'), {
             target: { value: 'Test Mahallesi No: 1' },
         })
         fireEvent.change(screen.getByLabelText('İl'), { target: { value: 'Bursa' } })
@@ -200,7 +207,7 @@ describe('checkout flow', () => {
         fireEvent.change(screen.getByLabelText('T.C. kimlik numarası'), {
             target: { value: '11111111111' },
         })
-        fireEvent.change(screen.getByLabelText('Fatura adresi'), {
+        fireEvent.change(screen.getByLabelText('Bireysel fatura adresi'), {
             target: { value: 'Test Mahallesi No: 1' },
         })
         fireEvent.change(screen.getByLabelText('İl'), { target: { value: 'Bursa' } })
@@ -234,7 +241,7 @@ describe('checkout flow', () => {
         fireEvent.change(screen.getByLabelText('T.C. kimlik numarası'), {
             target: { value: '11111111111' },
         })
-        fireEvent.change(screen.getByLabelText('Fatura adresi'), {
+        fireEvent.change(screen.getByLabelText('Bireysel fatura adresi'), {
             target: { value: 'Test Mahallesi No: 1' },
         })
         fireEvent.change(screen.getByLabelText('İl'), { target: { value: 'Bursa' } })
@@ -246,6 +253,57 @@ describe('checkout flow', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('hesabınıza giriş yapmalısınız')
         expect(screen.getByRole('link', { name: 'Giriş yap' })).toHaveAttribute('href', '/auth')
         expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('prefills account identity and validates incomplete fields while typing', () => {
+        const { container } = renderWithTranslations(
+            <CheckoutPageClient
+                initialPlan="plus"
+                initialBillingCycle="monthly"
+                initialCustomer={{
+                    fullName: 'Mehmet Kerem',
+                    email: 'mehmet@example.com',
+                }}
+            />
+        )
+
+        expect(screen.getByLabelText('Ad soyad')).toHaveValue('Mehmet Kerem')
+        expect(screen.getByLabelText('E-posta adresi')).toHaveValue('mehmet@example.com')
+        expect(screen.queryByTestId('public-header')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('public-footer')).not.toBeInTheDocument()
+        expect(container.querySelector('form')).toHaveAttribute('novalidate')
+        expect(
+            screen.getByText(/Bu adres teslimat için değil, yasal faturanın düzenlenmesi içindir/)
+        ).toBeInTheDocument()
+
+        const phone = screen.getByLabelText('Telefon numarası')
+        fireEvent.change(phone, { target: { value: '0555 555 55' } })
+
+        expect(screen.getByText('Telefon numarası en az 10 rakam içermelidir.')).toBeInTheDocument()
+        expect(phone).toHaveAttribute('aria-invalid', 'true')
+
+        fireEvent.change(phone, { target: { value: '0555 555 55 55' } })
+        expect(
+            screen.queryByText('Telefon numarası en az 10 rakam içermelidir.')
+        ).not.toBeInTheDocument()
+        expect(phone).not.toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('blocks an invalid payment attempt with inline errors and focuses the first field', () => {
+        renderWithTranslations(
+            <CheckoutPageClient initialPlan="plus" initialBillingCycle="monthly" />
+        )
+
+        fireEvent.click(screen.getByLabelText(/Mesafeli Satış Sözleşmesi/))
+        fireEvent.click(screen.getByLabelText(/İptal ve İade Koşulları/))
+        fireEvent.click(screen.getByRole('button', { name: 'Güvenli ödemeye geç' }))
+
+        const fullName = screen.getByLabelText('Ad soyad')
+        expect(screen.getByText('Ad soyad alanı en az 2 karakter olmalıdır.')).toBeInTheDocument()
+        expect(fullName).toHaveAttribute('aria-invalid', 'true')
+        expect(fullName).toHaveFocus()
+        expect(saveCheckoutDraft).not.toHaveBeenCalled()
+        expect(startGarantiPayment).not.toHaveBeenCalled()
     })
 
     it('sends paid plan selections to checkout instead of showing a contact toast', () => {

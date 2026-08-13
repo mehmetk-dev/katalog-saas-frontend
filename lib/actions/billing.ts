@@ -19,18 +19,22 @@ const checkoutDraftPayloadSchema = z
         billingCycle: z.enum(['monthly', 'yearly']),
         invoiceType: z.enum(['individual', 'corporate']),
         fullName: z.string().trim().min(2).max(120),
-        email: z.string().trim().email().max(254),
+        email: z.string().trim().email().max(64),
         phone: z
             .string()
             .trim()
-            .min(7)
+            .min(1)
             .max(20)
-            .regex(/^[0-9+() .-]+$/),
+            .regex(/^[0-9+() .-]+$/)
+            .refine((value) => {
+                const digitCount = value.replace(/\D/g, '').length
+                return digitCount >= 10 && digitCount <= 15
+            }),
         identityNumber: optionalTrimmedText(11),
         taxNumber: optionalTrimmedText(10),
         companyName: optionalTrimmedText(200),
         taxOffice: optionalTrimmedText(120),
-        address: z.string().trim().min(5).max(500),
+        address: z.string().trim().min(10).max(500),
         city: z.string().trim().min(2).max(100),
         district: z.string().trim().min(2).max(100),
         distanceSalesAccepted: z.literal(true),

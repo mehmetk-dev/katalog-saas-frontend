@@ -120,10 +120,10 @@ export function PaymentResultUnavailable() {
                 {t('checkout.result.unavailableDescription')}
             </p>
             <Link
-                href="/auth"
+                href="/dashboard"
                 className="mt-6 inline-flex min-h-12 items-center justify-center bg-slate-950 px-6 text-sm font-black text-white hover:bg-[#cf1414]"
             >
-                {t('checkout.payment.signIn')}
+                {t('checkout.result.dashboard')}
             </Link>
         </section>
     )

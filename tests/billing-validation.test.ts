@@ -75,4 +75,22 @@ describe('billing checkout draft validation', () => {
         expect(invalidIdentity.success).toBe(false)
         expect(missingAgreement.success).toBe(false)
     })
+
+    it('rejects incomplete phone numbers and non-descriptive billing addresses', () => {
+        const incompletePhone = checkoutDraftSchema.safeParse({
+            ...baseDraft,
+            invoiceType: 'individual',
+            identityNumber: '11111111111',
+            phone: '0555 55',
+        })
+        const incompleteAddress = checkoutDraftSchema.safeParse({
+            ...baseDraft,
+            invoiceType: 'individual',
+            identityNumber: '11111111111',
+            address: 'Bursa',
+        })
+
+        expect(incompletePhone.success).toBe(false)
+        expect(incompleteAddress.success).toBe(false)
+    })
 })

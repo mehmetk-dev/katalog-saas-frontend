@@ -25,14 +25,23 @@ exports.checkoutDraftSchema = zod_1.z
     phone: zod_1.z
         .string()
         .trim()
-        .min(7, 'Telefon numarasını kontrol edin.')
+        .min(1, 'Telefon numarasını girin.')
         .max(20, 'Telefon numarasını kontrol edin.')
-        .regex(/^[0-9+() .-]+$/, 'Telefon numarasını kontrol edin.'),
+        .regex(/^[0-9+() .-]+$/, 'Telefon numarasını kontrol edin.')
+        .superRefine((value, ctx) => {
+        const digitCount = value.replace(/\D/g, '').length;
+        if (digitCount < 10 || digitCount > 15) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                message: 'Telefon numarası 10 ile 15 rakam içermelidir.',
+            });
+        }
+    }),
     identityNumber: optionalTrimmedText(11),
     taxNumber: optionalTrimmedText(10),
     companyName: optionalTrimmedText(200),
     taxOffice: optionalTrimmedText(120),
-    address: trimmedText(5, 500, 'Fatura adresini kontrol edin.'),
+    address: trimmedText(10, 500, 'Açık fatura adresini kontrol edin.'),
     city: trimmedText(2, 100, 'İl alanını kontrol edin.'),
     district: trimmedText(2, 100, 'İlçe alanını kontrol edin.'),
     distanceSalesAccepted: zod_1.z.literal(true),

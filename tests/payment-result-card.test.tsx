@@ -68,7 +68,7 @@ describe('payment result card', () => {
         )
     })
 
-    it('offers sign-in instead of guessing a payment result when the order is unavailable', () => {
+    it('keeps an unavailable order inside the authenticated dashboard flow', () => {
         render(
             <I18nProvider>
                 <PaymentResultUnavailable />
@@ -78,6 +78,9 @@ describe('payment result card', () => {
         expect(
             screen.getByRole('heading', { name: 'Ödeme durumu görüntülenemiyor' })
         ).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Giriş yap' })).toHaveAttribute('href', '/auth')
+        expect(screen.getByRole('link', { name: 'Panele git' })).toHaveAttribute(
+            'href',
+            '/dashboard'
+        )
     })
 })

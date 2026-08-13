@@ -1,30 +1,33 @@
 'use client'
 
-import { useMemo, useState, type ComponentProps, type FormEvent, type ReactNode } from 'react'
+import {
+    useMemo,
+    useState,
+    type ChangeEvent,
+    type ComponentProps,
+    type FocusEvent,
+    type FormEvent,
+    type ReactNode,
+} from 'react'
 import Link from 'next/link'
 import {
     AlertCircle,
     ArrowLeft,
-    BadgeCheck,
     Building2,
     Check,
-    CheckCircle2,
     CreditCard,
-    FileText,
     LockKeyhole,
     Loader2,
     LogIn,
     ShieldCheck,
-    Sparkles,
     UserRound,
 } from 'lucide-react'
 
-import { PublicFooter } from '@/components/layout/public-footer'
-import { PublicHeader } from '@/components/layout/public-header'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
     saveCheckoutDraft,
     startGarantiPayment,
@@ -42,9 +45,28 @@ import { cn } from '@/lib/utils'
 interface CheckoutPageClientProps {
     initialPlan: PaidPlanId
     initialBillingCycle: BillingCycle
+    initialCustomer?: {
+        fullName: string
+        email: string
+    }
 }
 
 type InvoiceType = 'individual' | 'corporate'
+type CheckoutFieldName =
+    | 'fullName'
+    | 'email'
+    | 'phone'
+    | 'identityNumber'
+    | 'taxNumber'
+    | 'companyName'
+    | 'taxOffice'
+    | 'address'
+    | 'city'
+    | 'district'
+
+type CheckoutFieldErrors = Partial<Record<CheckoutFieldName, string>>
+
+const EMPTY_CUSTOMER = { fullName: '', email: '' }
 
 function submitHostedPaymentForm(paymentForm: HostedPaymentForm) {
     const action = new URL(paymentForm.action)
@@ -83,7 +105,11 @@ function submitHostedPaymentForm(paymentForm: HostedPaymentForm) {
     form.submit()
 }
 
-export function CheckoutPageClient({ initialPlan, initialBillingCycle }: CheckoutPageClientProps) {
+export function CheckoutPageClient({
+    initialPlan,
+    initialBillingCycle,
+    initialCustomer = EMPTY_CUSTOMER,
+}: CheckoutPageClientProps) {
     const { t, language } = useTranslation()
     const [planId, setPlanId] = useState<PaidPlanId>(initialPlan)
     const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle)
@@ -93,16 +119,12 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
     const [isSaving, setIsSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
     const [authRequired, setAuthRequired] = useState(false)
+    const [fieldErrors, setFieldErrors] = useState<CheckoutFieldErrors>({})
 
     const totals = useMemo(() => getCheckoutTotals(planId, billingCycle), [planId, billingCycle])
     const plan = CHECKOUT_PLANS[planId]
     const planName =
         planId === 'plus' ? t('checkout.plans.plus.name') : t('checkout.plans.pro.name')
-    const planDescription =
-        planId === 'plus'
-            ? t('checkout.plans.plus.description')
-            : t('checkout.plans.pro.description')
-    const planFeatures = t<string[]>(`checkout.plans.${planId}.features`)
     const canContinue = acceptedDistanceSales && acceptedPreliminaryInfo
 
     const formatMoney = (amount: number) =>
@@ -117,12 +139,116 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
         setAuthRequired(false)
     }
 
+    const validateFieldValue = (field: CheckoutFieldName, rawValue: string): string | undefined => {
+        const value = rawValue.trim()
+
+        switch (field) {
+            case 'fullName':
+                return value.length >= 2 ? undefined : t('checkout.validation.fullName')
+            case 'email':
+                return value.length <= 64 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                    ? undefined
+                    : t('checkout.validation.email')
+            case 'phone': {
+                if (!value) return t('checkout.validation.phoneRequired')
+                if (!/^[0-9+() .-]+$/.test(value)) {
+                    return t('checkout.validation.phoneCharacters')
+                }
+                const digitCount = value.replace(/\D/g, '').length
+                if (digitCount < 10) return t('checkout.validation.phoneTooShort')
+                if (digitCount > 15) return t('checkout.validation.phoneTooLong')
+                return undefined
+            }
+            case 'identityNumber':
+                return /^\d{11}$/.test(value)
+                    ? undefined
+                    : t('checkout.validation.identityNumber')
+            case 'taxNumber':
+                return /^\d{10}$/.test(value)
+                    ? undefined
+                    : t('checkout.validation.taxNumber')
+            case 'companyName':
+                return value.length >= 2 ? undefined : t('checkout.validation.companyName')
+            case 'taxOffice':
+                return value.length >= 2 ? undefined : t('checkout.validation.taxOffice')
+            case 'address':
+                return value.length >= 10 ? undefined : t('checkout.validation.address')
+            case 'city':
+                return value.length >= 2 ? undefined : t('checkout.validation.city')
+            case 'district':
+                return value.length >= 2 ? undefined : t('checkout.validation.district')
+        }
+    }
+
+    const updateFieldError = (field: CheckoutFieldName, value: string) => {
+        const nextError = validateFieldValue(field, value)
+        setFieldErrors((current) => {
+            if (current[field] === nextError) return current
+            const next = { ...current }
+            if (nextError) next[field] = nextError
+            else delete next[field]
+            return next
+        })
+    }
+
+    const validationProps = (field: CheckoutFieldName) => ({
+        error: fieldErrors[field],
+        onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+            updateFieldError(field, event.currentTarget.value)
+        },
+        onBlur: (event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+            updateFieldError(field, event.currentTarget.value)
+        },
+    })
+
+    const changeInvoiceType = (nextType: InvoiceType) => {
+        setInvoiceType(nextType)
+        setFieldErrors((current) => {
+            const next = { ...current }
+            delete next.identityNumber
+            delete next.taxNumber
+            delete next.companyName
+            delete next.taxOffice
+            return next
+        })
+        resetSaveFeedback()
+    }
+
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!canContinue || isSaving) return
 
         const formData = new FormData(event.currentTarget)
         const readValue = (name: string) => String(formData.get(name) ?? '')
+
+        const fieldsToValidate: CheckoutFieldName[] = [
+            'fullName',
+            'email',
+            'phone',
+            invoiceType === 'corporate' ? 'taxNumber' : 'identityNumber',
+            ...(invoiceType === 'corporate'
+                ? (['companyName', 'taxOffice'] as CheckoutFieldName[])
+                : []),
+            'address',
+            'city',
+            'district',
+        ]
+        const nextFieldErrors: CheckoutFieldErrors = {}
+        for (const field of fieldsToValidate) {
+            const error = validateFieldValue(field, readValue(field))
+            if (error) nextFieldErrors[field] = error
+        }
+
+        if (Object.keys(nextFieldErrors).length > 0) {
+            setFieldErrors(nextFieldErrors)
+            resetSaveFeedback()
+            const firstInvalidField = fieldsToValidate.find((field) => nextFieldErrors[field])
+            if (firstInvalidField) {
+                const input = event.currentTarget.elements.namedItem(firstInvalidField)
+                if (input instanceof HTMLElement) input.focus()
+            }
+            return
+        }
 
         setIsSaving(true)
         resetSaveFeedback()
@@ -185,77 +311,40 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
     }
 
     return (
-        <div className="min-h-screen bg-[#f6f7f9] text-slate-950">
-            <PublicHeader />
-
-            <main className="px-4 pt-24 pb-20 sm:px-6 sm:pt-28">
-                <div className="mx-auto max-w-7xl">
-                    <div className="mb-8 flex flex-col gap-6 border-b border-slate-200 pb-8 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="-mx-4 bg-slate-950 px-4 py-6 text-white sm:mx-0 sm:bg-transparent sm:p-0 sm:text-slate-950">
-                            <Link
-                                href="/pricing"
-                                className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-300 transition-colors hover:text-white sm:text-slate-500 sm:hover:text-[#cf1414]"
-                            >
-                                <ArrowLeft className="size-4" />
-                                {t('checkout.backToPlans')}
-                            </Link>
-                            <div className="flex items-center gap-3">
-                                <div className="flex size-11 items-center justify-center rounded-xl bg-white text-slate-950 shadow-lg shadow-black/20 sm:bg-slate-950 sm:text-white sm:shadow-slate-900/10">
-                                    <LockKeyhole className="size-5" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black tracking-[0.2em] text-[#cf1414] uppercase">
-                                        FogCatalog Checkout
-                                    </p>
-                                    <h1 className="mt-1 text-3xl font-black tracking-tight text-white sm:text-4xl sm:text-slate-950">
-                                        {t('checkout.title')}
-                                    </h1>
-                                </div>
-                            </div>
-                            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base sm:text-slate-500">
-                                {t('checkout.subtitle')}
-                            </p>
-                        </div>
-
-                        <ol className="grid grid-cols-3 gap-2 text-xs sm:min-w-[430px]">
-                            {[
-                                t('checkout.steps.plan'),
-                                t('checkout.steps.payment'),
-                                t('checkout.steps.confirmation'),
-                            ].map((step, index) => (
-                                <li
-                                    key={step}
-                                    className={cn(
-                                        'flex min-h-14 items-center gap-2 border px-3 font-bold',
-                                        index === 0 &&
-                                            'border-emerald-200 bg-emerald-50 text-emerald-800',
-                                        index === 1 && 'border-slate-950 bg-slate-950 text-white',
-                                        index === 2 && 'border-slate-200 bg-white text-slate-400'
-                                    )}
-                                >
-                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-current text-[10px]">
-                                        {index === 0 ? <Check className="size-3.5" /> : index + 1}
-                                    </span>
-                                    <span className="hidden sm:inline">{step}</span>
-                                </li>
-                            ))}
-                        </ol>
-                    </div>
+        <div className="min-h-full bg-slate-50 text-slate-950">
+            <div className="px-1 py-4 sm:px-2 sm:py-6">
+                <div className="mx-auto max-w-6xl">
+                    <header className="mb-6 border-b border-slate-200 pb-6">
+                        <Link
+                            href="/pricing"
+                            className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-[#b91c1c]"
+                        >
+                            <ArrowLeft className="size-4" />
+                            {t('checkout.backToPlans')}
+                        </Link>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                            {t('checkout.title')}
+                        </h1>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                            {t('checkout.subtitle')}
+                        </p>
+                    </header>
 
                     <form
+                        noValidate
                         onSubmit={handleSubmit}
                         onChange={resetSaveFeedback}
-                        className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(340px,0.8fr)]"
+                        className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.72fr)]"
                     >
-                        <div className="space-y-6">
-                            <section className="border border-slate-200 bg-white shadow-sm">
+                        <div className="space-y-5">
+                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.03]">
                                 <SectionHeader
                                     number="1"
                                     title={t('checkout.planSection.title')}
                                     description={t('checkout.planSection.description')}
                                 />
 
-                                <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7">
+                                <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
                                     {(['plus', 'pro'] as const).map((candidatePlanId) => {
                                         const candidate = CHECKOUT_PLANS[candidatePlanId]
                                         const isSelected = planId === candidatePlanId
@@ -278,49 +367,39 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                 }}
                                                 aria-pressed={isSelected}
                                                 className={cn(
-                                                    'relative min-h-36 border p-5 text-left transition-all focus-visible:ring-4 focus-visible:ring-slate-900/15 focus-visible:outline-none',
+                                                    'relative rounded-lg border p-4 text-left transition-colors focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:outline-none',
                                                     isSelected
-                                                        ? 'border-slate-950 bg-slate-950 text-white shadow-xl shadow-slate-900/10'
+                                                        ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900'
                                                         : 'border-slate-200 bg-white hover:border-slate-400'
                                                 )}
                                             >
                                                 {candidatePlanId === 'pro' && (
-                                                    <span
-                                                        className={cn(
-                                                            'absolute top-4 right-4 text-[10px] font-black tracking-widest uppercase',
-                                                            isSelected
-                                                                ? 'text-amber-300'
-                                                                : 'text-amber-600'
-                                                        )}
-                                                    >
+                                                    <span className="absolute top-4 right-4 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
                                                         {t(
                                                             'checkout.planSection.mostComprehensive'
                                                         )}
                                                     </span>
                                                 )}
-                                                <p className="text-xs font-black tracking-[0.18em] uppercase opacity-60">
-                                                    FogCatalog
-                                                </p>
-                                                <h3 className="mt-2 text-2xl font-black">
+                                                <h3
+                                                    className={cn(
+                                                        'text-lg font-semibold',
+                                                        candidatePlanId === 'pro' && 'pr-24'
+                                                    )}
+                                                >
                                                     {candidateName}
                                                 </h3>
                                                 <p
-                                                    className={cn(
-                                                        'mt-2 max-w-xs text-sm leading-5',
-                                                        isSelected
-                                                            ? 'text-slate-300'
-                                                            : 'text-slate-500'
-                                                    )}
+                                                    className="mt-1 max-w-xs text-sm leading-5 text-slate-500"
                                                 >
                                                     {candidateDescription}
                                                 </p>
-                                                <p className="mt-4 text-lg font-black">
+                                                <p className="mt-4 text-base font-semibold text-slate-950">
                                                     {formatMoney(candidate.monthlyPrice)} /{' '}
                                                     {t('checkout.month')}
                                                 </p>
                                                 {isSelected && (
-                                                    <span className="absolute right-4 bottom-4 flex size-7 items-center justify-center rounded-full bg-white text-slate-950">
-                                                        <Check className="size-4" />
+                                                    <span className="absolute right-4 bottom-4 flex size-6 items-center justify-center rounded-full bg-slate-900 text-white">
+                                                        <Check className="size-3.5" />
                                                     </span>
                                                 )}
                                             </button>
@@ -328,8 +407,8 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                     })}
                                 </div>
 
-                                <div className="border-t border-slate-100 px-5 py-5 sm:px-7">
-                                    <p className="mb-3 text-sm font-black">
+                                <div className="border-t border-slate-100 px-5 py-5 sm:px-6">
+                                    <p className="mb-3 text-sm font-semibold text-slate-800">
                                         {t('checkout.planSection.billingPeriod')}
                                     </p>
                                     <div className="grid gap-3 sm:grid-cols-2">
@@ -349,14 +428,14 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                     }}
                                                     aria-pressed={selected}
                                                     className={cn(
-                                                        'flex min-h-20 items-center justify-between border px-4 text-left transition-colors focus-visible:ring-4 focus-visible:ring-slate-900/15 focus-visible:outline-none',
+                                                        'flex min-h-16 items-center justify-between rounded-lg border px-4 text-left transition-colors focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:outline-none',
                                                         selected
-                                                            ? 'border-[#cf1414] bg-red-50'
+                                                            ? 'border-[#b91c1c] bg-red-50/60 ring-1 ring-[#b91c1c]'
                                                             : 'border-slate-200 hover:border-slate-400'
                                                     )}
                                                 >
                                                     <span>
-                                                        <span className="block font-black">
+                                                        <span className="block font-semibold">
                                                             {cycle === 'monthly'
                                                                 ? t('checkout.monthly')
                                                                 : t('checkout.yearly')}
@@ -366,7 +445,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                         </span>
                                                     </span>
                                                     {cycle === 'yearly' && (
-                                                        <span className="bg-emerald-100 px-2 py-1 text-[10px] font-black text-emerald-800 uppercase">
+                                                        <span className="text-xs font-medium text-emerald-700">
                                                             {t('checkout.twoMonthsFree')}
                                                         </span>
                                                     )}
@@ -377,34 +456,34 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                 </div>
                             </section>
 
-                            <section className="border border-slate-200 bg-white shadow-sm">
+                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.03]">
                                 <SectionHeader
                                     number="2"
                                     title={t('checkout.invoice.title')}
                                     description={t('checkout.invoice.description')}
                                 />
 
-                                <div className="p-5 sm:p-7">
+                                <div className="p-5 sm:p-6">
                                     <div className="mb-6 grid grid-cols-2 gap-3">
                                         <InvoiceTypeButton
                                             selected={invoiceType === 'individual'}
-                                            onClick={() => {
-                                                setInvoiceType('individual')
-                                                resetSaveFeedback()
-                                            }}
+                                            onClick={() => changeInvoiceType('individual')}
                                             icon={UserRound}
                                             label={t('checkout.invoice.individual')}
                                         />
                                         <InvoiceTypeButton
                                             selected={invoiceType === 'corporate'}
-                                            onClick={() => {
-                                                setInvoiceType('corporate')
-                                                resetSaveFeedback()
-                                            }}
+                                            onClick={() => changeInvoiceType('corporate')}
                                             icon={Building2}
                                             label={t('checkout.invoice.corporate')}
                                         />
                                     </div>
+
+                                    {(initialCustomer.fullName || initialCustomer.email) && (
+                                        <p className="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+                                            {t('checkout.invoice.accountPrefill')}
+                                        </p>
+                                    )}
 
                                     <div className="grid gap-5 sm:grid-cols-2">
                                         <CheckoutField
@@ -412,7 +491,10 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             name="fullName"
                                             label={t('checkout.invoice.fullName')}
                                             autoComplete="name"
+                                            defaultValue={initialCustomer.fullName}
+                                            maxLength={120}
                                             required
+                                            {...validationProps('fullName')}
                                         />
                                         <CheckoutField
                                             id="email"
@@ -420,7 +502,10 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             label={t('checkout.invoice.email')}
                                             type="email"
                                             autoComplete="email"
+                                            defaultValue={initialCustomer.email}
+                                            maxLength={64}
                                             required
+                                            {...validationProps('email')}
                                         />
                                         <CheckoutField
                                             id="phone"
@@ -428,9 +513,14 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             label={t('checkout.invoice.phone')}
                                             type="tel"
                                             autoComplete="tel"
+                                            inputMode="tel"
+                                            maxLength={20}
+                                            placeholder="05xx xxx xx xx"
                                             required
+                                            {...validationProps('phone')}
                                         />
                                         <CheckoutField
+                                            key={invoiceType}
                                             id="identity-number"
                                             name={
                                                 invoiceType === 'corporate'
@@ -450,6 +540,11 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             }
                                             maxLength={invoiceType === 'corporate' ? 10 : 11}
                                             required
+                                            {...validationProps(
+                                                invoiceType === 'corporate'
+                                                    ? 'taxNumber'
+                                                    : 'identityNumber'
+                                            )}
                                         />
                                         {invoiceType === 'corporate' && (
                                             <>
@@ -458,23 +553,39 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                     name="companyName"
                                                     label={t('checkout.invoice.companyName')}
                                                     autoComplete="organization"
+                                                    maxLength={200}
                                                     required
+                                                    {...validationProps('companyName')}
                                                 />
                                                 <CheckoutField
                                                     id="tax-office"
                                                     name="taxOffice"
                                                     label={t('checkout.invoice.taxOffice')}
+                                                    maxLength={120}
                                                     required
+                                                    {...validationProps('taxOffice')}
                                                 />
                                             </>
                                         )}
                                         <div className="sm:col-span-2">
-                                            <CheckoutField
+                                            <CheckoutTextarea
                                                 id="address"
                                                 name="address"
-                                                label={t('checkout.invoice.address')}
+                                                label={
+                                                    invoiceType === 'corporate'
+                                                        ? t('checkout.invoice.addressCorporate')
+                                                        : t('checkout.invoice.addressIndividual')
+                                                }
+                                                hint={
+                                                    invoiceType === 'corporate'
+                                                        ? t('checkout.invoice.addressCorporateHint')
+                                                        : t('checkout.invoice.addressIndividualHint')
+                                                }
                                                 autoComplete="street-address"
+                                                maxLength={500}
+                                                rows={3}
                                                 required
+                                                {...validationProps('address')}
                                             />
                                         </div>
                                         <CheckoutField
@@ -482,109 +593,87 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             name="city"
                                             label={t('checkout.invoice.city')}
                                             autoComplete="address-level1"
+                                            maxLength={100}
                                             required
+                                            {...validationProps('city')}
                                         />
                                         <CheckoutField
                                             id="district"
                                             name="district"
                                             label={t('checkout.invoice.district')}
                                             autoComplete="address-level2"
+                                            maxLength={100}
                                             required
+                                            {...validationProps('district')}
                                         />
                                     </div>
                                 </div>
                             </section>
 
-                            <section className="border border-slate-200 bg-white shadow-sm">
+                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.03]">
                                 <SectionHeader
                                     number="3"
                                     title={t('checkout.payment.title')}
                                     description={t('checkout.payment.description')}
                                 />
 
-                                <div className="p-5 sm:p-7">
-                                    <div className="border-2 border-slate-950 bg-slate-50 p-5">
-                                        <div className="flex items-start gap-4">
-                                            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
-                                                <CreditCard className="size-5" />
-                                            </span>
-                                            <div className="flex-1">
-                                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                                    <h3 className="font-black">
-                                                        {t('checkout.payment.card')}
-                                                    </h3>
-                                                    <span className="inline-flex items-center gap-1.5 bg-emerald-100 px-2.5 py-1 text-[10px] font-black tracking-wider text-emerald-800 uppercase">
-                                                        <ShieldCheck className="size-3.5" />
-                                                        3D Secure
-                                                    </span>
-                                                </div>
-                                                <p className="mt-2 text-sm leading-6 text-slate-600">
-                                                    {t('checkout.payment.hostedNotice')}
-                                                </p>
-                                                <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black tracking-wider text-slate-500 uppercase">
-                                                    <span className="border border-slate-200 bg-white px-3 py-2">
-                                                        Visa
-                                                    </span>
-                                                    <span className="border border-slate-200 bg-white px-3 py-2">
-                                                        Mastercard
-                                                    </span>
-                                                    <span className="border border-slate-200 bg-white px-3 py-2">
-                                                        TROY
-                                                    </span>
-                                                </div>
-                                            </div>
+                                <div className="p-5 sm:p-6">
+                                    <div className="flex items-start gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700">
+                                            <CreditCard className="size-5" />
+                                        </span>
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-900">
+                                                {t('checkout.payment.card')}
+                                            </h3>
+                                            <p className="mt-1 text-sm leading-6 text-slate-600">
+                                                {t('checkout.payment.bankEntryNotice')}
+                                            </p>
+                                            <p className="mt-2 inline-flex items-center gap-2 text-xs text-slate-500">
+                                                <ShieldCheck className="size-4 text-emerald-700" />
+                                                {t('checkout.payment.noCardStorage')}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </section>
                         </div>
 
-                        <aside className="space-y-5 lg:sticky lg:top-24">
-                            <section className="overflow-hidden border border-slate-950 bg-white shadow-2xl shadow-slate-900/10">
-                                <div className="bg-slate-950 p-6 text-white">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div>
-                                            <p className="text-xs font-black tracking-[0.18em] text-slate-400 uppercase">
-                                                {t('checkout.summary.title')}
-                                            </p>
-                                            <h2 className="mt-2 text-2xl font-black">{planName}</h2>
-                                        </div>
-                                        <span className="flex size-11 items-center justify-center rounded-full bg-white/10">
-                                            {planId === 'pro' ? (
-                                                <Sparkles className="size-5 text-amber-300" />
-                                            ) : (
-                                                <BadgeCheck className="size-5 text-blue-300" />
-                                            )}
-                                        </span>
-                                    </div>
-                                    <p className="mt-3 text-sm leading-5 text-slate-300">
-                                        {planDescription}
-                                    </p>
+                        <aside className="space-y-4 lg:sticky lg:top-6">
+                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.04]">
+                                <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+                                    <h2 className="text-base font-semibold text-slate-950">
+                                        {t('checkout.summary.title')}
+                                    </h2>
                                 </div>
 
-                                <div className="p-6">
-                                    <ul className="space-y-3 border-b border-slate-200 pb-5">
-                                        {planFeatures.map((feature) => (
-                                            <li
-                                                key={feature}
-                                                className="flex items-start gap-2.5 text-sm text-slate-600"
-                                            >
-                                                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-                                                {feature}
-                                            </li>
-                                        ))}
-                                    </ul>
-
-                                    <div className="mt-5 border-y border-slate-950 py-5">
-                                        <div className="flex items-end justify-between gap-4">
-                                            <span className="font-black">
-                                                {t('checkout.summary.total')}
-                                            </span>
-                                            <span className="text-3xl font-black tracking-tight">
-                                                {formatMoney(totals.total)}
-                                            </span>
+                                <div className="p-5 sm:p-6">
+                                    <dl className="space-y-3 text-sm">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <dt className="text-slate-500">
+                                                {t('checkout.result.plan')}
+                                            </dt>
+                                            <dd className="font-medium text-slate-900">{planName}</dd>
                                         </div>
-                                    </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <dt className="text-slate-500">
+                                                {t('checkout.summary.period')}
+                                            </dt>
+                                            <dd className="font-medium text-slate-900">
+                                                {billingCycle === 'monthly'
+                                                    ? t('checkout.monthly')
+                                                    : t('checkout.yearly')}
+                                            </dd>
+                                        </div>
+                                        <div className="mt-5 flex items-end justify-between gap-4 border-t border-slate-200 pt-5">
+                                            <dt className="font-medium text-slate-700">
+                                                {t('checkout.summary.total')}
+                                            </dt>
+                                            <dd className="text-2xl font-bold tracking-tight text-slate-950">
+                                                {formatMoney(totals.total)}
+                                            </dd>
+                                        </div>
+                                    </dl>
 
                                     <div className="space-y-4 pt-5">
                                         <AgreementCheckbox
@@ -595,7 +684,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             <Link
                                                 href="/legal/distance-sales-agreement"
                                                 target="_blank"
-                                                className="font-bold text-slate-950 underline underline-offset-2"
+                                                className="font-medium text-slate-900 underline underline-offset-2"
                                             >
                                                 {t('checkout.agreements.distanceSales')}
                                             </Link>{' '}
@@ -610,7 +699,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             <Link
                                                 href="/legal/cancellation-policy"
                                                 target="_blank"
-                                                className="font-bold text-slate-950 underline underline-offset-2"
+                                                className="font-medium text-slate-900 underline underline-offset-2"
                                             >
                                                 {t('checkout.agreements.cancellation')}
                                             </Link>{' '}
@@ -621,7 +710,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                     <Button
                                         type="submit"
                                         disabled={!canContinue || isSaving}
-                                        className="mt-6 h-14 w-full rounded-none bg-[#cf1414] text-sm font-black tracking-wider text-white uppercase shadow-lg shadow-red-500/20 hover:bg-slate-950"
+                                        className="mt-6 h-12 w-full rounded-lg bg-[#b91c1c] text-sm font-semibold text-white shadow-none hover:bg-[#991b1b]"
                                     >
                                         {isSaving ? (
                                             <Loader2 className="size-4 animate-spin" />
@@ -632,26 +721,22 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                             ? t('checkout.payment.saving')
                                             : t('checkout.payment.continue')}
                                     </Button>
-
-                                    <p className="mt-3 text-center text-xs leading-5 text-slate-500">
-                                        {t('checkout.payment.noCardStorage')}
-                                    </p>
                                 </div>
                             </section>
 
                             {saveError && (
                                 <div
                                     role="alert"
-                                    className="border border-red-300 bg-red-50 p-5 text-sm leading-6 text-red-950"
+                                    className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm leading-6 text-red-950"
                                 >
                                     <div className="flex items-start gap-3">
                                         <AlertCircle className="mt-0.5 size-5 shrink-0" />
                                         <div>
-                                            <p className="font-bold">{saveError}</p>
+                                            <p className="font-semibold">{saveError}</p>
                                             {authRequired && (
                                                 <Link
                                                     href="/auth"
-                                                    className="mt-3 inline-flex items-center gap-2 font-black underline underline-offset-4"
+                                                    className="mt-3 inline-flex items-center gap-2 font-semibold underline underline-offset-4"
                                                 >
                                                     <LogIn className="size-4" />
                                                     {t('checkout.payment.signIn')}
@@ -661,18 +746,10 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                     </div>
                                 </div>
                             )}
-
-                            <div className="grid grid-cols-3 border border-slate-200 bg-white text-center text-[11px] font-bold text-slate-600">
-                                <TrustItem icon={ShieldCheck} label={t('checkout.trust.secure')} />
-                                <TrustItem icon={FileText} label={t('checkout.trust.invoice')} />
-                                <TrustItem icon={BadgeCheck} label={t('checkout.trust.support')} />
-                            </div>
                         </aside>
                     </form>
                 </div>
-            </main>
-
-            <PublicFooter />
+            </div>
         </div>
     )
 }
@@ -687,13 +764,13 @@ function SectionHeader({
     description: string
 }) {
     return (
-        <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 sm:px-7">
-            <span className="flex size-9 items-center justify-center rounded-full bg-slate-100 font-black">
-                {number}
+        <div className="flex items-start gap-3 border-b border-slate-100 px-5 py-5 sm:px-6">
+            <span className="pt-1 text-xs font-semibold tracking-wider text-[#b91c1c]">
+                0{number}
             </span>
             <div>
-                <h2 className="text-lg font-black">{title}</h2>
-                <p className="text-sm text-slate-500">{description}</p>
+                <h2 className="text-base font-semibold text-slate-950 sm:text-lg">{title}</h2>
+                <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
             </div>
         </div>
     )
@@ -716,9 +793,9 @@ function InvoiceTypeButton({
             onClick={onClick}
             aria-pressed={selected}
             className={cn(
-                'flex min-h-16 items-center gap-3 border px-4 text-left font-bold transition-colors',
+                'flex min-h-12 items-center gap-3 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:outline-none',
                 selected
-                    ? 'border-slate-950 bg-slate-950 text-white'
+                    ? 'border-[#b91c1c] bg-red-50/60 text-slate-950 ring-1 ring-[#b91c1c]'
                     : 'border-slate-200 hover:border-slate-400'
             )}
         >
@@ -731,19 +808,88 @@ function InvoiceTypeButton({
 interface CheckoutFieldProps extends ComponentProps<typeof Input> {
     id: string
     label: string
+    error?: string
+    hint?: string
 }
 
-function CheckoutField({ id, label, className, ...props }: CheckoutFieldProps) {
+function CheckoutField({ id, label, error, hint, className, ...props }: CheckoutFieldProps) {
+    const describedBy = [hint ? `${id}-hint` : '', error ? `${id}-error` : '']
+        .filter(Boolean)
+        .join(' ')
+
     return (
         <div className="space-y-2">
-            <Label htmlFor={id} className="text-sm font-bold text-slate-700">
+            <Label htmlFor={id} className="text-sm font-medium text-slate-700">
                 {label}
             </Label>
             <Input
                 id={id}
-                className={cn('h-12 rounded-none border-slate-300 bg-white px-4', className)}
+                className={cn(
+                    'h-11 rounded-lg border-slate-300 bg-white px-3.5 shadow-none focus-visible:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-900/10 aria-invalid:border-red-500',
+                    className
+                )}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={describedBy || undefined}
                 {...props}
             />
+            {hint && (
+                <p id={`${id}-hint`} className="text-xs leading-5 text-slate-500">
+                    {hint}
+                </p>
+            )}
+            {error && (
+                <p id={`${id}-error`} className="text-xs font-semibold text-red-700" aria-live="polite">
+                    {error}
+                </p>
+            )}
+        </div>
+    )
+}
+
+interface CheckoutTextareaProps extends ComponentProps<typeof Textarea> {
+    id: string
+    label: string
+    error?: string
+    hint?: string
+}
+
+function CheckoutTextarea({
+    id,
+    label,
+    error,
+    hint,
+    className,
+    ...props
+}: CheckoutTextareaProps) {
+    const describedBy = [hint ? `${id}-hint` : '', error ? `${id}-error` : '']
+        .filter(Boolean)
+        .join(' ')
+
+    return (
+        <div className="space-y-2">
+            <Label htmlFor={id} className="text-sm font-medium text-slate-700">
+                {label}
+            </Label>
+            <Textarea
+                id={id}
+                className={cn(
+                    'min-h-24 resize-y rounded-lg border-slate-300 bg-white px-3.5 py-3 shadow-none focus-visible:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-900/10 aria-invalid:border-red-500',
+                    className
+                )}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={describedBy || undefined}
+                {...props}
+            />
+            {hint && (
+                <p id={`${id}-hint`} className="text-xs leading-5 text-slate-500">
+                    {hint}
+                </p>
+            )}
+            {error && (
+                <p id={`${id}-error`} className="text-xs font-semibold text-red-700" aria-live="polite">
+                    {error}
+                </p>
+            )}
         </div>
     )
 }
@@ -762,7 +908,7 @@ function AgreementCheckbox({ id, checked, onCheckedChange, children }: Agreement
                 id={id}
                 checked={checked}
                 onCheckedChange={(value) => onCheckedChange(value === true)}
-                className="mt-0.5 size-5 rounded-none"
+                className="mt-0.5 size-5 rounded-[4px]"
             />
             <Label
                 htmlFor={id}
@@ -770,15 +916,6 @@ function AgreementCheckbox({ id, checked, onCheckedChange, children }: Agreement
             >
                 {children}
             </Label>
-        </div>
-    )
-}
-
-function TrustItem({ icon: Icon, label }: { icon: typeof ShieldCheck; label: string }) {
-    return (
-        <div className="flex min-h-24 flex-col items-center justify-center gap-2 border-r border-slate-200 px-2 last:border-r-0">
-            <Icon className="size-5 text-slate-950" />
-            <span>{label}</span>
         </div>
     )
 }
