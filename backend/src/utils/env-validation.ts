@@ -1,4 +1,7 @@
 /* eslint-disable no-console */
+import { parseGarantiPaymentConfig } from '../services/payments/garanti-gateway'
+import { parseGarantiVpConfig } from '../services/payments/garanti-vp-client'
+
 /**
  * Backend Environment Validation
  * Sunucu başlangıcında gerekli environment değişkenlerini kontrol eder
@@ -123,6 +126,35 @@ const requiredEnvVars: EnvVar[] = [
     }
 ]
 
+const garantiRequiredEnvKeys = [
+    'GARANTI_POS_MODE',
+    'GARANTI_POS_API_VERSION',
+    'GARANTI_POS_MERCHANT_ID',
+    'GARANTI_POS_TERMINAL_ID',
+    'GARANTI_POS_TERMINAL_USER_ID',
+    'GARANTI_POS_PROV_USER_ID',
+    'GARANTI_POS_PROVISION_PASSWORD',
+    'GARANTI_POS_STORE_KEY',
+    'GARANTI_POS_SECURITY_LEVEL',
+    'GARANTI_POS_PAYMENT_URL',
+    'GARANTI_POS_CALLBACK_URL',
+    'GARANTI_POS_RESULT_URL',
+    'GARANTI_POS_COMPANY_NAME',
+] as const
+
+const garantiOperationsRequiredEnvKeys = [
+    'REDIS_URL',
+    'GARANTI_POS_MODE',
+    'GARANTI_POS_API_VERSION',
+    'GARANTI_POS_MERCHANT_ID',
+    'GARANTI_POS_TERMINAL_ID',
+    'GARANTI_POS_VP_URL',
+    'GARANTI_INQUIRY_PROV_USER_ID',
+    'GARANTI_INQUIRY_PROVISION_PASSWORD',
+    'GARANTI_REFUND_PROV_USER_ID',
+    'GARANTI_REFUND_PROVISION_PASSWORD',
+] as const
+
 export function validateEnv(): { valid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = []
     const warnings: string[] = []
@@ -140,6 +172,60 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
         } else if (!envVar.required && !value) {
             warnings.push(`⚠️  Optional missing: ${envVar.key} - ${envVar.description}`)
         } else {
+        }
+    }
+
+    const garantiEnabled = process.env.GARANTI_POS_ENABLED
+    if (garantiEnabled && !['true', 'false'].includes(garantiEnabled)) {
+        errors.push('❌ Invalid: GARANTI_POS_ENABLED must be true or false')
+    }
+
+    if (garantiEnabled === 'true') {
+        let hasMissingGarantiValue = false
+        for (const key of garantiRequiredEnvKeys) {
+            if (!process.env[key]?.trim()) {
+                hasMissingGarantiValue = true
+                errors.push(`❌ Missing: ${key}`)
+                errors.push('   └─ Required when GARANTI_POS_ENABLED=true')
+            }
+        }
+
+        if (!hasMissingGarantiValue) {
+            try {
+                parseGarantiPaymentConfig(process.env)
+            } catch {
+                errors.push('❌ Invalid: Garanti POS configuration is inconsistent or unsafe')
+            }
+        }
+    }
+
+    const operationsEnabled = process.env.GARANTI_OPERATIONS_ENABLED
+    if (operationsEnabled && !['true', 'false'].includes(operationsEnabled)) {
+        errors.push('❌ Invalid: GARANTI_OPERATIONS_ENABLED must be true or false')
+    }
+    if (operationsEnabled === 'true') {
+        let missing = false
+        for (const key of garantiOperationsRequiredEnvKeys) {
+            if (!process.env[key]?.trim()) {
+                missing = true
+                errors.push(`❌ Missing: ${key}`)
+                errors.push('   └─ Required when GARANTI_OPERATIONS_ENABLED=true')
+            }
+        }
+        if (
+            !process.env.GARANTI_VP_USER_ID?.trim() &&
+            !process.env.GARANTI_POS_TERMINAL_USER_ID?.trim()
+        ) {
+            missing = true
+            errors.push('❌ Missing: GARANTI_VP_USER_ID or GARANTI_POS_TERMINAL_USER_ID')
+            errors.push('   └─ Required when GARANTI_OPERATIONS_ENABLED=true')
+        }
+        if (!missing) {
+            try {
+                parseGarantiVpConfig(process.env)
+            } catch {
+                errors.push('❌ Invalid: Garanti inquiry/refund configuration is inconsistent or unsafe')
+            }
         }
     }
 

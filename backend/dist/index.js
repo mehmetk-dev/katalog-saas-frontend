@@ -15,6 +15,7 @@ const redis_1 = require("./services/redis");
 const errorHandler_1 = require("./middlewares/errorHandler");
 const rate_limiters_1 = require("./middlewares/rate-limiters");
 const env_validation_1 = require("./utils/env-validation");
+const public_payment_callback_1 = require("./middlewares/public-payment-callback");
 // Load environment variables
 dotenv_1.default.config();
 // SECURITY: Validate required env vars at startup (exits in production if missing)
@@ -36,7 +37,7 @@ if (!isDev) {
     console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
 }
 // Middleware
-app.use((0, cors_1.default)({
+const standardCorsMiddleware = (0, cors_1.default)({
     origin: (origin, callback) => {
         // Allow requests without origin (server-to-server, SSR, mobile apps)
         // Next.js server-side requests don't send Origin header
@@ -55,8 +56,17 @@ app.use((0, cors_1.default)({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'x-user-id'],
+});
+app.use((req, res, next) => {
+    // This endpoint is reached by a native cross-origin form navigation from
+    // Garanti. It does not need CORS response access, and the signed callback
+    // hash is its authentication boundary. Skipping the allowlist here avoids
+    // rejecting the bank before the payment-specific verifier can run.
+    if ((0, public_payment_callback_1.isGarantiPaymentCallbackPath)(req.path, req.method))
+        return next();
+    return standardCorsMiddleware(req, res, next);
+});
 // Rate limit common scanner/probe paths before they reach heavier middleware.
 app.use(rate_limiters_1.suspiciousProbeLimiter);
 // SECURITY: Block no-origin mutative requests without auth (defense-in-depth)
@@ -70,6 +80,11 @@ app.use((req, res, next) => {
     if (!origin && hasMutation && !req.headers.authorization) {
         // Allow health check POST if any
         if (req.path.startsWith('/health'))
+            return next();
+        // Garanti posts the signed payment result from the cardholder browser without
+        // an application JWT. This exact endpoint authenticates the payload with the
+        // bank hash and is the only payment exception to the global origin guard.
+        if ((0, public_payment_callback_1.isGarantiPaymentCallbackPath)(req.path, method))
             return next();
         return res.status(403).json({ error: 'Origin or authorization required' });
     }
@@ -95,7 +110,11 @@ app.use((0, helmet_1.default)({
 }));
 app.use((0, morgan_1.default)('dev'));
 // Apply API rate limiting before body parsing to avoid parsing abusive payloads.
-app.use('/api/', rate_limiters_1.apiLimiter);
+app.use('/api/', (req, res, next) => {
+    if ((0, public_payment_callback_1.isGarantiPaymentCallbackPath)(`/api${req.path}`, req.method))
+        return next();
+    return (0, rate_limiters_1.apiLimiter)(req, res, next);
+});
 app.use((0, compression_1.default)()); // gzip/brotli response compression
 // SECURITY: Default 2MB limit to prevent DoS. Bulk import route has its own 50MB limit.
 app.use(express_1.default.json({ limit: '2mb' }));
@@ -130,6 +149,7 @@ const health_1 = __importDefault(require("./routes/health"));
 const notifications_1 = __importDefault(require("./routes/notifications"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const pdf_exports_1 = __importDefault(require("./routes/pdf-exports"));
+const billing_1 = __importDefault(require("./routes/billing"));
 // Health check routes (no auth required)
 app.use('/health', health_1.default);
 // Public auth routes (no auth required) - with stricter rate limiting for brute-force protection
@@ -141,6 +161,7 @@ app.use('/api/v1/users', users_1.default);
 app.use('/api/v1/admin', admin_1.default);
 app.use('/api/v1/notifications', notifications_1.default);
 app.use('/api/v1/pdf-exports', pdf_exports_1.default);
+app.use('/api/v1/billing', billing_1.default);
 // Initialize Redis (optional - works without it)
 (0, redis_1.initRedis)();
 // Limit repeated misses such as bot scans for WordPress/PHP/env files.

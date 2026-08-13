@@ -27,6 +27,11 @@ function getKeyPrefix(): string {
     return prefix.replace(/^\/+|\/+$/g, '');
 }
 
+function getBillingDocumentKeyPrefix(): string {
+    const prefix = process.env.R2_BILLING_DOCUMENT_PREFIX?.trim() || 'billing-documents';
+    return prefix.replace(/^\/+|\/+$/g, '');
+}
+
 export function getR2Client(): S3Client {
     if (cachedClient) return cachedClient;
     const accountId = requireEnv('R2_ACCOUNT_ID');
@@ -92,6 +97,12 @@ function toObjectKey(relativePath: string): string {
     return prefix ? `${prefix}/${cleaned}` : cleaned;
 }
 
+function toBillingDocumentObjectKey(relativePath: string): string {
+    const cleaned = cleanObjectKey(relativePath);
+    const prefix = getBillingDocumentKeyPrefix();
+    return prefix ? `${prefix}/${cleaned}` : cleaned;
+}
+
 export function toPdfExportStoragePath(objectKey: string): string {
     return `${STORED_OBJECT_KEY_PREFIX}${cleanObjectKey(objectKey)}`;
 }
@@ -105,11 +116,49 @@ export function resolvePdfExportObjectKey(storagePath: string): string {
     return toObjectKey(value);
 }
 
+export function getBillingDocumentRelativePath(options: {
+    documentId: string;
+    documentNumber: unknown;
+}): string {
+    const documentNumber = slugifyPdfSegment(options.documentNumber) || 'payment-receipt';
+    return `${documentNumber}-${options.documentId.slice(0, 12)}.pdf`;
+}
+
+export function resolveBillingDocumentObjectKey(storagePath: string): string {
+    const value = storagePath.trim();
+    if (value.startsWith(STORED_OBJECT_KEY_PREFIX)) {
+        return cleanObjectKey(value.slice(STORED_OBJECT_KEY_PREFIX.length));
+    }
+
+    return toBillingDocumentObjectKey(value);
+}
+
 export async function writePdfExportFile(
     relativePath: string,
     buffer: Buffer,
 ): Promise<{ key: string; storagePath: string; size: number }> {
     const Key = toObjectKey(relativePath);
+    await getR2Client().send(
+        new PutObjectCommand({
+            Bucket: getBucket(),
+            Key,
+            Body: buffer,
+            ContentType: 'application/pdf',
+            CacheControl: 'private, max-age=0, no-store',
+        }),
+    );
+    return {
+        key: Key,
+        storagePath: toPdfExportStoragePath(Key),
+        size: buffer.byteLength,
+    };
+}
+
+export async function writeBillingDocumentFile(
+    relativePath: string,
+    buffer: Buffer,
+): Promise<{ key: string; storagePath: string; size: number }> {
+    const Key = toBillingDocumentObjectKey(relativePath);
     await getR2Client().send(
         new PutObjectCommand({
             Bucket: getBucket(),
@@ -167,4 +216,23 @@ export async function getPdfExportSignedUrl(
         console.error(`[pdf-export-storage] getPdfExportSignedUrl failed: bucket=${Bucket} key=${Key} ttl=${ttlSeconds} error=${errMsg}`);
         throw new Error(`Signed URL generation failed for key "${Key}": ${errMsg}`);
     }
+}
+
+export async function getBillingDocumentSignedUrl(
+    storagePath: string,
+    options: { ttlSeconds?: number; downloadFilename?: string } = {},
+): Promise<string> {
+    const ttlSeconds = Math.max(60, Math.min(60 * 60, options.ttlSeconds ?? 10 * 60));
+    const filename = options.downloadFilename
+        ? `attachment; filename="${options.downloadFilename.replace(/"/g, '')}"`
+        : undefined;
+
+    const command = new GetObjectCommand({
+        Bucket: getBucket(),
+        Key: resolveBillingDocumentObjectKey(storagePath),
+        ResponseContentType: 'application/pdf',
+        ResponseContentDisposition: filename,
+    });
+
+    return getSignedUrl(getR2Client(), command, { expiresIn: ttlSeconds });
 }

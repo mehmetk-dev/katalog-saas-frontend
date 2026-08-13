@@ -4,9 +4,13 @@ exports.getR2Client = getR2Client;
 exports.getPdfExportRelativePath = getPdfExportRelativePath;
 exports.toPdfExportStoragePath = toPdfExportStoragePath;
 exports.resolvePdfExportObjectKey = resolvePdfExportObjectKey;
+exports.getBillingDocumentRelativePath = getBillingDocumentRelativePath;
+exports.resolveBillingDocumentObjectKey = resolveBillingDocumentObjectKey;
 exports.writePdfExportFile = writePdfExportFile;
+exports.writeBillingDocumentFile = writeBillingDocumentFile;
 exports.deletePdfExportFile = deletePdfExportFile;
 exports.getPdfExportSignedUrl = getPdfExportSignedUrl;
+exports.getBillingDocumentSignedUrl = getBillingDocumentSignedUrl;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 let cachedClient = null;
@@ -25,6 +29,10 @@ function getKeyPrefix() {
     const prefix = process.env.R2_PDF_EXPORT_PREFIX?.trim();
     if (!prefix)
         return '';
+    return prefix.replace(/^\/+|\/+$/g, '');
+}
+function getBillingDocumentKeyPrefix() {
+    const prefix = process.env.R2_BILLING_DOCUMENT_PREFIX?.trim() || 'billing-documents';
     return prefix.replace(/^\/+|\/+$/g, '');
 }
 function getR2Client() {
@@ -82,6 +90,11 @@ function toObjectKey(relativePath) {
     const prefix = getKeyPrefix();
     return prefix ? `${prefix}/${cleaned}` : cleaned;
 }
+function toBillingDocumentObjectKey(relativePath) {
+    const cleaned = cleanObjectKey(relativePath);
+    const prefix = getBillingDocumentKeyPrefix();
+    return prefix ? `${prefix}/${cleaned}` : cleaned;
+}
 function toPdfExportStoragePath(objectKey) {
     return `${STORED_OBJECT_KEY_PREFIX}${cleanObjectKey(objectKey)}`;
 }
@@ -92,8 +105,34 @@ function resolvePdfExportObjectKey(storagePath) {
     }
     return toObjectKey(value);
 }
+function getBillingDocumentRelativePath(options) {
+    const documentNumber = slugifyPdfSegment(options.documentNumber) || 'payment-receipt';
+    return `${documentNumber}-${options.documentId.slice(0, 12)}.pdf`;
+}
+function resolveBillingDocumentObjectKey(storagePath) {
+    const value = storagePath.trim();
+    if (value.startsWith(STORED_OBJECT_KEY_PREFIX)) {
+        return cleanObjectKey(value.slice(STORED_OBJECT_KEY_PREFIX.length));
+    }
+    return toBillingDocumentObjectKey(value);
+}
 async function writePdfExportFile(relativePath, buffer) {
     const Key = toObjectKey(relativePath);
+    await getR2Client().send(new client_s3_1.PutObjectCommand({
+        Bucket: getBucket(),
+        Key,
+        Body: buffer,
+        ContentType: 'application/pdf',
+        CacheControl: 'private, max-age=0, no-store',
+    }));
+    return {
+        key: Key,
+        storagePath: toPdfExportStoragePath(Key),
+        size: buffer.byteLength,
+    };
+}
+async function writeBillingDocumentFile(relativePath, buffer) {
+    const Key = toBillingDocumentObjectKey(relativePath);
     await getR2Client().send(new client_s3_1.PutObjectCommand({
         Bucket: getBucket(),
         Key,
@@ -142,4 +181,17 @@ async function getPdfExportSignedUrl(storagePath, options = {}) {
         console.error(`[pdf-export-storage] getPdfExportSignedUrl failed: bucket=${Bucket} key=${Key} ttl=${ttlSeconds} error=${errMsg}`);
         throw new Error(`Signed URL generation failed for key "${Key}": ${errMsg}`);
     }
+}
+async function getBillingDocumentSignedUrl(storagePath, options = {}) {
+    const ttlSeconds = Math.max(60, Math.min(60 * 60, options.ttlSeconds ?? 10 * 60));
+    const filename = options.downloadFilename
+        ? `attachment; filename="${options.downloadFilename.replace(/"/g, '')}"`
+        : undefined;
+    const command = new client_s3_1.GetObjectCommand({
+        Bucket: getBucket(),
+        Key: resolveBillingDocumentObjectKey(storagePath),
+        ResponseContentType: 'application/pdf',
+        ResponseContentDisposition: filename,
+    });
+    return (0, s3_request_presigner_1.getSignedUrl)(getR2Client(), command, { expiresIn: ttlSeconds });
 }

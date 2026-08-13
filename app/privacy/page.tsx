@@ -65,6 +65,12 @@ export default function PrivacyPage() {
                   <li className="flex gap-3">
                     <span className="text-violet-500 font-bold">•</span>
                     <div>
+                      <strong>Ödeme İşlem Verileri:</strong> Sipariş durumu, tahsilat tutarı ve banka/POS işlem referansı saklanır. Kart numarası, son kullanma tarihi, CVC ve kartın son 4 hanesi yalnızca ödeme kuruluşu tarafından işlenir; FogCatalog sistemlerine iletilmez ve kaydedilmez.
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-violet-500 font-bold">•</span>
+                    <div>
                       <strong>Müşteri İçerikleri:</strong> Platforma yüklediğiniz ürün görselleri, açıklamaları ve katalog verileri.
                     </div>
                   </li>

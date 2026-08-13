@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { sendContactMessage } from "@/lib/actions/contact"
+import { FOGCATALOG_COMPANY } from "@/lib/legal/fogcatalog-company"
 import { Toaster, toast } from "sonner"
 
 export default function ContactPage() {
@@ -109,8 +110,8 @@ export default function ContactPage() {
                 {/* Contact info */}
                 <div className="space-y-5 md:space-y-8 mt-8 md:mt-12">
                   {[
-                    { icon: Mail, label: "E-posta", value: "info@fogcatalog.com" },
-                    { icon: MapPin, label: "Konum", value: "Levent, İstanbul" },
+                    { icon: Mail, label: "E-posta", value: FOGCATALOG_COMPANY.email },
+                    { icon: MapPin, label: "Konum", value: FOGCATALOG_COMPANY.cityDistrict },
                     { icon: Globe, label: "Durum", value: "Çevrimiçi / 7-24" }
                   ].map((item, i) => (
                     <div key={i} className="group cursor-pointer">

@@ -1,6 +1,6 @@
 "use client"
 
-import { Activity } from "lucide-react"
+import { Activity, CreditCard } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AdminHeader } from "@/components/admin/admin-dashboard/admin-header"
@@ -9,6 +9,7 @@ import { DeletedUsersTab } from "@/components/admin/admin-dashboard/deleted-user
 import { FeedbacksTab } from "@/components/admin/admin-dashboard/feedbacks-tab"
 import { OverviewTab } from "@/components/admin/admin-dashboard/overview-tab"
 import { UsersTab } from "@/components/admin/admin-dashboard/users-tab"
+import { PaymentOperationsTab } from "@/components/admin/admin-dashboard/payment-operations-tab"
 import { useAdminDashboard } from "@/components/admin/admin-dashboard/use-admin-dashboard"
 
 export function AdminDashboardClient() {
@@ -62,6 +63,7 @@ export function AdminDashboardClient() {
                     <TabsTrigger value="deleted">{t("admin.deletedUsers")} ({deletedUsers.length})</TabsTrigger>
                     <TabsTrigger value="feedbacks">{t("admin.feedbacks")} ({feedbacks.length})</TabsTrigger>
                     <TabsTrigger value="activity">{t("admin.activityLogs")}</TabsTrigger>
+                    <TabsTrigger value="payments"><CreditCard className="size-4" />Ödemeler</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
@@ -108,6 +110,10 @@ export function AdminDashboardClient() {
                         onPageChange={handleLogsPageChange}
                         t={t}
                     />
+                </TabsContent>
+
+                <TabsContent value="payments" className="space-y-6">
+                    <PaymentOperationsTab />
                 </TabsContent>
             </Tabs>
         </div>

@@ -92,6 +92,24 @@ export const heavyMutationLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+export const billingMutationLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isDev ? 200 : 20,
+    keyGenerator: getUserOrIpKey,
+    message: { error: 'Too many billing updates, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+export const bankPaymentCallbackLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: isDev ? 1000 : 300,
+    keyGenerator: getClientIpKey,
+    message: 'Too many payment callbacks.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 export const notFoundLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: isDev ? 1000 : 80,

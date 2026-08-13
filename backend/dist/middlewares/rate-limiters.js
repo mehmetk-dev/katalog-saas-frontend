@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notFoundLimiter = exports.heavyMutationLimiter = exports.expensiveReadLimiter = exports.publicPdfLimiter = exports.publicCatalogLimiter = exports.authLimiter = exports.apiLimiter = exports.suspiciousProbeLimiter = void 0;
+exports.notFoundLimiter = exports.bankPaymentCallbackLimiter = exports.billingMutationLimiter = exports.heavyMutationLimiter = exports.expensiveReadLimiter = exports.publicPdfLimiter = exports.publicCatalogLimiter = exports.authLimiter = exports.apiLimiter = exports.suspiciousProbeLimiter = void 0;
 const express_rate_limit_1 = __importStar(require("express-rate-limit"));
 const isDev = process.env.NODE_ENV !== 'production';
 const getSingleHeader = (value) => {
@@ -106,6 +106,22 @@ exports.heavyMutationLimiter = (0, express_rate_limit_1.default)({
     max: isDev ? 500 : 30,
     keyGenerator: getUserOrIpKey,
     message: { error: 'Too many heavy operations, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+exports.billingMutationLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000,
+    max: isDev ? 200 : 20,
+    keyGenerator: getUserOrIpKey,
+    message: { error: 'Too many billing updates, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+exports.bankPaymentCallbackLimiter = (0, express_rate_limit_1.default)({
+    windowMs: 60 * 1000,
+    max: isDev ? 1000 : 300,
+    keyGenerator: getClientIpKey,
+    message: 'Too many payment callbacks.',
     standardHeaders: true,
     legacyHeaders: false,
 });

@@ -12,6 +12,7 @@ import { initRedis } from './services/redis';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { apiLimiter, authLimiter, notFoundLimiter, suspiciousProbeLimiter } from './middlewares/rate-limiters';
 import { validateEnvAndExit } from './utils/env-validation';
+import { isGarantiPaymentCallbackPath } from './middlewares/public-payment-callback';
 
 // Load environment variables
 dotenv.config();
@@ -42,7 +43,7 @@ if (!isDev) {
 }
 
 // Middleware
-app.use(cors({
+const standardCorsMiddleware = cors({
     origin: (origin, callback) => {
         // Allow requests without origin (server-to-server, SSR, mobile apps)
         // Next.js server-side requests don't send Origin header
@@ -61,8 +62,17 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'x-user-id'],
+});
+
+app.use((req, res, next) => {
+    // This endpoint is reached by a native cross-origin form navigation from
+    // Garanti. It does not need CORS response access, and the signed callback
+    // hash is its authentication boundary. Skipping the allowlist here avoids
+    // rejecting the bank before the payment-specific verifier can run.
+    if (isGarantiPaymentCallbackPath(req.path, req.method)) return next();
+    return standardCorsMiddleware(req, res, next);
+});
 
 // Rate limit common scanner/probe paths before they reach heavier middleware.
 app.use(suspiciousProbeLimiter);
@@ -79,6 +89,10 @@ app.use((req: Request, res: Response, next) => {
     if (!origin && hasMutation && !req.headers.authorization) {
         // Allow health check POST if any
         if (req.path.startsWith('/health')) return next();
+        // Garanti posts the signed payment result from the cardholder browser without
+        // an application JWT. This exact endpoint authenticates the payload with the
+        // bank hash and is the only payment exception to the global origin guard.
+        if (isGarantiPaymentCallbackPath(req.path, method)) return next();
 
         return res.status(403).json({ error: 'Origin or authorization required' });
     }
@@ -105,7 +119,10 @@ app.use(helmet({
 app.use(morgan('dev'));
 
 // Apply API rate limiting before body parsing to avoid parsing abusive payloads.
-app.use('/api/', apiLimiter);
+app.use('/api/', (req, res, next) => {
+    if (isGarantiPaymentCallbackPath(`/api${req.path}`, req.method)) return next();
+    return apiLimiter(req, res, next);
+});
 
 app.use(compression()); // gzip/brotli response compression
 // SECURITY: Default 2MB limit to prevent DoS. Bulk import route has its own 50MB limit.
@@ -145,6 +162,7 @@ import healthRoutes from './routes/health';
 import notificationRoutes from './routes/notifications';
 import authRoutes from './routes/auth';
 import pdfExportRoutes from './routes/pdf-exports';
+import billingRoutes from './routes/billing';
 
 // Health check routes (no auth required)
 app.use('/health', healthRoutes);
@@ -159,6 +177,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/pdf-exports', pdfExportRoutes);
+app.use('/api/v1/billing', billingRoutes);
 
 // Initialize Redis (optional - works without it)
 initRedis();

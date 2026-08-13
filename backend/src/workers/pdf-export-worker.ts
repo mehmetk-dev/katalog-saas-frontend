@@ -9,6 +9,7 @@ import { createPdfExportToken } from '../services/pdf-export-token'
 import { cleanupExpiredPdfExports } from './pdf-export-cleanup'
 import { cacheKeys, deleteCache } from '../services/redis'
 import { shouldConsumePdfExportQuota } from './pdf-export-usage'
+import { startBillingDocumentWorker } from './billing-document-worker'
 
 let cachedFrontendOrigin: string | null = null
 
@@ -342,6 +343,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
 }
 
 const worker = createPdfExportWorker(renderPdf)
+const billingDocumentWorker = startBillingDocumentWorker()
 
 worker.on('completed', (job) => {
     console.log(`[pdf-export-worker] completed ${job.id}`)
@@ -353,6 +355,7 @@ worker.on('failed', (job, error) => {
 
 async function shutdown(): Promise<void> {
     await recoverBrowser()
+    await billingDocumentWorker.close()
     await worker.close()
     process.exit(0)
 }

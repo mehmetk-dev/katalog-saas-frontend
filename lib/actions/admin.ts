@@ -3,6 +3,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { apiFetch } from "@/lib/api"
 import type { ActivityLog, AdminUser, DeletedUser } from "@/components/admin/admin-dashboard/types"
+import type {
+    AdminPaymentAlert,
+    AdminPaymentOperation,
+    AdminPaymentOrder,
+} from "@/components/admin/admin-dashboard/types"
 
 const LOGS_PER_PAGE = 20
 
@@ -127,4 +132,42 @@ export async function getAdminActivityLogs(page: number = 0): Promise<{ logs: Ac
         console.error("Failed to fetch activity logs:", error)
         return { logs: [], total: 0 }
     }
+}
+
+export async function getAdminPaymentOperationsData(): Promise<{
+    orders: AdminPaymentOrder[]
+    operations: AdminPaymentOperation[]
+    alerts: AdminPaymentAlert[]
+}> {
+    await requireAdmin()
+    const [orders, operations, alerts] = await Promise.all([
+        apiFetch<{ orders: AdminPaymentOrder[] }>("/admin/billing/orders?limit=100"),
+        apiFetch<{ operations: AdminPaymentOperation[] }>("/admin/billing/operations?limit=100"),
+        apiFetch<{ alerts: AdminPaymentAlert[] }>("/admin/billing/alerts?limit=100"),
+    ])
+    return { orders: orders.orders, operations: operations.operations, alerts: alerts.alerts }
+}
+
+export async function createAdminPaymentReversal(input: {
+    orderId: string
+    amountMinor: number
+    reason: string
+    idempotencyKey: string
+}): Promise<void> {
+    await requireAdmin()
+    await apiFetch(`/admin/billing/orders/${input.orderId}/reversal`, {
+        method: "POST",
+        headers: { "Idempotency-Key": input.idempotencyKey },
+        body: JSON.stringify({ amountMinor: input.amountMinor, reason: input.reason }),
+    })
+}
+
+export async function reconcileAdminPaymentAttempt(attemptId: string): Promise<void> {
+    await requireAdmin()
+    await apiFetch(`/admin/billing/attempts/${attemptId}/reconcile`, { method: "POST" })
+}
+
+export async function acknowledgeAdminPaymentAlert(alertId: string): Promise<void> {
+    await requireAdmin()
+    await apiFetch(`/admin/billing/alerts/${alertId}/acknowledge`, { method: "POST" })
 }

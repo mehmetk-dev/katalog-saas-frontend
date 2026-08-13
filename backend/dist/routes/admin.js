@@ -3,18 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const supabase_1 = require("../services/supabase");
 const auth_1 = require("../middlewares/auth");
+const admin_1 = require("../middlewares/admin");
 const redis_1 = require("../services/redis");
 const safe_error_1 = require("../utils/safe-error");
+const admin_billing_1 = require("../controllers/admin-billing");
+const rate_limiters_1 = require("../middlewares/rate-limiters");
 const router = (0, express_1.Router)();
-const ADMIN_ROLE_CACHE_TTL_SECONDS = 120;
 const PLAN_VALUES = ['free', 'plus', 'pro'];
-const getAdminRoleCacheKey = (userId) => `katalog:admin-role:${userId}`;
-function getAuthUser(req) {
-    const maybeUser = req.user;
-    if (!maybeUser?.id)
-        return null;
-    return maybeUser;
-}
 function isValidUuid(value) {
     // RFC4122 v1-v5 UUID format
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -22,40 +17,15 @@ function isValidUuid(value) {
 function isValidPlan(value) {
     return typeof value === 'string' && PLAN_VALUES.includes(value);
 }
-// Admin authorization middleware - must be used after requireAuth
-const requireAdmin = async (req, res, next) => {
-    const user = getAuthUser(req);
-    if (!user?.id) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
-    // Fast path: allow trusted auth claim to skip extra DB roundtrip.
-    if (user.is_admin === true) {
-        return next();
-    }
-    try {
-        const isAdmin = await (0, redis_1.getOrSetCache)(getAdminRoleCacheKey(user.id), ADMIN_ROLE_CACHE_TTL_SECONDS, async () => {
-            const { data: profile, error } = await supabase_1.supabase
-                .from('users')
-                .select('is_admin')
-                .eq('id', user.id)
-                .single();
-            if (error) {
-                throw error;
-            }
-            return Boolean(profile?.is_admin);
-        });
-        if (!isAdmin) {
-            return res.status(403).json({ error: 'Forbidden: Admin access required' });
-        }
-        next();
-    }
-    catch {
-        return res.status(500).json({ error: 'Admin authorization check failed' });
-    }
-};
 // Apply authentication and admin authorization to all routes
 router.use(auth_1.requireAuth);
-router.use(requireAdmin);
+router.use(admin_1.requireAdmin);
+router.get('/billing/orders', admin_billing_1.listPaymentOrders);
+router.get('/billing/operations', admin_billing_1.listPaymentOperations);
+router.get('/billing/alerts', admin_billing_1.listPaymentAlerts);
+router.post('/billing/attempts/:attemptId/reconcile', rate_limiters_1.billingMutationLimiter, admin_billing_1.reconcilePaymentAttempt);
+router.post('/billing/orders/:orderId/reversal', rate_limiters_1.billingMutationLimiter, admin_billing_1.createPaymentReversal);
+router.post('/billing/alerts/:alertId/acknowledge', rate_limiters_1.billingMutationLimiter, admin_billing_1.acknowledgePaymentAlert);
 // GET /admin/users - Tum kullanicilari getir
 router.get('/users', async (_req, res) => {
     try {
@@ -132,7 +102,7 @@ router.put('/users/:id/plan', async (req, res) => {
             throw error;
         // Plan degisti, ilgili cacheleri temizle
         await (0, redis_1.deleteCache)(redis_1.cacheKeys.user(id));
-        await (0, redis_1.deleteCache)(getAdminRoleCacheKey(id), true);
+        await (0, redis_1.deleteCache)((0, admin_1.getAdminRoleCacheKey)(id), true);
         res.json({ success: true });
     }
     catch (error) {

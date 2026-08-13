@@ -3,6 +3,7 @@
 import { useMemo, useState, type ComponentProps, type FormEvent, type ReactNode } from 'react'
 import Link from 'next/link'
 import {
+    AlertCircle,
     ArrowLeft,
     BadgeCheck,
     Building2,
@@ -11,7 +12,8 @@ import {
     CreditCard,
     FileText,
     LockKeyhole,
-    ReceiptText,
+    Loader2,
+    LogIn,
     ShieldCheck,
     Sparkles,
     UserRound,
@@ -23,6 +25,11 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+    saveCheckoutDraft,
+    startGarantiPayment,
+    type HostedPaymentForm,
+} from '@/lib/actions/billing'
 import {
     type BillingCycle,
     type PaidPlanId,
@@ -39,6 +46,43 @@ interface CheckoutPageClientProps {
 
 type InvoiceType = 'individual' | 'corporate'
 
+function submitHostedPaymentForm(paymentForm: HostedPaymentForm) {
+    const action = new URL(paymentForm.action)
+    if (action.protocol !== 'https:') {
+        throw new Error('Invalid hosted payment URL')
+    }
+
+    const forbiddenCardFields = new Set([
+        'cardnumber',
+        'cardcvv2',
+        'cardexpiredatemonth',
+        'cardexpiredateyear',
+    ])
+    if (
+        Object.keys(paymentForm.fields).some((field) =>
+            forbiddenCardFields.has(field.toLowerCase())
+        )
+    ) {
+        throw new Error('Card fields are not allowed in hosted payment forms')
+    }
+
+    const form = document.createElement('form')
+    form.method = paymentForm.method
+    form.action = action.toString()
+    form.style.display = 'none'
+
+    for (const [name, value] of Object.entries(paymentForm.fields)) {
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = name
+        input.value = value
+        form.appendChild(input)
+    }
+
+    document.body.appendChild(form)
+    form.submit()
+}
+
 export function CheckoutPageClient({ initialPlan, initialBillingCycle }: CheckoutPageClientProps) {
     const { t, language } = useTranslation()
     const [planId, setPlanId] = useState<PaidPlanId>(initialPlan)
@@ -46,7 +90,9 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
     const [invoiceType, setInvoiceType] = useState<InvoiceType>('individual')
     const [acceptedDistanceSales, setAcceptedDistanceSales] = useState(false)
     const [acceptedPreliminaryInfo, setAcceptedPreliminaryInfo] = useState(false)
-    const [showActivationNotice, setShowActivationNotice] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [saveError, setSaveError] = useState<string | null>(null)
+    const [authRequired, setAuthRequired] = useState(false)
 
     const totals = useMemo(() => getCheckoutTotals(planId, billingCycle), [planId, billingCycle])
     const plan = CHECKOUT_PLANS[planId]
@@ -66,10 +112,76 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
             maximumFractionDigits: 2,
         }).format(amount)
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const resetSaveFeedback = () => {
+        setSaveError(null)
+        setAuthRequired(false)
+    }
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-        if (!canContinue) return
-        setShowActivationNotice(true)
+        if (!canContinue || isSaving) return
+
+        const formData = new FormData(event.currentTarget)
+        const readValue = (name: string) => String(formData.get(name) ?? '')
+
+        setIsSaving(true)
+        resetSaveFeedback()
+
+        try {
+            const result = await saveCheckoutDraft({
+                planId,
+                billingCycle,
+                invoiceType,
+                fullName: readValue('fullName'),
+                email: readValue('email'),
+                phone: readValue('phone'),
+                identityNumber:
+                    invoiceType === 'individual' ? readValue('identityNumber') : undefined,
+                taxNumber: invoiceType === 'corporate' ? readValue('taxNumber') : undefined,
+                companyName: invoiceType === 'corporate' ? readValue('companyName') : undefined,
+                taxOffice: invoiceType === 'corporate' ? readValue('taxOffice') : undefined,
+                address: readValue('address'),
+                city: readValue('city'),
+                district: readValue('district'),
+                distanceSalesAccepted: true,
+                cancellationPolicyAccepted: true,
+            })
+
+            if (!result.success && result.code === 'AUTH_REQUIRED') {
+                setAuthRequired(true)
+                setSaveError(t('checkout.payment.authRequired'))
+                return
+            }
+
+            if (!result.success) {
+                setSaveError(
+                    result.code === 'VALIDATION_ERROR'
+                        ? t('checkout.payment.validationError')
+                        : t('checkout.payment.saveError')
+                )
+                return
+            }
+
+            const paymentResult = await startGarantiPayment(result.draft.id)
+            if (paymentResult.success) {
+                submitHostedPaymentForm(paymentResult.payment.form)
+                return
+            }
+            if (paymentResult.code === 'AUTH_REQUIRED') {
+                setAuthRequired(true)
+                setSaveError(t('checkout.payment.authRequired'))
+                return
+            }
+            setSaveError(
+                paymentResult.code === 'PAYMENT_UNAVAILABLE'
+                    ? t('checkout.payment.unavailable')
+                    : t('checkout.payment.startError')
+            )
+        } catch {
+            setSaveError(t('checkout.payment.saveError'))
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     return (
@@ -79,28 +191,28 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
             <main className="px-4 pt-24 pb-20 sm:px-6 sm:pt-28">
                 <div className="mx-auto max-w-7xl">
                     <div className="mb-8 flex flex-col gap-6 border-b border-slate-200 pb-8 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
+                        <div className="-mx-4 bg-slate-950 px-4 py-6 text-white sm:mx-0 sm:bg-transparent sm:p-0 sm:text-slate-950">
                             <Link
                                 href="/pricing"
-                                className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-[#cf1414]"
+                                className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-300 transition-colors hover:text-white sm:text-slate-500 sm:hover:text-[#cf1414]"
                             >
                                 <ArrowLeft className="size-4" />
                                 {t('checkout.backToPlans')}
                             </Link>
                             <div className="flex items-center gap-3">
-                                <div className="flex size-11 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-900/10">
+                                <div className="flex size-11 items-center justify-center rounded-xl bg-white text-slate-950 shadow-lg shadow-black/20 sm:bg-slate-950 sm:text-white sm:shadow-slate-900/10">
                                     <LockKeyhole className="size-5" />
                                 </div>
                                 <div>
                                     <p className="text-xs font-black tracking-[0.2em] text-[#cf1414] uppercase">
                                         FogCatalog Checkout
                                     </p>
-                                    <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
+                                    <h1 className="mt-1 text-3xl font-black tracking-tight text-white sm:text-4xl sm:text-slate-950">
                                         {t('checkout.title')}
                                     </h1>
                                 </div>
                             </div>
-                            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
+                            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base sm:text-slate-500">
                                 {t('checkout.subtitle')}
                             </p>
                         </div>
@@ -132,6 +244,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
 
                     <form
                         onSubmit={handleSubmit}
+                        onChange={resetSaveFeedback}
                         className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(340px,0.8fr)]"
                     >
                         <div className="space-y-6">
@@ -161,7 +274,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                 type="button"
                                                 onClick={() => {
                                                     setPlanId(candidatePlanId)
-                                                    setShowActivationNotice(false)
+                                                    resetSaveFeedback()
                                                 }}
                                                 aria-pressed={isSelected}
                                                 className={cn(
@@ -232,7 +345,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                                     type="button"
                                                     onClick={() => {
                                                         setBillingCycle(cycle)
-                                                        setShowActivationNotice(false)
+                                                        resetSaveFeedback()
                                                     }}
                                                     aria-pressed={selected}
                                                     className={cn(
@@ -275,13 +388,19 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                     <div className="mb-6 grid grid-cols-2 gap-3">
                                         <InvoiceTypeButton
                                             selected={invoiceType === 'individual'}
-                                            onClick={() => setInvoiceType('individual')}
+                                            onClick={() => {
+                                                setInvoiceType('individual')
+                                                resetSaveFeedback()
+                                            }}
                                             icon={UserRound}
                                             label={t('checkout.invoice.individual')}
                                         />
                                         <InvoiceTypeButton
                                             selected={invoiceType === 'corporate'}
-                                            onClick={() => setInvoiceType('corporate')}
+                                            onClick={() => {
+                                                setInvoiceType('corporate')
+                                                resetSaveFeedback()
+                                            }}
                                             icon={Building2}
                                             label={t('checkout.invoice.corporate')}
                                         />
@@ -290,12 +409,14 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                     <div className="grid gap-5 sm:grid-cols-2">
                                         <CheckoutField
                                             id="full-name"
+                                            name="fullName"
                                             label={t('checkout.invoice.fullName')}
                                             autoComplete="name"
                                             required
                                         />
                                         <CheckoutField
                                             id="email"
+                                            name="email"
                                             label={t('checkout.invoice.email')}
                                             type="email"
                                             autoComplete="email"
@@ -303,6 +424,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                         />
                                         <CheckoutField
                                             id="phone"
+                                            name="phone"
                                             label={t('checkout.invoice.phone')}
                                             type="tel"
                                             autoComplete="tel"
@@ -310,24 +432,37 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                         />
                                         <CheckoutField
                                             id="identity-number"
+                                            name={
+                                                invoiceType === 'corporate'
+                                                    ? 'taxNumber'
+                                                    : 'identityNumber'
+                                            }
                                             label={
                                                 invoiceType === 'corporate'
                                                     ? t('checkout.invoice.taxNumber')
                                                     : t('checkout.invoice.identityNumber')
                                             }
                                             inputMode="numeric"
+                                            pattern={
+                                                invoiceType === 'corporate'
+                                                    ? '[0-9]{10}'
+                                                    : '[0-9]{11}'
+                                            }
+                                            maxLength={invoiceType === 'corporate' ? 10 : 11}
                                             required
                                         />
                                         {invoiceType === 'corporate' && (
                                             <>
                                                 <CheckoutField
                                                     id="company-name"
+                                                    name="companyName"
                                                     label={t('checkout.invoice.companyName')}
                                                     autoComplete="organization"
                                                     required
                                                 />
                                                 <CheckoutField
                                                     id="tax-office"
+                                                    name="taxOffice"
                                                     label={t('checkout.invoice.taxOffice')}
                                                     required
                                                 />
@@ -336,6 +471,7 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                         <div className="sm:col-span-2">
                                             <CheckoutField
                                                 id="address"
+                                                name="address"
                                                 label={t('checkout.invoice.address')}
                                                 autoComplete="street-address"
                                                 required
@@ -343,12 +479,14 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                         </div>
                                         <CheckoutField
                                             id="city"
+                                            name="city"
                                             label={t('checkout.invoice.city')}
                                             autoComplete="address-level1"
                                             required
                                         />
                                         <CheckoutField
                                             id="district"
+                                            name="district"
                                             label={t('checkout.invoice.district')}
                                             autoComplete="address-level2"
                                             required
@@ -482,11 +620,17 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
 
                                     <Button
                                         type="submit"
-                                        disabled={!canContinue}
+                                        disabled={!canContinue || isSaving}
                                         className="mt-6 h-14 w-full rounded-none bg-[#cf1414] text-sm font-black tracking-wider text-white uppercase shadow-lg shadow-red-500/20 hover:bg-slate-950"
                                     >
-                                        <LockKeyhole className="size-4" />
-                                        {t('checkout.payment.continue')}
+                                        {isSaving ? (
+                                            <Loader2 className="size-4 animate-spin" />
+                                        ) : (
+                                            <LockKeyhole className="size-4" />
+                                        )}
+                                        {isSaving
+                                            ? t('checkout.payment.saving')
+                                            : t('checkout.payment.continue')}
                                     </Button>
 
                                     <p className="mt-3 text-center text-xs leading-5 text-slate-500">
@@ -495,20 +639,24 @@ export function CheckoutPageClient({ initialPlan, initialBillingCycle }: Checkou
                                 </div>
                             </section>
 
-                            {showActivationNotice && (
+                            {saveError && (
                                 <div
-                                    role="status"
-                                    className="border border-amber-300 bg-amber-50 p-5 text-sm leading-6 text-amber-950"
+                                    role="alert"
+                                    className="border border-red-300 bg-red-50 p-5 text-sm leading-6 text-red-950"
                                 >
                                     <div className="flex items-start gap-3">
-                                        <ReceiptText className="mt-0.5 size-5 shrink-0" />
+                                        <AlertCircle className="mt-0.5 size-5 shrink-0" />
                                         <div>
-                                            <p className="font-black">
-                                                {t('checkout.activation.title')}
-                                            </p>
-                                            <p className="mt-1">
-                                                {t('checkout.activation.description')}
-                                            </p>
+                                            <p className="font-bold">{saveError}</p>
+                                            {authRequired && (
+                                                <Link
+                                                    href="/auth"
+                                                    className="mt-3 inline-flex items-center gap-2 font-black underline underline-offset-4"
+                                                >
+                                                    <LogIn className="size-4" />
+                                                    {t('checkout.payment.signIn')}
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

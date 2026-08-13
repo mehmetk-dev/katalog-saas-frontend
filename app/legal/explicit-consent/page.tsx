@@ -1,6 +1,7 @@
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { Mail, MessageSquare, Phone, Bell, ShieldCheck } from "lucide-react"
+import { FOGCATALOG_COMPANY } from "@/lib/legal/fogcatalog-company"
 
 export const metadata = {
     title: "Ticari Elektronik İleti Onay Metni | FogCatalog",
@@ -63,7 +64,7 @@ export default function ExplicitConsentPage() {
                                     01. Kapsam ve İzin
                                 </h2>
                                 <p className="text-[#555] pl-7">
-                                    Hukuki ünvanı <strong>Burcu Aldığ</strong> olan (işbu metinde &quot;FogCatalog&quot; veya &quot;Şirket&quot;
+                                    Hukuki ünvanı <strong>{FOGCATALOG_COMPANY.legalName}</strong> olan (işbu metinde &quot;FogCatalog&quot; veya &quot;Şirket&quot;
                                     olarak anılacaktır) işletme tarafından; tarafıma kampanya,
                                     yeni özellik tanıtımları, promosyon, davet, indirim, kutlama
                                     ve benzeri pazarlama faaliyetleri kapsamında ticari elektronik
@@ -136,7 +137,7 @@ export default function ExplicitConsentPage() {
                                             <div className="text-[10px] font-bold mt-0.5">03</div>
                                             <p>
                                                 İptal işlemi için gelen mesajlardaki red linkini
-                                                kullanabilir veya doğrudan <strong className="text-black">info@fogcatalog.com</strong> adresine yazabilirsiniz.
+                                                kullanabilir veya doğrudan <strong className="text-black">{FOGCATALOG_COMPANY.email}</strong> adresine yazabilirsiniz.
                                             </p>
                                         </li>
                                     </ul>

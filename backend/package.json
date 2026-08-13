@@ -7,7 +7,8 @@
         "dev": "nodemon src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
-        "worker:pdf": "ts-node src/workers/pdf-export-worker.ts"
+        "worker:pdf": "ts-node src/workers/pdf-export-worker.ts",
+        "worker:payment": "ts-node src/workers/payment-operation-worker.ts"
     },
     "keywords": [],
     "author": "",

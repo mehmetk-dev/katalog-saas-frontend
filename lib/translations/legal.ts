@@ -1,3 +1,9 @@
+import {
+    FOGCATALOG_COMPANY,
+    FOGCATALOG_LEGAL_ADDRESS_HTML_EN,
+    FOGCATALOG_LEGAL_ADDRESS_HTML_TR,
+} from "@/lib/legal/fogcatalog-company"
+
 const legal = {
     tr: {
         legal: {
@@ -83,7 +89,9 @@ const legal = {
                 controller: {
                     title: "1. Veri Sorumlusu Kimdir?",
                     desc:
-                        "6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") uyarınca; Burcu Aldığ " +
+                        "6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") uyarınca; " +
+                        FOGCATALOG_COMPANY.legalName +
+                        " " +
                         "(bundan sonra \"FogCatalog\" veya \"Veri Sorumlusu\" olarak anılacaktır) olarak, " +
                         "kişisel verilerinizi aşağıda açıklanan amaçlar kapsamında işlemekteyiz."
                 },
@@ -100,7 +108,7 @@ const legal = {
                     },
                     transaction: {
                         label: "Müşteri İşlem Bilgileri",
-                        items: "Sipariş geçmişi, paket/abonelik bilgileri, talep ve şikayet kayıtları."
+                        items: "Sipariş geçmişi, paket/abonelik bilgileri, banka/POS işlem referansı, talep ve şikayet kayıtları. Kart numarası, son kullanma tarihi, CVC ve kartın son 4 hanesi FogCatalog tarafından işlenmez veya saklanmaz."
                     },
                     security: {
                         label: "İşlem Güvenliği Bilgileri",
@@ -189,14 +197,17 @@ const legal = {
                     seller: {
                         title: "1.1. SATICI (Hizmet Sağlayıcı)",
                         nameLabel: "Ünvan",
-                        name: "Burcu Aldığ",
+                        name: FOGCATALOG_COMPANY.legalName,
                         taxOfficeLabel: "Vergi D.",
-                        taxOffice: "Nilüfer V.D. / 0510559196",
+                        taxOffice:
+                            FOGCATALOG_COMPANY.taxOffice +
+                            " / " +
+                            FOGCATALOG_COMPANY.taxNumber,
                         emailLabel: "Email",
-                        email: "info@fogcatalog.com",
+                        email: FOGCATALOG_COMPANY.email,
                         phoneLabel: "Tel",
-                        phone: "+90 545 395 42 03",
-                        address: "23 Nisan Mah. 241. Sk. No: 8 İç Kapı No: 42<br />Nilüfer / BURSA / TURKIYE"
+                        phone: FOGCATALOG_COMPANY.phone,
+                        address: FOGCATALOG_LEGAL_ADDRESS_HTML_TR
                     },
                     buyer: {
                         title: "1.2. ALICI (Müşteri)",
@@ -316,7 +327,9 @@ const legal = {
                 },
                 lastUpdated: "Son Güncelleme: 25 Ocak 2026",
                 intro:
-                    "FogCatalog (Hukuki Ünvan: Burcu Aldığ) olarak, web sitemizden en verimli " +
+                    "FogCatalog (Hukuki Ünvan: " +
+                    FOGCATALOG_COMPANY.legalName +
+                    ") olarak, web sitemizden en verimli " +
                     "şekilde faydalanabilmeniz ve kullanıcı deneyiminizi geliştirmek için Çerezler " +
                     "(Cookies) kullanıyoruz. İşbu politika, 6698 sayılı KVKK kapsamındaki Aydınlatma " +
                     "Metnimizin ayrılmaz bir parçasıdır.",
@@ -492,7 +505,7 @@ const legal = {
                     },
                     transaction: {
                         label: "Customer Transaction Information",
-                        items: "Order history, package/subscription information, request and complaint records."
+                        items: "Order history, package/subscription information, bank/POS transaction reference, request and complaint records. FogCatalog does not process or store the card number, expiry date, CVC or even the last four digits."
                     },
                     security: {
                         label: "Transaction Security Information",
@@ -580,14 +593,17 @@ const legal = {
                     seller: {
                         title: "1.1. SELLER (Service Provider)",
                         nameLabel: "Title",
-                        name: "Burcu Aldığ",
+                        name: FOGCATALOG_COMPANY.legalName,
                         taxOfficeLabel: "Tax Office",
-                        taxOffice: "Nilüfer V.D. / 0510559196",
+                        taxOffice:
+                            FOGCATALOG_COMPANY.taxOffice +
+                            " / " +
+                            FOGCATALOG_COMPANY.taxNumber,
                         emailLabel: "Email",
-                        email: "info@fogcatalog.com",
+                        email: FOGCATALOG_COMPANY.email,
                         phoneLabel: "Phone",
-                        phone: "+90 545 395 42 03",
-                        address: "23 Nisan Mah. 241. Sk. No: 8 İç Kapı No: 42<br />Nilüfer / BURSA / TURKEY"
+                        phone: FOGCATALOG_COMPANY.phone,
+                        address: FOGCATALOG_LEGAL_ADDRESS_HTML_EN
                     },
                     buyer: {
                         title: "1.2. BUYER (Customer)",

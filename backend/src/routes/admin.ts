@@ -1,20 +1,22 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
-import { requireAuth, type AuthUser } from '../middlewares/auth';
+import { requireAuth } from '../middlewares/auth';
+import { getAdminRoleCacheKey, requireAdmin } from '../middlewares/admin';
 import { getOrSetCache, cacheKeys, cacheTTL, deleteCache } from '../services/redis';
 import { safeErrorMessage } from '../utils/safe-error';
+import {
+    acknowledgePaymentAlert,
+    createPaymentReversal,
+    listPaymentAlerts,
+    listPaymentOperations,
+    listPaymentOrders,
+    reconcilePaymentAttempt,
+} from '../controllers/admin-billing';
+import { billingMutationLimiter } from '../middlewares/rate-limiters';
 
 const router = Router();
-const ADMIN_ROLE_CACHE_TTL_SECONDS = 120;
 const PLAN_VALUES = ['free', 'plus', 'pro'] as const;
-const getAdminRoleCacheKey = (userId: string) => `katalog:admin-role:${userId}`;
-
-function getAuthUser(req: Request): AuthUser | null {
-    const maybeUser = (req as unknown as { user?: AuthUser }).user;
-    if (!maybeUser?.id) return null;
-    return maybeUser;
-}
 
 function isValidUuid(value: string): boolean {
     // RFC4122 v1-v5 UUID format
@@ -25,51 +27,16 @@ function isValidPlan(value: unknown): value is (typeof PLAN_VALUES)[number] {
     return typeof value === 'string' && PLAN_VALUES.includes(value as (typeof PLAN_VALUES)[number]);
 }
 
-// Admin authorization middleware - must be used after requireAuth
-const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-    const user = getAuthUser(req);
-
-    if (!user?.id) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    // Fast path: allow trusted auth claim to skip extra DB roundtrip.
-    if (user.is_admin === true) {
-        return next();
-    }
-
-    try {
-        const isAdmin = await getOrSetCache<boolean>(
-            getAdminRoleCacheKey(user.id),
-            ADMIN_ROLE_CACHE_TTL_SECONDS,
-            async () => {
-                const { data: profile, error } = await supabase
-                    .from('users')
-                    .select('is_admin')
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) {
-                    throw error;
-                }
-
-                return Boolean(profile?.is_admin);
-            }
-        );
-
-        if (!isAdmin) {
-            return res.status(403).json({ error: 'Forbidden: Admin access required' });
-        }
-
-        next();
-    } catch {
-        return res.status(500).json({ error: 'Admin authorization check failed' });
-    }
-};
-
 // Apply authentication and admin authorization to all routes
 router.use(requireAuth);
 router.use(requireAdmin);
+
+router.get('/billing/orders', listPaymentOrders);
+router.get('/billing/operations', listPaymentOperations);
+router.get('/billing/alerts', listPaymentAlerts);
+router.post('/billing/attempts/:attemptId/reconcile', billingMutationLimiter, reconcilePaymentAttempt);
+router.post('/billing/orders/:orderId/reversal', billingMutationLimiter, createPaymentReversal);
+router.post('/billing/alerts/:alertId/acknowledge', billingMutationLimiter, acknowledgePaymentAlert);
 
 // GET /admin/users - Tum kullanicilari getir
 router.get('/users', async (_req: Request, res: Response) => {

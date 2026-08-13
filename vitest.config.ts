@@ -16,7 +16,7 @@ export default defineConfig({
             exclude: [
                 'node_modules/',
                 '.next/',
-                'backend/',
+                'backend/dist/',
                 '**/*.d.ts',
                 '**/*.config.*',
             ],

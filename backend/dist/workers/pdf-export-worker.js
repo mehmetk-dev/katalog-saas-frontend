@@ -13,6 +13,7 @@ const pdf_export_token_1 = require("../services/pdf-export-token");
 const pdf_export_cleanup_1 = require("./pdf-export-cleanup");
 const redis_1 = require("../services/redis");
 const pdf_export_usage_1 = require("./pdf-export-usage");
+const billing_document_worker_1 = require("./billing-document-worker");
 let cachedFrontendOrigin = null;
 function probeFrontend(host, port) {
     return new Promise((resolve) => {
@@ -287,6 +288,7 @@ async function renderPdf(job) {
     }
 }
 const worker = (0, pdf_export_queue_1.createPdfExportWorker)(renderPdf);
+const billingDocumentWorker = (0, billing_document_worker_1.startBillingDocumentWorker)();
 worker.on('completed', (job) => {
     console.log(`[pdf-export-worker] completed ${job.id}`);
 });
@@ -295,6 +297,7 @@ worker.on('failed', (job, error) => {
 });
 async function shutdown() {
     await recoverBrowser();
+    await billingDocumentWorker.close();
     await worker.close();
     process.exit(0);
 }
