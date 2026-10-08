@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/nextjs"
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Logo } from '@/components/ui/logo'
 
 /**
  * Dashboard Error Boundary
@@ -113,10 +114,7 @@ export default function DashboardError({
                         </div>
 
                         <div className="text-center pt-6 border-t border-slate-100 dark:border-white/5">
-                            <span className="font-montserrat text-xl tracking-tighter">
-                                <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                <span className="font-light text-slate-900 dark:text-white">Catalog</span>
-                            </span>
+                            <Logo />
                         </div>
                     </CardContent>
                 </Card>
@@ -178,10 +176,7 @@ export default function DashboardError({
                     </div>
 
                     <div className="text-center pt-8 border-t border-slate-100 dark:border-white/5">
-                        <span className="font-montserrat text-xl tracking-tighter">
-                            <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                            <span className="font-light text-slate-900 dark:text-white">Catalog</span>
-                        </span>
+                        <Logo />
                     </div>
                 </CardContent>
             </Card>

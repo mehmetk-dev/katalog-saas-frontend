@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 
 import { FeedbackModal } from "./feedback-modal"
+import { Logo } from "@/components/ui/logo"
 
 export function DashboardSidebar() {
   const pathname = usePathname()
@@ -81,12 +82,9 @@ export function DashboardSidebar() {
             isCollapsed && !isMobile && "justify-center"
           )}>
             {isCollapsed && !isMobile ? (
-              <span className="font-montserrat font-black text-[#cf1414] text-xl">F</span>
+              <Logo markOnly />
             ) : (
-              <span className="font-montserrat text-xl tracking-tighter flex items-center">
-                <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                <span className="font-light text-sidebar-foreground">Catalog</span>
-              </span>
+              <Logo className="text-sidebar-foreground" />
             )}
           </Link>
 

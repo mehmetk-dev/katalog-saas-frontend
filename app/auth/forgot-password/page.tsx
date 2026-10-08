@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/ui/logo"
 
 const getSiteUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
@@ -214,10 +215,7 @@ export default function ForgotPasswordPage() {
               "hover:opacity-80 transition-opacity"
             )}
           >
-            <span className="font-montserrat text-4xl tracking-tighter flex items-center">
-              <span className="font-black text-[#cf1414] uppercase">Fog</span>
-              <span className="font-light text-slate-900">Catalog</span>
-            </span>
+            <Logo size="xl" />
           </Link>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
             {success ? t("auth.emailSentTitle") :

@@ -6,6 +6,7 @@ import { Sparkles, Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { Logo } from "@/components/ui/logo"
 
 const PublicMobileMenu = dynamic(
     () => import("./public-mobile-menu").then((mod) => mod.PublicMobileMenu),
@@ -30,10 +31,7 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                 {/* Left: Logo */}
                 <div className="flex items-center shrink-0">
                     <Link href="/" className="flex items-center group" aria-label="FogCatalog Ana Sayfa">
-                        <span className="font-montserrat text-3xl tracking-tighter flex items-center">
-                            <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                            <span className="font-light text-slate-900">Catalog</span>
-                        </span>
+                        <Logo size="lg" />
                     </Link>
                 </div>
 

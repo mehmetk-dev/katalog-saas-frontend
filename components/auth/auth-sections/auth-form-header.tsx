@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { AuthMode, TranslateFn } from "./types"
+import { Logo } from "@/components/ui/logo"
 
 interface AuthFormHeaderProps {
     mode: AuthMode
@@ -37,10 +38,7 @@ export function AuthFormHeader({ mode, t }: AuthFormHeaderProps) {
         <div className="mb-8 lg:mb-10 text-center lg:text-left">
             <div className="lg:hidden mb-6">
                 <Link href="/" className="flex items-center justify-center">
-                    <span className="font-montserrat text-4xl tracking-tighter flex items-center">
-                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                        <span className="font-light text-slate-900">Catalog</span>
-                    </span>
+                    <Logo size="xl" />
                 </Link>
             </div>
             <h1 className={cn(

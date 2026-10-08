@@ -67,16 +67,16 @@ function tr(t: PdfProgressModalProps["t"], key: string, fallback: string, params
 /** Static phase icons — safe to define at module scope (no props dependency) */
 const PHASE_ICONS: Record<PdfExportPhase, React.ReactNode> = {
     idle: null,
-    queued: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
-    preparing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
-    rendering: <FileDown className="h-6 w-6 text-violet-500 animate-pulse" />,
-    generating: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
-    uploading: <Loader2 className="h-6 w-6 animate-spin text-green-500" />,
-    processing: <Loader2 className="h-6 w-6 animate-spin text-violet-500" />,
-    saving: <Loader2 className="h-6 w-6 animate-spin text-green-500" />,
-    done: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-    error: <XCircle className="h-6 w-6 text-red-500" />,
-    cancelled: <X className="h-6 w-6 text-orange-500" />,
+    queued: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
+    preparing: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
+    rendering: <FileDown className="h-6 w-6 text-brand animate-pulse" />,
+    generating: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
+    uploading: <Loader2 className="h-6 w-6 animate-spin text-success" />,
+    processing: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
+    saving: <Loader2 className="h-6 w-6 animate-spin text-success" />,
+    done: <CheckCircle2 className="h-6 w-6 text-success" />,
+    error: <XCircle className="h-6 w-6 text-destructive" />,
+    cancelled: <X className="h-6 w-6 text-warning" />,
 }
 
 export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressModalProps) {
@@ -121,9 +121,9 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                     {/* Phase label */}
                     <p className={cn(
                         "text-sm font-medium text-center",
-                        state.phase === "done" && "text-green-600",
-                        state.phase === "error" && "text-red-600",
-                        state.phase === "cancelled" && "text-orange-600",
+                        state.phase === "done" && "text-success",
+                        state.phase === "error" && "text-destructive",
+                        state.phase === "cancelled" && "text-warning-soft-foreground",
                     )}>
                         {state.stageLabel || phaseLabels[state.phase]}
                     </p>
@@ -136,7 +136,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                         <div className="space-y-2">
                             <Progress
                                 value={state.percent}
-                                className="h-3 bg-gray-100 dark:bg-gray-800 [&>div]:bg-violet-600 [&>div]:transition-all [&>div]:duration-300"
+                                className="h-3 bg-muted [&>div]:bg-brand [&>div]:transition-all [&>div]:duration-300"
                             />
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>
@@ -148,7 +148,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                                     {state.estimatedTimeLeft && (
                                         <span>{tr(t, "pdf.estimated", "Tahmini: {time}", { time: state.estimatedTimeLeft })}</span>
                                     )}
-                                    <span className="font-semibold text-violet-600">{Math.round(state.percent)}%</span>
+                                    <span className="font-semibold text-brand">{Math.round(state.percent)}%</span>
                                 </div>
                             </div>
                         </div>
@@ -156,7 +156,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
 
                     {/* Error message */}
                     {state.phase === "error" && state.errorMessage && (
-                        <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950/30 rounded-lg p-3">{state.errorMessage}</p>
+                        <p className="text-xs text-destructive-soft-foreground bg-destructive-soft rounded-lg p-3">{state.errorMessage}</p>
                     )}
 
                     {/* Action buttons */}

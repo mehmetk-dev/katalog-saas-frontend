@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 // Ürün Kartı Skeleton
 export function ProductCardSkeleton() {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-card rounded-xl border overflow-hidden">
             {/* Görsel */}
             <Skeleton className="aspect-square w-full" />
 
@@ -42,7 +42,7 @@ export function ProductListSkeleton({ count = 6 }: { count?: number }) {
 // Tablo Satırı Skeleton
 export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
     return (
-        <tr className="border-b border-slate-100 dark:border-slate-800">
+        <tr className="border-b">
             {Array.from({ length: columns }).map((_, i) => (
                 <td key={i} className="px-4 py-3">
                     <Skeleton className="h-4 w-full" />
@@ -55,9 +55,9 @@ export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
 // Tablo Skeleton
 export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-card rounded-xl border overflow-hidden">
             {/* Header */}
-            <div className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3">
+            <div className="border-b bg-muted px-4 py-3">
                 <div className="flex gap-4">
                     {Array.from({ length: columns }).map((_, i) => (
                         <Skeleton key={i} className="h-4 flex-1" />
@@ -80,7 +80,7 @@ export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; column
 // Katalog Kartı Skeleton
 export function CatalogCardSkeleton() {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-card rounded-xl border overflow-hidden">
             {/* Görsel */}
             <Skeleton className="aspect-[4/3] w-full" />
 
@@ -106,7 +106,7 @@ export function CatalogCardSkeleton() {
 // Dashboard KPI Kartı Skeleton
 export function KPICardSkeleton() {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-card rounded-xl border p-6">
             <div className="flex items-center justify-between">
                 <div className="space-y-2">
                     <Skeleton className="h-4 w-24" />
@@ -114,7 +114,7 @@ export function KPICardSkeleton() {
                 </div>
                 <Skeleton className="h-12 w-12 rounded-full" />
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+            <div className="mt-4 pt-4 border-t">
                 <Skeleton className="h-3 w-32" />
             </div>
         </div>
@@ -133,7 +133,7 @@ export function DashboardSkeleton() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-card rounded-xl border p-6">
                 <Skeleton className="h-6 w-40 mb-4" />
                 <div className="space-y-4">
                     {Array.from({ length: 5 }).map((_, i) => (

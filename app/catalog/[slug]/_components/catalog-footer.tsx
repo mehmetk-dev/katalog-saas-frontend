@@ -4,6 +4,7 @@ import React from "react"
 import Link from "next/link"
 import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/ui/logo"
 
 interface CatalogFooterProps {
     t: (key: string) => string
@@ -16,10 +17,7 @@ export const CatalogFooter = React.memo(function CatalogFooter({ t }: CatalogFoo
                 <div className="flex flex-row items-center justify-between gap-2 overflow-hidden">
                     <div className="flex items-center gap-2 shrink-0">
                         <Link href="/" className="flex items-center group">
-                            <span className="font-montserrat text-base sm:text-lg tracking-tighter flex items-center">
-                                <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                <span className="font-light text-slate-900 hidden xs:inline">Catalog</span>
-                            </span>
+                            <Logo size="sm" showSuffix={false} />
                         </Link>
                         <div className="h-4 w-px bg-slate-200" />
                         <p className="text-slate-500 text-[10px] sm:text-xs font-medium truncate max-w-[120px] sm:max-w-none">

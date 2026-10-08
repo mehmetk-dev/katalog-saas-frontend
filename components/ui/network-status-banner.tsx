@@ -13,8 +13,8 @@ export function NetworkStatusBanner() {
         <div
             role="alert"
             className={`fixed top-0 left-0 right-0 z-[9999] py-2 px-4 text-center text-sm font-medium ${!isOnline
-                    ? 'bg-red-500 text-white'
-                    : 'bg-amber-500 text-white'
+                    ? 'bg-destructive text-destructive-foreground'
+                    : 'bg-warning text-warning-foreground'
                 }`}
         >
             {!isOnline ? (

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Search, Share2, Download, Maximize2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/ui/logo"
 
 interface CatalogHeaderProps {
     catalogName: string
@@ -51,12 +52,7 @@ export const CatalogHeader = React.memo(function CatalogHeader({
                     {/* Brand + catalog name */}
                     <div className="flex items-center gap-4">
                         <Link href="/" className="flex items-center group">
-                            <span className="font-montserrat text-xl tracking-tighter flex items-center">
-                                <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                {showBrandSuffix && (
-                                    <span className="font-light text-slate-900">Catalog</span>
-                                )}
-                            </span>
+                            <Logo showSuffix={showBrandSuffix} />
                         </Link>
                         <div className="h-6 w-px bg-slate-200" />
                         <h1 className="text-sm font-semibold text-slate-600 truncate max-w-[200px]">

@@ -174,7 +174,7 @@ export function ProductImageGallery({
             >
                 {/* Shimmer skeleton — visible until image loads */}
                 {!isPdfExportMode && !isLoaded && (
-                    <div className="absolute inset-0 z-[1] animate-pulse bg-gray-100">
+                    <div className="absolute inset-0 z-[1] animate-pulse bg-muted">
                         <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                     </div>
                 )}

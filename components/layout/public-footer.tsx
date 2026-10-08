@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { Logo } from "@/components/ui/logo"
 
 export function PublicFooter() {
     const { t } = useTranslation()
@@ -13,10 +14,7 @@ export function PublicFooter() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
                     <div className="space-y-4">
                         <Link href="/" className="flex items-center gap-1 group">
-                            <span className="font-montserrat text-xl tracking-tighter flex items-center gap-0.5">
-                                <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                <span className="font-light text-slate-900">Catalog</span>
-                            </span>
+                            <Logo />
                         </Link>
                         <p className="text-slate-500 leading-relaxed text-sm">
                             {t('footer.description')}

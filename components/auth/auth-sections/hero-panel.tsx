@@ -2,6 +2,7 @@ import Link from "next/link"
 import NextImage from "next/image"
 import { CheckCircle2 } from "lucide-react"
 import type { TranslateFn } from "./types"
+import { Logo } from "@/components/ui/logo"
 
 interface HeroPanelProps {
     t: TranslateFn
@@ -25,10 +26,7 @@ export function HeroPanel({ t }: HeroPanelProps) {
 
             <div className="relative z-20">
                 <Link href="/" className="flex items-center group">
-                    <span className="font-montserrat text-3xl tracking-tighter flex items-center">
-                        <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                        <span className="font-light text-white">Catalog</span>
-                    </span>
+                    <Logo size="lg" className="text-white" />
                 </Link>
             </div>
 

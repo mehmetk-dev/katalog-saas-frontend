@@ -1,3 +1,5 @@
+import { Logo } from "@/components/ui/logo"
+
 export default function CatalogLoading() {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -7,10 +9,7 @@ export default function CatalogLoading() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1">
-                                <span className="font-montserrat text-xl tracking-tighter">
-                                    <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                    <span className="font-light text-slate-900">Catalog</span>
-                                </span>
+                                <Logo />
                             </div>
                             <div className="h-6 w-px bg-slate-200" />
                             <div className="h-4 w-32 bg-slate-200 rounded-md animate-pulse" />
@@ -59,10 +58,7 @@ export default function CatalogLoading() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <span className="font-montserrat text-lg tracking-tighter">
-                                <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                                <span className="font-light text-slate-900">Catalog</span>
-                            </span>
+                            <Logo size="sm" />
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/nextjs"
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Logo } from '@/components/ui/logo'
 
 function isConnectionErrorMessage(message?: string): boolean {
     const normalized = message?.toLowerCase() || ''
@@ -94,10 +95,7 @@ export default function Error({
                     </div>
 
                     <div className="text-center pt-8 border-t border-slate-50">
-                        <span className="font-montserrat text-xl tracking-tighter">
-                            <span className="font-black text-[#cf1414] uppercase">Fog</span>
-                            <span className="font-light text-slate-900">Catalog</span>
-                        </span>
+                        <Logo />
                     </div>
                 </CardContent>
             </Card>

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, CheckCircle2 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
+import { Logo } from "@/components/ui/logo"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -115,10 +116,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-[420px] p-6 relative z-10">
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center mb-8 hover:opacity-80 transition-opacity">
-            <span className="font-montserrat text-4xl tracking-tighter flex items-center">
-              <span className="font-black text-[#cf1414] uppercase">Fog</span>
-              <span className="font-light text-slate-900">Catalog</span>
-            </span>
+            <Logo size="xl" />
           </Link>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
             {isChecking ? "Doğrulanıyor" : success ? "Şifre Güncellendi" : "Yeni Şifre Belirle"}

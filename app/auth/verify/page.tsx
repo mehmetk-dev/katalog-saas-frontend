@@ -3,6 +3,7 @@ import { Mail, ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Logo } from "@/components/ui/logo"
 
 export default function VerifyEmailPage() {
   return (
@@ -10,10 +11,7 @@ export default function VerifyEmailPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Link href="/" className="inline-flex items-center mx-auto mb-6 hover:opacity-80 transition-opacity">
-            <span className="font-montserrat text-3xl tracking-tighter flex items-center">
-              <span className="font-black text-[#cf1414] uppercase">Fog</span>
-              <span className="font-light text-slate-900">Catalog</span>
-            </span>
+            <Logo size="lg" />
           </Link>
           <div className="mx-auto w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-violet-600" />
