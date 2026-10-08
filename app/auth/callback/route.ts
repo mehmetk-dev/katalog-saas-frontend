@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { AUTH_NEXT_COOKIE, sanitizeNextPath } from "@/lib/auth/next-path"
 import { createClient } from "@/lib/supabase/server"
 import {
   checkRateLimit,
@@ -7,18 +8,10 @@ import {
   AUTH_CALLBACK_WINDOW_MS,
 } from "@/lib/services/rate-limit"
 
-const DEFAULT_NEXT_PATH = "/dashboard"
-
 function resolveOrigin(rawOrigin: string): string {
   return rawOrigin.includes("0.0.0.0")
     ? rawOrigin.replace("0.0.0.0", "localhost")
     : rawOrigin
-}
-
-function sanitizeNextPath(rawNext: string | null): string {
-  if (!rawNext) return DEFAULT_NEXT_PATH
-  const isValidRelativePath = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("\\")
-  return isValidRelativePath ? rawNext : DEFAULT_NEXT_PATH
 }
 
 function mapExchangeErrorToCode(message?: string): string {
@@ -67,6 +60,28 @@ function getAllowedRedirectHosts(): string[] {
   return hosts
 }
 
+function readCookie(request: Request, name: string): string | null {
+  const header = request.headers.get("cookie")
+  if (!header) return null
+  for (const part of header.split(";")) {
+    const [key, ...rest] = part.trim().split("=")
+    if (key === name) {
+      try {
+        return decodeURIComponent(rest.join("="))
+      } catch {
+        return null
+      }
+    }
+  }
+  return null
+}
+
+function redirectTo(url: string): NextResponse {
+  const response = NextResponse.redirect(url)
+  response.cookies.delete(AUTH_NEXT_COOKIE)
+  return response
+}
+
 export async function GET(request: Request) {
   const urlObj = new URL(request.url)
   const searchParams = urlObj.searchParams
@@ -75,7 +90,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code")
   const error = searchParams.get("error")
   const errorDescription = searchParams.get("error_description")
-  const next = sanitizeNextPath(searchParams.get("next"))
+  // OAuth/e-posta doğrulamasında hedef, Supabase redirect allowlist'ine takılmamak için çerezle taşınır
+  const next = sanitizeNextPath(searchParams.get("next") ?? readCookie(request, AUTH_NEXT_COOKIE))
   const type = searchParams.get("type")
 
   // Rate limit: auth callback (OAuth code exchange) dakikada limit kadar
@@ -87,13 +103,13 @@ export async function GET(request: Request) {
       AUTH_CALLBACK_WINDOW_MS
     )
     if (!rl.allowed) {
-      return NextResponse.redirect(`${origin}/auth?error=rate_limited`)
+      return redirectTo(`${origin}/auth?error=rate_limited`)
     }
   }
 
   // Handle OAuth errors
   if (error) {
-    return NextResponse.redirect(
+    return redirectTo(
       `${origin}/auth?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(errorDescription || "")}`
     )
   }
@@ -107,7 +123,7 @@ export async function GET(request: Request) {
 
       if (exchangeError) {
         const errorCode = mapExchangeErrorToCode(exchangeError.message)
-        return NextResponse.redirect(`${origin}/auth?error=${errorCode}`)
+        return redirectTo(`${origin}/auth?error=${errorCode}`)
       }
 
       // Log activity after successful authentication
@@ -126,19 +142,19 @@ export async function GET(request: Request) {
 
       // 1. Şifre Yenileme Kontrolü (Type recovery ise direkt reset-password'e)
       if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/auth/reset-password`)
+        return redirectTo(`${origin}/auth/reset-password`)
       }
 
       const forwardedRedirect = buildForwardedRedirect(request, next)
-      if (forwardedRedirect) return NextResponse.redirect(forwardedRedirect)
+      if (forwardedRedirect) return redirectTo(forwardedRedirect)
 
-      return NextResponse.redirect(`${origin}${next}`)
+      return redirectTo(`${origin}${next}`)
     } catch {
-      return NextResponse.redirect(`${origin}/auth?error=unexpected_error`)
+      return redirectTo(`${origin}/auth?error=unexpected_error`)
     }
   }
 
   // No code provided
-  return NextResponse.redirect(`${origin}/auth?error=missing_code`)
+  return redirectTo(`${origin}/auth?error=missing_code`)
 }
 

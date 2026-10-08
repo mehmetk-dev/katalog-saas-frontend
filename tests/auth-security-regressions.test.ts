@@ -3,7 +3,7 @@ import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { buildRecoveryRedirectTarget } from "@/app/auth/confirm-recovery/page"
+import { buildRecoveryRedirectTarget } from "@/lib/auth/recovery"
 import { checkRateLimit } from "@/lib/services/rate-limit"
 
 describe("auth security regressions", () => {

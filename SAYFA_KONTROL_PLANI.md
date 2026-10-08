@@ -57,7 +57,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 
 | # | Sayfa / akış | Öncelik | Durum |
 |---|---|---|---|
-| 1 | Giriş / kayıt / şifre işlemleri | 🔴 Yüksek | ⏳ Bekliyor |
+| 1 | Giriş / kayıt / şifre işlemleri | 🔴 Yüksek | 🟢 Kod + birim testleri yapıldı (gerçek e-posta/Google uçtan uca kaldı) |
 | 2 | Dashboard ana sayfa | 🟡 Orta | ⏳ |
 | 3 | Ürünler | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
 | 4 | Ürün ekle/düzenle modalı | 🔴 Yüksek | ⏳ |
@@ -97,6 +97,22 @@ Mantık: önce kullanıcının para ve veri kaybedebileceği akışlar (giriş, 
 - [ ] İlk girişte onboarding modalı
 - [ ] Kayıtta `users` tablosuna profil oluşuyor mu, plan = free
 - [ ] Rate limit (`middleware-auth-rate-limit` testi mevcut)
+
+**Yapılanlar (8 Ekim 2026):**
+- Hatalı girişte form tamamen kayboluyordu (kullanıcı sayfayı yenilemeden tekrar deneyemiyordu) → hata artık alanların üstünde gösteriliyor.
+- `/auth?tab=signup` (landing'de 8 CTA) okunmuyordu, kayıt yerine giriş formu açılıyordu → düzeltildi; `tab=forgot-password` de destekleniyor.
+- Giriş sonrası hep `/dashboard`'a gidiliyordu → middleware `next` parametresi ekliyor; e-posta girişi, açık oturum ve Google/kayıt (çerez `auth_next` ile) bu hedefe dönüyor. `lib/auth/next-path.ts` dış/kontrol karakterli hedefleri reddediyor.
+- 12 saatlik hareketsizlik süresi dolunca **herkese açık sayfalar** (yayındaki katalog linki, landing, blog) da `/auth`'a atıyordu; geçersiz refresh token'da da aynısı → artık yalnızca `/dashboard` ve `/admin` yönlendiriliyor, diğerlerinde sadece çerez temizleniyor.
+- Şifremi unuttum, backend'e ulaşamayınca (kapalı/429) "kullanıcı bulunamadı" deyip e-postayı hiç göndermiyordu; backend zaten her zaman nötr yanıt döndüğü için bu kontrol ve ölü "Google hesabı" dalı kaldırıldı.
+- Eksik çeviri anahtarları ekranda ham anahtar olarak görünüyordu (`auth.passwordRequired`, `auth.tooManyAttempts` vb.) → TR/EN eklendi; "Failed to fetch" çevrilmiş bağlantı hatasına eşlendi; callback'teki `rate_limited` kodu eşlendi.
+- Şifre kuralı tutarsızdı (kayıt 6, sıfırlama 8 + büyük harf + rakam) → yeni şifreler için tek kural: en az 8 karakter (`lib/auth/password-policy.ts`). Girişte uzunluk kontrolü yok, eski kısa şifreler çalışmaya devam ediyor.
+- `/auth/forgot-password` birleşik forma yönlendiriyor; `verify`, `confirmed`, `error`, `confirm-recovery`, `reset-password` ortak `AuthShell` ile yeniden yazıldı, tamamen i18n. Mor dalga dekoru tema token'larıyla değiştirildi.
+- Form erişilebilirliği: etiketler input'lara bağlandı, pozitif `tabIndex`'ler kaldırıldı, şifre göster/gizle butonuna etiket, `autocomplete` değerleri.
+- Kullanılmayan eski giriş formu (`components/auth/auth-form.tsx` + `auth-form/`, ~800 satır) silindi.
+- Testler: `auth.test.tsx` (+5), `forgot-password.test.tsx` (birleşik forma göre yeniden), `auth-next-path.test.ts`, `supabase-proxy-session.test.ts`.
+
+**Kalan (gerçek hesap/e-posta gerektiriyor):** kayıt e-postası, Google OAuth, sıfırlama e-postası uçtan uca; onboarding; `users` profil satırı.
+**Supabase ayarı kontrolü:** Auth → Password minimum length 8 yapılırsa sunucu tarafı da aynı kuralı uygular.
 
 ### 2. Dashboard ana sayfa
 `app/dashboard/page.tsx`, `components/dashboard/dashboard-client.tsx`

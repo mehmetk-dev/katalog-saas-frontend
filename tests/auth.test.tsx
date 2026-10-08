@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AuthPageClient } from '@/components/auth/auth-page-client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 const mockSupabaseAuth = {
   signUp: vi.fn(),
@@ -66,7 +66,7 @@ vi.mock('@/lib/contexts/i18n-provider', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
-  useSearchParams: vi.fn(() => ({ get: vi.fn(() => null) })),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
   usePathname: vi.fn(() => '/auth'),
 }))
 
@@ -92,6 +92,7 @@ describe('Authentication Tests', () => {
     } as unknown as ReturnType<typeof useRouter>
 
     vi.mocked(useRouter).mockReturnValue(mockRouter)
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>)
 
     mockSupabaseAuth.signUp.mockReset()
     mockSupabaseAuth.signInWithPassword.mockReset()
@@ -191,7 +192,7 @@ describe('Authentication Tests', () => {
 
       await user.type(screen.getByPlaceholderText(/name_placeholder/i), 'Test User')
       await user.type(screen.getByPlaceholderText(/email_placeholder/i), 'test@example.com')
-      await user.type(screen.getByPlaceholderText(/password_placeholder/i), '123')
+      await user.type(screen.getByPlaceholderText(/password_placeholder/i), '1234567')
 
       const submit = screen.getAllByRole('button', { name: /kayit ol/i }).find(btn => btn.getAttribute('type') === 'submit')
       await user.click(submit!)
@@ -279,8 +280,102 @@ describe('Authentication Tests', () => {
       await user.click(screen.getByRole('button', { name: /giris yap/i }))
 
       await waitFor(() => {
-        expect(screen.getByText(/fetch failed/i)).toBeInTheDocument()
+        expect(screen.getByText('auth.networkError')).toBeInTheDocument()
       })
+    })
+
+    it('keeps the form usable after a failed sign in', async () => {
+      const user = userEvent.setup()
+
+      mockSupabaseAuth.signInWithPassword.mockResolvedValueOnce({
+        data: null,
+        error: new Error('Invalid login credentials'),
+      })
+
+      render(<AuthPageClient />)
+
+      await user.type(screen.getByPlaceholderText(/email_placeholder/i), 'wrong@example.com')
+      await user.type(screen.getByPlaceholderText(/password_placeholder/i), 'wrongpassword')
+      await user.click(screen.getByRole('button', { name: /giris yap/i }))
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent(/invalid credentials/i)
+      })
+      expect(screen.getByPlaceholderText(/email_placeholder/i)).toHaveValue('wrong@example.com')
+      expect(screen.getByRole('button', { name: /giris yap/i })).toBeEnabled()
+    })
+
+    it('does not enforce the new-password length rule on sign in', async () => {
+      const user = userEvent.setup()
+
+      mockSupabaseAuth.signInWithPassword.mockResolvedValueOnce({
+        data: { user: { id: 'user-1' }, session: { access_token: 'token' } },
+        error: null,
+      })
+
+      render(<AuthPageClient />)
+
+      await user.type(screen.getByPlaceholderText(/email_placeholder/i), 'legacy@example.com')
+      await user.type(screen.getByPlaceholderText(/password_placeholder/i), 'abc123')
+      await user.click(screen.getByRole('button', { name: /giris yap/i }))
+
+      await waitFor(() => {
+        expect(mockSupabaseAuth.signInWithPassword).toHaveBeenCalledWith({ email: 'legacy@example.com', password: 'abc123' })
+      })
+    })
+
+    it('returns to the requested page after sign in', async () => {
+      const user = userEvent.setup()
+      vi.mocked(useSearchParams).mockReturnValue(
+        new URLSearchParams('next=/dashboard/products?page=2') as unknown as ReturnType<typeof useSearchParams>,
+      )
+      mockSupabaseAuth.signInWithPassword.mockResolvedValueOnce({
+        data: { user: { id: 'user-1' }, session: { access_token: 'token' } },
+        error: null,
+      })
+
+      render(<AuthPageClient />)
+
+      await user.type(screen.getByPlaceholderText(/email_placeholder/i), 'test@example.com')
+      await user.type(screen.getByPlaceholderText(/password_placeholder/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /giris yap/i }))
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith('/dashboard/products?page=2')
+      }, { timeout: 4000 })
+    })
+
+    it('ignores an external next target', async () => {
+      const user = userEvent.setup()
+      vi.mocked(useSearchParams).mockReturnValue(
+        new URLSearchParams('next=//evil.example.com') as unknown as ReturnType<typeof useSearchParams>,
+      )
+      mockSupabaseAuth.signInWithPassword.mockResolvedValueOnce({
+        data: { user: { id: 'user-1' }, session: { access_token: 'token' } },
+        error: null,
+      })
+
+      render(<AuthPageClient />)
+
+      await user.type(screen.getByPlaceholderText(/email_placeholder/i), 'test@example.com')
+      await user.type(screen.getByPlaceholderText(/password_placeholder/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /giris yap/i }))
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith('/dashboard')
+      }, { timeout: 4000 })
+    })
+  })
+
+  describe('Entry links', () => {
+    it('opens the sign up form for /auth?tab=signup', () => {
+      vi.mocked(useSearchParams).mockReturnValue(
+        new URLSearchParams('tab=signup') as unknown as ReturnType<typeof useSearchParams>,
+      )
+
+      render(<AuthPageClient />)
+
+      expect(screen.getByPlaceholderText(/name_placeholder/i)).toBeInTheDocument()
     })
   })
 

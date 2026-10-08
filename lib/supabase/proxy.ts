@@ -56,9 +56,21 @@ export async function updateSession(request: NextRequest) {
     const sessionAgeCookie = request.cookies.get("auth_session_timer")?.value;
     const now = Date.now();
 
+    const pathname = request.nextUrl.pathname
+    const isProtectedRoute = pathname.startsWith("/dashboard") ||
+      (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login"))
+
     const redirectToLogin = () => {
       const url = request.nextUrl.clone()
       url.pathname = "/auth"
+      url.search = ""
+      // Girişten sonra kullanıcı istediği sayfaya geri dönebilsin
+      if (request.method === "GET" && pathname.startsWith("/dashboard")) {
+        const nextParams = new URLSearchParams(request.nextUrl.searchParams)
+        nextParams.delete("_rsc")
+        const nextQuery = nextParams.toString()
+        url.searchParams.set("next", nextQuery ? `${pathname}?${nextQuery}` : pathname)
+      }
 
       const isApiOrAction = request.nextUrl.pathname.startsWith('/api') ||
         request.headers.get('accept')?.includes('application/json') ||
@@ -79,17 +91,13 @@ export async function updateSession(request: NextRequest) {
     // Simplified logic to avoid Edge Runtime hangs or infinite loops
     if (authError && typeof authError === 'object' && authError !== null && 'code' in authError && (authError as { code: string }).code === 'refresh_token_not_found') {
 
-      // If we are already on the auth page, proceed (clearing cookies via response if needed)
-      // preventing infinite redirect loop.
-      if (request.nextUrl.pathname.startsWith("/auth")) {
+      // Public sayfalar ve /auth (döngüyü önlemek için) yönlendirilmez; yalnızca çerezler temizlenir.
+      if (!isProtectedRoute) {
         clearAuthCookies(supabaseResponse)
         return supabaseResponse
       }
 
-      // Otherwise, redirect to /auth and clear cookies on the redirect response
-      const loginUrl = request.nextUrl.clone()
-      loginUrl.pathname = "/auth"
-      const redirectResponse = NextResponse.redirect(loginUrl, 307)
+      const redirectResponse = redirectToLogin()
       clearAuthCookies(redirectResponse)
       return redirectResponse
     }
@@ -99,15 +107,16 @@ export async function updateSession(request: NextRequest) {
       if (sessionAgeCookie) {
         const lastAuth = parseInt(sessionAgeCookie);
         if (now - lastAuth > MAX_SESSION_AGE) {
-          // Session too old, force logout
-          const response = redirectToLogin();
+          // Session too old, force logout. Public sayfalar (katalog linki, landing, blog)
+          // yönlendirilmez; yalnızca oturum çerezleri temizlenir.
+          const response = isProtectedRoute ? redirectToLogin() : supabaseResponse
           clearAuthCookies(response)
           return response;
         }
       }
 
       // Update activity timer if on a dashboard route
-      if (request.nextUrl.pathname.startsWith("/dashboard")) {
+      if (pathname.startsWith("/dashboard")) {
         supabaseResponse.cookies.set("auth_session_timer", now.toString(), {
           maxAge: 60 * 60 * 24 * 7, // 1 week cookie life
           path: "/",
@@ -122,7 +131,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // 3. Redirect to login if accessing dashboard without auth
-    if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+    if (pathname.startsWith("/dashboard") && !user) {
       return redirectToLogin()
     }
 

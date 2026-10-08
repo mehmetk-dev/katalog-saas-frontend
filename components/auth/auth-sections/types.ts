@@ -9,7 +9,6 @@ export interface AuthState {
     success: boolean
     showPassword: boolean
     isRedirecting: boolean
-    showGoogleWarning: boolean
     shakingFields: Record<string, boolean>
     name: string
     companyName: string
@@ -29,7 +28,6 @@ export interface AuthHandlers {
     setSuccess: (success: boolean) => void
     handleSubmit: (e: React.FormEvent) => Promise<void>
     handleGoogleAuth: () => Promise<void>
-    handleContinueAnyway: () => Promise<void>
     resetForm: () => void
 }
 

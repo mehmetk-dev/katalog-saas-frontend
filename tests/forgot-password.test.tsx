@@ -1,19 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { redirect, useRouter, useSearchParams } from 'next/navigation'
+
+import { AuthPageClient } from '@/components/auth/auth-page-client'
 import ForgotPasswordPage from '@/app/auth/forgot-password/page'
 
-// Mock dependencies
 const mockResetPasswordForEmail = vi.fn()
-const mockSignInWithOAuth = vi.fn()
-const mockGetUser = vi.fn()
-
 const mockSupabaseClient = {
     auth: {
         resetPasswordForEmail: mockResetPasswordForEmail,
-        signInWithOAuth: mockSignInWithOAuth,
-        getUser: mockGetUser,
-        refreshSession: vi.fn(async () => ({ data: { session: null, user: null }, error: null })),
+        signInWithOAuth: vi.fn(),
+        signOut: vi.fn(),
+        getSession: vi.fn(async () => ({ data: { session: null }, error: null })),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
     },
 }
 
@@ -23,438 +23,97 @@ vi.mock('@/lib/supabase/client', () => ({
 
 vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
-        t: (key: string) => {
-            const translations: Record<string, string> = {
-                'auth.forgotPasswordTitle': 'Şifremi Unuttum',
-                'auth.forgotPasswordSubtitle': 'Email adresinize şifre sıfırlama linki göndereceğiz',
-                'auth.email': 'Email',
-                'auth.placeholderEmail': 'ornek@email.com',
-                'auth.sendResetLink': 'Şifre Sıfırlama Linki Gönder',
-                'auth.backToLogin': 'Giriş Sayfasına Dön',
-                'auth.emailSentTitle': 'Email Gönderildi',
-                'auth.emailSentText': 'Şifre sıfırlama linki {email} adresine gönderildi.',
-                'common.error': 'Bir hata oluştu',
-            }
-            return translations[key] || key
-        },
+        t: (key: string, params?: Record<string, unknown>) =>
+            params?.email ? `${key}:${params.email}` : key,
         language: 'tr',
     }),
 }))
 
 vi.mock('next/navigation', () => ({
-    useRouter: () => ({
-        push: vi.fn(),
-        replace: vi.fn(),
-        refresh: vi.fn(),
-    }),
-    usePathname: () => '/auth/forgot-password',
-    Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-        <a href={href}>{children}</a>
-    ),
+    useRouter: vi.fn(),
+    useSearchParams: vi.fn(),
+    usePathname: vi.fn(() => '/auth'),
+    redirect: vi.fn(),
 }))
 
-// Mock fetch for check-provider API
-global.fetch = vi.fn()
+const fetchMock = vi.fn()
 
-// Mock window.location
-Object.defineProperty(window, 'location', {
-    value: {
-        origin: 'http://localhost:3000',
-    },
-    writable: true,
-})
+function renderForgotPassword() {
+    vi.mocked(useSearchParams).mockReturnValue(
+        new URLSearchParams('tab=forgot-password') as unknown as ReturnType<typeof useSearchParams>,
+    )
+    return render(<AuthPageClient />)
+}
 
-describe('Forgot Password Sayfası Testleri', () => {
+describe('Şifremi unuttum', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null })
-        mockSignInWithOAuth.mockResolvedValue({ data: { url: '' }, error: null })
-            ; (global.fetch as ReturnType<typeof vi.fn>).mockReset()
+        vi.stubGlobal('fetch', fetchMock)
+        vi.mocked(useRouter).mockReturnValue({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() } as unknown as ReturnType<typeof useRouter>)
+        mockResetPasswordForEmail.mockResolvedValue({ error: null })
     })
 
-    describe('Form Render ve Temel İşlevsellik', () => {
-        it('Sayfa başarıyla render edilir', () => {
-            render(<ForgotPasswordPage />)
+    it('/auth?tab=forgot-password doğrudan sıfırlama formunu açar', () => {
+        renderForgotPassword()
 
-            expect(screen.getByText('Şifremi Unuttum')).toBeInTheDocument()
-            expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument()
-            expect(screen.getByRole('button', { name: /gönder/i })).toBeInTheDocument()
-        })
-
-        it('Email input alanı çalışır', async () => {
-            const user = userEvent.setup()
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            await user.type(emailInput, 'test@example.com')
-
-            expect(emailInput).toHaveValue('test@example.com')
-        })
-
-        it('Email input zorunlu alandır', () => {
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            expect(emailInput).toHaveAttribute('required')
-            expect(emailInput).toHaveAttribute('type', 'email')
-        })
+        expect(screen.getByRole('heading', { name: 'auth.forgotPasswordTitle' })).toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('auth.placeholderPassword')).not.toBeInTheDocument()
     })
 
-    describe('Şifre Sıfırlama İşlemi', () => {
-        it('Başarılı şifre sıfırlama email gönderimi', async () => {
-            const user = userEvent.setup()
+    it('sıfırlama e-postasını confirm-recovery dönüşüyle gönderir ve onay gösterir', async () => {
+        const user = userEvent.setup()
+        renderForgotPassword()
 
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
+        await user.type(screen.getByPlaceholderText('auth.placeholderEmail'), 'test@example.com')
+        await user.click(screen.getByRole('button', { name: 'auth.sendResetLink' }))
 
-            mockResetPasswordForEmail.mockResolvedValueOnce({
-                data: {},
-                error: null,
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            await waitFor(() => {
-                expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
-                    'test@example.com',
-                    expect.objectContaining({
-                        redirectTo: expect.stringContaining('/auth/confirm-recovery'),
-                    })
-                )
-            })
-
-            // Success state görünmeli
-            await waitFor(() => {
-                expect(screen.getByText('Email Gönderildi')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(mockResetPasswordForEmail).toHaveBeenCalledWith('test@example.com', {
+                redirectTo: expect.stringMatching(/\/auth\/confirm-recovery$/),
             })
         })
-
-        it('Email bulunamadı hatası gösterir', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
-
-            mockResetPasswordForEmail.mockResolvedValueOnce({
-                data: null,
-                error: { message: 'user not found' },
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'nonexistent@example.com')
-            await user.click(submitButton)
-
-            await waitFor(() => {
-                expect(screen.getByText(/user not found/i)).toBeInTheDocument()
-            })
-        })
-
-        it('Rate limit hatası gösterir', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
-
-            mockResetPasswordForEmail.mockResolvedValueOnce({
-                data: null,
-                error: { message: 'rate limit exceeded' },
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            await waitFor(() => {
-                expect(screen.getByText(/güvenlik nedeniyle|guvenlik nedeniyle/i)).toBeInTheDocument()
-            })
-        })
-
-        it('Loading state gösterir', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
-
-            // Async işlemi yavaşlat
-            mockResetPasswordForEmail.mockImplementation(
-                () => new Promise(resolve => setTimeout(() => resolve({
-                    data: {},
-                    error: null,
-                }), 100))
-            )
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            // Loading spinner görünmeli
-            await waitFor(() => {
-                expect(submitButton).toBeDisabled()
-            })
-        })
+        expect(await screen.findByText('auth.emailSentText:test@example.com')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'auth.backToLogin' })).toBeInTheDocument()
     })
 
-    describe('Google OAuth Kullanıcı Kontrolü', () => {
-        it('Google kullanıcısı için uyarı gösterir', async () => {
-            const user = userEvent.setup()
+    it('backend erişilemese bile e-postayı gönderir (hesap kontrolü yapılmaz)', async () => {
+        const user = userEvent.setup()
+        fetchMock.mockRejectedValue(new Error('Failed to fetch'))
+        renderForgotPassword()
 
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: true, provider: 'google' }),
-                })
+        await user.type(screen.getByPlaceholderText('auth.placeholderEmail'), 'test@example.com')
+        await user.click(screen.getByRole('button', { name: 'auth.sendResetLink' }))
 
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'google@example.com')
-            await user.click(submitButton)
-
-            await waitFor(() => {
-                expect(screen.getByText(/Google Hesabı/i)).toBeInTheDocument()
-                expect(screen.getByText(/Google ile Giriş Yap/i)).toBeInTheDocument()
-            })
-        })
-
-        it('Google ile giriş butonu çalışır', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: true, provider: 'google' }),
-                })
-
-            mockSignInWithOAuth.mockResolvedValueOnce({
-                data: { url: 'https://accounts.google.com/oauth' },
-                error: null,
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'google@example.com')
-            await user.click(submitButton)
-
-            // Google warning görünmeli
-            await waitFor(() => {
-                expect(screen.getByText(/Google ile Giriş Yap/i)).toBeInTheDocument()
-            })
-
-            // Google ile giriş butonuna tıkla
-            const googleButton = screen.getByText(/Google ile Giriş Yap/i)
-            await user.click(googleButton)
-
-            await waitFor(() => {
-                expect(mockSignInWithOAuth).toHaveBeenCalledWith({
-                    provider: 'google',
-                    options: {
-                        redirectTo: expect.stringContaining('/auth/callback'),
-                    },
-                })
-            })
-        })
-
-        it('Yine de şifre belirle butonu çalışır', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: true, provider: 'google' }),
-                })
-
-            mockResetPasswordForEmail.mockResolvedValueOnce({
-                data: {},
-                error: null,
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'google@example.com')
-            await user.click(submitButton)
-
-            // Google warning görünmeli
-            await waitFor(() => {
-                expect(screen.getByText(/Yine de şifre sıfırla/i)).toBeInTheDocument()
-            })
-
-            // Yine de şifre belirle butonuna tıkla
-            const continueButton = screen.getByText(/Yine de şifre sıfırla/i)
-            await user.click(continueButton)
-
-            await waitFor(() => {
-                expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
-                    'google@example.com',
-                    expect.objectContaining({
-                        redirectTo: expect.stringContaining('/auth/confirm-recovery'),
-                    })
-                )
-            })
-        })
+        await waitFor(() => expect(mockResetPasswordForEmail).toHaveBeenCalled())
+        expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    describe('Success State', () => {
-        it('Başarılı email gönderimi sonrası success state gösterir', async () => {
-            const user = userEvent.setup()
+    it('rate limit hatasını çevrilmiş mesajla gösterir ve formu açık tutar', async () => {
+        const user = userEvent.setup()
+        mockResetPasswordForEmail.mockResolvedValue({ error: { message: 'Email rate limit exceeded' } })
+        renderForgotPassword()
 
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
+        await user.type(screen.getByPlaceholderText('auth.placeholderEmail'), 'test@example.com')
+        await user.click(screen.getByRole('button', { name: 'auth.sendResetLink' }))
 
-            mockResetPasswordForEmail.mockResolvedValueOnce({
-                data: {},
-                error: null,
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            await waitFor(() => {
-                expect(screen.getByText('Email Gönderildi')).toBeInTheDocument()
-                expect(screen.getByText(/\{email\}/i)).toBeInTheDocument()
-            })
-        })
-
-        it('Success state\'de geri dön butonu görünür', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
-
-            mockResetPasswordForEmail.mockResolvedValueOnce({
-                data: {},
-                error: null,
-            })
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            await waitFor(() => {
-                const backButton = screen.getByRole('button', { name: /Giriş Sayfasına Dön/i })
-                expect(backButton).toBeInTheDocument()
-                expect(backButton.closest('a')).toHaveAttribute('href', '/auth')
-            })
-        })
+        expect(await screen.findByRole('alert')).toHaveTextContent('auth.resetPasswordTooManyRequests')
+        expect(screen.getByPlaceholderText('auth.placeholderEmail')).toBeInTheDocument()
     })
 
-    describe('Error Handling', () => {
-        it('API hatası durumunda hata mesajı gösterir', async () => {
-            const user = userEvent.setup()
+    it('geçersiz e-postada istek atmaz', async () => {
+        const user = userEvent.setup()
+        renderForgotPassword()
 
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'))
+        await user.type(screen.getByPlaceholderText('auth.placeholderEmail'), 'gecersiz')
+        await user.click(screen.getByRole('button', { name: 'auth.sendResetLink' }))
 
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            // Check provider hatası durumunda normal flow devam eder
-            await waitFor(() => {
-                expect(mockResetPasswordForEmail).toHaveBeenCalled()
-            })
-        })
-
-        it('Form submit sırasında buton disabled olur', async () => {
-            const user = userEvent.setup()
-
-                ; (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-                    ok: true,
-                    json: async () => ({ isOAuth: false, provider: null }),
-                })
-
-            mockResetPasswordForEmail.mockImplementation(
-                () => new Promise(resolve => setTimeout(() => resolve({
-                    data: {},
-                    error: null,
-                }), 200))
-            )
-
-            render(<ForgotPasswordPage />)
-
-            const emailInput = screen.getByPlaceholderText(/email/i)
-            const submitButton = screen.getByRole('button', { name: /gönder/i })
-
-            await user.type(emailInput, 'test@example.com')
-            await user.click(submitButton)
-
-            // Buton disabled olmalı
-            expect(submitButton).toBeDisabled()
-
-            // İşlem tamamlandığında tekrar enabled olmalı
-            await waitFor(() => {
-                expect(screen.getByText('Email Gönderildi')).toBeInTheDocument()
-            })
-        })
+        expect(await screen.findByText('auth.invalidEmail')).toBeInTheDocument()
+        expect(mockResetPasswordForEmail).not.toHaveBeenCalled()
     })
 
-    describe('Navigation', () => {
-        it('Geri dön linki çalışır', () => {
-            render(<ForgotPasswordPage />)
+    it('eski /auth/forgot-password linki birleşik forma yönlendirir', async () => {
+        await ForgotPasswordPage({ searchParams: Promise.resolve({ error: 'invalid_link' }) })
 
-            const backLink = screen.getByText(/Giriş Sayfasına Dön/i)
-            expect(backLink.closest('a')).toHaveAttribute('href', '/auth')
-        })
-
-        it('Form altındaki geri dön linki çalışır', () => {
-            render(<ForgotPasswordPage />)
-
-            const backLinks = screen.getAllByText(/Giriş Sayfasına Dön/i)
-            const formBackLink = backLinks.find(link =>
-                link.closest('form') !== null
-            )
-
-            if (formBackLink) {
-                expect(formBackLink.closest('a')).toHaveAttribute('href', '/auth')
-            }
-        })
+        expect(redirect).toHaveBeenCalledWith('/auth?tab=forgot-password&error=invalid_link')
     })
 })
-
-

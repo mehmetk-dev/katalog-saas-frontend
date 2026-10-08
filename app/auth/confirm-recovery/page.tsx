@@ -1,44 +1,31 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { RefreshCw, ShieldCheck, Heart, Loader2 } from 'lucide-react'
+import { KeyRound, Loader2, ShieldAlert } from 'lucide-react'
+
+import { AuthShell } from '@/components/auth/auth-shell'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { buildRecoveryRedirectTarget } from '@/lib/auth/recovery'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 import { createClient } from '@/lib/supabase/client'
 
-interface RecoveryRedirectTarget {
-    accessToken: string
-    refreshToken: string
-    redirectPath: string
-}
-
-export function buildRecoveryRedirectTarget(redirectPath: string, hash: string): RecoveryRedirectTarget | null {
-    const normalizedHash = hash.startsWith('#') ? hash.slice(1) : hash
-    const hashParams = new URLSearchParams(normalizedHash)
-    const accessToken = hashParams.get('access_token')
-    const refreshToken = hashParams.get('refresh_token')
-
-    if (!accessToken || !refreshToken) return null
-
-    return {
-        accessToken,
-        refreshToken,
-        redirectPath,
-    }
-}
+const RESET_PASSWORD_PATH = '/auth/reset-password'
+const INVALID_LINK_PATH = '/auth?tab=forgot-password&error=invalid_link'
 
 /**
- * Bu sayfa email scanner'ların (Gmail/Outlook) linki 
- * önden "tüketip" geçersiz kılmasını engellemek için yapılmıştır.
+ * E-posta tarayıcıları (Gmail/Outlook) linki önden açıp tek kullanımlık kodu tüketmesin diye
+ * kod, kullanıcı butona basana kadar oturuma çevrilmez.
  */
 export default function ConfirmRecoveryPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center p-6 bg-muted/50">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-        }>
+        <Suspense
+            fallback={
+                <div className="flex min-h-dvh items-center justify-center bg-background">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+            }
+        >
             <ConfirmRecoveryContent />
         </Suspense>
     )
@@ -47,154 +34,74 @@ export default function ConfirmRecoveryPage() {
 function ConfirmRecoveryContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { t: baseT } = useTranslation()
+    const t = (key: string) => baseT(key) as string
     const [isRedirecting, setIsRedirecting] = useState(false)
-    const [pageError, setPageError] = useState<string | null>(null)
+    const [hasLinkError, setHasLinkError] = useState(false)
 
-    const normalizeNextPath = (rawNext: string | null): string => {
-        if (!rawNext) return '/auth/reset-password'
-        const isValidRelativePath = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.includes('\\')
-        return isValidRelativePath ? rawNext : '/auth/reset-password'
-    }
-
-    // Check for errors immediately on mount
     useEffect(() => {
-        const queryError = searchParams.get('error')
-        const queryErrorDesc = searchParams.get('error_description')
-
-        // Hash also contains error in Supabase implicit flow
-        const hashParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.hash.replace('#', '?')) : null
-        const hashError = hashParams?.get('error') || hashParams?.get('?error')
-        const hashErrorDesc = hashParams?.get('error_description')
-
-        if (queryError || hashError) {
-            setPageError(queryErrorDesc || hashErrorDesc || 'Geçersiz veya süresi dolmuş link.')
-        }
+        // Supabase implicit flow'da hata hash içinde de gelebilir
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+        if (searchParams.get('error') || hashParams.get('error')) setHasLinkError(true)
     }, [searchParams])
 
     const handleConfirm = async () => {
         setIsRedirecting(true)
+        const supabase = createClient()
         const code = searchParams.get('code')
-        const next = normalizeNextPath(searchParams.get('next'))
 
-        // Supabase implicit flow puts tokens in hash. If hash has access_token, we can go to reset-password
-        const hash = typeof window !== 'undefined' ? window.location.hash : ''
-
-        if (code) {
-            try {
-                const supabase = createClient()
+        try {
+            if (code) {
                 const { error } = await supabase.auth.exchangeCodeForSession(code)
-                if (error) {
-                    router.push('/auth/forgot-password?error=invalid_link')
-                    return
-                }
-                router.push(next)
-                return
-            } catch {
-                router.push('/auth/forgot-password?error=invalid_link')
+                router.push(error ? INVALID_LINK_PATH : RESET_PASSWORD_PATH)
                 return
             }
-        } else {
-            const recoveryTarget = buildRecoveryRedirectTarget(next, hash)
-            if (recoveryTarget) {
-                try {
-                    const supabase = createClient()
-                    const { error } = await supabase.auth.setSession({
-                        access_token: recoveryTarget.accessToken,
-                        refresh_token: recoveryTarget.refreshToken,
-                    })
-                    if (typeof window !== 'undefined') {
-                        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
-                    }
-                    if (error) {
-                        router.push('/auth/forgot-password?error=invalid_link')
-                        return
-                    }
-                    router.push(recoveryTarget.redirectPath)
-                    return
-                } catch {
-                    router.push('/auth/forgot-password?error=invalid_link')
-                    return
-                }
-            }
-            if (pageError) {
-                router.push(`/auth/forgot-password?error=invalid_link`)
+
+            const recoveryTarget = buildRecoveryRedirectTarget(RESET_PASSWORD_PATH, window.location.hash)
+            if (!recoveryTarget) {
+                router.push(INVALID_LINK_PATH)
                 return
             }
-            router.push('/auth/forgot-password?error=invalid_link')
+
+            const { error } = await supabase.auth.setSession({
+                access_token: recoveryTarget.accessToken,
+                refresh_token: recoveryTarget.refreshToken,
+            })
+            // Token'lar adres çubuğunda/geçmişte kalmasın
+            window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+            router.push(error ? INVALID_LINK_PATH : recoveryTarget.redirectPath)
+        } catch {
+            router.push(INVALID_LINK_PATH)
         }
     }
 
-    if (pageError) {
+    if (hasLinkError) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 bg-muted/50">
-                <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-brand rounded-2xl overflow-hidden bg-card">
-                    <CardHeader className="text-center pb-0 pt-10">
-                        <div className="mx-auto w-20 h-20 bg-brand-soft rounded-2xl flex items-center justify-center mb-6">
-                            <ShieldCheck className="w-10 h-10 text-brand" />
-                        </div>
-                        <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-foreground leading-none uppercase">
-                            Hata <span className="text-brand">Oluştu</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6 pt-6 pb-12">
-                        <div className="text-center space-y-4 px-4">
-                            <p className="text-muted-foreground text-lg font-medium leading-relaxed">
-                                Şifre sıfırlama linkiniz geçersiz veya süresi dolmuş. Lütfen yeni bir link talep edin.
-                            </p>
-                        </div>
-                        <div className="px-6">
-                            <Button
-                                onClick={() => router.push('/auth/forgot-password')}
-                                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-montserrat font-bold shadow-xl transition-all rounded-xl text-lg uppercase tracking-wider"
-                            >
-                                Yeni Link İste
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            <AuthShell
+                icon={<ShieldAlert />}
+                iconTone="brand"
+                title={t('auth.recoveryInvalidTitle')}
+                description={t('auth.recoveryInvalidDesc')}
+                back={{ href: '/auth', label: t('auth.backToLogin') }}
+            >
+                <Button size="lg" className="h-11 w-full" onClick={() => router.push('/auth?tab=forgot-password')}>
+                    {t('auth.requestNewLink')}
+                </Button>
+            </AuthShell>
         )
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-muted/50">
-            <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-brand rounded-2xl overflow-hidden bg-card">
-                <CardHeader className="text-center pb-0 pt-10">
-                    <div className="mx-auto w-20 h-20 bg-brand-soft rounded-2xl flex items-center justify-center mb-6 rotate-3">
-                        <ShieldCheck className="w-10 h-10 text-brand" />
-                    </div>
-                    <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-foreground leading-none uppercase">
-                        Giriş <span className="text-brand">Onayı</span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-8 pt-6 pb-12">
-                    <div className="text-center space-y-4 px-4">
-                        <p className="text-muted-foreground text-lg font-medium leading-relaxed">
-                            Güvenliğiniz için lütfen şifre yenileme işlemini aşağıdaki butona tıklayarak başlatın.
-                        </p>
-                    </div>
-
-                    <div className="px-6">
-                        <Button
-                            onClick={handleConfirm}
-                            disabled={isRedirecting}
-                            className="w-full h-14 bg-brand hover:bg-brand/90 text-brand-foreground font-montserrat font-bold shadow-xl shadow-brand/20 transition-all rounded-xl text-lg uppercase tracking-wider"
-                        >
-                            {isRedirecting ? (
-                                <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                            ) : null}
-                            İşlemi Başlat
-                        </Button>
-                    </div>
-
-                    <div className="text-center pt-8 border-t border-border flex items-center justify-center gap-2">
-                        <Heart className="w-4 h-4 text-brand animate-pulse" />
-                        <span className="font-montserrat text-sm text-muted-foreground font-bold uppercase tracking-widest">
-                            FogCatalog Security
-                        </span>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+        <AuthShell
+            icon={<KeyRound />}
+            title={t('auth.recoveryConfirmTitle')}
+            description={t('auth.recoveryConfirmDesc')}
+            back={{ href: '/auth', label: t('auth.backToLogin') }}
+        >
+            <Button size="lg" className="h-11 w-full" onClick={handleConfirm} disabled={isRedirecting}>
+                {isRedirecting && <Loader2 className="size-4 animate-spin" />}
+                {t('auth.recoveryConfirmAction')}
+            </Button>
+        </AuthShell>
     )
 }

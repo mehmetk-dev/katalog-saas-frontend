@@ -1,29 +1,22 @@
 import { Eye, EyeOff } from "lucide-react"
+
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import type { AuthMode, TranslateFn } from "./types"
 
 const inputCls = (hasError: boolean, isShaking: boolean, extra?: string) =>
     cn(
-        "w-full h-12 px-4 bg-card border rounded-xl text-[15px]",
-        "outline-none transition-all placeholder:text-muted-foreground/70 hover:border-border",
-        hasError
-            ? "border-brand ring-1 ring-brand focus:ring-brand focus:border-brand"
-            : "border-border focus:border-primary focus:ring-1 focus:ring-primary",
+        "h-11 bg-card text-[15px] md:text-[15px]",
+        hasError && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
         isShaking && "animate-shake",
         extra
     )
 
-interface FieldErrorProps {
-    error?: string
-}
-
-function FieldError({ error }: FieldErrorProps) {
+function FieldError({ id, error }: { id: string; error?: string }) {
     if (!error) return null
     return (
-        <p className={cn(
-            "text-[12px] text-brand font-medium",
-            "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
-        )}>
+        <p id={id} className="text-xs font-medium text-destructive animate-in fade-in slide-in-from-top-1">
             {error}
         </p>
     )
@@ -55,15 +48,21 @@ export function AuthFormFields({
     onShowPasswordChange, onFieldErrorsClear, onForgotPassword,
     t,
 }: AuthFormFieldsProps) {
+    const errorProps = (field: string) =>
+        fieldErrors[field]
+            ? { "aria-invalid": true as const, "aria-describedby": `auth-${field}-error` }
+            : {}
+
     return (
         <div className="space-y-4">
-            {/* Signup-only fields */}
-            {mode === 'signup' && (
-                <div className="space-y-4">
+            {mode === "signup" && (
+                <>
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.fullName")}</label>
-                        <input
+                        <Label htmlFor="auth-name">{t("auth.fullName")}</Label>
+                        <Input
+                            id="auth-name"
                             type="text"
+                            autoComplete="name"
                             value={name}
                             onChange={(e) => {
                                 onNameChange(e.target.value)
@@ -73,35 +72,36 @@ export function AuthFormFields({
                             placeholder={t("auth.placeholderName")}
                             required
                             suppressHydrationWarning
-                            tabIndex={1}
+                            {...errorProps("name")}
                         />
-                        <FieldError error={fieldErrors.name} />
+                        <FieldError id="auth-name-error" error={fieldErrors.name} />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.company")}</label>
-                        <input
+                        <Label htmlFor="auth-company">
+                            {t("auth.company")}
+                            <span className="font-normal text-muted-foreground">({t("auth.optional")})</span>
+                        </Label>
+                        <Input
+                            id="auth-company"
                             type="text"
+                            autoComplete="organization"
                             value={companyName}
                             onChange={(e) => onCompanyNameChange(e.target.value)}
-                            className={cn(
-                                "w-full h-12 px-4 bg-card border border-border",
-                                "rounded-xl text-[15px] outline-none",
-                                "focus:border-primary focus:ring-1 focus:ring-primary",
-                                "transition-all placeholder:text-muted-foreground/70 hover:border-border"
-                            )}
+                            className={inputCls(false, false)}
                             placeholder={t("auth.placeholderCompany")}
                             suppressHydrationWarning
-                            tabIndex={2}
                         />
                     </div>
-                </div>
+                </>
             )}
 
-            {/* Email */}
             <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.email")}</label>
-                <input
+                <Label htmlFor="auth-email">{t("auth.email")}</Label>
+                <Input
+                    id="auth-email"
                     type="email"
+                    autoComplete="email"
+                    inputMode="email"
                     value={email}
                     onChange={(e) => {
                         onEmailChange(e.target.value)
@@ -111,56 +111,55 @@ export function AuthFormFields({
                     placeholder={t("auth.placeholderEmail")}
                     required
                     suppressHydrationWarning
-                    tabIndex={3}
+                    {...errorProps("email")}
                 />
-                <FieldError error={fieldErrors.email} />
+                <FieldError id="auth-email-error" error={fieldErrors.email} />
             </div>
 
-            {/* Password */}
-            {mode !== 'forgot-password' && (
-                <div className="space-y-1.5 relative">
-                    <div className="flex items-center justify-between px-1">
-                        <label className="text-[13px] font-medium text-foreground">{t("auth.password")}</label>
+            {mode !== "forgot-password" && (
+                <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="auth-password">{t("auth.password")}</Label>
+                        {mode === "signin" && (
+                            <button
+                                type="button"
+                                onClick={onForgotPassword}
+                                className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                {t("auth.forgotPassword")}
+                            </button>
+                        )}
                     </div>
                     <div className="relative">
-                        <input
+                        <Input
+                            id="auth-password"
                             type={showPassword ? "text" : "password"}
+                            autoComplete={mode === "signup" ? "new-password" : "current-password"}
                             value={password}
                             onChange={(e) => {
                                 onPasswordChange(e.target.value)
                                 if (fieldErrors.password) onFieldErrorsClear("password")
                             }}
-                            className={inputCls(!!fieldErrors.password, !!shakingFields.password, "pl-4 pr-12")}
+                            className={inputCls(!!fieldErrors.password, !!shakingFields.password, "pr-11")}
                             placeholder={t("auth.placeholderPassword")}
                             required
-                            tabIndex={4}
+                            {...errorProps("password")}
                         />
                         <button
                             type="button"
                             onClick={() => onShowPasswordChange(!showPassword)}
-                            className={cn(
-                                "absolute right-4 top-1/2 -translate-y-1/2",
-                                "text-muted-foreground hover:text-muted-foreground transition-colors"
-                            )}
-                            tabIndex={-1}
+                            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+                            aria-pressed={showPassword}
+                            className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
                         >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                         </button>
                     </div>
-                    {mode === 'signin' && (
-                        <button
-                            type="button"
-                            onClick={onForgotPassword}
-                            className={cn(
-                                "absolute top-0 right-1 text-[13px] font-medium",
-                                "text-muted-foreground hover:text-primary transition-colors"
-                            )}
-                            tabIndex={6}
-                        >
-                            {t("auth.forgotPassword")}
-                        </button>
-                    )}
-                    <FieldError error={fieldErrors.password} />
+                    {fieldErrors.password ? (
+                        <FieldError id="auth-password-error" error={fieldErrors.password} />
+                    ) : mode === "signup" ? (
+                        <p className="text-xs text-muted-foreground">{t("auth.passwordLength")}</p>
+                    ) : null}
                 </div>
             )}
         </div>

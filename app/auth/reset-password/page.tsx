@@ -1,16 +1,26 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, CheckCircle2 } from "lucide-react"
+import { AlertCircle, CheckCircle2, KeyRound, Loader2 } from "lucide-react"
 
+import { AuthShell } from "@/components/auth/auth-shell"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { isPasswordLongEnough } from "@/lib/auth/password-policy"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { createClient } from "@/lib/supabase/client"
-import { Logo } from "@/components/ui/logo"
+
+const INVALID_LINK_PATH = "/auth?tab=forgot-password&error=invalid_link"
+const SUCCESS_REDIRECT_DELAY_MS = 1500
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const { t: baseT } = useTranslation()
+  const t = (key: string) => baseT(key) as string
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -25,19 +35,15 @@ export default function ResetPasswordPage() {
       const supabase = createClient()
       let { data: { session } } = await supabase.auth.getSession()
 
+      // confirm-recovery'den hemen sonra çerez yazımı bir an gecikebilir
       if (!session) {
-        await new Promise(resolve => setTimeout(resolve, 800))
-        const retry = await supabase.auth.getSession()
-        session = retry.data.session
+        await new Promise((resolve) => setTimeout(resolve, 800))
+        session = (await supabase.auth.getSession()).data.session
       }
 
       if (!mounted) return
-
-      if (!session) {
-        router.push("/auth/forgot-password")
-      } else {
-        setIsChecking(false)
-      }
+      if (!session) router.replace(INVALID_LINK_PATH)
+      else setIsChecking(false)
     }
 
     checkSession()
@@ -48,155 +54,97 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setError(null)
 
+    if (!isPasswordLongEnough(password)) {
+      setError(t("auth.passwordLength"))
+      return
+    }
     if (password !== confirmPassword) {
-      setError("Şifreler birbiriyle eşleşmiyor.")
-      return
-    }
-
-    if (password.length < 8) {
-      setError("Şifre en az 8 karakter olmalıdır.")
-      return
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError("Şifre en az bir büyük harf içermelidir.")
-      return
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setError("Şifre en az bir rakam içermelidir.")
+      setError(t("auth.passwordMismatch"))
       return
     }
 
     setIsLoading(true)
-    const supabase = createClient()
-
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      })
-
-      if (error) throw error
+      const { error: updateError } = await createClient().auth.updateUser({ password })
+      if (updateError) throw updateError
 
       setSuccess(true)
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 2500)
+      setTimeout(() => router.replace("/dashboard"), SUCCESS_REDIRECT_DELAY_MS)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Şifre güncellenirken bir hata oluştu.")
+      const message = err instanceof Error ? err.message.toLowerCase() : ""
+      setError(message.includes("different") ? t("auth.passwordSameAsOld") : t("auth.passwordUpdateError"))
     } finally {
       setIsLoading(false)
     }
   }
 
+  if (isChecking) {
+    return (
+      <AuthShell icon={<Loader2 className="animate-spin" />} title={t("auth.verifyingSession")} description={t("auth.verifyingSessionDesc")} />
+    )
+  }
+
+  if (success) {
+    return (
+      <AuthShell icon={<CheckCircle2 />} iconTone="success" title={t("auth.passwordUpdatedTitle")} description={t("auth.passwordUpdatedDesc")}>
+        <div className="flex justify-center">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      </AuthShell>
+    )
+  }
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-muted via-muted/50 to-background relative overflow-hidden font-sans">
-      {/* Background Decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <svg
-          className="absolute -top-1 left-0 w-full h-56"
-          viewBox="0 0 1440 320"
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#B01E2E" stopOpacity="0.2" />
-              <stop offset="50%" stopColor="#000000" stopOpacity="0.1" />
-              <stop offset="100%" stopColor="#B01E2E" stopOpacity="0.05" />
-            </linearGradient>
-          </defs>
-          <path
-            fill="url(#waveGradient)"
-            d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
+    <AuthShell
+      icon={<KeyRound />}
+      title={t("auth.resetPasswordTitle")}
+      description={t("auth.resetPasswordSubtitle")}
+      back={{ href: "/auth", label: t("auth.backToLogin") }}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {error && (
+          <Alert variant="destructive" role="alert" className="border-destructive/30 bg-destructive/5">
+            <AlertCircle />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="new-password">{t("auth.newPassword")}</Label>
+          <Input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            className="h-11 bg-card"
+            aria-describedby="new-password-hint"
           />
-        </svg>
-        <div className="absolute -bottom-32 -right-16 w-72 h-72 bg-gradient-to-tl from-brand/10 to-muted/10 rounded-full blur-3xl opacity-50" />
-      </div>
-
-      <div className="w-full max-w-[420px] p-6 relative z-10">
-        <div className="text-center mb-10">
-          <Link href="/" className="inline-flex items-center mb-8 hover:opacity-80 transition-opacity">
-            <Logo size="xl" />
-          </Link>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-3">
-            {isChecking ? "Doğrulanıyor" : success ? "Şifre Güncellendi" : "Yeni Şifre Belirle"}
-          </h1>
-          <p className="text-muted-foreground text-[15px] leading-relaxed">
-            {isChecking ? "Güvenli oturumunuz kontrol ediliyor..." :
-              success ? "Yeni şifreniz başarıyla kaydedildi." : "Lütfen yeni ve güvenli bir şifre belirleyin."}
-          </p>
+          <p id="new-password-hint" className="text-xs text-muted-foreground">{t("auth.passwordHint")}</p>
         </div>
 
-        {isChecking ? (
-          <div className="flex flex-col items-center gap-4 py-8 animate-in fade-in">
-            <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-brand/90 animate-spin" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Lütfen Bekleyin...</p>
-          </div>
-        ) : success ? (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="w-full h-12 bg-success-soft text-success-soft-foreground rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-success/20">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>Dashboard'a yönlendiriliyorsunuz</span>
-            </div>
-            <div className="flex justify-center pt-4">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
-            {error && (
-              <div className="p-3 bg-brand-soft text-brand text-sm font-medium rounded-lg border border-brand/20">
-                {error}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-foreground ml-1">Yeni Şifre</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 bg-card border border-border rounded-xl text-[15px] outline-none focus:border-brand/90 focus:ring-1 focus:ring-brand/90 transition-all placeholder:text-muted-foreground/70"
-                  placeholder="••••••••"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1 ml-1">En az 8 karakter, bir büyük harf ve bir rakam</p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-foreground ml-1">Şifre Onayı</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full h-12 px-4 bg-card border border-border rounded-xl text-[15px] outline-none focus:border-brand/90 focus:ring-1 focus:ring-brand/90 transition-all placeholder:text-muted-foreground/70"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-12 bg-brand/90 hover:bg-brand/90 text-brand-foreground font-medium rounded-xl shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all flex items-center justify-center gap-2 mt-4"
-            >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Şifreyi Güncelle ve Giriş Yap"}
-            </button>
-          </form>
-        )
-        }
-
-        <div className="mt-8 text-center border-t border-border pt-8">
-          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">
-            Powered by FogCatalog
-          </p>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm-password">{t("auth.confirmPassword")}</Label>
+          <Input
+            id="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            disabled={isLoading}
+            className="h-11 bg-card"
+          />
         </div>
-      </div>
-    </div>
+
+        <Button type="submit" size="lg" className="h-11 w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className="size-4 animate-spin" />}
+          {t("auth.updatePassword")}
+        </Button>
+      </form>
+    </AuthShell>
   )
 }

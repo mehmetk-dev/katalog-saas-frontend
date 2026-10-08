@@ -310,14 +310,12 @@
 │
 ├── 📂 auth/                               ← 🔐 Authentication UI
 │   ├── auth-page-client.tsx               # Ana auth sayfası
-│   ├── auth-form.tsx / auth-form-new.tsx   # Form bileşenleri
-│   ├── auth-form/                         # Form alt bileşenleri (9 dosya)
-│   │   └── auth-tabs | error-alert | google-auth-button
-│   │       legal-notice | loading-status | redirect-overlay
-│   │       status-banner | types | use-auth-form-controller
-│   ├── auth-sections/                     # Auth bölümleri (6 dosya)
-│   │   └── auth-form | hero-panel | redirect-overlay
-│   │       types | use-auth | index
+│   ├── auth-sections/                     # /auth giriş/kayıt/şifremi unuttum (tek form, ?tab=)
+│   │   └── auth-form | auth-form-fields | auth-form-actions
+│   │       auth-form-alerts | auth-form-header | hero-panel
+│   │       redirect-overlay | types | use-auth | index
+│   ├── auth-shell.tsx                     # Yardımcı auth sayfalarının ortak kabuğu
+│   ├── auth-status-views.tsx              # verify / confirmed / error görünümleri
 │   ├── onboarding-modal.tsx               # Onboarding sihirbazı
 │   └── session-watcher.tsx                # Oturum takipçisi
 │
@@ -842,7 +840,9 @@ interface Catalog {
 - `app/auth/page.tsx` - Login/Register formları
 - `lib/supabase/server.ts` - Server-side Supabase client
 - `lib/supabase/proxy.ts` - Session update middleware
-- `components/auth/login-form.tsx`, `register-form.tsx`
+- `components/auth/auth-sections/use-auth.ts` - Giriş/kayıt/şifre sıfırlama mantığı
+- `lib/auth/next-path.ts` - Giriş sonrası `next` hedefini güvenli hale getirir (middleware → /auth?next= → callback)
+- `lib/auth/password-policy.ts` - Yeni şifre kuralı (en az 8 karakter)
 
 **Auth Types:**
 - Email/Password (Supabase native)
