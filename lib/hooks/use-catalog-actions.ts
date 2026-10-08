@@ -60,6 +60,9 @@ export function useCatalogActions({
     // Ref for autosave to read fresh state without stale closure
     const getStateRef = useRef(getState)
     getStateRef.current = getState
+    // Yayındaki kataloğun public sayfası kayıttan sonra yenilensin; yayında değilse hiçbir public sayfaya dokunulmaz
+    const publicSlugRef = useRef<string | null>(null)
+    publicSlugRef.current = isPublished ? catalog?.share_slug ?? null : null
 
     useEffect(() => {
         if (!currentCatalogId || !hasUnsavedChanges) return
@@ -76,7 +79,7 @@ export function useCatalogActions({
             const data = getStateRef.current()
             if (isMountedRef.current) setIsAutoSaving(true)
             try {
-                await updateCatalog(currentCatalogId, buildCatalogPayload(data))
+                await updateCatalog(currentCatalogId, buildCatalogPayload(data), { publicSlug: publicSlugRef.current })
 
                 if (!isMountedRef.current) return
                 setLastSavedState(buildSavedStateSnapshot(data))
@@ -131,7 +134,7 @@ export function useCatalogActions({
                     data.catalogName = finalName!
 
                     if (currentCatalogId) {
-                        await updateCatalog(currentCatalogId, buildCatalogPayload(data))
+                        await updateCatalog(currentCatalogId, buildCatalogPayload(data), { publicSlug: publicSlugRef.current })
                         toast.success(t('toasts.catalogSaved') as string)
                         resolve(currentCatalogId)
                     } else {

@@ -159,7 +159,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     await waitFor(() => {
       expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
         name: 'Updated Name',
-      }))
+      }), { publicSlug: null })
     })
   })
 
@@ -176,9 +176,10 @@ describe('BuilderPageClient Final Audit Tests', () => {
       await vi.advanceTimersByTimeAsync(3000)
     })
 
+    // Yayında olmayan katalog hiçbir public sayfayı yenilememeli
     expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
       name: 'Autosave Name',
-    }))
+    }), { publicSlug: null })
   })
 
   it('PUBLISHED AUTOSAVE: kaydedilen degisikligi sahte bir yayin guncellemesi olarak gostermemeli', async () => {
@@ -201,6 +202,10 @@ describe('BuilderPageClient Final Audit Tests', () => {
 
     expect(screen.queryByText('builder.updatePublish')).not.toBeInTheDocument()
     expect(screen.getByText('builder.shareBtn')).toBeInTheDocument()
+    // Yalnızca bu kataloğun public sayfası yenilenmeli (tüm /catalog/[slug] değil)
+    expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
+      name: 'Live Autosave Name',
+    }), { publicSlug: 'audit-katalog' })
   })
 
   it('PUBLISH: unsaved degisiklikleri yayindan sonra kaydedilmis saymali', async () => {

@@ -123,7 +123,12 @@ export async function createCatalog(data: Partial<Catalog>) {
   return newCatalog
 }
 
-export async function updateCatalog(id: string, updates: Partial<Catalog>) {
+interface UpdateCatalogOptions {
+  /** Yayındaki kataloğun slug'ı: verilirse yalnızca o public sayfa yenilenir */
+  publicSlug?: string | null
+}
+
+export async function updateCatalog(id: string, updates: Partial<Catalog>, options: UpdateCatalogOptions = {}) {
   // Validate and sanitize input
   const validatedUpdates = validate(catalogUpdateSchema, updates)
 
@@ -131,11 +136,16 @@ export async function updateCatalog(id: string, updates: Partial<Catalog>) {
     method: "PUT",
     body: JSON.stringify(validatedUpdates),
   })
-  revalidatePath("/dashboard", "layout")
-  if (updates.share_slug) {
-    revalidatePath(`/catalog/${updates.share_slug}`)
-  } else {
-    revalidatePath("/catalog/[slug]", "page") // Fallback for all catalog slugs if we don't have the specific slug in the mutation
+
+  // Builder bu action'ı birkaç saniyede bir (otomatik kayıt) çağırır. Tüm /dashboard
+  // layout'unu veya bütün /catalog/[slug] sayfalarını yenilemek hem açık olan builder'ı
+  // yeniden render ettirir hem de diğer kullanıcıların kataloglarının önbelleğini boşaltır;
+  // bu yüzden sadece katalog listeleyen sayfalar ve bu kataloğun public sayfası yenilenir.
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/catalogs")
+  const slug = updates.share_slug ?? options.publicSlug
+  if (slug) {
+    revalidatePath(`/catalog/${slug}`)
   }
   return { success: true }
 }
