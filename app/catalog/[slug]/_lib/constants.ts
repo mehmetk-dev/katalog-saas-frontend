@@ -11,14 +11,3 @@ export const MOBILE_BREAKPOINT = 1024
 
 /** Number of PDF pages to process before yielding to the main thread */
 export const PDF_CHUNK_SIZE = 5
-
-export const DEFAULT_PRIMARY_COLOR = 'rgba(124, 58, 237, 1)'
-
-// -- Page size per layout --------------------------------------------------
-
-import { getItemsPerPage } from "@/lib/constants"
-
-/** Returns how many products fit on a single page for the given layout. */
-export function getPageSize(layout: string, columnsPerRow: number): number {
-    return getItemsPerPage(layout, columnsPerRow)
-}

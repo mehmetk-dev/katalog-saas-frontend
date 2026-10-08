@@ -143,7 +143,8 @@ const getVisitorInfo = (req: Request) => {
     const userAgent = (req.headers['user-agent'] || 'unknown').substring(0, 500);
 
     // Fix #14: Detect bots/crawlers — don't count them as real views
-    const isBot = /bot|crawler|spider|headless|lighthouse|pingdom|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|screaming|semrush|ahrefs|mj12bot|dotbot/i.test(userAgent);
+    // Link önizlemeleri (WhatsApp, Facebook, Telegram, Slack...) de paylaşım anında sayfayı çeker; görüntülenme sayılmamalı
+    const isBot = /bot|crawler|spider|headless|lighthouse|pingdom|slurp|baiduspider|screaming|semrush|ahrefs|preview|whatsapp|facebookexternalhit|facebookcatalog|embedly|quora link|pinterest|vkshare|skypeuripreview|outbrain|google-inspectiontool|applebot|ia_archiver/i.test(userAgent);
 
     let deviceType = 'desktop';
     if (/mobile|android|iphone|ipad|phone/i.test(userAgent)) {
@@ -223,7 +224,7 @@ export const getPublicCatalogMeta = async (req: Request, res: Response) => {
         const meta = await getOrSetCache(metaCacheKey, cacheTTL.publicCatalog, async () => {
             const { data, error } = await supabase
                 .from('catalogs')
-                .select('id, name, description, is_published, show_in_search')
+                .select('id, name, description, is_published, show_in_search, cover_image_url, logo_url')
                 .eq('share_slug', slug)
                 .eq('is_published', true)
                 .single();

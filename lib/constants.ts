@@ -1,3 +1,4 @@
+import { normalizeLayout } from "@/lib/catalog-layouts"
 // ─── Site-wide Constants ────────────────────────────────────────────────────────
 
 /** Maximum number of images per product — shared between FE validation and BE schema */
@@ -171,15 +172,15 @@ export const TEMPLATES = [
  * - PDF export rendering (pdf-export-document.tsx)
  */
 export function getItemsPerPage(layout: string, columnsPerRow?: number): number {
-    const layoutKey = layout?.toLowerCase() || 'modern-grid'
+    const layoutKey = normalizeLayout(layout)
 
-    if (layoutKey === 'classic-list' || layoutKey === 'classic-catalog') return 3
-    if (layoutKey === 'minimal-gallery' || layoutKey === 'minimalist') return 4
+    if (layoutKey === 'classic-catalog') return 3
+    if (layoutKey === 'minimalist') return 4
     if (layoutKey === 'magazine') return 1 + (columnsPerRow || 3) * 2
     if (layoutKey === 'showcase' || layoutKey === 'fashion-lookbook') return 5
     if (layoutKey === 'industrial') return 6
     if (layoutKey === 'luxury') return 6
-    if (layoutKey === 'compact-list' || layoutKey === 'list') return 10
+    if (layoutKey === 'compact-list') return 10
     if (layoutKey === 'retail') return (columnsPerRow || 3) * 5
     if (layoutKey === 'catalog-pro' || layoutKey === 'elegant-cards') return 4
     if (layoutKey === 'product-tiles') return 6

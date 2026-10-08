@@ -36,7 +36,7 @@ export const LazyPage = React.memo(({ children, index, isExporting }: { children
         <div ref={ref}>
             {isVisible ? children : (
                 <div
-                    className="bg-slate-100 rounded-lg animate-pulse"
+                    className="animate-pulse rounded-sm bg-muted"
                     style={{ width: '794px', height: '1123px', margin: '0 auto' }}
                 />
             )}

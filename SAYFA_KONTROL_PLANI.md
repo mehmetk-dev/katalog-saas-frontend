@@ -66,7 +66,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 7 | Excel düzenleyici (+ AI) | 🟡 Orta | ⏳ |
 | 8 | Kataloglar listesi | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek backend ile doğrulama kaldı) |
 | 9 | Katalog editörü (builder) | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
-| 10 | Yayındaki katalog sayfası (`/catalog/[slug]`) | 🔴 Yüksek | ⏳ |
+| 10 | Yayındaki katalog sayfası (`/catalog/[slug]`) | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek verili uçtan uca kaldı) |
 | 11 | PDF export | 🔴 Yüksek | ⏳ |
 | 12 | Şablonlar sayfası | 🟢 Düşük | ⏳ |
 | 13 | Analitik | 🟡 Orta | ⏳ |
@@ -211,6 +211,21 @@ Kalan:
 - [ ] SEO: başlık, açıklama, OG görseli; `show_in_search` = false ise noindex
 - [ ] Görüntülenme sayacı (sahibin kendi ziyareti sayılmamalı), analitiğe yansıma
 - [ ] Yükleme hızı (görseller, ilk sayfa)
+
+**Yapılanlar (8 Ekim 2026):**
+- **Builder ile yayındaki görünüm farklıydı:** yayındaki sayfa ayrı bir sayfalama ve ayar mantığı kullanıyordu. Eski şablon adları (`list`, `bold-grid`, `classic-list`, `elegant-showcase`, `minimal-gallery`) yayında hep "Modern Grid" olarak çiziliyordu; "özellikleri göster" varsayılanı farklıydı (builder kapalı, yayın açık); sütun sayısı normalleştirilmiyordu; sayfa numaraları farklı sayılıyordu; `.catalog-light` sarmalayıcısı yoktu. Artık yayındaki sayfa builder'ın `buildInitialCatalogState` + `createCatalogPagesModel` fonksiyonlarını kullanıyor; şablon adları `lib/catalog-layouts.ts` ile tek yerden normalleştiriliyor (sayfa başına ürün sayısı dahil — `elegant-showcase` 9 yerine doğru 4 ürün).
+- **Sitedeki hiçbir sticky başlık yapışmıyordu:** `globals.css`'teki `body { overflow-x: hidden }` body'yi kaydırma kabı yapıyordu → `overflow-x: clip` (eski tarayıcılar için `hidden` yedek). Bu düzeltme tüm siteyi etkiler.
+- **Tam ekran Esc ile kapatılınca** sayfa siyah arka planda başlıksız kalıyordu → `fullscreenchange` dinleniyor; desteklemeyen tarayıcıda (iOS) buton gizli, hata yutuluyor.
+- **Masaüstü yakınlaştırma** transform + yüzde negatif margin ile yapılıyordu (alt boşluk/üst üste binme) → CSS `zoom`; PDF alırken 1.
+- **Mobilde arama sonucu boşken** hiçbir şey görünmüyordu (boş durum sadece masaüstündeydi) → her iki görünümde "sonuç yok + filtreleri temizle", ürünsüz katalog için ayrı mesaj. Mobil görüntüleyici sabit `100vh - 80px` yerine kalan alanı dolduruyor.
+- **Backend önbelleği:** katalog silinince public önbellek temizlenmiyordu (silinen katalog 10 dk açık kalıyordu); güncellemede meta önbelleği (başlık, açıklama, `show_in_search`) temizlenmiyordu → ikisi de düzeltildi.
+- **Görüntülenme sayacı:** WhatsApp/Facebook/Telegram link önizleme botları görüntülenme sayılıyordu → bot listesine eklendi.
+- **SEO/paylaşım:** OG görseli yoktu (alt sayfa openGraph'ı ezdiği için site varsayılanı da kayboluyordu) → kapak > logo > site görseli; canonical URL ve Twitter kartı; bulunamayan katalog `noindex`.
+- Başlık: sabit Türkçe başlıklar çeviriye taşındı, ikon butonlara etiket, arama temizleme, PDF hazırlanırken buton kilitli, mobilde ad + işlemler tek satır. Paylaşım linki `getCatalogShareUrl` ile (önceden `window.location.href`, sorgu parametreleriyle).
+- Kullanılmayan mor `DEFAULT_PRIMARY_COLOR` kaldırıldı.
+- Testler: `public-catalog-client.test.tsx` (şablon takma adları, varsayılanlar, sayfa numarası, açık tema, boş durum).
+
+**Kalan:** gerçek katalogla tüm şablonların builder ile yan yana karşılaştırması; görüntülenme sayısının analitiğe yansıması (gerçek ziyaret gerekir); `x-forwarded-for` sahteciliğiyle görüntülenme şişirme (backend `trust proxy` ayarı ile çözülmeli — deploy topolojisine bağlı, karar gerekiyor).
 
 ### 11. PDF export
 `lib/hooks/use-pdf-export.ts`, backend `pdf-exports`, `workers/pdf-export-worker.ts`

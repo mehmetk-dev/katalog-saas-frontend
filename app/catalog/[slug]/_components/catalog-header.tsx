@@ -2,10 +2,12 @@
 
 import React from "react"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { Search, Share2, Download, Maximize2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
+import { Download, Loader2, Maximize2, Minus, Plus, Search, Share2, X } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Logo } from "@/components/ui/logo"
+import { cn } from "@/lib/utils"
 
 interface CatalogHeaderProps {
     catalogName: string
@@ -16,7 +18,9 @@ interface CatalogHeaderProps {
     categories: string[]
     onShare: () => void
     onDownload: () => void
-    onToggleFullscreen: () => void
+    isDownloading: boolean
+    /** Tarayıcı tam ekranı desteklemiyorsa verilmez */
+    onToggleFullscreen?: () => void
     zoomScale: number
     onZoomIn: () => void
     onZoomOut: () => void
@@ -34,6 +38,7 @@ export const CatalogHeader = React.memo(function CatalogHeader({
     categories,
     onShare,
     onDownload,
+    isDownloading,
     onToggleFullscreen,
     zoomScale,
     onZoomIn,
@@ -42,94 +47,96 @@ export const CatalogHeader = React.memo(function CatalogHeader({
     isMobile,
     t,
 }: CatalogHeaderProps) {
-    const showBrandSuffix =
-        !(catalogName.toLowerCase().includes('fog') && catalogName.toLowerCase().includes('catalog'))
-
     return (
-        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/20 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    {/* Brand + catalog name */}
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="flex items-center group">
-                            <Logo showSuffix={showBrandSuffix} />
+        <header className="sticky top-0 z-50 shrink-0 border-b bg-background/90 backdrop-blur-xl">
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <Link href="/" className="hidden shrink-0 sm:flex" aria-label="FogCatalog">
+                            <Logo />
                         </Link>
-                        <div className="h-6 w-px bg-accent" />
-                        <h1 className="text-sm font-semibold text-muted-foreground truncate max-w-[200px]">
-                            {catalogName}
-                        </h1>
+                        <div className="hidden h-6 w-px shrink-0 bg-border sm:block" />
+                        <h1 className="min-w-0 truncate text-sm font-semibold text-foreground sm:text-base">{catalogName}</h1>
                     </div>
 
-                    {/* Search + actions */}
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <input
-                                type="text"
-                                placeholder={t("catalogs.public.searchPlaceholder")}
-                                value={searchQuery}
-                                onChange={(e) => onSearchChange(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-muted/50 border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                            />
-                        </div>
+                    <div className="flex shrink-0 items-center gap-1 md:order-3">
+                        <Button variant="ghost" size="icon" onClick={onShare} aria-label={t("catalogs.public.share")} title={t("catalogs.public.share")}>
+                            <Share2 className="size-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={onDownload}
+                            disabled={isDownloading}
+                            aria-label={t("catalogs.public.downloadPdf")}
+                            title={t("catalogs.public.downloadPdf")}
+                        >
+                            {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                        </Button>
 
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" onClick={onShare} className="rounded-full hover:bg-accent hover:text-primary">
-                                <Share2 className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={onDownload} className="rounded-full hover:bg-accent hover:text-primary">
-                                <Download className="w-4 h-4" />
-                            </Button>
-
-                            {!isMobile && (
-                                <div className="flex items-center gap-0.5 bg-muted rounded-full p-0.5 ml-2 border border-border">
-                                    <Button variant="ghost" size="icon" onClick={onZoomOut} className="h-8 w-8 rounded-full hover:bg-card transition-all shadow-sm" title="Uzaklaştır">
-                                        <ZoomOut className="w-3.5 h-3.5" />
-                                    </Button>
-                                    <div className="w-[1px] h-3 bg-accent mx-0.5" />
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={onZoomReset}
-                                        className="h-8 px-2 rounded-full text-[10px] font-black hover:bg-card transition-all text-muted-foreground"
-                                        title="Sıfırla"
-                                    >
-                                        %{Math.round(zoomScale * 100)}
-                                    </Button>
-                                    <div className="w-[1px] h-3 bg-accent mx-0.5" />
-                                    <Button variant="ghost" size="icon" onClick={onZoomIn} className="h-8 w-8 rounded-full hover:bg-card transition-all shadow-sm" title="Yakınlaştır">
-                                        <ZoomIn className="w-3.5 h-3.5" />
-                                    </Button>
-                                    <div className="w-[1px] h-3 bg-accent mx-0.5" />
-                                    <Button variant="ghost" size="icon" onClick={onZoomReset} className="h-8 w-8 rounded-full hover:bg-card transition-all shadow-sm" title="Sıfırla">
-                                        <RotateCcw className="w-3.5 h-3.5" />
-                                    </Button>
-                                </div>
-                            )}
-
-                            <div className="w-[1px] h-4 bg-accent mx-2" />
-
-                            {!isMobile && (
-                                <Button variant="ghost" size="icon" onClick={onToggleFullscreen} className="rounded-full hover:bg-muted ml-1">
-                                    <Maximize2 className="w-4 h-4" />
+                        {!isMobile && (
+                            <div className="ml-1 flex items-center rounded-full border bg-muted/60 p-0.5">
+                                <Button variant="ghost" size="icon" onClick={onZoomOut} className="size-8 rounded-full" aria-label={t("catalogs.public.zoomOut")} title={t("catalogs.public.zoomOut")}>
+                                    <Minus className="size-3.5" />
                                 </Button>
-                            )}
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={onZoomReset}
+                                    className="h-8 min-w-12 rounded-full px-2 text-xs font-medium tabular-nums text-muted-foreground hover:text-foreground"
+                                    aria-label={t("catalogs.public.resetZoom")}
+                                    title={t("catalogs.public.resetZoom")}
+                                >
+                                    %{Math.round(zoomScale * 100)}
+                                </button>
+                                <Button variant="ghost" size="icon" onClick={onZoomIn} className="size-8 rounded-full" aria-label={t("catalogs.public.zoomIn")} title={t("catalogs.public.zoomIn")}>
+                                    <Plus className="size-3.5" />
+                                </Button>
+                            </div>
+                        )}
+
+                        {!isMobile && onToggleFullscreen && (
+                            <Button variant="ghost" size="icon" onClick={onToggleFullscreen} aria-label={t("catalogs.public.fullscreen")} title={t("catalogs.public.fullscreen")}>
+                                <Maximize2 className="size-4" />
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="relative w-full md:order-2 md:w-64 md:flex-none">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder={t("catalogs.public.searchPlaceholder")}
+                            aria-label={t("catalogs.public.searchPlaceholder")}
+                            value={searchQuery}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            className="h-9 rounded-full bg-muted/60 pl-9 pr-8 [&::-webkit-search-cancel-button]:hidden"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => onSearchChange("")}
+                                aria-label={t("catalogs.public.clearSearch")}
+                                className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+                            >
+                                <X className="size-3.5" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Category pills */}
                 {categories.length > 2 && (
-                    <div className="mt-3 flex flex-nowrap items-center gap-2 pb-2 overflow-x-auto no-scrollbar scroll-smooth">
-                        {categories.map(cat => (
+                    <div className="no-scrollbar -mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                        {categories.map((cat) => (
                             <button
                                 key={cat}
+                                type="button"
                                 onClick={() => onCategoryChange(cat)}
+                                aria-pressed={selectedCategory === cat}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0",
+                                    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                                     selectedCategory === cat
-                                        ? "bg-primary text-primary-foreground shadow-md shadow-black/10"
-                                        : "bg-card text-muted-foreground border border-border hover:border-border hover:text-primary",
+                                        ? "border-primary bg-primary text-primary-foreground"
+                                        : "bg-card text-muted-foreground hover:text-foreground",
                                 )}
                             >
                                 {cat === "all" ? t("catalogs.public.all") : cat}

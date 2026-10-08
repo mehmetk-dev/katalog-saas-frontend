@@ -204,7 +204,7 @@ export const getPublicCatalog = cache(async (slug: string) => {
 /** Lightweight metadata-only fetch — no products, no view tracking */
 export const getPublicCatalogMeta = cache(async (slug: string) => {
   try {
-    return await apiFetch<Pick<Catalog, 'id' | 'name' | 'description' | 'is_published' | 'show_in_search'>>(`/catalogs/public/${slug}/meta`)
+    return await apiFetch<Pick<Catalog, 'id' | 'name' | 'description' | 'is_published' | 'show_in_search' | 'cover_image_url' | 'logo_url'>>(`/catalogs/public/${slug}/meta`)
   } catch {
     return null
   }

@@ -288,14 +288,19 @@
     @apply border-border outline-ring/50;
   }
 
+  /* `clip` yatay taşmayı keser ama `hidden` gibi kaydırma kabı oluşturmaz;
+     `hidden` body'yi kaydırma kabı yapıp tüm `position: sticky` başlıkları bozuyordu.
+     `hidden` yalnızca `clip` desteklemeyen eski tarayıcılar için yedek. */
   html {
     overflow-x: hidden;
+    overflow-x: clip;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    overflow-x: clip;
     min-height: 100vh;
     min-height: 100dvh;
     /* Dynamic viewport height for mobile */

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { Metadata } from "next"
 
 import { getPublicCatalog, getPublicCatalogMeta } from "@/lib/actions/catalogs"
+import { getCatalogShareUrl } from "@/lib/catalog-url"
 import type { Product } from "@/lib/actions/products"
 
 import { PublicCatalogClient } from "./public-catalog-client"
@@ -19,16 +20,32 @@ export async function generateMetadata({ params }: PublicCatalogPageProps): Prom
   const meta = await getPublicCatalogMeta(slug)
 
   if (!meta) {
-    return { title: "Katalog Bulunamadı" }
+    return { title: "Katalog Bulunamadı", robots: { index: false, follow: false } }
   }
+
+  const description = meta.description || `${meta.name} kataloğunu görüntüleyin`
+  const url = getCatalogShareUrl(slug)
+  // Paylaşım önizlemesi (WhatsApp, LinkedIn...) için kapak > logo > site varsayılanı.
+  // openGraph alt sayfada tamamen ezildiği için varsayılan görsel de burada verilmeli.
+  const image = meta.cover_image_url || meta.logo_url || "/og-image.webp"
 
   return {
     title: meta.name,
-    description: meta.description || `${meta.name} kataloğunu görüntüleyin`,
+    description,
+    alternates: { canonical: url },
     robots: meta.show_in_search === false ? { index: false, follow: true } : undefined,
     openGraph: {
+      type: "website",
+      url,
       title: meta.name,
-      description: meta.description || undefined,
+      description,
+      images: [{ url: image, alt: meta.name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: meta.name,
+      description,
+      images: [image],
     },
   }
 }

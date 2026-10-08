@@ -11,6 +11,12 @@ import type { CatalogUpdatePayload } from './types';
 import { findMissingProductIds } from './product-ownership';
 
 const PRODUCT_OWNERSHIP_CHUNK_SIZE = 100;
+
+/** Public katalog + meta (başlık, açıklama, show_in_search) önbellek anahtarlarını siler */
+function deletePublicCatalogCache(slug: string): Promise<void>[] {
+    const key = cacheKeys.publicCatalog(slug);
+    return [deleteCache(key, true), deleteCache(`${key}:meta`, true)];
+}
 const PRODUCT_OWNERSHIP_CONCURRENCY = 6;
 
 async function getMissingOwnedProductIds(userId: string, productIds: string[]): Promise<string[]> {
@@ -280,8 +286,8 @@ export const updateCatalog = async (req: Request, res: Response) => {
             deleteCache(cacheKeys.catalogs(userId)),
             deleteCache(cacheKeys.catalog(userId, id), true),
             deleteCache(cacheKeys.stats(userId)),
-            ...(oldCatalog?.share_slug ? [deleteCache(cacheKeys.publicCatalog(oldCatalog.share_slug), true)] : []),
-            ...(share_slug ? [deleteCache(cacheKeys.publicCatalog(share_slug), true)] : [])
+            ...(oldCatalog?.share_slug ? deletePublicCatalogCache(oldCatalog.share_slug) : []),
+            ...(share_slug ? deletePublicCatalogCache(share_slug) : [])
         ]);
 
         // Log activity
@@ -311,19 +317,22 @@ export const deleteCatalog = async (req: Request, res: Response) => {
         const userId = getUserId(req);
         const { id } = req.params;
 
-        const { error } = await supabase
+        const { data: deleted, error } = await supabase
             .from('catalogs')
             .delete()
             .eq('id', id)
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .select('share_slug');
 
         if (error) throw error;
 
-        // Cache'leri temizle
+        // Cache'leri temizle — public kopya da silinmeli, yoksa silinen katalog TTL boyunca açık kalır
+        const deletedSlugs = (deleted || []).map((row) => row.share_slug as string | null).filter((slug): slug is string => !!slug);
         await Promise.all([
             deleteCache(cacheKeys.catalogs(userId)),
             deleteCache(cacheKeys.catalog(userId, id), true),
-            deleteCache(cacheKeys.stats(userId))
+            deleteCache(cacheKeys.stats(userId)),
+            ...deletedSlugs.flatMap(deletePublicCatalogCache),
         ]);
 
         // Log activity

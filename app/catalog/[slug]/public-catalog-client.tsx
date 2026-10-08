@@ -1,129 +1,127 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
-import { cn } from "@/lib/utils"
-import { useTranslation } from "@/lib/contexts/i18n-provider"
-import { Search, X } from "lucide-react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
+import { SearchX, X } from "lucide-react"
 import { Toaster } from "sonner"
-import { PdfProgressModal } from "@/components/ui/pdf-progress-modal"
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
-import { LightboxProvider, CatalogPreloader } from "@/lib/contexts/lightbox-context"
-import { ImageLightbox } from "@/components/ui/image-lightbox"
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch"
+
 import { LazyPage } from "@/components/catalogs/lazy-page"
 import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
-
-import type { Product } from "@/lib/actions/products"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
+import { PdfProgressModal } from "@/components/ui/pdf-progress-modal"
 import type { Catalog } from "@/lib/actions/catalogs"
+import type { Product } from "@/lib/actions/products"
+import { getCatalogShareUrl } from "@/lib/catalog-url"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { CatalogPreloader, LightboxProvider } from "@/lib/contexts/lightbox-context"
+import { cn } from "@/lib/utils"
 
-import { A4_HEIGHT_PX, A4_WIDTH_PX, MOBILE_BREAKPOINT } from "./_lib/constants"
-import { useCatalogPages } from "./_hooks/use-catalog-pages"
-import { usePublicPdfExport } from "./_hooks/use-public-pdf-export"
-import { CatalogHeader } from "./_components/catalog-header"
 import { CatalogFooter } from "./_components/catalog-footer"
+import { CatalogHeader } from "./_components/catalog-header"
 import { PageRenderer } from "./_components/page-renderer"
+import { usePublicPdfExport } from "./_hooks/use-public-pdf-export"
+import { useCatalogPages } from "./_hooks/use-catalog-pages"
+import { A4_HEIGHT_PX, A4_WIDTH_PX, MOBILE_BREAKPOINT } from "./_lib/constants"
+
+const DEFAULT_ZOOM = 0.85
+const MIN_ZOOM = 0.4
+const MAX_ZOOM = 1.5
+const ZOOM_STEP = 0.1
 
 interface PublicCatalogClientProps {
     catalog: Catalog
     products: Product[]
 }
 
-export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
-    const { t: baseT } = useTranslation()
-    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+function useIsMobile() {
     const [isMobile, setIsMobile] = useState(false)
+    useEffect(() => {
+        const query = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+        const update = () => setIsMobile(query.matches)
+        update()
+        query.addEventListener("change", update)
+        return () => query.removeEventListener("change", update)
+    }, [])
+    return isMobile
+}
+
+/** Tarayıcının tam ekran durumunu izler (Esc ile çıkış dahil). */
+function useFullscreen() {
     const [isFullscreen, setIsFullscreen] = useState(false)
-    const [zoomScale, setZoomScale] = useState(0.85) // Başlangıçta biraz küçük (0.85)
+    const [isSupported, setIsSupported] = useState(false)
+
+    useEffect(() => {
+        setIsSupported(Boolean(document.fullscreenEnabled))
+        const update = () => setIsFullscreen(Boolean(document.fullscreenElement))
+        document.addEventListener("fullscreenchange", update)
+        return () => document.removeEventListener("fullscreenchange", update)
+    }, [])
+
+    const toggle = useCallback(() => {
+        const request = document.fullscreenElement
+            ? document.exitFullscreen()
+            : document.documentElement.requestFullscreen()
+        // iOS Safari vb. desteklemeyen tarayıcılarda sessizce yok say
+        request?.catch(() => undefined)
+    }, [])
+
+    return { isFullscreen, isSupported, toggle }
+}
+
+export function PublicCatalogClient({ catalog, products }: PublicCatalogClientProps) {
+    const { t: baseT, language } = useTranslation()
+    const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+    const locale = language === "en" ? "en-US" : "tr-TR"
+
+    const isMobile = useIsMobile()
+    const { isFullscreen, isSupported: canFullscreen, toggle: toggleFullscreen } = useFullscreen()
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+    const [zoomScale, setZoomScale] = useState(DEFAULT_ZOOM)
 
     const {
+        design,
         searchQuery, setSearchQuery,
         selectedCategory, setSelectedCategory,
-        categories, filteredProducts, catalogPages,
-    } = useCatalogPages({ catalog, products })
+        categories, catalogPages, isFiltering, resetFilters,
+    } = useCatalogPages({
+        catalog,
+        products,
+        uncategorizedLabel: t("preview.uncategorized"),
+        locale,
+    })
 
     const {
         isExporting, pdfProgress,
         handleDownload, cancelExport, closePdfModal,
     } = usePublicPdfExport({ catalogName: catalog.name, expectedPageCount: catalogPages.length })
 
-    useEffect(() => {
-        const update = () => {
-            setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-        }
-        update()
-        window.addEventListener('resize', update)
-        return () => window.removeEventListener('resize', update)
-    }, [])
+    const handleZoomIn = useCallback(() => setZoomScale((prev) => Math.min(+(prev + ZOOM_STEP).toFixed(2), MAX_ZOOM)), [])
+    const handleZoomOut = useCallback(() => setZoomScale((prev) => Math.max(+(prev - ZOOM_STEP).toFixed(2), MIN_ZOOM)), [])
+    const handleZoomReset = useCallback(() => setZoomScale(DEFAULT_ZOOM), [])
+    const openShare = useCallback(() => setIsShareModalOpen(true), [])
 
-    const toggleFullscreen = useCallback(() => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen()
-            setIsFullscreen(true)
-        } else {
-            document.exitFullscreen()
-            setIsFullscreen(false)
-        }
-    }, [])
-
-    const handleZoomIn = () => setZoomScale(prev => Math.min(prev + 0.1, 1.5))
-    const handleZoomOut = () => setZoomScale(prev => Math.max(prev - 0.1, 0.4))
-    const handleZoomReset = () => setZoomScale(0.85)
-
-    // -- Background style derived from catalog settings ----------------------
-
-    const backgroundStyle = useMemo((): React.CSSProperties => {
-        const base: React.CSSProperties = { backgroundColor: catalog.background_color || '#ffffff' }
-
-        if (catalog.background_image) {
-            return {
-                ...base,
-                backgroundImage: `url(${catalog.background_image})`,
-                backgroundSize: catalog.background_image_fit || 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-            }
-        }
-        if (catalog.background_gradient && catalog.background_gradient !== 'none') {
-            return { ...base, background: catalog.background_gradient }
-        }
-        return base
-    }, [catalog.background_color, catalog.background_image, catalog.background_image_fit, catalog.background_gradient])
-
-    const pageStyle = useMemo(
-        () => ({ width: `${A4_WIDTH_PX}px`, height: `${A4_HEIGHT_PX}px`, ...backgroundStyle }),
-        [backgroundStyle],
-    )
-
-    // -- Shared page renderer used by both mobile & desktop ------------------
+    const totalPages = catalogPages.length
 
     const renderPage = useCallback((page: typeof catalogPages[number], index: number) => (
         <LazyPage key={index} index={index} isExporting={isExporting}>
             <div
                 data-pdf-page="true"
-                className={cn(
-                    "shadow-2xl rounded-lg overflow-hidden border border-border relative bg-card shrink-0",
-                    !isMobile && "mx-auto",
-                )}
-                style={pageStyle}
+                // Builder önizlemesiyle aynı: şablonlar her zaman açık temada çizilir
+                className="catalog-page catalog-light relative mx-auto shrink-0 overflow-hidden rounded-sm bg-white shadow-xl ring-1 ring-black/5"
+                style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX }}
             >
-                <div className="w-full h-full" style={{ height: `${A4_HEIGHT_PX}px` }}>
-                    <div style={{ width: '100%', height: '100%' }}>
-                        <PageRenderer
-                            page={page}
-                            catalog={catalog}
-                            filteredProductCount={filteredProducts.length}
-                            isExporting={isExporting}
-                        />
-                    </div>
-                </div>
+                <PageRenderer
+                    page={page}
+                    design={design}
+                    pageNumber={index + 1}
+                    totalPages={totalPages}
+                    productCount={products.length}
+                    isExporting={isExporting}
+                />
             </div>
         </LazyPage>
-    ), [catalog, filteredProducts.length, isExporting, isMobile, pageStyle])
-
-
-    // -- Determine PDF modal action (close vs cancel) ------------------------
+    ), [design, isExporting, products.length, totalPages])
 
     const isPdfTerminal =
         pdfProgress.phase === "done" ||
@@ -131,19 +129,31 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         pdfProgress.phase === "cancelled"
 
     const preloaderProducts = useMemo(
-        () => products.map(p => ({ image_url: p.image_url ?? undefined, images: p.images })),
+        () => products.map((p) => ({ image_url: p.image_url ?? undefined, images: p.images })),
         [products],
+    )
+
+    const emptyState = (
+        <div className="flex flex-col items-center justify-center px-6 py-20 text-center text-muted-foreground">
+            <SearchX className="mb-4 size-10 opacity-40" />
+            <p className="font-medium text-foreground">
+                {isFiltering ? t("catalogs.public.noResults") : t("catalogs.public.noProducts")}
+            </p>
+            {isFiltering && (
+                <Button variant="outline" onClick={resetFilters} className="mt-4 bg-card">
+                    {t("catalogs.public.resetFilters")}
+                </Button>
+            )}
+        </div>
     )
 
     return (
         <LightboxProvider>
             <CatalogPreloader products={preloaderProducts} />
-            <div className={cn(
-                "min-h-screen flex flex-col transition-colors duration-500",
-                isFullscreen ? "bg-black" : "bg-muted/50",
-            )}>
+            {/* Mobilde sayfa kaydırması yerine yakınlaştırılabilir alan ekranı doldurur */}
+            <div className={cn("flex flex-col", isMobile ? "h-dvh overflow-hidden" : "min-h-dvh", isFullscreen ? "bg-black" : "bg-muted/50")}>
                 <ImageLightbox />
-                <Toaster position="top-center" expand={true} richColors />
+                <Toaster position="top-center" richColors />
 
                 <PdfProgressModal
                     state={pdfProgress}
@@ -154,24 +164,22 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 <ShareModal
                     open={isShareModalOpen}
                     onOpenChange={setIsShareModalOpen}
-                    shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                    shareUrl={catalog.share_slug ? getCatalogShareUrl(catalog.share_slug) : ""}
                     catalog={catalog}
                     isPublished={true}
                     onDownloadPdf={handleDownload}
                 />
 
-                {/* Fullscreen exit overlay */}
-                {isFullscreen && (
+                {isFullscreen ? (
                     <button
+                        type="button"
                         onClick={toggleFullscreen}
-                        className="fixed top-6 right-6 z-[100] bg-background/10 backdrop-blur-md border border-white/20 text-white p-3 rounded-full hover:bg-background/20 transition-all shadow-xl group"
+                        aria-label={t("catalogs.public.exitFullscreen")}
+                        className="fixed right-6 top-6 z-[100] rounded-full border border-white/20 bg-white/10 p-3 text-white backdrop-blur-md transition-colors hover:bg-white/20"
                     >
-                        <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        <span className="sr-only">Exit Fullscreen</span>
+                        <X className="size-6" />
                     </button>
-                )}
-
-                {!isFullscreen && (
+                ) : (
                     <CatalogHeader
                         catalogName={catalog.name}
                         searchQuery={searchQuery}
@@ -179,9 +187,10 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                         selectedCategory={selectedCategory}
                         onCategoryChange={setSelectedCategory}
                         categories={categories}
-                        onShare={() => setIsShareModalOpen(true)}
+                        onShare={openShare}
                         onDownload={handleDownload}
-                        onToggleFullscreen={toggleFullscreen}
+                        isDownloading={isExporting}
+                        onToggleFullscreen={canFullscreen ? toggleFullscreen : undefined}
                         zoomScale={zoomScale}
                         onZoomIn={handleZoomIn}
                         onZoomOut={handleZoomOut}
@@ -191,54 +200,36 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                     />
                 )}
 
-                <main className={cn(
-                    "flex-1 relative w-full",
-                    isFullscreen ? "bg-black" : "bg-muted/50",
-                    !isMobile && "overflow-y-auto",
-                )}>
-                    {isMobile ? (
+                <main className="relative min-h-0 w-full flex-1">
+                    {catalogPages.length === 0 ? (
+                        emptyState
+                    ) : isMobile ? (
                         <TransformWrapper
-                            initialScale={Math.min(1, (typeof window !== 'undefined' ? window.innerWidth : 390) / 820)}
+                            initialScale={Math.min(1, (window.innerWidth - 16) / A4_WIDTH_PX)}
                             minScale={0.2}
                             maxScale={3}
                             centerOnInit={false}
-                            initialPositionX={0}
-                            initialPositionY={0}
                             wheel={{ step: 0.1 }}
-                            panning={{ velocityDisabled: false }}
-                            alignmentAnimation={{ animationTime: 200, animationType: 'easeOut' }}
+                            doubleClick={{ mode: "toggle" }}
+                            alignmentAnimation={{ animationTime: 200, animationType: "easeOut" }}
                         >
                             <TransformComponent
-                                wrapperStyle={{ width: "100%", height: "calc(100vh - 80px)", overflow: "hidden" }}
-                                contentStyle={{ width: "100%", display: "flex", flexDirection: "column", gap: "12px", padding: "12px 0 60px 0", alignItems: "center" }}
+                                wrapperStyle={{ width: "100%", height: "100%", overflow: "hidden" }}
+                                contentStyle={{ width: "100%" }}
                             >
-                                <div className="w-full flex flex-col gap-6 items-center">
+                                <div className="flex w-full flex-col items-center gap-6 px-2 pb-16 pt-3">
                                     {catalogPages.map(renderPage)}
                                 </div>
                             </TransformComponent>
                         </TransformWrapper>
                     ) : (
-                        <div className="flex flex-col items-center w-full min-h-full py-12">
-                            <div className="flex flex-col items-center gap-12 transition-transform duration-300 origin-top"
-                                style={{
-                                    transform: `scale(${zoomScale})`,
-                                    marginBottom: `calc(-100% * (1 - ${zoomScale}))`
-                                }}>
-                                {catalogPages.length > 0 ? (
-                                    catalogPages.map(renderPage)
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                                        <Search className="w-12 h-12 mb-4 opacity-20" />
-                                        <p>{t("catalogs.public.noResults")}</p>
-                                        <Button
-                                            variant="link"
-                                            onClick={() => { setSelectedCategory("all"); setSearchQuery("") }}
-                                            className="mt-2 text-primary"
-                                        >
-                                            {t("catalogs.public.resetFilters")}
-                                        </Button>
-                                    </div>
-                                )}
+                        <div className="flex w-full justify-center py-10">
+                            {/* `zoom` yerleşimi de ölçekler; transform + negatif margin boşluk/üst üste binme yapıyordu */}
+                            <div
+                                className="flex flex-col items-center gap-10"
+                                style={{ zoom: isExporting ? 1 : zoomScale }}
+                            >
+                                {catalogPages.map(renderPage)}
                             </div>
                         </div>
                     )}
