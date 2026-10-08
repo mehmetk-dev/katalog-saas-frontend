@@ -26,19 +26,19 @@ export default function ContactPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-slate-900 selection:bg-violet-100 font-sans">
+    <div className="min-h-screen bg-background text-foreground selection:bg-accent font-sans">
       <PublicHeader />
 
       <main className="relative pt-24 pb-16 md:pt-32 md:pb-20 px-4 overflow-hidden">
         {/* Ambient background */}
-        <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FDFCFB]">
+        <div className="fixed inset-0 pointer-events-none -z-10 bg-background">
           <div className={cn(
             "absolute top-[-10%] right-[-10%] w-[60%] h-[60%]",
-            "bg-violet-100/30 rounded-full blur-[120px]"
+            "bg-accent/30 rounded-full blur-[120px]"
           )} />
           <div className={cn(
             "absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%]",
-            "bg-fuchsia-100/20 rounded-full blur-[120px]"
+            "bg-accent/20 rounded-full blur-[120px]"
           )} />
         </div>
 
@@ -54,7 +54,7 @@ export default function ContactPage() {
 
             {/* LEFT PAGE: Editorial Contents */}
             <div className={cn(
-              "relative md:w-1/2 bg-slate-900 text-slate-50",
+              "relative md:w-1/2 bg-primary text-primary-foreground/90",
               "p-6 sm:p-8 md:p-10 lg:p-16",
               "flex flex-col justify-between overflow-hidden",
               "rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none"
@@ -79,9 +79,9 @@ export default function ContactPage() {
                   <span className={cn(
                     "text-[9px] sm:text-[10px] uppercase",
                     "tracking-[0.3em] sm:tracking-[0.4em]",
-                    "font-bold text-violet-400"
+                    "font-bold text-primary"
                   )}>İletişim / Foglio №01</span>
-                  <div className="h-px bg-slate-700 flex-1" />
+                  <div className="h-px bg-primary flex-1" />
                 </div>
 
                 {/* Title */}
@@ -96,11 +96,11 @@ export default function ContactPage() {
                     <br />
                     <span className={cn(
                       "text-transparent bg-clip-text bg-gradient-to-br",
-                      "from-violet-400 via-fuchsia-200 to-white"
+                      "from-primary via-muted to-background"
                     )}>KURUN.</span>
                   </h1>
                   <p className={cn(
-                    "text-slate-400 text-sm sm:text-base md:text-lg",
+                    "text-muted-foreground text-sm sm:text-base md:text-lg",
                     "font-light leading-relaxed max-w-sm"
                   )}>
                     Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız. 24 saat içinde yanıt veririz.
@@ -117,16 +117,16 @@ export default function ContactPage() {
                     <div key={i} className="group cursor-pointer">
                       <p className={cn(
                         "text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em]",
-                        "text-slate-500 mb-1.5 md:mb-2 font-bold"
+                        "text-muted-foreground mb-1.5 md:mb-2 font-bold"
                       )}>{item.label}</p>
                       <div className="flex items-center gap-2.5 md:gap-3">
                         <item.icon className={cn(
-                          "w-3.5 h-3.5 md:w-4 md:h-4 text-violet-500",
+                          "w-3.5 h-3.5 md:w-4 md:h-4 text-primary",
                           "group-hover:scale-125 transition-transform"
                         )} />
                         <p className={cn(
                           "text-base sm:text-lg md:text-xl font-medium",
-                          "tracking-tight group-hover:text-violet-400",
+                          "tracking-tight group-hover:text-primary",
                           "transition-colors break-all sm:break-normal"
                         )}>{item.value}</p>
                       </div>
@@ -138,19 +138,19 @@ export default function ContactPage() {
               {/* Footer */}
               <div className={cn(
                 "relative z-10 pt-8 md:pt-12 mt-8 md:mt-0",
-                "border-t border-slate-800 flex items-center justify-between"
+                "border-t border-primary flex items-center justify-between"
               )}>
                 <div className="flex gap-4 md:gap-6">
                   <Instagram className={cn(
-                    "w-4 h-4 md:w-5 md:h-5 text-slate-500",
+                    "w-4 h-4 md:w-5 md:h-5 text-muted-foreground",
                     "hover:text-white transition-colors cursor-pointer"
                   )} />
                   <Twitter className={cn(
-                    "w-4 h-4 md:w-5 md:h-5 text-slate-500",
+                    "w-4 h-4 md:w-5 md:h-5 text-muted-foreground",
                     "hover:text-white transition-colors cursor-pointer"
                   )} />
                 </div>
-                <span className="text-[9px] uppercase tracking-widest text-slate-600 font-bold">FogCatalog</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">FogCatalog</span>
               </div>
             </div>
 
@@ -168,7 +168,7 @@ export default function ContactPage() {
 
             {/* RIGHT PAGE: Form */}
             <div className={cn(
-              "relative md:w-1/2 bg-white text-slate-900",
+              "relative md:w-1/2 bg-card text-foreground",
               "p-6 sm:p-8 md:p-10 lg:p-16 flex flex-col",
               "rounded-b-2xl md:rounded-r-2xl md:rounded-bl-none",
               "overflow-hidden"
@@ -181,19 +181,19 @@ export default function ContactPage() {
                   <h2 className={cn(
                     "text-[10px] sm:text-xs uppercase",
                     "tracking-[0.3em] sm:tracking-[0.4em]",
-                    "font-black text-slate-300 mb-2 md:mb-3 font-montserrat"
+                    "font-black text-muted-foreground/70 mb-2 md:mb-3 font-montserrat"
                   )}>Mesaj Gönderin</h2>
-                  <div className="h-0.5 bg-violet-600 w-12 ml-auto" />
+                  <div className="h-0.5 bg-primary w-12 ml-auto" />
                 </div>
 
                 {isSuccess ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-8 h-8 text-green-600" />
+                    <div className="w-16 h-16 bg-success-soft rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-success" />
                     </div>
                     <div className="text-center space-y-2">
-                      <h3 className="text-xl font-bold text-slate-900">Mesajınız Gönderildi!</h3>
-                      <p className="text-slate-500 text-sm max-w-xs">En kısa sürede size dönüş yapacağız. Teşekkürler.</p>
+                      <h3 className="text-xl font-bold text-foreground">Mesajınız Gönderildi!</h3>
+                      <p className="text-muted-foreground text-sm max-w-xs">En kısa sürede size dönüş yapacağız. Teşekkürler.</p>
                     </div>
                     <Button
                       type="button"
@@ -261,19 +261,19 @@ export default function ContactPage() {
                           suppressHydrationWarning
                           className={cn(
                             "peer bg-transparent border-0 border-b-2",
-                            "border-slate-100 rounded-none h-10 sm:h-12 px-0",
+                            "border-border rounded-none h-10 sm:h-12 px-0",
                             "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-violet-600",
+                            "focus:ring-0 focus:border-primary",
                             "transition-all placeholder:opacity-0"
                           )}
                         />
                         <label
                           htmlFor="name"
                           className={cn(
-                            "absolute left-0 top-2 sm:top-3 text-slate-400",
+                            "absolute left-0 top-2 sm:top-3 text-muted-foreground",
                             "text-sm sm:text-base transition-all",
                             "peer-focus:-top-5 peer-focus:text-[10px]",
-                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-focus:text-primary peer-focus:font-bold",
                             "peer-[:not(:placeholder-shown)]:-top-5",
                             "peer-[:not(:placeholder-shown)]:text-[10px]",
                             "cursor-text uppercase tracking-widest"
@@ -295,19 +295,19 @@ export default function ContactPage() {
                           suppressHydrationWarning
                           className={cn(
                             "peer bg-transparent border-0 border-b-2",
-                            "border-slate-100 rounded-none h-10 sm:h-12 px-0",
+                            "border-border rounded-none h-10 sm:h-12 px-0",
                             "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-violet-600",
+                            "focus:ring-0 focus:border-primary",
                             "transition-all placeholder:opacity-0"
                           )}
                         />
                         <label
                           htmlFor="email"
                           className={cn(
-                            "absolute left-0 top-2 sm:top-3 text-slate-400",
+                            "absolute left-0 top-2 sm:top-3 text-muted-foreground",
                             "text-sm sm:text-base transition-all",
                             "peer-focus:-top-5 peer-focus:text-[10px]",
-                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-focus:text-primary peer-focus:font-bold",
                             "peer-[:not(:placeholder-shown)]:-top-5",
                             "peer-[:not(:placeholder-shown)]:text-[10px]",
                             "cursor-text uppercase tracking-widest"
@@ -319,7 +319,7 @@ export default function ContactPage() {
 
                       {/* Subject */}
                       <div className="space-y-2.5 md:space-y-3 pt-1 md:pt-2">
-                        <label className="text-[9px] uppercase tracking-widest font-black text-slate-400">Konu Seçin</label>
+                        <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Konu Seçin</label>
                         <div className="grid grid-cols-2 gap-2">
                           {subjects.map((subj) => {
                             const Icon = subj.icon
@@ -339,8 +339,8 @@ export default function ContactPage() {
                                   "py-2 sm:py-2.5 px-2 sm:px-3",
                                   "border rounded-full transition-all min-h-[44px]",
                                   selectedSubject === subj.id
-                                    ? "border-violet-600 bg-violet-50 text-violet-600"
-                                    : "border-slate-100 text-slate-500 hover:border-violet-300 hover:text-violet-600"
+                                    ? "border-primary bg-accent text-primary"
+                                    : "border-border text-muted-foreground hover:border-border hover:text-primary"
                                 )}
                               >
                                 <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
@@ -363,20 +363,20 @@ export default function ContactPage() {
                           suppressHydrationWarning
                           className={cn(
                             "peer bg-transparent border-0 border-b-2",
-                            "border-slate-100 rounded-none",
+                            "border-border rounded-none",
                             "min-h-[80px] sm:min-h-[100px] px-0",
                             "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-violet-600",
+                            "focus:ring-0 focus:border-primary",
                             "transition-all resize-none placeholder:opacity-0"
                           )}
                         />
                         <label
                           htmlFor="message"
                           className={cn(
-                            "absolute left-0 top-3 sm:top-4 text-slate-400",
+                            "absolute left-0 top-3 sm:top-4 text-muted-foreground",
                             "text-sm sm:text-base transition-all",
                             "peer-focus:-top-4 peer-focus:text-[10px]",
-                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-focus:text-primary peer-focus:font-bold",
                             "peer-[:not(:placeholder-shown)]:-top-4",
                             "peer-[:not(:placeholder-shown)]:text-[10px]",
                             "cursor-text uppercase tracking-widest"
@@ -391,8 +391,8 @@ export default function ContactPage() {
                       <div
                         role="alert"
                         className={cn(
-                          "flex items-start gap-2 rounded-xl border border-red-200",
-                          "bg-red-50 px-4 py-3 text-sm text-red-700"
+                          "flex items-start gap-2 rounded-xl border border-brand/20",
+                          "bg-brand-soft px-4 py-3 text-sm text-brand-soft-foreground"
                         )}
                       >
                         <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -406,10 +406,10 @@ export default function ContactPage() {
                         disabled={isSubmitting}
                         className={cn(
                           "w-full h-12 sm:h-14 rounded-full",
-                          "bg-slate-900 text-white font-bold",
+                          "bg-primary text-primary-foreground font-bold",
                           "tracking-widest uppercase text-[10px] sm:text-xs",
-                          "hover:bg-violet-600 hover:scale-[1.02]",
-                          "shadow-2xl shadow-slate-900/10 transition-all group",
+                          "hover:bg-primary/90 hover:scale-[1.02]",
+                          "shadow-2xl shadow-black/10 transition-all group",
                           "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         )}
                       >
@@ -434,10 +434,10 @@ export default function ContactPage() {
                 )}
 
                 <div className="mt-8 md:mt-10 flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-widest text-slate-300 font-bold">v2.1</span>
+                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/70 font-bold">v2.1</span>
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
-                    <span className="text-[9px] uppercase tracking-widest text-slate-400">FogCatalog</span>
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground">FogCatalog</span>
                   </div>
                 </div>
               </div>
@@ -446,13 +446,13 @@ export default function ContactPage() {
             {/* Stacked pages effect */}
             <div className={cn(
               "hidden md:block absolute top-[10px] left-[10px]",
-              "w-full h-full bg-white rounded-2xl -z-10",
-              "shadow-lg border border-slate-100"
+              "w-full h-full bg-card rounded-2xl -z-10",
+              "shadow-lg border border-border"
             )} />
             <div className={cn(
               "hidden md:block absolute top-[20px] left-[20px]",
-              "w-full h-full bg-white rounded-2xl -z-20",
-              "shadow-lg border border-slate-100"
+              "w-full h-full bg-card rounded-2xl -z-20",
+              "shadow-lg border border-border"
             )} />
           </div>
         </div>

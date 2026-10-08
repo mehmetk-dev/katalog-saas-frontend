@@ -103,7 +103,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             <div
                 data-pdf-page="true"
                 className={cn(
-                    "shadow-2xl rounded-lg overflow-hidden border border-slate-200 relative bg-white shrink-0",
+                    "shadow-2xl rounded-lg overflow-hidden border border-border relative bg-card shrink-0",
                     !isMobile && "mx-auto",
                 )}
                 style={pageStyle}
@@ -140,7 +140,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             <CatalogPreloader products={preloaderProducts} />
             <div className={cn(
                 "min-h-screen flex flex-col transition-colors duration-500",
-                isFullscreen ? "bg-black" : "bg-slate-50",
+                isFullscreen ? "bg-black" : "bg-muted/50",
             )}>
                 <ImageLightbox />
                 <Toaster position="top-center" expand={true} richColors />
@@ -164,7 +164,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 {isFullscreen && (
                     <button
                         onClick={toggleFullscreen}
-                        className="fixed top-6 right-6 z-[100] bg-white/10 backdrop-blur-md border border-white/20 text-white p-3 rounded-full hover:bg-white/20 transition-all shadow-xl group"
+                        className="fixed top-6 right-6 z-[100] bg-background/10 backdrop-blur-md border border-white/20 text-white p-3 rounded-full hover:bg-background/20 transition-all shadow-xl group"
                     >
                         <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="sr-only">Exit Fullscreen</span>
@@ -193,7 +193,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
 
                 <main className={cn(
                     "flex-1 relative w-full",
-                    isFullscreen ? "bg-black" : "bg-slate-50",
+                    isFullscreen ? "bg-black" : "bg-muted/50",
                     !isMobile && "overflow-y-auto",
                 )}>
                     {isMobile ? (
@@ -227,13 +227,13 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                                 {catalogPages.length > 0 ? (
                                     catalogPages.map(renderPage)
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                                         <Search className="w-12 h-12 mb-4 opacity-20" />
                                         <p>{t("catalogs.public.noResults")}</p>
                                         <Button
                                             variant="link"
                                             onClick={() => { setSelectedCategory("all"); setSearchQuery("") }}
-                                            className="mt-2 text-violet-600"
+                                            className="mt-2 text-primary"
                                         >
                                             {t("catalogs.public.resetFilters")}
                                         </Button>

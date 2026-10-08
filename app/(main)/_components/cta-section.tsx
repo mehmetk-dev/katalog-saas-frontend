@@ -12,7 +12,7 @@ interface CtaSectionProps {
 
 export const CtaSection = React.memo(function CtaSection({ t }: CtaSectionProps) {
     return (
-        <section className="py-32 relative overflow-hidden bg-slate-50">
+        <section className="py-32 relative overflow-hidden bg-muted/50">
             {/* Dot Pattern Background */}
             <div className={cn(
                 "absolute inset-0",
@@ -26,13 +26,13 @@ export const CtaSection = React.memo(function CtaSection({ t }: CtaSectionProps)
                     {t('landing.ctaTitle')}{' '}
                     <span className={cn(
                         "text-transparent bg-clip-text bg-gradient-to-r",
-                        "from-violet-600 to-fuchsia-500"
+                        "from-primary to-primary"
                     )}>
                         {t('landing.ctaHighlight')}
                     </span>
                 </h2>
 
-                <p className="text-xl text-slate-600 mb-12 max-w-2xl mx-auto">
+                <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
                     {t('landing.ctaDesc')}
                 </p>
 
@@ -41,9 +41,9 @@ export const CtaSection = React.memo(function CtaSection({ t }: CtaSectionProps)
                         size="lg"
                         className={cn(
                             "h-16 px-12 text-lg rounded-full",
-                            "bg-gradient-to-r from-violet-600 to-fuchsia-500",
-                            "hover:from-violet-700 hover:to-fuchsia-600",
-                            "shadow-xl shadow-violet-500/30 hover:shadow-violet-500/50",
+                            "bg-primary",
+                            "hover:from-primary hover:to-primary",
+                            "shadow-xl shadow-black/30 hover:shadow-black/50",
                             "transition-all duration-300 hover:scale-105",
                             "hover:-translate-y-1 font-bold"
                         )}

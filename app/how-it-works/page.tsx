@@ -10,9 +10,9 @@ import { PublicFooter } from "@/components/layout/public-footer"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 const colorMap: Record<string, { bg: string; text: string }> = {
-    violet: { bg: "bg-violet-100", text: "text-violet-600" },
-    fuchsia: { bg: "bg-fuchsia-100", text: "text-fuchsia-600" },
-    emerald: { bg: "bg-emerald-100", text: "text-emerald-600" },
+    violet: { bg: "bg-accent", text: "text-primary" },
+    fuchsia: { bg: "bg-accent", text: "text-primary" },
+    emerald: { bg: "bg-success-soft", text: "text-success" },
 }
 
 interface StepCardProps {
@@ -26,13 +26,13 @@ interface StepCardProps {
 function StepCard({ icon: Icon, color, badge, title, description }: StepCardProps) {
     const colors = colorMap[color] ?? colorMap.violet
     return (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-lg transition-all">
+        <div className="bg-card rounded-2xl border border-border p-8 hover:shadow-lg transition-all">
             <div className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center mb-6`}>
                 <Icon className={`w-6 h-6 ${colors.text}`} />
             </div>
             <div className={`text-sm font-medium ${colors.text} mb-2`}>{badge}</div>
-            <h3 className="text-xl font-bold mb-3 text-slate-900">{title}</h3>
-            <p className="text-slate-500">{description}</p>
+            <h3 className="text-xl font-bold mb-3 text-foreground">{title}</h3>
+            <p className="text-muted-foreground">{description}</p>
         </div>
     )
 }
@@ -48,16 +48,16 @@ export default function HowItWorksPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-muted/50">
             <PublicHeader />
 
             <main className="pt-32 pb-20">
                 <div className="max-w-6xl mx-auto px-6">
                     <div className="text-center max-w-3xl mx-auto mb-16">
-                        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 text-slate-900">
+                        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 text-foreground">
                             {t('howItWorksPage.title')}
                         </h1>
-                        <p className="text-xl text-slate-500">
+                        <p className="text-xl text-muted-foreground">
                             {t('howItWorksPage.subtitle')}
                         </p>
                     </div>
@@ -76,11 +76,11 @@ export default function HowItWorksPage() {
                     </div>
 
                     <div className="mt-20 text-center">
-                        <div className="bg-white rounded-2xl border border-slate-200 p-10 max-w-xl mx-auto">
-                            <h3 className="text-2xl font-bold mb-4 text-slate-900">{t('howItWorksPage.ctaTitle')}</h3>
-                            <p className="mb-8 text-slate-500">{t('howItWorksPage.ctaDesc')}</p>
+                        <div className="bg-card rounded-2xl border border-border p-10 max-w-xl mx-auto">
+                            <h3 className="text-2xl font-bold mb-4 text-foreground">{t('howItWorksPage.ctaTitle')}</h3>
+                            <p className="mb-8 text-muted-foreground">{t('howItWorksPage.ctaDesc')}</p>
                             <Link href="/auth?tab=signup">
-                                <Button size="lg" className="bg-violet-600 hover:bg-violet-700 h-11 px-8">
+                                <Button size="lg" className="bg-primary hover:bg-primary/90 h-11 px-8">
                                     {t('howItWorksPage.ctaButton')}
                                     <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>

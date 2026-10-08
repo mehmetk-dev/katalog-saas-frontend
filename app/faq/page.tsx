@@ -123,7 +123,7 @@ export default function FAQPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-violet-100">
+        <div className="min-h-screen bg-muted/50 font-sans text-foreground selection:bg-accent">
             <PublicHeader />
 
             <main className="pt-24 pb-24">
@@ -133,28 +133,28 @@ export default function FAQPage() {
                     <div className={cn(
                         "absolute top-0 left-1/2 -translate-x-1/2 w-full",
                         "max-w-7xl h-[600px] bg-gradient-to-b",
-                        "from-indigo-50 via-white to-transparent",
+                        "from-muted via-background to-transparent",
                         "-z-10 rounded-full blur-3xl opacity-70"
                     )} />
 
                     <div className="max-w-3xl mx-auto relative z-10">
                         <div className={cn(
                             "inline-flex items-center gap-2 px-4 py-1.5 rounded-full",
-                            "bg-white shadow-sm border border-slate-200",
-                            "text-slate-600 text-sm font-medium mb-8"
+                            "bg-card shadow-sm border border-border",
+                            "text-muted-foreground text-sm font-medium mb-8"
                         )}>
-                            <span className="flex h-2 w-2 rounded-full bg-indigo-500"></span>
+                            <span className="flex h-2 w-2 rounded-full bg-primary"></span>
                             YardÄ±m Merkezi & Destek
                         </div>
 
                         <h1 className={cn(
                             "text-4xl md:text-5xl lg:text-6xl font-black",
-                            "text-slate-900 mb-6 tracking-tight"
+                            "text-foreground mb-6 tracking-tight"
                         )}>
                             NasÄ±l yardÄ±mcÄ± olabiliriz?
                         </h1>
 
-                        <p className="text-lg text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
                             AklÄ±nÄ±za takÄ±lan sorularÄ±n cevaplarÄ±nÄ± burada bulabilirsiniz.
                             Hala yardÄ±ma ihtiyacÄ±nÄ±z varsa bizimle iletiÅŸime geÃ§in.
                         </p>
@@ -163,7 +163,7 @@ export default function FAQPage() {
                             <div className={cn(
                                 "absolute inset-y-0 left-0 pl-4",
                                 "flex items-center pointer-events-none",
-                                "text-slate-400 group-focus-within:text-indigo-500",
+                                "text-muted-foreground group-focus-within:text-primary",
                                 "transition-colors"
                             )}>
                                 <Search className="h-5 w-5" />
@@ -172,11 +172,11 @@ export default function FAQPage() {
                                 type="text"
                                 placeholder="Bir soru arayÄ±n..."
                                 className={cn(
-                                    "pl-12 h-14 rounded-2xl border-slate-200",
-                                    "shadow-lg shadow-slate-200/50",
-                                    "focus:ring-4 focus:ring-indigo-100",
-                                    "focus:border-indigo-500 text-lg",
-                                    "transition-all bg-white"
+                                    "pl-12 h-14 rounded-2xl border-border",
+                                    "shadow-lg shadow-black/50",
+                                    "focus:ring-4 focus:ring-border",
+                                    "focus:border-primary text-lg",
+                                    "transition-all bg-card"
                                 )}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -191,7 +191,7 @@ export default function FAQPage() {
 
                         {/* SIDEBAR NAVIGATION */}
                         <div className="lg:col-span-4 lg:sticky lg:top-32 self-start space-y-8">
-                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-2">
+                            <div className="bg-card rounded-2xl border border-border shadow-sm p-2">
                                 <nav className="space-y-1">
                                     {categories.map((cat) => (
                                         <button
@@ -206,17 +206,17 @@ export default function FAQPage() {
                                                 "transition-all duration-200",
                                                 activeCategory === cat.id
                                                     ? cn(
-                                                        "bg-indigo-50 text-indigo-700",
-                                                        "shadow-sm ring-1 ring-indigo-100"
+                                                        "bg-accent text-primary",
+                                                        "shadow-sm ring-1 ring-border"
                                                     )
-                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                                             )}
                                         >
                                             <cat.icon className={cn(
                                                 "w-5 h-5",
                                                 activeCategory === cat.id
-                                                    ? "text-indigo-600"
-                                                    : "text-slate-400"
+                                                    ? "text-primary"
+                                                    : "text-muted-foreground"
                                             )} />
                                             {cat.label}
                                         </button>
@@ -225,13 +225,13 @@ export default function FAQPage() {
                             </div>
 
                             {/* SUPPORT CARD - IMPROVED */}
-                            <div className="bg-slate-900 rounded-3xl p-8 relative overflow-hidden text-white">
-                                <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600 rounded-full blur-[80px] opacity-40" />
-                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-600 rounded-full blur-[60px] opacity-30" />
+                            <div className="bg-primary rounded-3xl p-8 relative overflow-hidden text-primary-foreground">
+                                <div className="absolute top-0 right-0 w-40 h-40 bg-primary rounded-full blur-[80px] opacity-40" />
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary rounded-full blur-[60px] opacity-30" />
 
                                 <div className="relative z-10 flex flex-col items-start">
                                     <div className={cn(
-                                        "w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md",
+                                        "w-12 h-12 rounded-2xl bg-background/10 backdrop-blur-md",
                                         "flex items-center justify-center mb-6",
                                         "border border-white/10"
                                     )}>
@@ -239,16 +239,16 @@ export default function FAQPage() {
                                     </div>
 
                                     <h3 className="text-xl font-bold mb-2">Hala sorunuz mu var?</h3>
-                                    <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                                    <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
                                         AradÄ±ÄŸÄ±nÄ±z cevabÄ± bulamadÄ±ysanÄ±z destek ekibimizle iletiÅŸime geÃ§ebilirsiniz.
                                     </p>
 
-                                    <Button asChild className="w-full bg-white text-slate-900 hover:bg-slate-100 font-bold h-11 rounded-xl">
+                                    <Button asChild className="w-full bg-card text-foreground hover:bg-muted font-bold h-11 rounded-xl">
                                         <Link href="/contact">Bize UlaÅŸÄ±n</Link>
                                     </Button>
 
-                                    <div className="mt-6 flex items-center gap-2 text-xs font-medium text-slate-500">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <div className="mt-6 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                        <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                                         <span>Ortalama yanÄ±t sÃ¼resi: &lt; 2 saat</span>
                                     </div>
                                 </div>
@@ -258,9 +258,9 @@ export default function FAQPage() {
                         {/* MAIN ACCORDION */}
                         <div className="lg:col-span-8 min-h-[500px]">
                             <div className="mb-8">
-                                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                                <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
                                     {categories.find(c => c.id === activeCategory)?.label}
-                                    <span className="text-base font-normal text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                                    <span className="text-base font-normal text-muted-foreground bg-muted px-3 py-1 rounded-full">
                                         {faqData[activeCategory]?.length} Soru
                                     </span>
                                 </h2>
@@ -280,15 +280,15 @@ export default function FAQPage() {
                                         <div
                                             key={id}
                                             className={cn(
-                                                "group rounded-2xl bg-white transition-all duration-300 border",
+                                                "group rounded-2xl bg-card transition-all duration-300 border",
                                                 isOpen
                                                     ? cn(
-                                                        "border-indigo-200 shadow-xl",
-                                                        "shadow-indigo-100/50 ring-1 ring-indigo-50"
+                                                        "border-border shadow-xl",
+                                                        "shadow-black/50 ring-1 ring-border"
                                                     )
                                                     : cn(
-                                                        "border-slate-100 hover:border-indigo-100",
-                                                        "hover:shadow-md hover:shadow-slate-200/50"
+                                                        "border-border hover:border-border",
+                                                        "hover:shadow-md hover:shadow-black/50"
                                                     )
                                             )}
                                         >
@@ -298,19 +298,19 @@ export default function FAQPage() {
                                             >
                                                 <span className={cn(
                                                     "font-semibold text-lg transition-colors leading-relaxed",
-                                                    isOpen ? "text-indigo-900" : "text-slate-700 group-hover:text-slate-900"
+                                                    isOpen ? "text-primary" : "text-foreground group-hover:text-foreground"
                                                 )}>
                                                     {item.q}
                                                 </span>
                                                 <span className={cn(
                                                     "flex-shrink-0 w-8 h-8 rounded-full",
                                                     "flex items-center justify-center",
-                                                    "transition-all duration-300 bg-slate-50",
+                                                    "transition-all duration-300 bg-muted/50",
                                                     isOpen
-                                                        ? "bg-indigo-100 text-indigo-600 rotate-180"
+                                                        ? "bg-accent text-primary rotate-180"
                                                         : cn(
-                                                            "text-slate-400 group-hover:bg-indigo-50",
-                                                            "group-hover:text-indigo-500"
+                                                            "text-muted-foreground group-hover:bg-accent",
+                                                            "group-hover:text-primary"
                                                         )
                                                 )}>
                                                     <ChevronDown className="w-5 h-5" />
@@ -325,8 +325,8 @@ export default function FAQPage() {
                                             >
                                                 <div className="overflow-hidden px-6">
                                                     <div className={cn(
-                                                        "pt-2 border-t border-indigo-50/50",
-                                                        "text-slate-600 leading-relaxed font-medium"
+                                                        "pt-2 border-t border-border/50",
+                                                        "text-muted-foreground leading-relaxed font-medium"
                                                     )}>
                                                         {item.a}
                                                     </div>

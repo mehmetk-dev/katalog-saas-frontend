@@ -103,7 +103,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
     const translateY = (isMounted && screenDims.h > 0) ? -maxScrollY : 0
 
     return (
-        <section className="relative pt-24 pb-16 md:pt-32 lg:pt-36 md:pb-24 overflow-hidden bg-slate-50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
+        <section className="relative pt-24 pb-16 md:pt-32 lg:pt-36 md:pb-24 overflow-hidden bg-muted/50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
             <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
                 {/* Title Centered */}
                 <div className="text-center mb-16 lg:mb-20">
@@ -116,32 +116,32 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                 <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 lg:items-stretch max-w-7xl mx-auto">
                     {/* Left Column - Bullets */}
                     <div className="lg:col-span-5 flex flex-col justify-between h-full animate-in fade-in slide-in-from-left-8 duration-700">
-                        <ul className="space-y-8 text-slate-700 text-lg">
+                        <ul className="space-y-8 text-foreground text-lg">
                             <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-slate-800 flex-shrink-0" />
+                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                                 <span className="leading-relaxed">
-                                    <strong className="font-bold text-slate-900">{t('landing.heroFeature1Start')}</strong>
+                                    <strong className="font-bold text-foreground">{t('landing.heroFeature1Start')}</strong>
                                     {t('landing.heroFeature1End')}
                                 </span>
                             </li>
                             <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-slate-800 flex-shrink-0" />
+                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                                 <span className="leading-relaxed">
-                                    <strong className="font-bold text-slate-900">{t('landing.heroFeature2Start')}</strong>
+                                    <strong className="font-bold text-foreground">{t('landing.heroFeature2Start')}</strong>
                                     {t('landing.heroFeature2End')}
                                 </span>
                             </li>
                             <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-slate-800 flex-shrink-0" />
+                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                                 <span className="leading-relaxed">
-                                    <strong className="font-bold text-slate-900">{t('landing.heroFeature3Start')}</strong>
+                                    <strong className="font-bold text-foreground">{t('landing.heroFeature3Start')}</strong>
                                     {t('landing.heroFeature3End')}
                                 </span>
                             </li>
                             <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-slate-800 flex-shrink-0" />
+                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                                 <span className="leading-relaxed">
-                                    <strong className="font-bold text-slate-900">{t('landing.heroFeature4Start')}</strong>
+                                    <strong className="font-bold text-foreground">{t('landing.heroFeature4Start')}</strong>
                                     {t('landing.heroFeature4End')}
                                 </span>
                             </li>
@@ -149,7 +149,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
 
                         <div className="mt-auto pt-10 flex items-end">
                             <Link href="/auth?tab=signup" className="w-full">
-                                <Button className="bg-[#f98826] hover:bg-[#e07519] text-white px-8 py-7 rounded-md text-lg font-semibold transition-all hover:scale-105 shadow-lg shadow-orange-500/20">
+                                <Button className="bg-[#f98826] hover:bg-[#e07519] text-white px-8 py-7 rounded-md text-lg font-semibold transition-all hover:scale-105 shadow-lg shadow-warning/20">
                                     {t('landing.heroStartCreating')}
                                 </Button>
                             </Link>
@@ -188,7 +188,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                                                         style={{ transform: `scale(${scale})` }}
                                                     >
                                                         <div
-                                                            className="w-full h-full bg-white antialiased"
+                                                            className="w-full h-full bg-card antialiased"
                                                             style={{
                                                                 transform: `translateY(${translateY}px)`,
                                                                 transitionProperty: 'transform',
@@ -228,12 +228,12 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                                         key={idx}
                                         className={cn(
                                             "w-2 h-2 rounded-full transition-colors duration-500",
-                                            idx === currentSlide ? "bg-[#f98826]" : "bg-slate-300"
+                                            idx === currentSlide ? "bg-[#f98826]" : "bg-border"
                                         )}
                                     />
                                 ))}
                             </div>
-                            <p className="text-sm font-medium text-slate-600">
+                            <p className="text-sm font-medium text-muted-foreground">
                                 {t('landing.heroMockupCaption')}
                             </p>
                         </div>

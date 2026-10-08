@@ -85,7 +85,7 @@ export default async function BlogPostPage({ params }: PostPageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-card">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -95,37 +95,37 @@ export default async function BlogPostPage({ params }: PostPageProps) {
             <main className="pt-32 pb-24">
                 {/* Hero Header */}
                 <article className="max-w-4xl mx-auto px-6">
-                    <Link href="/blog" className="inline-flex items-center text-slate-400 hover:text-violet-600 font-bold text-sm mb-12 uppercase tracking-widest transition-colors group">
+                    <Link href="/blog" className="inline-flex items-center text-muted-foreground hover:text-primary font-bold text-sm mb-12 uppercase tracking-widest transition-colors group">
                         <ArrowLeft className="mr-2 w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         Blog'a Dön
                     </Link>
 
                     <div className="space-y-8 mb-16">
                         <div className="flex items-center gap-4">
-                            <Badge className="bg-violet-100 text-violet-600 hover:bg-violet-100 border-none px-4 py-1 uppercase tracking-widest text-[10px] font-black">
+                            <Badge className="bg-accent text-primary hover:bg-accent border-none px-4 py-1 uppercase tracking-widest text-[10px] font-black">
                                 {CATEGORY_LABELS[post.category] ?? post.category}
                             </Badge>
                         </div>
 
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1]">
+                        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground leading-[1.1]">
                             {post.title}
                         </h1>
 
-                        <p className="text-xl md:text-2xl text-slate-500 leading-relaxed font-medium italic border-l-4 border-violet-200 pl-8 py-2">
+                        <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium italic border-l-4 border-border pl-8 py-2">
                             {post.excerpt}
                         </p>
 
 
                         {/* Tarih Bilgisi */}
-                        <div className="py-6 border-y border-slate-100">
-                            <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                        <div className="py-6 border-y border-border">
+                            <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
                                 Yayınlanma: {new Date(post.date).toLocaleDateString('tr-TR', { month: 'long', day: 'numeric', year: 'numeric' })}
                             </div>
                         </div>
                     </div>
 
                     {/* Featured Image */}
-                    <div className="relative aspect-[16/9] rounded-[3rem] overflow-hidden shadow-2xl mb-20 bg-slate-100">
+                    <div className="relative aspect-[16/9] rounded-[3rem] overflow-hidden shadow-2xl mb-20 bg-muted">
                         <Image
                             src={post.coverImage}
                             alt={post.title}
@@ -158,11 +158,11 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
                     {/* Tags */}
                     {post.tags.length > 0 && (
-                        <div className="pt-12 border-t border-slate-100">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Konuları Keşfet</h4>
+                        <div className="pt-12 border-t border-border">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-6">Konuları Keşfet</h4>
                             <div className="flex flex-wrap gap-2">
                                 {post.tags.map(tag => (
-                                    <Badge key={tag} variant="outline" className="rounded-full border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">
+                                    <Badge key={tag} variant="outline" className="rounded-full border-border text-muted-foreground hover:bg-muted/50 cursor-pointer">
                                         #{tag}
                                     </Badge>
                                 ))}
@@ -171,16 +171,16 @@ export default async function BlogPostPage({ params }: PostPageProps) {
                     )}
 
                     {/* Related Posts - Internal Linking for SEO */}
-                    <div className="mt-20 pt-16 border-t-2 border-slate-100">
-                        <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight">İlgili Yazılar</h3>
+                    <div className="mt-20 pt-16 border-t-2 border-border">
+                        <h3 className="text-2xl font-black text-foreground mb-8 tracking-tight">İlgili Yazılar</h3>
                         <div className="grid md:grid-cols-2 gap-6">
                             {relatedPosts.map((relatedPost) => (
                                 <Link
                                     key={relatedPost.slug}
                                     href={`/blog/${relatedPost.slug}`}
-                                    className="group flex flex-col border border-slate-200 rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
+                                    className="group flex flex-col border border-border rounded-2xl overflow-hidden bg-card hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
                                 >
-                                    <div className="aspect-[16/9] relative overflow-hidden bg-slate-100">
+                                    <div className="aspect-[16/9] relative overflow-hidden bg-muted">
                                         <Image
                                             src={relatedPost.coverImage}
                                             alt={relatedPost.title}
@@ -189,13 +189,13 @@ export default async function BlogPostPage({ params }: PostPageProps) {
                                         />
                                     </div>
                                     <div className="p-6">
-                                        <Badge className="mb-3 bg-violet-100 text-violet-600 hover:bg-violet-100">
+                                        <Badge className="mb-3 bg-accent text-primary hover:bg-accent">
                                             {CATEGORY_LABELS[relatedPost.category] ?? relatedPost.category}
                                         </Badge>
-                                        <h4 className="text-lg font-bold text-slate-900 group-hover:text-violet-600 transition-colors mb-2 line-clamp-2">
+                                        <h4 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors mb-2 line-clamp-2">
                                             {relatedPost.title}
                                         </h4>
-                                        <p className="text-sm text-slate-500 line-clamp-2">
+                                        <p className="text-sm text-muted-foreground line-clamp-2">
                                             {relatedPost.excerpt}
                                         </p>
                                     </div>
@@ -207,17 +207,17 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
                 {/* Newsletter / CTA */}
                 <section className="max-w-4xl mx-auto px-6 mt-32">
-                    <div className="bg-slate-900 rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/20 rounded-full blur-[100px]" />
+                    <div className="bg-primary rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
                         <div className="relative z-10">
                             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">
                                 Dijital Geleceğinizi <br /> Şimdi İnşa Edin
                             </h2>
-                            <p className="text-slate-400 text-lg mb-10 max-w-lg mx-auto">
+                            <p className="text-muted-foreground text-lg mb-10 max-w-lg mx-auto">
                                 FogCatalog ile profesyonel kataloglar oluşturan 5.000+ işletmeye katılın.
                             </p>
                             <Link href="/auth?tab=signup">
-                                <Button size="lg" className="h-16 px-12 bg-white text-slate-900 hover:bg-violet-600 hover:text-white rounded-full text-lg font-bold transition-all shadow-xl shadow-white/5">
+                                <Button size="lg" className="h-16 px-12 bg-card text-foreground hover:bg-primary/90 hover:text-white rounded-full text-lg font-bold transition-all shadow-xl shadow-white/5">
                                     Ücretsiz Başlayın
                                 </Button>
                             </Link>
