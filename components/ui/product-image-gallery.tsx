@@ -61,11 +61,13 @@ export function ProductImageGallery({
 }: ProductImageGalleryProps) {
     const isPdfExportMode = usePdfExportMode()
 
-    // PERF: Auto-priority for first N images — no template changes needed
-    const autoEager = React.useMemo(() => {
-        if (isPdfExportMode) return false
-        const idx = _mountCounter++
-        return idx < EAGER_IMAGE_THRESHOLD
+    // PERF: Auto-priority for first N images — no template changes needed.
+    // Sayaç yalnızca tarayıcıda (effect içinde) artar: render sırasında artırınca sunucuda
+    // istekler arasında birikiyor, sunucu "lazy" / istemci "eager" üretip hydration bozuluyordu.
+    const [autoEager, setAutoEager] = React.useState(false)
+    React.useEffect(() => {
+        if (isPdfExportMode) return
+        if (_mountCounter++ < EAGER_IMAGE_THRESHOLD) setAutoEager(true)
     }, [isPdfExportMode])
     const shouldPrioritize = !isPdfExportMode && (priority || autoEager)
     const effectiveInteractive = !isPdfExportMode && interactive

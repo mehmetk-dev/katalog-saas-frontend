@@ -7,13 +7,14 @@ interface WindowSize {
     height: number
 }
 
+const SERVER_SIZE: WindowSize = { width: 1024, height: 768 }
+
 // PERF(F6): Single shared resize listener — replaces 4 separate listeners
 // across catalog-editor, editor-content-tab, catalog-preview, and use-builder-state
 export function useWindowSize(): WindowSize {
-    const [size, setSize] = useState<WindowSize>({
-        width: typeof window !== "undefined" ? window.innerWidth : 1024,
-        height: typeof window !== "undefined" ? window.innerHeight : 768,
-    })
+    // İlk render sunucuyla aynı olmalı (hydration); gerçek ölçüm mount sonrası effect'te yapılır.
+    // Mobil/masaüstü yerleşim farkları mümkün olduğunca CSS breakpoint'leriyle çözülmeli.
+    const [size, setSize] = useState<WindowSize>(SERVER_SIZE)
 
     useEffect(() => {
         let rafId: number | null = null
