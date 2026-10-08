@@ -155,7 +155,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className={cn(
       "min-h-screen w-full flex items-center justify-center",
-      "bg-gradient-to-b from-violet-100 via-violet-50/50 to-white",
+      "bg-gradient-to-b from-muted via-muted/50 to-background",
       "relative overflow-hidden font-sans"
     )}>
       {/* Background Decorations (Matching Auth Page) */}
@@ -177,10 +177,10 @@ export default function ForgotPasswordPage() {
             d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
           />
         </svg>
-        <div className="absolute top-20 right-6 w-24 h-24 rounded-full border-[3px] border-violet-300/60" />
+        <div className="absolute top-20 right-6 w-24 h-24 rounded-full border-[3px] border-border/60" />
         <div className={cn(
           "absolute -bottom-32 -left-16 w-72 h-72",
-          "bg-gradient-to-tr from-violet-500/40 via-purple-400/30 to-fuchsia-400/20",
+          "bg-gradient-to-tr from-primary/40 via-primary/30 to-primary/20",
           "rounded-full blur-3xl opacity-50"
         )} />
       </div>
@@ -191,14 +191,14 @@ export default function ForgotPasswordPage() {
           href="/auth"
           className={cn(
             "group flex items-center gap-2 text-sm font-medium",
-            "text-slate-500 hover:text-violet-700 transition-colors"
+            "text-muted-foreground hover:text-primary transition-colors"
           )}
         >
           <div className={cn(
-            "w-8 h-8 rounded-full border border-slate-200",
+            "w-8 h-8 rounded-full border border-border",
             "flex items-center justify-center",
-            "group-hover:border-violet-600 group-hover:bg-violet-50",
-            "transition-all bg-white/80 backdrop-blur-sm"
+            "group-hover:border-primary group-hover:bg-accent",
+            "transition-all bg-background/80 backdrop-blur-sm"
           )}>
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
           </div>
@@ -217,11 +217,11 @@ export default function ForgotPasswordPage() {
           >
             <Logo size="xl" />
           </Link>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-3">
             {success ? t("auth.emailSentTitle") :
               showGoogleWarning ? "Google Hesabı" : t("auth.forgotPasswordTitle")}
           </h1>
-          <p className="text-slate-500 text-[15px] leading-relaxed">
+          <p className="text-muted-foreground text-[15px] leading-relaxed">
             {success ? t("auth.emailSentText", { email }) :
               showGoogleWarning ? "Bu hesap Google ile kayıtlıdır." : t("auth.forgotPasswordSubtitle")}
           </p>
@@ -229,20 +229,20 @@ export default function ForgotPasswordPage() {
 
         {success ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="w-full bg-green-50 text-green-700 rounded-xl p-4 text-sm font-medium border border-green-100 space-y-2">
+            <div className="w-full bg-success-soft text-success-soft-foreground rounded-xl p-4 text-sm font-medium border border-success/20 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" />
                 <span>E-posta başarıyla gönderildi</span>
               </div>
-              <p className="text-xs text-green-600 mt-2 pl-7">
+              <p className="text-xs text-success mt-2 pl-7">
                 E-postanızı kontrol edin. Eğer gelen kutunuzda göremiyorsanız, <strong>spam klasörünü</strong> de kontrol etmeyi unutmayın.
               </p>
             </div>
             <Link href="/auth" className="block w-full">
               <button className={cn(
-                "w-full h-12 bg-violet-600 hover:bg-violet-700",
+                "w-full h-12 bg-primary hover:bg-primary/90",
                 "text-white font-medium rounded-xl",
-                "shadow-lg shadow-violet-600/20 transition-all"
+                "shadow-lg shadow-black/20 transition-all"
               )}>
                 {t("auth.backToLogin")}
               </button>
@@ -253,11 +253,11 @@ export default function ForgotPasswordPage() {
             <button
               onClick={handleGoogleSignIn}
               className={cn(
-                "w-full h-12 bg-white border border-slate-200",
-                "hover:bg-slate-50 text-slate-900 font-medium",
+                "w-full h-12 bg-card border border-border",
+                "hover:bg-muted/50 text-foreground font-medium",
                 "rounded-xl transition-all duration-200",
                 "flex items-center justify-center gap-3",
-                "hover:border-slate-300"
+                "hover:border-border"
               )}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -270,12 +270,12 @@ export default function ForgotPasswordPage() {
             </button>
             <div className="relative py-2">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center">
                 <span className={cn(
-                  "bg-[#FDFDFD] px-4 text-xs font-medium",
-                  "text-slate-400 uppercase tracking-widest"
+                  "bg-muted/50 px-4 text-xs font-medium",
+                  "text-muted-foreground uppercase tracking-widest"
                 )}>Veya</span>
               </div>
             </div>
@@ -283,8 +283,8 @@ export default function ForgotPasswordPage() {
               onClick={handleContinueAnyway}
               disabled={isLoading}
               className={cn(
-                "w-full h-12 bg-transparent border border-slate-200",
-                "hover:bg-slate-50 text-slate-600 font-medium",
+                "w-full h-12 bg-transparent border border-border",
+                "hover:bg-muted/50 text-muted-foreground font-medium",
                 "rounded-xl transition-all"
               )}
             >
@@ -294,12 +294,12 @@ export default function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-2" noValidate>
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg border border-red-100">
+              <div className="p-3 bg-brand-soft text-brand text-sm font-medium rounded-lg border border-brand/20">
                 {error}
               </div>
             )}
             <div className="space-y-1.5">
-              <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email")}</label>
+              <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.email")}</label>
               <input
                 type="email"
                 required
@@ -310,18 +310,18 @@ export default function ForgotPasswordPage() {
                 }}
                 disabled={isLoading}
                 className={cn(
-                  "w-full h-12 px-4 bg-white border rounded-xl text-[15px]",
-                  "outline-none transition-all placeholder:text-slate-300 hover:border-slate-300",
+                  "w-full h-12 px-4 bg-card border rounded-xl text-[15px]",
+                  "outline-none transition-all placeholder:text-muted-foreground/70 hover:border-border",
                   fieldErrors.email
-                    ? "border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]"
-                    : "border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+                    ? "border-brand ring-1 ring-brand focus:ring-brand focus:border-brand"
+                    : "border-border focus:border-primary focus:ring-1 focus:ring-primary",
                   shakingFields.email && "animate-shake"
                 )}
                 placeholder={t("auth.placeholderEmail")}
               />
               {fieldErrors.email && (
                 <p className={cn(
-                  "text-[12px] text-[#cf1414] font-medium",
+                  "text-[12px] text-brand font-medium",
                   "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
                 )}>
                   {fieldErrors.email}
@@ -332,9 +332,9 @@ export default function ForgotPasswordPage() {
               type="submit"
               disabled={isLoading}
               className={cn(
-                "w-full h-12 bg-violet-600 hover:bg-violet-700",
+                "w-full h-12 bg-primary hover:bg-primary/90",
                 "text-white font-medium rounded-xl",
-                "shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30",
+                "shadow-lg shadow-black/20 hover:shadow-black/30",
                 "transition-all flex items-center justify-center gap-2"
               )}
             >
@@ -343,8 +343,8 @@ export default function ForgotPasswordPage() {
           </form>
         )}
 
-        <div className="mt-8 text-center border-t border-slate-100 pt-8">
-          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">
+        <div className="mt-8 text-center border-t border-border pt-8">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">
             Powered by FogCatalog
           </p>
         </div>

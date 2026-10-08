@@ -21,7 +21,7 @@ export function HeroPanel({ t }: HeroPanelProps) {
                     priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
-                <div className="absolute inset-0 bg-violet-900/20 mix-blend-overlay" />
+                <div className="absolute inset-0 bg-primary/20 mix-blend-overlay" />
             </div>
 
             <div className="relative z-20">
@@ -46,7 +46,7 @@ export function HeroPanel({ t }: HeroPanelProps) {
                         t('marketing.feature5')
                     ].map((feature, idx) => (
                         <li key={idx} className="flex items-center gap-3 text-white/90">
-                            <div className="w-6 h-6 rounded-full bg-[#cf1414] flex items-center justify-center shadow-lg shadow-red-900/20">
+                            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shadow-lg shadow-brand/20">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                             </div>
                             <span className="font-medium text-[17px]">{feature}</span>

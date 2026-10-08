@@ -16,14 +16,14 @@ export function AuthFormBackButton({ t }: { t: TranslateFn }) {
                 href="/"
                 className={cn(
                     "group flex items-center gap-2 text-sm font-medium",
-                    "text-slate-500 hover:text-violet-700 transition-colors"
+                    "text-muted-foreground hover:text-primary transition-colors"
                 )}
             >
                 <div className={cn(
-                    "w-8 h-8 rounded-full border border-slate-200",
+                    "w-8 h-8 rounded-full border border-border",
                     "flex items-center justify-center",
-                    "group-hover:border-violet-600 group-hover:bg-violet-50",
-                    "transition-all bg-white/80 backdrop-blur-sm"
+                    "group-hover:border-primary group-hover:bg-accent",
+                    "transition-all bg-background/80 backdrop-blur-sm"
                 )}>
                     <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
                 </div>
@@ -43,7 +43,7 @@ export function AuthFormHeader({ mode, t }: AuthFormHeaderProps) {
             </div>
             <h1 className={cn(
                 "text-3xl lg:text-4xl font-semibold",
-                "tracking-tight text-slate-900 mb-3"
+                "tracking-tight text-foreground mb-3"
             )}>
                 {mode === 'signup'
                     ? (t("auth.signup"))
@@ -52,7 +52,7 @@ export function AuthFormHeader({ mode, t }: AuthFormHeaderProps) {
                         : (t("auth.welcomeBack"))
                 }
             </h1>
-            <p className="text-slate-500 text-[15px] leading-relaxed">
+            <p className="text-muted-foreground text-[15px] leading-relaxed">
                 {mode === 'signup'
                     ? (t("auth.signupDesc"))
                     : mode === 'forgot-password'
@@ -84,7 +84,7 @@ export function BackgroundDecorations() {
                     d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
                 />
             </svg>
-            <div className="absolute top-20 right-6 w-24 h-24 rounded-full border-[3px] border-violet-300/60" />
+            <div className="absolute top-20 right-6 w-24 h-24 rounded-full border-[3px] border-border/60" />
         </div>
     )
 }

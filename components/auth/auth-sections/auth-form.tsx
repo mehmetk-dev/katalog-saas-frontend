@@ -28,7 +28,7 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
     return (
         <div className={cn(
             "w-full lg:w-1/2 flex items-center justify-center",
-            "bg-gradient-to-b from-violet-100 via-violet-50/50 to-white",
+            "bg-gradient-to-b from-muted via-muted/50 to-background",
             "relative overflow-hidden"
         )}>
             <BackgroundDecorations />

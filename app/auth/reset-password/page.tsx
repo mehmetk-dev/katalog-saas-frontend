@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50/50 to-white relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-muted via-muted/50 to-background relative overflow-hidden font-sans">
       {/* Background Decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <svg
@@ -110,7 +110,7 @@ export default function ResetPasswordPage() {
             d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"
           />
         </svg>
-        <div className="absolute -bottom-32 -right-16 w-72 h-72 bg-gradient-to-tl from-red-400/10 to-slate-300/10 rounded-full blur-3xl opacity-50" />
+        <div className="absolute -bottom-32 -right-16 w-72 h-72 bg-gradient-to-tl from-brand/10 to-muted/10 rounded-full blur-3xl opacity-50" />
       </div>
 
       <div className="w-full max-w-[420px] p-6 relative z-10">
@@ -118,10 +118,10 @@ export default function ResetPasswordPage() {
           <Link href="/" className="inline-flex items-center mb-8 hover:opacity-80 transition-opacity">
             <Logo size="xl" />
           </Link>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-3">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-3">
             {isChecking ? "Doğrulanıyor" : success ? "Şifre Güncellendi" : "Yeni Şifre Belirle"}
           </h1>
-          <p className="text-slate-500 text-[15px] leading-relaxed">
+          <p className="text-muted-foreground text-[15px] leading-relaxed">
             {isChecking ? "Güvenli oturumunuz kontrol ediliyor..." :
               success ? "Yeni şifreniz başarıyla kaydedildi." : "Lütfen yeni ve güvenli bir şifre belirleyin."}
           </p>
@@ -129,31 +129,31 @@ export default function ResetPasswordPage() {
 
         {isChecking ? (
           <div className="flex flex-col items-center gap-4 py-8 animate-in fade-in">
-            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-[#B01E2E] animate-spin" />
+            <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-brand/90 animate-spin" />
             </div>
-            <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">Lütfen Bekleyin...</p>
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Lütfen Bekleyin...</p>
           </div>
         ) : success ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="w-full h-12 bg-green-50 text-green-700 rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-green-100">
+            <div className="w-full h-12 bg-success-soft text-success-soft-foreground rounded-xl flex items-center justify-center gap-2 px-4 text-sm font-medium border border-success/20">
               <CheckCircle2 className="w-5 h-5" />
               <span>Dashboard'a yönlendiriliyorsunuz</span>
             </div>
             <div className="flex justify-center pt-4">
-              <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg border border-red-100">
+              <div className="p-3 bg-brand-soft text-brand text-sm font-medium rounded-lg border border-brand/20">
                 {error}
               </div>
             )}
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-slate-900 ml-1">Yeni Şifre</label>
+                <label className="text-[13px] font-medium text-foreground ml-1">Yeni Şifre</label>
                 <input
                   type="password"
                   required
@@ -161,13 +161,13 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-[#B01E2E] focus:ring-1 focus:ring-[#B01E2E] transition-all placeholder:text-slate-300"
+                  className="w-full h-12 px-4 bg-card border border-border rounded-xl text-[15px] outline-none focus:border-brand/90 focus:ring-1 focus:ring-brand/90 transition-all placeholder:text-muted-foreground/70"
                   placeholder="••••••••"
                 />
-                <p className="text-[11px] text-slate-400 mt-1 ml-1">En az 8 karakter, bir büyük harf ve bir rakam</p>
+                <p className="text-[11px] text-muted-foreground mt-1 ml-1">En az 8 karakter, bir büyük harf ve bir rakam</p>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-slate-900 ml-1">Şifre Onayı</label>
+                <label className="text-[13px] font-medium text-foreground ml-1">Şifre Onayı</label>
                 <input
                   type="password"
                   required
@@ -175,7 +175,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={isLoading}
-                  className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-[15px] outline-none focus:border-[#B01E2E] focus:ring-1 focus:ring-[#B01E2E] transition-all placeholder:text-slate-300"
+                  className="w-full h-12 px-4 bg-card border border-border rounded-xl text-[15px] outline-none focus:border-brand/90 focus:ring-1 focus:ring-brand/90 transition-all placeholder:text-muted-foreground/70"
                   placeholder="••••••••"
                 />
               </div>
@@ -183,7 +183,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825] text-white font-medium rounded-xl shadow-lg shadow-[#B01E2E]/20 hover:shadow-[#B01E2E]/30 transition-all flex items-center justify-center gap-2 mt-4"
+              className="w-full h-12 bg-brand/90 hover:bg-brand/90 text-brand-foreground font-medium rounded-xl shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all flex items-center justify-center gap-2 mt-4"
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Şifreyi Güncelle ve Giriş Yap"}
             </button>
@@ -191,8 +191,8 @@ export default function ResetPasswordPage() {
         )
         }
 
-        <div className="mt-8 text-center border-t border-slate-100 pt-8">
-          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">
+        <div className="mt-8 text-center border-t border-border pt-8">
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">
             Powered by FogCatalog
           </p>
         </div>

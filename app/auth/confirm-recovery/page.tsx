@@ -35,8 +35,8 @@ export function buildRecoveryRedirectTarget(redirectPath: string, hash: string):
 export default function ConfirmRecoveryPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+            <div className="min-h-screen flex items-center justify-center p-6 bg-muted/50">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
         }>
             <ConfirmRecoveryContent />
@@ -126,26 +126,26 @@ function ConfirmRecoveryContent() {
 
     if (pageError) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-                <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-red-600 rounded-2xl overflow-hidden bg-white">
+            <div className="min-h-screen flex items-center justify-center p-6 bg-muted/50">
+                <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-brand rounded-2xl overflow-hidden bg-card">
                     <CardHeader className="text-center pb-0 pt-10">
-                        <div className="mx-auto w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-6">
-                            <ShieldCheck className="w-10 h-10 text-red-600" />
+                        <div className="mx-auto w-20 h-20 bg-brand-soft rounded-2xl flex items-center justify-center mb-6">
+                            <ShieldCheck className="w-10 h-10 text-brand" />
                         </div>
-                        <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-slate-900 leading-none uppercase">
-                            Hata <span className="text-red-600">Oluştu</span>
+                        <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-foreground leading-none uppercase">
+                            Hata <span className="text-brand">Oluştu</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6 pb-12">
                         <div className="text-center space-y-4 px-4">
-                            <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                            <p className="text-muted-foreground text-lg font-medium leading-relaxed">
                                 Şifre sıfırlama linkiniz geçersiz veya süresi dolmuş. Lütfen yeni bir link talep edin.
                             </p>
                         </div>
                         <div className="px-6">
                             <Button
                                 onClick={() => router.push('/auth/forgot-password')}
-                                className="w-full h-14 bg-slate-900 hover:bg-black text-white font-montserrat font-bold shadow-xl transition-all rounded-xl text-lg uppercase tracking-wider"
+                                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-montserrat font-bold shadow-xl transition-all rounded-xl text-lg uppercase tracking-wider"
                             >
                                 Yeni Link İste
                             </Button>
@@ -157,19 +157,19 @@ function ConfirmRecoveryContent() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-            <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-[#cf1414] rounded-2xl overflow-hidden bg-white">
+        <div className="min-h-screen flex items-center justify-center p-6 bg-muted/50">
+            <Card className="w-full max-w-lg shadow-2xl border-t-8 border-t-brand rounded-2xl overflow-hidden bg-card">
                 <CardHeader className="text-center pb-0 pt-10">
-                    <div className="mx-auto w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-6 rotate-3">
-                        <ShieldCheck className="w-10 h-10 text-[#cf1414]" />
+                    <div className="mx-auto w-20 h-20 bg-brand-soft rounded-2xl flex items-center justify-center mb-6 rotate-3">
+                        <ShieldCheck className="w-10 h-10 text-brand" />
                     </div>
-                    <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-slate-900 leading-none uppercase">
-                        Giriş <span className="text-[#cf1414]">Onayı</span>
+                    <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-foreground leading-none uppercase">
+                        Giriş <span className="text-brand">Onayı</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-8 pt-6 pb-12">
                     <div className="text-center space-y-4 px-4">
-                        <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                        <p className="text-muted-foreground text-lg font-medium leading-relaxed">
                             Güvenliğiniz için lütfen şifre yenileme işlemini aşağıdaki butona tıklayarak başlatın.
                         </p>
                     </div>
@@ -178,7 +178,7 @@ function ConfirmRecoveryContent() {
                         <Button
                             onClick={handleConfirm}
                             disabled={isRedirecting}
-                            className="w-full h-14 bg-[#cf1414] hover:bg-[#b01010] text-white font-montserrat font-bold shadow-xl shadow-red-500/20 transition-all rounded-xl text-lg uppercase tracking-wider"
+                            className="w-full h-14 bg-brand hover:bg-brand/90 text-brand-foreground font-montserrat font-bold shadow-xl shadow-brand/20 transition-all rounded-xl text-lg uppercase tracking-wider"
                         >
                             {isRedirecting ? (
                                 <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
@@ -187,9 +187,9 @@ function ConfirmRecoveryContent() {
                         </Button>
                     </div>
 
-                    <div className="text-center pt-8 border-t border-slate-50 flex items-center justify-center gap-2">
-                        <Heart className="w-4 h-4 text-[#cf1414] animate-pulse" />
-                        <span className="font-montserrat text-sm text-slate-400 font-bold uppercase tracking-widest">
+                    <div className="text-center pt-8 border-t border-border flex items-center justify-center gap-2">
+                        <Heart className="w-4 h-4 text-brand animate-pulse" />
+                        <span className="font-montserrat text-sm text-muted-foreground font-bold uppercase tracking-widest">
                             FogCatalog Security
                         </span>
                     </div>

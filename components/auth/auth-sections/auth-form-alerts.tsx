@@ -23,13 +23,13 @@ export function AuthFormAlerts({
             <div className={cn(
                 "p-4 rounded-xl text-sm font-medium animate-in shake border-2",
                 isExpiredError
-                    ? "bg-amber-50 text-amber-800 border-amber-300 shadow-lg"
-                    : "bg-red-50 text-red-600 border-red-300 shadow-lg"
+                    ? "bg-warning-soft text-warning-soft-foreground border-warning/30 shadow-lg"
+                    : "bg-brand-soft text-brand border-brand/20 shadow-lg"
             )}>
                 <div className="flex items-start gap-2">
                     <AlertCircle className={cn(
                         "w-5 h-5 flex-shrink-0 mt-0.5",
-                        isExpiredError ? "text-amber-600" : "text-red-500"
+                        isExpiredError ? "text-warning-soft-foreground" : "text-brand"
                     )} />
                     <div className="flex-1">
                         <p className="font-bold mb-2 text-base">
@@ -46,7 +46,7 @@ export function AuthFormAlerts({
                                     setMode('forgot-password')
                                 }}
                                 className={cn(
-                                    "mt-2 px-4 py-2 bg-amber-600 hover:bg-amber-700",
+                                    "mt-2 px-4 py-2 bg-warning hover:bg-warning/90",
                                     "text-white text-sm font-medium",
                                     "rounded-lg transition-colors"
                                 )}
@@ -64,9 +64,9 @@ export function AuthFormAlerts({
         return (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div className={cn(
-                    "w-full h-12 bg-green-50 text-green-700 rounded-xl",
+                    "w-full h-12 bg-success-soft text-success-soft-foreground rounded-xl",
                     "flex items-center justify-center gap-2 px-4",
-                    "text-sm font-medium border border-green-100 italic"
+                    "text-sm font-medium border border-success/20 italic"
                 )}>
                     <CheckCircle2 className="w-5 h-5 animate-bounce-slow" />
                     <span>{(t("auth.emailSentTitle")) || "Bağlantı Gönderildi"}</span>
@@ -75,7 +75,7 @@ export function AuthFormAlerts({
                     type="button"
                     onClick={() => { setMode('signin'); setSuccess(false); }}
                     className={cn(
-                        "w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825]",
+                        "w-full h-12 bg-brand/90 hover:bg-brand/90",
                         "text-white font-medium rounded-xl",
                         "shadow-lg transition-all active:scale-[0.98]"
                     )}
@@ -89,7 +89,7 @@ export function AuthFormAlerts({
     if (showGoogleWarning) {
         return (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-sm">
+                <div className="p-4 bg-warning-soft border border-warning/30 rounded-xl text-warning-soft-foreground text-sm">
                     <p className="font-bold flex items-center gap-2 mb-1">
                         <AlertCircle className="w-4 h-4" /> Google Hesabı Tespit Edildi
                     </p>
@@ -99,8 +99,8 @@ export function AuthFormAlerts({
                     type="button"
                     onClick={handleGoogleAuth}
                     className={cn(
-                        "w-full h-12 bg-white border border-slate-200",
-                        "hover:bg-slate-50 text-slate-900 font-medium",
+                        "w-full h-12 bg-card border border-border",
+                        "hover:bg-muted/50 text-foreground font-medium",
                         "rounded-xl transition-all duration-200",
                         "flex items-center justify-center gap-3 active:scale-[0.98]"
                     )}
@@ -111,7 +111,7 @@ export function AuthFormAlerts({
                 <button
                     type="button"
                     onClick={() => handleContinueAnyway()}
-                    className="w-full text-xs text-slate-400 hover:text-slate-600 transition-colors underline"
+                    className="w-full text-xs text-muted-foreground hover:text-muted-foreground transition-colors underline"
                 >
                     Yine de şifre sıfırlama linki gönder
                 </button>

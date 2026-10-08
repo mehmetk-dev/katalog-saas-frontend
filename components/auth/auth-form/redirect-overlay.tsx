@@ -9,12 +9,12 @@ interface RedirectOverlayProps {
 export function RedirectOverlay({ t, variant = "default" }: RedirectOverlayProps) {
     if (variant === "minimal") {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm">
                 <div className="flex flex-col items-center gap-6 animate-in fade-in duration-500">
-                    <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
+                    <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
                     </div>
-                    <p className="text-slate-500 font-medium">{t("auth.redirecting")}</p>
+                    <p className="text-muted-foreground font-medium">{t("auth.redirecting")}</p>
                 </div>
             </div>
         )

@@ -55,16 +55,16 @@ export function AuthTabs({
 }: AuthTabsProps) {
     return (
         <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-muted rounded-lg">
                 <TabsTrigger
                     value="signin"
-                    className="text-sm font-medium rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-colors"
+                    className="text-sm font-medium rounded-md data-[state=active]:bg-card data-[state=active]:text-primary transition-colors"
                 >
                     {t("auth.signin")}
                 </TabsTrigger>
                 <TabsTrigger
                     value="signup"
-                    className="text-sm font-medium rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 transition-colors"
+                    className="text-sm font-medium rounded-md data-[state=active]:bg-card data-[state=active]:text-primary transition-colors"
                 >
                     {t("auth.signup")}
                 </TabsTrigger>
@@ -105,7 +105,7 @@ export function AuthTabs({
                     </div>
                     <Button
                         type="submit"
-                        className="w-full h-12 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-700 transition-colors"
+                        className="w-full h-12 text-sm font-medium rounded-xl bg-primary hover:bg-primary/90 transition-colors"
                         disabled={isLoading || isGoogleLoading || !isOnline}
                     >
                         {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
@@ -176,7 +176,7 @@ export function AuthTabs({
                     </div>
                     <Button
                         type="submit"
-                        className="w-full h-12 text-sm font-medium rounded-xl bg-violet-600 hover:bg-violet-700 transition-colors"
+                        className="w-full h-12 text-sm font-medium rounded-xl bg-primary hover:bg-primary/90 transition-colors"
                         disabled={isLoading || isGoogleLoading || !isOnline}
                     >
                         {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}

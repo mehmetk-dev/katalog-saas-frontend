@@ -4,11 +4,11 @@ import type { AuthMode, TranslateFn } from "./types"
 
 const inputCls = (hasError: boolean, isShaking: boolean, extra?: string) =>
     cn(
-        "w-full h-12 px-4 bg-white border rounded-xl text-[15px]",
-        "outline-none transition-all placeholder:text-slate-300 hover:border-slate-300",
+        "w-full h-12 px-4 bg-card border rounded-xl text-[15px]",
+        "outline-none transition-all placeholder:text-muted-foreground/70 hover:border-border",
         hasError
-            ? "border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]"
-            : "border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+            ? "border-brand ring-1 ring-brand focus:ring-brand focus:border-brand"
+            : "border-border focus:border-primary focus:ring-1 focus:ring-primary",
         isShaking && "animate-shake",
         extra
     )
@@ -21,7 +21,7 @@ function FieldError({ error }: FieldErrorProps) {
     if (!error) return null
     return (
         <p className={cn(
-            "text-[12px] text-[#cf1414] font-medium",
+            "text-[12px] text-brand font-medium",
             "mt-1 ml-1 animate-in fade-in slide-in-from-top-1"
         )}>
             {error}
@@ -61,7 +61,7 @@ export function AuthFormFields({
             {mode === 'signup' && (
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.fullName")}</label>
+                        <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.fullName")}</label>
                         <input
                             type="text"
                             value={name}
@@ -78,16 +78,16 @@ export function AuthFormFields({
                         <FieldError error={fieldErrors.name} />
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.company")}</label>
+                        <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.company")}</label>
                         <input
                             type="text"
                             value={companyName}
                             onChange={(e) => onCompanyNameChange(e.target.value)}
                             className={cn(
-                                "w-full h-12 px-4 bg-white border border-slate-200",
+                                "w-full h-12 px-4 bg-card border border-border",
                                 "rounded-xl text-[15px] outline-none",
-                                "focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
-                                "transition-all placeholder:text-slate-300 hover:border-slate-300"
+                                "focus:border-primary focus:ring-1 focus:ring-primary",
+                                "transition-all placeholder:text-muted-foreground/70 hover:border-border"
                             )}
                             placeholder={t("auth.placeholderCompany")}
                             suppressHydrationWarning
@@ -99,7 +99,7 @@ export function AuthFormFields({
 
             {/* Email */}
             <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-slate-900 ml-1">{t("auth.email")}</label>
+                <label className="text-[13px] font-medium text-foreground ml-1">{t("auth.email")}</label>
                 <input
                     type="email"
                     value={email}
@@ -120,7 +120,7 @@ export function AuthFormFields({
             {mode !== 'forgot-password' && (
                 <div className="space-y-1.5 relative">
                     <div className="flex items-center justify-between px-1">
-                        <label className="text-[13px] font-medium text-slate-900">{t("auth.password")}</label>
+                        <label className="text-[13px] font-medium text-foreground">{t("auth.password")}</label>
                     </div>
                     <div className="relative">
                         <input
@@ -140,7 +140,7 @@ export function AuthFormFields({
                             onClick={() => onShowPasswordChange(!showPassword)}
                             className={cn(
                                 "absolute right-4 top-1/2 -translate-y-1/2",
-                                "text-slate-400 hover:text-slate-600 transition-colors"
+                                "text-muted-foreground hover:text-muted-foreground transition-colors"
                             )}
                             tabIndex={-1}
                         >
@@ -153,7 +153,7 @@ export function AuthFormFields({
                             onClick={onForgotPassword}
                             className={cn(
                                 "absolute top-0 right-1 text-[13px] font-medium",
-                                "text-slate-500 hover:text-violet-600 transition-colors"
+                                "text-muted-foreground hover:text-primary transition-colors"
                             )}
                             tabIndex={6}
                         >

@@ -24,9 +24,9 @@ export function AuthFormActions({
                 type="submit"
                 disabled={isLoading || isGoogleLoading}
                 className={cn(
-                    "w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825]",
+                    "w-full h-12 bg-brand/90 hover:bg-brand/90",
                     "text-white font-medium rounded-xl",
-                    "shadow-lg shadow-[#B01E2E]/20 hover:shadow-[#B01E2E]/30",
+                    "shadow-lg shadow-brand/20 hover:shadow-brand/30",
                     "hover:scale-[1.01] active:scale-[0.99]",
                     "transition-all duration-200 disabled:opacity-70",
                     "flex items-center justify-center gap-2 mt-4"
@@ -49,12 +49,12 @@ export function AuthFormActions({
                 <>
                     <div className="relative my-6">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-200" />
+                            <div className="w-full border-t border-border" />
                         </div>
                         <div className="relative flex justify-center">
                             <span className={cn(
-                                "bg-[#FDFDFD] px-4 text-xs font-medium",
-                                "text-slate-400 uppercase tracking-widest"
+                                "bg-background px-4 text-xs font-medium",
+                                "text-muted-foreground uppercase tracking-widest"
                             )}>
                                 {t("auth.or")}
                             </span>
@@ -66,15 +66,15 @@ export function AuthFormActions({
                         onClick={onGoogleAuth}
                         disabled={isLoading || isGoogleLoading}
                         className={cn(
-                            "w-full h-12 bg-white border border-slate-200",
-                            "hover:bg-slate-50 text-slate-900 font-medium",
+                            "w-full h-12 bg-card border border-border",
+                            "hover:bg-muted/50 text-foreground font-medium",
                             "rounded-xl transition-all duration-200",
                             "flex items-center justify-center gap-3",
-                            "hover:border-slate-300 active:scale-[0.98]"
+                            "hover:border-border active:scale-[0.98]"
                         )}
                     >
                         {isGoogleLoading ? (
-                            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                         ) : (
                             <>
                                 <GoogleIcon />
@@ -86,7 +86,7 @@ export function AuthFormActions({
             )}
 
             {/* Mode Switcher */}
-            <p className="text-center text-[14px] text-slate-500 mt-8">
+            <p className="text-center text-[14px] text-muted-foreground mt-8">
                 {mode === 'forgot-password' ? (
                     <button
                         type="button"
@@ -94,7 +94,7 @@ export function AuthFormActions({
                             onModeSwitch('signin')
                             onResetForm()
                         }}
-                        className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
+                        className="text-primary font-semibold hover:text-primary transition-colors hover:underline"
                     >
                         {(t("auth.backToLogin")) || "Giriş Yap'a Dön"}
                     </button>
@@ -110,7 +110,7 @@ export function AuthFormActions({
                                 onModeSwitch(mode === 'signup' ? 'signin' : 'signup')
                                 onResetForm()
                             }}
-                            className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
+                            className="text-primary font-semibold hover:text-primary transition-colors hover:underline"
                         >
                             {mode === 'signup' ? (t("auth.signin")) : (t("auth.signup"))}
                         </button>

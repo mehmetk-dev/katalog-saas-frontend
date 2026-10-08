@@ -16,7 +16,7 @@ export function GoogleAuthButton({ isLoading, isGoogleLoading, isOnline, onClick
     return (
         <Button
             variant="outline"
-            className="w-full h-12 bg-white dark:bg-background border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30 text-sm font-medium rounded-xl transition-colors"
+            className="w-full h-12 bg-card dark:bg-background border border-border hover:border-border hover:bg-accent text-sm font-medium rounded-xl transition-colors"
             onClick={onClick}
             disabled={isLoading || isGoogleLoading || !isOnline}
         >
