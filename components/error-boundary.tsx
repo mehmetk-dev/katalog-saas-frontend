@@ -70,11 +70,11 @@ function ErrorContent({ error, onReload, onGoHome }: { error: Error | null, onRe
     const { t } = useTranslation()
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted via-background to-muted p-4">
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="text-center">
-                    <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                        <AlertTriangle className="w-8 h-8 text-red-600" />
+                    <div className="mx-auto w-16 h-16 bg-destructive-soft rounded-full flex items-center justify-center mb-4">
+                        <AlertTriangle className="w-8 h-8 text-destructive" />
                     </div>
                     <CardTitle className="text-2xl">{t("common.errorTitle") || "Something went wrong"}</CardTitle>
                     <CardDescription className="text-base">
@@ -83,8 +83,8 @@ function ErrorContent({ error, onReload, onGoHome }: { error: Error | null, onRe
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {process.env.NODE_ENV === 'development' && error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm font-mono text-red-800 break-all">
+                        <div className="p-3 bg-destructive-soft border border-destructive/20 rounded-lg">
+                            <p className="text-sm font-mono text-destructive-soft-foreground break-all">
                                 {sanitizeErrorMessage(error.message)}
                             </p>
                         </div>
