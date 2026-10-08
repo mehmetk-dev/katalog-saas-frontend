@@ -4,7 +4,7 @@ import { ShoppingBag } from "lucide-react"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, resolveTemplateBackground, ensureReadable } from "./utils"
 
 /**
  * Luxury Template - "The Royal Essence"
@@ -62,22 +62,14 @@ export const LuxuryTemplate = React.memo(function LuxuryTemplate({
     // Arka plan stili oluştur
     const containerStyle: React.CSSProperties = {
         ...buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient }),
-        backgroundColor: backgroundColor || '#0A0A0A', // default dark background
+        // Koyu zemin için tasarlandı: varsayılan beyaz arka plan şablonun kendi zeminine döner
+        backgroundColor: resolveTemplateBackground(backgroundColor, '#0A0A0A'),
         color: '#d4af37' // Default gold text base
     }
+    const pageBackground = containerStyle.backgroundColor as string
 
-    // Koyu arka plan → koyu headerTextColor kullanılamaz, açık renge zorla
-    const isDarkColor = (color?: string) => {
-        if (!color) return false
-        const hex = color.replace('#', '')
-        const r = parseInt(hex.substring(0, 2), 16)
-        const g = parseInt(hex.substring(2, 4), 16)
-        const b = parseInt(hex.substring(4, 6), 16)
-        return (r + g + b) / 3 < 100 // Ortalama < 100 ise çok koyu
-    }
-
-    const safeHeaderTextColor = isDarkColor(headerTextColor) ? undefined : headerTextColor
-    const primaryTextColor = safeHeaderTextColor || '#f3eacb' // Cream/Gold or user override
+    // Yazı rengi zeminde okunmuyorsa krem (koyu zemin) / koyu (açık zemin) kullan
+    const primaryTextColor = ensureReadable(headerTextColor, pageBackground, { light: '#f3eacb', dark: '#1c1917', minRatio: 4.5 })
     const accentColor = '#d4af37' // Gold accent
 
     return (

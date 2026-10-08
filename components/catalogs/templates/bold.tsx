@@ -71,7 +71,7 @@ export const BoldTemplate = React.memo(function BoldTemplate({
                                         <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                     </div>
                                 )}
-                                <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
                             </>
                         ) : (
                             <>
@@ -81,7 +81,7 @@ export const BoldTemplate = React.memo(function BoldTemplate({
                                     </div>
                                 )}
                                 {titlePosition === 'left' && (
-                                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                    <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
                                 )}
                             </>
                         )}
@@ -96,7 +96,7 @@ export const BoldTemplate = React.memo(function BoldTemplate({
                                         <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                     </div>
                                 )}
-                                <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
                             </>
                         ) : (
                             <>
@@ -106,7 +106,7 @@ export const BoldTemplate = React.memo(function BoldTemplate({
                                     </div>
                                 )}
                                 {titlePosition === 'center' && (
-                                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                    <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
                                 )}
                             </>
                         )}
@@ -116,7 +116,7 @@ export const BoldTemplate = React.memo(function BoldTemplate({
                     <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 h-full">
                         {isCollisionRight ? (
                             <>
-                                <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
                                 {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
                                     <div className="ml-4 border-l-8 pl-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
                                         <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
@@ -126,7 +126,7 @@ export const BoldTemplate = React.memo(function BoldTemplate({
                         ) : (
                             <>
                                 {titlePosition === 'right' && (
-                                    <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none italic truncate">{catalogName || "KATALOG"}</h1>
+                                    <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
                                 )}
                                 {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
                                     <div className="ml-6 border-l-8 pl-6 h-full flex items-center" style={{ borderColor: primaryColor }}>

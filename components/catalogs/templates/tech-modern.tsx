@@ -3,7 +3,7 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
 
 /**
  * Tech Modern Template - "The Kinetic HUD"
@@ -56,13 +56,18 @@ export const TechModernTemplate = React.memo(function TechModernTemplate({
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
+    // Header zemini sabit koyu: kullanıcının yazı rengi orada okunmuyorsa beyaza düşer
+    const titleColor = ensureReadable(headerTextColor, '#0a0f18')
+    // Ürün kartları ve header sabit koyu: vurgu rengi (fiyatlar) orada okunmuyorsa beyaza düşer
+    const accentTextColor = ensureReadable(primaryColor, '#0a0f18')
+
     const renderTitleBlock = () => (
         <div>
             <h1 className="text-lg font-black tracking-tighter uppercase italic leading-none flex items-center gap-3">
                 <span className="w-1 h-5" style={{ backgroundColor: primaryColor || '#3b82f6' }} />
-                <span style={{ color: headerTextColor || '#ffffff' }}>{catalogName || "SYSTEM_CATALOG"}</span>
+                <span style={{ color: titleColor }}>{catalogName || "SYSTEM_CATALOG"}</span>
             </h1>
-            <p className="text-[9px] font-mono tracking-[0.3em] mt-1" style={{ color: headerTextColor ? `${headerTextColor}4d` : '#ffffff4d' }}>STATUS: OPERATIONAL_V2.0</p>
+            <p className="text-[9px] font-mono tracking-[0.3em] mt-1" style={{ color: titleColor, opacity: 0.3 }}>STATUS: OPERATIONAL_V2.0</p>
         </div>
     )
 
@@ -141,7 +146,7 @@ export const TechModernTemplate = React.memo(function TechModernTemplate({
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                             SECURE_SERVER_LINKED
                         </div>
-                        <div className="text-xs font-bold mt-1" style={{ color: primaryColor }}>
+                        <div className="text-xs font-bold mt-1" style={{ color: accentTextColor }}>
                             PAGE::{pageNumber.toString().padStart(3, '0')}
                         </div>
                     </div>
@@ -196,7 +201,7 @@ export const TechModernTemplate = React.memo(function TechModernTemplate({
                                     </div>
                                     {showPrices && (
                                         <div className="flex items-center gap-2 text-right">
-                                            <span className="text-sm font-black font-mono shadow-[0_0_15px_rgba(59,130,246,0.2)]" style={{ color: primaryColor }}>
+                                            <span className="text-sm font-black font-mono shadow-[0_0_15px_rgba(59,130,246,0.2)]" style={{ color: accentTextColor }}>
                                                 {formatProductPrice(product)}
                                             </span>
                                             {showUrls && productUrl && (

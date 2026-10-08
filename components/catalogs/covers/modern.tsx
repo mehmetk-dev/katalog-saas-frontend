@@ -9,7 +9,7 @@ export const ModernCover = React.memo(function ModernCover({
     coverDescription,
     logoUrl: _logoUrl,
     productCount = 0,
-    primaryColor: _primaryColor = '#3b82f6'
+    primaryColor = '#18181b'
 }: CoverPageProps) {
     const { t } = useTranslation()
     return (
@@ -63,9 +63,15 @@ export const ModernCover = React.memo(function ModernCover({
                             />
                         </div>
                     ) : (
-                        <div className="w-full h-full rounded-[2.5rem] bg-gradient-to-br from-slate-100 to-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center">
-                            <div className="text-slate-300 font-black text-4xl uppercase tracking-tighter opacity-50">{t("coverTexts.noImageSelected")}</div>
-                        </div>
+                        // Görsel yoksa yayınlanan katalogda/PDF'te "görsel seçilmedi" yazmak yerine
+                        // vurgu renginden türeyen sade bir dekoratif alan gösterilir
+                        <div
+                            aria-hidden
+                            className="w-full h-full rounded-[2.5rem] overflow-hidden"
+                            style={{
+                                background: `linear-gradient(135deg, color-mix(in srgb, ${primaryColor} 14%, #f8fafc) 0%, color-mix(in srgb, ${primaryColor} 4%, #f8fafc) 100%)`,
+                            }}
+                        />
                     )}
                 </div>
             </div>

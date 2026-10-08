@@ -4,7 +4,7 @@ import { ExternalLink, ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
 
 export const MagazineTemplate = React.memo(function MagazineTemplate({
     catalogName,
@@ -57,6 +57,8 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
     const borderColor = headerTextColor ? `${headerTextColor}20` : 'rgba(2, 6, 23, 0.1)' // slate-950/10
+    // Başlık primaryColor zeminli barda: okunmuyorsa otomatik siyah/beyaz
+    const titleColor = ensureReadable(headerTextColor, primaryColor, { minRatio: 4.5 })
 
     const renderLogo = () => {
         if (!logoUrl || !isHeaderLogo) return null
@@ -80,12 +82,12 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
         )}>
             <h1
                 className="text-3xl font-black italic tracking-tighter leading-none uppercase"
-                style={{ color: headerTextColor }}
+                style={{ color: titleColor }}
             >
                 {catalogName || "EDITORIAL"}
             </h1>
             <div className="flex items-center gap-3 mt-1">
-                <span className="text-[11px] font-bold tracking-[0.5em] uppercase" style={{ color: headerTextColor ? `${headerTextColor}80` : '#64748b' }}>
+                <span className="text-[11px] font-bold tracking-[0.5em] uppercase" style={{ color: titleColor, opacity: 0.6 }}>
                     Issue {new Date().getFullYear()} / {pageNumber}
                 </span>
             </div>

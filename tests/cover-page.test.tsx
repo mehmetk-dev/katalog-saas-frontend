@@ -59,15 +59,17 @@ describe('CoverPage Component', () => {
     expect(screen.getByText('Test Catalog')).toBeInTheDocument()
   })
 
-  it('should render image placeholder when cover image is missing', () => {
-    render(
+  it('should render a decorative placeholder (no "no image" text) when cover image is missing', () => {
+    const { container } = render(
       <CoverPage
         catalogName="Test Catalog"
         primaryColor="rgba(255, 0, 0, 1)"
       />,
     )
 
-    expect(screen.getByText('coverTexts.noImageSelected')).toBeInTheDocument()
+    // Yayınlanan katalogda / PDF'te "görsel seçilmedi" yazısı basılmamalı
+    expect(screen.queryByText('coverTexts.noImageSelected')).not.toBeInTheDocument()
+    expect(container.querySelector('[aria-hidden="true"][style*="linear-gradient"]')).toBeInTheDocument()
   })
 
   it('should render cover content counter label', () => {

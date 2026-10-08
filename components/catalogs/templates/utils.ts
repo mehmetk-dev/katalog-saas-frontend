@@ -148,3 +148,68 @@ export function getHeaderLayout(logoPosition: string | undefined | null, titlePo
     }
 }
 
+
+// ─── Color Contrast ─────────────────────────────────────────────────────────
+
+function parseColorToRgb(color: string | null | undefined): [number, number, number] | null {
+    if (!color) return null
+    const value = color.trim()
+    const hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i)?.[1]
+    if (hex) {
+        const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex.slice(0, 6)
+        return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)) as [number, number, number]
+    }
+    const rgb = value.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i)
+    if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])]
+    return null
+}
+
+function relativeLuminance([r, g, b]: [number, number, number]): number {
+    const channel = (c: number) => {
+        const s = c / 255
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+    }
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+}
+
+/** WCAG kontrast oranı; renk çözülemezse null */
+export function contrastRatio(a: string | null | undefined, b: string | null | undefined): number | null {
+    const ra = parseColorToRgb(a)
+    const rb = parseColorToRgb(b)
+    if (!ra || !rb) return null
+    const [hi, lo] = [relativeLuminance(ra), relativeLuminance(rb)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+}
+
+export function isLightColor(color: string | null | undefined): boolean {
+    const rgb = parseColorToRgb(color)
+    return rgb ? relativeLuminance(rgb) > 0.4 : true
+}
+
+/**
+ * Kullanıcının seçtiği yazı rengi zeminde okunuyorsa onu, okunmuyorsa (kontrast < 3)
+ * siyah/beyazdan okunanı döndürür. Builder varsayılan olarak her şablona #000000
+ * gönderdiği için renkli/koyu başlık barlarında yazı kayboluyordu.
+ */
+export function ensureReadable(
+    textColor: string | null | undefined,
+    surfaceColor: string | null | undefined,
+    { dark = '#111111', light = '#ffffff', minRatio = 3 }: { dark?: string; light?: string; minRatio?: number } = {}
+): string {
+    const ratio = contrastRatio(textColor, surfaceColor)
+    if (textColor && (ratio === null || ratio >= minRatio)) return textColor
+    return isLightColor(surfaceColor) ? dark : light
+}
+
+/** Kataloğun varsayılan (dokunulmamış) arka plan rengi */
+const CATALOG_DEFAULT_BACKGROUNDS = new Set(['#ffffff', '#fff', 'white'])
+
+/**
+ * Koyu zemin için tasarlanmış şablonlar (luxury, showcase) kataloğun varsayılan
+ * beyaz arka planını kendi zeminleriyle değiştirir; kullanıcı başka bir renk
+ * seçtiyse ona dokunulmaz.
+ */
+export function resolveTemplateBackground(backgroundColor: string | null | undefined, templateDefault: string): string {
+    if (!backgroundColor || CATALOG_DEFAULT_BACKGROUNDS.has(backgroundColor.trim().toLowerCase())) return templateDefault
+    return backgroundColor
+}

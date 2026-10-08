@@ -4,7 +4,7 @@ import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
 
 export const ModernGridTemplate = React.memo(function ModernGridTemplate({
     catalogName,
@@ -62,11 +62,13 @@ export const ModernGridTemplate = React.memo(function ModernGridTemplate({
 
     // Arka plan stili oluştur
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+    // Header/footer barı primaryColor zeminde: yazı rengi okunmuyorsa otomatik siyah/beyaz
+    const barTextColor = ensureReadable(headerTextColor, primaryColor, { minRatio: 4.5 })
 
     return (
         <div className="h-full flex flex-col relative overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#f4f4f5' }}>
             {/* Header */}
-            <header className="shrink-0 transition-colors" style={{ height: HEADER_HEIGHT, backgroundColor: primaryColor, color: headerTextColor }}>
+            <header className="shrink-0 transition-colors" style={{ height: HEADER_HEIGHT, backgroundColor: primaryColor, color: barTextColor }}>
                 <div className={`h-full px-8 flex items-center justify-between relative w-full ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}>
                     {/* Sol Alan */}
                     <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-4">
@@ -216,7 +218,7 @@ export const ModernGridTemplate = React.memo(function ModernGridTemplate({
                 >
                     <span
                         className="text-sm font-bold tracking-tight"
-                        style={{ color: headerTextColor }}
+                        style={{ color: barTextColor }}
                     >
                         Sayfa {pageNumber} / {totalPages}
                     </span>

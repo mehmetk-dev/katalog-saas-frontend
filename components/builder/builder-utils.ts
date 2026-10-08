@@ -163,7 +163,7 @@ export function parseColor(color: string) {
         const b = parseInt(hex.substring(4, 6), 16)
         return { r, g, b, a: 1 }
     }
-    return { r: 124, g: 58, b: 237, a: 1 } // default indigo
+    return { r: 24, g: 24, b: 27, a: 1 } // default neutral
 }
 
 /** Convert RGB values to hex string */
@@ -184,7 +184,8 @@ export function hexToRgba(hex: string, alpha: number = 1): string {
 
 /** Resolve initial primary color from catalog data */
 export function resolveInitialPrimaryColor(catalogPrimaryColor?: string | null): string {
-    if (!catalogPrimaryColor) return 'rgba(124, 58, 237, 1)'
+    // Varsayılan: nötr koyu — şablonlar başlık/fiyat kontrastını kendileri ayarlar (ensureReadable)
+    if (!catalogPrimaryColor) return 'rgba(24, 24, 27, 1)'
     if (catalogPrimaryColor.startsWith('rgba')) return catalogPrimaryColor
     if (catalogPrimaryColor === 'transparent') return 'rgba(0, 0, 0, 0)'
     return hexToRgba(catalogPrimaryColor)

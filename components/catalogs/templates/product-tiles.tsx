@@ -3,7 +3,7 @@ import NextImage from "next/image"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
 
 /**
  * Product Tiles Template - Redesigned V2
@@ -88,7 +88,7 @@ export const ProductTilesTemplate = React.memo(function ProductTilesTemplate({
             {/* Header - Minimalist Editorial - Smaller */}
             <header
                 className="px-12 py-6 flex items-center justify-between border-b border-[#E7E5E4] relative h-[88px] shrink-0 transition-colors"
-                style={{ backgroundColor: primaryColor, color: headerTextColor }}
+                style={{ backgroundColor: primaryColor, color: ensureReadable(headerTextColor, primaryColor, { minRatio: 4.5 }) }}
             >
                 {/* Sol Alan */}
                 <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">

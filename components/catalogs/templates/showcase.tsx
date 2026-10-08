@@ -3,7 +3,7 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable, resolveTemplateBackground } from "./utils"
 
 /**
  * Showcase Template - "The Spotlight Noir"
@@ -50,20 +50,25 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
     const logoHeight = getStandardLogoHeight(logoSize)
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+    // Koyu zemin için tasarlandı: varsayılan beyaz arka plan şablonun kendi zeminine döner
+    const pageBackground = resolveTemplateBackground(backgroundColor, '#0a0a0a')
+    const titleColor = ensureReadable(headerTextColor, pageBackground)
+    // Vurgu rengi (fiyatlar) koyu zeminde okunmuyorsa beyaza düşer
+    const accentTextColor = ensureReadable(primaryColor, pageBackground)
 
     const renderTitleBlock = () => (
         <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-[0.3em] uppercase truncate max-w-[400px]" style={{ color: headerTextColor || '#ffffff' }}>
+            <h1 className="text-xl font-black tracking-[0.12em] uppercase line-clamp-2 max-w-[520px] leading-tight" style={{ color: titleColor }}>
                 {catalogName || "FEATURE_SHOW"}
             </h1>
-            <span className="text-[9px] font-bold tracking-[0.5em] mt-1" style={{ color: headerTextColor ? `${headerTextColor}80` : '#ffffff33' }}>
+            <span className="text-[9px] font-bold tracking-[0.5em] mt-1" style={{ color: titleColor, opacity: 0.5 }}>
                 CURATED EDITION
             </span>
         </div>
     )
 
     return (
-        <div className="h-full flex flex-col overflow-hidden text-white selection:bg-blue-500/30 transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#0a0a0a' }}>
+        <div className="h-full flex flex-col overflow-hidden text-white selection:bg-blue-500/30 transition-colors" style={{ ...containerStyle, backgroundColor: pageBackground }}>
             {/* Minimal High-End Header */}
             <header className="h-20 px-10 flex items-center justify-between border-b shrink-0 z-50 transition-colors" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent', borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
                 {/* Sol Alan */}
@@ -175,7 +180,7 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
                                         <div className="flex flex-col">
                                             <span className="text-[10px] uppercase font-black tracking-widest text-white/20 mb-2">Value Reference</span>
                                             <div className="flex items-center gap-4">
-                                                <p className="text-4xl font-black leading-none tracking-tighter" style={{ color: primaryColor }}>
+                                                <p className="text-4xl font-black leading-none tracking-tighter" style={{ color: accentTextColor }}>
                                                     {formatProductPrice(main)}
                                                 </p>
                                             </div>
@@ -237,7 +242,7 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
                                     <div className="flex items-end justify-between mt-3">
                                         {showPrices && (
                                             <div className="flex items-center gap-2">
-                                                <p className="text-sm font-bold tracking-tighter" style={{ color: primaryColor }}>
+                                                <p className="text-sm font-bold tracking-tighter" style={{ color: accentTextColor }}>
                                                     {formatProductPrice(product)}
                                                 </p>
                                             </div>

@@ -63,13 +63,13 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
             <header className="h-32 px-12 flex items-end pb-8 border-b-8 shrink-0 relative z-10 transition-colors" style={{ borderColor: primaryColor, backgroundColor: containerStyle.backgroundColor || 'transparent', color: headerTextColor }}>
                 <div className="flex-1 flex items-end justify-between relative w-full h-full">
                     {/* Sol Alan */}
-                    <div className="flex-1 flex items-end justify-start min-w-0 z-10 gap-6">
+                    <div className={`${titlePosition === 'left' ? 'flex-[2]' : 'flex-1'} flex items-end justify-start min-w-0 z-10 gap-6`}>
                         {isCollisionLeft ? (
                             <div className="flex flex-col gap-4 items-start">
                                 {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
                                     <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                 )}
-                                <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] truncate">{catalogName || "VANGUARD"}</h1>
+                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
                             </div>
                         ) : (
                             <div className="flex items-end gap-6 max-w-full">
@@ -77,7 +77,7 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
                                     <div className="mb-2"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
                                 )}
                                 {titlePosition === 'left' && (
-                                    <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] truncate">{catalogName || "VANGUARD"}</h1>
+                                    <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
                                 )}
                             </div>
                         )}
@@ -91,10 +91,10 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
                         {isCollisionCenter && (
                             <div className="flex flex-col gap-4 items-center">
                                 <NextImage src={logoUrl!} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] text-center truncate">{catalogName || "VANGUARD"}</h1>
+                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] text-center line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
                             </div>
                         )}
-                        {!isCollisionCenter && titlePosition === 'center' && <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] text-center truncate mx-4">{catalogName || "VANGUARD"}</h1>}
+                        {!isCollisionCenter && titlePosition === 'center' && <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] text-center line-clamp-2 break-words mx-4">{catalogName || "VANGUARD"}</h1>}
                         {!isCollisionCenter && logoAlignment === 'center' && isHeaderLogo && logoUrl && <div className="mx-4 mb-2"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>}
 
                         {isCollisionRight ? (
@@ -102,7 +102,7 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
                                 {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
                                     <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                 )}
-                                <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] truncate text-right">{catalogName || "VANGUARD"}</h1>
+                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words text-right">{catalogName || "VANGUARD"}</h1>
                                 <span className="text-[10px] font-bold tracking-[0.5em] opacity-80 mt-2">PRO_EDITION // {new Date().getFullYear()}</span>
                             </div>
                         ) : (
@@ -112,7 +112,7 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
                                 )}
                                 {titlePosition === 'right' && (
                                     <div className="flex flex-col items-end">
-                                        <h1 className="text-5xl font-black tracking-tighter uppercase leading-[0.8] truncate">{catalogName || "VANGUARD"}</h1>
+                                        <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
                                         <span className="text-[10px] font-bold tracking-[0.5em] opacity-80 mt-2">PRO_EDITION // {new Date().getFullYear()}</span>
                                     </div>
                                 )}

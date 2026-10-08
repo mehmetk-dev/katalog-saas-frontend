@@ -54,13 +54,13 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
             <header className="h-24 px-16 flex items-end pb-6 border-b border-black/10 shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
                 <div className="flex-1 flex items-end justify-between relative w-full h-full">
                     {/* Sol Alan */}
-                    <div className="flex-1 flex items-end justify-start min-w-0 z-10 gap-8">
+                    <div className={`${titlePosition === 'left' ? 'flex-[2]' : 'flex-1'} flex items-end justify-start min-w-0 z-10 gap-8`}>
                         {isCollisionLeft ? (
                             <div className="flex flex-col gap-4 items-start">
                                 {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
                                     <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                 )}
-                                <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
                             </div>
                         ) : (
                             <div className="flex items-end gap-8">
@@ -68,7 +68,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
                                     <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
                                 )}
                                 {titlePosition === 'left' && (
-                                    <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                    <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
                                 )}
                             </div>
                         )}
@@ -81,7 +81,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
                                 {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
                                     <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                 )}
-                                <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
                             </div>
                         ) : (
                             <div className="flex items-end gap-8">
@@ -89,7 +89,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
                                     <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
                                 )}
                                 {titlePosition === 'center' && (
-                                    <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                    <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
                                 )}
                             </div>
                         )}
@@ -102,7 +102,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
                                 {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
                                     <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
                                 )}
-                                <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
                                 <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
                             </div>
                         ) : (
@@ -112,7 +112,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
                                 )}
                                 {titlePosition === 'right' && (
                                     <div className="flex flex-col items-end">
-                                        <h1 className="text-2xl font-serif tracking-widest uppercase">{catalogName || "ARCHIVE"}</h1>
+                                        <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
                                         <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
                                     </div>
                                 )}

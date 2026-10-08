@@ -20,7 +20,7 @@ function TitleBlock({
 }) {
     return (
         <div className={`flex flex-col ${align === 'right' ? 'items-end text-right' : align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
-            <h1 className={`text-2xl font-black tracking-tight leading-none mb-1 uppercase truncate max-w-[300px] ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto' : ''}`}
+            <h1 className={`text-xl font-black tracking-tight leading-tight mb-1 uppercase line-clamp-2 max-w-[420px] ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto' : ''}`}
                 style={{ color: headerTextColor || '#1a1a1a' }}>
                 {catalogName || "KATALOG"}
             </h1>

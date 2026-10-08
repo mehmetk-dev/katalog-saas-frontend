@@ -165,15 +165,15 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
 
                     return (
                         <div key={product.id} className="flex flex-col h-full group shrink-0 relative">
-                            <div className="aspect-[3/2] bg-gray-50 rounded-xl overflow-hidden mb-3 relative shrink-0">
+                            <div className="relative mb-3 min-h-0 flex-1 overflow-hidden rounded-xl bg-gray-50">
                                 <ProductImageGallery
                                     product={product}
                                     imageFit={productImageFit}
                                     className="w-full h-full"
-                                    imageClassName="p-2 group-hover:scale-105 transition-transform duration-500"
+                                    imageClassName="p-3 group-hover:scale-105 transition-transform duration-500"
                                 />
                             </div>
-                            <div className="flex-1 flex flex-col justify-between overflow-hidden relative">
+                            <div className="relative flex shrink-0 flex-col overflow-hidden">
                                 <div className="space-y-1">
                                     <div className="flex justify-between items-start gap-2">
                                         <h3 className="font-bold text-sm text-gray-900 line-clamp-1 group-hover:text-gray-600 transition-colors leading-tight flex-1">{product.name}</h3>
@@ -186,14 +186,14 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
                                         )}
                                     </div>
                                     {showDescriptions && product.description && (
-                                        <p className="text-[10px] text-gray-400 line-clamp-1 leading-tight">{product.description}</p>
+                                        <p className="text-[11px] text-gray-500 line-clamp-2 leading-snug">{product.description}</p>
                                     )}
 
                                     {showAttributes && product.custom_attributes && product.custom_attributes.length > 0 && (
-                                        <div className="mt-2 space-y-0.5 border-t border-gray-50 pt-2 pb-6">
+                                        <div className="mt-2 space-y-0.5 border-t border-gray-100 pt-2">
                                             {product.custom_attributes.filter(a => a.name !== 'currency' && a.value).slice(0, 3).map((attr, aidx) => (
                                                 <div key={aidx} className="flex justify-between items-center text-[9px] gap-2">
-                                                    <span className="text-gray-300 font-medium truncate flex-1">{attr.name}</span>
+                                                    <span className="text-gray-400 font-medium truncate flex-1">{attr.name}</span>
                                                     <span className="text-gray-500 font-bold shrink-0 truncate max-w-[60%]">
                                                         {attr.value}{attr.unit}
                                                     </span>
@@ -203,8 +203,8 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
                                     )}
                                 </div>
                                 {showSku && product.sku && (
-                                    <div className="mt-auto pt-2">
-                                        <span className="text-[8px] text-gray-200 font-mono tracking-widest leading-none uppercase">SKU: {product.sku}</span>
+                                    <div className="pt-1.5">
+                                        <span className="text-[9px] text-gray-400 font-mono tracking-wider leading-none uppercase">SKU: {product.sku}</span>
                                     </div>
                                 )}
 
