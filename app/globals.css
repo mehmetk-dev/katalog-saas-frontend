@@ -304,9 +304,9 @@
   /* Mobil dokunmatik hedefler için minimum boyut */
   @media (max-width: 640px) {
 
-    button,
-    [role="button"],
-    a {
+    /* Onay kutusu / anahtar / radyo da <button> olarak render edilir; bunlar etiketleriyle
+       birlikte tıklanır ve 44px'e şişince (16px'lik kutu yerine) boş kareler oluşuyordu */
+    :where(button, [role="button"], a):not([role="checkbox"], [role="switch"], [role="radio"]) {
       min-height: 44px;
       min-width: 44px;
     }
