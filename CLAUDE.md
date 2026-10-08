@@ -1260,6 +1260,8 @@ npm run type-check
 
 9. **Template System:** Şablonlar DB'de (`templates` tablosu) + React components (`components/catalogs/templates/`).
 
+10. **Tasarım Sistemi (tek tema):** Uygulama arayüzü `app/globals.css` başındaki semantik token'ları kullanır. Ana aksiyon `bg-primary` (koyu nötr), marka kırmızısı `bg-brand` / `text-brand` (logo, ana CTA; az kullan), durumlar `success | warning | info | destructive` ve bunların `-soft` / `-soft-foreground` versiyonları. `bg-slate-500`, `text-violet-600`, `bg-[#cf1414]` gibi ham renkler yasaktır; `npm run lint` içindeki `scripts/check-design-tokens.mjs` bunları yakalar. Token'lar dark mode'u kendisi yönetir, ayrıca `dark:` renk sınıfı yazma. Ortak parçalar: `Logo`, `PageHeader`, `EmptyState`, `StatCard` (`components/ui/`), Button `brand` varyantı, Badge/Alert durum varyantları. İstisna: müşterinin katalog çıktısı (`components/catalogs/templates|covers|dividers`, önizleme, PDF export) kendi renklerini taşır.
+
 ### 📋 Sık Kullanılan Komut Patternleri
 
 ```bash
