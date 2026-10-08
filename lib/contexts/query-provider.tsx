@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 export const queryKeys = {
     // Products
     products: (params?: Record<string, unknown>) => ["products", params] as const,
+    /** Tüm ürünler (toplu işlemler için; "products" önekiyle mevcut invalidation'lara dahil) */
+    allProducts: () => ["products", "all"] as const,
     productIds: (params?: Record<string, unknown>) =>
         params ? ["product-ids", params] as const : ["product-ids"] as const,
 

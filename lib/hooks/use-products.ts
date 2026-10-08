@@ -5,6 +5,7 @@ import { queryKeys } from "@/lib/contexts/query-provider"
 import {
     getProducts,
     getAllProductIds,
+    getAllProductsForExport,
     createProduct,
     updateProduct,
     deleteProduct,
@@ -61,6 +62,20 @@ export function useAllProductIds(
         staleTime: initialData ? Infinity : 10 * 60 * 1000,
         // initialData yoksa sadece stale olduğunda yeniden çek
         refetchOnMount: initialData ? false : true,
+    })
+}
+
+/**
+ * Kullanıcının bütün ürünleri — sayfalı liste yerine tüm envanter gereken toplu
+ * işlemler (görsel eşleştirme, kategoriye göre seçme) için. Sadece `enabled`
+ * olduğunda (modal açıkken) çekilir.
+ */
+export function useAllProducts(options?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: queryKeys.allProducts(),
+        queryFn: () => getAllProductsForExport(),
+        enabled: options?.enabled ?? true,
+        staleTime: 30 * 1000,
     })
 }
 

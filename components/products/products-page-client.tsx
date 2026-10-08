@@ -66,7 +66,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     paginatedProducts,
     totalPagesCount,
     filteredCount,
-    categoryStats,
     handlePageChange,
     handleAddProduct,
     handleEditProduct,
@@ -77,9 +76,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     handleBulkPriceUpdate,
     handleTestImport,
     clearAllFilters,
-    selectCurrentPage,
-    selectAllProducts,
-    selectByCategory,
     downloadAllProducts,
     handleToolbarSelectAll,
     handleSearchChange,
@@ -257,9 +253,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
           selectedIds={selectedIds}
           onSelectedIdsChange={setSelectedIds}
           paginatedProducts={paginatedProducts}
-          allProducts={products}
-          categories={categories}
-          categoryStats={categoryStats}
           priceChangeType={priceChangeType}
           onPriceChangeTypeChange={setPriceChangeType}
           priceChangeMode={priceChangeMode}
@@ -268,9 +261,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
           onPriceChangeAmountChange={setPriceChangeAmount}
           onUpdate={handleBulkPriceUpdate}
           isPending={isPending}
-          onSelectCurrentPage={selectCurrentPage}
-          onSelectAllProducts={selectAllProducts}
-          onSelectByCategory={selectByCategory}
         />
 
         <BulkImageUploadModal

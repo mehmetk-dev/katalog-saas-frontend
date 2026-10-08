@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { createClient } from "@/lib/supabase/client"
+import { useAllProducts } from "@/lib/hooks/use-products"
 import { cn } from "@/lib/utils"
 
 import { ImageCard } from "./bulk-image-upload/image-card"
@@ -37,7 +38,11 @@ async function validateImageMagicBytes(file: File): Promise<boolean> {
     }
 }
 
-export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }: BulkImageUploadModalProps) {
+export function BulkImageUploadModal({ open, onOpenChange, products: pageProducts, onSuccess }: BulkImageUploadModalProps) {
+    // Dosya adları sadece sayfadaki 12 ürünle değil, bütün envanterle eşleştirilmeli
+    const allProductsQuery = useAllProducts({ enabled: open })
+    const products = allProductsQuery.data ?? pageProducts
+    const isLoadingProducts = open && allProductsQuery.isLoading
     const [images, setImages] = React.useState<ImageFile[]>([])
     const [dragActive, setDragActive] = React.useState(false)
     const [isUploading, setIsUploading] = React.useState(false)
@@ -118,11 +123,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
 
     const openFileDialog = React.useCallback(
         async (mode: "bulk" | "more") => {
+            if (isLoadingProducts) return
             await refreshSession()
             const target = mode === "bulk" ? bulkInputRef.current : addMoreInputRef.current
             target?.click()
         },
-        [refreshSession],
+        [refreshSession, isLoadingProducts],
     )
 
     const handleUpload = React.useCallback(async () => {
@@ -225,7 +231,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                 event.preventDefault()
                                 dragCounterRef.current = 0
                                 setDragActive(false)
-                                if (event.dataTransfer.files?.length) {
+                                if (event.dataTransfer.files?.length && !isLoadingProducts) {
                                     handleFiles(event.dataTransfer.files)
                                 }
                             }}
@@ -242,12 +248,14 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                                 <Button
                                     variant="outline"
                                     className="mt-2"
+                                    disabled={isLoadingProducts}
                                     onClick={(event) => {
                                         event.stopPropagation()
                                         void openFileDialog("bulk")
                                     }}
                                 >
-                                    Bilgisayardan Seç
+                                    {isLoadingProducts && <Loader2 className="size-4 animate-spin" />}
+                                    {isLoadingProducts ? "Ürünler yükleniyor…" : "Bilgisayardan Seç"}
                                 </Button>
                                 <input
                                     ref={bulkInputRef}

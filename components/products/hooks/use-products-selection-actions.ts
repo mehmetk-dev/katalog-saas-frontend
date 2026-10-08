@@ -62,24 +62,6 @@ export function useProductsSelectionActions({
     updateUrl({ search: "", category: "all", stockFilter: "all", minPrice: null, maxPrice: null, page: 1 })
   }, [setSearch, setSelectedCategory, setStockFilter, setPriceRange, priceStatsMax, setCurrentPage, updateUrl])
 
-  const selectCurrentPage = useCallback(() => {
-    const pageIds = paginatedProducts.map((p: Product) => p.id)
-    const newSelectedIds = Array.from(new Set([...selectedIds, ...pageIds]))
-    setSelectedIds(newSelectedIds)
-  }, [paginatedProducts, selectedIds, setSelectedIds])
-
-  const selectAllProducts = useCallback(() => {
-    setSelectedIds(products.map((p) => p.id))
-  }, [products, setSelectedIds])
-
-  const selectByCategory = useCallback((category: string) => {
-    const categoryIds = products
-      .filter((p) => (p.category || (t("products.uncategorized") as string)) === category)
-      .map((p) => p.id)
-    const newSelectedIds = Array.from(new Set([...selectedIds, ...categoryIds]))
-    setSelectedIds(newSelectedIds)
-  }, [products, t, selectedIds, setSelectedIds])
-
   const handleToolbarSelectAll = useCallback(async (checked: boolean) => {
     if (!checked) {
       setSelectedIds([])
@@ -121,9 +103,6 @@ export function useProductsSelectionActions({
 
   return {
     clearAllFilters,
-    selectCurrentPage,
-    selectAllProducts,
-    selectByCategory,
     handleToolbarSelectAll,
     handleTableReorder,
   }

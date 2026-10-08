@@ -71,6 +71,5 @@ export function useProductsPageDerived({
     paginatedProducts,
     totalPagesCount,
     filteredCount,
-    categoryStats,
   }
 }

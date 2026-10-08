@@ -143,7 +143,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     paginatedProducts: derived.paginatedProducts,
     totalPagesCount: derived.totalPagesCount,
     filteredCount: derived.filteredCount,
-    categoryStats: derived.categoryStats,
 
     handlePageChange: state.handlePageChange,
     handleSearchChange: state.handleSearchChange,

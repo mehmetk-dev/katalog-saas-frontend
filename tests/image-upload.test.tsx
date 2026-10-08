@@ -1,10 +1,12 @@
+import type React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { ProductModal } from '@/components/products/modals/product-modal'
 import { BulkImageUploadModal } from '@/components/products/bulk/bulk-image-upload-modal'
 import { FeedbackModal } from '@/components/dashboard/feedback-modal'
-import { Product } from '@/lib/actions/products'
+import { Product, getAllProductsForExport } from '@/lib/actions/products'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const { mockStorageUpload } = vi.hoisted(() => ({
     mockStorageUpload: vi.fn(),
@@ -93,6 +95,7 @@ vi.mock('@/lib/utils/image-utils', () => ({
 
 vi.mock('@/lib/actions/products', () => ({
     bulkUpdateProductImages: vi.fn().mockResolvedValue({ success: true }),
+    getAllProductsForExport: vi.fn(),
     createProduct: vi.fn(),
     updateProduct: vi.fn(),
 }))
@@ -363,19 +366,41 @@ describe('Fotoğraf Yükleme Testleri', () => {
             onSuccess: vi.fn(),
         }
 
+        // Modal, eşleştirme için bütün ürünleri React Query ile yükler
+        const renderModal = (ui: React.ReactElement) =>
+            render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+
+        beforeEach(() => {
+            vi.mocked(getAllProductsForExport).mockResolvedValue(mockProducts)
+        })
+
+        it('dosyaları sadece sayfadaki ürünlerle değil bütün ürünlerle eşleştirir', async () => {
+            // Sayfada hiç ürün yok; eşleşme sunucudan gelen tüm ürün listesinden gelmeli
+            renderModal(<BulkImageUploadModal {...defaultProps} products={[]} />)
+            await screen.findByText('Bilgisayardan Seç')
+
+            const input = document.querySelector('input[type="file"]') as HTMLInputElement
+            changeFileInput(input, createMockImageFile('LUP-001.jpg'))
+
+            await waitFor(() => {
+                expect(screen.getByText(/1<\/strong>|eşleşme bulundu/)).toBeTruthy()
+                expect(screen.getAllByText(/LUPİN YATAK ODASI/i).length).toBeGreaterThan(0)
+            }, { timeout: 3000 })
+        })
+
         it('modal açıldığında drop zone gösterir', () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
             expect(screen.getByText(/Fotoğrafları Buraya Bırakın/i)).toBeTruthy()
         })
 
-        it('dosya seçme inputunu gösterir', () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
-            const selectButton = screen.getByText(/Bilgisayardan Seç/i)
+        it('dosya seçme inputunu gösterir', async () => {
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
+            const selectButton = await screen.findByText(/Bilgisayardan Seç/i)
             expect(selectButton).toBeTruthy()
         })
 
         it('birden fazla fotoğraf seçer ve listeler', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const files = [
                 createMockImageFile('LUPIN-001.jpg'),
@@ -394,7 +419,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('dosya adlarından ürün eşleştirmesi yapar (SKU)', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('LUP-001.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -410,7 +435,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('dosya adlarından ürün eşleştirmesi yapar (isim)', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('modern-koltuk-takimi.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -424,7 +449,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('eşleşmeyen dosyaları gösterir', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('random-image-123.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -438,7 +463,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
         it('manuel ürün seçimi yapılabilir', async () => {
             const user = userEvent.setup()
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('random.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -460,7 +485,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('toplu yükleme butonunu gösterir', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('LUP-001.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -476,7 +501,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const user = userEvent.setup()
             const { bulkUpdateProductImages } = await import('@/lib/actions/products')
 
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const files = [
                 createMockImageFile('LUP-001.jpg'),
@@ -516,7 +541,9 @@ describe('Fotoğraf Yükleme Testleri', () => {
                 'https://example.com/img5.jpg',
             ]
 
-            render(<BulkImageUploadModal {...defaultProps} products={[product]} />)
+            vi.mocked(getAllProductsForExport).mockResolvedValue([product])
+            renderModal(<BulkImageUploadModal {...defaultProps} products={[product]} />)
+            await screen.findByText(/Bilgisayardan Seç/i)
 
             const file = createMockImageFile('test.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -530,7 +557,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
         it('yükleme progress bar gösterir', async () => {
             const user = userEvent.setup()
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('LUP-001.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -556,7 +583,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             // Upload hatası simüle et
             mockStorageUpload.mockRejectedValue(new Error('Upload failed'))
 
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('LUP-001.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -581,7 +608,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('fotoğraf silme işlemini yapar', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const file = createMockImageFile('test.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -610,7 +637,9 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('drag and drop ile dosya ekler', async () => {
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
+            // Ürün listesi yüklenene kadar bırakılan dosyalar eşleştirilmez
+            await screen.findByText(/Bilgisayardan Seç/i)
 
             const dropZone = screen.getByText(/Fotoğrafları Buraya Bırakın/i).closest('div')
             expect(dropZone).toBeTruthy()
@@ -637,7 +666,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
         it('concurrency limit ile yükleme yapar (3 dosya)', async () => {
             const user = userEvent.setup()
-            render(<BulkImageUploadModal {...defaultProps} />)
+            renderModal(<BulkImageUploadModal {...defaultProps} />)
 
             const files = Array.from({ length: 5 }, (_, i) =>
                 createMockImageFile(`LUP-001-${i}.jpg`)

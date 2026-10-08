@@ -1,14 +1,18 @@
 "use client"
 
-import { Percent, Package, LayoutGrid, X, TrendingUp, DollarSign } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { useMemo } from "react"
+import { Loader2, Percent, TrendingDown, TrendingUp, X } from "lucide-react"
 
-import { type Product } from "@/lib/actions/products"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { useAllProducts } from "@/lib/hooks/use-products"
+import { formatCurrency } from "@/lib/utils/helpers"
+import { cn } from "@/lib/utils"
+import type { Product } from "@/lib/actions/products"
 
 interface ProductsBulkPriceModalProps {
     open: boolean
@@ -16,9 +20,6 @@ interface ProductsBulkPriceModalProps {
     selectedIds: string[]
     onSelectedIdsChange: (ids: string[]) => void
     paginatedProducts: Product[]
-    allProducts: Product[]
-    categories: string[]
-    categoryStats: [string, { count: number; totalValue: number }][]
     priceChangeType: "increase" | "decrease"
     onPriceChangeTypeChange: (type: "increase" | "decrease") => void
     priceChangeMode: "percentage" | "fixed"
@@ -27,9 +28,13 @@ interface ProductsBulkPriceModalProps {
     onPriceChangeAmountChange: (amount: number) => void
     onUpdate: () => void
     isPending: boolean
-    onSelectCurrentPage: () => void
-    onSelectAllProducts: () => void
-    onSelectByCategory: (category: string) => void
+}
+
+const UNCATEGORIZED = "Kategorisiz"
+
+function previewPrice(base: number, type: "increase" | "decrease", mode: "percentage" | "fixed", amount: number) {
+    const delta = mode === "percentage" ? (base * amount) / 100 : amount
+    return Math.max(0, type === "increase" ? base + delta : base - delta)
 }
 
 export function ProductsBulkPriceModal({
@@ -38,9 +43,6 @@ export function ProductsBulkPriceModal({
     selectedIds,
     onSelectedIdsChange,
     paginatedProducts,
-    allProducts,
-    categories,
-    categoryStats,
     priceChangeType,
     onPriceChangeTypeChange,
     priceChangeMode,
@@ -49,152 +51,161 @@ export function ProductsBulkPriceModal({
     onPriceChangeAmountChange,
     onUpdate,
     isPending,
-    onSelectCurrentPage,
-    onSelectAllProducts,
-    onSelectByCategory
 }: ProductsBulkPriceModalProps) {
+    const { t: baseT } = useTranslation()
+    const t = (key: string, params?: Record<string, unknown>) => baseT(`products.bulkPrice.${key}`, params) as string
+
+    // Sayfadaki 12 ürün değil, bütün envanter: "tümünü seç" ve kategori seçimi gerçekten tümünü kapsasın
+    const allProductsQuery = useAllProducts({ enabled: open })
+    const allProducts = allProductsQuery.data
+    const isLoadingAll = allProductsQuery.isLoading
+
+    const categoryGroups = useMemo(() => {
+        const groups = new Map<string, string[]>()
+        for (const product of allProducts ?? []) {
+            const category = product.category || UNCATEGORIZED
+            groups.set(category, [...(groups.get(category) ?? []), product.id])
+        }
+        return [...groups.entries()].sort((a, b) => b[1].length - a[1].length)
+    }, [allProducts])
+
+    // Mevcut seçime eklenir (eski davranış)
+    const selectIds = (ids: string[]) => onSelectedIdsChange([...new Set([...selectedIds, ...ids])])
+    const isIncrease = priceChangeType === "increase"
+    const actionLabel = isIncrease ? t("increase").toLowerCase() : t("decrease").toLowerCase()
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Percent className="w-5 h-5" />
-                        Toplu Fiyat Güncelleme
-                    </DialogTitle>
-                    <DialogDescription>
-                        Ürün seçin ve fiyatları toplu olarak güncelleyin.
-                    </DialogDescription>
+                    <DialogTitle>{baseT("products.bulkPriceUpdate") as string}</DialogTitle>
+                    <DialogDescription>{t("description")}</DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    {/* Ürün Seçimi */}
+                <div className="space-y-5">
+                    {/* Ürün seçimi */}
                     <div className="space-y-2">
-                        <Label className="flex items-center justify-between">
-                            <span>Ürün Seçimi</span>
+                        <div className="flex items-center justify-between gap-2">
+                            <Label>{t("selection")}</Label>
                             {selectedIds.length > 0 && (
-                                <Badge variant="secondary" className="gap-1">
-                                    <Package className="w-3 h-3" />
-                                    {selectedIds.length} ürün seçili
-                                </Badge>
+                                <Badge variant="secondary" className="tabular-nums">{t("selectedCount", { count: selectedIds.length })}</Badge>
                             )}
-                        </Label>
+                        </div>
                         <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" onClick={onSelectCurrentPage} className="gap-1">
-                                <LayoutGrid className="w-3 h-3" />
-                                Sayfayı Seç ({paginatedProducts.length})
+                            <Button variant="outline" size="sm" onClick={() => selectIds(paginatedProducts.map((p) => p.id))}>
+                                {t("selectPage", { count: paginatedProducts.length })}
                             </Button>
-                            <Button variant="outline" size="sm" onClick={onSelectAllProducts} className="gap-1">
-                                <Package className="w-3 h-3" />
-                                Tümünü Seç ({allProducts.length})
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!allProducts}
+                                onClick={() => allProducts && selectIds(allProducts.map((p) => p.id))}
+                            >
+                                {isLoadingAll && <Loader2 className="size-3.5 animate-spin" />}
+                                {t("selectAll", { count: allProducts?.length ?? "…" })}
                             </Button>
                             {selectedIds.length > 0 && (
-                                <Button variant="ghost" size="sm" onClick={() => onSelectedIdsChange([])} className="gap-1 text-muted-foreground">
-                                    <X className="w-3 h-3" />
-                                    Temizle
+                                <Button variant="ghost" size="sm" onClick={() => onSelectedIdsChange([])} className="text-muted-foreground">
+                                    <X className="size-3.5" />
+                                    {t("clear")}
                                 </Button>
                             )}
                         </div>
-                        {categories.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-2 border-t mt-2">
-                                <span className="text-xs text-muted-foreground w-full mb-1">Kategori bazlı seç:</span>
-                                {categoryStats.map(([cat, stat]) => (
-                                    <Button key={cat} variant="outline" size="sm" onClick={() => onSelectByCategory(cat)} className="h-7 text-xs gap-1 px-2">
-                                        {cat} <Badge variant="secondary" className="h-4 px-1 text-[10px]">{stat.count}</Badge>
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
+
+                        <div className="space-y-1.5 border-t pt-3">
+                            <p className="text-xs text-muted-foreground">{t("byCategory")}</p>
+                            {isLoadingAll ? (
+                                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                    {t("loadingProducts")}
+                                </p>
+                            ) : (
+                                <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
+                                    {categoryGroups.map(([category, ids]) => (
+                                        <Button key={category} variant="outline" size="sm" onClick={() => selectIds(ids)} className="h-7 gap-1.5 px-2 text-xs">
+                                            {category}
+                                            <span className="tabular-nums text-muted-foreground">{ids.length}</span>
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {selectedIds.length === 0 ? (
-                        <div className="text-center py-6 text-muted-foreground bg-muted/50 rounded-lg">
-                            <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">Önce ürün seçin</p>
-                        </div>
+                        <p className="rounded-lg bg-muted/50 py-6 text-center text-sm text-muted-foreground">{t("selectFirst")}</p>
                     ) : (
-                        <>
-                            {/* İşlem Tipi */}
+                        <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-2">
                                 <Button
-                                    variant={priceChangeType === "increase" ? "default" : "outline"}
-                                    className={cn("gap-2", priceChangeType === "increase" && "bg-success hover:bg-success/90")}
+                                    variant={isIncrease ? "default" : "outline"}
                                     onClick={() => onPriceChangeTypeChange("increase")}
                                 >
-                                    <TrendingUp className="w-4 h-4" />
-                                    Zam Yap
+                                    <TrendingUp className="size-4" />
+                                    {t("increase")}
                                 </Button>
                                 <Button
-                                    variant={priceChangeType === "decrease" ? "default" : "outline"}
-                                    className={cn("gap-2", priceChangeType === "decrease" && "bg-destructive hover:bg-destructive/90")}
+                                    variant={!isIncrease ? "default" : "outline"}
                                     onClick={() => onPriceChangeTypeChange("decrease")}
                                 >
-                                    <TrendingUp className="w-4 h-4 rotate-180" />
-                                    İndirim Yap
+                                    <TrendingDown className="size-4" />
+                                    {t("decrease")}
                                 </Button>
                             </div>
 
-                            {/* Değişiklik Modu */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                    variant={priceChangeMode === "percentage" ? "secondary" : "outline"}
-                                    className="gap-2"
-                                    onClick={() => onPriceChangeModeChange("percentage")}
-                                >
-                                    <Percent className="w-4 h-4" />
-                                    Yüzde (%)
-                                </Button>
-                                <Button
-                                    variant={priceChangeMode === "fixed" ? "secondary" : "outline"}
-                                    className="gap-2"
-                                    onClick={() => onPriceChangeModeChange("fixed")}
-                                >
-                                    <DollarSign className="w-4 h-4" />
-                                    Sabit (₺)
-                                </Button>
+                            <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="bulk-price-amount">{t("amount")}</Label>
+                                    <Input
+                                        id="bulk-price-amount"
+                                        type="number"
+                                        min="0"
+                                        step={priceChangeMode === "percentage" ? "1" : "0.01"}
+                                        value={priceChangeAmount}
+                                        onChange={(e) => onPriceChangeAmountChange(Number(e.target.value))}
+                                    />
+                                </div>
+                                <div role="radiogroup" className="flex h-9 rounded-md bg-muted p-1">
+                                    {(["percentage", "fixed"] as const).map((mode) => (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={priceChangeMode === mode}
+                                            onClick={() => onPriceChangeModeChange(mode)}
+                                            className={cn(
+                                                "rounded px-3 text-xs font-medium transition-colors",
+                                                priceChangeMode === mode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            {mode === "percentage" ? <Percent className="size-3.5" /> : "₺"}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            {/* Miktar */}
-                            <div className="space-y-2">
-                                <Label>{priceChangeMode === "percentage" ? "Yüzde (%)" : "Tutar (₺)"}</Label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    step={priceChangeMode === "percentage" ? "1" : "0.01"}
-                                    value={priceChangeAmount}
-                                    onChange={(e) => onPriceChangeAmountChange(Number(e.target.value))}
-                                />
-                            </div>
-
-                            {/* Önizleme */}
-                            <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                                <span className="text-muted-foreground">Örnek: </span>
-                                ₺100 → <span className="font-bold">
-                                    ₺{priceChangeMode === "percentage"
-                                        ? (priceChangeType === "increase"
-                                            ? (100 + (100 * priceChangeAmount / 100)).toFixed(2)
-                                            : Math.max(0, 100 - (100 * priceChangeAmount / 100)).toFixed(2))
-                                        : (priceChangeType === "increase"
-                                            ? (100 + priceChangeAmount).toFixed(2)
-                                            : Math.max(0, 100 - priceChangeAmount).toFixed(2))
-                                    }
+                            <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">{t("example")}: </span>
+                                <span className="tabular-nums">{formatCurrency(100)}</span>
+                                {" → "}
+                                <span className="font-semibold tabular-nums">
+                                    {formatCurrency(previewPrice(100, priceChangeType, priceChangeMode, priceChangeAmount))}
                                 </span>
-                            </div>
-                        </>
+                            </p>
+                        </div>
                     )}
                 </div>
 
-                <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{baseT("common.cancel") as string}</Button>
                     <Button
                         onClick={onUpdate}
                         disabled={isPending || selectedIds.length === 0 || priceChangeAmount <= 0}
-                        className={cn(
-                            priceChangeType === "increase" ? "bg-success hover:bg-success/90" : "bg-destructive hover:bg-destructive/90"
-                        )}
+                        variant={isIncrease ? "default" : "destructive"}
                     >
-                        {isPending ? "Güncelleniyor..." : `${selectedIds.length} Ürüne ${priceChangeType === "increase" ? "Zam" : "İndirim"} Uygula`}
+                        {isPending ? t("updating") : t("apply", { count: selectedIds.length, action: actionLabel })}
                     </Button>
-                </div>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
