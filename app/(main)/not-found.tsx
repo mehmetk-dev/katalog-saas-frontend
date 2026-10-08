@@ -13,7 +13,7 @@ export default function NotFound() {
         <div className="min-h-screen bg-card flex items-center justify-center px-6">
             <div className="max-w-md w-full text-center">
                 {/* Large 404 Number - Apple Style */}
-                <h1 className="text-[180px] sm:text-[220px] font-bold leading-none tracking-tighter text-gray-200 select-none">
+                <h1 className="text-[180px] sm:text-[220px] font-bold leading-none tracking-tighter text-muted select-none">
                     404
                 </h1>
 

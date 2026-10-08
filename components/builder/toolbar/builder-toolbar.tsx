@@ -101,7 +101,7 @@ export function BuilderToolbar({
                         <Input
                             value={catalogName}
                             onChange={(e) => onCatalogNameChange(e.target.value)}
-                            className="h-9 font-black text-sm sm:text-lg w-full border-transparent bg-transparent hover:bg-muted/50 focus:bg-card focus:border-border transition-all px-2 rounded-xl truncate"
+                            className="h-9 font-bold text-sm sm:text-lg w-full border-transparent bg-transparent hover:bg-muted/50 focus:bg-card focus:border-border transition-all px-2 rounded-xl truncate"
                             placeholder={t('builder.catalogNamePlaceholder') as string}
                         />
                     </div>
@@ -115,7 +115,7 @@ export function BuilderToolbar({
                             <Button
                                 variant={view === "preview" ? "secondary" : "ghost"}
                                 size="sm"
-                                className="h-8 px-3 rounded-lg text-[11px] font-black uppercase tracking-wider"
+                                className="h-8 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider"
                                 onClick={() => onViewChange("preview")}
                             >
                                 <Eye className="w-3.5 h-3.5 mr-1.5" />
@@ -131,7 +131,7 @@ export function BuilderToolbar({
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
                             </span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{t('builder.liveLabel')}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{t('builder.liveLabel')}</span>
                             <a
                                 href={catalog?.share_slug ? new URL(`/catalog/${encodeURIComponent(catalog.share_slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin).toString() : '#'}
                                 target="_blank"
@@ -156,7 +156,7 @@ export function BuilderToolbar({
                                 title={t('builder.saveChanges')}
                             >
                                 <Save className="w-4 h-4" />
-                                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">{t('builder.saveBtn')}</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">{t('builder.saveBtn')}</span>
                             </Button>
                         ) : (
                             <Button
@@ -179,7 +179,7 @@ export function BuilderToolbar({
                                     onClick={mainAction.onClick}
                                     disabled={isPending}
                                     className={cn(
-                                        "h-9 px-4 font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap",
+                                        "h-9 px-4 font-bold text-[11px] uppercase tracking-wider rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap",
                                         mainAction.className
                                     )}
                                 >
@@ -225,7 +225,7 @@ export function BuilderToolbar({
                                 {isPublished && (
                                     <>
                                         <div className="px-3 py-2">
-                                            <div className="text-[10px] font-black text-success uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                            <div className="text-[10px] font-bold text-success uppercase tracking-widest mb-1 flex items-center gap-1.5">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></div>
                                                 {t('builder.catalogLive')}
                                             </div>
@@ -294,7 +294,7 @@ export function BuilderToolbar({
                         <Button
                             variant="ghost"
                             className={cn(
-                                "flex-1 h-12 rounded-xl text-muted-foreground font-black text-[10px] uppercase tracking-wider gap-2 transition-all active:scale-95",
+                                "flex-1 h-12 rounded-xl text-muted-foreground font-bold text-[10px] uppercase tracking-wider gap-2 transition-all active:scale-95",
                                 view === "preview" ? "bg-muted text-primary" : ""
                             )}
                             onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
@@ -317,7 +317,7 @@ export function BuilderToolbar({
                             onClick={mainAction.onClick}
                             disabled={isPending}
                             className={cn(
-                                "flex-[2] h-12 rounded-xl font-black text-[10px] uppercase tracking-[0.1em] shadow-lg transition-all active:scale-95 hover:scale-[1.02]",
+                                "flex-[2] h-12 rounded-xl font-bold text-[10px] uppercase tracking-[0.1em] shadow-lg transition-all active:scale-95 hover:scale-[1.02]",
                                 mainAction.className
                             )}
                         >

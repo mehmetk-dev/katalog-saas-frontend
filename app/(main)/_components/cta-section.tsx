@@ -43,7 +43,7 @@ export const CtaSection = React.memo(function CtaSection({ t }: CtaSectionProps)
                             "h-16 px-12 text-lg rounded-full",
                             "bg-primary",
                             "hover:from-primary hover:to-primary",
-                            "shadow-xl shadow-black/30 hover:shadow-black/50",
+                            "shadow-xl shadow-black/10 hover:shadow-black/10",
                             "transition-all duration-300 hover:scale-105",
                             "hover:-translate-y-1 font-bold"
                         )}

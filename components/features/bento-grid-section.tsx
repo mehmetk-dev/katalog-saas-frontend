@@ -23,7 +23,7 @@ export function BentoGridSection() {
                 <div className={cn(
                     "md:col-span-2 bg-card rounded-3xl p-8",
                     "border border-border hover:border-border",
-                    "hover:shadow-xl hover:shadow-black/50",
+                    "hover:shadow-xl hover:shadow-black/5",
                     "transition-all duration-300 flex flex-col justify-between",
                     "group overflow-hidden relative"
                 )}>

@@ -72,7 +72,7 @@ export function PreviewFloatingHeader({
                     <Button
                         variant="default"
                         size="sm"
-                        className="h-9 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-black/50 flex items-center gap-2"
+                        className="h-9 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-black/10 flex items-center gap-2"
                         onClick={() => onViewChange('editor')}
                     >
                         <ArrowLeft className="w-4 h-4" />

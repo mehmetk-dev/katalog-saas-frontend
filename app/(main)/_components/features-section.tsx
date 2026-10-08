@@ -13,8 +13,8 @@ function DragDropCard({ t }: { t: TranslationFn }) {
         <div className={cn(
             "md:col-span-2 group relative p-8 md:p-10 rounded-[2.5rem]",
             "bg-card border border-border/80",
-            "shadow-xl shadow-black/40",
-            "hover:shadow-2xl hover:shadow-black/30",
+            "shadow-xl shadow-black/5",
+            "hover:shadow-2xl hover:shadow-black/10",
             "hover:border-border transition-all duration-500",
             "overflow-hidden flex flex-col md:flex-row gap-8",
             "items-center cursor-default"
@@ -114,7 +114,7 @@ function QrCodeCard({ t }: { t: TranslationFn }) {
         <div className={cn(
             "group relative p-8 rounded-[2.5rem] bg-card",
             "border border-border/80 hover:border-info/20",
-            "shadow-xl shadow-black/40",
+            "shadow-xl shadow-black/5",
             "hover:shadow-2xl hover:shadow-info/20",
             "transition-all duration-500 overflow-hidden flex flex-col"
         )}>
@@ -167,7 +167,7 @@ function AnalyticsCard({ t }: { t: TranslationFn }) {
         <div className={cn(
             "group relative p-8 rounded-[2.5rem] bg-card",
             "border border-border/80 hover:border-success/20",
-            "shadow-xl shadow-black/40",
+            "shadow-xl shadow-black/5",
             "hover:shadow-2xl hover:shadow-success/20",
             "transition-all duration-500 overflow-hidden flex flex-col"
         )}>
@@ -222,8 +222,8 @@ function TemplatesCard({ t }: { t: TranslationFn }) {
         <div className={cn(
             "md:col-span-2 group relative p-8 md:p-10 rounded-[2.5rem]",
             "bg-primary text-primary-foreground",
-            "shadow-xl shadow-black/20",
-            "hover:shadow-2xl hover:shadow-black/30",
+            "shadow-xl shadow-black/10",
+            "hover:shadow-2xl hover:shadow-black/10",
             "transition-all duration-500 overflow-hidden",
             "flex flex-col md:flex-row gap-8 items-center cursor-pointer"
         )}>

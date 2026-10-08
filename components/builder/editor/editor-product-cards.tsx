@@ -73,7 +73,7 @@ export const ProductCard = React.memo(function ProductCard({
 
                 {/* Info Overlay */}
                 <div className="absolute bottom-1.5 left-1.5 right-1.5 flex flex-col gap-0">
-                    <p className="text-[8px] sm:text-[9px] font-black text-white truncate drop-shadow-sm uppercase tracking-tight leading-tight">
+                    <p className="text-[8px] sm:text-[9px] font-bold text-white truncate drop-shadow-sm uppercase tracking-tight leading-tight">
                         {product.name}
                     </p>
                     <div className="flex items-center justify-between">
@@ -241,7 +241,7 @@ export const SelectAllButton = React.memo(function SelectAllButton({
             variant="ghost"
             size="sm"
             className={cn(
-                "h-11 rounded-2xl border border-border/60 bg-card font-black text-[10px] uppercase px-4 transition-all",
+                "h-11 rounded-2xl border border-border/60 bg-card font-bold text-[10px] uppercase px-4 transition-all",
                 isAllSelected
                     ? "text-destructive hover:bg-destructive/5"
                     : "text-primary hover:bg-accent"

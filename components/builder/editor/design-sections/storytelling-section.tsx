@@ -113,7 +113,7 @@ export function StorytellingSection({
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
                                 <Label className={cn(
-                                    "text-[11px] font-black uppercase",
+                                    "text-[11px] font-bold uppercase",
                                     "text-foreground tracking-wide"
                                 )}>
                                     {t('builder.coverPage') as string}
@@ -154,7 +154,7 @@ export function StorytellingSection({
                                 {/* Theme Selector */}
                                 <div className="space-y-3">
                                     <Label className={cn(
-                                        "text-[11px] font-black uppercase",
+                                        "text-[11px] font-bold uppercase",
                                         "text-muted-foreground tracking-[0.1em] pl-1"
                                     )}>
                                         {t('builder.coverDesign') as string}
@@ -222,7 +222,7 @@ export function StorytellingSection({
                                     {/* Cover Image Upload */}
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between px-1">
-                                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('builder.coverImage') as string}</Label>
+                                            <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{t('builder.coverImage') as string}</Label>
                                         </div>
                                         <div className="space-y-3">
                                             {coverImageUrl ? (
@@ -301,7 +301,7 @@ export function StorytellingSection({
                                                     </div>
                                                     <div className="text-left">
                                                         <span className={cn(
-                                                            "block text-[11px] font-black uppercase",
+                                                            "block text-[11px] font-bold uppercase",
                                                             "tracking-widest text-muted-foreground",
                                                             "group-hover:text-foreground"
                                                         )}>
@@ -324,7 +324,7 @@ export function StorytellingSection({
                                     {/* Cover Description */}
                                     <div className="space-y-2 h-full flex flex-col">
                                         <Label className={cn(
-                                            "text-[10px] font-black uppercase",
+                                            "text-[10px] font-bold uppercase",
                                             "text-muted-foreground tracking-widest px-1"
                                         )}>
                                             {t('builder.coverDesc') as string}
@@ -364,7 +364,7 @@ export function StorytellingSection({
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
                                 <Label className={cn(
-                                    "text-[11px] font-black uppercase",
+                                    "text-[11px] font-bold uppercase",
                                     "text-foreground tracking-wide"
                                 )}>
                                     {t('builder.categoryDividers') as string}
@@ -397,7 +397,7 @@ export function StorytellingSection({
 
                         {enableCategoryDividers && uniqueCategories.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 block mb-3">
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest px-1 block mb-3">
                                     {t('builder.categoryOrder') as string}
                                 </Label>
                                 <div className="space-y-1.5">

@@ -191,12 +191,12 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                             <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center text-primary">
                                 <Sparkles className="w-4 h-4" />
                             </div>
-                            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-foreground">
+                            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-foreground">
                                 {t('builder.catalogDetails')}
                             </span>
                         </div>
                         {validProductIds.length > 0 && (
-                            <div className="bg-primary text-[10px] font-black text-primary-foreground px-2 py-0.5 rounded-full shadow-sm shadow-black/10">
+                            <div className="bg-primary text-[10px] font-bold text-primary-foreground px-2 py-0.5 rounded-full shadow-sm shadow-black/10">
                                 {validProductIds.length} {t('builder.productsSelected')}
                             </div>
                         )}

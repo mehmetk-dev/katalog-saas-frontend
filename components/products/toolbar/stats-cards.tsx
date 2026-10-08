@@ -82,7 +82,7 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
                         {/* Typography Hierarchy */}
                         <div className="flex flex-col mt-auto">
                             <span className={cn(
-                                "text-xl sm:text-2xl md:text-4xl font-extrabold tracking-tight",
+                                "text-xl sm:text-2xl md:text-4xl font-bold tracking-tight",
                                 card.iconColor
                             )}>
                                 {card.value.toLocaleString()}

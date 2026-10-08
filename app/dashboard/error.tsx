@@ -56,17 +56,17 @@ export default function DashboardError({
     // Sistem hatası: Tam sayfa göster (sidebar olmadan)
     if (isSystemError) {
         return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-muted dark:bg-[#03040a] p-4 overflow-hidden">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-muted p-4 overflow-hidden">
                 {/* Decorative Background Effects */}
                 <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full pointer-events-none hidden dark:block" />
                 <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full pointer-events-none hidden dark:block" />
 
-                <Card className="w-full max-w-lg shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border-0 rounded-3xl overflow-hidden bg-background/95 dark:bg-[#080a12]/80 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500 relative z-10">
+                <Card className="w-full max-w-lg shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border-0 rounded-3xl overflow-hidden bg-background/95 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500 relative z-10">
                     <CardHeader className="text-center pb-0 pt-10 bg-gradient-to-b from-destructive-soft/50 to-transparent">
                         <div className="mx-auto w-24 h-24 bg-destructive-soft rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-destructive/50 rotate-3">
                             <WifiOff className="w-12 h-12 text-brand" />
                         </div>
-                        <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-foreground leading-none">
+                        <CardTitle className="text-3xl font-montserrat font-bold tracking-tighter text-foreground leading-none">
                             Sunuculara Ulaşılamıyor
                         </CardTitle>
                     </CardHeader>
@@ -128,14 +128,14 @@ export default function DashboardError({
             {/* Decorative Background for Inner Area */}
             <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-primary/5 blur-[100px] rounded-full pointer-events-none hidden dark:block" />
 
-            <Card className="w-full max-w-lg shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border-0 rounded-3xl overflow-hidden bg-background/95 dark:bg-[#080a12]/80 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-300 relative z-10">
+            <Card className="w-full max-w-lg shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border-0 rounded-3xl overflow-hidden bg-background/95 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-300 relative z-10">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-brand" />
 
                 <CardHeader className="text-center pb-0 pt-10">
                     <div className="mx-auto w-24 h-24 bg-destructive-soft rounded-3xl flex items-center justify-center mb-6 rotate-3 shadow-sm border border-destructive/20">
                         <ServerCrash className="w-12 h-12 text-brand" />
                     </div>
-                    <CardTitle className="text-3xl font-montserrat font-black tracking-tighter text-foreground leading-none">
+                    <CardTitle className="text-3xl font-montserrat font-bold tracking-tighter text-foreground leading-none">
                         Bir Şeyler Ters Gitti
                     </CardTitle>
                 </CardHeader>

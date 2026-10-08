@@ -62,7 +62,7 @@ export function AppearanceSection({
                             >
                                 <div className="flex flex-col gap-0.5 min-w-0">
                                     <span className={cn(
-                                        "text-[10px] font-black uppercase tracking-tight transition-colors leading-tight",
+                                        "text-[10px] font-bold uppercase tracking-tight transition-colors leading-tight",
                                         item.disabled ? "text-muted-foreground" : "text-muted-foreground"
                                     )}>
                                         {item.label as string}
@@ -86,7 +86,7 @@ export function AppearanceSection({
                     <div className="pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {/* Image Alignment Pill */}
                         <div className="space-y-2.5">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground block tracking-widest text-center">{(t('builder.productImages') || "Ürün Fotoğrafları") as string}</Label>
+                            <Label className="text-[10px] font-bold uppercase text-muted-foreground block tracking-widest text-center">{(t('builder.productImages') || "Ürün Fotoğrafları") as string}</Label>
                             <div className="flex bg-muted/80 p-1 rounded-2xl gap-1">
                                 {[
                                     { value: 'cover' as const, label: t('builder.productImageFit.crop') },
@@ -97,7 +97,7 @@ export function AppearanceSection({
                                         key={option.value}
                                         onClick={() => onProductImageFitChange?.(option.value)}
                                         className={cn(
-                                            "flex-1 py-1.5 text-[9px] font-black uppercase rounded-xl transition-all duration-300",
+                                            "flex-1 py-1.5 text-[9px] font-bold uppercase rounded-xl transition-all duration-300",
                                             productImageFit === option.value
                                                 ? "bg-card text-primary shadow-md scale-[1.02]"
                                                 : "text-muted-foreground hover:text-foreground"
@@ -112,14 +112,14 @@ export function AppearanceSection({
                         {/* Column Count Pill */}
                         {availableColumns.length > 1 ? (
                             <div className="space-y-2.5">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground block tracking-widest text-center">{t('builder.layoutView')}</Label>
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground block tracking-widest text-center">{t('builder.layoutView')}</Label>
                                 <div className="flex bg-muted/80 p-1 rounded-2xl gap-1">
                                     {availableColumns.map((num: number) => (
                                         <button
                                             key={num}
                                             onClick={() => onColumnsPerRowChange?.(num)}
                                             className={cn(
-                                                "flex-1 py-1.5 text-[9px] font-black uppercase rounded-xl transition-all duration-300",
+                                                "flex-1 py-1.5 text-[9px] font-bold uppercase rounded-xl transition-all duration-300",
                                                 columnsPerRow === num
                                                     ? "bg-card text-primary shadow-md scale-[1.02]"
                                                     : "text-muted-foreground hover:text-foreground"

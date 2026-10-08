@@ -159,8 +159,8 @@ export default function PricingPage() {
                   className={cn(
                     "relative flex flex-col p-8 md:p-10 rounded-[2rem] transition-all duration-500 group",
                     isDark
-                      ? "bg-[#0F172A] text-white shadow-2xl shadow-black/20 md:-translate-y-6 md:hover:-translate-y-8 border border-white/10"
-                      : "bg-card text-foreground shadow-xl shadow-black/50 border border-border hover:shadow-2xl hover:border-border md:hover:-translate-y-2"
+                      ? "bg-primary text-primary-foreground shadow-2xl shadow-black/10 md:-translate-y-6 md:hover:-translate-y-8 border border-white/10"
+                      : "bg-card text-foreground shadow-xl shadow-black/5 border border-border hover:shadow-2xl hover:border-border md:hover:-translate-y-2"
                   )}
                 >
                   {plan.popular && (

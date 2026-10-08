@@ -137,13 +137,13 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
                     {/* Content */}
                     <div className="prose prose-slate prose-lg max-w-none 
-                        prose-headings:text-slate-900 prose-headings:font-black prose-headings:tracking-tight
-                        prose-p:text-slate-600 prose-p:leading-relaxed prose-p:text-xl
-                        prose-strong:text-slate-900 prose-strong:font-bold
-                        prose-a:text-violet-600 prose-a:font-bold prose-a:no-underline hover:prose-a:underline
+                        prose-headings:text-foreground prose-headings:font-bold prose-headings:tracking-tight
+                        prose-p:text-muted-foreground prose-p:leading-relaxed prose-p:text-xl
+                        prose-strong:text-foreground prose-strong:font-bold
+                        prose-a:text-brand prose-a:font-bold prose-a:no-underline hover:prose-a:underline
                         prose-img:rounded-3xl prose-img:shadow-2xl
-                        prose-blockquote:border-l-4 prose-blockquote:border-violet-500 prose-blockquote:bg-violet-50 prose-blockquote:py-4 prose-blockquote:px-8 prose-blockquote:rounded-r-2xl prose-blockquote:not-italic prose-blockquote:font-medium
-                        prose-ul:list-disc prose-ul:marker:text-violet-500
+                        prose-blockquote:border-l-4 prose-blockquote:border-brand prose-blockquote:bg-brand-soft prose-blockquote:py-4 prose-blockquote:px-8 prose-blockquote:rounded-r-2xl prose-blockquote:not-italic prose-blockquote:font-medium
+                        prose-ul:list-disc prose-ul:marker:text-brand
                         mb-20">
                         <MDXRemote
                             source={post.content}

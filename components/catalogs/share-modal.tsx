@@ -179,7 +179,7 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                     <div className="group relative bg-card dark:bg-card border border-border rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border">
                                         <div className="flex flex-col gap-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t("share.catalogLink")}</span>
+                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("share.catalogLink")}</span>
                                                 {copied && (
                                                     <span className="flex items-center gap-1 text-[10px] font-bold text-success animate-in fade-in slide-in-from-right-2">
                                                         <Check className="w-3 h-3" /> {t("share.copied")}

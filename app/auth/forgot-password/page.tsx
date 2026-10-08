@@ -242,7 +242,7 @@ export default function ForgotPasswordPage() {
               <button className={cn(
                 "w-full h-12 bg-primary hover:bg-primary/90",
                 "text-white font-medium rounded-xl",
-                "shadow-lg shadow-black/20 transition-all"
+                "shadow-lg shadow-black/10 transition-all"
               )}>
                 {t("auth.backToLogin")}
               </button>
@@ -334,7 +334,7 @@ export default function ForgotPasswordPage() {
               className={cn(
                 "w-full h-12 bg-primary hover:bg-primary/90",
                 "text-white font-medium rounded-xl",
-                "shadow-lg shadow-black/20 hover:shadow-black/30",
+                "shadow-lg shadow-black/10 hover:shadow-black/10",
                 "transition-all flex items-center justify-center gap-2"
               )}
             >

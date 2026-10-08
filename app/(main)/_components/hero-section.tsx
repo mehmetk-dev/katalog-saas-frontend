@@ -107,7 +107,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
             <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
                 {/* Title Centered */}
                 <div className="text-center mb-16 lg:mb-20">
-                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-[#2b2b5f] max-w-4xl mx-auto tracking-tight">
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground max-w-4xl mx-auto tracking-tight">
                         {t('landing.heroAlternativeTitle')}
                     </h1>
                 </div>
@@ -149,7 +149,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
 
                         <div className="mt-auto pt-10 flex items-end">
                             <Link href="/auth?tab=signup" className="w-full">
-                                <Button className="bg-[#f98826] hover:bg-[#e07519] text-white px-8 py-7 rounded-md text-lg font-semibold transition-all hover:scale-105 shadow-lg shadow-warning/20">
+                                <Button variant="brand" className="px-8 py-7 rounded-md text-lg font-semibold transition-all hover:scale-105 shadow-lg shadow-brand/20">
                                     {t('landing.heroStartCreating')}
                                 </Button>
                             </Link>
@@ -228,7 +228,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
                                         key={idx}
                                         className={cn(
                                             "w-2 h-2 rounded-full transition-colors duration-500",
-                                            idx === currentSlide ? "bg-[#f98826]" : "bg-border"
+                                            idx === currentSlide ? "bg-brand" : "bg-border"
                                         )}
                                     />
                                 ))}

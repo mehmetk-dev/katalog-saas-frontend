@@ -173,7 +173,7 @@ export default function FAQPage() {
                                 placeholder="Bir soru arayÄ±n..."
                                 className={cn(
                                     "pl-12 h-14 rounded-2xl border-border",
-                                    "shadow-lg shadow-black/50",
+                                    "shadow-lg shadow-black/5",
                                     "focus:ring-4 focus:ring-border",
                                     "focus:border-primary text-lg",
                                     "transition-all bg-card"
@@ -284,11 +284,11 @@ export default function FAQPage() {
                                                 isOpen
                                                     ? cn(
                                                         "border-border shadow-xl",
-                                                        "shadow-black/50 ring-1 ring-border"
+                                                        "shadow-black/10 ring-1 ring-border"
                                                     )
                                                     : cn(
                                                         "border-border hover:border-border",
-                                                        "hover:shadow-md hover:shadow-black/50"
+                                                        "hover:shadow-md hover:shadow-black/5"
                                                     )
                                             )}
                                         >

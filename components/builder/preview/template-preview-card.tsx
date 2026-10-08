@@ -132,12 +132,12 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
                     ? "bg-primary border-primary text-primary-foreground"
                     : "bg-card border-border text-foreground group-hover:bg-muted/50"
             )}>
-                <p className="text-[9px] font-black uppercase tracking-tight truncate flex-1 leading-none">
+                <p className="text-[9px] font-bold uppercase tracking-tight truncate flex-1 leading-none">
                     {templateName}
                 </p>
                 {isPro && (
                     <span className={cn(
-                        "ml-2 text-[9px] font-black px-1.5 py-1 rounded shadow-sm shrink-0 leading-none",
+                        "ml-2 text-[9px] font-bold px-1.5 py-1 rounded shadow-sm shrink-0 leading-none",
                         isSelected ? "bg-card text-primary" : "bg-warning text-foreground"
                     )}>PRO</span>
                 )}

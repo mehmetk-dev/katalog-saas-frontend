@@ -279,7 +279,7 @@ export default function BlogPageClient({ posts }: BlogPageClientProps) {
                                     : 'Stay one step ahead of your competitors in the digitalizing world.'}
                             </p>
                             <Link href="/auth?tab=signup" className="inline-block">
-                                <Button size="lg" className="h-16 px-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-lg font-bold shadow-2xl shadow-black/20 transition-all hover:scale-105">
+                                <Button size="lg" className="h-16 px-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-lg font-bold shadow-2xl shadow-black/10 transition-all hover:scale-105">
                                     {language === 'tr' ? 'Ücretsiz Başla' : 'Start for Free'}
                                 </Button>
                             </Link>

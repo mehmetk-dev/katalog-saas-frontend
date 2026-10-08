@@ -18,7 +18,7 @@ export function StructurePreview({
                     <div className="w-10 h-10 rounded-2xl bg-warning shadow-lg shadow-warning/20 flex items-center justify-center text-warning-foreground">
                         <Layout className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-foreground dark:text-slate-200">{t("builder.pageStructure")}</h3>
+                    <h3 className="text-sm sm:text-lg font-bold uppercase tracking-[0.1em] text-foreground">{t("builder.pageStructure")}</h3>
                 </div>
                 <div className="h-px bg-accent flex-1 hidden sm:block" />
             </div>
@@ -32,10 +32,10 @@ export function StructurePreview({
                         : "border-border border-dashed bg-muted/50 opacity-40"
                 )}>
                     <div className={cn(
-                        "w-7 h-7 rounded-xl flex items-center justify-center text-white text-[10px] font-black shadow-sm",
+                        "w-7 h-7 rounded-xl flex items-center justify-center text-white text-[10px] font-bold shadow-sm",
                         enableCoverPage ? "bg-primary" : "bg-border"
                     )}>01</div>
-                    <span className="text-[9px] font-black uppercase tracking-tight text-muted-foreground text-center px-1">{t("builder.coverLabel")}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground text-center px-1">{t("builder.coverLabel")}</span>
                 </div>
 
                 <ChevronRight className="w-4 h-4 text-muted-foreground/70 shrink-0" />
@@ -46,7 +46,7 @@ export function StructurePreview({
                         <div className="w-full h-1/2 bg-accent/50 rounded-sm"></div>
                         <div className="w-full h-1/2 bg-accent/50 rounded-sm"></div>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-tight text-muted-foreground text-center px-1">{t("builder.productsLabel")}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground text-center px-1">{t("builder.productsLabel")}</span>
                     <span className="text-[8px] text-muted-foreground font-bold">{selectedProductCount} {t("builder.productUnit")}</span>
                 </div>
 
@@ -57,7 +57,7 @@ export function StructurePreview({
                             <div className="w-7 h-7 rounded-xl bg-primary shadow-sm flex items-center justify-center text-primary-foreground">
                                 <Layout className="w-3.5 h-3.5" />
                             </div>
-                            <span className="text-[9px] font-black uppercase tracking-tight text-muted-foreground text-center px-1">{t("builder.transitionsLabel")}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground text-center px-1">{t("builder.transitionsLabel")}</span>
                         </div>
                     </>
                 )}

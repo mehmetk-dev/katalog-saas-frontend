@@ -710,7 +710,7 @@ export function CheckoutPageClient({
                                     <Button
                                         type="submit"
                                         disabled={!canContinue || isSaving}
-                                        className="mt-6 h-12 w-full rounded-lg bg-brand/90 text-sm font-semibold text-brand-foreground shadow-none hover:bg-[#991b1b]"
+                                        className="mt-6 h-12 w-full rounded-lg bg-brand text-sm font-semibold text-brand-foreground shadow-none hover:bg-brand/90"
                                     >
                                         {isSaving ? (
                                             <Loader2 className="size-4 animate-spin" />

@@ -51,7 +51,7 @@ export function BrandingSection({
                         {/* 1. Left Column: Logo Upload (Visual Focus) */}
                         <div className="w-full md:w-28 2xl:w-40 shrink-0">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider ml-1">
+                                <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider ml-1">
                                     {t('builder.logoUpload') as string}
                                 </Label>
                                 <div
@@ -101,7 +101,7 @@ export function BrandingSection({
                             {/* Row 1: Position, Alignment & Size */}
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-1">
-                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoPosition') as string}</Label>
+                                    <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoPosition') as string}</Label>
                                     <Select value={logoPosition || 'none'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
                                         <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
                                             <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
@@ -115,7 +115,7 @@ export function BrandingSection({
                                     </Select>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoSizeLabel') as string}</Label>
+                                    <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoSizeLabel') as string}</Label>
                                     <Select value={logoSize || 'medium'} onValueChange={(v) => onLogoSizeChange?.(v as NonNullable<Catalog['logo_size']>)}>
                                         <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
                                             <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
@@ -128,7 +128,7 @@ export function BrandingSection({
                                     </Select>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider ml-1">{t('builder.titleAlignment') as string}</Label>
+                                    <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider ml-1">{t('builder.titleAlignment') as string}</Label>
                                     <Select value={titlePosition || 'left'} onValueChange={(v) => onTitlePositionChange?.(v as NonNullable<Catalog['title_position']>)}>
                                         <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
                                             <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
@@ -145,7 +145,7 @@ export function BrandingSection({
                             {/* Row 2: Colors */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between px-1">
-                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t('builder.colorTheme') as string}</Label>
+                                    <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">{t('builder.colorTheme') as string}</Label>
                                     <div className="flex gap-1.5">
                                         {['#4f46e5', '#9333ea', '#db2777', '#0f172a'].map((color) => (
                                             <button
@@ -169,7 +169,7 @@ export function BrandingSection({
                                         >
                                             <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: primaryColor }} />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-[9px] font-black uppercase text-muted-foreground truncate tracking-widest">{t('builder.headerCard') as string}</span>
+                                                <span className="text-[9px] font-bold uppercase text-muted-foreground truncate tracking-widest">{t('builder.headerCard') as string}</span>
                                                 <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{primaryColorParsed.hexColor}</span>
                                             </div>
                                         </div>
@@ -195,7 +195,7 @@ export function BrandingSection({
                                         >
                                             <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: headerTextColor || '#ffffff' }} />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-[9px] font-black uppercase text-muted-foreground truncate tracking-widest">{t('builder.textColor') as string}</span>
+                                                <span className="text-[9px] font-bold uppercase text-muted-foreground truncate tracking-widest">{t('builder.textColor') as string}</span>
                                                 <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{headerTextColor || '#FFFFFF'}</span>
                                             </div>
                                         </div>

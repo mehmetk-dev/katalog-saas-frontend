@@ -49,10 +49,10 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
                     {icon}
                 </div>
                 <div>
-                    <p className="text-xs font-black tracking-[0.18em] text-brand uppercase">
+                    <p className="text-xs font-bold tracking-[0.18em] text-brand uppercase">
                         FogCatalog Checkout
                     </p>
-                    <h1 className="mt-2 text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                         {title}
                     </h1>
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
@@ -62,12 +62,12 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
             <dl className="mt-7 grid gap-3 border-y border-border py-5 text-sm">
                 <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">{t('checkout.result.plan')}</dt>
-                    <dd className="font-black text-foreground">{planName}</dd>
+                    <dd className="font-bold text-foreground">{planName}</dd>
                 </div>
                 {formattedTotal && (
                     <div className="flex justify-between gap-4">
                         <dt className="text-muted-foreground">{t('checkout.result.total')}</dt>
-                        <dd className="font-black text-foreground">{formattedTotal}</dd>
+                        <dd className="font-bold text-foreground">{formattedTotal}</dd>
                     </div>
                 )}
                 <div className="flex justify-between gap-4">
@@ -82,14 +82,14 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
                 {isPaid ? (
                     <Link
                         href="/dashboard"
-                        className="inline-flex min-h-12 flex-1 items-center justify-center bg-primary px-5 text-sm font-black text-primary-foreground hover:bg-brand/90"
+                        className="inline-flex min-h-12 flex-1 items-center justify-center bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-brand/90"
                     >
                         {t('checkout.result.dashboard')}
                     </Link>
                 ) : isPending ? (
                     <Link
                         href={`/checkout/result?order=${payment.orderId}`}
-                        className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-primary px-5 text-sm font-black text-primary-foreground hover:bg-brand/90"
+                        className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-brand/90"
                     >
                         <RefreshCw className="size-4" />
                         {t('checkout.result.refresh')}
@@ -97,7 +97,7 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
                 ) : (
                     <Link
                         href={`/checkout?plan=${payment.planId}&billing=${payment.billingCycle}`}
-                        className="inline-flex min-h-12 flex-1 items-center justify-center bg-brand px-5 text-sm font-black text-brand-foreground hover:bg-primary/90"
+                        className="inline-flex min-h-12 flex-1 items-center justify-center bg-brand px-5 text-sm font-bold text-brand-foreground hover:bg-primary/90"
                     >
                         {t('checkout.result.retry')}
                     </Link>
@@ -113,7 +113,7 @@ export function PaymentResultUnavailable() {
     return (
         <section className="w-full max-w-xl border border-border bg-card p-6 shadow-xl shadow-black/5 sm:p-9">
             <AlertCircle className="size-10 text-warning-soft-foreground" />
-            <h1 className="mt-5 text-2xl font-black tracking-tight text-foreground">
+            <h1 className="mt-5 text-2xl font-bold tracking-tight text-foreground">
                 {t('checkout.result.unavailableTitle')}
             </h1>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -121,7 +121,7 @@ export function PaymentResultUnavailable() {
             </p>
             <Link
                 href="/dashboard"
-                className="mt-6 inline-flex min-h-12 items-center justify-center bg-primary px-6 text-sm font-black text-primary-foreground hover:bg-brand/90"
+                className="mt-6 inline-flex min-h-12 items-center justify-center bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-brand/90"
             >
                 {t('checkout.result.dashboard')}
             </Link>

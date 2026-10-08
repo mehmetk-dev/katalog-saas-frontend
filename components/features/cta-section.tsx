@@ -99,7 +99,7 @@ export function CtaSection() {
                                 "h-[320px] lg:h-[300px]",
                                 "bg-foreground",
                                 "rounded-2xl lg:rounded-r-2xl",
-                                "shadow-2xl shadow-black/50",
+                                "shadow-2xl shadow-black/20",
                                 "lg:transform lg:-rotate-y-6 lg:origin-left z-20",
                                 "flex flex-col p-8 items-center justify-center",
                                 "text-white border border-white/10 group"

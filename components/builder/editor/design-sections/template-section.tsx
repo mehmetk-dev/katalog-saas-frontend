@@ -85,7 +85,7 @@ export function TemplateSection({
                     <div className="w-10 h-10 rounded-2xl bg-primary shadow-lg shadow-black/10 flex items-center justify-center text-primary-foreground">
                         <Sparkles className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-foreground dark:text-slate-200">{t('builder.templateStyle') as string}</h3>
+                    <h3 className="text-sm sm:text-lg font-bold uppercase tracking-[0.1em] text-foreground">{t('builder.templateStyle') as string}</h3>
                 </div>
                 <div className="h-px bg-accent flex-1 hidden sm:block" />
             </div>

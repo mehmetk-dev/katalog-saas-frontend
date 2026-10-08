@@ -106,7 +106,7 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
                 className={cn(
                   "w-full bg-primary",
                   "hover:from-primary hover:to-primary",
-                  "shadow-lg shadow-black/20 text-white font-semibold",
+                  "shadow-lg shadow-black/10 text-white font-semibold",
                 )}
               >
                 {user?.plan === "plus" ? t("plans.upgradeToProBtn") : t("plans.viewPlans")}

@@ -107,7 +107,7 @@ export function ProductGridView({
                                 {/* Resim alanı */}
                                 <div className="relative aspect-square overflow-hidden bg-muted/50">
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <Package className="w-8 h-8 text-slate-200" />
+                                        <Package className="w-8 h-8 text-muted-foreground/40" />
                                     </div>
 
                                     {(() => {
@@ -167,7 +167,7 @@ export function ProductGridView({
 
                                 {/* İçerik alanı */}
                                 <div className="p-3">
-                                    <h3 className="font-semibold text-sm text-foreground dark:text-gray-100 truncate">
+                                    <h3 className="font-semibold text-sm text-foreground truncate">
                                         {product.name}
                                     </h3>
                                     <p className="text-base font-bold text-primary mt-1">

@@ -107,7 +107,7 @@ function BuilderContent() {
         {(effectiveView === "split" || effectiveView === "preview") && (
           <div
             id="catalog-preview-container"
-            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-muted dark:bg-[#03040a] overflow-auto`}
+            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-muted overflow-auto`}
           >
             {!showPreview ? (
               <div className="flex items-center justify-center h-full">

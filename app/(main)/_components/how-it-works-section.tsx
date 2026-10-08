@@ -57,7 +57,7 @@ export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: Ho
                                             "relative z-10 w-12 h-12 rounded-full",
                                             "bg-primary",
                                             "flex items-center justify-center text-white font-bold",
-                                            "shadow-lg shadow-black/30 shrink-0",
+                                            "shadow-lg shadow-black/10 shrink-0",
                                             "group-hover:scale-110 transition-transform"
                                         )}>
                                             <item.icon className="w-5 h-5" />

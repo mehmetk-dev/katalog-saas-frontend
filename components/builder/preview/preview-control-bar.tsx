@@ -28,7 +28,7 @@ export function PreviewControlBar({
   const { t } = useTranslation()
 
   return (
-    <div className="flex items-center justify-between px-2 md:px-4 py-1.5 md:py-2.5 bg-background/80 dark:bg-[#080a12]/80 backdrop-blur-xl border-b border-border shrink-0 z-30 shadow-sm gap-1 md:gap-2">
+    <div className="flex items-center justify-between px-2 md:px-4 py-1.5 md:py-2.5 bg-background/80 backdrop-blur-xl border-b border-border shrink-0 z-30 shadow-sm gap-1 md:gap-2">
       {/* View Mode Toggle */}
       <div className="flex items-center">
         <div className="flex bg-muted p-0.5 rounded-xl border border-border">
@@ -36,7 +36,7 @@ export function PreviewControlBar({
             variant={viewMode === 'single' ? 'secondary' : 'ghost'}
             size="sm"
             className={cn(
-              "h-7 px-1.5 2xl:px-3 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all",
+              "h-7 px-1.5 2xl:px-3 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all",
               viewMode === 'single' && "bg-card shadow-sm text-foreground"
             )}
             onClick={() => onViewModeChange('single')}
@@ -48,7 +48,7 @@ export function PreviewControlBar({
             variant={viewMode === 'multi' ? 'secondary' : 'ghost'}
             size="sm"
             className={cn(
-              "h-7 px-1.5 2xl:px-3 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all",
+              "h-7 px-1.5 2xl:px-3 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all",
               viewMode === 'multi' && "bg-card shadow-sm text-foreground"
             )}
             onClick={() => onViewModeChange('multi')}
@@ -91,7 +91,7 @@ export function PreviewControlBar({
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-lg text-muted-foreground" onClick={() => onPageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0}>
                 <ChevronLeft className="w-3.5 h-3.5" />
               </Button>
-              <span className="text-[9px] font-black text-muted-foreground tabular-nums px-0.5 whitespace-nowrap">
+              <span className="text-[9px] font-bold text-muted-foreground tabular-nums px-0.5 whitespace-nowrap">
                 {currentPage + 1}/{totalPages}
               </span>
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-lg text-muted-foreground" onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))} disabled={currentPage >= totalPages - 1}>
@@ -101,7 +101,7 @@ export function PreviewControlBar({
 
             {/* Large screen: slider */}
             <div className="hidden md:flex items-center gap-3 bg-muted px-4 py-1.5 rounded-2xl border border-border min-w-[200px] max-w-[300px] flex-1">
-              <div className="text-[9px] font-black text-muted-foreground tabular-nums shrink-0">
+              <div className="text-[9px] font-bold text-muted-foreground tabular-nums shrink-0">
                 {currentPage + 1}
               </div>
               <Slider
@@ -111,7 +111,7 @@ export function PreviewControlBar({
                 onValueChange={([val]) => onPageChange(val)}
                 className="flex-1 cursor-pointer"
               />
-              <div className="text-[9px] font-black text-muted-foreground tabular-nums shrink-0">
+              <div className="text-[9px] font-bold text-muted-foreground tabular-nums shrink-0">
                 {totalPages}
               </div>
             </div>

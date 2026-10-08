@@ -13,7 +13,7 @@ export function SectionWrapper({ title, icon, iconBg, isOpen, onToggle, children
                     <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", iconBg)}>
                         {icon}
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-foreground dark:text-slate-200">{title}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">{title}</h3>
                 </div>
                 <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-300", isOpen && "rotate-180")} />
             </button>

@@ -154,7 +154,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                 </button>
                 <button onClick={() => setIsYearly(true)} className={cn("relative flex-1 py-1.5 text-[11px] font-bold z-10 flex items-center justify-center gap-1.5 transition-colors", isYearly ? "text-foreground" : "text-muted-foreground")}>
                   {t("upgradeModal.yearly")}
-                  <span className="text-[8px] sm:text-[9px] text-success font-black px-1.5 py-0.5 bg-success-soft rounded-full whitespace-nowrap">{t("upgradeModal.yearlyBonus")}</span>
+                  <span className="text-[8px] sm:text-[9px] text-success font-bold px-1.5 py-0.5 bg-success-soft rounded-full whitespace-nowrap">{t("upgradeModal.yearlyBonus")}</span>
                 </button>
               </div>
             </div>
@@ -181,7 +181,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-info py-0.5 px-3 rounded-full shadow-sm">
-                      <span className="text-[9px] font-black text-white uppercase tracking-tighter">{t("upgradeModal.mostPopular")}</span>
+                      <span className="text-[9px] font-bold text-white uppercase tracking-tighter">{t("upgradeModal.mostPopular")}</span>
                     </div>
                   )}
 
@@ -197,7 +197,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 
                   <div className="mb-4 text-left border-b border-border/10 pb-4 min-h-[52px] flex items-end">
                     {monthlyPrice === 0 ? (
-                      <span className="text-xl font-black text-foreground">{t("upgradeModal.free")}</span>
+                      <span className="text-xl font-bold text-foreground">{t("upgradeModal.free")}</span>
                     ) : (
                       <div className="flex flex-col animate-in fade-in zoom-in-95 duration-300" key={isYearly ? "yearly" : "monthly"}>
                         {isYearly && (
@@ -206,7 +206,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                           </span>
                         )}
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-foreground leading-none">₺{monthlyPrice}</span>
+                          <span className="text-2xl font-bold text-foreground leading-none">₺{monthlyPrice}</span>
                           <span className="text-[10px] text-muted-foreground font-medium">{t("upgradeModal.perMonth")}</span>
                         </div>
                         <span className="mt-1 text-[9px] font-bold text-success">
