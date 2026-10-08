@@ -90,20 +90,20 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         if (hasUnsavedChanges) {
             setShowExitDialog(true)
         } else {
-            router.push('/dashboard')
+            router.push('/dashboard/catalogs')
         }
     }, [hasUnsavedChanges, setShowExitDialog, router])
 
     const handleExitWithoutSaving = useCallback(() => {
         setShowExitDialog(false)
-        router.push('/dashboard')
+        router.push('/dashboard/catalogs')
     }, [setShowExitDialog, router])
 
     const handleSaveAndExit = useCallback(async () => {
         try {
             await handleSave()
             setShowExitDialog(false)
-            router.push('/dashboard')
+            router.push('/dashboard/catalogs')
         } catch {
             // Save failed — user stays on page, toast already shown by handleSave
         }

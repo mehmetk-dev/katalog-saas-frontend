@@ -1,15 +1,15 @@
 "use client"
 
 import React from "react"
-import { Sparkles, Search } from "lucide-react"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Search } from "lucide-react"
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import type { Product, ProductSortField, ProductSortOrder } from "@/lib/actions/products"
-import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 
 import { ProductCard, SortableProductItem, SelectAllButton, EmptySortingState } from "./editor-product-cards"
 
@@ -109,13 +109,13 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     onRemoveProduct,
 }: EditorContentTabProps) {
     const SORT_VIRTUALIZATION_THRESHOLD = 120
-    const SORT_ROW_HEIGHT = 56 // Yaklaşık kart yüksekliği + gap
+    const SORT_ROW_HEIGHT = 48 // Satır yüksekliği (h-12)
     const SORT_OVERSCAN_ROWS = 4
 
     const sortListRef = React.useRef<HTMLDivElement>(null)
     const [sortScrollTop, setSortScrollTop] = React.useState(0)
     const [sortViewportHeight, setSortViewportHeight] = React.useState(320)
-    const [sortColumns, setSortColumns] = React.useState(2)
+    const sortColumns = 1
 
     const hasVirtualizedSorting = validProductIds.length > SORT_VIRTUALIZATION_THRESHOLD
 
@@ -148,7 +148,6 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     )
 
     const updateSortViewportMetrics = React.useCallback(() => {
-        setSortColumns(window.innerWidth >= 640 ? 2 : 1)
         if (sortListRef.current) {
             setSortViewportHeight(sortListRef.current.clientHeight || 320)
         }
@@ -180,112 +179,170 @@ export const EditorContentTab = React.memo(function EditorContentTab({
         return () => cancelAnimationFrame(scrollRafRef.current)
     }, [])
 
+    const renderSortable = (id: string, index: number) => {
+        const product = productMap.get(id)
+        if (!product) return null
+        return (
+            <SortableProductItem
+                key={id}
+                product={product}
+                index={index}
+                draggingIndex={draggingIndex}
+                dropIndex={dropIndex}
+                onDragStart={onSortDragStart}
+                onDragOver={onSortDragOver}
+                onDrop={onSortDrop}
+                onMove={onSortMove}
+                onRemove={onRemoveProduct}
+            />
+        )
+    }
+
+    const total = totalProductCount ?? filteredProducts.length
+
     return (
-        <div className="m-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* CATALOG DETAILS - COMPACT VERSION */}
-            <div className="relative group">
-                <div className="absolute -inset-1 bg-primary/10 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                <Card className="relative bg-background/70 backdrop-blur-sm border-border/50 shadow-sm rounded-[1.5rem] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/50">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center text-primary">
-                                <Sparkles className="w-4 h-4" />
+        <div className="space-y-8">
+            {/* Açıklama */}
+            <section className="space-y-2">
+                <Label htmlFor="catalog-description">{t('builder.descriptionLabel')}</Label>
+                <Textarea
+                    id="catalog-description"
+                    rows={3}
+                    className="resize-none"
+                    placeholder={t('builder.descriptionPlaceholder')}
+                    value={description}
+                    onChange={(e) => onDescriptionChange(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">{t('builder.descriptionHint')}</p>
+            </section>
+
+            {/* Katalogdaki ürünler — sıralama */}
+            <section className="space-y-3">
+                <div className="flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                            {t('builder.catalogProductsTitle')}
+                            <Badge variant="secondary" className="tabular-nums">{validProductIds.length}</Badge>
+                        </h3>
+                        {validProductIds.length > 1 && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">{t('builder.dragToReorder')}</p>
+                        )}
+                    </div>
+                    {validProductIds.length > 0 && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSelectedProductIdsChange([])}
+                            className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        >
+                            {t('builder.clearSelection')}
+                        </Button>
+                    )}
+                </div>
+
+                <div className="overflow-hidden rounded-lg border">
+                    {hasVirtualizedSorting && (
+                        <p className="border-b bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
+                            {t('builder.virtualListMode')}: {t('builder.virtualListRendering', { total: validProductIds.length, rendered: approxRenderedItems })}
+                        </p>
+                    )}
+                    <div
+                        ref={sortListRef}
+                        onScroll={handleSortListScroll}
+                        role="list"
+                        className="custom-scrollbar max-h-80 overflow-y-auto"
+                    >
+                        {validProductIds.length === 0 ? (
+                            <EmptySortingState />
+                        ) : hasVirtualizedSorting ? (
+                            <div style={{ height: `${virtualTotalHeight}px`, position: 'relative' }}>
+                                <div
+                                    className="absolute inset-x-0 top-0 divide-y"
+                                    style={{ transform: `translateY(${virtualOffsetY}px)` }}
+                                >
+                                    {virtualRows.flat().map(({ id, index }) => renderSortable(id, index))}
+                                </div>
                             </div>
-                            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-foreground">
-                                {t('builder.catalogDetails')}
-                            </span>
-                        </div>
-                        {validProductIds.length > 0 && (
-                            <div className="bg-primary text-[10px] font-bold text-primary-foreground px-2 py-0.5 rounded-full shadow-sm shadow-black/10">
-                                {validProductIds.length} {t('builder.productsSelected')}
+                        ) : (
+                            <div className="divide-y">
+                                {validProductIds.map((id, index) => renderSortable(id, index))}
                             </div>
                         )}
                     </div>
-                    <CardContent className="p-4">
-                        <div className="space-y-2">
-                            <textarea
-                                className="w-full min-h-[90px] p-3 text-sm bg-transparent border-none rounded-xl focus:ring-0 transition-all outline-none resize-none placeholder:text-muted-foreground font-medium text-foreground"
-                                placeholder={t('builder.descriptionPlaceholder')}
-                                value={description}
-                                onChange={(e) => onDescriptionChange(e.target.value)}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                </div>
+            </section>
 
-            {/* SEARCH & FILTERS SECTION */}
-            <div className="space-y-4">
-                <div className="flex flex-col gap-3">
-                    {isProductListTruncated && (
-                        <div className="rounded-xl border border-warning/30 bg-warning-soft px-3 py-2 text-[11px] text-warning-soft-foreground">
-                            {t('builder.bigCatalogMode')}: {t('builder.bigCatalogLoaded', { count: availableProductCount })}
-                            {totalProductCount ? ` / ${t('builder.bigCatalogTotal', { total: totalProductCount })}` : ""}. {t('builder.bigCatalogPerf')}
-                        </div>
-                    )}
-
-                    <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <Input
-                            placeholder={t('builder.searchProducts')}
-                            value={searchQuery}
-                            onChange={onSearchChange}
-                            className="pl-12 h-12 bg-card border-border/60 rounded-2xl shadow-sm focus:ring-primary/10 focus:border-primary transition-all text-sm font-medium"
-                        />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <div className="flex-1">
-                            <Select value={selectedCategory} onValueChange={onCategoryChange}>
-                                <SelectTrigger className="h-11 bg-card border-border/60 rounded-2xl shadow-sm text-xs font-bold px-4">
-                                    <SelectValue placeholder={t('common.category')} />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-border shadow-xl">
-                                    <SelectItem value="all">{t('common.all')}</SelectItem>
-                                    {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="w-[calc(50%-0.25rem)] sm:w-[164px]">
-                            <Select value={sortBy} onValueChange={(value) => onSortByChange(value as ProductSortField)}>
-                                <SelectTrigger className="h-11 bg-card border-border/60 rounded-2xl shadow-sm text-xs font-bold px-4">
-                                    <SelectValue placeholder={t('common.sort')} />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-border shadow-xl">
-                                    <SelectItem value="display_order">{t('builder.sortDisplayOrder')}</SelectItem>
-                                    <SelectItem value="created_at">{t('builder.sortCreatedAt')}</SelectItem>
-                                    <SelectItem value="name">{t('builder.sortName')}</SelectItem>
-                                    <SelectItem value="price">{t('builder.sortPrice')}</SelectItem>
-                                    <SelectItem value="stock">{t('builder.sortStock')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="w-[calc(50%-0.25rem)] sm:w-[132px]">
-                            <Select value={sortOrder} onValueChange={(value) => onSortOrderChange(value as ProductSortOrder)}>
-                                <SelectTrigger className="h-11 bg-card border-border/60 rounded-2xl shadow-sm text-xs font-bold px-4">
-                                    <SelectValue placeholder={t('common.order')} />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-border shadow-xl">
-                                    <SelectItem value="asc">{t('builder.sortAscending')}</SelectItem>
-                                    <SelectItem value="desc">{t('builder.sortDescending')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <SelectAllButton
-                            allProductIds={allProductIds}
-                            selectedProductIdSet={selectedProductIdSet}
-                            selectedProductIds={selectedProductIds}
-                            onSelectedProductIdsChange={onSelectedProductIdsChange}
-                            isLoadingAllProductIds={isLoadingAllProductIds}
-                            onPrefetchAllProductIds={onPrefetchAllProductIds}
-                            t={t}
-                        />
-                    </div>
+            {/* Ürün ekle */}
+            <section className="@container space-y-3">
+                <div className="flex items-baseline justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-foreground">{t('builder.addProductsTitle')}</h3>
+                    <span className="text-xs text-muted-foreground tabular-nums">{t('builder.productCount', { count: total })}</span>
                 </div>
 
-                {/* PRODUCTS GRID - COMPACT CARDS */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+                {isProductListTruncated && (
+                    <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning-soft-foreground">
+                        {t('builder.bigCatalogMode')}: {t('builder.bigCatalogLoaded', { count: availableProductCount })}
+                        {totalProductCount ? ` / ${t('builder.bigCatalogTotal', { total: totalProductCount })}` : ""}. {t('builder.bigCatalogPerf')}
+                    </div>
+                )}
+
+                <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder={t('builder.searchProducts')}
+                        value={searchQuery}
+                        onChange={onSearchChange}
+                        className="pl-9"
+                        aria-label={t('builder.searchProducts')}
+                    />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <Select value={selectedCategory} onValueChange={onCategoryChange}>
+                        <SelectTrigger size="sm" className="min-w-0 flex-1 basis-32" aria-label={t('common.category')}>
+                            <SelectValue placeholder={t('common.category')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('common.all')}</SelectItem>
+                            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={sortBy} onValueChange={(value) => onSortByChange(value as ProductSortField)}>
+                        <SelectTrigger size="sm" className="min-w-0 flex-1 basis-32" aria-label={t('common.sort')}>
+                            <SelectValue placeholder={t('common.sort')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="display_order">{t('builder.sortDisplayOrder')}</SelectItem>
+                            <SelectItem value="created_at">{t('builder.sortCreatedAt')}</SelectItem>
+                            <SelectItem value="name">{t('builder.sortName')}</SelectItem>
+                            <SelectItem value="price">{t('builder.sortPrice')}</SelectItem>
+                            <SelectItem value="stock">{t('builder.sortStock')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="size-8 shrink-0"
+                        onClick={() => onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")}
+                        title={`${t('builder.sortDirection')}: ${sortOrder === "asc" ? t('builder.sortAscending') : t('builder.sortDescending')}`}
+                        aria-label={`${t('builder.sortDirection')}: ${sortOrder === "asc" ? t('builder.sortAscending') : t('builder.sortDescending')}`}
+                    >
+                        {sortOrder === "asc" ? <ArrowUpNarrowWide className="size-4" /> : <ArrowDownWideNarrow className="size-4" />}
+                    </Button>
+                    <SelectAllButton
+                        allProductIds={allProductIds}
+                        selectedProductIdSet={selectedProductIdSet}
+                        selectedProductIds={selectedProductIds}
+                        onSelectedProductIdsChange={onSelectedProductIdsChange}
+                        isLoadingAllProductIds={isLoadingAllProductIds}
+                        onPrefetchAllProductIds={onPrefetchAllProductIds}
+                        t={t}
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 @sm:grid-cols-3 @xl:grid-cols-4 @3xl:grid-cols-5">
                     {isLoadingProducts && visibleProducts.length === 0 && (
-                        <div className="col-span-full rounded-xl border border-border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
+                        <div className="col-span-full rounded-lg border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
                             {t('common.loading')}
                         </div>
                     )}
@@ -299,163 +356,41 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                     ))}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 py-4">
-                        {/* Önceki Sayfa */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1}
-                            className="rounded-xl h-9 px-3 text-xs font-bold border-border/60 hover:bg-accent hover:text-primary disabled:opacity-50"
-                        >
-                            {t('common.back')}
-                        </Button>
-
-                        {/* Sayfa Numaraları */}
-                        <div className="flex items-center gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1)
-                                .filter(page => {
-                                    if (page === 1 || page === totalPages) return true
-                                    if (Math.abs(page - currentPage) <= 1) return true
-                                    return false
-                                })
-                                .map((page, index, arr) => (
-                                    <React.Fragment key={page}>
-                                        {index > 0 && arr[index - 1] !== page - 1 && (
-                                            <span className="px-1 text-muted-foreground">...</span>
-                                        )}
-                                        <Button
-                                            variant={currentPage === page ? "default" : "ghost"}
-                                            size="sm"
-                                            onClick={() => onPageChange(page)}
-                                            className={cn(
-                                                "rounded-xl h-9 w-9 p-0 text-xs font-bold transition-all",
-                                                currentPage === page
-                                                    ? "bg-primary text-primary-foreground shadow-md"
-                                                    : "text-muted-foreground hover:bg-muted"
-                                            )}
-                                        >
-                                            {page}
-                                        </Button>
-                                    </React.Fragment>
-                                ))}
-                        </div>
-
-                        {/* Sonraki Sayfa */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                            disabled={currentPage === totalPages}
-                            className="rounded-xl h-9 px-3 text-xs font-bold border-border/60 hover:bg-accent hover:text-primary disabled:opacity-50"
-                        >
-                            {t('common.next')}
-                        </Button>
-
-                        {/* Sayfa Bilgisi */}
-                        <span className="ml-3 text-xs text-muted-foreground font-medium">
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                        <span className="text-xs text-muted-foreground">
                             {t('builder.productsFromTo', {
-                                total: totalProductCount ?? filteredProducts.length,
+                                total,
                                 from: filteredProducts.length ? startIndex + 1 : 0,
-                                to: Math.min(startIndex + itemsPerPage, totalProductCount ?? filteredProducts.length),
+                                to: Math.min(startIndex + itemsPerPage, total),
                             })}
                         </span>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="outline"
+                                size="icon-sm"
+                                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                aria-label={t('common.back')}
+                            >
+                                <ChevronLeft className="size-4" />
+                            </Button>
+                            <span className="min-w-12 text-center text-xs tabular-nums text-muted-foreground">
+                                {currentPage} / {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="icon-sm"
+                                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                                aria-label={t('common.next')}
+                            >
+                                <ChevronRight className="size-4" />
+                            </Button>
+                        </div>
                     </div>
                 )}
-            </div>
-
-            <Separator className="opacity-50" />
-
-            {/* SORTING AREA */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">{t('builder.selectedProducts', { count: validProductIds.length })}</h3>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase">{t('builder.dragToReorder')}</p>
-                    </div>
-                    {validProductIds.length > 0 && (
-                        <Button variant="ghost" size="sm" onClick={() => onSelectedProductIdsChange([])} className="h-8 text-xs font-bold text-destructive hover:bg-destructive/5 px-3 rounded-lg">
-                            {t('builder.clearSelection')}
-                        </Button>
-                    )}
-                </div>
-
-                <div className="bg-muted/50 rounded-xl border border-border p-3">
-                    {hasVirtualizedSorting && (
-                        <div className="mb-2 flex items-center justify-between gap-2 px-1">
-                            <p className="text-[10px] text-muted-foreground font-medium">
-                                {t('builder.virtualListMode')}: {t('builder.virtualListRendering', { total: validProductIds.length, rendered: approxRenderedItems })}
-                            </p>
-                        </div>
-                    )}
-
-                    <div
-                        ref={sortListRef}
-                        onScroll={handleSortListScroll}
-                        className="max-h-[320px] overflow-y-auto pr-2 custom-scrollbar"
-                    >
-                        {hasVirtualizedSorting ? (
-                            <div style={{ height: `${virtualTotalHeight}px`, position: 'relative' }}>
-                                <div
-                                    className={cn(
-                                        "absolute left-0 right-0 top-0 grid gap-2",
-                                        sortColumns === 2 ? "grid-cols-2" : "grid-cols-1"
-                                    )}
-                                    style={{ transform: `translateY(${virtualOffsetY}px)` }}
-                                >
-                                    {virtualRows.flat().map(({ id, index }) => {
-                                        const product = productMap.get(id)
-                                        if (!product) return null
-                                        return (
-                                            <SortableProductItem
-                                                key={id}
-                                                product={product}
-                                                index={index}
-                                                draggingIndex={draggingIndex}
-                                                dropIndex={dropIndex}
-                                                onDragStart={onSortDragStart}
-                                                onDragOver={onSortDragOver}
-                                                onDrop={onSortDrop}
-                                                onMove={onSortMove}
-                                                onRemove={onRemoveProduct}
-                                            />
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {validProductIds.map((id, index) => {
-                                    const product = productMap.get(id)
-                                    if (!product) return null
-                                    return (
-                                        <SortableProductItem
-                                            key={id}
-                                            product={product}
-                                            index={index}
-                                            draggingIndex={draggingIndex}
-                                            dropIndex={dropIndex}
-                                            onDragStart={onSortDragStart}
-                                            onDragOver={onSortDragOver}
-                                            onDrop={onSortDrop}
-                                            onMove={onSortMove}
-                                            onRemove={onRemoveProduct}
-                                        />
-                                    )
-                                })}
-                            </div>
-                        )}
-
-                        {validProductIds.length === 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <EmptySortingState />
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+            </section>
         </div>
     )
 })

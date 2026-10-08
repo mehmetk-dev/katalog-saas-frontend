@@ -3,8 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Toaster } from 'sonner'
 
-import { DashboardHeader } from '@/components/dashboard/header'
-import { DashboardSidebar } from '@/components/dashboard/sidebar'
+import { DashboardChrome } from '@/components/dashboard/dashboard-chrome'
 import { ThemeProvider } from '@/components/theme-provider'
 import { QueryProvider } from '@/lib/contexts/query-provider'
 import { SidebarProvider } from '@/lib/contexts/sidebar-context'
@@ -66,15 +65,7 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
             <QueryProvider>
                 <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
                     <SidebarProvider defaultCollapsed={defaultCollapsed}>
-                        <div className="flex h-screen overflow-hidden bg-background">
-                            <DashboardSidebar />
-                            <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-                                <DashboardHeader />
-                                <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6">
-                                    {children}
-                                </main>
-                            </div>
-                        </div>
+                        <DashboardChrome>{children}</DashboardChrome>
                         <Toaster
                             position="bottom-right"
                             theme="system"

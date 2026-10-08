@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useRef, useState, useEffect } from "react"
-import { CheckSquare } from "lucide-react"
+import { Check } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 import { cn } from "@/lib/utils"
 import { CatalogPreview } from "./catalog-preview"
@@ -18,7 +19,7 @@ interface TemplatePreviewCardProps {
 
 // Statik preview değerleri - template seçiminde kullanıcı ayarlarını göstermeye gerek yok
 const STATIC_PREVIEW_PROPS = {
-    primaryColor: '#4f46e5',
+    primaryColor: '#18181b',
     headerTextColor: '#ffffff',
     showPrices: true,
     showDescriptions: true,
@@ -58,7 +59,7 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
     isSelected,
     onSelect,
 }: TemplatePreviewCardProps) {
-    const cardRef = useRef<HTMLDivElement>(null)
+    const cardRef = useRef<HTMLButtonElement>(null)
     const [isVisible, setIsVisible] = useState(false)
 
     // FIX(F8): IntersectionObserver — render preview only when card is in viewport
@@ -88,24 +89,19 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
     )
 
     return (
-        <div
+        <button
             ref={cardRef}
-            role="button"
-            tabIndex={0}
+            type="button"
             onClick={onSelect}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.() } }}
             aria-pressed={isSelected}
             aria-label={`${templateName}${isPro ? ' (PRO)' : ''}`}
-            className={cn(
-                "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-card",
-                isSelected
-                    ? "ring-8 ring-primary ring-offset-0 scale-95 shadow-2xl"
-                    : "shadow-lg border border-border hover:shadow-2xl hover:scale-[1.02]"
-            )}
+            className="group flex min-w-0 flex-col gap-1.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-            {/* Preview Container - Takes most of the space */}
-            <div className="absolute inset-0 pb-14">
-                <div className="w-full h-full pointer-events-none">
+            <div className={cn(
+                "relative aspect-[3/4] w-full overflow-hidden rounded-lg border bg-muted transition-shadow",
+                isSelected ? "border-transparent ring-2 ring-primary ring-offset-2 ring-offset-background" : "group-hover:border-ring"
+            )}>
+                <div className="pointer-events-none h-full w-full">
                     {isVisible ? (
                         <ResponsiveContainer>
                             <CatalogPreview
@@ -117,39 +113,20 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
                             />
                         </ResponsiveContainer>
                     ) : (
-                        /* FIX(F8): Lightweight placeholder while off-screen */
-                        <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                            <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
-                        </div>
+                        <div className="h-full w-full animate-pulse bg-muted" />
                     )}
                 </div>
-            </div>
-
-            {/* Clean Bottom Bar - High Contrast */}
-            <div className={cn(
-                "absolute inset-x-0 bottom-0 h-10 px-3 transition-all duration-300 z-20 flex items-center justify-between border-t",
-                isSelected
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : "bg-card border-border text-foreground group-hover:bg-muted/50"
-            )}>
-                <p className="text-[9px] font-bold uppercase tracking-tight truncate flex-1 leading-none">
-                    {templateName}
-                </p>
-                {isPro && (
-                    <span className={cn(
-                        "ml-2 text-[9px] font-bold px-1.5 py-1 rounded shadow-sm shrink-0 leading-none",
-                        isSelected ? "bg-card text-primary" : "bg-warning text-foreground"
-                    )}>PRO</span>
+                {isSelected && (
+                    <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                        <Check className="size-3" strokeWidth={3} />
+                    </span>
                 )}
             </div>
-
-            {/* Selection Checkmark */}
-            {isSelected && (
-                <div className="absolute top-4 right-4 bg-card text-primary w-8 h-8 rounded-full flex items-center justify-center shadow-xl z-30 animate-in zoom-in-50">
-                    <CheckSquare className="w-5 h-5" />
-                </div>
-            )}
-        </div>
+            <div className="flex min-w-0 items-center gap-1.5 px-0.5">
+                <span className="truncate text-xs font-medium text-foreground">{templateName}</span>
+                {isPro && <Badge variant="warning" className="px-1 py-0 text-[10px] leading-4">PRO</Badge>}
+            </div>
+        </button>
     )
 }, (prevProps, nextProps) => {
     // Sadece seçim durumu değişirse yeniden render et

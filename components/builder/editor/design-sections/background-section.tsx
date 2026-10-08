@@ -1,23 +1,22 @@
 import { Image as ImageIcon } from "lucide-react"
-import NextImage from "next/image"
-import { HexColorPicker } from "react-colorful"
-import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { BackgroundSectionProps } from "./types"
-import { SectionWrapper } from "./section-wrapper"
+import { ColorField, Field, ImageField, SectionWrapper, Segmented } from "./section-wrapper"
+
+const BACKGROUND_PRESETS = ['#ffffff', '#fafaf9', '#f4f4f5', '#fef7ed', '#f0f9ff', '#18181b']
+
+const GRADIENTS = [
+    { value: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', labelKey: 'builder.softSlate' },
+    { value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', labelKey: 'builder.indigoNight' },
+    { value: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', labelKey: 'builder.pinkCloud' },
+]
 
 export function BackgroundSection({
     t,
     openSections,
     toggleSection,
     backgroundColor,
-    showBackgroundColorPicker,
-    setShowBackgroundColorPicker,
-    backgroundColorPickerRef,
     debouncedBackgroundColorChange,
     backgroundImage,
     onBackgroundImageChange,
@@ -29,118 +28,71 @@ export function BackgroundSection({
     bgInputRef,
     handleFileUpload,
 }: BackgroundSectionProps) {
+    const pickImage = () => {
+        handleUploadClick()
+        bgInputRef.current?.click()
+    }
+
     return (
         <SectionWrapper
             id="background"
-            title={t('builder.backgroundSettings') as string}
-            icon={<ImageIcon className="w-4 h-4" />}
-            iconBg="bg-info-soft text-info"
+            title={t('builder.backgroundSettings')}
+            icon={<ImageIcon />}
             isOpen={!!openSections.background}
             onToggle={() => toggleSection('background')}
         >
-            <Card className="bg-background/80 border-border/50 shadow-sm rounded-[2rem]">
-                <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {/* BG Color & Gradient */}
-                        <div className="space-y-6">
-                            <div className="space-y-2 relative" ref={backgroundColorPickerRef}>
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{t('builder.bgColor') as string}</Label>
-                                <div
-                                    className="h-14 w-full rounded-2xl border-2 border-border bg-card flex items-center px-4 gap-3 cursor-pointer transition-all hover:border-border"
-                                    onClick={() => setShowBackgroundColorPicker(!showBackgroundColorPicker)}
-                                >
-                                    <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white" style={{ backgroundColor: backgroundColor || '#ffffff' }} />
-                                    <span className="text-xs font-mono font-bold uppercase tracking-tight">{backgroundColor || '#FFFFFF'}</span>
-                                </div>
-                                {showBackgroundColorPicker && (
-                                    <div className="absolute top-full left-0 mt-3 z-[9999] bg-card rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
-                                        <HexColorPicker
-                                            color={backgroundColor || '#ffffff'}
-                                            onChange={(hex) => debouncedBackgroundColorChange(hex)}
-                                            style={{ width: '240px', height: '160px' }}
-                                        />
-                                    </div>
-                                )}
-                            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <ColorField
+                    label={t('builder.bgColor')}
+                    swatch={backgroundColor || '#ffffff'}
+                    hex={backgroundColor || '#ffffff'}
+                    presets={BACKGROUND_PRESETS}
+                    onChange={debouncedBackgroundColorChange}
+                />
+                <Field label={t('builder.gradientEffect')}>
+                    <Select value={backgroundGradient || 'none'} onValueChange={(v) => onBackgroundGradientChange?.(v === 'none' ? null : v)}>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">{t('builder.solidColor')}</SelectItem>
+                            {GRADIENTS.map((g) => (
+                                <SelectItem key={g.value} value={g.value}>
+                                    <span className="size-3.5 rounded-sm border" style={{ background: g.value }} />
+                                    {t(g.labelKey)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </Field>
+            </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{t('builder.gradientEffect') as string}</Label>
-                                <Select value={backgroundGradient || 'none'} onValueChange={(v) => onBackgroundGradientChange?.(v === 'none' ? null : v)}>
-                                    <SelectTrigger className="h-14 rounded-2xl bg-card border-border text-xs font-bold">
-                                        <SelectValue placeholder={t('builder.none') as string} />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl shadow-2xl">
-                                        <SelectItem value="none">{t('builder.solidColor') as string}</SelectItem>
-                                        <SelectItem value="linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)">{t('builder.softSlate') as string}</SelectItem>
-                                        <SelectItem value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">{t('builder.indigoNight') as string}</SelectItem>
-                                        <SelectItem value="linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)">{t('builder.pinkCloud') as string}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
+            <div className="space-y-3 border-t pt-4">
+                <ImageField
+                    label={t('builder.bgImage')}
+                    imageUrl={backgroundImage}
+                    onPick={pickImage}
+                    onRemove={onBackgroundImageChange ? () => onBackgroundImageChange(null) : undefined}
+                    hint="PNG, JPG, WEBP"
+                    pickLabel={t('builder.selectImage')}
+                    changeLabel={t('builder.changeBtn')}
+                    removeLabel={t('builder.removeImage')}
+                />
+                <input type="file" ref={bgInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'bg')} />
 
-                        {/* BG Image Upload */}
-                        <div className="space-y-3 lg:col-span-2">
-                            <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">{t('builder.bgImage') as string}</Label>
-                            <div className="flex flex-col sm:flex-row gap-4 h-full min-h-[140px]">
-                                <div
-                                    className={cn(
-                                        "flex-1 rounded-[1.5rem] border-2 border-dashed flex flex-col items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden",
-                                        backgroundImage
-                                            ? "border-border bg-card shadow-inner"
-                                            : "border-border bg-muted/50 hover:bg-card hover:border-border group"
-                                    )}
-                                    onClick={() => {
-                                        handleUploadClick()
-                                        bgInputRef.current?.click()
-                                    }}
-                                >
-                                    {backgroundImage ? (
-                                        <div className="relative w-full h-full p-2 group">
-                                            <NextImage src={backgroundImage} alt="BG" fill className="object-contain" unoptimized />
-                                            <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 rounded-xl">
-                                                <span className="text-[9px] font-bold text-foreground bg-background/90 px-3 py-1.5 rounded-full shadow-lg">{t('builder.changeImage') as string}</span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center p-4 space-y-2">
-                                            <div className="w-10 h-10 rounded-xl bg-card shadow-sm border border-border flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
-                                                <ImageIcon className="w-5 h-5 text-info" />
-                                            </div>
-                                            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">{t('builder.selectImage') as string}</p>
-                                        </div>
-                                    )}
-                                    <input type="file" ref={bgInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'bg')} />
-                                </div>
-
-                                {backgroundImage && (
-                                    <div className="flex-1 flex flex-col gap-3 animate-in slide-in-from-right-4 duration-500">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[9px] font-bold text-muted-foreground px-1">{t('builder.imageView') as string}</Label>
-                                            <Select value={backgroundImageFit} onValueChange={(v) => onBackgroundImageFitChange?.(v as NonNullable<Catalog['background_image_fit']>)}>
-                                                <SelectTrigger className="h-10 rounded-xl text-xs font-bold"><SelectValue /></SelectTrigger>
-                                                <SelectContent className="rounded-2xl">
-                                                    <SelectItem value="cover">{t('builder.coverFit') as string}</SelectItem>
-                                                    <SelectItem value="contain">{t('builder.containFit') as string}</SelectItem>
-                                                    <SelectItem value="fill">{t('builder.fillFit') as string}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => onBackgroundImageChange?.(null)}
-                                            className="mt-auto h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-destructive-soft text-destructive hover:bg-destructive/15 border-none shadow-none"
-                                        >
-                                            {t('builder.removeImage') as string}
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                {backgroundImage && (
+                    <Field label={t('builder.imageView')}>
+                        <Segmented
+                            ariaLabel={t('builder.imageView')}
+                            value={backgroundImageFit}
+                            onChange={(v) => onBackgroundImageFitChange?.(v as NonNullable<Catalog['background_image_fit']>)}
+                            options={[
+                                { value: 'cover', label: t('builder.coverFit') },
+                                { value: 'contain', label: t('builder.containFit') },
+                                { value: 'fill', label: t('builder.fillFit') },
+                            ]}
+                        />
+                    </Field>
+                )}
+            </div>
         </SectionWrapper>
     )
 }

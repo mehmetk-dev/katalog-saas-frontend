@@ -50,6 +50,8 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
     <div onClick={onClick} role="button">{children}</div>
   ),
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
 }))
 
 vi.mock('@/components/ui/dialog', () => ({
@@ -201,7 +203,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     })
 
     expect(screen.queryByText('builder.updatePublish')).not.toBeInTheDocument()
-    expect(screen.getByText('builder.shareBtn')).toBeInTheDocument()
+    expect(screen.getAllByText('builder.shareBtn')[0]).toBeInTheDocument()
     // Yalnızca bu kataloğun public sayfası yenilenmeli (tüm /catalog/[slug] değil)
     expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
       name: 'Live Autosave Name',
@@ -246,7 +248,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     const input = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
     fireEvent.change(input, { target: { value: 'Published Name' } })
 
-    const publishBtn = screen.getByText('builder.publishBtn')
+    const publishBtn = screen.getAllByText('builder.publishBtn')[0]
     fireEvent.click(publishBtn)
 
     await waitFor(() => {
@@ -261,7 +263,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
   it('ENDPOINT: handlePublish -> publishCatalog cagrilmali', async () => {
     render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
 
-    const publishBtn = screen.getByText('builder.publishBtn')
+    const publishBtn = screen.getAllByText('builder.publishBtn')[0]
     fireEvent.click(publishBtn)
 
     await waitFor(() => {

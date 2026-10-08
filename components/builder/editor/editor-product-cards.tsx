@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useCallback } from "react"
-import { GripVertical, Trash2, CheckSquare, Package } from "lucide-react"
+import { Check, GripVertical, PackagePlus, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -9,6 +9,7 @@ import type { Product } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { MAX_CATALOG_PRODUCTS } from "@/lib/constants"
+import { formatCurrency } from "@/lib/utils/helpers"
 import { toast } from "sonner"
 
 // PERFORMANCE: Memoized product card to avoid re-rendering all cards when one is toggled
@@ -22,73 +23,41 @@ export const ProductCard = React.memo(function ProductCard({
     onToggle: (id: string) => void
 }) {
     return (
-        <div
-            role="button"
-            tabIndex={0}
+        <button
+            type="button"
             onClick={() => onToggle(product.id)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(product.id) } }}
             aria-pressed={isSelected}
             aria-label={product.name}
-            className={cn(
-                "relative group cursor-pointer transition-all duration-200",
-                isSelected ? "scale-[0.97]" : "hover:scale-[1.03]"
-            )}
+            className="group flex min-w-0 flex-col gap-1.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
             <div className={cn(
-                "aspect-[1/1.15] rounded-xl overflow-hidden border transition-all duration-200 shadow-sm bg-card relative",
-                isSelected
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-border hover:shadow-md"
+                "relative aspect-square w-full overflow-hidden rounded-lg border bg-muted transition-shadow",
+                isSelected ? "border-transparent ring-2 ring-primary ring-offset-2 ring-offset-background" : "group-hover:border-ring"
             )}>
-                <div className="absolute inset-0">
-                    <ProductImageGallery
-                        product={product}
-                        className="w-full h-full"
-                        imageClassName={cn(
-                            "object-cover transition-all duration-300",
-                            isSelected ? "scale-105" : "group-hover:scale-110"
-                        )}
-                        showNavigation={false}
-                        showImageCount={false}
-                        interactive={false}
-                    />
-                    <div className={cn(
-                        "absolute inset-0 transition-opacity duration-200",
-                        isSelected ? "bg-primary/10 opacity-100" : "bg-black/0 group-hover:bg-black/10 opacity-0"
-                    )} />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent h-1/2 opacity-70" />
-                </div>
-
-                {/* Top Indicator */}
-                <div className="absolute top-1.5 right-1.5">
-                    <div className={cn(
-                        "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm",
-                        isSelected
-                            ? "bg-primary text-primary-foreground scale-110"
-                            : "bg-background/90 text-transparent opacity-0 group-hover:opacity-100"
-                    )}>
-                        <CheckSquare className="w-3 h-3" />
-                    </div>
-                </div>
-
-                {/* Info Overlay */}
-                <div className="absolute bottom-1.5 left-1.5 right-1.5 flex flex-col gap-0">
-                    <p className="text-[8px] sm:text-[9px] font-bold text-white truncate drop-shadow-sm uppercase tracking-tight leading-tight">
-                        {product.name}
-                    </p>
-                    <div className="flex items-center justify-between">
-                        <span className="text-[7px] sm:text-[8px] font-bold text-white/90 drop-shadow-sm">
-                            {product.price ? `₺${product.price}` : "-"}
-                        </span>
-                        {product.sku && (
-                            <span className="text-[6px] font-medium text-white/60 bg-black/20 px-0.5 rounded truncate max-w-[40px]">
-                                {product.sku}
-                            </span>
-                        )}
-                    </div>
-                </div>
+                <ProductImageGallery
+                    product={product}
+                    className="h-full w-full"
+                    imageClassName="object-cover"
+                    showNavigation={false}
+                    showImageCount={false}
+                    interactive={false}
+                />
+                <span className={cn(
+                    "absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full border shadow-sm transition-all",
+                    isSelected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background/90 text-transparent opacity-0 group-hover:opacity-100"
+                )}>
+                    <Check className="size-3" strokeWidth={3} />
+                </span>
             </div>
-        </div>
+            <div className="min-w-0 px-0.5">
+                <p className="truncate text-xs font-medium text-foreground">{product.name}</p>
+                <p className="truncate text-xs text-muted-foreground tabular-nums">
+                    {product.price ? formatCurrency(product.price) : "—"}
+                </p>
+            </div>
+        </button>
     )
 })
 
@@ -138,28 +107,32 @@ export const SortableProductItem = React.memo(function SortableProductItem({
                 }
             }}
             className={cn(
-                "flex items-center gap-3 p-2 bg-card rounded-lg border border-border shadow-sm transition-all group",
-                isDragging && "opacity-50 scale-95 border-dashed border-primary pre-drag",
-                isDropTarget && "border-primary ring-2 ring-primary/10"
+                "group flex h-12 items-center gap-2 bg-card px-2 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted",
+                isDragging && "opacity-40",
+                isDropTarget && "shadow-[inset_0_2px_0_0_var(--primary)]"
             )}
         >
-            <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 group-hover:text-muted-foreground shrink-0">
-                <GripVertical className="w-3.5 h-3.5" />
-            </div>
-            <div className="w-8 h-8 rounded shrink-0 border border-border overflow-hidden relative">
+            <GripVertical className="size-4 shrink-0 cursor-grab text-muted-foreground/50 group-hover:text-muted-foreground active:cursor-grabbing" />
+            <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{index + 1}</span>
+            <div className="relative size-8 shrink-0 overflow-hidden rounded border bg-muted">
                 <ProductImageGallery
                     product={product}
-                    className="w-full h-full"
+                    className="h-full w-full"
                     showNavigation={false}
                     showImageCount={false}
                     interactive={false}
                 />
             </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold truncate text-foreground">{product.name}</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => onRemove(product.id)} className="h-7 w-7 text-muted-foreground hover:text-destructive transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
+            <p className="min-w-0 flex-1 truncate text-sm text-foreground">{product.name}</p>
+            <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onRemove(product.id)}
+                className="shrink-0 text-muted-foreground opacity-60 hover:text-destructive group-hover:opacity-100"
+                aria-label={t('builder.removeProduct') as string}
+                title={t('builder.removeProduct') as string}
+            >
+                <X className="size-4" />
             </Button>
         </div>
     )
@@ -238,14 +211,9 @@ export const SelectAllButton = React.memo(function SelectAllButton({
 
     return (
         <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className={cn(
-                "h-11 rounded-2xl border border-border/60 bg-card font-bold text-[10px] uppercase px-4 transition-all",
-                isAllSelected
-                    ? "text-destructive hover:bg-destructive/5"
-                    : "text-primary hover:bg-accent"
-            )}
+            className="h-8 shrink-0"
             onClick={handleClick}
             disabled={isLoadingAllProductIds}
             aria-label={isAllSelected ? t('builder.clearSelection') : t('builder.selectAll')}
@@ -259,9 +227,10 @@ export const SelectAllButton = React.memo(function SelectAllButton({
 export function EmptySortingState() {
     const { t } = useTranslation()
     return (
-        <div className="col-span-full py-10 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed border-border rounded-xl bg-card">
-            <Package className="w-8 h-8 mb-2 opacity-20" />
-            <p className="text-xs font-medium">{t('builder.noProductsSelected')}</p>
+        <div className="flex flex-col items-center justify-center gap-1 px-6 py-8 text-center">
+            <PackagePlus className="mb-1 size-6 text-muted-foreground/60" />
+            <p className="text-sm font-medium text-foreground">{t('builder.noProductsSelected')}</p>
+            <p className="text-xs text-muted-foreground">{t('builder.noProductsSelectedHint')}</p>
         </div>
     )
 }

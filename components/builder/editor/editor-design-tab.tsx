@@ -8,7 +8,6 @@ import {
     BrandingSection,
     BackgroundSection,
     StorytellingSection,
-    StructurePreview,
     TemplateSection,
 } from "./design-sections"
 
@@ -43,23 +42,14 @@ interface EditorDesignTabProps {
     primaryColor: string
     onPrimaryColorChange: (color: string) => void
     primaryColorParsed: { rgb: { r: number; g: number; b: number; a: number }; hexColor: string; opacity: number }
-    showPrimaryColorPicker: boolean
-    setShowPrimaryColorPicker: (show: boolean) => void
-    primaryColorPickerRef: React.RefObject<HTMLDivElement | null>
     debouncedPrimaryColorChange: (color: string) => void
 
     headerTextColor: string
     onHeaderTextColorChange?: (color: string) => void
-    showHeaderTextColorPicker: boolean
-    setShowHeaderTextColorPicker: (show: boolean) => void
-    headerTextColorPickerRef: React.RefObject<HTMLDivElement | null>
     debouncedHeaderTextColorChange: (color: string) => void
 
     backgroundColor: string
     onBackgroundColorChange?: (color: string) => void
-    showBackgroundColorPicker: boolean
-    setShowBackgroundColorPicker: (show: boolean) => void
-    backgroundColorPickerRef: React.RefObject<HTMLDivElement | null>
     debouncedBackgroundColorChange: (color: string) => void
 
     // Background settings
@@ -111,7 +101,7 @@ interface EditorDesignTabProps {
 
 export const EditorDesignTab = React.memo(function EditorDesignTab(props: EditorDesignTabProps) {
     return (
-        <div className="m-0 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
+        <div className="space-y-3">
             <div className="space-y-3">
                 {/* Şablon kataloğun görünümünü en çok değiştiren karar — en üstte */}
                 <TemplateSection
@@ -120,6 +110,8 @@ export const EditorDesignTab = React.memo(function EditorDesignTab(props: Editor
                     onLayoutChange={props.onLayoutChange}
                     userPlan={props.userPlan}
                     onUpgrade={props.onUpgrade}
+                    isOpen={props.openSections.template ?? true}
+                    onToggle={() => props.toggleSection('template')}
                 />
 
                 <AppearanceSection
@@ -159,15 +151,9 @@ export const EditorDesignTab = React.memo(function EditorDesignTab(props: Editor
                     primaryColor={props.primaryColor}
                     onPrimaryColorChange={props.onPrimaryColorChange}
                     primaryColorParsed={props.primaryColorParsed}
-                    showPrimaryColorPicker={props.showPrimaryColorPicker}
-                    setShowPrimaryColorPicker={props.setShowPrimaryColorPicker}
-                    primaryColorPickerRef={props.primaryColorPickerRef}
                     debouncedPrimaryColorChange={props.debouncedPrimaryColorChange}
                     headerTextColor={props.headerTextColor}
                     onHeaderTextColorChange={props.onHeaderTextColorChange}
-                    showHeaderTextColorPicker={props.showHeaderTextColorPicker}
-                    setShowHeaderTextColorPicker={props.setShowHeaderTextColorPicker}
-                    headerTextColorPickerRef={props.headerTextColorPickerRef}
                     debouncedHeaderTextColorChange={props.debouncedHeaderTextColorChange}
                     handleUploadClick={props.handleUploadClick}
                     handleFileUpload={props.handleFileUpload}
@@ -180,9 +166,6 @@ export const EditorDesignTab = React.memo(function EditorDesignTab(props: Editor
                     toggleSection={props.toggleSection}
                     backgroundColor={props.backgroundColor}
                     onBackgroundColorChange={props.onBackgroundColorChange}
-                    showBackgroundColorPicker={props.showBackgroundColorPicker}
-                    setShowBackgroundColorPicker={props.setShowBackgroundColorPicker}
-                    backgroundColorPickerRef={props.backgroundColorPickerRef}
                     debouncedBackgroundColorChange={props.debouncedBackgroundColorChange}
                     backgroundImage={props.backgroundImage}
                     onBackgroundImageChange={props.onBackgroundImageChange}
@@ -217,13 +200,6 @@ export const EditorDesignTab = React.memo(function EditorDesignTab(props: Editor
                     primaryColor={props.primaryColor}
                     handleFileUpload={props.handleFileUpload}
                     coverInputRef={props.coverInputRef}
-                />
-
-                <StructurePreview
-                    t={props.t}
-                    enableCoverPage={props.enableCoverPage}
-                    enableCategoryDividers={props.enableCategoryDividers}
-                    selectedProductCount={props.selectedProductIds.length}
                 />
 
             </div>

@@ -11,6 +11,7 @@ import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
 import { useAllProductIds, useProducts } from "@/lib/hooks/use-products"
 import { MAX_CATALOG_PRODUCTS } from "@/lib/constants"
 import { toast } from "sonner"
+import { Package, Palette } from "lucide-react"
 
 import { EditorContentTab } from "./editor-content-tab"
 
@@ -85,18 +86,10 @@ export function CatalogEditor() {
   // ─── Local State ──────────────────────────────────────────────────────────
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ appearance: true, branding: true })
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: true, appearance: true, branding: true })
   const toggleSection = useCallback((key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
   }, [])
-
-  // Color pickers
-  const [showPrimaryColorPicker, setShowPrimaryColorPicker] = useState(false)
-  const [showHeaderTextColorPicker, setShowHeaderTextColorPicker] = useState(false)
-  const [showBackgroundColorPicker, setShowBackgroundColorPicker] = useState(false)
-  const primaryColorPickerRef = useRef<HTMLDivElement>(null)
-  const headerTextColorPickerRef = useRef<HTMLDivElement>(null)
-  const backgroundColorPickerRef = useRef<HTMLDivElement>(null)
 
   const primaryColorParsed = useMemo(() => {
     const rgb = parseColor(primaryColor)
@@ -115,27 +108,6 @@ export function CatalogEditor() {
   const debouncedBackgroundColorChange = useDebouncedCallback(
     (color: string) => onBackgroundColorChange?.(color), 50
   )
-
-  // Close color pickers when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (showPrimaryColorPicker && primaryColorPickerRef.current && !primaryColorPickerRef.current.contains(target)) {
-        setShowPrimaryColorPicker(false)
-      }
-      if (showHeaderTextColorPicker && headerTextColorPickerRef.current && !headerTextColorPickerRef.current.contains(target)) {
-        setShowHeaderTextColorPicker(false)
-      }
-      if (showBackgroundColorPicker && backgroundColorPickerRef.current && !backgroundColorPickerRef.current.contains(target)) {
-        setShowBackgroundColorPicker(false)
-      }
-    }
-
-    if (showPrimaryColorPicker || showHeaderTextColorPicker || showBackgroundColorPicker) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showPrimaryColorPicker, showHeaderTextColorPicker, showBackgroundColorPicker])
 
   // ─── Upload Hook ──────────────────────────────────────────────────────────
   const {
@@ -334,27 +306,22 @@ export function CatalogEditor() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full bg-background border-r border-border overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-        {/* Modern App-like Tab Navigation */}
-        <div className="bg-background/80 backdrop-blur-md sticky top-0 z-30 border-b border-border px-4 py-3 shrink-0">
-          <TabsList className="flex w-full max-w-[480px] mx-auto h-12 p-1 bg-muted/80 rounded-2xl border border-border/50 shadow-inner">
-            <TabsTrigger
-              value="content"
-              className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-bold data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 gap-2"
-            >
-              {t('builder.productSelection')}
+        <div className="shrink-0 border-b px-3 py-2 sm:px-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="content">
+              <Package />
+              {t('builder.tabProducts')}
             </TabsTrigger>
-            <TabsTrigger
-              value="design"
-              className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-bold data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 gap-2"
-            >
-              {t('builder.designSettings')}
+            <TabsTrigger value="design">
+              <Palette />
+              {t('builder.tabDesign')}
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-12 px-3 sm:px-6 custom-scrollbar space-y-6">
+        <div className="custom-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-3 pb-12 pt-5 sm:px-6">
           <TabsContent value="content" className="m-0">
             <EditorContentTab
               t={t}
@@ -425,21 +392,12 @@ export function CatalogEditor() {
               primaryColor={primaryColor}
               onPrimaryColorChange={onPrimaryColorChange}
               primaryColorParsed={primaryColorParsed}
-              showPrimaryColorPicker={showPrimaryColorPicker}
-              setShowPrimaryColorPicker={setShowPrimaryColorPicker}
-              primaryColorPickerRef={primaryColorPickerRef}
               debouncedPrimaryColorChange={debouncedPrimaryColorChange}
               headerTextColor={headerTextColor}
               onHeaderTextColorChange={onHeaderTextColorChange}
-              showHeaderTextColorPicker={showHeaderTextColorPicker}
-              setShowHeaderTextColorPicker={setShowHeaderTextColorPicker}
-              headerTextColorPickerRef={headerTextColorPickerRef}
               debouncedHeaderTextColorChange={debouncedHeaderTextColorChange}
               backgroundColor={backgroundColor}
               onBackgroundColorChange={onBackgroundColorChange}
-              showBackgroundColorPicker={showBackgroundColorPicker}
-              setShowBackgroundColorPicker={setShowBackgroundColorPicker}
-              backgroundColorPickerRef={backgroundColorPickerRef}
               debouncedBackgroundColorChange={debouncedBackgroundColorChange}
               backgroundImage={backgroundImage}
               onBackgroundImageChange={onBackgroundImageChange}

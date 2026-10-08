@@ -44,6 +44,8 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
             {children}
         </div>
     ),
+    DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuSeparator: () => <hr />,
 }))
 vi.mock('@/lib/actions/user', () => ({
     incrementUserExports: vi.fn().mockResolvedValue({ success: true }),

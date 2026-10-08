@@ -14,7 +14,6 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import React from "react"
 import { BuilderToolbar } from "./toolbar/builder-toolbar"
 import { ExitDialog } from "./modals/exit-dialog"
-import { PreviewFloatingHeader } from "./toolbar/preview-floating-header"
 import { PdfProgressModal } from "@/components/ui/pdf-progress-modal"
 
 // FIX(F2): Context-based architecture — replaces 60+ prop drilling
@@ -79,14 +78,11 @@ function BuilderContent() {
   const isSplit = effectiveView === "split"
 
   return (
-    <div className="builder-page h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col -m-3 sm:-m-4 md:-m-6 overflow-hidden">
-      {/* Header */}
-      {state.view !== "preview" && (
-        <BuilderToolbar
-          catalog={catalog}
+    <div className="builder-page flex h-dvh flex-col overflow-hidden bg-background">
+      <BuilderToolbar
+        catalog={catalog}
           catalogName={state.catalogName}
           onCatalogNameChange={handlers.handleCatalogNameChange}
-          isMobile={state.isMobile}
           isPublished={state.isPublished}
           hasUnsavedChanges={state.hasUnsavedChanges}
           isUrlOutdated={handlers.isUrlOutdated}
@@ -105,15 +101,17 @@ function BuilderContent() {
           onUndo={state.undo}
           onRedo={state.redo}
         />
-      )}
 
-      {/* Content */}
-      <div ref={splitContainerRef} className="flex-1 flex overflow-hidden">
-        {/* Editor */}
+      {/* Content — mobilde alttaki sabit aksiyon barı için boşluk bırakılır */}
+      <div
+        ref={splitContainerRef}
+        className="flex flex-1 overflow-hidden pb-[calc(3.75rem_+_env(safe-area-inset-bottom))] md:pb-0"
+      >
+        {/* Editor — split modunda mobilde tam genişlik (ilk render sunucuyla aynı kalsın diye CSS ile) */}
         {(isSplit || effectiveView === "editor") && (
           <div
-            className={isSplit ? "shrink-0 overflow-auto" : "w-full overflow-auto"}
-            style={isSplit ? { width: `${splitPercent}%` } : undefined}
+            className={isSplit ? "w-full shrink-0 overflow-auto md:w-[var(--editor-width)]" : "w-full overflow-auto"}
+            style={isSplit ? ({ "--editor-width": `${splitPercent}%` } as React.CSSProperties) : undefined}
           >
             {/* FIX(F2): CatalogEditor reads all state from BuilderContext — no props needed */}
             <CatalogEditor />
@@ -132,7 +130,7 @@ function BuilderContent() {
             onPointerDown={onResizeStart}
             onKeyDown={onResizeKeyDown}
             onDoubleClick={resetSplit}
-            className="group relative w-px shrink-0 cursor-col-resize bg-border outline-none focus-visible:bg-ring"
+            className="group relative hidden w-px shrink-0 cursor-col-resize bg-border outline-none focus-visible:bg-ring md:block"
           >
             {/* Geniş, görünmez tutma alanı */}
             <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
@@ -144,7 +142,7 @@ function BuilderContent() {
         {(isSplit || effectiveView === "preview") && (
           <div
             id="catalog-preview-container"
-            className="min-w-0 flex-1 bg-muted overflow-auto"
+            className={isSplit ? "hidden min-w-0 flex-1 overflow-auto bg-muted md:block" : "min-w-0 flex-1 overflow-auto bg-muted"}
           >
             {!showPreview ? (
               <div className="flex items-center justify-center h-full">
@@ -193,15 +191,6 @@ function BuilderContent() {
           </div>
         )}
       </div>
-
-      {/* Preview Mode Floating Header */}
-      <PreviewFloatingHeader
-        view={state.view}
-        onViewChange={state.setView}
-        catalogName={state.catalogName}
-        onPublish={handlers.handlePublish}
-        onDownloadPDF={handlers.handleDownloadPDF}
-      />
 
       <UpgradeModal
         open={state.showUpgradeModal}

@@ -8,9 +8,10 @@ export type TranslateFn = (key: string, params?: Record<string, unknown>) => str
 // Common section props
 export interface SectionWrapperProps {
     id: string
-    title: string
+    title: React.ReactNode
     icon: React.ReactNode
-    iconBg: string
+    /** @deprecated artık kullanılmıyor */
+    iconBg?: string
     isOpen: boolean
     onToggle: () => void
     children: React.ReactNode
@@ -54,15 +55,9 @@ export interface BrandingSectionProps {
     primaryColor: string
     onPrimaryColorChange: (color: string) => void
     primaryColorParsed: { rgb: { r: number; g: number; b: number; a: number }; hexColor: string; opacity: number }
-    showPrimaryColorPicker: boolean
-    setShowPrimaryColorPicker: (show: boolean) => void
-    primaryColorPickerRef: React.RefObject<HTMLDivElement | null>
     debouncedPrimaryColorChange: (color: string) => void
     headerTextColor: string
     onHeaderTextColorChange?: (color: string) => void
-    showHeaderTextColorPicker: boolean
-    setShowHeaderTextColorPicker: (show: boolean) => void
-    headerTextColorPickerRef: React.RefObject<HTMLDivElement | null>
     debouncedHeaderTextColorChange: (color: string) => void
     handleUploadClick: () => void
     handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'bg' | 'cover') => void
@@ -75,9 +70,6 @@ export interface BackgroundSectionProps {
     toggleSection: (key: string) => void
     backgroundColor: string
     onBackgroundColorChange?: (color: string) => void
-    showBackgroundColorPicker: boolean
-    setShowBackgroundColorPicker: (show: boolean) => void
-    backgroundColorPickerRef: React.RefObject<HTMLDivElement | null>
     debouncedBackgroundColorChange: (color: string) => void
     backgroundImage: string | null
     onBackgroundImageChange?: (url: string | null) => void
@@ -114,17 +106,12 @@ export interface StorytellingSectionProps {
     coverInputRef: React.RefObject<HTMLInputElement | null>
 }
 
-export interface StructurePreviewProps {
-    t: TranslateFn
-    enableCoverPage: boolean
-    enableCategoryDividers: boolean
-    selectedProductCount: number
-}
-
 export interface TemplateSectionProps {
     t: TranslateFn
     layout: string
     onLayoutChange: (layout: string) => void
     userPlan: string
     onUpgrade: () => void
+    isOpen?: boolean
+    onToggle?: () => void
 }

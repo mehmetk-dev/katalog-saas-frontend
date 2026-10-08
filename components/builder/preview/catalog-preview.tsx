@@ -72,28 +72,37 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     setScale(next)
   }, [])
 
+  const fitToWidth = useCallback(() => {
+    const container = containerRef.current
+    if (!container) return
+    const availableWidth = container.clientWidth - 96 // padding (p-12 = 48px each side)
+    if (availableWidth > 0) {
+      const fitW = Math.min(1.0, availableWidth / A4_WIDTH)
+      setScale(Math.max(0.3, Math.round(fitW * 10) / 10)) // Round to nearest 0.1
+    }
+  }, [])
+
+  const handleFit = useCallback(() => {
+    userZoomedRef.current = false
+    fitToWidth()
+  }, [fitToWidth])
+
   useEffect(() => {
     if (props.isExporting || props.showControls === false) return
     const container = containerRef.current
     if (!container) return
 
-    const fitScale = () => {
-      if (userZoomedRef.current) return
-      const availableWidth = container.clientWidth - 96 // padding (p-12 = 48px each side)
-      if (availableWidth > 0) {
-        const fitW = Math.min(1.0, availableWidth / A4_WIDTH)
-        setScale(Math.max(0.3, Math.round(fitW * 10) / 10)) // Round to nearest 0.1
-      }
+    const fitIfAuto = () => {
+      if (!userZoomedRef.current) fitToWidth()
     }
-
-    const raf = requestAnimationFrame(fitScale)
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fitScale) : null
+    const raf = requestAnimationFrame(fitIfAuto)
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fitIfAuto) : null
     observer?.observe(container)
     return () => {
       cancelAnimationFrame(raf)
       observer?.disconnect()
     }
-  }, [props.isExporting, props.showControls])
+  }, [props.isExporting, props.showControls, fitToWidth])
 
   const pageModel = useCatalogPages({
     products: props.products,
@@ -338,6 +347,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
           onViewModeChange={setViewMode}
           scale={scale}
           onScaleChange={handleScaleChange}
+          onFit={handleFit}
           currentPage={safeCurrentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

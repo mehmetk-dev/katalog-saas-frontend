@@ -1,19 +1,19 @@
-import { Sparkles, Upload } from "lucide-react"
-import NextImage from "next/image"
-import { HexColorPicker } from "react-colorful"
-import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { Stamp } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { BrandingSectionProps } from "./types"
-import { SectionWrapper } from "./section-wrapper"
+import { ColorField, Field, ImageField, SectionWrapper } from "./section-wrapper"
+
+/** Katalog vurgu rengi için hızlı seçenekler (müşterinin kataloğu — uygulama teması değil) */
+const ACCENT_PRESETS = ['#cf1414', '#18181b', '#2563eb', '#0f766e', '#d97706', '#7c3aed', '#db2777', '#475569']
+const TEXT_PRESETS = ['#000000', '#18181b', '#475569', '#ffffff']
 
 export function BrandingSection({
     t,
     openSections,
     toggleSection,
     logoUrl,
+    onLogoUrlChange,
     onLogoPositionChange,
     logoPosition,
     logoSize,
@@ -21,200 +21,95 @@ export function BrandingSection({
     titlePosition,
     onTitlePositionChange,
     primaryColor,
-    onPrimaryColorChange,
     primaryColorParsed,
-    showPrimaryColorPicker,
-    setShowPrimaryColorPicker,
-    primaryColorPickerRef,
     debouncedPrimaryColorChange,
     headerTextColor,
-    showHeaderTextColorPicker,
-    setShowHeaderTextColorPicker,
-    headerTextColorPickerRef,
     debouncedHeaderTextColorChange,
     handleUploadClick,
     handleFileUpload,
     logoInputRef,
 }: BrandingSectionProps) {
+    const pickLogo = () => {
+        handleUploadClick()
+        logoInputRef.current?.click()
+    }
+
     return (
         <SectionWrapper
             id="branding"
-            title={t('builder.logoBranding') as string}
-            icon={<Sparkles className="w-4 h-4" />}
-            iconBg="bg-warning-soft text-warning-soft-foreground"
+            title={t('builder.logoBranding')}
+            icon={<Stamp />}
             isOpen={!!openSections.branding}
             onToggle={() => toggleSection('branding')}
         >
-            <Card className="bg-background/80 border-border/50 shadow-sm rounded-[1.5rem]">
-                <CardContent className="p-5">
-                    <div className="flex flex-col md:flex-row gap-6">
-                        {/* 1. Left Column: Logo Upload (Visual Focus) */}
-                        <div className="w-full md:w-28 2xl:w-40 shrink-0">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider ml-1">
-                                    {t('builder.logoUpload') as string}
-                                </Label>
-                                <div
-                                    className={cn(
-                                        "relative aspect-square w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden group/upload",
-                                        logoUrl
-                                            ? "border-border bg-accent/30"
-                                            : "border-border bg-muted/50 hover:bg-muted/50 hover:border-primary hover:shadow-md hover:shadow-black/10"
-                                    )}
-                                    onClick={() => {
-                                        handleUploadClick()
-                                        logoInputRef.current?.click()
-                                    }}
-                                >
-                                    {logoUrl ? (
-                                        <div className="relative w-full h-full p-3 group-hover/upload:opacity-50 transition-opacity">
-                                            <NextImage src={logoUrl} alt="Logo" fill className="object-contain" unoptimized />
-                                        </div>
-                                    ) : (
-                                        <div className="text-center p-3 space-y-2 transition-transform duration-300 group-hover/upload:scale-110">
-                                            <div className="w-10 h-10 rounded-xl bg-card shadow-sm border border-border flex items-center justify-center mx-auto text-primary">
-                                                <Upload className="w-5 h-5" />
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] font-bold text-muted-foreground">{t('builder.selectLogo') as string}</p>
-                                                <p className="text-[9px] text-muted-foreground font-medium">PNG, WEBP</p>
-                                            </div>
-                                        </div>
-                                    )}
+            <div className="grid gap-4 sm:grid-cols-[9rem_1fr]">
+                <ImageField
+                    label={t('builder.logoUpload')}
+                    imageUrl={logoUrl}
+                    onPick={pickLogo}
+                    onRemove={onLogoUrlChange ? () => onLogoUrlChange(null) : undefined}
+                    hint="PNG, WEBP"
+                    pickLabel={t('builder.selectLogo')}
+                    changeLabel={t('builder.changeBtn')}
+                    removeLabel={t('builder.removeBtn')}
+                    previewClassName="h-24"
+                />
+                <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
 
-                                    {/* Hover Overlay */}
-                                    <div className={cn(
-                                        "absolute inset-0 flex items-center justify-center transition-all duration-300 bg-black/5 backdrop-blur-[1px]",
-                                        logoUrl ? "opacity-0 group-hover/upload:opacity-100" : "opacity-0 pointer-events-none"
-                                    )}>
-                                        <span className="text-[9px] font-bold bg-card px-3 py-1.5 rounded-full shadow-lg text-foreground transform translate-y-2 group-hover/upload:translate-y-0 transition-transform">
-                                            {t('builder.changeLogo2') as string}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
-                        </div>
+                <div className="grid content-start gap-3 sm:grid-cols-2">
+                    <Field label={t('builder.logoPosition')}>
+                        <Select value={logoPosition || 'none'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
+                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">{t('builder.hideLabel')}</SelectItem>
+                                <SelectItem value="header-left">{t('builder.posTopLeft')}</SelectItem>
+                                <SelectItem value="header-center">{t('builder.posTopCenter')}</SelectItem>
+                                <SelectItem value="header-right">{t('builder.posTopRight')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </Field>
+                    <Field label={t('builder.logoSizeLabel')}>
+                        <Select value={logoSize || 'medium'} onValueChange={(v) => onLogoSizeChange?.(v as NonNullable<Catalog['logo_size']>)}>
+                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="small">{t('builder.sizeSmall')}</SelectItem>
+                                <SelectItem value="medium">{t('builder.sizeMedium')}</SelectItem>
+                                <SelectItem value="large">{t('builder.sizeLarge')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </Field>
+                    <Field label={t('builder.titleAlignment')} className="sm:col-span-2">
+                        <Select value={titlePosition || 'left'} onValueChange={(v) => onTitlePositionChange?.(v as NonNullable<Catalog['title_position']>)}>
+                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="left">{t('builder.alignLeft')}</SelectItem>
+                                <SelectItem value="center">{t('builder.alignCenter')}</SelectItem>
+                                <SelectItem value="right">{t('builder.alignRight')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </Field>
+                </div>
+            </div>
 
-                        {/* 2. Right Column: Controls (Dense & Clean) */}
-                        <div className="flex-1 space-y-5">
-                            {/* Row 1: Position, Alignment & Size */}
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="space-y-1">
-                                    <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoPosition') as string}</Label>
-                                    <Select value={logoPosition || 'none'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
-                                        <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
-                                            <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl border-border">
-                                            <SelectItem value="none">{t('builder.hideLabel') as string}</SelectItem>
-                                            <SelectItem value="header-left">{t('builder.posTopLeft') as string}</SelectItem>
-                                            <SelectItem value="header-center">{t('builder.posTopCenter') as string}</SelectItem>
-                                            <SelectItem value="header-right">{t('builder.posTopRight') as string}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoSizeLabel') as string}</Label>
-                                    <Select value={logoSize || 'medium'} onValueChange={(v) => onLogoSizeChange?.(v as NonNullable<Catalog['logo_size']>)}>
-                                        <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
-                                            <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl border-border">
-                                            <SelectItem value="small">{t('builder.sizeSmall') as string}</SelectItem>
-                                            <SelectItem value="medium">{t('builder.sizeMedium') as string}</SelectItem>
-                                            <SelectItem value="large">{t('builder.sizeLarge') as string}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-wider ml-1">{t('builder.titleAlignment') as string}</Label>
-                                    <Select value={titlePosition || 'left'} onValueChange={(v) => onTitlePositionChange?.(v as NonNullable<Catalog['title_position']>)}>
-                                        <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
-                                            <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl border-border">
-                                            <SelectItem value="left">{t('builder.alignLeft') as string}</SelectItem>
-                                            <SelectItem value="center">{t('builder.alignCenter') as string}</SelectItem>
-                                            <SelectItem value="right">{t('builder.alignRight') as string}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            {/* Row 2: Colors */}
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between px-1">
-                                    <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">{t('builder.colorTheme') as string}</Label>
-                                    <div className="flex gap-1.5">
-                                        {['#4f46e5', '#9333ea', '#db2777', '#0f172a'].map((color) => (
-                                            <button
-                                                key={color}
-                                                className="w-4 h-4 rounded-full ring-1 ring-border hover:scale-125 transition-transform"
-                                                style={{ backgroundColor: color }}
-                                                onClick={() => onPrimaryColorChange(`rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 1)`)}
-                                                type="button"
-                                                title={t('builder.quickColorSelect') as string}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    {/* Primary Color */}
-                                    <div className="relative" ref={primaryColorPickerRef}>
-                                        <div
-                                            onClick={() => setShowPrimaryColorPicker(!showPrimaryColorPicker)}
-                                            className="h-14 w-full rounded-2xl border-2 border-border bg-card flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-border"
-                                        >
-                                            <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: primaryColor }} />
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="text-[9px] font-bold uppercase text-muted-foreground truncate tracking-widest">{t('builder.headerCard') as string}</span>
-                                                <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{primaryColorParsed.hexColor}</span>
-                                            </div>
-                                        </div>
-                                        {showPrimaryColorPicker && (
-                                            <div className="absolute bottom-full left-0 mb-3 z-[9999] bg-card rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
-                                                <HexColorPicker
-                                                    color={primaryColorParsed.hexColor}
-                                                    onChange={(hex) => {
-                                                        const r = parseInt(hex.substring(1, 3), 16), g = parseInt(hex.substring(3, 5), 16), b = parseInt(hex.substring(5, 7), 16)
-                                                        debouncedPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
-                                                    }}
-                                                    style={{ width: '200px', height: '160px' }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Header Text Color */}
-                                    <div className="relative" ref={headerTextColorPickerRef}>
-                                        <div
-                                            onClick={() => setShowHeaderTextColorPicker(!showHeaderTextColorPicker)}
-                                            className="h-14 w-full rounded-2xl border-2 border-border bg-card flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-border"
-                                        >
-                                            <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: headerTextColor || '#ffffff' }} />
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="text-[9px] font-bold uppercase text-muted-foreground truncate tracking-widest">{t('builder.textColor') as string}</span>
-                                                <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{headerTextColor || '#FFFFFF'}</span>
-                                            </div>
-                                        </div>
-                                        {showHeaderTextColorPicker && (
-                                            <div className="absolute bottom-full right-0 mb-3 z-[9999] bg-card rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
-                                                <HexColorPicker
-                                                    color={headerTextColor || '#ffffff'}
-                                                    onChange={(hex) => debouncedHeaderTextColorChange(hex)}
-                                                    style={{ width: '200px', height: '160px' }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card >
-        </SectionWrapper >
+            <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+                <ColorField
+                    label={t('builder.headerCard')}
+                    swatch={primaryColor}
+                    hex={primaryColorParsed.hexColor}
+                    presets={ACCENT_PRESETS}
+                    onChange={(hex) => {
+                        const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16)
+                        debouncedPrimaryColorChange(`rgba(${r}, ${g}, ${b}, ${primaryColorParsed.rgb.a})`)
+                    }}
+                />
+                <ColorField
+                    label={t('builder.textColor')}
+                    swatch={headerTextColor || '#ffffff'}
+                    hex={headerTextColor || '#ffffff'}
+                    presets={TEXT_PRESETS}
+                    onChange={debouncedHeaderTextColorChange}
+                />
+            </div>
+        </SectionWrapper>
     )
 }
