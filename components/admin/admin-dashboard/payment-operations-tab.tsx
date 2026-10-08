@@ -174,8 +174,8 @@ export function PaymentOperationsTab() {
                                         <AlertTriangle
                                             className={
                                                 alert.severity === 'critical'
-                                                    ? 'text-red-600'
-                                                    : 'text-amber-600'
+                                                    ? 'text-destructive'
+                                                    : 'text-warning-soft-foreground'
                                             }
                                         />
                                         <div>

@@ -67,7 +67,7 @@ export function ProfileTab({
       <Card className="border-0 shadow-md ring-1 ring-border bg-card">
         <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
           <div className="flex items-center gap-2">
-            <div className={cn("p-2 bg-blue-100 dark:bg-blue-500/10", "text-blue-600 dark:text-blue-400 rounded-lg")}>
+            <div className={cn("p-2 bg-info-soft", "text-info rounded-lg")}>
               <User className="w-5 h-5" />
             </div>
             <div>
@@ -82,7 +82,7 @@ export function ProfileTab({
               <div className="relative group">
                 <Avatar className="w-20 h-20 border-4 border-white dark:border-background shadow-lg">
                   <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} className="dark:brightness-100" />
-                  <AvatarFallback className={cn("text-xl bg-gradient-to-br", "from-violet-500 to-indigo-600 text-white")}>
+                  <AvatarFallback className={cn("text-xl bg-gradient-to-br", "from-primary to-primary text-primary-foreground")}>
                     {user?.name?.charAt(0).toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -194,7 +194,7 @@ export function ProfileTab({
                   id="instagramUrl"
                   name="instagramUrl"
                   label="Instagram"
-                  icon={<Instagram className="w-3.5 h-3.5 text-pink-500" />}
+                  icon={<Instagram className="w-3.5 h-3.5 text-primary" />}
                   placeholder="https://instagram.com/kullanici"
                   defaultValue={user?.instagram_url}
                   validate={(value) => validateInstagramUrl(value, language)}
@@ -204,7 +204,7 @@ export function ProfileTab({
                   id="youtubeUrl"
                   name="youtubeUrl"
                   label="YouTube"
-                  icon={<Youtube className="w-3.5 h-3.5 text-red-500" />}
+                  icon={<Youtube className="w-3.5 h-3.5 text-destructive" />}
                   placeholder="https://youtube.com/@kanal"
                   defaultValue={user?.youtube_url}
                   validate={(value) => validateYoutubeUrl(value, language)}
@@ -214,7 +214,7 @@ export function ProfileTab({
                   id="websiteUrl"
                   name="websiteUrl"
                   label="Web Sitesi"
-                  icon={<Globe className="w-3.5 h-3.5 text-blue-500" />}
+                  icon={<Globe className="w-3.5 h-3.5 text-info" />}
                   placeholder="https://sirketiniz.com"
                   defaultValue={user?.website_url}
                   validate={(value) => validateWebsiteUrl(value, language)}

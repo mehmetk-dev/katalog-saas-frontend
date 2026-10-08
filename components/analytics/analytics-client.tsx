@@ -202,7 +202,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1 text-left">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground dark:from-white">
                         {t("dashboard.analytics.title")}
                     </h1>
                     <p className="text-muted-foreground text-sm md:text-base">
@@ -219,7 +219,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             className={cn(
                                 "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
                                 timeRange === range
-                                    ? "bg-white dark:bg-slate-800 text-foreground shadow-sm ring-1 ring-black/5"
+                                    ? "bg-card text-foreground shadow-sm ring-1 ring-black/5"
                                     : "text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -237,10 +237,10 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                     <Card key={i} className="border-border/50 shadow-sm hover:shadow-md transition-all overflow-hidden relative group">
                         <div className={cn(
                             "absolute right-0 top-0 w-24 h-24 -mr-8 -mt-8 opacity-5 group-hover:opacity-10 transition-opacity",
-                            stat.color === 'violet' && "text-violet-600",
-                            stat.color === 'blue' && "text-blue-600",
-                            stat.color === 'emerald' && "text-emerald-600",
-                            stat.color === 'amber' && "text-amber-600",
+                            stat.color === 'violet' && "text-primary",
+                            stat.color === 'blue' && "text-info",
+                            stat.color === 'emerald' && "text-success",
+                            stat.color === 'amber' && "text-warning-soft-foreground",
                         )}>
                             <stat.icon className="w-full h-full" />
                         </div>
@@ -254,7 +254,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                     <>
                                         <Badge variant="outline" className={cn(
                                             "text-[10px] px-1.5 py-0 border-0 font-bold",
-                                            stat.trend.isPositive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40" : "bg-red-50 text-red-600 dark:bg-red-900/20"
+                                            stat.trend.isPositive ? "bg-success-soft text-success-soft-foreground" : "bg-destructive-soft text-destructive"
                                         )}>
                                             {stat.trend.isPositive ? <ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> : <ArrowDownRight className="w-2.5 h-2.5 mr-0.5" />}
                                             {stat.trend.value}%
@@ -285,7 +285,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-violet-500" />
+                            <div className="w-2 h-2 rounded-full bg-primary" />
                             <span className="text-[10px] font-medium text-muted-foreground uppercase">{t("dashboard.analytics.views")}</span>
                         </div>
                     </CardHeader>
@@ -448,10 +448,10 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             <tr key={i} className="hover:bg-muted/30 transition-colors group cursor-default">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-sm shrink-0 shadow-sm">
+                                                        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary font-bold text-sm shrink-0 shadow-sm">
                                                             {cName.charAt(0).toUpperCase()}
                                                         </div>
-                                                        <span className="font-semibold text-slate-700 dark:text-slate-200 group-hover:text-primary transition-colors">{cName}</span>
+                                                        <span className="font-semibold text-foreground dark:text-slate-200 group-hover:text-primary transition-colors">{cName}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
@@ -461,7 +461,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden shadow-inner">
                                                             <div
-                                                                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-1000"
+                                                                className="h-full bg-primary rounded-full transition-all duration-1000"
                                                                 style={{ width: `${percentage}%` }}
                                                             />
                                                         </div>
@@ -486,15 +486,15 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             </Card>
 
             {/* Info Section - Stripe-like Alert */}
-            <div className="p-4 bg-violet-50 border border-violet-100 rounded-2xl flex items-start gap-4 dark:bg-violet-900/10 dark:border-violet-800/20 text-left">
-                <div className="p-2 bg-white rounded-lg shadow-sm border border-violet-100 dark:bg-slate-900 dark:border-slate-800">
-                    <Sparkles className="w-4 h-4 text-violet-600" />
+            <div className="p-4 bg-accent border border-border rounded-2xl flex items-start gap-4 text-left">
+                <div className="p-2 bg-card rounded-lg shadow-sm border border-border">
+                    <Sparkles className="w-4 h-4 text-primary" />
                 </div>
                 <div className="space-y-1">
-                    <p className="text-sm font-semibold text-violet-900 dark:text-violet-300">
+                    <p className="text-sm font-semibold text-primary">
                         {t("dashboard.analytics.realTimeTracking")}
                     </p>
-                    <p className="text-xs text-violet-700/70 dark:text-violet-400/70 leading-relaxed">
+                    <p className="text-xs text-primary/70 leading-relaxed">
                         {t("dashboard.analytics.dataDisclaimer")}
                     </p>
                 </div>

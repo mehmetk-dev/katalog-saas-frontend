@@ -104,20 +104,20 @@ export default function AdminLoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-primary flex items-center justify-center p-4">
             <div className="w-full max-w-sm">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 mb-4">
-                        <Shield className="w-7 h-7 text-red-400" />
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-destructive/10 border border-destructive/20 mb-4">
+                        <Shield className="w-7 h-7 text-destructive" />
                     </div>
                     <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-                    <p className="text-sm text-slate-500 mt-1">Yönetim paneline erişim</p>
+                    <p className="text-sm text-muted-foreground mt-1">Yönetim paneline erişim</p>
                 </div>
 
                 {!isReady ? (
                     <div className="flex justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
                     <>
@@ -125,7 +125,7 @@ export default function AdminLoginPage() {
                         <button
                             onClick={handleGoogleLogin}
                             disabled={isGoogleLoading}
-                            className="w-full py-2.5 bg-white hover:bg-gray-100 disabled:opacity-50 text-slate-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-3 mb-4"
+                            className="w-full py-2.5 bg-card hover:bg-muted disabled:opacity-50 text-foreground font-medium rounded-lg transition-colors flex items-center justify-center gap-3 mb-4"
                         >
                             {isGoogleLoading ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -142,20 +142,20 @@ export default function AdminLoginPage() {
 
                         {/* Divider */}
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-1 h-px bg-slate-800" />
-                            <span className="text-xs text-slate-600">veya</span>
-                            <div className="flex-1 h-px bg-slate-800" />
+                            <div className="flex-1 h-px bg-primary" />
+                            <span className="text-xs text-muted-foreground">veya</span>
+                            <div className="flex-1 h-px bg-primary" />
                         </div>
 
                         {/* Email/Password Form */}
                         <form onSubmit={handleLogin} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1.5">E-posta</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-1.5">E-posta</label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-colors"
+                                    className="w-full px-3.5 py-2.5 bg-primary border border-primary rounded-lg text-primary-foreground placeholder:text-primary-foreground/70 focus:outline-none focus:ring-2 focus:ring-destructive/50 focus:border-destructive/50 transition-colors"
                                     placeholder="admin@example.com"
                                     required
                                     autoComplete="email"
@@ -163,13 +163,13 @@ export default function AdminLoginPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1.5">Şifre</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-1.5">Şifre</label>
                                 <div className="relative">
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full px-3.5 py-2.5 pr-10 bg-slate-900 border border-slate-800 rounded-lg text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-colors"
+                                        className="w-full px-3.5 py-2.5 pr-10 bg-primary border border-primary rounded-lg text-primary-foreground placeholder:text-primary-foreground/70 focus:outline-none focus:ring-2 focus:ring-destructive/50 focus:border-destructive/50 transition-colors"
                                         placeholder="••••••••"
                                         required
                                         autoComplete="current-password"
@@ -177,7 +177,7 @@ export default function AdminLoginPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground/70 transition-colors"
                                     >
                                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
@@ -185,7 +185,7 @@ export default function AdminLoginPage() {
                             </div>
 
                             {error && (
-                                <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+                                <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
                                     {error}
                                 </div>
                             )}
@@ -193,7 +193,7 @@ export default function AdminLoginPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-destructive hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed text-destructive-foreground font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
                                 {isLoading ? (
                                     <>
@@ -206,7 +206,7 @@ export default function AdminLoginPage() {
                             </button>
                         </form>
 
-                        <p className="text-center text-xs text-slate-600 mt-6">
+                        <p className="text-center text-xs text-muted-foreground mt-6">
                             Sadece yetkili yöneticiler erişebilir
                         </p>
                     </>

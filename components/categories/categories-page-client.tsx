@@ -175,16 +175,16 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
             {/* Free User Banner */}
             {isFreeUser && (
-                <Card className="bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border-violet-200">
+                <Card className="bg-primary/10 border-border">
                     <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4">
                         <div className="flex items-center gap-3">
-                            <Lock className="w-5 h-5 text-violet-600" />
+                            <Lock className="w-5 h-5 text-primary" />
                             <div>
                                 <p className="font-medium">{t("categories.proFeature")}</p>
                                 <p className="text-sm text-muted-foreground">{t("categories.upgradePrompt")}</p>
                             </div>
                         </div>
-                        <Button onClick={() => setShowUpgradeModal(true)} className="bg-violet-600 hover:bg-violet-700 w-full sm:w-auto">
+                        <Button onClick={() => setShowUpgradeModal(true)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
                             {t("categories.seePlans")}
                         </Button>
                     </CardContent>

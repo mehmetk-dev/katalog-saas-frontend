@@ -52,7 +52,7 @@ export function FeedbacksTab({
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle className="flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-violet-600" />
+                            <FileText className="w-5 h-5 text-primary" />
                             {t("admin.feedbacksTitle")}
                         </CardTitle>
                         <CardDescription>
@@ -79,8 +79,8 @@ export function FeedbacksTab({
                 ) : (
                     <>
                         {selectedFeedbackIds.length > 0 && (
-                            <div className="mb-4 p-3 bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-900/50 rounded-lg flex items-center justify-between flex-wrap gap-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-violet-900 dark:text-violet-100">
+                            <div className="mb-4 p-3 bg-accent border border-border rounded-lg flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-primary">
                                     <CheckSquare className="w-4 h-4" />
                                     {selectedFeedbackIds.length} {t("admin.feedbacksSelected")}
                                 </div>
@@ -97,7 +97,7 @@ export function FeedbacksTab({
                                         variant="outline"
                                         size="sm"
                                         onClick={() => onBulkStatusUpdate("resolved")}
-                                        className="text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                        className="text-xs bg-success-soft hover:bg-success/15 text-success-soft-foreground border-success/20"
                                     >
                                         {t("admin.setResolved")}
                                     </Button>
@@ -105,7 +105,7 @@ export function FeedbacksTab({
                                         variant="outline"
                                         size="sm"
                                         onClick={() => onBulkStatusUpdate("closed")}
-                                        className="text-xs bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
+                                        className="text-xs bg-muted/50 hover:bg-muted text-foreground border-border"
                                     >
                                         {t("admin.closeStatus")}
                                     </Button>
@@ -114,7 +114,7 @@ export function FeedbacksTab({
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                                                className="text-xs bg-destructive-soft hover:bg-destructive/15 text-destructive-soft-foreground border-destructive/20"
                                             >
                                                 <Trash2 className="w-3 h-3 mr-1" />
                                                 {t("admin.bulkDelete")}
@@ -129,7 +129,7 @@ export function FeedbacksTab({
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                                                <AlertDialogAction onClick={onBulkDelete} className="bg-red-600 hover:bg-red-700">
+                                                <AlertDialogAction onClick={onBulkDelete} className="bg-destructive hover:bg-destructive/90">
                                                     {selectedFeedbackIds.length} {t("admin.deleteFeedbacksAction")}
                                                 </AlertDialogAction>
                                             </AlertDialogFooter>
@@ -161,7 +161,7 @@ export function FeedbacksTab({
                                 {feedbacks.map((feedback) => (
                                     <TableRow
                                         key={feedback.id}
-                                        className={selectedFeedbackIds.includes(feedback.id) ? "bg-violet-50 dark:bg-violet-950/20" : ""}
+                                        className={selectedFeedbackIds.includes(feedback.id) ? "bg-accent" : ""}
                                     >
                                         <TableCell>
                                             <Checkbox
@@ -199,10 +199,10 @@ export function FeedbacksTab({
                                                             href={url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="relative w-8 h-8 rounded border overflow-hidden bg-slate-100 flex items-center justify-center hover:opacity-80 transition-opacity"
+                                                            className="relative w-8 h-8 rounded border overflow-hidden bg-muted flex items-center justify-center hover:opacity-80 transition-opacity"
                                                         >
                                                             {isVideo ? (
-                                                                <Film className="w-4 h-4 text-slate-500" />
+                                                                <Film className="w-4 h-4 text-muted-foreground" />
                                                             ) : (
                                                                 <NextImage src={url} alt="" fill className="object-cover" unoptimized />
                                                             )}
@@ -214,7 +214,7 @@ export function FeedbacksTab({
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-[10px] text-violet-600 font-mono">
+                                        <TableCell className="text-[10px] text-primary font-mono">
                                             {feedback.page_url || "-"}
                                         </TableCell>
                                         <TableCell>
@@ -222,8 +222,8 @@ export function FeedbacksTab({
                                                 variant={feedback.status === "pending" ? "outline" : feedback.status === "resolved" ? "default" : "secondary"}
                                                 className={cn(
                                                     "text-[10px] whitespace-nowrap",
-                                                    feedback.status === "pending" && "bg-amber-50 text-amber-700 border-amber-200",
-                                                    feedback.status === "resolved" && "bg-green-50 text-green-700 border-green-200"
+                                                    feedback.status === "pending" && "bg-warning-soft text-warning-soft-foreground border-warning/30",
+                                                    feedback.status === "resolved" && "bg-success-soft text-success-soft-foreground border-success/20"
                                                 )}
                                             >
                                                 {feedback.status === "pending" ? t("admin.pending") : feedback.status === "resolved" ? t("admin.resolved") : t("admin.closed")}
@@ -249,7 +249,7 @@ export function FeedbacksTab({
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            className="h-7 w-7 p-0 text-destructive hover:text-destructive-soft-foreground hover:bg-destructive/15"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
@@ -263,7 +263,7 @@ export function FeedbacksTab({
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => onDelete(feedback.id)} className="bg-red-600 hover:bg-red-700">
+                                                            <AlertDialogAction onClick={() => onDelete(feedback.id)} className="bg-destructive hover:bg-destructive/90">
                                                                 {t("common.delete")}
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>

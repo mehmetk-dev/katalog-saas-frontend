@@ -28,9 +28,9 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
             className={cn(
               "px-3 py-1 rounded-full text-sm font-semibold shadow-sm",
               user?.plan === "pro"
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                ? "bg-primary text-primary-foreground"
                 : user?.plan === "plus"
-                  ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                  ? "bg-info text-white"
                   : "bg-secondary text-secondary-foreground",
             )}
           >
@@ -49,12 +49,12 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2 text-foreground">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <CheckCircle2 className="w-5 h-5 text-success" />
               {t("settings.planFeatures")}
             </h3>
             <ul className="space-y-3 pl-2">
               <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500")} />
+                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-success" : "bg-warning")} />
                 {user?.plan === "pro"
                   ? t("plans.features.unlimitedCatalogs")
                   : user?.plan === "plus"
@@ -62,19 +62,19 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
                     : t("plans.features.catalogsCount", { count: 1 })}
               </li>
               <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500")} />
+                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-success" : "bg-warning")} />
                 {user?.plan !== "free" ? t("plans.features.unlimitedProducts") : t("plans.features.productLimit", { count: 50 })}
               </li>
               <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-green-500" : "bg-muted")} />
+                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-success" : "bg-muted")} />
                 {user?.plan !== "free" ? t("plans.features.categoryManagement") : t("plans.features.noCategoryManagement")}
               </li>
               <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-green-500" : "bg-yellow-500")} />
+                <div className={cn("w-2 h-2 rounded-full", user?.plan !== "free" ? "bg-success" : "bg-warning")} />
                 {user?.plan !== "free" ? t("plans.features.premiumTemplates") : t("plans.features.basicTemplates")}
               </li>
               <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className={cn("w-2 h-2 rounded-full", user?.plan === "pro" || user?.plan === "plus" ? "bg-green-500" : "bg-muted")} />
+                <div className={cn("w-2 h-2 rounded-full", user?.plan === "pro" || user?.plan === "plus" ? "bg-success" : "bg-muted")} />
                 {user?.plan === "pro"
                   ? t("plans.features.advancedAnalytics")
                   : user?.plan === "plus"
@@ -88,25 +88,25 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
             <div
               className={cn(
                 "flex flex-col items-center justify-center p-6",
-                "bg-gradient-to-br from-indigo-50 to-purple-50",
-                "dark:from-indigo-950/20 dark:to-purple-950/20",
-                "rounded-xl border border-indigo-100",
-                "dark:border-indigo-500/20 text-center space-y-4",
+                "bg-muted",
+                "",
+                "rounded-xl border border-border",
+                "text-center space-y-4",
               )}
             >
-              <h3 className="font-bold text-indigo-900 dark:text-indigo-300 text-lg">
+              <h3 className="font-bold text-primary text-lg">
                 {user?.plan === "plus" ? t("plans.upgradeToPro") : t("plans.upgrade")}
               </h3>
-              <p className="text-sm text-indigo-700/80 dark:text-indigo-200/60">
+              <p className="text-sm text-primary/80">
                 {user?.plan === "plus" ? t("plans.upgradeDescPro") : t("plans.upgradeDescPlus")}
               </p>
               <Button
                 size="lg"
                 onClick={onUpgradeClick}
                 className={cn(
-                  "w-full bg-gradient-to-r from-indigo-600 to-purple-600",
-                  "hover:from-indigo-700 hover:to-purple-700",
-                  "shadow-lg shadow-indigo-500/20 text-white font-semibold",
+                  "w-full bg-primary",
+                  "hover:from-primary hover:to-primary",
+                  "shadow-lg shadow-black/20 text-white font-semibold",
                 )}
               >
                 {user?.plan === "plus" ? t("plans.upgradeToProBtn") : t("plans.viewPlans")}
@@ -118,19 +118,19 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
             <div
               className={cn(
                 "flex flex-col items-center justify-center p-6",
-                "bg-green-50 dark:bg-green-950/20 rounded-xl",
-                "border border-green-100 dark:border-green-500/20",
+                "bg-success-soft rounded-xl",
+                "border border-success/20",
                 "text-center space-y-4",
               )}
             >
-              <h3 className="font-bold text-green-900 dark:text-green-300 text-lg">{t("settings.greatChoice")}</h3>
-              <p className="text-sm text-green-700/80 dark:text-green-200/60">{t("settings.planDescPro")}</p>
+              <h3 className="font-bold text-success-soft-foreground text-lg">{t("settings.greatChoice")}</h3>
+              <p className="text-sm text-success-soft-foreground/80">{t("settings.planDescPro")}</p>
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full border-green-200 dark:border-green-500/30",
-                  "text-green-700 dark:text-green-400",
-                  "hover:bg-green-100 dark:hover:bg-green-900/40",
+                  "w-full border-success/20",
+                  "text-success-soft-foreground",
+                  "hover:bg-success/15",
                 )}
               >
                 {t("settings.billingHistory")}

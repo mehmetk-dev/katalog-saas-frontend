@@ -115,7 +115,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                       size="default"
                       className={cn(
                         "rounded-full px-8 font-bold shadow-2xl transition-all",
-                        (isLimitReached || (template.is_premium && isFreeUser)) && "bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                        (isLimitReached || (template.is_premium && isFreeUser)) && "bg-background/10 text-white border border-white/20 hover:bg-background/20"
                       )}
                       disabled={loadingId === template.id}
                       onClick={(e) => {
@@ -152,7 +152,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                     <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{template.description || "Katalog Şablonu"}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {template.is_premium && <Badge variant="secondary" className="bg-gradient-to-r from-amber-200 to-yellow-400 dark:from-amber-900/30 dark:to-yellow-900/30 text-yellow-900 dark:text-yellow-200 border-0 text-xs">Premium</Badge>}
+                    {template.is_premium && <Badge variant="secondary" className="bg-gradient-to-r from-warning-soft to-warning text-warning-soft-foreground border-0 text-xs">Premium</Badge>}
                   </div>
                 </div>
               </CardContent>

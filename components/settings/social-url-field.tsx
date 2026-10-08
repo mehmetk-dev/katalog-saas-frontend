@@ -51,7 +51,7 @@ export function SocialUrlField({
         className={cn(
           "bg-background border-input focus:bg-background transition-colors",
           isDirty && error && "border-destructive focus-visible:ring-destructive/30",
-          isDirty && !error && "border-green-500 focus-visible:ring-green-500/30",
+          isDirty && !error && "border-success focus-visible:ring-success/30",
         )}
       />
       {isDirty && error && (

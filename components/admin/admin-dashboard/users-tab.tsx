@@ -67,7 +67,7 @@ export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpda
                                         variant={user.subscription_status === "active" ? "outline" : "destructive"}
                                         className={
                                             user.subscription_status === "active"
-                                                ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                                ? "bg-success-soft text-success-soft-foreground border-success/20 hover:bg-success/15"
                                                 : ""
                                         }
                                     >
@@ -77,7 +77,7 @@ export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpda
                                 <TableCell>
                                     <Badge
                                         variant={user.plan === "pro" ? "default" : user.plan === "plus" ? "secondary" : "outline"}
-                                        className={user.plan === "pro" ? "bg-gradient-to-r from-violet-600 to-indigo-600 border-0" : ""}
+                                        className={user.plan === "pro" ? "bg-primary border-0" : ""}
                                     >
                                         {(user.plan || "Free").toUpperCase()}
                                     </Badge>

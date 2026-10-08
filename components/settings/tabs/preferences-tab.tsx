@@ -20,7 +20,7 @@ export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps
     <Card className="border-0 shadow-md ring-1 ring-border bg-card">
       <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
         <div className="flex items-center gap-2">
-          <div className={cn("p-2 bg-orange-100 dark:bg-orange-500/10", "text-orange-600 dark:text-orange-400 rounded-lg")}>
+          <div className={cn("p-2 bg-warning-soft", "text-warning-soft-foreground rounded-lg")}>
             <Globe className="w-5 h-5" />
           </div>
           <div>

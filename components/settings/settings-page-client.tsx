@@ -43,9 +43,9 @@ export default function SettingsPageClient() {
   if (isLoading) {
     return (
       <div className="max-w-4xl space-y-6 animate-pulse">
-        <div className="h-8 w-48 bg-gray-200 rounded" />
+        <div className="h-8 w-48 bg-accent rounded" />
         <div className="grid gap-6">
-          <div className="h-64 bg-gray-100 rounded-xl" />
+          <div className="h-64 bg-muted rounded-xl" />
         </div>
       </div>
     )
@@ -64,8 +64,8 @@ export default function SettingsPageClient() {
         <TabsList
           className={cn(
             "grid w-full grid-cols-3 lg:w-[480px] h-12",
-            "bg-slate-100/80 dark:bg-slate-950/50 p-1 rounded-full",
-            "border border-slate-200/50 dark:border-slate-800/50",
+            "bg-muted/80 p-1 rounded-full",
+            "border border-border/50",
             "shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]",
           )}
         >
@@ -75,9 +75,9 @@ export default function SettingsPageClient() {
               "h-full rounded-full gap-2 font-bold",
               "text-[11px] sm:text-xs uppercase tracking-tight",
               "transition-all duration-300",
-              "data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800",
-              "data-[state=active]:shadow-sm data-[state=active]:text-indigo-600",
-              "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
+              "data-[state=active]:bg-card",
+              "data-[state=active]:shadow-sm data-[state=active]:text-primary",
+              "text-muted-foreground hover:text-foreground",
             )}
           >
             <User className="w-4 h-4" />
@@ -89,9 +89,9 @@ export default function SettingsPageClient() {
               "h-full rounded-full gap-2 font-bold",
               "text-[11px] sm:text-xs uppercase tracking-tight",
               "transition-all duration-300",
-              "data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800",
-              "data-[state=active]:shadow-sm data-[state=active]:text-indigo-600",
-              "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
+              "data-[state=active]:bg-card",
+              "data-[state=active]:shadow-sm data-[state=active]:text-primary",
+              "text-muted-foreground hover:text-foreground",
             )}
           >
             <CreditCard className="w-4 h-4" />
@@ -103,9 +103,9 @@ export default function SettingsPageClient() {
               "h-full rounded-full gap-2 font-bold",
               "text-[11px] sm:text-xs uppercase tracking-tight",
               "transition-all duration-300",
-              "data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800",
-              "data-[state=active]:shadow-sm data-[state=active]:text-indigo-600",
-              "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
+              "data-[state=active]:bg-card",
+              "data-[state=active]:shadow-sm data-[state=active]:text-primary",
+              "text-muted-foreground hover:text-foreground",
             )}
           >
             <Globe className="w-4 h-4" />

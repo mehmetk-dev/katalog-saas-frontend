@@ -16,19 +16,19 @@ export default function ErrorBoundary({
     }, [error])
 
     return (
-        <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-slate-950 p-4 text-center text-white">
+        <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-primary p-4 text-center text-primary-foreground">
             <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight text-red-500">Something went wrong!</h2>
-                <p className="text-slate-400">
+                <h2 className="text-2xl font-bold tracking-tight text-destructive">Something went wrong!</h2>
+                <p className="text-muted-foreground">
                     Bu sayfayı yüklerken bir hata oluştu.
                 </p>
                 {process.env.NODE_ENV === "development" && (
                     <>
-                        <p className="text-slate-400">
-                            <span className="font-mono text-xs text-red-400">{error.message}</span>
+                        <p className="text-muted-foreground">
+                            <span className="font-mono text-xs text-destructive">{error.message}</span>
                         </p>
                         {error.stack && (
-                            <div className="mt-4 text-left max-w-2xl overflow-auto bg-slate-900 p-4 rounded text-xs text-slate-300 font-mono">
+                            <div className="mt-4 text-left max-w-2xl overflow-auto bg-primary p-4 rounded text-xs text-primary-foreground/70 font-mono">
                                 {error.stack}
                             </div>
                         )}
@@ -38,7 +38,7 @@ export default function ErrorBoundary({
             <Button
                 onClick={() => reset()}
                 variant="outline"
-                className="bg-slate-900 border-slate-800 hover:bg-slate-800 text-white"
+                className="bg-primary border-primary hover:bg-primary/90 text-primary-foreground"
             >
                 Tekrar Dene
             </Button>
