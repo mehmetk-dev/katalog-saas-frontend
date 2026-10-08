@@ -107,18 +107,18 @@ function BuilderContent() {
         {(effectiveView === "split" || effectiveView === "preview") && (
           <div
             id="catalog-preview-container"
-            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-slate-100 dark:bg-[#03040a] overflow-auto`}
+            className={`${effectiveView === "split" ? "w-1/2" : "w-full"} bg-muted dark:bg-[#03040a] overflow-auto`}
           >
             {!showPreview ? (
               <div className="flex items-center justify-center h-full">
                 <div className="w-full max-w-md p-6 space-y-4 animate-pulse">
-                  <div className="aspect-[210/297] bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                  <div className="aspect-[210/297] bg-accent rounded-lg" />
                 </div>
               </div>
             ) : (
               <>
                 {shouldUseSplitPreviewSampling && (
-                  <div className="sticky top-0 z-20 px-3 py-2 text-xs border-b border-amber-200 bg-amber-50 text-amber-800">
+                  <div className="sticky top-0 z-20 px-3 py-2 text-xs border-b border-warning/30 bg-warning-soft text-warning-soft-foreground">
                     {t('builder.splitPreviewMode', { limit: SPLIT_PREVIEW_SOFT_LIMIT })}
                   </div>
                 )}

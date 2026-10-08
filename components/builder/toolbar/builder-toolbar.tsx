@@ -67,7 +67,7 @@ export function BuilderToolbar({
                 label: t('builder.shareBtn'),
                 icon: <Share2 className="w-4 h-4" />,
                 onClick: onShare,
-                className: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200",
+                className: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-black/10",
                 showIndicator: false
             }
         }
@@ -75,7 +75,7 @@ export function BuilderToolbar({
             label: t('builder.publishBtn'),
             icon: <Globe className="w-4 h-4" />,
             onClick: onPublish,
-            className: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200",
+            className: "bg-success hover:bg-success/90 text-success-foreground shadow-success/20",
             showIndicator: false
         }
     }
@@ -91,7 +91,7 @@ export function BuilderToolbar({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 shrink-0 hover:bg-slate-100 rounded-xl"
+                        className="h-9 w-9 shrink-0 hover:bg-muted rounded-xl"
                         onClick={onExit}
                         aria-label={t('builder.backBtn') as string}
                     >
@@ -101,7 +101,7 @@ export function BuilderToolbar({
                         <Input
                             value={catalogName}
                             onChange={(e) => onCatalogNameChange(e.target.value)}
-                            className="h-9 font-black text-sm sm:text-lg w-full border-transparent bg-transparent hover:bg-slate-50 focus:bg-white focus:border-slate-200 transition-all px-2 rounded-xl truncate"
+                            className="h-9 font-black text-sm sm:text-lg w-full border-transparent bg-transparent hover:bg-muted/50 focus:bg-card focus:border-border transition-all px-2 rounded-xl truncate"
                             placeholder={t('builder.catalogNamePlaceholder') as string}
                         />
                     </div>
@@ -111,7 +111,7 @@ export function BuilderToolbar({
                 <div className="flex items-center gap-1 sm:gap-3 shrink-0">
                     {/* PC ONLY: View Switcher */}
                     {!isMobile && (
-                        <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 mr-2">
+                        <div className="hidden md:flex items-center bg-muted p-1 rounded-xl border border-border/50 mr-2">
                             <Button
                                 variant={view === "preview" ? "secondary" : "ghost"}
                                 size="sm"
@@ -126,17 +126,17 @@ export function BuilderToolbar({
 
                     {/* STATUS INDICATOR (PC) */}
                     {!isMobile && isPublished && (
-                        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 mr-2">
+                        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-success-soft text-success-soft-foreground rounded-full border border-success/20 mr-2">
                             <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-widest">{t('builder.liveLabel')}</span>
                             <a
                                 href={catalog?.share_slug ? new URL(`/catalog/${encodeURIComponent(catalog.share_slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin).toString() : '#'}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="ml-1 p-1 hover:bg-emerald-100 rounded-md transition-all group/link"
+                                className="ml-1 p-1 hover:bg-success/15 rounded-md transition-all group/link"
                                 title={t('builder.viewLiveCatalog')}
                             >
                                 <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
@@ -152,7 +152,7 @@ export function BuilderToolbar({
                                 size="sm"
                                 onClick={onSave}
                                 disabled={isPending}
-                                className="h-9 px-3 rounded-xl shrink-0 transition-all bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 animate-pulse gap-2"
+                                className="h-9 px-3 rounded-xl shrink-0 transition-all bg-warning hover:bg-warning/90 text-warning-foreground shadow-lg shadow-warning/20 animate-pulse gap-2"
                                 title={t('builder.saveChanges')}
                             >
                                 <Save className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function BuilderToolbar({
                                 size="icon"
                                 disabled
                                 variant="ghost"
-                                className="h-9 w-9 rounded-xl shrink-0 text-slate-300 cursor-not-allowed"
+                                className="h-9 w-9 rounded-xl shrink-0 text-muted-foreground/70 cursor-not-allowed"
                                 title={t('builder.noChangesToSave')}
                             >
                                 <Save className="w-4.5 h-4.5" />
@@ -196,7 +196,7 @@ export function BuilderToolbar({
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
-                                    className="h-9 w-9 rounded-xl text-slate-500 hover:bg-slate-100"
+                                    className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted"
                                     title={t('builder.previewBtn')}
                                 >
                                     <Eye className="w-5 h-5" />
@@ -217,19 +217,19 @@ export function BuilderToolbar({
                         {/* MORE OPTIONS */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl shrink-0 hover:bg-slate-50">
-                                    <MoreVertical className="w-5 h-5 text-slate-400" />
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl shrink-0 hover:bg-muted/50">
+                                    <MoreVertical className="w-5 h-5 text-muted-foreground" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-60 p-2 rounded-2xl shadow-2xl border-slate-100">
+                            <DropdownMenuContent align="end" className="w-60 p-2 rounded-2xl shadow-2xl border-border">
                                 {isPublished && (
                                     <>
                                         <div className="px-3 py-2">
-                                            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            <div className="text-[10px] font-black text-success uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></div>
                                                 {t('builder.catalogLive')}
                                             </div>
-                                            <div className="text-[9px] text-slate-400 font-bold truncate">slug: {catalog?.share_slug}</div>
+                                            <div className="text-[9px] text-muted-foreground font-bold truncate">slug: {catalog?.share_slug}</div>
                                         </div>
 
                                         <DropdownMenuItem onClick={() => {
@@ -237,7 +237,7 @@ export function BuilderToolbar({
                                                 const url = new URL(`/catalog/${encodeURIComponent(catalog.share_slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
                                                 window.open(url.toString(), '_blank')
                                             }
-                                        }} className="rounded-xl h-10 font-bold text-xs text-emerald-600 bg-emerald-50/30 hover:bg-emerald-50">
+                                        }} className="rounded-xl h-10 font-bold text-xs text-success bg-success-soft/30 hover:bg-success/15">
                                             <ArrowUpRight className="w-4 h-4 mr-2.5" />
                                             {t('builder.viewCatalogAction')}
                                         </DropdownMenuItem>
@@ -249,35 +249,35 @@ export function BuilderToolbar({
                                                 toast.success(t('builder.linkCopied'))
                                             }
                                         }} className="rounded-xl h-10 font-bold text-xs">
-                                            <Copy className="w-4 h-4 mr-2.5 text-slate-400" />
+                                            <Copy className="w-4 h-4 mr-2.5 text-muted-foreground" />
                                             {t('builder.copyLink')}
                                         </DropdownMenuItem>
 
                                         {isUrlOutdated && (
-                                            <DropdownMenuItem onClick={onUpdateSlug} className="text-orange-600 rounded-xl h-10 font-bold text-xs bg-orange-50">
+                                            <DropdownMenuItem onClick={onUpdateSlug} className="text-warning-soft-foreground rounded-xl h-10 font-bold text-xs bg-warning-soft">
                                                 <AlertTriangle className="w-4 h-4 mr-2.5" />
                                                 {t('builder.refreshEntryLink')}
                                             </DropdownMenuItem>
                                         )}
 
-                                        <div className="h-px bg-slate-50 my-1.5" />
+                                        <div className="h-px bg-muted/50 my-1.5" />
                                     </>
                                 )}
 
                                 {isMobile && (
                                     <DropdownMenuItem onClick={() => onViewChange(view === "preview" ? "editor" : "preview")} className="rounded-xl h-10 font-bold text-xs">
-                                        {view === "preview" ? <Pencil className="w-4 h-4 mr-2.5 text-slate-400" /> : <Eye className="w-4 h-4 mr-2.5 text-slate-400" />}
+                                        {view === "preview" ? <Pencil className="w-4 h-4 mr-2.5 text-muted-foreground" /> : <Eye className="w-4 h-4 mr-2.5 text-muted-foreground" />}
                                         {view === "preview" ? t('builder.editMode') : t('builder.previewMode')}
                                     </DropdownMenuItem>
                                 )}
 
                                 <DropdownMenuItem onClick={onPublish} className="rounded-xl h-10 font-bold text-xs">
-                                    <Globe className="w-4 h-4 mr-2.5 text-slate-400" />
+                                    <Globe className="w-4 h-4 mr-2.5 text-muted-foreground" />
                                     {isPublished ? t('builder.unpublish') : t('builder.publishCatalog')}
                                 </DropdownMenuItem>
 
                                 <DropdownMenuItem onClick={onDownloadPDF} className="rounded-xl h-10 font-bold text-xs">
-                                    <Download className="w-4 h-4 mr-2.5 text-slate-400" />
+                                    <Download className="w-4 h-4 mr-2.5 text-muted-foreground" />
                                     {t('builder.downloadAsPdf')}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -289,13 +289,13 @@ export function BuilderToolbar({
             {/* MOBILE ONLY: STICKY BOTTOM ACTION BAR */}
             {isMobile && (
                 <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 pointer-events-none safe-area-bottom">
-                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-slate-200 dark:border-slate-800 pointer-events-auto animate-in slide-in-from-bottom-6 duration-500">
+                    <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-border pointer-events-auto animate-in slide-in-from-bottom-6 duration-500">
                         {/* Preview Button */}
                         <Button
                             variant="ghost"
                             className={cn(
-                                "flex-1 h-12 rounded-xl text-slate-600 font-black text-[10px] uppercase tracking-wider gap-2 transition-all active:scale-95",
-                                view === "preview" ? "bg-slate-100 text-indigo-600" : ""
+                                "flex-1 h-12 rounded-xl text-muted-foreground font-black text-[10px] uppercase tracking-wider gap-2 transition-all active:scale-95",
+                                view === "preview" ? "bg-muted text-primary" : ""
                             )}
                             onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
                         >

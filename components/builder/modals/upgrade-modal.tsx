@@ -21,9 +21,9 @@ interface UpgradeModalProps {
 const PlanIcons = {
   free: (
     <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4.5 16.5L12 3L19.5 16.5" className="stroke-emerald-500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 3V12M12 21V19M8 21H16" className="stroke-emerald-500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9 13L12 11L15 13" className="stroke-emerald-400" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 16.5L12 3L19.5 16.5" className="stroke-success" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 3V12M12 21V19M8 21H16" className="stroke-success" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 13L12 11L15 13" className="stroke-success" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   plus: (
@@ -65,10 +65,10 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
       description: t("upgradeModal.plans.free.desc"),
       icon: PlanIcons.free,
       price: { monthly: 0, yearly: 0 },
-      color: "from-emerald-500/10 to-transparent",
+      color: "from-success/10 to-transparent",
       accentColor: "emerald",
-      bgColor: "bg-white dark:bg-card/40",
-      borderColor: "border-emerald-100 dark:border-emerald-950/50",
+      bgColor: "bg-card dark:bg-card/40",
+      borderColor: "border-success/20",
       features: [
         { text: t("upgradeModal.planFeatures.freeCatalog"), included: true },
         { text: t("upgradeModal.planFeatures.freeTemplates"), included: true },
@@ -88,10 +88,10 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         yearly: CHECKOUT_PLANS.plus.yearlyPrice,
       },
       popular: true,
-      color: "from-blue-500/10 to-transparent",
+      color: "from-info/10 to-transparent",
       accentColor: "blue",
-      bgColor: "bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/10 dark:to-card/40",
-      borderColor: "border-blue-200 dark:border-blue-900/40",
+      bgColor: "bg-gradient-to-br from-info-soft/50 to-background dark:to-card/40",
+      borderColor: "border-info/20",
       features: [
         { text: t("upgradeModal.planFeatures.plusCatalogs"), included: true },
         { text: t("upgradeModal.planFeatures.allPremiumTemplates"), included: true },
@@ -110,10 +110,10 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         monthly: CHECKOUT_PLANS.pro.monthlyPrice,
         yearly: CHECKOUT_PLANS.pro.yearlyPrice,
       },
-      color: "from-purple-500/10 to-transparent",
+      color: "from-primary/10 to-transparent",
       accentColor: "purple",
-      bgColor: "bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/10 dark:to-card/40",
-      borderColor: "border-purple-200 dark:border-purple-900/40",
+      bgColor: "bg-gradient-to-br from-muted/50 to-background dark:to-card/40",
+      borderColor: "border-border",
       features: [
         { text: t("upgradeModal.planFeatures.unlimitedCatalogs"), included: true },
         { text: t("upgradeModal.planFeatures.allPremiumTemplates"), included: true },
@@ -154,7 +154,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                 </button>
                 <button onClick={() => setIsYearly(true)} className={cn("relative flex-1 py-1.5 text-[11px] font-bold z-10 flex items-center justify-center gap-1.5 transition-colors", isYearly ? "text-foreground" : "text-muted-foreground")}>
                   {t("upgradeModal.yearly")}
-                  <span className="text-[8px] sm:text-[9px] text-emerald-600 font-black px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/50 rounded-full whitespace-nowrap">{t("upgradeModal.yearlyBonus")}</span>
+                  <span className="text-[8px] sm:text-[9px] text-success font-black px-1.5 py-0.5 bg-success-soft rounded-full whitespace-nowrap">{t("upgradeModal.yearlyBonus")}</span>
                 </button>
               </div>
             </div>
@@ -162,7 +162,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         </div>
 
         {/* Compact Plans Grid */}
-        <div className="pt-4 pb-6 px-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-slate-50/30 dark:bg-background/20">
+        <div className="pt-4 pb-6 px-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar bg-muted/30 dark:bg-background/20">
           <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto md:overflow-x-visible pt-5 pb-4 md:pb-0 md:pt-0 snap-x snap-mandatory scrollbar-none">
             {plans.map((plan) => {
               const isCurrent = currentPlan === plan.id
@@ -175,18 +175,18 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                     "relative rounded-2xl border p-5 transition-all duration-300 shrink-0 w-[280px] md:w-full snap-center flex flex-col",
                     plan.bgColor,
                     plan.borderColor,
-                    plan.popular && "ring-1 ring-blue-500/30 shadow-lg bg-white dark:bg-card z-10",
+                    plan.popular && "ring-1 ring-info/30 shadow-lg bg-card dark:bg-card z-10",
                     isCurrent && "opacity-90"
                   )}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 py-0.5 px-3 rounded-full shadow-sm">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-info py-0.5 px-3 rounded-full shadow-sm">
                       <span className="text-[9px] font-black text-white uppercase tracking-tighter">{t("upgradeModal.mostPopular")}</span>
                     </div>
                   )}
 
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-border/50 shrink-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-card shadow-sm border border-border/50 shrink-0">
                       {plan.icon}
                     </div>
                     <div>
@@ -209,7 +209,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                           <span className="text-2xl font-black text-foreground leading-none">₺{monthlyPrice}</span>
                           <span className="text-[10px] text-muted-foreground font-medium">{t("upgradeModal.perMonth")}</span>
                         </div>
-                        <span className="mt-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="mt-1 text-[9px] font-bold text-success">
                           {t("upgradeModal.vatIncluded")}
                         </span>
                       </div>
@@ -220,17 +220,17 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-2 text-[11px]">
                         {feature.included === true || feature.included === "highlight" ? (
-                          <Check className={cn("w-3 h-3 shrink-0", plan.id === "free" ? "text-emerald-500" : plan.id === "plus" ? "text-blue-500" : "text-purple-500")} />
+                          <Check className={cn("w-3 h-3 shrink-0", plan.id === "free" ? "text-success" : plan.id === "plus" ? "text-info" : "text-primary")} />
                         ) : feature.included === "warning" ? (
-                          <span className="text-amber-500 font-bold shrink-0 text-xs px-1">!</span>
+                          <span className="text-warning-soft-foreground font-bold shrink-0 text-xs px-1">!</span>
                         ) : (
-                          <div className="w-1 h-1 rounded-full bg-slate-300 shrink-0 mx-1" />
+                          <div className="w-1 h-1 rounded-full bg-border shrink-0 mx-1" />
                         )}
                         <span className={cn(
                           "line-clamp-1 truncate",
                           feature.included === "highlight"
-                            ? `font-bold ${plan.id === "plus" ? "text-blue-600" : "text-purple-600"} flex items-center gap-1`
-                            : feature.included === "warning" ? "text-amber-600 font-medium" : "text-muted-foreground"
+                            ? `font-bold ${plan.id === "plus" ? "text-info" : "text-primary"} flex items-center gap-1`
+                            : feature.included === "warning" ? "text-warning-soft-foreground font-medium" : "text-muted-foreground"
                         )}>
                           {feature.text}
                           {'icon' in feature && feature.icon}
@@ -245,7 +245,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                         "w-full h-9 rounded-xl font-bold transition-all text-[11px]",
                         isCurrent
                           ? "bg-muted text-muted-foreground cursor-default"
-                          : "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20"
+                          : "bg-success-soft text-success border border-success/20"
                       )}
                       disabled
                     >
@@ -257,8 +257,8 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
                       className={cn(
                         "w-full h-9 rounded-xl font-bold transition-all text-[11px]",
                         plan.id === "pro"
-                          ? "bg-purple-600 hover:bg-purple-700 text-white shadow-sm"
-                          : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                          ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                          : "bg-info hover:bg-info/90 text-info-foreground shadow-sm"
                       )}
                     >
                       <Link href={buildCheckoutHref(plan.id === "plus" ? "plus" : "pro", isYearly ? "yearly" : "monthly")}>
@@ -276,15 +276,15 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
         <div className="px-6 py-3 border-t border-border bg-muted/10">
           <div className="flex items-center justify-around text-[10px] font-medium text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <ShieldCheck className="w-3.5 h-3.5 text-success" />
               <span>{t("upgradeModal.securePayment")}</span>
             </div>
             <div className="flex items-center gap-1.5 border-x border-border/50 px-8">
-              <CalendarPlus className="w-3.5 h-3.5 text-blue-500" />
+              <CalendarPlus className="w-3.5 h-3.5 text-info" />
               <span>{t("upgradeModal.cancelAnytime")}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <BadgeCheck className="w-3.5 h-3.5 text-indigo-500" />
+              <BadgeCheck className="w-3.5 h-3.5 text-primary" />
               <span>{t("upgradeModal.support247Badge")}</span>
             </div>
           </div>

@@ -41,25 +41,25 @@ export function BrandingSection({
             id="branding"
             title={t('builder.logoBranding') as string}
             icon={<Sparkles className="w-4 h-4" />}
-            iconBg="bg-amber-50 dark:bg-amber-900/30 text-amber-600"
+            iconBg="bg-warning-soft text-warning-soft-foreground"
             isOpen={!!openSections.branding}
             onToggle={() => toggleSection('branding')}
         >
-            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[1.5rem]">
+            <Card className="bg-background/80 border-border/50 shadow-sm rounded-[1.5rem]">
                 <CardContent className="p-5">
                     <div className="flex flex-col md:flex-row gap-6">
                         {/* 1. Left Column: Logo Upload (Visual Focus) */}
                         <div className="w-full md:w-28 2xl:w-40 shrink-0">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider ml-1">
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider ml-1">
                                     {t('builder.logoUpload') as string}
                                 </Label>
                                 <div
                                     className={cn(
                                         "relative aspect-square w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all duration-300 cursor-pointer overflow-hidden group/upload",
                                         logoUrl
-                                            ? "border-indigo-100 bg-indigo-50/30"
-                                            : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-400 hover:shadow-md hover:shadow-indigo-100"
+                                            ? "border-border bg-accent/30"
+                                            : "border-border bg-muted/50 hover:bg-muted/50 hover:border-primary hover:shadow-md hover:shadow-black/10"
                                     )}
                                     onClick={() => {
                                         handleUploadClick()
@@ -72,12 +72,12 @@ export function BrandingSection({
                                         </div>
                                     ) : (
                                         <div className="text-center p-3 space-y-2 transition-transform duration-300 group-hover/upload:scale-110">
-                                            <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-indigo-500">
+                                            <div className="w-10 h-10 rounded-xl bg-card shadow-sm border border-border flex items-center justify-center mx-auto text-primary">
                                                 <Upload className="w-5 h-5" />
                                             </div>
                                             <div className="space-y-0.5">
-                                                <p className="text-[10px] font-bold text-slate-600">{t('builder.selectLogo') as string}</p>
-                                                <p className="text-[9px] text-slate-400 font-medium">PNG, WEBP</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground">{t('builder.selectLogo') as string}</p>
+                                                <p className="text-[9px] text-muted-foreground font-medium">PNG, WEBP</p>
                                             </div>
                                         </div>
                                     )}
@@ -87,7 +87,7 @@ export function BrandingSection({
                                         "absolute inset-0 flex items-center justify-center transition-all duration-300 bg-black/5 backdrop-blur-[1px]",
                                         logoUrl ? "opacity-0 group-hover/upload:opacity-100" : "opacity-0 pointer-events-none"
                                     )}>
-                                        <span className="text-[9px] font-bold bg-white px-3 py-1.5 rounded-full shadow-lg text-slate-800 transform translate-y-2 group-hover/upload:translate-y-0 transition-transform">
+                                        <span className="text-[9px] font-bold bg-card px-3 py-1.5 rounded-full shadow-lg text-foreground transform translate-y-2 group-hover/upload:translate-y-0 transition-transform">
                                             {t('builder.changeLogo2') as string}
                                         </span>
                                     </div>
@@ -101,12 +101,12 @@ export function BrandingSection({
                             {/* Row 1: Position, Alignment & Size */}
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-1">
-                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider ml-1">{t('builder.logoPosition') as string}</Label>
+                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoPosition') as string}</Label>
                                     <Select value={logoPosition || 'none'} onValueChange={(v) => onLogoPositionChange?.(v as NonNullable<Catalog['logo_position']>)}>
-                                        <SelectTrigger className="h-9 rounded-xl bg-white border-slate-200 text-[11px] font-semibold focus:ring-2 focus:ring-indigo-100 transition-shadow hover:border-indigo-300 px-2">
+                                        <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
                                             <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                                        <SelectContent className="rounded-xl shadow-xl border-border">
                                             <SelectItem value="none">{t('builder.hideLabel') as string}</SelectItem>
                                             <SelectItem value="header-left">{t('builder.posTopLeft') as string}</SelectItem>
                                             <SelectItem value="header-center">{t('builder.posTopCenter') as string}</SelectItem>
@@ -115,12 +115,12 @@ export function BrandingSection({
                                     </Select>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider ml-1">{t('builder.logoSizeLabel') as string}</Label>
+                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider ml-1">{t('builder.logoSizeLabel') as string}</Label>
                                     <Select value={logoSize || 'medium'} onValueChange={(v) => onLogoSizeChange?.(v as NonNullable<Catalog['logo_size']>)}>
-                                        <SelectTrigger className="h-9 rounded-xl bg-white border-slate-200 text-[11px] font-semibold focus:ring-2 focus:ring-indigo-100 transition-shadow hover:border-indigo-300 px-2">
+                                        <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
                                             <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                                        <SelectContent className="rounded-xl shadow-xl border-border">
                                             <SelectItem value="small">{t('builder.sizeSmall') as string}</SelectItem>
                                             <SelectItem value="medium">{t('builder.sizeMedium') as string}</SelectItem>
                                             <SelectItem value="large">{t('builder.sizeLarge') as string}</SelectItem>
@@ -128,12 +128,12 @@ export function BrandingSection({
                                     </Select>
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-[9px] font-black uppercase text-slate-400 tracking-wider ml-1">{t('builder.titleAlignment') as string}</Label>
+                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-wider ml-1">{t('builder.titleAlignment') as string}</Label>
                                     <Select value={titlePosition || 'left'} onValueChange={(v) => onTitlePositionChange?.(v as NonNullable<Catalog['title_position']>)}>
-                                        <SelectTrigger className="h-9 rounded-xl bg-white border-slate-200 text-[11px] font-semibold focus:ring-2 focus:ring-indigo-100 transition-shadow hover:border-indigo-300 px-2">
+                                        <SelectTrigger className="h-9 rounded-xl bg-card border-border text-[11px] font-semibold focus:ring-2 focus:ring-border transition-shadow hover:border-border px-2">
                                             <SelectValue placeholder={t('builder.selectPlaceholder') as string} />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                                        <SelectContent className="rounded-xl shadow-xl border-border">
                                             <SelectItem value="left">{t('builder.alignLeft') as string}</SelectItem>
                                             <SelectItem value="center">{t('builder.alignCenter') as string}</SelectItem>
                                             <SelectItem value="right">{t('builder.alignRight') as string}</SelectItem>
@@ -145,12 +145,12 @@ export function BrandingSection({
                             {/* Row 2: Colors */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between px-1">
-                                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t('builder.colorTheme') as string}</Label>
+                                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">{t('builder.colorTheme') as string}</Label>
                                     <div className="flex gap-1.5">
                                         {['#4f46e5', '#9333ea', '#db2777', '#0f172a'].map((color) => (
                                             <button
                                                 key={color}
-                                                className="w-4 h-4 rounded-full ring-1 ring-slate-100 hover:scale-125 transition-transform"
+                                                className="w-4 h-4 rounded-full ring-1 ring-border hover:scale-125 transition-transform"
                                                 style={{ backgroundColor: color }}
                                                 onClick={() => onPrimaryColorChange(`rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 1)`)}
                                                 type="button"
@@ -165,16 +165,16 @@ export function BrandingSection({
                                     <div className="relative" ref={primaryColorPickerRef}>
                                         <div
                                             onClick={() => setShowPrimaryColorPicker(!showPrimaryColorPicker)}
-                                            className="h-14 w-full rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-indigo-300"
+                                            className="h-14 w-full rounded-2xl border-2 border-border bg-card flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-border"
                                         >
                                             <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: primaryColor }} />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 truncate tracking-widest">{t('builder.headerCard') as string}</span>
+                                                <span className="text-[9px] font-black uppercase text-muted-foreground truncate tracking-widest">{t('builder.headerCard') as string}</span>
                                                 <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{primaryColorParsed.hexColor}</span>
                                             </div>
                                         </div>
                                         {showPrimaryColorPicker && (
-                                            <div className="absolute bottom-full left-0 mb-3 z-[9999] bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                            <div className="absolute bottom-full left-0 mb-3 z-[9999] bg-card rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
                                                 <HexColorPicker
                                                     color={primaryColorParsed.hexColor}
                                                     onChange={(hex) => {
@@ -191,16 +191,16 @@ export function BrandingSection({
                                     <div className="relative" ref={headerTextColorPickerRef}>
                                         <div
                                             onClick={() => setShowHeaderTextColorPicker(!showHeaderTextColorPicker)}
-                                            className="h-14 w-full rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-indigo-300"
+                                            className="h-14 w-full rounded-2xl border-2 border-border bg-card flex items-center px-3 gap-3 cursor-pointer transition-all hover:border-border"
                                         >
                                             <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white shrink-0" style={{ backgroundColor: headerTextColor || '#ffffff' }} />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 truncate tracking-widest">{t('builder.textColor') as string}</span>
+                                                <span className="text-[9px] font-black uppercase text-muted-foreground truncate tracking-widest">{t('builder.textColor') as string}</span>
                                                 <span className="text-[10px] font-mono font-bold uppercase tracking-tight truncate">{headerTextColor || '#FFFFFF'}</span>
                                             </div>
                                         </div>
                                         {showHeaderTextColorPicker && (
-                                            <div className="absolute bottom-full right-0 mb-3 z-[9999] bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                            <div className="absolute bottom-full right-0 mb-3 z-[9999] bg-card rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
                                                 <HexColorPicker
                                                     color={headerTextColor || '#ffffff'}
                                                     onChange={(hex) => debouncedHeaderTextColorChange(hex)}

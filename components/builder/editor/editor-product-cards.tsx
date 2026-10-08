@@ -35,10 +35,10 @@ export const ProductCard = React.memo(function ProductCard({
             )}
         >
             <div className={cn(
-                "aspect-[1/1.15] rounded-xl overflow-hidden border transition-all duration-200 shadow-sm bg-white dark:bg-slate-900 relative",
+                "aspect-[1/1.15] rounded-xl overflow-hidden border transition-all duration-200 shadow-sm bg-card relative",
                 isSelected
-                    ? "border-indigo-600 ring-2 ring-indigo-600/20"
-                    : "border-slate-100 dark:border-slate-800 hover:shadow-md"
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-border hover:shadow-md"
             )}>
                 <div className="absolute inset-0">
                     <ProductImageGallery
@@ -54,7 +54,7 @@ export const ProductCard = React.memo(function ProductCard({
                     />
                     <div className={cn(
                         "absolute inset-0 transition-opacity duration-200",
-                        isSelected ? "bg-indigo-600/10 opacity-100" : "bg-black/0 group-hover:bg-black/10 opacity-0"
+                        isSelected ? "bg-primary/10 opacity-100" : "bg-black/0 group-hover:bg-black/10 opacity-0"
                     )} />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent h-1/2 opacity-70" />
                 </div>
@@ -64,8 +64,8 @@ export const ProductCard = React.memo(function ProductCard({
                     <div className={cn(
                         "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm",
                         isSelected
-                            ? "bg-indigo-600 text-white scale-110"
-                            : "bg-white/90 dark:bg-slate-800/90 text-transparent opacity-0 group-hover:opacity-100"
+                            ? "bg-primary text-primary-foreground scale-110"
+                            : "bg-background/90 text-transparent opacity-0 group-hover:opacity-100"
                     )}>
                         <CheckSquare className="w-3 h-3" />
                     </div>
@@ -241,10 +241,10 @@ export const SelectAllButton = React.memo(function SelectAllButton({
             variant="ghost"
             size="sm"
             className={cn(
-                "h-11 rounded-2xl border border-slate-200/60 bg-white font-black text-[10px] uppercase px-4 transition-all",
+                "h-11 rounded-2xl border border-border/60 bg-card font-black text-[10px] uppercase px-4 transition-all",
                 isAllSelected
                     ? "text-destructive hover:bg-destructive/5"
-                    : "text-indigo-600 hover:bg-indigo-50"
+                    : "text-primary hover:bg-accent"
             )}
             onClick={handleClick}
             disabled={isLoadingAllProductIds}

@@ -99,13 +99,13 @@ export function StorytellingSection({
             id="storytelling"
             title={t('builder.storyCatalog') as string}
             icon={<Sparkles className="w-4 h-4" />}
-            iconBg="bg-violet-50 dark:bg-violet-900/30 text-violet-600"
+            iconBg="bg-accent text-primary"
             isOpen={!!openSections.storytelling}
             onToggle={() => toggleSection('storytelling')}
         >
             <Card className={cn(
-                "bg-white/80 dark:bg-slate-900/40",
-                "border-slate-200/50 shadow-sm rounded-[2rem] overflow-hidden"
+                "bg-background/80",
+                "border-border/50 shadow-sm rounded-[2rem] overflow-hidden"
             )}>
                 <CardContent className="p-6 space-y-6">
                     {/* Cover Page Toggle */}
@@ -114,11 +114,11 @@ export function StorytellingSection({
                             <div className="space-y-0.5">
                                 <Label className={cn(
                                     "text-[11px] font-black uppercase",
-                                    "text-slate-700 dark:text-slate-300 tracking-wide"
+                                    "text-foreground tracking-wide"
                                 )}>
                                     {t('builder.coverPage') as string}
                                 </Label>
-                                <p className="text-[10px] text-slate-500">{t('builder.coverPageDesc') as string}</p>
+                                <p className="text-[10px] text-muted-foreground">{t('builder.coverPageDesc') as string}</p>
                             </div>
                             <button
                                 type="button"
@@ -130,13 +130,13 @@ export function StorytellingSection({
                                     "relative inline-flex h-6 w-11 shrink-0",
                                     "cursor-pointer rounded-full border-2 border-transparent",
                                     "transition-colors duration-200 ease-in-out",
-                                    enableCoverPage ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
+                                    enableCoverPage ? "bg-primary" : "bg-accent"
                                 )}
                             >
                                 <span
                                     className={cn(
                                         "pointer-events-none inline-block h-5 w-5 transform",
-                                        "rounded-full bg-white shadow ring-0",
+                                        "rounded-full bg-card shadow ring-0",
                                         "transition duration-200 ease-in-out",
                                         enableCoverPage ? "translate-x-5" : "translate-x-0"
                                     )}
@@ -147,15 +147,15 @@ export function StorytellingSection({
                         {/* Cover Page Options */}
                         {enableCoverPage && (
                             <div className={cn(
-                                "space-y-4 pt-4 border-t border-slate-100",
-                                "dark:border-slate-800 animate-in fade-in",
+                                "space-y-4 pt-4 border-t border-border",
+                                "animate-in fade-in",
                                 "slide-in-from-top-2 duration-500"
                             )}>
                                 {/* Theme Selector */}
                                 <div className="space-y-3">
                                     <Label className={cn(
                                         "text-[11px] font-black uppercase",
-                                        "text-slate-500 tracking-[0.1em] pl-1"
+                                        "text-muted-foreground tracking-[0.1em] pl-1"
                                     )}>
                                         {t('builder.coverDesign') as string}
                                     </Label>
@@ -174,11 +174,11 @@ export function StorytellingSection({
                                                         "rounded-2xl border transition-all duration-300",
                                                         "group relative overflow-hidden",
                                                         isSelected
-                                                            ? "border-indigo-600 bg-indigo-50/40 shadow-sm shadow-indigo-100"
+                                                            ? "border-primary bg-accent/40 shadow-sm shadow-black/10"
                                                             : cn(
-                                                                "border-slate-100 dark:border-slate-800",
-                                                                "bg-white/50 dark:bg-slate-900/50",
-                                                                "hover:border-slate-300 dark:hover:border-slate-600"
+                                                                "border-border",
+                                                                "bg-background/50",
+                                                                "hover:border-border"
                                                             )
                                                     )}
                                                 >
@@ -187,13 +187,13 @@ export function StorytellingSection({
                                                         "justify-center shrink-0 transition-all duration-300",
                                                         isSelected
                                                             ? cn(
-                                                                "bg-indigo-600 text-white",
-                                                                "shadow-md shadow-indigo-200 scale-110"
+                                                                "bg-primary text-primary-foreground",
+                                                                "shadow-md shadow-black/10 scale-110"
                                                             )
                                                             : cn(
-                                                                "bg-slate-100 dark:bg-slate-800",
-                                                                "text-slate-400 group-hover:bg-slate-200",
-                                                                "dark:group-hover:bg-slate-700"
+                                                                "bg-muted",
+                                                                "text-muted-foreground group-hover:bg-accent",
+                                                                ""
                                                             )
                                                     )}>
                                                         <Layout className="w-3 h-3" />
@@ -203,14 +203,14 @@ export function StorytellingSection({
                                                             "text-[10px] font-bold truncate",
                                                             "leading-tight transition-colors",
                                                             isSelected
-                                                                ? "text-indigo-700 dark:text-indigo-400"
-                                                                : "text-slate-700 dark:text-slate-300"
+                                                                ? "text-primary"
+                                                                : "text-foreground"
                                                         )}>
                                                             {t(`coverThemes.${key}`) || theme.name}
                                                         </span>
                                                     </div>
                                                     {isSelected && (
-                                                        <div className="absolute right-0 top-0 h-full w-1 bg-indigo-600" />
+                                                        <div className="absolute right-0 top-0 h-full w-1 bg-primary" />
                                                     )}
                                                 </button>
                                             );
@@ -222,14 +222,14 @@ export function StorytellingSection({
                                     {/* Cover Image Upload */}
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between px-1">
-                                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t('builder.coverImage') as string}</Label>
+                                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('builder.coverImage') as string}</Label>
                                         </div>
                                         <div className="space-y-3">
                                             {coverImageUrl ? (
                                                 <div className={cn(
                                                     "group relative w-full h-48 rounded-3xl overflow-hidden",
-                                                    "border-2 border-slate-100 dark:border-slate-800",
-                                                    "shadow-sm bg-slate-50 dark:bg-slate-900/50",
+                                                    "border-2 border-border",
+                                                    "shadow-sm bg-muted/50",
                                                     "transition-all duration-300 hover:shadow-md"
                                                 )}>
                                                     <NextImage
@@ -253,8 +253,8 @@ export function StorytellingSection({
                                                             size="sm"
                                                             onClick={() => coverInputRef.current?.click()}
                                                             className={cn(
-                                                                "h-8 rounded-xl bg-white/20 backdrop-blur-md",
-                                                                "hover:bg-white/40 text-white border-white/20",
+                                                                "h-8 rounded-xl bg-background/20 backdrop-blur-md",
+                                                                "hover:bg-background/40 text-white border-white/20",
                                                                 "text-[10px] font-bold uppercase transition-all"
                                                             )}
                                                         >
@@ -266,8 +266,8 @@ export function StorytellingSection({
                                                             size="sm"
                                                             onClick={() => onCoverImageUrlChange?.(null)}
                                                             className={cn(
-                                                                "h-8 rounded-xl bg-red-500/80 backdrop-blur-md",
-                                                                "hover:bg-red-600 text-white border-none",
+                                                                "h-8 rounded-xl bg-destructive/80 backdrop-blur-md",
+                                                                "hover:bg-destructive/90 text-white border-none",
                                                                 "text-[10px] font-bold uppercase transition-all"
                                                             )}
                                                         >
@@ -282,32 +282,32 @@ export function StorytellingSection({
                                                     onClick={() => coverInputRef.current?.click()}
                                                     className={cn(
                                                         "w-full h-32 rounded-3xl border-2 border-dashed",
-                                                        "border-slate-200 dark:border-slate-800",
-                                                        "bg-slate-50/50 dark:bg-slate-900/30",
-                                                        "hover:bg-slate-50 dark:hover:bg-slate-900/50",
-                                                        "hover:border-indigo-300 dark:hover:border-indigo-900",
+                                                        "border-border",
+                                                        "bg-muted/50",
+                                                        "hover:bg-muted/50",
+                                                        "hover:border-border",
                                                         "transition-all duration-300",
                                                         "flex items-center justify-center gap-4 group"
                                                     )}
                                                 >
                                                     <div className={cn(
-                                                        "w-10 h-10 rounded-xl bg-white dark:bg-slate-800",
-                                                        "shadow-sm border border-slate-100 dark:border-slate-700",
+                                                        "w-10 h-10 rounded-xl bg-card",
+                                                        "shadow-sm border border-border",
                                                         "flex items-center justify-center",
-                                                        "group-hover:scale-110 group-hover:bg-indigo-50",
+                                                        "group-hover:scale-110 group-hover:bg-accent",
                                                         "transition-all duration-300"
                                                     )}>
-                                                        <ImageIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
+                                                        <ImageIcon className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
                                                     </div>
                                                     <div className="text-left">
                                                         <span className={cn(
                                                             "block text-[11px] font-black uppercase",
-                                                            "tracking-widest text-slate-500",
-                                                            "group-hover:text-slate-700"
+                                                            "tracking-widest text-muted-foreground",
+                                                            "group-hover:text-foreground"
                                                         )}>
                                                             {t('builder.selectImage') as string}
                                                         </span>
-                                                        <span className="block text-[9px] text-slate-400 font-bold mt-0.5">PNG, JPG, WEBP</span>
+                                                        <span className="block text-[9px] text-muted-foreground font-bold mt-0.5">PNG, JPG, WEBP</span>
                                                     </div>
                                                 </button>
                                             )}
@@ -325,7 +325,7 @@ export function StorytellingSection({
                                     <div className="space-y-2 h-full flex flex-col">
                                         <Label className={cn(
                                             "text-[10px] font-black uppercase",
-                                            "text-slate-500 tracking-widest px-1"
+                                            "text-muted-foreground tracking-widest px-1"
                                         )}>
                                             {t('builder.coverDesc') as string}
                                         </Label>
@@ -337,16 +337,16 @@ export function StorytellingSection({
                                                 maxLength={500}
                                                 className={cn(
                                                     "w-full h-full min-h-[128px] p-4 text-sm",
-                                                    "bg-white dark:bg-slate-900",
-                                                    "border border-slate-200 dark:border-slate-800",
-                                                    "rounded-3xl focus:ring-2 focus:ring-indigo-500/20",
-                                                    "focus:border-indigo-500 transition-all",
+                                                    "bg-card",
+                                                    "border border-border",
+                                                    "rounded-3xl focus:ring-2 focus:ring-primary/20",
+                                                    "focus:border-primary transition-all",
                                                     "outline-none resize-none"
                                                 )}
                                             />
                                             <p className={cn(
-                                                "absolute bottom-3 right-3 text-[9px] text-slate-400",
-                                                "pointer-events-none bg-white/50 px-1 rounded"
+                                                "absolute bottom-3 right-3 text-[9px] text-muted-foreground",
+                                                "pointer-events-none bg-background/50 px-1 rounded"
                                             )}>
                                                 {(coverDescription || '').length}/500
                                             </p>
@@ -360,16 +360,16 @@ export function StorytellingSection({
 
 
                     {/* Category Dividers Toggle */}
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="pt-4 border-t border-border">
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
                                 <Label className={cn(
                                     "text-[11px] font-black uppercase",
-                                    "text-slate-700 dark:text-slate-300 tracking-wide"
+                                    "text-foreground tracking-wide"
                                 )}>
                                     {t('builder.categoryDividers') as string}
                                 </Label>
-                                <p className="text-[10px] text-slate-500">{t('builder.categoryDividersDesc') as string}</p>
+                                <p className="text-[10px] text-muted-foreground">{t('builder.categoryDividersDesc') as string}</p>
                             </div>
                             <button
                                 type="button"
@@ -381,13 +381,13 @@ export function StorytellingSection({
                                     "relative inline-flex h-6 w-11 shrink-0",
                                     "cursor-pointer rounded-full border-2 border-transparent",
                                     "transition-colors duration-200 ease-in-out",
-                                    enableCategoryDividers ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
+                                    enableCategoryDividers ? "bg-primary" : "bg-accent"
                                 )}
                             >
                                 <span
                                     className={cn(
                                         "pointer-events-none inline-block h-5 w-5 transform",
-                                        "rounded-full bg-white shadow ring-0",
+                                        "rounded-full bg-card shadow ring-0",
                                         "transition duration-200 ease-in-out",
                                         enableCategoryDividers ? "translate-x-5" : "translate-x-0"
                                     )}
@@ -396,8 +396,8 @@ export function StorytellingSection({
                         </div>
 
                         {enableCategoryDividers && uniqueCategories.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest px-1 block mb-3">
+                            <div className="mt-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-1 block mb-3">
                                     {t('builder.categoryOrder') as string}
                                 </Label>
                                 <div className="space-y-1.5">
@@ -422,12 +422,12 @@ export function StorytellingSection({
                                                 }
                                             }}
                                             className={cn(
-                                                "flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl cursor-grab active:cursor-grabbing border border-transparent transition-all",
-                                                draggedIdx === idx ? "opacity-50 border-indigo-500 scale-[0.98]" : dropTargetIdx === idx ? "border-indigo-300 bg-indigo-50/50 dark:bg-indigo-900/20" : "hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"
+                                                "flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-xl cursor-grab active:cursor-grabbing border border-transparent transition-all",
+                                                draggedIdx === idx ? "opacity-50 border-primary scale-[0.98]" : dropTargetIdx === idx ? "border-border bg-accent/50" : "hover:border-border hover:shadow-sm"
                                             )}
                                         >
-                                            <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />
-                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                                            <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                                            <span className="text-xs font-semibold text-foreground truncate">
                                                 {category}
                                             </span>
                                         </div>

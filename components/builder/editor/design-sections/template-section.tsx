@@ -80,14 +80,14 @@ export function TemplateSection({
             {/* PERF(F15): CSS moved to globals.css */}
 
             <div className="flex items-center justify-center gap-3">
-                <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
+                <div className="h-px bg-accent flex-1 hidden sm:block" />
                 <div className="flex items-center gap-2 px-6">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-200 flex items-center justify-center text-white">
+                    <div className="w-10 h-10 rounded-2xl bg-primary shadow-lg shadow-black/10 flex items-center justify-center text-primary-foreground">
                         <Sparkles className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-slate-800 dark:text-slate-200">{t('builder.templateStyle') as string}</h3>
+                    <h3 className="text-sm sm:text-lg font-black uppercase tracking-[0.1em] text-foreground dark:text-slate-200">{t('builder.templateStyle') as string}</h3>
                 </div>
-                <div className="h-px bg-slate-200 flex-1 hidden sm:block" />
+                <div className="h-px bg-accent flex-1 hidden sm:block" />
             </div>
 
             <div

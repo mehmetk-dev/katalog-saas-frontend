@@ -30,7 +30,7 @@ export function PreviewFloatingHeader({
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[90vw] max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 shadow-xl ring-1 ring-black/5">
+            <div className="flex items-center justify-between gap-2 bg-card p-1.5 rounded-2xl border border-border shadow-xl ring-1 ring-black/5">
                 <div className="flex items-center gap-1 pl-2 min-w-0">
                     <div className="flex flex-col min-w-0">
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t('builder.previewLabel') as string}</span>
@@ -72,7 +72,7 @@ export function PreviewFloatingHeader({
                     <Button
                         variant="default"
                         size="sm"
-                        className="h-9 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200/50 flex items-center gap-2"
+                        className="h-9 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-black/50 flex items-center gap-2"
                         onClick={() => onViewChange('editor')}
                     >
                         <ArrowLeft className="w-4 h-4" />

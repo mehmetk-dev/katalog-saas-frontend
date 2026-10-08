@@ -398,20 +398,20 @@ export function CatalogEditor() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-gradient-to-b dark:from-[#080a12] dark:to-[#03040a] border-r border-slate-200 dark:border-white/5 overflow-hidden">
+    <div className="flex flex-col h-full bg-background dark:bg-gradient-to-b dark:from-[#080a12] dark:to-[#03040a] border-r border-border overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         {/* Modern App-like Tab Navigation */}
-        <div className="bg-white/80 dark:bg-[#080a12]/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200 dark:border-white/5 px-4 py-3 shrink-0">
-          <TabsList className="flex w-full max-w-[480px] mx-auto h-12 p-1 bg-slate-100/80 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner">
+        <div className="bg-background/80 dark:bg-[#080a12]/80 backdrop-blur-md sticky top-0 z-30 border-b border-border px-4 py-3 shrink-0">
+          <TabsList className="flex w-full max-w-[480px] mx-auto h-12 p-1 bg-muted/80 rounded-2xl border border-border/50 shadow-inner">
             <TabsTrigger
               value="content"
-              className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
+              className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 gap-2"
             >
               {t('builder.productSelection')}
             </TabsTrigger>
             <TabsTrigger
               value="design"
-              className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all duration-300 gap-2"
+              className="flex-1 rounded-xl text-[10px] sm:text-xs uppercase tracking-[0.05em] font-black data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary transition-all duration-300 gap-2"
             >
               {t('builder.designSettings')}
             </TabsTrigger>

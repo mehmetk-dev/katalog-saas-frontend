@@ -97,10 +97,10 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
             aria-pressed={isSelected}
             aria-label={`${templateName}${isPro ? ' (PRO)' : ''}`}
             className={cn(
-                "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-white",
+                "group relative aspect-[3/4.5] rounded-none transition-all duration-500 cursor-pointer overflow-hidden bg-card",
                 isSelected
-                    ? "ring-8 ring-indigo-600 ring-offset-0 scale-95 shadow-2xl"
-                    : "shadow-lg border border-slate-200 hover:shadow-2xl hover:scale-[1.02]"
+                    ? "ring-8 ring-primary ring-offset-0 scale-95 shadow-2xl"
+                    : "shadow-lg border border-border hover:shadow-2xl hover:scale-[1.02]"
             )}
         >
             {/* Preview Container - Takes most of the space */}
@@ -118,8 +118,8 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
                         </ResponsiveContainer>
                     ) : (
                         /* FIX(F8): Lightweight placeholder while off-screen */
-                        <div className="w-full h-full flex items-center justify-center bg-slate-50">
-                            <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+                        <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                            <div className="w-8 h-8 rounded-full border-2 border-border border-t-primary animate-spin" />
                         </div>
                     )}
                 </div>
@@ -129,8 +129,8 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
             <div className={cn(
                 "absolute inset-x-0 bottom-0 h-10 px-3 transition-all duration-300 z-20 flex items-center justify-between border-t",
                 isSelected
-                    ? "bg-indigo-600 border-indigo-600 text-white"
-                    : "bg-white border-slate-100 text-slate-900 group-hover:bg-slate-50"
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : "bg-card border-border text-foreground group-hover:bg-muted/50"
             )}>
                 <p className="text-[9px] font-black uppercase tracking-tight truncate flex-1 leading-none">
                     {templateName}
@@ -138,14 +138,14 @@ export const TemplatePreviewCard = React.memo(function TemplatePreviewCard({
                 {isPro && (
                     <span className={cn(
                         "ml-2 text-[9px] font-black px-1.5 py-1 rounded shadow-sm shrink-0 leading-none",
-                        isSelected ? "bg-white text-indigo-600" : "bg-amber-400 text-slate-900"
+                        isSelected ? "bg-card text-primary" : "bg-warning text-foreground"
                     )}>PRO</span>
                 )}
             </div>
 
             {/* Selection Checkmark */}
             {isSelected && (
-                <div className="absolute top-4 right-4 bg-white text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center shadow-xl z-30 animate-in zoom-in-50">
+                <div className="absolute top-4 right-4 bg-card text-primary w-8 h-8 rounded-full flex items-center justify-center shadow-xl z-30 animate-in zoom-in-50">
                     <CheckSquare className="w-5 h-5" />
                 </div>
             )}

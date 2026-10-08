@@ -34,26 +34,26 @@ export function BackgroundSection({
             id="background"
             title={t('builder.backgroundSettings') as string}
             icon={<ImageIcon className="w-4 h-4" />}
-            iconBg="bg-blue-50 dark:bg-blue-900/30 text-blue-600"
+            iconBg="bg-info-soft text-info"
             isOpen={!!openSections.background}
             onToggle={() => toggleSection('background')}
         >
-            <Card className="bg-white/80 dark:bg-slate-900/40 border-slate-200/50 shadow-sm rounded-[2rem]">
+            <Card className="bg-background/80 border-border/50 shadow-sm rounded-[2rem]">
                 <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {/* BG Color & Gradient */}
                         <div className="space-y-6">
                             <div className="space-y-2 relative" ref={backgroundColorPickerRef}>
-                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t('builder.bgColor') as string}</Label>
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('builder.bgColor') as string}</Label>
                                 <div
-                                    className="h-14 w-full rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-4 gap-3 cursor-pointer transition-all hover:border-indigo-300"
+                                    className="h-14 w-full rounded-2xl border-2 border-border bg-card flex items-center px-4 gap-3 cursor-pointer transition-all hover:border-border"
                                     onClick={() => setShowBackgroundColorPicker(!showBackgroundColorPicker)}
                                 >
                                     <div className="w-8 h-8 rounded-xl shadow-md ring-2 ring-white" style={{ backgroundColor: backgroundColor || '#ffffff' }} />
                                     <span className="text-xs font-mono font-bold uppercase tracking-tight">{backgroundColor || '#FFFFFF'}</span>
                                 </div>
                                 {showBackgroundColorPicker && (
-                                    <div className="absolute top-full left-0 mt-3 z-[9999] bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
+                                    <div className="absolute top-full left-0 mt-3 z-[9999] bg-card rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 animate-in zoom-in-95 duration-300">
                                         <HexColorPicker
                                             color={backgroundColor || '#ffffff'}
                                             onChange={(hex) => debouncedBackgroundColorChange(hex)}
@@ -64,9 +64,9 @@ export function BackgroundSection({
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t('builder.gradientEffect') as string}</Label>
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('builder.gradientEffect') as string}</Label>
                                 <Select value={backgroundGradient || 'none'} onValueChange={(v) => onBackgroundGradientChange?.(v === 'none' ? null : v)}>
-                                    <SelectTrigger className="h-14 rounded-2xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-xs font-bold">
+                                    <SelectTrigger className="h-14 rounded-2xl bg-card border-border text-xs font-bold">
                                         <SelectValue placeholder={t('builder.none') as string} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-2xl shadow-2xl">
@@ -81,14 +81,14 @@ export function BackgroundSection({
 
                         {/* BG Image Upload */}
                         <div className="space-y-3 lg:col-span-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t('builder.bgImage') as string}</Label>
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('builder.bgImage') as string}</Label>
                             <div className="flex flex-col sm:flex-row gap-4 h-full min-h-[140px]">
                                 <div
                                     className={cn(
                                         "flex-1 rounded-[1.5rem] border-2 border-dashed flex flex-col items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden",
                                         backgroundImage
-                                            ? "border-indigo-100 bg-white shadow-inner"
-                                            : "border-slate-200 bg-slate-50/50 hover:bg-white hover:border-indigo-300 group"
+                                            ? "border-border bg-card shadow-inner"
+                                            : "border-border bg-muted/50 hover:bg-card hover:border-border group"
                                     )}
                                     onClick={() => {
                                         handleUploadClick()
@@ -99,15 +99,15 @@ export function BackgroundSection({
                                         <div className="relative w-full h-full p-2 group">
                                             <NextImage src={backgroundImage} alt="BG" fill className="object-contain" unoptimized />
                                             <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 rounded-xl">
-                                                <span className="text-[9px] font-black text-slate-800 bg-white/90 px-3 py-1.5 rounded-full shadow-lg">{t('builder.changeImage') as string}</span>
+                                                <span className="text-[9px] font-black text-foreground bg-background/90 px-3 py-1.5 rounded-full shadow-lg">{t('builder.changeImage') as string}</span>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="text-center p-4 space-y-2">
-                                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
-                                                <ImageIcon className="w-5 h-5 text-blue-500" />
+                                            <div className="w-10 h-10 rounded-xl bg-card shadow-sm border border-border flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
+                                                <ImageIcon className="w-5 h-5 text-info" />
                                             </div>
-                                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-tight">{t('builder.selectImage') as string}</p>
+                                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-tight">{t('builder.selectImage') as string}</p>
                                         </div>
                                     )}
                                     <input type="file" ref={bgInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'bg')} />
@@ -116,7 +116,7 @@ export function BackgroundSection({
                                 {backgroundImage && (
                                     <div className="flex-1 flex flex-col gap-3 animate-in slide-in-from-right-4 duration-500">
                                         <div className="space-y-1.5">
-                                            <Label className="text-[9px] font-black text-slate-400 px-1">{t('builder.imageView') as string}</Label>
+                                            <Label className="text-[9px] font-black text-muted-foreground px-1">{t('builder.imageView') as string}</Label>
                                             <Select value={backgroundImageFit} onValueChange={(v) => onBackgroundImageFitChange?.(v as NonNullable<Catalog['background_image_fit']>)}>
                                                 <SelectTrigger className="h-10 rounded-xl text-xs font-bold"><SelectValue /></SelectTrigger>
                                                 <SelectContent className="rounded-2xl">
@@ -130,7 +130,7 @@ export function BackgroundSection({
                                             variant="destructive"
                                             size="sm"
                                             onClick={() => onBackgroundImageChange?.(null)}
-                                            className="mt-auto h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-50 text-red-600 hover:bg-red-100 border-none shadow-none"
+                                            className="mt-auto h-10 rounded-xl text-[10px] font-black uppercase tracking-widest bg-destructive-soft text-destructive hover:bg-destructive/15 border-none shadow-none"
                                         >
                                             {t('builder.removeImage') as string}
                                         </Button>
