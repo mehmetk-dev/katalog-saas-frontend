@@ -152,6 +152,9 @@ export async function initiateGarantiPayment(req: Request, res: Response) {
     let config
     try {
         config = getGarantiPaymentConfig()
+        // Onaylar banka sorgusuyla teyit edildiği için sorgu (VP) yapılandırması da şart; yoksa
+        // müşteriden para çekilir ama sipariş hiçbir zaman tamamlanamaz.
+        getGarantiVpConfig()
     } catch {
         return res.status(503).json({
             code: 'PAYMENT_UNAVAILABLE',

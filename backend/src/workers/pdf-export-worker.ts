@@ -7,7 +7,7 @@ import { createPdfExportWorker, type PdfExportBullJob } from '../services/pdf-ex
 import { deletePdfExportFile, getPdfExportRelativePath, writePdfExportFile } from '../services/pdf-export-storage'
 import { createPdfExportToken } from '../services/pdf-export-token'
 import { cleanupExpiredPdfExports } from './pdf-export-cleanup'
-import { cacheKeys, deleteCache } from '../services/redis'
+import { cacheKeys, deleteCache, initRedis } from '../services/redis'
 import { shouldConsumePdfExportQuota } from './pdf-export-usage'
 import { startBillingDocumentWorker } from './billing-document-worker'
 import {
@@ -380,6 +380,10 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
         throw new Error(`[${phase}] ${errorMessage}`)
     }
 }
+
+// Önbellek (kullanıcı kotası vb.) API ile paylaşılan Redis'te; initRedis çağrılmazsa
+// deleteCache yalnızca bu sürecin bellek içi önbelleğini temizler ve API eski veriyi sunar.
+initRedis()
 
 const worker = createPdfExportWorker(renderPdf)
 const billingDocumentWorker = startBillingDocumentWorker()

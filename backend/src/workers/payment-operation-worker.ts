@@ -16,6 +16,7 @@ import {
     getGarantiVpConfig,
 } from '../services/payments/garanti-vp-client'
 import { invalidatePlanCachesForOrder } from '../services/plan-cache'
+import { initRedis } from '../services/redis'
 import { supabase } from '../services/supabase'
 
 type OperationStatus =
@@ -483,4 +484,6 @@ async function startPaymentWorker(): Promise<void> {
     process.on('SIGINT', () => void shutdown())
 }
 
+// Plan önbelleği temizliği API ile paylaşılan Redis'e gitmeli (bkz. services/plan-cache.ts)
+initRedis()
 void startPaymentWorker()

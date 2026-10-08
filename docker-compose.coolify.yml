@@ -120,8 +120,23 @@ services:
       API_URL: http://backend:4000/api/v1
       WORKER_EXPORT_SECRET: ${WORKER_EXPORT_SECRET}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      # Traefik arkasında: rate limit gerçek istemci IP'sine göre uygulansın
+      # (yoksa tüm ziyaretçiler tek "unknown" anahtarını paylaşır ve sınır site geneline uygulanır)
+      TRUST_PROXY_HEADERS: "true"
+      # İletişim formu ve geri bildirim e-postaları (lib/services/email.ts)
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      SMTP_HOST: ${SMTP_HOST:-smtp.zoho.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # Excel düzenleyici yapay zekâ özellikleri (app/api/excel-ai/*)
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      AI_MODEL: ${AI_MODEL:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      EXCEL_AI_USE_TOOLS: ${EXCEL_AI_USE_TOOLS:-}
     depends_on:
       backend:
         condition: service_healthy

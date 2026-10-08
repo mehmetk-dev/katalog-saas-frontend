@@ -200,6 +200,10 @@ export function validateEnv(): { valid: boolean; errors: string[]; warnings: str
     }
 
     const operationsEnabled = process.env.GARANTI_OPERATIONS_ENABLED
+    if (garantiEnabled === 'true' && operationsEnabled !== 'true') {
+        warnings.push('⚠️  GARANTI_POS_ENABLED=true but GARANTI_OPERATIONS_ENABLED is not true')
+        warnings.push('   └─ Payments are confirmed via bank order inquiry; checkout stays unavailable until operations are configured')
+    }
     if (operationsEnabled && !['true', 'false'].includes(operationsEnabled)) {
         errors.push('❌ Invalid: GARANTI_OPERATIONS_ENABLED must be true or false')
     }
