@@ -64,27 +64,35 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
   const workspaceScrollRef = useRef<HTMLDivElement>(null)
   const [multiScrollTop, setMultiScrollTop] = useState(0)
   const [multiViewportHeight, setMultiViewportHeight] = useState(0)
-  const hasAutoFitted = useRef(false)
+  // Kullanıcı elle zoom yapana kadar önizleme panel genişliğine sığdırılır
+  // (panel yeniden boyutlandırıldığında da)
+  const userZoomedRef = useRef(false)
+  const handleScaleChange = useCallback((next: number) => {
+    userZoomedRef.current = true
+    setScale(next)
+  }, [])
 
-  // Auto-fit scale to container width on mount
   useEffect(() => {
     if (props.isExporting || props.showControls === false) return
+    const container = containerRef.current
+    if (!container) return
+
     const fitScale = () => {
-      const container = containerRef.current
-      if (!container) return
+      if (userZoomedRef.current) return
       const availableWidth = container.clientWidth - 96 // padding (p-12 = 48px each side)
       if (availableWidth > 0) {
         const fitW = Math.min(1.0, availableWidth / A4_WIDTH)
-        // Only auto-set on first mount, don't override user's manual zoom
-        if (!hasAutoFitted.current) {
-          setScale(Math.round(fitW * 10) / 10) // Round to nearest 0.1
-          hasAutoFitted.current = true
-        }
+        setScale(Math.max(0.3, Math.round(fitW * 10) / 10)) // Round to nearest 0.1
       }
     }
-    // Delay to ensure container is laid out
+
     const raf = requestAnimationFrame(fitScale)
-    return () => cancelAnimationFrame(raf)
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(fitScale) : null
+    observer?.observe(container)
+    return () => {
+      cancelAnimationFrame(raf)
+      observer?.disconnect()
+    }
   }, [props.isExporting, props.showControls])
 
   const pageModel = useCatalogPages({
@@ -329,7 +337,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           scale={scale}
-          onScaleChange={setScale}
+          onScaleChange={handleScaleChange}
           currentPage={safeCurrentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}

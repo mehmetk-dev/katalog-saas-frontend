@@ -12,11 +12,12 @@ import {
 import {
     ArrowLeft, Copy, Globe, MoreVertical,
     AlertTriangle, Save, Share2, Eye, Pencil, Download,
-    ArrowUpRight
+    ArrowUpRight, Check, Loader2, Undo2, Redo2,
 } from "lucide-react"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import { Catalog } from "@/lib/actions/catalogs"
+import type { SaveStatus } from "@/lib/hooks/use-catalog-actions"
 import { toast } from "sonner"
 
 interface BuilderToolbarProps {
@@ -36,7 +37,11 @@ interface BuilderToolbarProps {
     onShare: () => void
     onDownloadPDF: () => void
     onExit: () => void
-    isAutoSaving?: boolean
+    saveStatus: SaveStatus
+    canUndo: boolean
+    canRedo: boolean
+    onUndo: () => void
+    onRedo: () => void
 }
 
 export function BuilderToolbar({
@@ -55,7 +60,12 @@ export function BuilderToolbar({
     onUpdateSlug,
     onShare,
     onDownloadPDF,
-    onExit
+    onExit,
+    saveStatus,
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo,
 }: BuilderToolbarProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
@@ -146,29 +156,42 @@ export function BuilderToolbar({
 
                     {/* ACTIONS GROUP */}
                     <div className="flex items-center gap-1 sm:gap-2">
-                        {/* Save Button */}
-                        {hasUnsavedChanges ? (
-                            <Button
-                                size="sm"
-                                onClick={onSave}
-                                disabled={isPending}
-                                className="h-9 px-3 rounded-xl shrink-0 transition-all bg-warning hover:bg-warning/90 text-warning-foreground shadow-lg shadow-warning/20 animate-pulse gap-2"
-                                title={t('builder.saveChanges')}
-                            >
-                                <Save className="w-4 h-4" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">{t('builder.saveBtn')}</span>
-                            </Button>
-                        ) : (
-                            <Button
-                                size="icon"
-                                disabled
-                                variant="ghost"
-                                className="h-9 w-9 rounded-xl shrink-0 text-muted-foreground/70 cursor-not-allowed"
-                                title={t('builder.noChangesToSave')}
-                            >
-                                <Save className="w-4.5 h-4.5" />
-                            </Button>
+                        {/* Undo / Redo (desktop) */}
+                        {!isMobile && (
+                            <div className="hidden md:flex items-center">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-xl text-muted-foreground"
+                                    onClick={onUndo}
+                                    disabled={!canUndo}
+                                    title={`${t('builder.undo')} (Ctrl+Z)`}
+                                    aria-label={t('builder.undo')}
+                                >
+                                    <Undo2 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-xl text-muted-foreground"
+                                    onClick={onRedo}
+                                    disabled={!canRedo}
+                                    title={`${t('builder.redo')} (Ctrl+Shift+Z)`}
+                                    aria-label={t('builder.redo')}
+                                >
+                                    <Redo2 className="w-4 h-4" />
+                                </Button>
+                            </div>
                         )}
+
+                        <SaveStatusButton
+                            status={saveStatus}
+                            hasUnsavedChanges={hasUnsavedChanges}
+                            isPending={isPending}
+                            compact={isMobile}
+                            onSave={onSave}
+                            t={t}
+                        />
 
                         {/* DESKTOP ONLY: Direct Primary Actions */}
                         {!isMobile && (
@@ -187,31 +210,6 @@ export function BuilderToolbar({
                                     <span className="ml-2">{mainAction.label}</span>
                                 </Button>
                             </>
-                        )}
-
-                        {/* MOBILE ACTIONS (TOP BAR) */}
-                        {isMobile && (
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => onViewChange(view === "preview" ? "editor" : "preview")}
-                                    className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted"
-                                    title={t('builder.previewBtn')}
-                                >
-                                    <Eye className="w-5 h-5" />
-                                </Button>
-                                <Button
-                                    size="icon"
-                                    onClick={mainAction.onClick}
-                                    className={cn(
-                                        "h-9 w-9 rounded-xl shadow-lg transition-all active:scale-90",
-                                        mainAction.className
-                                    )}
-                                >
-                                    {mainAction.icon}
-                                </Button>
-                            </div>
                         )}
 
                         {/* MORE OPTIONS */}
@@ -264,13 +262,6 @@ export function BuilderToolbar({
                                     </>
                                 )}
 
-                                {isMobile && (
-                                    <DropdownMenuItem onClick={() => onViewChange(view === "preview" ? "editor" : "preview")} className="rounded-xl h-10 font-bold text-xs">
-                                        {view === "preview" ? <Pencil className="w-4 h-4 mr-2.5 text-muted-foreground" /> : <Eye className="w-4 h-4 mr-2.5 text-muted-foreground" />}
-                                        {view === "preview" ? t('builder.editMode') : t('builder.previewMode')}
-                                    </DropdownMenuItem>
-                                )}
-
                                 <DropdownMenuItem onClick={onPublish} className="rounded-xl h-10 font-bold text-xs">
                                     <Globe className="w-4 h-4 mr-2.5 text-muted-foreground" />
                                     {isPublished ? t('builder.unpublish') : t('builder.publishCatalog')}
@@ -302,12 +293,12 @@ export function BuilderToolbar({
                             {view === "preview" ? (
                                 <>
                                     <Pencil className="w-4 h-4" />
-                                    <span>{t('builder.editor') as string || 'Düzenle'}</span>
+                                    <span>{t('builder.editor')}</span>
                                 </>
                             ) : (
                                 <>
                                     <Eye className="w-4 h-4" />
-                                    <span>{t('builder.preview') as string || 'Önizle'}</span>
+                                    <span>{t('builder.preview')}</span>
                                 </>
                             )}
                         </Button>
@@ -330,5 +321,76 @@ export function BuilderToolbar({
                 </div>
             )}
         </>
+    )
+}
+
+// ─── Save status ──────────────────────────────────────────────────────────────
+
+interface SaveStatusButtonProps {
+    status: SaveStatus
+    hasUnsavedChanges: boolean
+    isPending: boolean
+    /** Mobilde sadece ikon */
+    compact: boolean
+    onSave: () => void
+    t: (key: string) => string
+}
+
+/** Otomatik kaydın durumunu gösterir; kaydedilmemiş veya hatalı durumda tıklayınca hemen kaydeder (Ctrl+S). */
+function SaveStatusButton({ status, hasUnsavedChanges, isPending, compact, onSave, t }: SaveStatusButtonProps) {
+    const base = "h-9 rounded-xl shrink-0 gap-2 text-xs font-medium"
+
+    if (status === "saving") {
+        return (
+            <Button variant="ghost" size={compact ? "icon" : "sm"} disabled className={cn(base, "text-muted-foreground")} title={t('builder.saveStatusSaving')}>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {!compact && <span>{t('builder.saveStatusSaving')}</span>}
+            </Button>
+        )
+    }
+
+    if (status === "error") {
+        return (
+            <Button
+                variant="ghost"
+                size={compact ? "icon" : "sm"}
+                onClick={onSave}
+                disabled={isPending}
+                className={cn(base, "text-destructive hover:bg-destructive/10 hover:text-destructive")}
+                title={t('builder.saveStatusError')}
+            >
+                <AlertTriangle className="w-4 h-4" />
+                {!compact && <span>{t('builder.saveStatusError')}</span>}
+            </Button>
+        )
+    }
+
+    if (hasUnsavedChanges) {
+        return (
+            <Button
+                variant="outline"
+                size={compact ? "icon" : "sm"}
+                onClick={onSave}
+                disabled={isPending}
+                className={base}
+                title={t('builder.saveChanges')}
+            >
+                <Save className="w-4 h-4" />
+                {!compact && <span>{t('builder.saveBtn')}</span>}
+            </Button>
+        )
+    }
+
+    return (
+        <Button
+            variant="ghost"
+            size={compact ? "icon" : "sm"}
+            disabled
+            className={cn(base, "text-muted-foreground disabled:opacity-100")}
+            title={t('builder.noChangesToSave')}
+        >
+            {status === "saved" ? <Check className="w-4 h-4 text-success" /> : <Save className="w-4 h-4" />}
+            {!compact && status === "saved" && <span>{t('builder.saveStatusSaved')}</span>}
+        </Button>
     )
 }

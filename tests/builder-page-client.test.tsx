@@ -208,6 +208,38 @@ describe('BuilderPageClient Final Audit Tests', () => {
     }), { publicSlug: 'audit-katalog' })
   })
 
+  it('AUTOSAVE HATASI: kullaniciya bir kez bildirilmeli ve tekrar dene gosterilmeli', async () => {
+    vi.useFakeTimers()
+    const { toast } = await import('sonner')
+    vi.mocked(catalogActions.updateCatalog).mockRejectedValue(new Error('network'))
+    render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
+
+    const input = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'Hata 1' } })
+      await vi.advanceTimersByTimeAsync(3000)
+    })
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'Hata 2' } })
+      await vi.advanceTimersByTimeAsync(3000)
+    })
+
+    expect(vi.mocked(toast.error).mock.calls.filter(([msg]) => msg === 'builder.autosaveFailed')).toHaveLength(1)
+    expect(screen.getByTitle('builder.saveStatusError')).toBeInTheDocument()
+    vi.mocked(catalogActions.updateCatalog).mockResolvedValue({ success: true })
+  })
+
+  it('KISAYOL: Ctrl+S hemen kaydetmeli', async () => {
+    render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
+
+    fireEvent.change(screen.getByPlaceholderText('builder.catalogNamePlaceholder'), { target: { value: 'Kısayol' } })
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true })
+
+    await waitFor(() => {
+      expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({ name: 'Kısayol' }), { publicSlug: null })
+    })
+  })
+
   it('PUBLISH: unsaved degisiklikleri yayindan sonra kaydedilmis saymali', async () => {
     render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
 

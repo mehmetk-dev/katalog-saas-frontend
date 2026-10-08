@@ -113,6 +113,15 @@ export const EditorDesignTab = React.memo(function EditorDesignTab(props: Editor
     return (
         <div className="m-0 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-12">
             <div className="space-y-3">
+                {/* Şablon kataloğun görünümünü en çok değiştiren karar — en üstte */}
+                <TemplateSection
+                    t={props.t}
+                    layout={props.layout}
+                    onLayoutChange={props.onLayoutChange}
+                    userPlan={props.userPlan}
+                    onUpgrade={props.onUpgrade}
+                />
+
                 <AppearanceSection
                     t={props.t}
                     openSections={props.openSections}
@@ -217,13 +226,6 @@ export const EditorDesignTab = React.memo(function EditorDesignTab(props: Editor
                     selectedProductCount={props.selectedProductIds.length}
                 />
 
-                <TemplateSection
-                    t={props.t}
-                    layout={props.layout}
-                    onLayoutChange={props.onLayoutChange}
-                    userPlan={props.userPlan}
-                    onUpgrade={props.onUpgrade}
-                />
             </div>
         </div>
     )

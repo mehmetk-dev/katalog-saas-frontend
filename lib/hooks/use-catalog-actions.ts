@@ -52,7 +52,6 @@ export function useCatalogActions({
     const [isPending, startTransition] = useTransition()
 
     const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
-    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
     // FIX(L7): Guard against state updates after unmount
     const isMountedRef = useRef(true)
@@ -90,7 +89,6 @@ export function useCatalogActions({
             if (!isMountedRef.current) return
             // Kayıt sürerken yapılan değişiklikler bu snapshot'ta olmadığından kaydedilmemiş kalır
             markSaved(data)
-            setLastSavedAt(new Date())
             setSaveStatus("saved")
             autosaveErrorShownRef.current = false
         } catch (error) {
@@ -160,7 +158,6 @@ export function useCatalogActions({
                         const newCatalog = await enqueueWrite(() => createCatalog(buildCatalogPayload(data)))
                         setCurrentCatalogId(newCatalog.id)
                         markSaved(data)
-                        setLastSavedAt(new Date())
                         setSaveStatus("saved")
                         toast.success(t('toasts.catalogCreated'))
                         refreshUser().catch(() => undefined)
@@ -228,7 +225,6 @@ export function useCatalogActions({
 
                 setIsPublished(newPublishState)
                 markSaved(data)
-                setLastSavedAt(new Date())
                 setSaveStatus("saved")
 
                 if (newPublishState) {
@@ -258,7 +254,6 @@ export function useCatalogActions({
         expectedSlug,
         isUrlOutdated,
         saveStatus,
-        lastSavedAt,
         handleSave,
         handleUpdateSlug,
         handlePublish,
