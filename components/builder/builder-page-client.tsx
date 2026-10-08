@@ -15,6 +15,7 @@ import React from "react"
 import { BuilderToolbar } from "./toolbar/builder-toolbar"
 import { ExitDialog } from "./modals/exit-dialog"
 import { PdfProgressModal } from "@/components/ui/pdf-progress-modal"
+import { getCatalogShareUrl } from "@/lib/catalog-url"
 
 // FIX(F2): Context-based architecture — replaces 60+ prop drilling
 import { BuilderProvider, useBuilder } from "./builder-context"
@@ -203,7 +204,7 @@ function BuilderContent() {
         onOpenChange={state.setShowShareModal}
         catalog={catalog}
         isPublished={state.isPublished}
-        shareUrl={catalog?.share_slug && process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/catalog/${catalog.share_slug}` : ""}
+        shareUrl={catalog?.share_slug ? getCatalogShareUrl(catalog.share_slug) : ""}
         onDownloadPdf={handlers.handleDownloadPDF}
       />
 

@@ -150,12 +150,23 @@ export async function updateCatalog(id: string, updates: Partial<Catalog>, optio
   return { success: true }
 }
 
-export async function deleteCatalog(id: string) {
+export async function deleteCatalog(id: string, publicSlug?: string | null) {
   await apiFetch(`/catalogs/${id}`, {
     method: "DELETE",
   })
   revalidatePath("/dashboard", "layout")
+  // Yayındaki sayfa önbellekte kalmasın
+  if (publicSlug) revalidatePath(`/catalog/${publicSlug}`)
   return { success: true }
+}
+
+export async function duplicateCatalog(id: string, name?: string) {
+  const copy = await apiFetch<Catalog>(`/catalogs/${id}/duplicate`, {
+    method: "POST",
+    body: JSON.stringify(name ? { name } : {}),
+  })
+  revalidatePath("/dashboard", "layout")
+  return copy
 }
 
 export async function publishCatalog(id: string, isPublished: boolean, share_slug?: string | null) {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
+import { getCatalogShareUrl } from "@/lib/catalog-url"
 import { slugify, type BuilderCatalogData, buildCatalogPayload } from "@/components/builder/builder-utils"
 
 /** Son düzenlemeden bu kadar sonra otomatik kaydedilir */
@@ -228,7 +229,7 @@ export function useCatalogActions({
                 setSaveStatus("saved")
 
                 if (newPublishState) {
-                    const shareUrl = `${window.location.origin}/catalog/${shareSlug}`
+                    const shareUrl = getCatalogShareUrl(shareSlug)
                     toast.success(t('builder.catalogPublished'), {
                         description: t('builder.catalogPublishedDesc'),
                         action: {

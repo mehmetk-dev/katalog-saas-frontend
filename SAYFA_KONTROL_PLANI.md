@@ -64,7 +64,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 5 | İçe / dışa aktarma (Excel/CSV) | 🔴 Yüksek | ⏳ |
 | 6 | Kategoriler | 🟡 Orta | ⏳ |
 | 7 | Excel düzenleyici (+ AI) | 🟡 Orta | ⏳ |
-| 8 | Kataloglar listesi | 🔴 Yüksek | ⏳ |
+| 8 | Kataloglar listesi | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek backend ile doğrulama kaldı) |
 | 9 | Katalog editörü (builder) | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
 | 10 | Yayındaki katalog sayfası (`/catalog/[slug]`) | 🔴 Yüksek | ⏳ |
 | 11 | PDF export | 🔴 Yüksek | ⏳ |
@@ -176,6 +176,21 @@ Kalan:
 - [ ] Küçük önizlemeler (thumbnail) doğru şablonla mı
 - [ ] Arama; boş durum
 - [ ] Eksik olabilecekler: katalog kopyalama, yeniden adlandırma listeden
+
+**Yapılanlar (8 Ekim 2026):**
+- Plan düşürülünce limit dışında kalan kataloglar ("kilitli") listede görünmüyordu: sayfa veriyi doğrudan Supabase'den okuyup backend'in hesapladığı `is_disabled`'ı hiç almıyordu, kullanıcı tıklayınca builder 403 veriyordu. Artık aynı sıra (`updated_at desc`) ve limitle hesaplanıyor; kilitli kart, "Ziyaretçilere kapalı" rozeti ve açıklayıcı uyarı bandı var.
+- Silme hatası yakalanmıyordu (toast yok, dialog takılı kalıyordu) → yükleniyor durumu + hata mesajı; yayındaki katalog silinince public sayfa önbelleği de temizleniyor (`deleteCatalog(id, slug)`).
+- Limit modalında bozuk karakter ("âˆ") ve sabit yazılmış plan sayıları/"Business" vardı → ara modal kaldırıldı, doğrudan plan yükseltme modalı açılıyor; limit metni `{max}` ile plan sabitlerinden geliyor; sayaç Plus için de gösteriliyor.
+- Arama sonucu boşken "Henüz katalog yok + oluştur" gösteriliyordu → ayrı "eşleşen katalog yok" durumu + filtreleri temizle.
+- Yeni: durum filtresi (Tümü/Yayında/Taslak), listeden **yeniden adlandırma**, **kopyalama** (yeni backend ucu `POST /catalogs/:id/duplicate`: tasarım + ürünler kopyalanır, yayın durumu/slug/istatistik kopyalanmaz, plan limiti uygulanır), son güncelleme zamanı, görüntülenme sayısı.
+- Paylaş modalında iki kapatma butonu vardı, PDF butonu bu sayfada hiçbir şey yapmıyordu, `NEXT_PUBLIC_APP_URL` yoksa link/QR boş kalıyordu → düzeltildi (`lib/catalog-url.ts`, builder da aynı yardımcıyı kullanıyor); pano hatası yakalanıyor.
+- Performans: tüm kataloglardaki tüm ürünler yerine yalnızca kart önizlemesi için ilk 6 ürün çekiliyor (paralel); ürün eşleme `Map` ile; kart bileşeni `memo`'lu ve ayrı dosyada (`catalog-card.tsx`).
+- Kart önizlemesi builder ile aynı ayarları kullanıyor (başlık rengi, SKU, başlık konumu; yanlış `theme` alanı düzeltildi); önizleme kırpıldı, mobilde liste ~%40 kısaldı; hover-only "Düzenle" yerine önizlemenin kendisi klavyeyle erişilebilir link.
+- Yeni oluşturmada tam sayfa yenileme yerine `router.push`, tarih kullanıcının dilinde, limit hatasında plan modalı.
+- Kullanılmayan `catalog-thumbnail.tsx` silindi.
+- Testler: `catalogs-page-client.test.tsx` (2 → 10), `catalog-duplicate.test.ts` (backend ucu).
+
+**Not:** Plan düşünce hangi katalogların açık kalacağı "en son güncellenen" sırasına bağlı; ürün silmek de ilgili katalogların `updated_at`'ini değiştiriyor, yani açık kalan katalog kendiliğinden değişebilir. Ürün kararı gerekiyor (ör. kullanıcının seçtiği katalog açık kalsın).
 
 ### 9. Katalog editörü — ✅ büyük ölçüde yapıldı
 Yapılanlar: tam ekran düzen, otomatik kayıt + durum, geri al/yinele, kısayollar, yeni sekmeler, şablon/kapak düzeltmeleri.

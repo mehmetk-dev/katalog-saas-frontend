@@ -1,17 +1,11 @@
-﻿"use client"
+"use client"
 
-import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Plus, Search, MoreVertical, Pencil, Trash2, Eye, Share2, Lock, QrCode, Shield, Zap, Sparkles } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { BookOpen, Loader2, Lock, Plus, Search, SearchX, X } from "lucide-react"
 import { toast } from "sonner"
-import dynamic from "next/dynamic"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,483 +16,452 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { deleteCatalog, type Catalog } from "@/lib/actions/catalogs"
-import type { Product } from "@/lib/actions/products"
-import { ResponsiveContainer } from "@/components/ui/responsive-container"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PageHeader } from "@/components/ui/page-header"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
+import { CatalogCard, type CatalogCardAction } from "@/components/catalogs/catalog-card"
 import { ShareModal } from "@/components/catalogs/share-modal"
+import { createCatalog, deleteCatalog, duplicateCatalog, updateCatalog, type Catalog } from "@/lib/actions/catalogs"
+import type { Product } from "@/lib/actions/products"
+import { getCatalogShareUrl } from "@/lib/catalog-url"
+import { getPlanLimits, type PlanType } from "@/lib/constants"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useUser } from "@/lib/contexts/user-context"
+import { cn } from "@/lib/utils"
 
-const CatalogPreview = dynamic(() => import("@/components/builder/preview/catalog-preview").then(m => m.CatalogPreview), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full aspect-[794/1123] bg-muted animate-pulse flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-border border-t-ring animate-spin" />
-    </div>
-  )
-})
-
-
+const PREVIEW_PRODUCTS_PER_CATALOG = 6
+type StatusFilter = "all" | "published" | "draft"
 
 interface CatalogsPageClientProps {
   initialCatalogs: Catalog[]
   userProducts: Product[]
-  userPlan?: "free" | "plus" | "pro"
+  userPlan?: PlanType
 }
 
-import { PLAN_LIMITS } from "@/lib/constants"
-import { PageHeader } from "@/components/ui/page-header"
-
-// Plan limitleri â€” uses shared constants
-const CATALOG_LIMITS = {
-  free: PLAN_LIMITS.free.maxCatalogs,
-  plus: PLAN_LIMITS.plus.maxCatalogs,
-  pro: PLAN_LIMITS.pro.maxCatalogs,
+function isLimitError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : ""
+  return message.includes("limit")
 }
 
+function formatRelative(date: string, locale: string): string {
+  const diffSeconds = (new Date(date).getTime() - Date.now()) / 1000
+  if (!Number.isFinite(diffSeconds)) return ""
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["year", 31_536_000],
+    ["month", 2_592_000],
+    ["week", 604_800],
+    ["day", 86_400],
+    ["hour", 3_600],
+    ["minute", 60],
+  ]
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })
+  for (const [unit, seconds] of units) {
+    if (Math.abs(diffSeconds) >= seconds) return rtf.format(Math.round(diffSeconds / seconds), unit)
+  }
+  return rtf.format(0, "minute")
+}
 
 export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "free" }: CatalogsPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { refreshUser, adjustCatalogsCount } = useUser()
+  const { t: baseT, language } = useTranslation()
+  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+  const locale = language === "en" ? "en-US" : "tr-TR"
+
   const [catalogs, setCatalogs] = useState(initialCatalogs)
   const [search, setSearch] = useState("")
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [showLimitModal, setShowLimitModal] = useState(searchParams.get("limit_reached") === "true")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [isCreating, setIsCreating] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [shareCatalog, setShareCatalog] = useState<Catalog | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Catalog | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [renameTarget, setRenameTarget] = useState<Catalog | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
 
   useEffect(() => {
     setCatalogs(initialCatalogs)
   }, [initialCatalogs])
 
-  // URL'deki "limit_reached=true" parametresini modal aÃ§Ä±ldÄ±ktan sonra temizle
+  // Builder'dan ?limit_reached=true ile gelinirse planları göster ve URL'i temizle
   useEffect(() => {
     if (searchParams.get("limit_reached") === "true") {
-      const newPath = window.location.pathname
-      // window.history.replaceState Next.js router'Ä± tetiklemeden URL'i sessizce temizler
-      window.history.replaceState({}, "", newPath)
+      setShowUpgradeModal(true)
+      window.history.replaceState({}, "", window.location.pathname)
     }
   }, [searchParams])
 
-  const maxCatalogs = CATALOG_LIMITS[userPlan]
-  const isAtLimit = catalogs.length >= maxCatalogs
-  const isFreeUser = userPlan === "free"
-  const { t: baseT } = useTranslation()
-  const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+  const { maxCatalogs } = getPlanLimits(userPlan)
+  const hasLimit = Number.isFinite(maxCatalogs)
+  const isAtLimit = hasLimit && catalogs.length >= maxCatalogs
+  const lockedCount = catalogs.filter((catalog) => catalog.is_disabled).length
 
-  const filteredCatalogs = catalogs.filter(
-    (catalog) =>
-      catalog.name.toLowerCase().includes(search.toLowerCase()) ||
-      catalog.description?.toLowerCase().includes(search.toLowerCase()),
-  )
+  const productsById = useMemo(() => new Map(userProducts.map((product) => [product.id, product])), [userProducts])
 
-  const handleDelete = async () => {
-    if (!deleteId) return
+  const statusCounts = useMemo(() => {
+    const published = catalogs.filter((catalog) => catalog.is_published).length
+    return { all: catalogs.length, published, draft: catalogs.length - published }
+  }, [catalogs])
 
-    const result = await deleteCatalog(deleteId)
-    if (result.success) {
-      setCatalogs(catalogs.filter((c) => c.id !== deleteId))
-      await refreshUser()
-      router.refresh() // Sunucu verilerini de tazele
-      toast.success(t('toasts.catalogDeleted'))
-    } else {
-      toast.error((result as { error?: string }).error || t('catalogs.deleteFailed'))
-    }
-    setDeleteId(null)
-  }
-
-  const copyShareLink = (slug: string) => {
-    const url = `${window.location.origin}/catalog/${slug}`
-    navigator.clipboard.writeText(url)
-    toast.success(t('toasts.linkCopied'))
-  }
+  const filteredCatalogs = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase(locale)
+    return catalogs.filter((catalog) => {
+      if (statusFilter === "published" && !catalog.is_published) return false
+      if (statusFilter === "draft" && catalog.is_published) return false
+      if (!query) return true
+      return (
+        catalog.name.toLocaleLowerCase(locale).includes(query) ||
+        (catalog.description?.toLocaleLowerCase(locale).includes(query) ?? false)
+      )
+    })
+  }, [catalogs, locale, search, statusFilter])
 
   const handleNewCatalog = async () => {
     if (isAtLimit) {
-      setShowLimitModal(true)
+      setShowUpgradeModal(true)
       return
     }
 
-    const toastId = toast.loading(t('toasts.creatingCatalog'))
+    setIsCreating(true)
     try {
-      const { createCatalog } = await import("@/lib/actions/catalogs")
-      const currentDate = new Date().toLocaleDateString('tr-TR')
-      const baseName = t("catalogs.newCatalog")
-
-      const newCatalog = await createCatalog({
-        name: `${baseName} - ${currentDate}`,
-        layout: "modern-grid"
-      })
-
+      const date = new Date().toLocaleDateString(locale)
+      const newCatalog = await createCatalog({ name: `${t("catalogs.newCatalog")} - ${date}`, layout: "modern-grid" })
       adjustCatalogsCount(1)
-
-      toast.success(t('toasts.catalogCreated'), { id: toastId })
-      window.location.href = `/dashboard/builder?id=${newCatalog.id}`
-    } catch (error: unknown) {
-      console.error("Catalog creation error:", error)
-      const message = (error instanceof Error ? error.message : null) || t('catalogs.createFailed')
-      toast.error(message, { id: toastId })
+      router.push(`/dashboard/builder?id=${newCatalog.id}`)
+    } catch (error) {
+      setIsCreating(false)
+      if (isLimitError(error)) {
+        setShowUpgradeModal(true)
+        return
+      }
+      toast.error(error instanceof Error && error.message ? error.message : t("catalogs.createFailed"))
     }
   }
 
+  const handleDuplicate = useCallback(async (catalog: Catalog) => {
+    if (isAtLimit) {
+      setShowUpgradeModal(true)
+      return
+    }
+
+    setDuplicatingId(catalog.id)
+    try {
+      const copy = await duplicateCatalog(catalog.id, `${catalog.name} ${t("catalogs.copySuffix")}`)
+      setCatalogs((prev) => [copy, ...prev])
+      adjustCatalogsCount(1)
+      toast.success(t("catalogs.duplicated"), {
+        action: { label: t("catalogs.edit"), onClick: () => router.push(`/dashboard/builder?id=${copy.id}`) },
+      })
+      router.refresh()
+    } catch (error) {
+      if (isLimitError(error)) {
+        setShowUpgradeModal(true)
+      } else {
+        toast.error(t("catalogs.duplicateFailed"))
+      }
+    } finally {
+      setDuplicatingId(null)
+    }
+  }, [adjustCatalogsCount, isAtLimit, router, t])
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      await deleteCatalog(deleteTarget.id, deleteTarget.is_published ? deleteTarget.share_slug : null)
+      setCatalogs((prev) => prev.filter((catalog) => catalog.id !== deleteTarget.id))
+      adjustCatalogsCount(-1)
+      toast.success(t("toasts.catalogDeleted"))
+      setDeleteTarget(null)
+      // Kilitli kataloglar sıraya göre hesaplanır; silme sonrası sunucudan tazele
+      router.refresh()
+      void refreshUser()
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : t("catalogs.deleteFailed"))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleRename = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!renameTarget) return
+    const name = renameValue.trim()
+    if (!name || name === renameTarget.name) {
+      setRenameTarget(null)
+      return
+    }
+
+    setIsRenaming(true)
+    try {
+      await updateCatalog(renameTarget.id, { name }, { publicSlug: renameTarget.is_published ? renameTarget.share_slug : null })
+      setCatalogs((prev) => prev.map((catalog) => (catalog.id === renameTarget.id ? { ...catalog, name } : catalog)))
+      toast.success(t("catalogs.renamed"))
+      setRenameTarget(null)
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : t("catalogs.renameFailed"))
+    } finally {
+      setIsRenaming(false)
+    }
+  }
+
+  const copyShareLink = useCallback(async (catalog: Catalog) => {
+    if (!catalog.share_slug) return
+    try {
+      await navigator.clipboard.writeText(getCatalogShareUrl(catalog.share_slug))
+      toast.success(t("toasts.linkCopied"))
+    } catch {
+      toast.error(t("catalogs.copyFailed"))
+    }
+  }, [t])
+
+  const handleCardAction = useCallback((action: CatalogCardAction, catalog: Catalog) => {
+    switch (action) {
+      case "rename":
+        setRenameValue(catalog.name)
+        setRenameTarget(catalog)
+        break
+      case "duplicate":
+        void handleDuplicate(catalog)
+        break
+      case "copyLink":
+        void copyShareLink(catalog)
+        break
+      case "share":
+        setShareCatalog(catalog)
+        break
+      case "delete":
+        setDeleteTarget(catalog)
+        break
+      case "upgrade":
+        setShowUpgradeModal(true)
+        break
+    }
+  }, [copyShareLink, handleDuplicate])
+
+  const hasFilters = search.trim() !== "" || statusFilter !== "all"
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
       <PageHeader
         title={t("catalogs.title")}
         description={
-          <>
+          <span className="inline-flex flex-wrap items-center gap-2">
             {t("catalogs.subtitle")}
-            {isFreeUser && (
-              <Badge variant="secondary" className="ml-2 font-normal">
+            {hasLimit && (
+              <Badge variant="secondary" className="font-normal tabular-nums">
                 {t("catalogs.catalogCount", { count: catalogs.length, max: maxCatalogs })}
               </Badge>
             )}
-          </>
+          </span>
         }
         actions={
-          <Button onClick={handleNewCatalog} className="w-full sm:w-auto gap-2">
-            <Plus className="w-4 h-4" />
+          <Button onClick={handleNewCatalog} disabled={isCreating} className="w-full gap-2 sm:w-auto">
+            {isCreating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             {t("catalogs.createNew")}
           </Button>
         }
       />
 
-      {/* Limit Warning for Free Users */}
-      {isFreeUser && isAtLimit && (
-        <Card className="bg-primary/10 border-border/50 shadow-sm">
-          <CardContent className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-black/10">
-                <Lock className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">{t("catalogs.limitReached")}</p>
-                <p className="text-sm text-muted-foreground">{t("catalogs.limitDesc")}</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowUpgradeModal(true)}
-              className="bg-primary hover:from-primary hover:to-primary shadow-lg shadow-black/10"
-            >
+      {lockedCount > 0 ? (
+        <Alert variant="warning">
+          <Lock />
+          <AlertTitle>{t("catalogs.lockedBannerTitle", { count: lockedCount })}</AlertTitle>
+          <AlertDescription>
+            <p>{t("catalogs.lockedBannerDesc", { max: maxCatalogs })}</p>
+            <Button size="sm" variant="outline" className="mt-2 bg-card" onClick={() => setShowUpgradeModal(true)}>
               {t("catalogs.upgradePlan")}
             </Button>
-          </CardContent>
-        </Card>
+          </AlertDescription>
+        </Alert>
+      ) : isAtLimit ? (
+        <Alert variant="info">
+          <Lock />
+          <AlertTitle>{t("catalogs.limitReached")}</AlertTitle>
+          <AlertDescription>
+            <p>{t("catalogs.limitDesc", { max: maxCatalogs })}</p>
+            <Button size="sm" variant="outline" className="mt-2 bg-card" onClick={() => setShowUpgradeModal(true)}>
+              {t("catalogs.upgradePlan")}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {catalogs.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1 sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t("catalogs.searchPlaceholder")}
+              aria-label={t("catalogs.searchPlaceholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-card pl-9 pr-8 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label={t("catalogs.clearSearch")}
+                className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div role="radiogroup" aria-label={t("catalogs.status")} className="flex w-fit rounded-md border bg-card p-0.5">
+            {(["all", "published", "draft"] as const).map((status) => (
+              <button
+                key={status}
+                type="button"
+                role="radio"
+                aria-checked={statusFilter === status}
+                onClick={() => setStatusFilter(status)}
+                className={cn(
+                  "flex h-8 items-center gap-1.5 rounded px-3 text-sm transition-colors",
+                  statusFilter === status ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t(`catalogs.filter.${status}`)}
+                <span className="text-xs tabular-nums text-muted-foreground">{statusCounts[status]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={t("catalogs.searchPlaceholder")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-
-      {/* Catalogs Grid */}
-      {filteredCatalogs.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mb-3 sm:mb-4">
-              <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold mb-1 text-sm sm:text-base">{t("catalogs.noCatalogsYet")}</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 text-center">{t("catalogs.createFirstDesc")}</p>
-            <Button onClick={handleNewCatalog} className="w-full sm:w-auto">
+      {catalogs.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title={t("catalogs.noCatalogsYet")}
+          description={t("catalogs.createFirstDesc")}
+          action={
+            <Button onClick={handleNewCatalog} disabled={isCreating} className="gap-2">
+              {isCreating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
               {t("catalogs.createCatalog")}
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
+      ) : filteredCatalogs.length === 0 ? (
+        <EmptyState
+          icon={SearchX}
+          title={t("catalogs.noResults")}
+          description={t("catalogs.noResultsDesc")}
+          action={
+            hasFilters && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("")
+                  setStatusFilter("all")
+                }}
+              >
+                {t("catalogs.clearFilters")}
+              </Button>
+            )
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {filteredCatalogs.map((catalog) => {
-            const catalogProductIds = Array.isArray(catalog.product_ids) ? catalog.product_ids : []
-            const catalogProducts = Array.isArray(userProducts)
-              ? catalogProductIds.map(id => userProducts.find(p => p.id === id)).filter(Boolean) as Product[]
-              : []
+            const previewProducts = (catalog.product_ids || [])
+              .slice(0, PREVIEW_PRODUCTS_PER_CATALOG)
+              .map((id) => productsById.get(id))
+              .filter((product): product is Product => !!product)
 
             return (
-              <Card
-                key={catalog.id}
-                className="group overflow-hidden bg-card hover:shadow-lg border-0 shadow-sm ring-1 ring-border"
-                style={{ contentVisibility: 'auto', containIntrinsicSize: '0 400px' }}
-              >
-                <CardContent className="p-0 relative bg-muted/30 dark:bg-muted/50">
-                  {/* Preview Container using ResponsiveContainer */}
-                  <div className="relative border-b">
-                    <ResponsiveContainer>
-                      <CatalogPreview
-                        layout={catalog.layout}
-                        catalogName={catalog.name}
-                        products={catalogProducts.slice(0, 6)}
-                        primaryColor={catalog.primary_color}
-                        showPrices={catalog.show_prices}
-                        showDescriptions={catalog.show_descriptions}
-                        showAttributes={catalog.show_attributes}
-                        columnsPerRow={catalog.columns_per_row}
-                        backgroundColor={catalog.background_color}
-                        backgroundImage={catalog.background_image || undefined}
-                        backgroundImageFit={catalog.background_image_fit || undefined}
-                        backgroundGradient={catalog.background_gradient || undefined}
-                        logoUrl={catalog.logo_url || undefined}
-                        logoPosition={catalog.logo_position || undefined}
-                        logoSize={catalog.logo_size || undefined}
-                        productImageFit={catalog.product_image_fit || 'cover'}
-                        enableCoverPage={false} // KullanÄ±cÄ± burada kapak deÄŸil Ã¼rÃ¼n sayfasÄ±nÄ± gÃ¶rmek istiyor
-                        enableCategoryDividers={false} // Sadece ilk Ã¼rÃ¼n sayfasÄ±nÄ± garanti etmek iÃ§in
-                        coverImageUrl={catalog.cover_image_url || undefined}
-                        coverDescription={catalog.cover_description || undefined}
-                        theme={(catalog as { theme?: string }).theme || 'light'}
-                        showControls={false}
-                      />
-                    </ResponsiveContainer>
-
-                    {/* Overlay for Edit or Disabled */}
-                    {catalog.is_disabled ? (
-                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 p-4 text-center backdrop-blur-[2px]">
-                        <div className="w-12 h-12 rounded-full bg-background/20 flex items-center justify-center mb-3 border border-white/30">
-                          <Lock className="w-6 h-6 text-white" />
-                        </div>
-                        <p className="text-white font-bold text-sm mb-2">{t("catalogs.limitReached")}</p>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="rounded-full shadow-lg font-bold bg-primary border-primary text-primary-foreground hover:bg-primary/90"
-                          onClick={() => setShowUpgradeModal(true)}
-                        >
-                          {t("catalogs.upgradePlan")}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 duration-150">
-                        <Button variant="secondary" size="default" className="rounded-full px-4 sm:px-8 font-semibold shadow-xl translate-y-2 group-hover:translate-y-0 transition-all duration-150" asChild>
-                          <Link href={`/dashboard/builder?id=${catalog.id}`}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            {t("catalogs.edit")}
-                          </Link>
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Footer Info */}
-                  <div className="p-3 sm:p-4 border-t bg-card relative z-20">
-                    <div className="flex items-start justify-between mb-2 gap-2">
-                      <div className="flex-1 min-w-0">
-                        {catalog.is_disabled ? (
-                          <div className="cursor-not-allowed">
-                            <h3 className="font-semibold truncate text-sm sm:text-base text-muted-foreground">{catalog.name}</h3>
-                          </div>
-                        ) : (
-                          <Link href={`/dashboard/builder?id=${catalog.id}`} className="hover:underline">
-                            <h3 className="font-semibold truncate text-sm sm:text-base text-foreground">{catalog.name}</h3>
-                          </Link>
-                        )}
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{catalog.description || t("catalogs.noDescription")}</p>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="shrink-0 -mr-2 text-muted-foreground hover:text-foreground h-8 w-8">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild disabled={catalog.is_disabled}>
-                            {catalog.is_disabled ? (
-                              <div className="flex items-center text-muted-foreground opacity-50 cursor-not-allowed w-full px-2 py-1.5 text-sm">
-                                <Lock className="w-4 h-4 mr-2" />
-                                {t("catalogs.edit")}
-                              </div>
-                            ) : (
-                              <Link href={`/dashboard/builder?id=${catalog.id}`}>
-                                <Pencil className="w-4 h-4 mr-2" />
-                                {t("catalogs.edit")}
-                              </Link>
-                            )}
-                          </DropdownMenuItem>
-                          {catalog.is_published && catalog.share_slug && (
-                            <>
-                              <DropdownMenuItem asChild>
-                                <Link href={`/catalog/${catalog.share_slug}`} target="_blank">
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  {t("catalogs.view")}
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => copyShareLink(catalog.share_slug!)}>
-                                <Share2 className="w-4 h-4 mr-2" />
-                                {t("catalogs.copyLink")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setShareCatalog(catalog)}>
-                                <QrCode className="w-4 h-4 mr-2" />
-                                {t("catalogs.qrCode")}
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(catalog.id)}>
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            {t("catalogs.delete")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-2 sm:mt-3 flex-wrap">
-                      <Badge variant={catalog.is_published ? "default" : "secondary"} className="rounded-sm font-normal text-xs">
-                        {catalog.is_published ? t("catalogs.published") : t("catalogs.draft")}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{catalogProductIds.length} {t("catalogs.products")}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={catalog.id} className={cn(duplicatingId === catalog.id && "pointer-events-none opacity-60")}>
+                <CatalogCard
+                  catalog={catalog}
+                  previewProducts={previewProducts}
+                  updatedLabel={t("catalogs.updatedAt", { time: formatRelative(catalog.updated_at, locale) })}
+                  onAction={handleCardAction}
+                  t={t}
+                />
+              </div>
             )
           })}
         </div>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base sm:text-lg">{t("catalogs.deleteConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">{t("catalogs.deleteDesc")}</AlertDialogDescription>
+            <AlertDialogTitle>{t("catalogs.deleteConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.is_published
+                ? t("catalogs.deleteDescPublished", { name: deleteTarget?.name })
+                : t("catalogs.deleteDescNamed", { name: deleteTarget?.name })}
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">{t("catalogs.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="w-full sm:w-auto bg-destructive text-destructive-foreground">
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>{t("catalogs.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                // Dialog istek bitene kadar açık kalsın
+                event.preventDefault()
+                void handleDelete()
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="size-4 animate-spin" />}
               {t("catalogs.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Limit Info Modal - Premium Redesign */}
-      <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
-        <DialogContent className="sm:max-w-md max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl flex flex-col bg-background">
-          <DialogTitle className="sr-only">{t("catalogs.limitReached")}</DialogTitle>
-
-          {/* Compact Minimalist Header */}
-          <div className="relative border-b border-border bg-gradient-to-b from-background to-muted/20 pb-1">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-full bg-primary/5 blur-[80px] pointer-events-none" />
-
-            <div className="relative px-6 pt-8 pb-4">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-warning/10 flex items-center justify-center border border-warning/50">
-                  <Lock className="w-6 h-6 text-warning-soft-foreground" />
-                </div>
-                <div className="text-center space-y-0.5">
-                  <h2 className="text-xl font-bold tracking-tight text-foreground">{t("catalogs.limitReached")}</h2>
-                  <p className="text-xs text-muted-foreground">{t("catalogs.limitModalDesc")}</p>
-                </div>
-              </div>
+      <Dialog open={!!renameTarget} onOpenChange={(open) => !open && !isRenaming && setRenameTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleRename} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>{t("catalogs.renameTitle")}</DialogTitle>
+              <DialogDescription>{t("catalogs.renameDesc")}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <Label htmlFor="catalog-rename">{t("catalogs.name")}</Label>
+              <Input
+                id="catalog-rename"
+                value={renameValue}
+                maxLength={255}
+                autoFocus
+                onChange={(e) => setRenameValue(e.target.value)}
+                disabled={isRenaming}
+              />
             </div>
-          </div>
-
-          {/* Plans Summary List */}
-          <div className="p-5 space-y-3 bg-muted/30 dark:bg-background/20 flex-1">
-            {/* Free Plan */}
-            <div className="relative group p-4 rounded-2xl border border-border bg-background flex items-center gap-4 opacity-70">
-              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                <Shield className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-bold text-foreground">{t("catalogs.freePlanName")}</h4>
-                <p className="text-[10px] text-muted-foreground">{t("catalogs.currentPlan")}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold text-foreground">1</span>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase">{t("catalogs.catalog")}</p>
-              </div>
-            </div>
-
-            {/* Plus Plan (Recommended) */}
-            <div className="relative group p-4 rounded-2xl border border-info/20 bg-gradient-to-br from-info-soft/50 to-background dark:to-card flex items-center gap-4 shadow-sm ring-1 ring-info/10 hover:shadow-md transition-all cursor-pointer"
-              onClick={() => {
-                setShowLimitModal(false)
-                setShowUpgradeModal(true)
-              }}>
-              <div className="absolute -top-2 left-6 px-2 py-0.5 bg-info text-info-foreground text-[9px] font-bold rounded-full shadow-sm uppercase tracking-tighter">
-                {t("catalogs.recommended")}
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-info-soft flex items-center justify-center shrink-0">
-                <Zap className="w-5 h-5 text-info" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-bold text-foreground">{t("catalogs.proPlanName")}</h4>
-                <p className="text-[10px] text-info/70 font-medium">{t("catalogs.proPlanDesc")}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold text-info-soft-foreground">10</span>
-                <p className="text-[9px] font-bold text-info/50 uppercase">{t("catalogs.catalog")}</p>
-              </div>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="relative group p-4 rounded-2xl border border-border bg-gradient-to-br from-muted/50 to-background dark:to-card flex items-center gap-4 hover:shadow-md transition-all cursor-pointer"
-              onClick={() => {
-                setShowLimitModal(false)
-                setShowUpgradeModal(true)
-              }}>
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-bold text-foreground">Business</h4>
-                <p className="text-[10px] text-primary/70 font-medium">{t("catalogs.unlimitedOps")}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold text-primary">âˆ</span>
-                <p className="text-[9px] font-bold text-primary/50 uppercase whitespace-nowrap">{t("catalogs.unlimited")}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-4 border-t border-border flex gap-3 bg-background">
-            <Button
-              variant="ghost"
-              onClick={() => setShowLimitModal(false)}
-              className="flex-1 text-[11px] font-bold h-9 hover:bg-muted"
-            >
-              {t("catalogs.laterButton")}
-            </Button>
-            <Button
-              onClick={() => {
-                setShowLimitModal(false)
-                setShowUpgradeModal(true)
-              }}
-              className="flex-1 h-9 rounded-xl font-bold transition-all text-[11px] bg-info hover:bg-info/90 text-info-foreground shadow-sm"
-            >
-              {t("catalogs.viewPlans")}
-            </Button>
-          </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRenameTarget(null)} disabled={isRenaming}>
+                {t("catalogs.cancel")}
+              </Button>
+              <Button type="submit" disabled={isRenaming || !renameValue.trim()}>
+                {isRenaming && <Loader2 className="size-4 animate-spin" />}
+                {t("catalogs.save")}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Upgrade Modal */}
-      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+      <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} plan={userPlan} />
 
-      {/* Share & QR Code Modal */}
       <ShareModal
         open={!!shareCatalog}
         onOpenChange={(open) => !open && setShareCatalog(null)}
         catalog={shareCatalog}
         isPublished={!!shareCatalog?.is_published}
-        shareUrl={shareCatalog?.share_slug && process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/catalog/${shareCatalog.share_slug}` : ''}
-        onDownloadPdf={async () => { }}
+        shareUrl={shareCatalog?.share_slug ? getCatalogShareUrl(shareCatalog.share_slug) : ""}
       />
     </div>
   )
 }
-

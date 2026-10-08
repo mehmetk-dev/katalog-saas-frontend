@@ -16,6 +16,7 @@ router.get('/templates', requireAuth, CatalogController.getTemplates);
 router.get('/stats', requireAuth, expensiveReadLimiter, CatalogController.getDashboardStats);
 router.get('/:id', requireAuth, CatalogController.getCatalog);
 router.post('/', requireAuth, CatalogController.createCatalog);
+router.post('/:id/duplicate', requireAuth, heavyMutationLimiter, CatalogController.duplicateCatalog);
 router.put('/:id', requireAuth, CatalogController.updateCatalog);
 router.delete('/:id', requireAuth, CatalogController.deleteCatalog);
 router.patch('/:id/publish', requireAuth, heavyMutationLimiter, CatalogController.publishCatalog);

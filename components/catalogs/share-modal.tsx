@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react"
 import QRCode from "qrcode"
 import NextImage from "next/image"
 import {
-    X,
     Copy,
     Check,
     Download,
@@ -29,7 +28,8 @@ interface ShareModalProps {
     catalog: Catalog | null
     isPublished: boolean
     shareUrl: string
-    onDownloadPdf: () => Promise<void>
+    /** Verilmezse yayında olmayan katalog için PDF butonu gösterilmez */
+    onDownloadPdf?: () => Promise<void> | void
 }
 
 export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl, onDownloadPdf }: ShareModalProps) {
@@ -56,11 +56,15 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
     }, [open, shareUrl, isPublished])
 
     const handleCopyLink = async () => {
-        if (!isPublished) return
-        await navigator.clipboard.writeText(shareUrl)
-        setCopied(true)
-        toast.success(t("share.linkCopiedToast"))
-        setTimeout(() => setCopied(false), 2000)
+        if (!isPublished || !shareUrl) return
+        try {
+            await navigator.clipboard.writeText(shareUrl)
+            setCopied(true)
+            toast.success(t("share.linkCopiedToast"))
+            setTimeout(() => setCopied(false), 2000)
+        } catch {
+            toast.error(t("share.copyFailed"))
+        }
     }
 
     const handleDownloadQR = () => {
@@ -163,13 +167,15 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                                     {t("share.notPublishedDesc")}
                                 </p>
                             </div>
-                            <Button
-                                variant="outline"
-                                onClick={() => { onOpenChange(false); onDownloadPdf() }}
-                                className="h-10 px-6 rounded-xl text-xs font-bold"
-                            >
-                                <Download className="w-3.5 h-3.5 mr-2" /> {t("share.downloadPdf")}
-                            </Button>
+                            {onDownloadPdf && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => { onOpenChange(false); void onDownloadPdf() }}
+                                    className="h-10 px-6 rounded-xl text-xs font-bold"
+                                >
+                                    <Download className="w-3.5 h-3.5 mr-2" /> {t("share.downloadPdf")}
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="animate-in fade-in duration-500">
@@ -309,14 +315,6 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
                     </div>
                 </div>
 
-                {/* Close Button UI Adjustment */}
-                <button
-                    onClick={() => onOpenChange(false)}
-                    className="absolute right-4 top-4 rounded-full p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-card"
-                >
-                    <X className="h-4 w-4 text-muted-foreground" />
-                    <span className="sr-only">{t("share.close")}</span>
-                </button>
             </DialogContent>
         </Dialog>
     )

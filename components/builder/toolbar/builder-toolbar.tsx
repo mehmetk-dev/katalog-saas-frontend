@@ -22,6 +22,7 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { SaveStatus } from "@/lib/hooks/use-catalog-actions"
+import { getCatalogShareUrl } from "@/lib/catalog-url"
 
 type BuilderView = "split" | "editor" | "preview"
 
@@ -48,9 +49,7 @@ interface BuilderToolbarProps {
     onRedo: () => void
 }
 
-function publicCatalogUrl(slug: string) {
-    return new URL(`/catalog/${encodeURIComponent(slug)}`, process.env.NEXT_PUBLIC_APP_URL || window.location.origin).toString()
-}
+const publicCatalogUrl = getCatalogShareUrl
 
 /**
  * Builder üst barı. Mobil/masaüstü farkı tamamen CSS breakpoint'leriyle yapılır

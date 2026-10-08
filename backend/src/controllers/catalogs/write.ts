@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { supabase } from '../../services/supabase';
 import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../../services/activity-logger';
@@ -337,6 +338,99 @@ export const deleteCatalog = async (req: Request, res: Response) => {
         });
 
         res.json({ success: true });
+    } catch (error: unknown) {
+        const errorMessage = safeErrorMessage(error);
+        res.status(500).json({ error: errorMessage });
+    }
+};
+
+const duplicateCatalogSchema = z.object({
+    name: z.string().trim().min(1).max(255).optional(),
+});
+
+/** Kopyada aynen taşınan alanlar (yayın durumu, slug ve istatistikler hariç) */
+const DUPLICATE_COPIED_FIELDS = ['description', 'layout', 'template_id', 'product_ids', ...INSERT_OPTIONAL_FIELDS];
+
+export const duplicateCatalog = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+        const { id } = req.params;
+
+        const parsed = duplicateCatalogSchema.safeParse(req.body ?? {});
+        if (!parsed.success) {
+            return res.status(400).json({
+                error: 'Validation Error',
+                message: parsed.error.issues[0]?.message || 'Geçersiz istek verisi'
+            });
+        }
+
+        const [sourceResult, userData, catalogsCountResult] = await Promise.all([
+            supabase.from('catalogs').select('*').eq('id', id).eq('user_id', userId).maybeSingle(),
+            getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+                const { data } = await supabase.from('users').select('plan, full_name, company').eq('id', userId).single();
+                return data;
+            }),
+            supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        ]);
+
+        if (sourceResult.error) throw sourceResult.error;
+        const source = sourceResult.data as Record<string, unknown> | null;
+        if (!source) {
+            return res.status(404).json({ error: 'Catalog not found' });
+        }
+
+        const typedUserData = userData as { plan: string; full_name?: string; company?: string };
+        const plan = typedUserData?.plan || 'free';
+        const { maxCatalogs } = getPlanLimits(plan);
+        if ((catalogsCountResult.count || 0) >= maxCatalogs) {
+            return res.status(403).json({
+                error: 'Limit Reached',
+                message: `Katalog oluşturma limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxCatalogs} adet). Daha fazla oluşturmak için paketinizi yükseltin.`
+            });
+        }
+
+        const name = parsed.data.name || `${String(source.name || 'Katalog')} (kopya)`;
+        const userName = typedUserData?.company || typedUserData?.full_name || 'user';
+
+        const insertData: Record<string, unknown> = {
+            user_id: userId,
+            name,
+            share_slug: generateShareSlug(userName, name),
+            is_published: false,
+        };
+        for (const key of DUPLICATE_COPIED_FIELDS) {
+            if (source[key] !== undefined) insertData[key] = source[key];
+        }
+
+        const { data, error } = await supabase
+            .from('catalogs')
+            .insert(insertData)
+            .select()
+            .single();
+
+        if (error) {
+            if (error.code === '23505' && error.message.includes('share_slug')) {
+                return res.status(409).json({ error: 'Bu slug zaten kullanılıyor. Lütfen tekrar deneyin.' });
+            }
+            throw error;
+        }
+
+        await Promise.all([
+            deleteCache(cacheKeys.catalogs(userId)),
+            deleteCache(cacheKeys.stats(userId))
+        ]);
+
+        const { ipAddress, userAgent } = getRequestInfo(req);
+        await logActivity({
+            userId,
+            activityType: 'catalog_created',
+            description: ActivityDescriptions.catalogCreated(name),
+            metadata: { catalogId: data.id, catalogName: name, duplicatedFrom: id },
+            ipAddress,
+            userAgent
+        });
+
+        res.status(201).json(data);
     } catch (error: unknown) {
         const errorMessage = safeErrorMessage(error);
         res.status(500).json({ error: errorMessage });
