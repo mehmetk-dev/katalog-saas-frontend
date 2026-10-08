@@ -21,7 +21,7 @@ export default async function PaymentResultPage({ searchParams }: PaymentResultP
     const payment = orderId ? await getBillingPaymentStatus(orderId) : null
 
     return (
-        <div className="flex min-h-[calc(100vh-7rem)] items-center justify-center bg-[#f6f7f9] px-1 py-8 text-slate-950 sm:px-4">
+        <div className="flex min-h-[calc(100vh-7rem)] items-center justify-center bg-background px-1 py-8 text-foreground sm:px-4">
             {payment ? <PaymentResultCard payment={payment} /> : <PaymentResultUnavailable />}
         </div>
     )

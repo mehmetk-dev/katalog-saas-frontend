@@ -311,21 +311,21 @@ export function CheckoutPageClient({
     }
 
     return (
-        <div className="min-h-full bg-slate-50 text-slate-950">
+        <div className="min-h-full bg-muted/50 text-foreground">
             <div className="px-1 py-4 sm:px-2 sm:py-6">
                 <div className="mx-auto max-w-6xl">
-                    <header className="mb-6 border-b border-slate-200 pb-6">
+                    <header className="mb-6 border-b border-border pb-6">
                         <Link
                             href="/pricing"
-                            className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-[#b91c1c]"
+                            className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand/90"
                         >
                             <ArrowLeft className="size-4" />
                             {t('checkout.backToPlans')}
                         </Link>
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                             {t('checkout.title')}
                         </h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                             {t('checkout.subtitle')}
                         </p>
                     </header>
@@ -337,7 +337,7 @@ export function CheckoutPageClient({
                         className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.72fr)]"
                     >
                         <div className="space-y-5">
-                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.03]">
+                            <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
                                 <SectionHeader
                                     number="1"
                                     title={t('checkout.planSection.title')}
@@ -367,14 +367,14 @@ export function CheckoutPageClient({
                                                 }}
                                                 aria-pressed={isSelected}
                                                 className={cn(
-                                                    'relative rounded-lg border p-4 text-left transition-colors focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:outline-none',
+                                                    'relative rounded-lg border p-4 text-left transition-colors focus-visible:ring-2 focus-visible:ring-primary/15 focus-visible:outline-none',
                                                     isSelected
-                                                        ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900'
-                                                        : 'border-slate-200 bg-white hover:border-slate-400'
+                                                        ? 'border-primary bg-muted/50 ring-1 ring-primary'
+                                                        : 'border-border bg-card hover:border-ring'
                                                 )}
                                             >
                                                 {candidatePlanId === 'pro' && (
-                                                    <span className="absolute top-4 right-4 text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+                                                    <span className="absolute top-4 right-4 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                                                         {t(
                                                             'checkout.planSection.mostComprehensive'
                                                         )}
@@ -389,16 +389,16 @@ export function CheckoutPageClient({
                                                     {candidateName}
                                                 </h3>
                                                 <p
-                                                    className="mt-1 max-w-xs text-sm leading-5 text-slate-500"
+                                                    className="mt-1 max-w-xs text-sm leading-5 text-muted-foreground"
                                                 >
                                                     {candidateDescription}
                                                 </p>
-                                                <p className="mt-4 text-base font-semibold text-slate-950">
+                                                <p className="mt-4 text-base font-semibold text-foreground">
                                                     {formatMoney(candidate.monthlyPrice)} /{' '}
                                                     {t('checkout.month')}
                                                 </p>
                                                 {isSelected && (
-                                                    <span className="absolute right-4 bottom-4 flex size-6 items-center justify-center rounded-full bg-slate-900 text-white">
+                                                    <span className="absolute right-4 bottom-4 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
                                                         <Check className="size-3.5" />
                                                     </span>
                                                 )}
@@ -407,8 +407,8 @@ export function CheckoutPageClient({
                                     })}
                                 </div>
 
-                                <div className="border-t border-slate-100 px-5 py-5 sm:px-6">
-                                    <p className="mb-3 text-sm font-semibold text-slate-800">
+                                <div className="border-t border-border px-5 py-5 sm:px-6">
+                                    <p className="mb-3 text-sm font-semibold text-foreground">
                                         {t('checkout.planSection.billingPeriod')}
                                     </p>
                                     <div className="grid gap-3 sm:grid-cols-2">
@@ -428,10 +428,10 @@ export function CheckoutPageClient({
                                                     }}
                                                     aria-pressed={selected}
                                                     className={cn(
-                                                        'flex min-h-16 items-center justify-between rounded-lg border px-4 text-left transition-colors focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:outline-none',
+                                                        'flex min-h-16 items-center justify-between rounded-lg border px-4 text-left transition-colors focus-visible:ring-2 focus-visible:ring-primary/15 focus-visible:outline-none',
                                                         selected
-                                                            ? 'border-[#b91c1c] bg-red-50/60 ring-1 ring-[#b91c1c]'
-                                                            : 'border-slate-200 hover:border-slate-400'
+                                                            ? 'border-brand/90 bg-brand-soft/60 ring-1 ring-brand/90'
+                                                            : 'border-border hover:border-ring'
                                                     )}
                                                 >
                                                     <span>
@@ -440,12 +440,12 @@ export function CheckoutPageClient({
                                                                 ? t('checkout.monthly')
                                                                 : t('checkout.yearly')}
                                                         </span>
-                                                        <span className="mt-1 block text-sm text-slate-500">
+                                                        <span className="mt-1 block text-sm text-muted-foreground">
                                                             {formatMoney(price)}
                                                         </span>
                                                     </span>
                                                     {cycle === 'yearly' && (
-                                                        <span className="text-xs font-medium text-emerald-700">
+                                                        <span className="text-xs font-medium text-success-soft-foreground">
                                                             {t('checkout.twoMonthsFree')}
                                                         </span>
                                                     )}
@@ -456,7 +456,7 @@ export function CheckoutPageClient({
                                 </div>
                             </section>
 
-                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.03]">
+                            <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
                                 <SectionHeader
                                     number="2"
                                     title={t('checkout.invoice.title')}
@@ -480,7 +480,7 @@ export function CheckoutPageClient({
                                     </div>
 
                                     {(initialCustomer.fullName || initialCustomer.email) && (
-                                        <p className="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+                                        <p className="mb-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-xs leading-5 text-muted-foreground">
                                             {t('checkout.invoice.accountPrefill')}
                                         </p>
                                     )}
@@ -610,7 +610,7 @@ export function CheckoutPageClient({
                                 </div>
                             </section>
 
-                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.03]">
+                            <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/[0.03]">
                                 <SectionHeader
                                     number="3"
                                     title={t('checkout.payment.title')}
@@ -618,19 +618,19 @@ export function CheckoutPageClient({
                                 />
 
                                 <div className="p-5 sm:p-6">
-                                    <div className="flex items-start gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700">
+                                    <div className="flex items-start gap-4 rounded-lg border border-border bg-muted/50 p-4 sm:p-5">
+                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-foreground">
                                             <CreditCard className="size-5" />
                                         </span>
                                         <div>
-                                            <h3 className="text-sm font-semibold text-slate-900">
+                                            <h3 className="text-sm font-semibold text-foreground">
                                                 {t('checkout.payment.card')}
                                             </h3>
-                                            <p className="mt-1 text-sm leading-6 text-slate-600">
+                                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
                                                 {t('checkout.payment.bankEntryNotice')}
                                             </p>
-                                            <p className="mt-2 inline-flex items-center gap-2 text-xs text-slate-500">
-                                                <ShieldCheck className="size-4 text-emerald-700" />
+                                            <p className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                                                <ShieldCheck className="size-4 text-success-soft-foreground" />
                                                 {t('checkout.payment.noCardStorage')}
                                             </p>
                                         </div>
@@ -640,9 +640,9 @@ export function CheckoutPageClient({
                         </div>
 
                         <aside className="space-y-4 lg:sticky lg:top-6">
-                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.04]">
-                                <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-                                    <h2 className="text-base font-semibold text-slate-950">
+                            <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/[0.04]">
+                                <div className="border-b border-border px-5 py-5 sm:px-6">
+                                    <h2 className="text-base font-semibold text-foreground">
                                         {t('checkout.summary.title')}
                                     </h2>
                                 </div>
@@ -650,26 +650,26 @@ export function CheckoutPageClient({
                                 <div className="p-5 sm:p-6">
                                     <dl className="space-y-3 text-sm">
                                         <div className="flex items-center justify-between gap-4">
-                                            <dt className="text-slate-500">
+                                            <dt className="text-muted-foreground">
                                                 {t('checkout.result.plan')}
                                             </dt>
-                                            <dd className="font-medium text-slate-900">{planName}</dd>
+                                            <dd className="font-medium text-foreground">{planName}</dd>
                                         </div>
                                         <div className="flex items-center justify-between gap-4">
-                                            <dt className="text-slate-500">
+                                            <dt className="text-muted-foreground">
                                                 {t('checkout.summary.period')}
                                             </dt>
-                                            <dd className="font-medium text-slate-900">
+                                            <dd className="font-medium text-foreground">
                                                 {billingCycle === 'monthly'
                                                     ? t('checkout.monthly')
                                                     : t('checkout.yearly')}
                                             </dd>
                                         </div>
-                                        <div className="mt-5 flex items-end justify-between gap-4 border-t border-slate-200 pt-5">
-                                            <dt className="font-medium text-slate-700">
+                                        <div className="mt-5 flex items-end justify-between gap-4 border-t border-border pt-5">
+                                            <dt className="font-medium text-foreground">
                                                 {t('checkout.summary.total')}
                                             </dt>
-                                            <dd className="text-2xl font-bold tracking-tight text-slate-950">
+                                            <dd className="text-2xl font-bold tracking-tight text-foreground">
                                                 {formatMoney(totals.total)}
                                             </dd>
                                         </div>
@@ -684,7 +684,7 @@ export function CheckoutPageClient({
                                             <Link
                                                 href="/legal/distance-sales-agreement"
                                                 target="_blank"
-                                                className="font-medium text-slate-900 underline underline-offset-2"
+                                                className="font-medium text-foreground underline underline-offset-2"
                                             >
                                                 {t('checkout.agreements.distanceSales')}
                                             </Link>{' '}
@@ -699,7 +699,7 @@ export function CheckoutPageClient({
                                             <Link
                                                 href="/legal/cancellation-policy"
                                                 target="_blank"
-                                                className="font-medium text-slate-900 underline underline-offset-2"
+                                                className="font-medium text-foreground underline underline-offset-2"
                                             >
                                                 {t('checkout.agreements.cancellation')}
                                             </Link>{' '}
@@ -710,7 +710,7 @@ export function CheckoutPageClient({
                                     <Button
                                         type="submit"
                                         disabled={!canContinue || isSaving}
-                                        className="mt-6 h-12 w-full rounded-lg bg-[#b91c1c] text-sm font-semibold text-white shadow-none hover:bg-[#991b1b]"
+                                        className="mt-6 h-12 w-full rounded-lg bg-brand/90 text-sm font-semibold text-brand-foreground shadow-none hover:bg-[#991b1b]"
                                     >
                                         {isSaving ? (
                                             <Loader2 className="size-4 animate-spin" />
@@ -727,7 +727,7 @@ export function CheckoutPageClient({
                             {saveError && (
                                 <div
                                     role="alert"
-                                    className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm leading-6 text-red-950"
+                                    className="rounded-xl border border-destructive/20 bg-destructive-soft p-5 text-sm leading-6 text-destructive-soft-foreground"
                                 >
                                     <div className="flex items-start gap-3">
                                         <AlertCircle className="mt-0.5 size-5 shrink-0" />
@@ -764,13 +764,13 @@ function SectionHeader({
     description: string
 }) {
     return (
-        <div className="flex items-start gap-3 border-b border-slate-100 px-5 py-5 sm:px-6">
-            <span className="pt-1 text-xs font-semibold tracking-wider text-[#b91c1c]">
+        <div className="flex items-start gap-3 border-b border-border px-5 py-5 sm:px-6">
+            <span className="pt-1 text-xs font-semibold tracking-wider text-brand/90">
                 0{number}
             </span>
             <div>
-                <h2 className="text-base font-semibold text-slate-950 sm:text-lg">{title}</h2>
-                <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
+                <h2 className="text-base font-semibold text-foreground sm:text-lg">{title}</h2>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
             </div>
         </div>
     )
@@ -793,10 +793,10 @@ function InvoiceTypeButton({
             onClick={onClick}
             aria-pressed={selected}
             className={cn(
-                'flex min-h-12 items-center gap-3 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:outline-none',
+                'flex min-h-12 items-center gap-3 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary/15 focus-visible:outline-none',
                 selected
-                    ? 'border-[#b91c1c] bg-red-50/60 text-slate-950 ring-1 ring-[#b91c1c]'
-                    : 'border-slate-200 hover:border-slate-400'
+                    ? 'border-brand/90 bg-brand-soft/60 text-foreground ring-1 ring-brand/90'
+                    : 'border-border hover:border-ring'
             )}
         >
             <Icon className="size-5" />
@@ -819,13 +819,13 @@ function CheckoutField({ id, label, error, hint, className, ...props }: Checkout
 
     return (
         <div className="space-y-2">
-            <Label htmlFor={id} className="text-sm font-medium text-slate-700">
+            <Label htmlFor={id} className="text-sm font-medium text-foreground">
                 {label}
             </Label>
             <Input
                 id={id}
                 className={cn(
-                    'h-11 rounded-lg border-slate-300 bg-white px-3.5 shadow-none focus-visible:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-900/10 aria-invalid:border-red-500',
+                    'h-11 rounded-lg border-border bg-card px-3.5 shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-primary/10 aria-invalid:border-destructive',
                     className
                 )}
                 aria-invalid={error ? true : undefined}
@@ -833,12 +833,12 @@ function CheckoutField({ id, label, error, hint, className, ...props }: Checkout
                 {...props}
             />
             {hint && (
-                <p id={`${id}-hint`} className="text-xs leading-5 text-slate-500">
+                <p id={`${id}-hint`} className="text-xs leading-5 text-muted-foreground">
                     {hint}
                 </p>
             )}
             {error && (
-                <p id={`${id}-error`} className="text-xs font-semibold text-red-700" aria-live="polite">
+                <p id={`${id}-error`} className="text-xs font-semibold text-destructive-soft-foreground" aria-live="polite">
                     {error}
                 </p>
             )}
@@ -867,13 +867,13 @@ function CheckoutTextarea({
 
     return (
         <div className="space-y-2">
-            <Label htmlFor={id} className="text-sm font-medium text-slate-700">
+            <Label htmlFor={id} className="text-sm font-medium text-foreground">
                 {label}
             </Label>
             <Textarea
                 id={id}
                 className={cn(
-                    'min-h-24 resize-y rounded-lg border-slate-300 bg-white px-3.5 py-3 shadow-none focus-visible:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-900/10 aria-invalid:border-red-500',
+                    'min-h-24 resize-y rounded-lg border-border bg-card px-3.5 py-3 shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-primary/10 aria-invalid:border-destructive',
                     className
                 )}
                 aria-invalid={error ? true : undefined}
@@ -881,12 +881,12 @@ function CheckoutTextarea({
                 {...props}
             />
             {hint && (
-                <p id={`${id}-hint`} className="text-xs leading-5 text-slate-500">
+                <p id={`${id}-hint`} className="text-xs leading-5 text-muted-foreground">
                     {hint}
                 </p>
             )}
             {error && (
-                <p id={`${id}-error`} className="text-xs font-semibold text-red-700" aria-live="polite">
+                <p id={`${id}-error`} className="text-xs font-semibold text-destructive-soft-foreground" aria-live="polite">
                     {error}
                 </p>
             )}
@@ -912,7 +912,7 @@ function AgreementCheckbox({ id, checked, onCheckedChange, children }: Agreement
             />
             <Label
                 htmlFor={id}
-                className="cursor-pointer text-xs leading-5 font-normal text-slate-600"
+                className="cursor-pointer text-xs leading-5 font-normal text-muted-foreground"
             >
                 {children}
             </Label>

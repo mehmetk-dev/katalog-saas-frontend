@@ -66,15 +66,15 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
     }, [])
 
     return (
-        <main className="bg-white text-[#111827] print:bg-white">
+        <main className="bg-card text-[#111827] print:bg-card">
             <article
-                className="relative overflow-hidden bg-white font-sans"
+                className="relative overflow-hidden bg-card font-sans"
                 style={{ width: A4_WIDTH, height: A4_HEIGHT }}
                 lang="tr"
             >
                 <div className="absolute inset-x-0 top-0 h-1.5 bg-[#172033]" aria-hidden="true" />
                 <div
-                    className="absolute top-1.5 right-0 h-0.5 w-36 bg-[#cf1414]"
+                    className="absolute top-1.5 right-0 h-0.5 w-36 bg-brand"
                     aria-hidden="true"
                 />
 
@@ -82,7 +82,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                     <header className="grid grid-cols-[1fr_260px] gap-10 border-b-2 border-[#172033] pb-5">
                         <div className="min-w-0">
                             <p
-                                className="text-[10px] font-bold tracking-[0.18em] text-[#cf1414] uppercase"
+                                className="text-[10px] font-bold tracking-[0.18em] text-brand uppercase"
                                 translate="no"
                             >
                                 FogCatalog
@@ -90,7 +90,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                             <p className="mt-2 text-[9px] font-semibold text-[#172033]">
                                 {payload.merchant.legalName}
                             </p>
-                            <p className="mt-1 text-[8px] leading-[1.45] text-slate-500">
+                            <p className="mt-1 text-[8px] leading-[1.45] text-muted-foreground">
                                 {payload.merchant.taxOffice} / {payload.merchant.taxNumber}
                                 <br />
                                 {payload.merchant.supportEmail} · {payload.merchant.website}
@@ -101,7 +101,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                             <h1 className="text-[16px] leading-none font-bold tracking-[0.04em] text-[#172033] uppercase text-balance">
                                 Ödeme Dekontu
                             </h1>
-                            <p className="mt-2 text-[8px] text-slate-500">
+                            <p className="mt-2 text-[8px] text-muted-foreground">
                                 Elektronik tahsilat kayıt belgesi
                             </p>
                             <dl className="mt-3 space-y-1 text-[8px] tabular-nums">
@@ -115,7 +115,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                         </div>
                     </header>
 
-                    <section className="mt-5 border border-slate-300">
+                    <section className="mt-5 border border-border">
                         <SectionHeader>Belge Bilgileri</SectionHeader>
                         <dl className="grid grid-cols-3">
                             <MetaCell label="Ödeme tarihi" value={formatDate(payload.paidAt)} />
@@ -129,7 +129,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                         </dl>
                     </section>
 
-                    <section className="mt-4 border border-slate-300">
+                    <section className="mt-4 border border-border">
                         <SectionHeader>Tahsilat Özeti</SectionHeader>
                         <dl className="grid grid-cols-[1.35fr_1fr_1fr]">
                             <SummaryCell label="Hizmet" value={getPlanLabel(payload)} />
@@ -147,7 +147,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                         </dl>
                     </section>
 
-                    <section className="mt-4 border border-slate-300">
+                    <section className="mt-4 border border-border">
                         <SectionHeader>Taraf Bilgileri</SectionHeader>
                         <div className="grid grid-cols-2">
                             <PartyColumn
@@ -174,7 +174,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                         </div>
                     </section>
 
-                    <section className="mt-4 border border-slate-300">
+                    <section className="mt-4 border border-border">
                         <SectionHeader>Ödeme Bilgileri</SectionHeader>
                         <dl>
                             <InfoRow label="Ödeme yöntemi" value={getPaymentMethod(payload)} />
@@ -195,8 +195,8 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                         </dl>
                     </section>
 
-                    <section className="mt-4 border border-slate-300 bg-slate-50 px-4 py-3 text-[8px] leading-[1.5] text-slate-600">
-                        <p className="font-semibold text-slate-800">
+                    <section className="mt-4 border border-border bg-muted/50 px-4 py-3 text-[8px] leading-[1.5] text-muted-foreground">
+                        <p className="font-semibold text-foreground">
                             Bu belge ödeme kaydını gösterir; fatura veya e-Arşiv fatura yerine
                             geçmez.
                         </p>
@@ -206,13 +206,13 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
                         </p>
                     </section>
 
-                    <footer className="mt-auto grid grid-cols-[1fr_auto] items-end gap-8 border-t border-slate-300 pt-3 text-[8px] leading-3.5 text-slate-500">
+                    <footer className="mt-auto grid grid-cols-[1fr_auto] items-end gap-8 border-t border-border pt-3 text-[8px] leading-3.5 text-muted-foreground">
                         <p>
                             Bu belge, doğrulanmış ödeme kaydından elektronik olarak
                             oluşturulmuştur.
                         </p>
                         <div className="text-right">
-                            <p className="font-semibold text-slate-700">www.fogcatalog.com</p>
+                            <p className="font-semibold text-foreground">www.fogcatalog.com</p>
                             <p>Sayfa 1 / 1</p>
                         </div>
                     </footer>
@@ -224,7 +224,7 @@ export function PaymentReceiptDocument({ payload }: PaymentReceiptDocumentProps)
 
 function SectionHeader({ children }: { children: string }) {
     return (
-        <h2 className="border-b border-slate-300 bg-[#eef1f5] px-4 py-2 text-[8px] font-bold tracking-[0.1em] text-[#27364d] uppercase">
+        <h2 className="border-b border-border bg-muted px-4 py-2 text-[8px] font-bold tracking-[0.1em] text-[#27364d] uppercase">
             {children}
         </h2>
     )
@@ -241,7 +241,7 @@ function DocumentLine({
 }) {
     return (
         <div className="grid grid-cols-[70px_1fr] gap-3">
-            <dt className="text-slate-500">{label}</dt>
+            <dt className="text-muted-foreground">{label}</dt>
             <dd
                 className="min-w-0 break-all font-semibold text-[#172033]"
                 translate={noTranslate ? 'no' : undefined}
@@ -266,10 +266,10 @@ function MetaCell({
     status?: boolean
 }) {
     return (
-        <div className={`min-w-0 px-4 py-3 ${bordered ? 'border-l border-slate-200' : ''}`}>
-            <dt className="text-[8px] font-medium text-slate-500">{label}</dt>
+        <div className={`min-w-0 px-4 py-3 ${bordered ? 'border-l border-border' : ''}`}>
+            <dt className="text-[8px] font-medium text-muted-foreground">{label}</dt>
             <dd
-                className={`mt-1.5 break-all text-[9px] font-semibold tabular-nums ${status ? 'text-emerald-700' : 'text-slate-800'}`}
+                className={`mt-1.5 break-all text-[9px] font-semibold tabular-nums ${status ? 'text-success-soft-foreground' : 'text-foreground'}`}
                 translate={noTranslate ? 'no' : undefined}
             >
                 {value}
@@ -290,8 +290,8 @@ function SummaryCell({
     amount?: boolean
 }) {
     return (
-        <div className={`min-w-0 px-4 py-3.5 ${bordered ? 'border-l border-slate-200' : ''}`}>
-            <dt className="text-[8px] font-medium text-slate-500">{label}</dt>
+        <div className={`min-w-0 px-4 py-3.5 ${bordered ? 'border-l border-border' : ''}`}>
+            <dt className="text-[8px] font-medium text-muted-foreground">{label}</dt>
             <dd
                 className={`mt-2 break-words font-semibold text-[#172033] tabular-nums ${amount ? 'text-[13px]' : 'text-[9px]'}`}
             >
@@ -314,11 +314,11 @@ function InfoRow({
 }) {
     return (
         <div
-            className={`grid grid-cols-[165px_1fr] text-[9px] ${last ? '' : 'border-b border-slate-200'}`}
+            className={`grid grid-cols-[165px_1fr] text-[9px] ${last ? '' : 'border-b border-border'}`}
         >
-            <dt className="bg-slate-50 px-4 py-2 font-medium text-slate-600">{label}</dt>
+            <dt className="bg-muted/50 px-4 py-2 font-medium text-muted-foreground">{label}</dt>
             <dd
-                className="break-all px-4 py-2 text-right font-medium text-slate-800 tabular-nums"
+                className="break-all px-4 py-2 text-right font-medium text-foreground tabular-nums"
                 translate={noTranslate ? 'no' : undefined}
             >
                 {value}
@@ -339,12 +339,12 @@ function PartyColumn({
     right?: boolean
 }) {
     return (
-        <div className={`min-h-28 min-w-0 p-4 ${right ? 'border-l border-slate-300' : ''}`}>
-            <p className="text-[8px] font-semibold tracking-[0.08em] text-slate-500 uppercase">
+        <div className={`min-h-28 min-w-0 p-4 ${right ? 'border-l border-border' : ''}`}>
+            <p className="text-[8px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
                 {title}
             </p>
             <h3 className="mt-2 break-words text-[10px] font-semibold text-pretty">{name}</h3>
-            <div className="mt-2 space-y-0.5 break-words text-[8px] leading-[1.45] text-slate-600">
+            <div className="mt-2 space-y-0.5 break-words text-[8px] leading-[1.45] text-muted-foreground">
                 {lines.filter(Boolean).map((line) => (
                     <p key={line}>{line}</p>
                 ))}
