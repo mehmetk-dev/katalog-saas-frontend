@@ -141,7 +141,7 @@ export function ProductsPagination({
                                     size="sm"
                                     className={cn(
                                         "h-8 w-8 text-xs font-medium transition-all",
-                                        currentPage === pageNum && "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25"
+                                        currentPage === pageNum && "bg-primary text-primary-foreground shadow-lg shadow-black/25"
                                     )}
                                     onClick={() => onPageChange(pageNum)}
                                 >

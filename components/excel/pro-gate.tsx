@@ -15,7 +15,7 @@ export function ProGate({ onUpgrade }: ProGateProps) {
   return (
     <div className="flex-1 flex items-center justify-center p-8">
       <div className="max-w-md text-center space-y-6">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-warning flex items-center justify-center shadow-lg shadow-warning/20">
           <Table2 className="h-8 w-8 text-white" />
         </div>
 

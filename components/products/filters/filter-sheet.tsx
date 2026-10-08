@@ -90,7 +90,7 @@ export function ProductsFilterSheet({
                                     size="sm"
                                     className={cn(
                                         "justify-between",
-                                        sortField === opt.value && "bg-violet-600 hover:bg-violet-700"
+                                        sortField === opt.value && "bg-primary hover:bg-primary/90"
                                     )}
                                     onClick={() => {
                                         if (sortField === opt.value) {
@@ -141,7 +141,7 @@ export function ProductsFilterSheet({
                                     key={opt.value}
                                     variant={stockFilter === opt.value ? "default" : "outline"}
                                     size="sm"
-                                    className={stockFilter === opt.value ? "bg-violet-600 hover:bg-violet-700" : ""}
+                                    className={stockFilter === opt.value ? "bg-primary hover:bg-primary/90" : ""}
                                     onClick={() => onStockFilterChange(opt.value)}
                                 >
                                     {opt.label}
@@ -202,7 +202,7 @@ export function ProductsFilterSheet({
                                 </Button>
                             )}
                             <Button
-                                className={cn("flex-1 gap-2 bg-violet-600 hover:bg-violet-700", !hasActiveFilters && "w-full")}
+                                className={cn("flex-1 gap-2 bg-primary hover:bg-primary/90", !hasActiveFilters && "w-full")}
                                 onClick={() => onOpenChange(false)}
                             >
                                 <Check className="w-4 h-4" />

@@ -22,8 +22,8 @@ export function PendingProductsCard({
     onDismiss,
 }: PendingProductsCardProps) {
     return (
-        <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3">
-            <div className="text-xs font-semibold text-green-700 dark:text-green-400">
+        <div className="rounded-md border border-success/30 bg-success/5 p-3">
+            <div className="text-xs font-semibold text-success-soft-foreground">
                 {language === "tr" ? "Oluşturulan Ürünler" : "Generated Products"}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">

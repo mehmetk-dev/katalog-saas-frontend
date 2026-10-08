@@ -51,15 +51,15 @@ export function MappingStep({
     const isCategoryMapped = columnMappings.some((m) => m.systemField === 'category')
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 shrink-0">
+            <div className="rounded-xl border border-border bg-accent/40 p-4 shrink-0">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-100">
-                            <Columns3 className="w-5 h-5 text-indigo-700" />
+                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent">
+                            <Columns3 className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-indigo-950 text-base">{t('importExport.columnMapping')}</h3>
-                            <p className="text-indigo-700/70 text-sm">{csvData.length} {t('importExport.rowsToImport')}</p>
+                            <h3 className="font-semibold text-primary text-base">{t('importExport.columnMapping')}</h3>
+                            <p className="text-primary/70 text-sm">{csvData.length} {t('importExport.rowsToImport')}</p>
                         </div>
                     </div>
 
@@ -67,9 +67,9 @@ export function MappingStep({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-100/70 border border-indigo-200 cursor-help">
-                                        <Database className="w-3.5 h-3.5 text-indigo-700" />
-                                        <span className="text-indigo-800 text-sm font-medium">{mappingSummary.mapped}</span>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/70 border border-border cursor-help">
+                                        <Database className="w-3.5 h-3.5 text-primary" />
+                                        <span className="text-primary text-sm font-medium">{mappingSummary.mapped}</span>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent><p>{t('importExport.mappedFields') || 'Eşlenen Alanlar'}</p></TooltipContent>
@@ -79,9 +79,9 @@ export function MappingStep({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-indigo-200 cursor-help">
-                                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                                        <span className="text-indigo-700 text-sm font-medium">{mappingSummary.custom}</span>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 border border-border cursor-help">
+                                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                                        <span className="text-primary text-sm font-medium">{mappingSummary.custom}</span>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent><p>{t('importExport.customFields') || 'Özel Özellikler'}</p></TooltipContent>
@@ -92,25 +92,25 @@ export function MappingStep({
             </div>
 
             {isFreeUser && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
-                    <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/50">
-                        <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-warning-soft border border-warning/30">
+                    <div className="p-1.5 rounded-lg bg-warning-soft">
+                        <Crown className="w-4 h-4 text-warning-soft-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t('importExport.freePlanLimit')}</p>
-                        <p className="text-xs text-amber-600 dark:text-amber-400">{t('importExport.freePlanLimitDesc')}</p>
+                        <p className="text-sm font-medium text-warning-soft-foreground">{t('importExport.freePlanLimit')}</p>
+                        <p className="text-xs text-warning-soft-foreground">{t('importExport.freePlanLimitDesc')}</p>
                     </div>
                 </div>
             )}
 
             {isFreeUser && isCategoryMapped && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800">
-                    <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/50">
-                        <Crown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive-soft border border-destructive/20">
+                    <div className="p-1.5 rounded-lg bg-destructive-soft">
+                        <Crown className="w-4 h-4 text-destructive" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-red-800 dark:text-red-200">Kategori sütunu eşlendi ancak kaydedilmeyecek</p>
-                        <p className="text-xs text-red-600 dark:text-red-400">Free planda kategori bilgisi içe aktarılamaz. Kategori sütunundaki değerler atlanacak. Kategorileri kaydetmek için planınızı yükseltin.</p>
+                        <p className="text-sm font-medium text-destructive-soft-foreground">Kategori sütunu eşlendi ancak kaydedilmeyecek</p>
+                        <p className="text-xs text-destructive">Free planda kategori bilgisi içe aktarılamaz. Kategori sütunundaki değerler atlanacak. Kategorileri kaydetmek için planınızı yükseltin.</p>
                     </div>
                 </div>
             )}
@@ -118,11 +118,11 @@ export function MappingStep({
             {importWarnings.length > 0 && (
                 <div className="space-y-2">
                     {importWarnings.map((warning, idx) => (
-                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-950/30 dark:border-orange-800">
-                            <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/50">
-                                <Sparkles className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-warning-soft border border-warning/30">
+                            <div className="p-1.5 rounded-lg bg-warning-soft">
+                                <Sparkles className="w-4 h-4 text-warning-soft-foreground" />
                             </div>
-                            <p className="text-sm text-orange-800 dark:text-orange-200">{warning}</p>
+                            <p className="text-sm text-warning-soft-foreground">{warning}</p>
                         </div>
                     ))}
                 </div>
@@ -145,7 +145,7 @@ export function MappingStep({
                                                         : null
                                                     return sysField ? (
                                                         <span className="flex flex-col min-w-0">
-                                                            <span className="truncate max-w-[160px] text-indigo-700" title={sysField.label}>{sysField.label}</span>
+                                                            <span className="truncate max-w-[160px] text-primary" title={sysField.label}>{sysField.label}</span>
                                                             <span className="truncate max-w-[160px] text-[11px] font-normal text-muted-foreground" title={header}>{header}</span>
                                                         </span>
                                                     ) : (
@@ -159,7 +159,7 @@ export function MappingStep({
                                                 value={columnMappings[index]?.systemField === null ? 'custom_attribute' : (columnMappings[index]?.systemField || 'ignore')}
                                                 onValueChange={(val) => onMappingChange(index, val === 'custom_attribute' ? 'custom' : val === 'ignore' ? 'skip' : val)}
                                             >
-                                                <SelectTrigger className="h-9 text-xs bg-background border-input hover:border-violet-400 focus:ring-violet-500 w-full">
+                                                <SelectTrigger className="h-9 text-xs bg-background border-input hover:border-primary focus:ring-primary w-full">
                                                     <SelectValue placeholder={t('importExport.selectField') || 'Seçiniz'} />
                                                 </SelectTrigger>
                                                 <SelectContent className="z-[9999] max-h-[300px]" position="popper" sideOffset={4}>
@@ -171,11 +171,11 @@ export function MappingStep({
                                                     </div>
                                                     {systemFields.map((f) => (
                                                         <SelectItem key={f.id} value={f.id} className="cursor-pointer">
-                                                            <span className="flex items-center gap-2"><Database className="w-3.5 h-3.5 text-blue-500" />{f.label}</span>
+                                                            <span className="flex items-center gap-2"><Database className="w-3.5 h-3.5 text-info" />{f.label}</span>
                                                         </SelectItem>
                                                     ))}
                                                     <div className="border-t my-1" />
-                                                    <SelectItem value="custom_attribute" className="text-violet-600 font-medium cursor-pointer">
+                                                    <SelectItem value="custom_attribute" className="text-primary font-medium cursor-pointer">
                                                         <span className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5" />+ {t('importExport.customAttribute')}</span>
                                                     </SelectItem>
                                                 </SelectContent>

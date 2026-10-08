@@ -182,14 +182,14 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   }
 
   // ─── Render ─────────────────────────────────────────────────────────
-  const tabTriggerClass = "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-sm data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
+  const tabTriggerClass = "data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[85vh] p-0 gap-0 overflow-hidden flex flex-col">
         <DialogHeader className="px-6 py-4 border-b bg-muted/30">
           <DialogTitle className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600">
+            <div className="p-2 rounded-lg bg-primary">
               <Package2 className="w-5 h-5 text-white" />
             </div>
             {isEditing ? t("products.editProduct") : t("products.addNew")}
@@ -201,8 +201,8 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="border-b px-4 sm:px-6 shrink-0 py-2 bg-slate-50/50">
-              <TabsList className="h-11 w-full grid grid-cols-3 bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-lg gap-1">
+            <div className="border-b px-4 sm:px-6 shrink-0 py-2 bg-muted/50">
+              <TabsList className="h-11 w-full grid grid-cols-3 bg-muted/80 p-1 rounded-lg gap-1">
                 <TabsTrigger value="basic" className={tabTriggerClass}>
                   <Tag className="w-4 h-4" />
                   <span>{t("products.basicInfo")}</span>
@@ -270,7 +270,7 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
               <Button type="button" variant="outline" onClick={handleCancel}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={isSaving || images.isUploading} className="min-w-[120px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+              <Button type="submit" disabled={isSaving || images.isUploading} className="min-w-[120px] bg-primary hover:from-primary hover:to-primary">
                 {images.isUploading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t("common.loading")}</>
                 ) : isSaving ? (

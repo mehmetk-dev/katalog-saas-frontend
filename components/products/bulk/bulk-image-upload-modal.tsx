@@ -192,7 +192,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
             <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] flex flex-col p-0 gap-0 sm:max-w-[95vw]">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle className="flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5 text-violet-600" />
+                        <ImageIcon className="w-5 h-5 text-primary" />
                         Toplu Fotoğraf Yükle & Eşleştir
                     </DialogTitle>
                     <DialogDescription>
@@ -200,12 +200,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+                <div className="flex-1 flex flex-col overflow-hidden bg-muted/50">
                     {!images.length ? (
                         <div
                             className={cn(
                                 "flex-1 flex flex-col items-center justify-center border-2 border-dashed m-6 rounded-xl transition-colors",
-                                dragActive ? "border-violet-500 bg-violet-50" : "border-slate-300 hover:border-slate-400",
+                                dragActive ? "border-primary bg-accent" : "border-border hover:border-ring",
                             )}
                             onDragEnter={(event) => {
                                 event.preventDefault()
@@ -232,12 +232,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                             onClick={() => void openFileDialog("bulk")}
                         >
                             <div className="flex flex-col items-center gap-4 text-center p-8">
-                                <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center">
-                                    <Upload className="w-8 h-8 text-slate-400" />
+                                <div className="w-16 h-16 bg-card rounded-full shadow-sm flex items-center justify-center">
+                                    <Upload className="w-8 h-8 text-muted-foreground" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-lg text-slate-900">Fotoğrafları Buraya Bırakın</h3>
-                                    <p className="text-slate-500 mt-1">veya dosya seçmek için tıklayın</p>
+                                    <h3 className="font-semibold text-lg text-foreground">Fotoğrafları Buraya Bırakın</h3>
+                                    <p className="text-muted-foreground mt-1">veya dosya seçmek için tıklayın</p>
                                 </div>
                                 <Button
                                     variant="outline"
@@ -261,8 +261,8 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col overflow-hidden">
-                            <div className="px-6 py-3 bg-white border-b flex items-center justify-between text-sm">
-                                <div className="text-slate-600">
+                            <div className="px-6 py-3 bg-card border-b flex items-center justify-between text-sm">
+                                <div className="text-muted-foreground">
                                     <strong>{images.length}</strong> fotoğraf seçildi • <strong>{matchedCount}</strong> eşleşme bulundu
                                 </div>
 
@@ -300,7 +300,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                     )}
                 </div>
 
-                <DialogFooter className="px-6 py-4 border-t bg-white">
+                <DialogFooter className="px-6 py-4 border-t bg-card">
                     <div className="flex-1 flex items-center justify-end gap-4">
                         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
                             İptal
@@ -309,7 +309,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products, onSuccess }
                         <Button
                             onClick={handleUpload}
                             disabled={pendingMatchedCount === 0 || isUploading}
-                            className="bg-violet-600 hover:bg-violet-700 min-w-[140px]"
+                            className="bg-primary hover:bg-primary/90 min-w-[140px]"
                         >
                             {isUploading ? (
                                 <>

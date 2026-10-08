@@ -154,10 +154,10 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                     )}
                 >
                     <div className="flex items-center gap-2">
-                        <FolderPlus className="w-4 h-4 text-violet-600" />
+                        <FolderPlus className="w-4 h-4 text-primary" />
                         <span className="font-medium text-sm">{t("categories.title")}</span>
                         {category.length > 0 && (
-                            <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">
+                            <Badge variant="secondary" className="bg-accent text-primary text-xs">
                                 {t("products.selected", { count: category.length })}
                             </Badge>
                         )}
@@ -177,14 +177,14 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                                 variant="secondary"
                                 className={cn(
                                     "pl-2 pr-1 py-0.5 gap-1 text-xs",
-                                    "bg-violet-50 text-violet-700 border-violet-100"
+                                    "bg-accent text-primary border-border"
                                 )}
                             >
                                 {cat}
                                 <button
                                     type="button"
                                     onClick={() => onCategoryChange(category.filter((_, i) => i !== idx))}
-                                    className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
+                                    className="ml-0.5 hover:bg-accent rounded-full p-0.5"
                                 >
                                     <X className="w-2.5 h-2.5" />
                                 </button>
@@ -212,8 +212,8 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                                                 "px-2.5 py-1 text-xs rounded-full",
                                                 "border transition-all",
                                                 category.includes(cat)
-                                                    ? "bg-violet-600 text-white border-violet-600"
-                                                    : "bg-background hover:bg-violet-50 hover:border-violet-300"
+                                                    ? "bg-primary text-primary-foreground border-primary"
+                                                    : "bg-background hover:bg-accent hover:border-border"
                                             )}
                                         >
                                             {cat}
@@ -245,7 +245,7 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             <Button
                                 type="button"
                                 size="sm"
-                                className="h-8 px-3 bg-violet-600 hover:bg-violet-700"
+                                className="h-8 px-3 bg-primary hover:bg-primary/90"
                                 onClick={addNewCategory}
                                 disabled={!canCreateCategory || !categoryInput.trim()}
                             >
@@ -265,14 +265,14 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                                         variant="secondary"
                                         className={cn(
                                             "pl-2 pr-1 py-0.5 gap-1 text-xs",
-                                            "bg-violet-50 text-violet-700"
+                                            "bg-accent text-primary"
                                         )}
                                     >
                                         {cat}
                                         <button
                                             type="button"
                                             onClick={() => onCategoryChange(category.filter((_, i) => i !== idx))}
-                                            className="ml-0.5 hover:bg-violet-200 rounded-full p-0.5"
+                                            className="ml-0.5 hover:bg-accent rounded-full p-0.5"
                                         >
                                             <X className="w-2.5 h-2.5" />
                                         </button>
@@ -324,8 +324,8 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                         variant="ghost"
                         size="sm"
                         className={cn(
-                            "h-7 text-xs gap-1.5 text-violet-600",
-                            "hover:text-violet-700 hover:bg-violet-50"
+                            "h-7 text-xs gap-1.5 text-primary",
+                            "hover:text-primary hover:bg-accent"
                         )}
                         onClick={generateMagicDescription}
                     >
@@ -350,10 +350,10 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                     <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
                         <Select value={currency} onValueChange={onCurrencyChange}>
                             <SelectTrigger className={cn(
-                                "w-24 h-11 px-3 bg-white dark:bg-slate-800",
-                                "border border-slate-200 dark:border-slate-700",
+                                "w-24 h-11 px-3 bg-card",
+                                "border border-border",
                                 "text-lg font-bold shadow-sm",
-                                "hover:border-violet-400 transition-colors"
+                                "hover:border-primary transition-colors"
                             )}>
                                 <SelectValue />
                             </SelectTrigger>
@@ -398,14 +398,14 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                                 <Badge variant="destructive" className="text-sm px-3 py-1">{t("products.outOfStock")}</Badge>
                             ) : Number(stock) < 10 ? (
                                 <Badge className={cn(
-                                    "bg-amber-100 text-amber-700",
-                                    "dark:bg-amber-900/30 dark:text-amber-400",
+                                    "bg-warning-soft text-warning-soft-foreground",
+                                    "",
                                     "text-sm px-3 py-1"
                                 )}>{t("products.lowStock")}</Badge>
                             ) : (
                                 <Badge className={cn(
-                                    "bg-emerald-100 text-emerald-700",
-                                    "dark:bg-emerald-900/30 dark:text-emerald-400",
+                                    "bg-success-soft text-success-soft-foreground",
+                                    "",
                                     "text-sm px-3 py-1"
                                 )}>{t("products.inStock")}</Badge>
                             )}

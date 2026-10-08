@@ -97,17 +97,17 @@ export function ProductGridView({
                                 }}
                                 className={cn(
                                     "group overflow-hidden cursor-move transition-all duration-200",
-                                    "hover:shadow-md border border-gray-100 dark:border-gray-800",
-                                    "shadow-sm bg-white dark:bg-gray-900 relative",
-                                    isSelected && "border-violet-400 bg-violet-50/50 dark:bg-violet-950/20",
+                                    "hover:shadow-md border border-border",
+                                    "shadow-sm bg-card relative",
+                                    isSelected && "border-primary bg-accent/50",
                                     isDragging && "opacity-50 scale-95",
-                                    isDragOver && "border-dashed border-violet-400"
+                                    isDragOver && "border-dashed border-primary"
                                 )}
                             >
                                 {/* Resim alanı */}
-                                <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800">
+                                <div className="relative aspect-square overflow-hidden bg-muted/50">
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <Package className="w-8 h-8 text-slate-200 dark:text-slate-700" />
+                                        <Package className="w-8 h-8 text-slate-200" />
                                     </div>
 
                                     {(() => {
@@ -138,7 +138,7 @@ export function ProductGridView({
                                             checked={isSelected}
                                             onCheckedChange={() => toggleSelect(product.id)}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="bg-white/95 border-gray-300 h-4 w-4 shadow-sm"
+                                            className="bg-background/95 border-border h-4 w-4 shadow-sm"
                                         />
                                     </div>
 
@@ -149,7 +149,7 @@ export function ProductGridView({
                                         <Button
                                             variant="secondary"
                                             size="icon"
-                                            className="h-7 w-7 bg-white/95 hover:bg-white shadow-sm"
+                                            className="h-7 w-7 bg-background/95 hover:bg-card shadow-sm"
                                             onClick={(e) => { e.stopPropagation(); setPreviewProduct(product); }}
                                         >
                                             <Eye className="w-3.5 h-3.5" />
@@ -157,7 +157,7 @@ export function ProductGridView({
                                         <Button
                                             variant="secondary"
                                             size="icon"
-                                            className="h-7 w-7 bg-white/95 hover:bg-white shadow-sm"
+                                            className="h-7 w-7 bg-background/95 hover:bg-card shadow-sm"
                                             onClick={(e) => { e.stopPropagation(); onEdit(product); }}
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
@@ -167,18 +167,18 @@ export function ProductGridView({
 
                                 {/* İçerik alanı */}
                                 <div className="p-3">
-                                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                                    <h3 className="font-semibold text-sm text-foreground dark:text-gray-100 truncate">
                                         {product.name}
                                     </h3>
-                                    <p className="text-base font-bold text-violet-600 mt-1">
+                                    <p className="text-base font-bold text-primary mt-1">
                                         {getCurrencySymbol(product)}
                                     </p>
                                     <div className="flex items-center justify-between mt-2">
                                         <span className={cn(
                                             "text-xs",
-                                            stockStatus.variant === "destructive" && "text-red-500",
-                                            stockStatus.variant === "secondary" && "text-amber-500",
-                                            stockStatus.variant === "default" && "text-emerald-500"
+                                            stockStatus.variant === "destructive" && "text-destructive",
+                                            stockStatus.variant === "secondary" && "text-warning-soft-foreground",
+                                            stockStatus.variant === "default" && "text-success"
                                         )}>
                                             {product.stock} adet
                                         </span>
@@ -233,7 +233,7 @@ export function ProductGridView({
 
                         return (
                             <>
-                                <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600">
+                                <div className="px-6 py-4 border-b bg-primary">
                                     <DialogHeader>
                                         <DialogTitle className="text-white text-lg font-bold pr-8">
                                             {previewProduct.name || "Ürün Önizleme"}
@@ -244,14 +244,14 @@ export function ProductGridView({
 
                                 <div className="overflow-y-auto max-h-[calc(85vh-130px)] p-6 space-y-5">
                                     {validImages.length === 0 ? (
-                                        <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                                            <ImageOff className="w-10 h-10 text-gray-400" />
+                                        <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+                                            <ImageOff className="w-10 h-10 text-muted-foreground" />
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
                                             <div className={cn(
                                                 "relative aspect-video rounded-lg overflow-hidden",
-                                                "bg-gray-100 dark:bg-gray-800"
+                                                "bg-muted"
                                             )}>
                                                 <NextImage
                                                     src={validImages[activeImageIndex] || validImages[0]}
@@ -307,7 +307,7 @@ export function ProductGridView({
                                                                 "relative w-12 h-12 rounded overflow-hidden",
                                                                 "shrink-0 border-2",
                                                                 activeImageIndex === idx
-                                                                    ? "border-violet-500"
+                                                                    ? "border-primary"
                                                                     : "border-transparent opacity-60 hover:opacity-100"
                                                             )}
                                                         >
@@ -329,19 +329,19 @@ export function ProductGridView({
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className={cn(
-                                            "p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30",
-                                            "border border-violet-200 dark:border-violet-800"
+                                            "p-3 rounded-lg bg-accent",
+                                            "border border-border"
                                         )}>
-                                            <p className="text-xs text-violet-600 dark:text-violet-400">Fiyat</p>
-                                            <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{getCurrencySymbol(previewProduct)}</p>
+                                            <p className="text-xs text-primary">Fiyat</p>
+                                            <p className="text-xl font-bold text-primary">{getCurrencySymbol(previewProduct)}</p>
                                         </div>
-                                        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border">
+                                        <div className="p-3 rounded-lg bg-muted/50 border">
                                             <p className="text-xs text-muted-foreground">Stok</p>
                                             <p className={cn(
                                                 "text-xl font-bold",
-                                                stockStatus.variant === "destructive" && "text-red-500",
-                                                stockStatus.variant === "secondary" && "text-amber-500",
-                                                stockStatus.variant === "default" && "text-emerald-500"
+                                                stockStatus.variant === "destructive" && "text-destructive",
+                                                stockStatus.variant === "secondary" && "text-warning-soft-foreground",
+                                                stockStatus.variant === "default" && "text-success"
                                             )}>
                                                 {previewProduct.stock} adet
                                             </p>
@@ -374,7 +374,7 @@ export function ProductGridView({
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className={cn(
-                                                    "text-sm text-violet-600 hover:underline",
+                                                    "text-sm text-primary hover:underline",
                                                     "flex items-center gap-1"
                                                 )}
                                             >
@@ -392,7 +392,7 @@ export function ProductGridView({
                                                 {customAttrs.map((attr, idx) => (
                                                     <div key={idx} className={cn(
                                                         "flex justify-between p-2 rounded",
-                                                        "bg-gray-50 dark:bg-gray-800 text-xs"
+                                                        "bg-muted/50 text-xs"
                                                     )}>
                                                         <span className="text-muted-foreground">{attr.name}</span>
                                                         <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
@@ -403,10 +403,10 @@ export function ProductGridView({
                                     )}
                                 </div>
 
-                                <div className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-900 flex gap-2">
+                                <div className="px-6 py-3 border-t bg-muted/50 flex gap-2">
                                     <Button
                                         size="sm"
-                                        className="flex-1 bg-violet-600 hover:bg-violet-700"
+                                        className="flex-1 bg-primary hover:bg-primary/90"
                                         onClick={() => {
                                             setPreviewProduct(null)
                                             onEdit(previewProduct)

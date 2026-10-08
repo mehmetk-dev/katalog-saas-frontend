@@ -117,7 +117,7 @@ export function ProductsBulkPriceModal({
                             <div className="grid grid-cols-2 gap-2">
                                 <Button
                                     variant={priceChangeType === "increase" ? "default" : "outline"}
-                                    className={cn("gap-2", priceChangeType === "increase" && "bg-emerald-600 hover:bg-emerald-700")}
+                                    className={cn("gap-2", priceChangeType === "increase" && "bg-success hover:bg-success/90")}
                                     onClick={() => onPriceChangeTypeChange("increase")}
                                 >
                                     <TrendingUp className="w-4 h-4" />
@@ -125,7 +125,7 @@ export function ProductsBulkPriceModal({
                                 </Button>
                                 <Button
                                     variant={priceChangeType === "decrease" ? "default" : "outline"}
-                                    className={cn("gap-2", priceChangeType === "decrease" && "bg-red-600 hover:bg-red-700")}
+                                    className={cn("gap-2", priceChangeType === "decrease" && "bg-destructive hover:bg-destructive/90")}
                                     onClick={() => onPriceChangeTypeChange("decrease")}
                                 >
                                     <TrendingUp className="w-4 h-4 rotate-180" />
@@ -189,7 +189,7 @@ export function ProductsBulkPriceModal({
                         onClick={onUpdate}
                         disabled={isPending || selectedIds.length === 0 || priceChangeAmount <= 0}
                         className={cn(
-                            priceChangeType === "increase" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"
+                            priceChangeType === "increase" ? "bg-success hover:bg-success/90" : "bg-destructive hover:bg-destructive/90"
                         )}
                     >
                         {isPending ? "Güncelleniyor..." : `${selectedIds.length} Ürüne ${priceChangeType === "increase" ? "Zam" : "İndirim"} Uygula`}

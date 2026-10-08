@@ -92,10 +92,10 @@ export function ProductListView({
                                 onDragEnd={handleDragEnd}
                                 className={cn(
                                     "group grid grid-cols-[auto_1fr_auto] md:grid-cols-[80px_1fr_100px_100px_100px_100px] gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 items-center cursor-move transition-all duration-200",
-                                    "hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-purple-50/30 dark:hover:from-violet-950/20 dark:hover:to-purple-950/10",
-                                    isSelected && "bg-violet-50 dark:bg-violet-950/30",
+                                    "hover:bg-gradient-to-r hover:from-muted/50 hover:to-muted/30",
+                                    isSelected && "bg-accent",
                                     isDragging && "opacity-50 scale-[0.98]",
-                                    isDragOver && "bg-violet-100/50 dark:bg-violet-900/30"
+                                    isDragOver && "bg-accent/50"
                                 )}
                                 onClick={(e) => {
                                     if (isMobile && !e.defaultPrevented && (e.target as HTMLElement).tagName !== 'BUTTON' && (e.target as HTMLElement).tagName !== 'INPUT') {
@@ -114,9 +114,9 @@ export function ProductListView({
                                             className="h-4 w-4"
                                         />
                                     </div>
-                                    <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-lg overflow-hidden shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 ring-1 ring-black/5">
+                                    <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-lg overflow-hidden shrink-0 bg-muted ring-1 ring-black/5">
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <Package className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+                                            <Package className="w-5 h-5 text-muted-foreground/70" />
                                         </div>
                                         {(() => {
                                             const imageUrl = (product.image_url || product.images?.[0]) as string | undefined
@@ -142,7 +142,7 @@ export function ProductListView({
                                     <div className="flex items-center gap-1 sm:gap-2">
                                         <h3 className="font-medium text-xs sm:text-sm truncate">{product.name}</h3>
                                         {product.product_url && isSafeUrl(product.product_url) && (
-                                            <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:text-violet-600" onClick={(e) => e.stopPropagation()}>
+                                            <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary" onClick={(e) => e.stopPropagation()}>
                                                 <ExternalLink className="w-3 h-3" />
                                             </a>
                                         )}
@@ -151,14 +151,14 @@ export function ProductListView({
                                         <p className="text-[10px] sm:text-[11px] text-muted-foreground font-mono tracking-tight truncate max-w-[120px] sm:max-w-none">{product.sku}</p>
                                     )}
                                     <div className="flex items-center gap-2 mt-1 md:hidden">
-                                        <span className="font-bold text-sm text-violet-600 dark:text-violet-400">{getCurrencySymbol(product)}</span>
+                                        <span className="font-bold text-sm text-primary">{getCurrencySymbol(product)}</span>
                                         <Badge
                                             variant={stockStatus.variant}
                                             className={cn(
                                                 "text-[10px] h-5 px-1.5",
-                                                stockStatus.variant === "destructive" && "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
-                                                stockStatus.variant === "secondary" && "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
-                                                stockStatus.variant === "default" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                                                stockStatus.variant === "destructive" && "bg-destructive-soft text-destructive-soft-foreground",
+                                                stockStatus.variant === "secondary" && "bg-warning-soft text-warning-soft-foreground",
+                                                stockStatus.variant === "default" && "bg-success-soft text-success-soft-foreground"
                                             )}
                                         >
                                             {product.stock}
@@ -168,7 +168,7 @@ export function ProductListView({
 
                                 {/* Fiyat - Desktop */}
                                 <div className="hidden md:block text-right pr-2">
-                                    <span className="font-bold text-sm text-violet-600 dark:text-violet-400">{getCurrencySymbol(product)}</span>
+                                    <span className="font-bold text-sm text-primary">{getCurrencySymbol(product)}</span>
                                 </div>
 
                                 {/* Stok - Desktop */}
@@ -177,9 +177,9 @@ export function ProductListView({
                                         variant={stockStatus.variant}
                                         className={cn(
                                             "text-[10px] h-5 px-2 font-medium",
-                                            stockStatus.variant === "destructive" && "bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800",
-                                            stockStatus.variant === "secondary" && "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800",
-                                            stockStatus.variant === "default" && "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800"
+                                            stockStatus.variant === "destructive" && "bg-destructive-soft text-destructive-soft-foreground border-destructive/20",
+                                            stockStatus.variant === "secondary" && "bg-warning-soft text-warning-soft-foreground border-warning/30",
+                                            stockStatus.variant === "default" && "bg-success-soft text-success-soft-foreground border-success/20"
                                         )}
                                     >
                                         {product.stock} adet

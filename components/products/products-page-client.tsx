@@ -114,7 +114,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col min-h-[calc(100vh-200px)] -m-4 sm:-m-6 p-4 sm:p-6 bg-gray-50 dark:bg-gray-950">
+      <div className="flex flex-col min-h-[calc(100vh-200px)] -m-4 sm:-m-6 p-4 sm:p-6 bg-muted/50">
         <div className="space-y-3">
           <ProductStatsCards stats={stats} />
 
@@ -231,7 +231,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
               <Button variant="outline" onClick={() => setShowLimitModal(false)}>
                 {t("common.cancel") as string}
               </Button>
-              <Button asChild className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
+              <Button asChild className="bg-primary text-primary-foreground">
                 <Link href="/pricing">{t("products.limits.upgrade") as string}</Link>
               </Button>
             </div>

@@ -83,8 +83,8 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
     "w-full border-0 bg-transparent px-2 py-2 md:py-1.5 text-[15px] md:text-sm outline-none",
     "focus:ring-2 focus:ring-inset focus:ring-primary/40",
     "transition-colors duration-150 text-ellipsis overflow-hidden whitespace-nowrap",
-    isDirty && !error && "bg-amber-50 dark:bg-amber-900/20",
-    error && "bg-red-50 dark:bg-red-950/30",
+    isDirty && !error && "bg-warning-soft",
+    error && "bg-destructive-soft",
     isDeleted && "opacity-40 line-through pointer-events-none",
   )
 
@@ -132,8 +132,8 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
 
       {error && (
         <div className={cn(
-          "absolute left-0 top-full z-20 px-2 py-1 text-[11px] text-red-600 dark:text-red-400",
-          "bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded shadow-sm",
+          "absolute left-0 top-full z-20 px-2 py-1 text-[11px] text-destructive",
+          "bg-destructive-soft border border-destructive/20 rounded shadow-sm",
           "whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none",
         )}>
           {error}

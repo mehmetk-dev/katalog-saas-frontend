@@ -42,7 +42,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
 
     return (
         <>
-            <div className="px-6 py-4 border-b bg-gradient-to-r from-violet-600 to-purple-600 shrink-0">
+            <div className="px-6 py-4 border-b bg-primary shrink-0">
                 <DialogHeader>
                     <DialogTitle className="text-white text-lg font-bold pr-8">{product.name}</DialogTitle>
                     {product.sku && <p className="text-white/70 text-sm font-mono mt-1">SKU: {product.sku}</p>}
@@ -54,13 +54,13 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                     <div className="space-y-2 shrink-0">
                         <div className={cn(
                             "relative h-64 sm:h-[320px] rounded-xl",
-                            "overflow-hidden bg-gray-100 dark:bg-gray-800 border"
+                            "overflow-hidden bg-muted border"
                         )}>
                             <NextImage
                                 src={(allImages[activeImageIndex] || allImages[0]) as string}
                                 alt={product.name}
                                 fill
-                                className="object-contain bg-neutral-900/5 dark:bg-neutral-50/5"
+                                className="object-contain bg-black/5"
                                 loading="lazy"
                                 unoptimized
                                 onError={() => handleImageError((allImages[activeImageIndex] || allImages[0]) as string)}
@@ -106,7 +106,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                                             "relative w-12 h-12 rounded-lg overflow-hidden",
                                             "shrink-0 border-2 transition-all",
                                             activeImageIndex === idx
-                                                ? "border-violet-500 ring-2 ring-violet-200 dark:ring-violet-900"
+                                                ? "border-primary ring-2 ring-border"
                                                 : "border-transparent opacity-60 hover:opacity-100"
                                         )}
                                     >
@@ -125,26 +125,26 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                         )}
                     </div>
                 ) : (
-                    <div className="aspect-video rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                        <ImageOff className="w-10 h-10 text-gray-400" />
+                    <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
+                        <ImageOff className="w-10 h-10 text-muted-foreground" />
                     </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
                     <div className={cn(
-                        "p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30",
-                        "border border-violet-200 dark:border-violet-800"
+                        "p-3 rounded-lg bg-accent",
+                        "border border-border"
                     )}>
-                        <p className="text-xs text-violet-600 dark:text-violet-400 font-medium">Fiyat</p>
-                        <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{getCurrencySymbol(product)}</p>
+                        <p className="text-xs text-primary font-medium">Fiyat</p>
+                        <p className="text-xl font-bold text-primary">{getCurrencySymbol(product)}</p>
                     </div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border">
+                    <div className="p-3 rounded-lg bg-muted/50 border">
                         <p className="text-xs text-muted-foreground font-medium">Stok</p>
                         <p className={cn(
                             "text-xl font-bold",
-                            stockStatus.variant === "destructive" && "text-red-500",
-                            stockStatus.variant === "secondary" && "text-amber-500",
-                            stockStatus.variant === "default" && "text-emerald-500"
+                            stockStatus.variant === "destructive" && "text-destructive",
+                            stockStatus.variant === "secondary" && "text-warning-soft-foreground",
+                            stockStatus.variant === "default" && "text-success"
                         )}>
                             {product.stock} adet
                         </p>
@@ -179,7 +179,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                             target="_blank"
                             rel="noopener noreferrer"
                             className={cn(
-                                "text-sm text-violet-600 hover:underline",
+                                "text-sm text-primary hover:underline",
                                 "flex items-center gap-1"
                             )}
                         >
@@ -197,7 +197,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                             {customAttrs.map((attr, idx) => (
                                 <div key={idx} className={cn(
                                     "flex justify-between p-2 rounded",
-                                    "bg-gray-50 dark:bg-gray-800 text-xs text-foreground/90"
+                                    "bg-muted/50 text-xs text-foreground/90"
                                 )}>
                                     <span className="text-muted-foreground">{attr.name}</span>
                                     <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
@@ -208,11 +208,11 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                 )}
             </div>
 
-            <div className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-900 flex gap-2 shrink-0">
+            <div className="px-6 py-3 border-t bg-muted/50 flex gap-2 shrink-0">
                 <Button
                     size="sm"
                     className={cn(
-                        "flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                        "flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                     )}
                     onClick={() => { onClose(); onEdit(product) }}
                 >

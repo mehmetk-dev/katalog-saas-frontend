@@ -24,23 +24,23 @@ export function SaveBar({
   const { t } = useTranslation()
 
   return (
-    <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-2.5 border-b bg-amber-50/80 dark:bg-amber-950/20 backdrop-blur-sm">
-      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+    <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-2.5 border-b bg-warning-soft/80 backdrop-blur-sm">
+      <AlertTriangle className="h-4 w-4 text-warning-soft-foreground shrink-0" />
 
       {/* Change summary */}
       <div className="flex items-center gap-2 flex-wrap text-sm">
         {editedCount > 0 && (
-          <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+          <Badge variant="secondary" className="bg-warning-soft text-warning-soft-foreground">
             {t("excel.edited", { count: editedCount })}
           </Badge>
         )}
         {newCount > 0 && (
-          <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+          <Badge variant="secondary" className="bg-success-soft text-success-soft-foreground">
             {t("excel.newRows", { count: newCount })}
           </Badge>
         )}
         {deletedCount > 0 && (
-          <Badge variant="secondary" className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+          <Badge variant="secondary" className="bg-destructive-soft text-destructive-soft-foreground">
             {t("excel.deleted", { count: deletedCount })}
           </Badge>
         )}

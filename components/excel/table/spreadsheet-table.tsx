@@ -196,16 +196,16 @@ export function SpreadsheetTable({
       className="flex-1 overflow-auto border rounded-lg bg-background relative shadow-inner"
     >
       <table className="w-full border-collapse min-w-max">
-        <thead className="sticky top-0 z-40 bg-muted dark:bg-slate-900 border-b">
+        <thead className="sticky top-0 z-40 bg-muted border-b">
           <tr>
-            <th className="w-8 min-w-[32px] max-w-[32px] p-0 border-b border-r text-center sticky top-0 left-0 z-50 bg-muted dark:bg-slate-900 dark:border-r-slate-800">
+            <th className="w-8 min-w-[32px] max-w-[32px] p-0 border-b border-r text-center sticky top-0 left-0 z-50 bg-muted">
               <div className="flex w-full h-full items-center justify-center min-h-[36px]">
                 <div className="w-4 h-4 flex items-center justify-center overflow-hidden">
                   <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} style={{ width: "16px", height: "16px", minWidth: "16px", minHeight: "16px" }} />
                 </div>
               </div>
             </th>
-            <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-b border-r text-center text-[11px] font-medium text-muted-foreground sticky top-0 left-[31px] z-50 bg-muted dark:bg-slate-900 dark:border-r-slate-800 shadow-[8px_0_12px_-4px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_12px_-6px_rgba(0,0,0,0.7)]">
+            <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-b border-r text-center text-[11px] font-medium text-muted-foreground sticky top-0 left-[31px] z-50 bg-muted shadow-[8px_0_12px_-4px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_12px_-6px_rgba(0,0,0,0.7)]">
               {t("excel.columns.row")}
             </th>
             {columns.map((column) => {
@@ -332,18 +332,18 @@ const ProductRow = memo(function ProductRow({
       className={cn(
         "border-b transition-colors group/row",
         "hover:bg-muted/40 focus-within:bg-muted/40",
-        isDeleted && "bg-red-50/80 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/50",
-        isSelected && !isDeleted && "bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/40",
+        isDeleted && "bg-destructive-soft/80 hover:bg-destructive-soft/80",
+        isSelected && !isDeleted && "bg-info-soft/50 hover:bg-info-soft/50",
       )}
     >
       <td
         className={cn(
           "w-8 min-w-[32px] max-w-[32px] p-0 border-r text-center align-middle sticky left-0 z-10 transition-colors",
           isDeleted
-            ? "bg-red-50 dark:bg-red-950/80"
+            ? "bg-destructive-soft"
             : isSelected
-              ? "bg-blue-50 dark:bg-blue-950/80"
-              : "bg-white dark:bg-slate-950 group-hover/row:bg-slate-50 group-focus-within/row:bg-slate-50 dark:group-hover/row:bg-slate-900 dark:group-focus-within/row:bg-slate-900",
+              ? "bg-info-soft"
+              : "bg-card group-hover/row:bg-muted/50 group-focus-within/row:bg-muted/50 dark:group-hover/row:bg-primary dark:group-focus-within/row:bg-primary",
         )}
       >
         <div className="flex items-center justify-center w-full h-full min-h-[32px]">
@@ -357,10 +357,10 @@ const ProductRow = memo(function ProductRow({
         className={cn(
           "w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center text-[11px] text-muted-foreground tabular-nums sticky left-[31px] z-10 transition-colors shadow-[8px_0_12px_-4px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_12px_-6px_rgba(0,0,0,0.7)]",
           isDeleted
-            ? "bg-red-50 dark:bg-red-950/80"
+            ? "bg-destructive-soft"
             : isSelected
-              ? "bg-blue-50 dark:bg-blue-950/80"
-              : "bg-white dark:bg-slate-950 group-hover/row:bg-slate-50 group-focus-within/row:bg-slate-50 dark:group-hover/row:bg-slate-900 dark:group-focus-within/row:bg-slate-900",
+              ? "bg-info-soft"
+              : "bg-card group-hover/row:bg-muted/50 group-focus-within/row:bg-muted/50 dark:group-hover/row:bg-primary dark:group-focus-within/row:bg-primary",
         )}
       >
         {pageOffset + idx + 1}
@@ -423,15 +423,15 @@ const NewProductRow = memo(function NewProductRow({
   categoryOptions,
 }: NewProductRowProps) {
   return (
-    <tr className="border-b bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50 focus-within:bg-emerald-50 dark:hover:bg-emerald-950/40 dark:focus-within:bg-emerald-950/40 transition-colors group/newrow">
-      <td className="w-8 min-w-[32px] max-w-[32px] p-0 border-r text-center align-middle sticky left-0 z-10 bg-emerald-50 dark:bg-emerald-950 group-hover/newrow:bg-emerald-100/90 group-focus-within/newrow:bg-emerald-100/90 dark:group-hover/newrow:bg-emerald-900 dark:group-focus-within/newrow:bg-emerald-900 transition-colors">
+    <tr className="border-b bg-success-soft/40 hover:bg-success/15 focus-within:bg-success-soft transition-colors group/newrow">
+      <td className="w-8 min-w-[32px] max-w-[32px] p-0 border-r text-center align-middle sticky left-0 z-10 bg-success-soft group-hover/newrow:bg-success-soft/90 group-focus-within/newrow:bg-success-soft/90 dark:group-hover/newrow:bg-success dark:group-focus-within/newrow:bg-success transition-colors">
         <div className="flex items-center justify-center w-full h-full min-h-[32px]">
-          <span className="text-[10px] text-emerald-600 font-medium">+</span>
+          <span className="text-[10px] text-success font-medium">+</span>
         </div>
       </td>
 
-      <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center align-middle sticky left-[31px] z-10 bg-emerald-50 dark:bg-emerald-950 group-hover/newrow:bg-emerald-100/90 group-focus-within/newrow:bg-emerald-100/90 dark:group-hover/newrow:bg-emerald-900 dark:group-focus-within/newrow:bg-emerald-900 transition-colors shadow-[8px_0_12px_-4px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_12px_-6px_rgba(0,0,0,0.7)]">
-        <span className="text-[9px] font-bold text-emerald-600 tracking-wider">YENI</span>
+      <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center align-middle sticky left-[31px] z-10 bg-success-soft group-hover/newrow:bg-success-soft/90 group-focus-within/newrow:bg-success-soft/90 dark:group-hover/newrow:bg-success dark:group-focus-within/newrow:bg-success transition-colors shadow-[8px_0_12px_-4px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_12px_-6px_rgba(0,0,0,0.7)]">
+        <span className="text-[9px] font-bold text-success tracking-wider">YENI</span>
       </td>
 
       {columns.map((column) => {

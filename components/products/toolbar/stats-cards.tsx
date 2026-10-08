@@ -22,10 +22,10 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
             value: stats.total,
             icon: Package,
             color: "violet",
-            theme: "border-l-violet-500",
-            bg: "bg-gradient-to-br from-violet-50/50 to-white dark:from-violet-900/10 dark:to-gray-900",
-            iconColor: "text-violet-600 dark:text-violet-400",
-            iconBg: "bg-violet-100 dark:bg-violet-900/40",
+            theme: "border-l-primary",
+            bg: "bg-gradient-to-br from-muted/50 to-background",
+            iconColor: "text-primary",
+            iconBg: "bg-accent",
             progress: 100
         },
         {
@@ -33,10 +33,10 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
             value: stats.inStock,
             icon: TrendingUp,
             color: "emerald",
-            theme: "border-l-emerald-500",
-            bg: "bg-gradient-to-br from-emerald-50/50 to-white dark:from-emerald-900/10 dark:to-gray-900",
-            iconColor: "text-emerald-600 dark:text-emerald-400",
-            iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+            theme: "border-l-success",
+            bg: "bg-gradient-to-br from-success-soft/50 to-background",
+            iconColor: "text-success",
+            iconBg: "bg-success-soft",
             progress: stats.total > 0 ? (stats.inStock / stats.total) * 100 : 0
         },
         {
@@ -44,10 +44,10 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
             value: stats.lowStock + stats.outOfStock,
             icon: AlertTriangle,
             color: "amber",
-            theme: "border-l-amber-500",
-            bg: "bg-gradient-to-br from-amber-50/50 to-white dark:from-amber-900/10 dark:to-gray-900",
-            iconColor: "text-amber-600 dark:text-amber-400",
-            iconBg: "bg-amber-100 dark:bg-amber-900/40",
+            theme: "border-l-warning",
+            bg: "bg-gradient-to-br from-warning-soft/50 to-background",
+            iconColor: "text-warning-soft-foreground",
+            iconBg: "bg-warning-soft",
             progress: stats.total > 0 ? ((stats.lowStock + stats.outOfStock) / stats.total) * 100 : 0
         }
     ]
@@ -59,7 +59,7 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
                     key={idx}
                     className={cn(
                         "relative overflow-hidden rounded-xl p-2.5 sm:p-4 md:p-5 transition-all duration-300",
-                        "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800",
+                        "bg-card border border-border",
                         "border-l-4 shadow-sm hover:shadow-md hover:-translate-y-0.5",
                         card.theme,
                         card.bg
@@ -94,12 +94,12 @@ export function ProductStatsCards({ stats }: ProductStatsCardsProps) {
                     </div>
 
                     {/* Visual Cue - Progress Bar */}
-                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-100 dark:bg-gray-800">
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-muted">
                         <div
                             className={cn(
                                 "h-full transition-all duration-1000",
-                                card.color === "violet" ? "bg-violet-500" :
-                                    card.color === "emerald" ? "bg-emerald-500" : "bg-amber-500"
+                                card.color === "violet" ? "bg-primary" :
+                                    card.color === "emerald" ? "bg-success" : "bg-warning"
                             )}
                             style={{ width: `${Math.min(100, card.progress)}%` }}
                         />

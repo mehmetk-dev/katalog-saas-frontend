@@ -37,19 +37,19 @@ export function DeleteAlertDialog({
                         <div className="space-y-3">
                             <p>{t("products.deleteConfirm")}</p>
                             {deleteCatalogs.length > 0 && (
-                                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                    <p className="text-amber-800 dark:text-amber-200 font-medium text-sm mb-2">
+                                <div className="p-3 bg-warning-soft border border-warning/30 rounded-lg">
+                                    <p className="text-warning-soft-foreground font-medium text-sm mb-2">
                                         ⚠️ Bu ürün {deleteCatalogs.length} katalogda kullanılıyor:
                                     </p>
-                                    <ul className="text-amber-700 dark:text-amber-300 text-sm space-y-1">
+                                    <ul className="text-warning-soft-foreground text-sm space-y-1">
                                         {deleteCatalogs.map(c => (
                                             <li key={c.id} className="flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                                <span className="w-1.5 h-1.5 rounded-full bg-warning" />
                                                 {c.name}
                                             </li>
                                         ))}
                                     </ul>
-                                    <p className="text-amber-600 dark:text-amber-400 text-xs mt-2">
+                                    <p className="text-warning-soft-foreground text-xs mt-2">
                                         Silme işlemi sonrası ürün bu kataloglardan otomatik kaldırılacaktır.
                                     </p>
                                 </div>

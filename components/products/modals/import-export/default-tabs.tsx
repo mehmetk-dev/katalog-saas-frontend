@@ -47,7 +47,7 @@ export function DefaultTabs({
             <TabsContent value="import" className="space-y-4 mt-4">
                 {!canImport && importStatus === 'idle' && (
                     <div className="rounded-lg border p-6 text-center">
-                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-amber-100"><Crown className="h-8 w-8 text-amber-600" /></div>
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-warning-soft"><Crown className="h-8 w-8 text-warning-soft-foreground" /></div>
                         <h3 className="font-semibold text-lg">{t('importExport.proFeature')}</h3>
                         <p className="mt-2">{t('importExport.proDesc')}</p>
                         <Button onClick={onOpenUpgrade} className="mt-4"><Crown className="h-4 w-4 mr-2" />{t('importExport.upgradePlan')}</Button>
@@ -58,7 +58,7 @@ export function DefaultTabs({
                     <>
                         <div className="rounded-lg border p-4">
                             <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-violet-100"><FileText className="h-5 w-5 text-violet-600" /></div>
+                                <div className="p-2 rounded-lg bg-accent"><FileText className="h-5 w-5 text-primary" /></div>
                                 <div className="flex-1">
                                     <h4 className="font-medium">1. {t('importExport.downloadTemplate')}</h4>
                                     <p className="text-sm text-muted-foreground mt-1">
@@ -102,12 +102,12 @@ export function DefaultTabs({
 
                 {importStatus === 'loading' && (
                     <div className="py-8 text-center space-y-4">
-                        <Loader2 className="h-10 w-10 animate-spin mx-auto text-violet-600" />
+                        <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
                         <div className="space-y-2 px-4">
-                            <Progress value={progressPercent} className="h-2.5 bg-gray-100 dark:bg-gray-800 [&>div]:bg-violet-600 [&>div]:transition-all [&>div]:duration-500" />
+                            <Progress value={progressPercent} className="h-2.5 bg-muted [&>div]:bg-primary [&>div]:transition-all [&>div]:duration-500" />
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>{progressMessage || t('importExport.importing') || 'İçe aktarılıyor...'}</span>
-                                <span className="font-semibold text-violet-600">{progressPercent}%</span>
+                                <span className="font-semibold text-primary">{progressPercent}%</span>
                             </div>
                         </div>
                     </div>
@@ -115,14 +115,14 @@ export function DefaultTabs({
 
                 {importStatus === 'success' && importResult && (
                     <div className="py-12 text-center">
-                        <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto mb-4" />
+                        <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-4" />
                         <p>{t('importExport.productsImported', { count: importResult.success })}</p>
                     </div>
                 )}
 
                 {importStatus === 'error' && (
                     <div className="py-12 text-center">
-                        <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+                        <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-4" />
                         <Button variant="outline" className="mt-4" onClick={onResetError}>{t('auth.retry')}</Button>
                     </div>
                 )}
@@ -131,7 +131,7 @@ export function DefaultTabs({
             <TabsContent value="export" className="space-y-4 mt-4">
                 <div className="rounded-lg border p-6">
                     <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-green-100"><FileSpreadsheet className="h-8 w-8 text-green-600" /></div>
+                        <div className="p-3 rounded-xl bg-success-soft"><FileSpreadsheet className="h-8 w-8 text-success" /></div>
                         <div className="flex-1">
                             <h3 className="font-semibold text-lg">{t('importExport.exportAll')}</h3>
                             <p className="text-sm text-muted-foreground mt-1">
@@ -139,10 +139,10 @@ export function DefaultTabs({
                             </p>
                             {productCount > 0 && (
                                 <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" />{t('products.name')}, SKU, {t('products.description')}, {t('products.price')}, {t('products.stock')}, {t('products.category')}</div>
-                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" />{t('importExport.imagesIncluded')}</div>
-                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /><strong>{t('importExport.customAttributesIncluded')}</strong></div>
-                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" />{t('importExport.excelCompatible')}</div>
+                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />{t('products.name')}, SKU, {t('products.description')}, {t('products.price')}, {t('products.stock')}, {t('products.category')}</div>
+                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />{t('importExport.imagesIncluded')}</div>
+                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" /><strong>{t('importExport.customAttributesIncluded')}</strong></div>
+                                    <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-success" />{t('importExport.excelCompatible')}</div>
                                 </div>
                             )}
                             <Button className="mt-4" onClick={onExportAndClose} disabled={productCount === 0 || isLoading}>

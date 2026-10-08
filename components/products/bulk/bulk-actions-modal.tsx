@@ -232,7 +232,7 @@ export function BulkActionsModal({
 
                     {/* Price Action */}
                     {actionType === 'price' && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                        <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                             <div className="space-y-2">
                                 <Label>İşlem</Label>
                                 <RadioGroup
@@ -291,7 +291,7 @@ export function BulkActionsModal({
 
                     {/* Category Action */}
                     {actionType === 'category' && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                        <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                             <div className="space-y-2">
                                 <Label>Mevcut Kategoriler</Label>
                                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -307,9 +307,9 @@ export function BulkActionsModal({
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                                <div className="h-px flex-1 bg-accent" />
                                 <span className="text-xs text-muted-foreground">veya</span>
-                                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                                <div className="h-px flex-1 bg-accent" />
                             </div>
 
                             <div className="space-y-2">
@@ -325,7 +325,7 @@ export function BulkActionsModal({
 
                     {/* Stock Action */}
                     {actionType === 'stock' && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                        <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                             <div className="space-y-2">
                                 <Label>İşlem</Label>
                                 <RadioGroup

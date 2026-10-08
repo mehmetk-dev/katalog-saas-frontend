@@ -33,8 +33,8 @@ export const ProductImagesTab = memo(function ProductImagesTab({
                     <div
                         key={idx}
                         className={cn(
-                            "relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-white dark:bg-gray-800",
-                            activeImageUrl === url && "ring-2 ring-violet-600 ring-offset-2 dark:ring-offset-gray-900"
+                            "relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-card",
+                            activeImageUrl === url && "ring-2 ring-primary ring-offset-2"
                         )}
                     >
                         <NextImage src={url} fill className="object-cover" alt={`Ürün görseli ${idx + 1}`} unoptimized />
@@ -42,7 +42,7 @@ export const ProductImagesTab = memo(function ProductImagesTab({
                         {/* Hover overlay */}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                             {activeImageUrl !== url && (
-                                <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-white/90 hover:bg-white" onClick={() => onSetCover(url)}>
+                                <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-background/90 hover:bg-card" onClick={() => onSetCover(url)}>
                                     <Sparkles className="w-3.5 h-3.5 mr-1" /> {t("products.makeCover")}
                                 </Button>
                             )}
@@ -53,7 +53,7 @@ export const ProductImagesTab = memo(function ProductImagesTab({
 
                         {/* Cover badge */}
                         {activeImageUrl === url && (
-                            <div className="absolute top-2 left-2 bg-violet-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
+                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
                                 <Sparkles className="w-3 h-3 mr-1" /> {t("products.cover")}
                             </div>
                         )}
@@ -64,13 +64,13 @@ export const ProductImagesTab = memo(function ProductImagesTab({
                 {images.length < maxImages && (
                     <label
                         onClick={onUploadClick}
-                        className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 dark:hover:bg-violet-900/20 dark:hover:border-violet-700 transition-all group bg-slate-50/50 dark:bg-slate-900/20"
+                        className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent hover:border-border transition-all group bg-muted/50"
                     >
-                        <div className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                            <Upload className="w-6 h-6 text-violet-500" />
+                        <div className="p-3 rounded-full bg-card shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6 text-primary" />
                         </div>
-                        <span className="text-xs text-slate-600 font-medium">{t("products.addPhoto")}</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">{t("products.remainingUploads", { count: maxImages - images.length })}</span>
+                        <span className="text-xs text-muted-foreground font-medium">{t("products.addPhoto")}</span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5">{t("products.remainingUploads", { count: maxImages - images.length })}</span>
                         <input
                             type="file"
                             data-testid="file-upload"
@@ -91,8 +91,8 @@ export const ProductImagesTab = memo(function ProductImagesTab({
 
                 {/* Uploading overlay */}
                 {isUploading && (
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl backdrop-blur-[1px] z-10">
-                        <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-xl backdrop-blur-[1px] z-10">
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
                     </div>
                 )}
             </div>

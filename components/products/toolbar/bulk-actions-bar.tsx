@@ -26,18 +26,18 @@ export function ProductsBulkActionsBar({
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 dark:bg-gray-800 rounded-full shadow-2xl border border-gray-700">
+            <div className="flex items-center gap-3 px-4 py-3 bg-primary rounded-full shadow-2xl border border-primary">
                 <span className="text-white font-medium text-sm">
                     {t("products.selected", { count: selectedCount }) as string}
                 </span>
-                <div className="w-px h-5 bg-gray-600" />
+                <div className="w-px h-5 bg-muted-foreground" />
                 <div className="flex items-center gap-1">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 px-3 text-white hover:bg-gray-700 hover:text-white"
+                                className="h-9 px-3 text-white hover:bg-primary/90 hover:text-white"
                                 onClick={onBulkPriceUpdate}
                             >
                                 <Percent className="w-4 h-4" />
@@ -51,7 +51,7 @@ export function ProductsBulkActionsBar({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 px-3 text-red-400 hover:bg-red-900/50 hover:text-red-300"
+                                className="h-9 px-3 text-destructive hover:bg-destructive/50 hover:text-destructive-soft-foreground"
                                 onClick={onBulkDelete}
                                 disabled={isPending}
                             >
@@ -62,11 +62,11 @@ export function ProductsBulkActionsBar({
                         <TooltipContent>{t("products.deleteSelected") as string}</TooltipContent>
                     </Tooltip>
                 </div>
-                <div className="w-px h-5 bg-gray-600" />
+                <div className="w-px h-5 bg-muted-foreground" />
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 text-gray-400 hover:bg-gray-700 hover:text-white rounded-full"
+                    className="h-9 w-9 p-0 text-muted-foreground hover:bg-primary/90 hover:text-white rounded-full"
                     onClick={onClearSelection}
                 >
                     <X className="w-4 h-4" />
