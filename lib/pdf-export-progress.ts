@@ -29,14 +29,16 @@ function clampPercent(value: number): number {
     return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExportProgressDisplay {
+export type ProgressTranslate = (key: string) => string
+
+export function getPdfExportProgressDisplay(job: PdfExportProgressInput, t: ProgressTranslate): PdfExportProgressDisplay {
     const percent = clampPercent(job.progress)
 
     if (job.status === "queued") {
         return {
             stage: "queued",
-            title: "Sırada",
-            description: "PDF işi worker kuyruğuna alındı.",
+            title: t("pdf.progressQueuedTitle"),
+            description: t("pdf.progressQueuedDesc"),
             percent,
             isActive: true,
         }
@@ -45,8 +47,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
     if (job.status === "completed") {
         return {
             stage: "done",
-            title: "Hazır",
-            description: "PDF hazır, indirebilirsin.",
+            title: t("pdf.stageReady"),
+            description: t("pdf.stageReadyDesc"),
             percent: 100,
             isActive: false,
         }
@@ -55,8 +57,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
     if (job.status === "failed") {
         return {
             stage: "error",
-            title: "PDF oluşturulamadı",
-            description: job.error_message || "Worker PDF işini tamamlayamadı.",
+            title: t("pdf.phraseError"),
+            description: job.error_message || t("pdf.progressFailedDesc"),
             percent,
             isActive: false,
         }
@@ -65,8 +67,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
     if (job.status === "cancelled" || job.status === "expired") {
         return {
             stage: "cancelled",
-            title: job.status === "expired" ? "Süresi doldu" : "İptal edildi",
-            description: job.status === "expired" ? "PDF indirme süresi doldu." : "PDF işi iptal edildi.",
+            title: job.status === "expired" ? t("pdf.progressExpiredTitle") : t("pdf.progressCancelledTitle"),
+            description: job.status === "expired" ? t("pdf.progressExpiredDesc") : t("pdf.progressCancelledDesc"),
             percent,
             isActive: false,
         }
@@ -75,8 +77,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
     if (percent >= 90) {
         return {
             stage: "uploading",
-            title: "Yükleniyor",
-            description: "PDF dosyası güvenli depolamaya yükleniyor.",
+            title: t("pdf.stageUploading"),
+            description: t("pdf.progressUploadingDesc"),
             percent,
             isActive: true,
         }
@@ -85,8 +87,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
     if (percent >= 65) {
         return {
             stage: "generating",
-            title: "PDF oluşturuluyor",
-            description: "Render edilen katalog PDF dosyasına çevriliyor.",
+            title: t("pdf.progressGeneratingTitle"),
+            description: t("pdf.progressGeneratingDesc"),
             percent,
             isActive: true,
         }
@@ -95,8 +97,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
     if (percent >= 25) {
         return {
             stage: "rendering",
-            title: "Katalog render ediliyor",
-            description: "Katalog sayfaları tarayıcıda hazırlanıyor.",
+            title: t("pdf.progressRenderingTitle"),
+            description: t("pdf.progressRenderingDesc"),
             percent,
             isActive: true,
         }
@@ -104,8 +106,8 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput): PdfExp
 
     return {
         stage: "preparing",
-        title: "Hazırlanıyor",
-        description: "Worker katalog verilerini ve render ekranını hazırlıyor.",
+        title: t("pdf.progressPreparingTitle"),
+        description: t("pdf.progressPreparingDesc"),
         percent,
         isActive: true,
     }

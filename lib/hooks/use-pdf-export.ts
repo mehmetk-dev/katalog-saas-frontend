@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react"
 import { toast } from "sonner"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { type PdfProgressState, type PdfExportPhase, PDF_PROGRESS_INITIAL_STATE } from "@/components/ui/pdf-progress-modal"
 import {
     clientCancelPdfExportJob,
@@ -21,11 +22,13 @@ interface UsePdfExportOptions {
     onShowUpgradeModal: () => void
 }
 
-function formatTimeLeft(seconds: number): string {
-    if (seconds < 60) return `~${Math.ceil(seconds)} sn`
+type Translate = (key: string, params?: Record<string, unknown>) => string
+
+function formatTimeLeft(seconds: number, t: Translate): string {
+    if (seconds < 60) return t("pdf.timeSeconds", { s: Math.ceil(seconds) })
     const mins = Math.floor(seconds / 60)
     const secs = Math.ceil(seconds % 60)
-    return secs > 0 ? `~${mins} dk ${secs} sn` : `~${mins} dk`
+    return secs > 0 ? t("pdf.timeMinutesSeconds", { m: mins, s: secs }) : t("pdf.timeMinutes", { m: mins })
 }
 
 export function usePdfExport({
@@ -36,6 +39,8 @@ export function usePdfExport({
     onSaveCatalog,
     onShowUpgradeModal,
 }: UsePdfExportOptions) {
+    const { t: baseT } = useTranslation()
+    const t = useCallback<Translate>((key, params) => baseT(key, params) as string, [baseT])
     const [isExporting, setIsExporting] = useState(false)
     const [pdfProgress, setPdfProgress] = useState<PdfProgressState>(PDF_PROGRESS_INITIAL_STATE)
     const cancelledRef = useRef(false)
@@ -58,8 +63,8 @@ export function usePdfExport({
     const dismissPdfModal = useCallback(() => {
         dismissedRef.current = true
         setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
-        toast.info("PDF arka planda hazırlanıyor.")
-    }, [])
+        toast.info(t("pdf.backgroundToast"))
+    }, [t])
 
     const cancelExport = useCallback(() => {
         cancelledRef.current = true
@@ -104,15 +109,15 @@ export function usePdfExport({
             }
 
             if (!targetCatalogId) {
-                setPhase("error", { errorMessage: "PDF için önce katalog kaydedilmeli.", percent: 0 })
+                setPhase("error", { errorMessage: t("pdf.saveFirst"), percent: 0 })
                 return
             }
 
             setPhase("queued", {
                 percent: 0,
-                estimatedTimeLeft: "~1 dk",
-                stageLabel: "Sırada",
-                stageDescription: "PDF işi worker kuyruğuna alınıyor.",
+                estimatedTimeLeft: t("pdf.timeMinutes", { m: 1 }),
+                stageLabel: t("pdf.stageQueued"),
+                stageDescription: t("pdf.stageQueuedDesc"),
             })
             const { job } = await clientCreatePdfExportJob(targetCatalogId, "standard")
             activeJobIdRef.current = job.id
@@ -123,11 +128,11 @@ export function usePdfExport({
             while (!cancelledRef.current) {
                 const { job: latestJob } = await clientGetPdfExportJob(job.id)
                 lastPercent = Math.max(lastPercent, latestJob.progress || 0)
-                const display = getPdfExportProgressDisplay(latestJob)
+                const display = getPdfExportProgressDisplay(latestJob, t)
 
                 if (latestJob.status === "completed") {
                     if (!dismissedRef.current) {
-                        setPhase("uploading", { percent: 96, estimatedTimeLeft: "", stageLabel: "Yükleniyor" })
+                        setPhase("uploading", { percent: 96, estimatedTimeLeft: "", stageLabel: t("pdf.stageUploading") })
                     }
                     let share: { url: string; expiresAt: string } | null = null
                     let shareError: Error | null = null
@@ -143,31 +148,31 @@ export function usePdfExport({
                         }
                     }
                     if (!share) {
-                        throw shareError || new Error("PDF indirme linki alınamadı. Lütfen bildirimler üzerinden tekrar deneyin.")
+                        throw shareError || new Error(t("pdf.shareLinkFailed"))
                     }
                     const wasDismissed = dismissedRef.current
                     activeJobIdRef.current = null
                     dismissedRef.current = false
                     if (wasDismissed) {
                         setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
-                        toast.success("PDF hazırlandı. Bildirimler üzerinden indirebilirsiniz.")
+                        toast.success(t("pdf.readyInNotifications"))
                     } else {
                         setPhase("done", {
                             percent: 100,
                             estimatedTimeLeft: "",
-                            stageLabel: "Hazır",
-                            stageDescription: "PDF hazır, indirebilirsin.",
+                            stageLabel: t("pdf.stageReady"),
+                            stageDescription: t("pdf.stageReadyDesc"),
                             downloadUrl: share.url,
                             shareUrl: share.url,
                         })
                     }
-                    toast.success("PDF hazırlandı.")
+                    toast.success(t("pdf.readyToast"))
                     refreshUser().catch(() => undefined)
                     return
                 }
 
                 if (latestJob.status === "failed") {
-                    throw new Error(latestJob.error_message || "PDF export başarısız oldu.")
+                    throw new Error(latestJob.error_message || t("pdf.exportFailed"))
                 }
 
                 if (latestJob.status === "cancelled" || latestJob.status === "expired") {
@@ -183,7 +188,7 @@ export function usePdfExport({
                         currentPage: latestJob.page_count || 0,
                         totalPages: latestJob.page_count || 0,
                         percent: Math.min(95, Math.max(15, display.percent || lastPercent)),
-                        estimatedTimeLeft: formatTimeLeft(Math.max(5, estimatedTotalSeconds - elapsedSeconds)),
+                        estimatedTimeLeft: formatTimeLeft(Math.max(5, estimatedTotalSeconds - elapsedSeconds), t),
                         stageLabel: display.title,
                         stageDescription: display.description,
                     })
@@ -200,7 +205,7 @@ export function usePdfExport({
             activeJobIdRef.current = null
             setIsExporting(false)
         }
-    }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase])
+    }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase, t])
 
     return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal, dismissPdfModal }
 }

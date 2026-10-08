@@ -138,7 +138,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
             <div className="flex flex-col items-center gap-4">
               <div className="text-center space-y-0.5">
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">{t("upgradeModal.title")}</h2>
-                <p className="text-xs text-muted-foreground">{t("upgradeModal.subtitle") || "İşletmeniz için en iyi planı seçin."}</p>
+                <p className="text-xs text-muted-foreground">{t("upgradeModal.subtitle")}</p>
               </div>
 
               {/* Tight Pill Toggle */}

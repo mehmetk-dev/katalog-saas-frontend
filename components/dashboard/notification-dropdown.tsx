@@ -48,7 +48,7 @@ export function NotificationDropdown() {
     const deleteAll = useDeleteAllNotifications()
     const { data: pdfExportData } = usePdfExportJobs()
     const pdfExportJob = useMemo(() => selectVisiblePdfExportJob(pdfExportData?.jobs ?? [], now), [pdfExportData?.jobs, now])
-    const pdfExportDisplay = pdfExportJob ? getPdfExportProgressDisplay(pdfExportJob) : null
+    const pdfExportDisplay = pdfExportJob ? getPdfExportProgressDisplay(pdfExportJob, t) : null
     const canFetchShareLink = pdfExportJob?.status === "completed" && pdfExportJob.file_path && (!pdfExportJob.expires_at || new Date(pdfExportJob.expires_at).getTime() > now)
     const pdfShareLink = usePdfExportShareLink(canFetchShareLink ? pdfExportJob.id : null)
     const retryShareLink = useCallback(() => {

@@ -86,7 +86,7 @@ export function AppearanceSection({
                     <div className="pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {/* Image Alignment Pill */}
                         <div className="space-y-2.5">
-                            <Label className="text-[10px] font-bold uppercase text-muted-foreground block tracking-widest text-center">{(t('builder.productImages') || "Ürün Fotoğrafları") as string}</Label>
+                            <Label className="text-[10px] font-bold uppercase text-muted-foreground block tracking-widest text-center">{t('builder.productImages')}</Label>
                             <div className="flex bg-muted/80 p-1 rounded-2xl gap-1">
                                 {[
                                     { value: 'cover' as const, label: t('builder.productImageFit.crop') },
