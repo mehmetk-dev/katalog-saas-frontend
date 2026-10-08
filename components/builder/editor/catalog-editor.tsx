@@ -28,65 +28,7 @@ import { useBuilder } from "@/components/builder/builder-context"
 
 // PERF(F14): Color utilities consolidated in builder-utils
 // parseColor and rgbToHex are now imported from builder-utils
-import { parseColor, rgbToHex } from "@/components/builder/builder-utils"
-
-// ŞABLON SÜTUN REFERANS LİSTESİ (TEMPLATE COLUMN CONSTRAINTS)
-// ───
-// Bu ayarlar her şablonun Görünüm Düzeni sekmesinde kaç "Sütun" seçeneği
-// göstereceğini belirler. Şablonlar isimleri (layout) üzerinden eşleştirilir.
-// 
-// Yeni bir template eklediğinde veya mevcut bir template'in desteklediği
-// sütun sayısını değiştirmek istediğinde, SADECE bu fonksiyonu güncelle.
-//
-// ─── Mevcut Şablon Sütun Ayarları ───────────────────────────────────
-// Gerçek template kodu incelenerek belirlenen kolon kısıtlamaları:
-// - modern-grid: getGridCols() sadece case 2, 3 → [2, 3]
-// - compact-list / list: sabit 1 sütun → [1]
-// - magazine: getGridCols() sadece case 2, 3 → [2, 3]
-// - bold: getGridCols() case 2, 3, 4 → [2, 3, 4]
-// - luxury: getGridCols() case 2, 3, 4 → [2, 3, 4]
-// - tech-modern: getGridCols() case 2, 3, 4 → [2, 3, 4]
-// - clean-white: getGridCols() case 2, 3, 4 → [2, 3, 4]
-// - retail: getGridCols() case 2, 3, 4 → [2, 3, 4]
-// - minimalist: hardcoded grid-cols-2, columnsPerRow yok → [2]
-// - elegant-cards: hardcoded grid-cols-2, _getGridCols kullanılmıyor → [2]
-// - catalog-pro: hardcoded grid-cols-2 → [2]
-// - showcase: columnsPerRow yoksayılıyor → [2]
-// - product-tiles: hardcoded grid-cols-3 → [3]
-// - classic-catalog / industrial / fashion-lookbook: sabit 1 sütun → [1]
-const getAvailableColumns = (layout: string): number[] => {
-  switch (layout) {
-    case 'modern-grid':
-      return [2, 3]
-    case 'compact-list':
-    case 'list':
-    case 'classic-catalog':
-    case 'industrial':
-    case 'fashion-lookbook':
-      return [1]
-    case 'magazine':
-      return [2, 3]
-    case 'bold':
-      return [2, 3]
-    case 'luxury':
-    case 'tech-modern':
-    case 'tech-catalog':
-    case 'clean-white':
-    case 'retail':
-      return [2, 3, 4]
-    case 'minimalist':
-    case 'catalog-minimalist':
-    case 'elegant-cards':
-    case 'catalog-elegant':
-    case 'catalog-pro':
-    case 'showcase':
-      return [2]
-    case 'product-tiles':
-      return [3]
-    default:
-      return [2, 3]
-  }
-}
+import { getAvailableColumns, parseColor, rgbToHex } from "@/components/builder/builder-utils"
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -387,14 +329,8 @@ export function CatalogEditor() {
   }, [selectedProductIds, onSelectedProductIdsChange])
 
   // ─── Column Constraints ───────────────────────────────────────────────────
-  // PERF(F13): Memoize to stabilize reference — prevents effect re-runs every render
+  // Şablon değişince geçersiz sütun sayısı reducer'da aynı adımda düzeltilir.
   const availableColumns = useMemo(() => getAvailableColumns(layout), [layout])
-
-  useEffect(() => {
-    if (availableColumns.length > 0 && !availableColumns.includes(columnsPerRow ?? 0) && onColumnsPerRowChange) {
-      onColumnsPerRowChange(availableColumns[0])
-    }
-  }, [layout, availableColumns, columnsPerRow, onColumnsPerRowChange])
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (

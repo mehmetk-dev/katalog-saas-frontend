@@ -70,39 +70,29 @@ export function buildCatalogPayload(data: BuilderCatalogData) {
     }
 }
 
-/** Build the lastSavedState snapshot
- *  FIX(F11): Must include ALL fields compared in hasUnsavedChanges */
-export function buildSavedStateSnapshot(data: BuilderCatalogData) {
-    return {
-        name: data.catalogName,
-        description: data.catalogDescription,
-        productIds: data.selectedProductIds,
-        layout: data.layout,
-        primaryColor: data.primaryColor,
-        headerTextColor: data.headerTextColor,
-        showPrices: data.showPrices,
-        showDescriptions: data.showDescriptions,
-        showAttributes: data.showAttributes,
-        showSku: data.showSku,
-        showUrls: data.showUrls,
-        columnsPerRow: data.columnsPerRow,
-        backgroundColor: data.backgroundColor,
-        backgroundImage: data.backgroundImage,
-        backgroundImageFit: data.backgroundImageFit,
-        backgroundGradient: data.backgroundGradient,
-        logoUrl: data.logoUrl,
-        logoPosition: data.logoPosition,
-        logoSize: data.logoSize,
-        titlePosition: data.titlePosition,
-        productImageFit: data.productImageFit,
-        enableCoverPage: data.enableCoverPage,
-        coverImageUrl: data.coverImageUrl,
-        coverDescription: data.coverDescription,
-        enableCategoryDividers: data.enableCategoryDividers,
-        categoryOrder: data.categoryOrder,
-        coverTheme: data.coverTheme,
-        showInSearch: data.showInSearch,
-    }
+/** Katalog taslağı: kaydedilen, geri alınabilen her alan (yayın durumu hariç) */
+export type CatalogDraft = Omit<BuilderCatalogData, 'isPublished'>
+
+export function toDraft(data: BuilderCatalogData): CatalogDraft {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { isPublished, ...draft } = data
+    return draft
+}
+
+function sameFieldValue(a: unknown, b: unknown): boolean {
+    if (a === b) return true
+    if (Array.isArray(a) && Array.isArray(b)) return arrayFingerprint(a) === arrayFingerprint(b)
+    return false
+}
+
+/** İki taslak aynı mı? Diziler önce referansla, değilse sıralı parmak iziyle karşılaştırılır. */
+export function draftsEqual(a: CatalogDraft, b: CatalogDraft): boolean {
+    if (a === b) return true
+    return DRAFT_KEYS.every((key) => sameFieldValue(a[key], b[key]))
+}
+
+export function patchChangesDraft(draft: CatalogDraft, patch: Partial<CatalogDraft>): boolean {
+    return (Object.keys(patch) as Array<keyof CatalogDraft>).some((key) => !sameFieldValue(draft[key], patch[key]))
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -217,7 +207,7 @@ export function buildInitialCatalogState(
         showAttributes: catalog?.show_attributes ?? false,
         showSku: catalog?.show_sku ?? true,
         showUrls: catalog?.show_urls ?? false,
-        columnsPerRow: catalog?.columns_per_row || 3,
+        columnsPerRow: normalizeColumnsPerRow(catalog?.layout || 'modern-grid', catalog?.columns_per_row || 3),
         backgroundColor: catalog?.background_color || '#ffffff',
         backgroundImage: catalog?.background_image || null,
         backgroundImageFit: catalog?.background_image_fit || 'cover',
@@ -239,41 +229,48 @@ export function buildInitialCatalogState(
     }
 }
 
-// ─── Preview Props Builder ────────────────────────────────────────────────────
-
-/** Catalog design config — shared between editor, preview, and PDF export
- *  FIX(F12): Derived from BuilderCatalogData via Omit — single source of truth */
-export type CatalogDesignConfig = Omit<BuilderCatalogData,
-    'catalogDescription' | 'selectedProductIds' | 'isPublished' | 'showInSearch'
->
-
-/** Extract CatalogDesignConfig from full BuilderCatalogData */
-export function extractDesignConfig(data: BuilderCatalogData): CatalogDesignConfig {
-    return {
-        catalogName: data.catalogName,
-        layout: data.layout,
-        primaryColor: data.primaryColor,
-        headerTextColor: data.headerTextColor,
-        showPrices: data.showPrices,
-        showDescriptions: data.showDescriptions,
-        showAttributes: data.showAttributes,
-        showSku: data.showSku,
-        showUrls: data.showUrls,
-        productImageFit: data.productImageFit,
-        columnsPerRow: data.columnsPerRow,
-        backgroundColor: data.backgroundColor,
-        backgroundImage: data.backgroundImage,
-        backgroundImageFit: data.backgroundImageFit,
-        backgroundGradient: data.backgroundGradient,
-        logoUrl: data.logoUrl,
-        logoPosition: data.logoPosition,
-        logoSize: data.logoSize,
-        titlePosition: data.titlePosition,
-        enableCoverPage: data.enableCoverPage,
-        coverImageUrl: data.coverImageUrl,
-        coverDescription: data.coverDescription,
-        enableCategoryDividers: data.enableCategoryDividers,
-        categoryOrder: data.categoryOrder,
-        coverTheme: data.coverTheme,
-    }
+// ─── Template Column Constraints ──────────────────────────────────────────────
+// Her şablonun "Sütun" seçeneğinde kaç değer göstereceği. Değerler şablon
+// kodundan çıkarıldı (getGridCols / sabit grid-cols). Yeni şablon eklerken
+// veya bir şablonun desteklediği sütunları değiştirirken SADECE burayı güncelle.
+const TEMPLATE_COLUMNS: Record<string, number[]> = {
+    'modern-grid': [2, 3],
+    magazine: [2, 3],
+    bold: [2, 3],
+    'bold-grid': [2, 3],
+    'compact-list': [1],
+    list: [1],
+    'classic-catalog': [1],
+    'classic-list': [1],
+    industrial: [1],
+    'fashion-lookbook': [1],
+    luxury: [2, 3, 4],
+    'tech-modern': [2, 3, 4],
+    'tech-catalog': [2, 3, 4],
+    'clean-white': [2, 3, 4],
+    retail: [2, 3, 4],
+    minimalist: [2],
+    'minimal-gallery': [2],
+    'catalog-minimalist': [2],
+    'elegant-cards': [2],
+    'elegant-showcase': [2],
+    'catalog-elegant': [2],
+    'catalog-pro': [2],
+    showcase: [2],
+    'product-tiles': [3],
 }
+const DEFAULT_COLUMNS = [2, 3]
+
+export function getAvailableColumns(layout: string): number[] {
+    return TEMPLATE_COLUMNS[layout] ?? DEFAULT_COLUMNS
+}
+
+/** Şablonun desteklemediği sütun sayısını desteklenen ilk değere çeker */
+export function normalizeColumnsPerRow(layout: string, columns: number): number {
+    const available = getAvailableColumns(layout)
+    return available.includes(columns) ? columns : available[0]
+}
+
+/** Tüm taslak alanları — buildInitialCatalogState tek kaynak.
+ *  (Dosyanın sonunda: buildInitialCatalogState'in kullandığı sabitler önce tanımlanmalı.) */
+export const DRAFT_KEYS = Object.keys(toDraft(buildInitialCatalogState(null))) as Array<keyof CatalogDraft>

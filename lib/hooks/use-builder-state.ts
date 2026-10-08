@@ -1,16 +1,19 @@
-﻿"use client"
+"use client"
 
 import { useReducer, useEffect, useRef, useMemo, useCallback, useDeferredValue, useTransition } from "react"
 import { type Catalog } from "@/lib/actions/catalogs"
 import { type Product } from "@/lib/actions/products"
 import { useUser } from "@/lib/contexts/user-context"
-import { type SavedState } from "@/lib/hooks/use-catalog-actions"
 import { useBuilderSelectedProducts } from "@/lib/hooks/use-builder-selected-products"
 import {
     type BuilderCatalogData,
-    buildSavedStateSnapshot,
+    type CatalogDraft,
+    DRAFT_KEYS,
     buildInitialCatalogState,
-    arrayFingerprint,
+    draftsEqual,
+    normalizeColumnsPerRow,
+    patchChangesDraft,
+    toDraft,
     SPLIT_PREVIEW_SOFT_LIMIT,
 } from "@/components/builder/builder-utils"
 import { useWindowSize } from "@/lib/hooks/use-window-size"
@@ -19,78 +22,109 @@ import { useWindowSize } from "@/lib/hooks/use-window-size"
 
 export type BuilderView = "split" | "editor" | "preview"
 
-/** Consolidated state managed by the builder reducer */
-export interface BuilderCoreState {
+/** Geri alma geçmişinde tutulan en fazla adım */
+const HISTORY_LIMIT = 100
+/** Aynı alana bu süre içinde yapılan ardışık değişiklikler (renk sürükleme, yazı yazma)
+ *  tek bir geri alma adımı sayılır */
+const HISTORY_COALESCE_MS = 800
+
+interface BuilderCoreState {
     // UI
     showUpgradeModal: boolean
     showShareModal: boolean
     showExitDialog: boolean
     view: BuilderView
-    // Catalog Identity
+    // Catalog identity
     currentCatalogId: string | null
     isPublished: boolean
-    // Content
-    catalogName: string
-    catalogDescription: string
-    selectedProductIds: string[]
-    layout: string
-    // Design
-    primaryColor: string
-    headerTextColor: string
-    showPrices: boolean
-    showDescriptions: boolean
-    showAttributes: boolean
-    showSku: boolean
-    showUrls: boolean
-    showInSearch: boolean
-    columnsPerRow: number
-    backgroundColor: string
-    backgroundImage: string | null
-    backgroundImageFit: NonNullable<Catalog['background_image_fit']>
-    backgroundGradient: string | null
-    logoUrl: string | null
-    logoPosition: Catalog['logo_position']
-    logoSize: Catalog['logo_size']
-    titlePosition: Catalog['title_position']
-    productImageFit: NonNullable<Catalog['product_image_fit']>
-    // Storytelling
-    enableCoverPage: boolean
-    coverImageUrl: string | null
-    coverDescription: string | null
-    enableCategoryDividers: boolean
-    categoryOrder: string[]
-    coverTheme: string
-    // Dirty Tracking
-    isDirty: boolean
-    lastSavedState: SavedState
+    // Content & design — tek kaynak
+    draft: CatalogDraft
+    /** Sunucuya en son yazılan taslak; hasUnsavedChanges = draft ≠ saved */
+    saved: CatalogDraft
+    // Undo / redo
+    past: CatalogDraft[]
+    future: CatalogDraft[]
+    lastEdit: { key: string; at: number } | null
 }
 
-/** Discriminated union for all builder actions */
-type BuilderAction =
-    | { type: 'UPDATE'; payload: Partial<BuilderCoreState> }
-    | { type: 'SYNC_CATALOG'; payload: BuilderCoreState }
+type UiPatch = Partial<Pick<BuilderCoreState,
+    'showUpgradeModal' | 'showShareModal' | 'showExitDialog' | 'view' | 'currentCatalogId' | 'isPublished'>>
 
-const NON_DIRTY_UPDATE_KEYS = new Set<keyof BuilderCoreState>([
-    'showUpgradeModal',
-    'showShareModal',
-    'showExitDialog',
-    'view',
-    'currentCatalogId',
-    'isPublished',
-    'isDirty',
-    'lastSavedState',
-])
+type BuilderAction =
+    | { type: 'SET_UI'; payload: UiPatch }
+    | { type: 'EDIT'; patch: Partial<CatalogDraft>; at: number }
+    | { type: 'MARK_SAVED'; snapshot: CatalogDraft }
+    | { type: 'UNDO' }
+    | { type: 'REDO' }
+    | { type: 'RESET'; draft: CatalogDraft; currentCatalogId: string | null; isPublished: boolean }
 
 function builderReducer(state: BuilderCoreState, action: BuilderAction): BuilderCoreState {
     switch (action.type) {
-        case 'UPDATE': {
-            const touchesCatalogData = Object.keys(action.payload).some(
-                (key) => !NON_DIRTY_UPDATE_KEYS.has(key as keyof BuilderCoreState)
-            )
-            return { ...state, ...action.payload, isDirty: action.payload.isDirty ?? (touchesCatalogData ? true : state.isDirty) }
+        case 'SET_UI':
+            return { ...state, ...action.payload }
+
+        case 'EDIT': {
+            const patch = { ...action.patch }
+            // Şablon değişince sütun sayısını aynı adımda düzelt — ayrı bir effect
+            // ikinci bir geçmiş adımı yaratıp geri almayı kilitliyordu.
+            if (patch.layout !== undefined && patch.columnsPerRow === undefined) {
+                patch.columnsPerRow = normalizeColumnsPerRow(patch.layout, state.draft.columnsPerRow)
+            }
+            if (!patchChangesDraft(state.draft, patch)) return state
+
+            const key = Object.keys(patch).sort().join(',')
+            const coalesce = state.lastEdit !== null
+                && state.lastEdit.key === key
+                && action.at - state.lastEdit.at < HISTORY_COALESCE_MS
+            return {
+                ...state,
+                draft: { ...state.draft, ...patch },
+                past: coalesce ? state.past : [...state.past, state.draft].slice(-HISTORY_LIMIT),
+                future: [],
+                lastEdit: { key, at: action.at },
+            }
         }
-        case 'SYNC_CATALOG':
-            return action.payload
+
+        case 'MARK_SAVED':
+            return { ...state, saved: action.snapshot }
+
+        case 'UNDO': {
+            if (state.past.length === 0) return state
+            return {
+                ...state,
+                draft: state.past[state.past.length - 1],
+                past: state.past.slice(0, -1),
+                future: [state.draft, ...state.future],
+                lastEdit: null,
+            }
+        }
+
+        case 'REDO': {
+            if (state.future.length === 0) return state
+            return {
+                ...state,
+                draft: state.future[0],
+                past: [...state.past, state.draft],
+                future: state.future.slice(1),
+                lastEdit: null,
+            }
+        }
+
+        case 'RESET':
+            return {
+                ...state,
+                showUpgradeModal: false,
+                showShareModal: false,
+                showExitDialog: false,
+                currentCatalogId: action.currentCatalogId,
+                isPublished: action.isPublished,
+                draft: action.draft,
+                saved: action.draft,
+                past: [],
+                future: [],
+                lastEdit: null,
+            }
+
         default:
             return state
     }
@@ -118,61 +152,38 @@ function normalizeProductIds(ids: string[]): string[] {
     return normalized
 }
 
+function initialDraft(catalog: Catalog | null, userLogoUrl?: string | null): CatalogDraft {
+    const draft = toDraft(buildInitialCatalogState(catalog, userLogoUrl))
+    return { ...draft, selectedProductIds: normalizeProductIds(draft.selectedProductIds) }
+}
+
+/** setCatalogName, setPrimaryColor… — her taslak alanı için bir setter */
+type DraftSetters = {
+    [K in keyof CatalogDraft as `set${Capitalize<K & string>}`]: (value: CatalogDraft[K]) => void
+}
+
 // ─── Hook ───────────────────────────────────────────────────────────────────────
 
 export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     const { user } = useUser()
 
-    // PERF(F5): Memoize — only needed at mount; catalog sync effect handles updates
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const initialState = useMemo(() => buildInitialCatalogState(catalog, user?.logo_url), [])
-    const initialSavedState = useMemo(() => buildSavedStateSnapshot(initialState), [initialState])
-
-    // ─── P2: Consolidated useReducer instead of 30+ useState calls ─────
-    const [state, dispatch] = useReducer(builderReducer, undefined, (): BuilderCoreState => ({
-        // UI
-        showUpgradeModal: false,
-        showShareModal: false,
-        showExitDialog: false,
-        view: "split",
-        // Catalog Identity
-        currentCatalogId: catalog?.id || null,
-        isPublished: catalog?.is_published || false,
-        // Content
-        catalogName: catalog?.name || "",
-        catalogDescription: catalog?.description || "",
-        selectedProductIds: normalizeProductIds(catalog?.product_ids || []),
-        layout: initialState.layout,
-        // Design (from initialState)
-        primaryColor: initialState.primaryColor,
-        headerTextColor: initialState.headerTextColor,
-        showPrices: initialState.showPrices,
-        showDescriptions: initialState.showDescriptions,
-        showAttributes: initialState.showAttributes,
-        showSku: initialState.showSku,
-        showUrls: initialState.showUrls,
-        showInSearch: initialState.showInSearch,
-        columnsPerRow: initialState.columnsPerRow,
-        backgroundColor: initialState.backgroundColor,
-        backgroundImage: initialState.backgroundImage,
-        backgroundImageFit: initialState.backgroundImageFit,
-        backgroundGradient: initialState.backgroundGradient,
-        logoUrl: initialState.logoUrl,
-        logoPosition: initialState.logoPosition,
-        logoSize: initialState.logoSize,
-        titlePosition: initialState.titlePosition,
-        productImageFit: initialState.productImageFit,
-        // Storytelling
-        enableCoverPage: initialState.enableCoverPage,
-        coverImageUrl: initialState.coverImageUrl,
-        coverDescription: initialState.coverDescription,
-        enableCategoryDividers: initialState.enableCategoryDividers,
-        categoryOrder: initialState.categoryOrder,
-        coverTheme: initialState.coverTheme,
-        // Dirty
-        isDirty: false,
-        lastSavedState: initialSavedState,
-    }))
+    const [state, dispatch] = useReducer(builderReducer, undefined, (): BuilderCoreState => {
+        const draft = initialDraft(catalog, user?.logo_url)
+        return {
+            showUpgradeModal: false,
+            showShareModal: false,
+            showExitDialog: false,
+            view: "split",
+            currentCatalogId: catalog?.id || null,
+            isPublished: catalog?.is_published || false,
+            draft,
+            saved: draft,
+            past: [],
+            future: [],
+            lastEdit: null,
+        }
+    })
+    const { draft } = state
 
     const [isSelectionUpdatePending, startSelectionTransition] = useTransition()
     const {
@@ -181,226 +192,88 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         upsertLoadedProducts,
     } = useBuilderSelectedProducts({
         initialProducts: products,
-        selectedProductIds: state.selectedProductIds,
+        selectedProductIds: draft.selectedProductIds,
     })
     // PERF(F6): Shared resize listener instead of dedicated one
     const { width: windowWidth } = useWindowSize()
     const isMobile = windowWidth < 768
 
-    // ─── Stable setter helpers (dispatch is stable) ────────────────────
-    // useMemo with [] is safe because dispatch identity never changes
-    const setters = useMemo(() => ({
-        setShowUpgradeModal: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showUpgradeModal: v } }),
-        setShowShareModal: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showShareModal: v } }),
-        setShowExitDialog: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showExitDialog: v } }),
-        setView: (v: BuilderView) => dispatch({ type: 'UPDATE', payload: { view: v } }),
-        setCurrentCatalogId: (v: string | null) => dispatch({ type: 'UPDATE', payload: { currentCatalogId: v } }),
-        setIsPublished: (v: boolean) => dispatch({ type: 'UPDATE', payload: { isPublished: v } }),
-        setCatalogName: (v: string) => dispatch({ type: 'UPDATE', payload: { catalogName: v } }),
-        setCatalogDescription: (v: string) => dispatch({ type: 'UPDATE', payload: { catalogDescription: v } }),
-        setLayout: (v: string) => dispatch({ type: 'UPDATE', payload: { layout: v } }),
-        setPrimaryColor: (v: string) => dispatch({ type: 'UPDATE', payload: { primaryColor: v } }),
-        setHeaderTextColor: (v: string) => dispatch({ type: 'UPDATE', payload: { headerTextColor: v } }),
-        setShowPrices: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showPrices: v } }),
-        setShowDescriptions: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showDescriptions: v } }),
-        setShowAttributes: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showAttributes: v } }),
-        setShowSku: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showSku: v } }),
-        setShowUrls: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showUrls: v } }),
-        setShowInSearch: (v: boolean) => dispatch({ type: 'UPDATE', payload: { showInSearch: v } }),
-        setColumnsPerRow: (v: number) => dispatch({ type: 'UPDATE', payload: { columnsPerRow: v } }),
-        setBackgroundColor: (v: string) => dispatch({ type: 'UPDATE', payload: { backgroundColor: v } }),
-        setBackgroundImage: (v: string | null) => dispatch({ type: 'UPDATE', payload: { backgroundImage: v } }),
-        setBackgroundImageFit: (v: NonNullable<Catalog['background_image_fit']>) => dispatch({ type: 'UPDATE', payload: { backgroundImageFit: v } }),
-        setBackgroundGradient: (v: string | null) => dispatch({ type: 'UPDATE', payload: { backgroundGradient: v } }),
-        setLogoUrl: (v: string | null) => dispatch({ type: 'UPDATE', payload: { logoUrl: v } }),
-        setLogoPosition: (v: Catalog['logo_position']) => dispatch({ type: 'UPDATE', payload: { logoPosition: v } }),
-        setLogoSize: (v: Catalog['logo_size']) => dispatch({ type: 'UPDATE', payload: { logoSize: v } }),
-        setTitlePosition: (v: Catalog['title_position']) => dispatch({ type: 'UPDATE', payload: { titlePosition: v } }),
-        setProductImageFit: (v: NonNullable<Catalog['product_image_fit']>) => dispatch({ type: 'UPDATE', payload: { productImageFit: v } }),
-        setEnableCoverPage: (v: boolean) => dispatch({ type: 'UPDATE', payload: { enableCoverPage: v } }),
-        setCoverImageUrl: (v: string | null) => dispatch({ type: 'UPDATE', payload: { coverImageUrl: v } }),
-        setCoverDescription: (v: string | null) => dispatch({ type: 'UPDATE', payload: { coverDescription: v } }),
-        setEnableCategoryDividers: (v: boolean) => dispatch({ type: 'UPDATE', payload: { enableCategoryDividers: v } }),
-        setCategoryOrder: (v: string[]) => dispatch({ type: 'UPDATE', payload: { categoryOrder: v } }),
-        setCoverTheme: (v: string) => dispatch({ type: 'UPDATE', payload: { coverTheme: v } }),
-        setIsDirty: (v: boolean) => dispatch({ type: 'UPDATE', payload: { isDirty: v } }),
-        setLastSavedState: (v: SavedState) => dispatch({ type: 'UPDATE', payload: { lastSavedState: v } }),
-    }), [])  // dispatch is stable — safe to omit from deps
-
-    // PERFORMANCE: O(1) fingerprint instead of O(n) comparison
-    const selectedIdsFingerprint = useMemo(
-        () => arrayFingerprint(state.selectedProductIds),
-        [state.selectedProductIds]
-    )
-    const savedIdsFingerprint = useMemo(
-        () => arrayFingerprint(state.lastSavedState.productIds),
-        [state.lastSavedState.productIds]
-    )
-
-    // FIX(F11): Compare ALL design fields — aligned with buildSavedStateSnapshot
-    const hasUnsavedChanges = useMemo(() => {
-        const s = state
-        const ls = s.lastSavedState
-        return (
-            s.catalogName !== ls.name ||
-            s.catalogDescription !== ls.description ||
-            selectedIdsFingerprint !== savedIdsFingerprint ||
-            s.layout !== ls.layout ||
-            s.coverTheme !== ls.coverTheme ||
-            s.primaryColor !== ls.primaryColor ||
-            s.headerTextColor !== ls.headerTextColor ||
-            s.showPrices !== ls.showPrices ||
-            s.showDescriptions !== ls.showDescriptions ||
-            s.showAttributes !== ls.showAttributes ||
-            s.showSku !== ls.showSku ||
-            s.showUrls !== ls.showUrls ||
-            s.columnsPerRow !== ls.columnsPerRow ||
-            s.backgroundColor !== ls.backgroundColor ||
-            s.backgroundImage !== ls.backgroundImage ||
-            s.backgroundImageFit !== ls.backgroundImageFit ||
-            s.backgroundGradient !== ls.backgroundGradient ||
-            s.logoUrl !== ls.logoUrl ||
-            s.logoPosition !== ls.logoPosition ||
-            s.logoSize !== ls.logoSize ||
-            s.titlePosition !== ls.titlePosition ||
-            s.productImageFit !== ls.productImageFit ||
-            s.enableCoverPage !== ls.enableCoverPage ||
-            s.coverImageUrl !== ls.coverImageUrl ||
-            s.coverDescription !== ls.coverDescription ||
-            s.enableCategoryDividers !== ls.enableCategoryDividers ||
-            arrayFingerprint(s.categoryOrder) !== arrayFingerprint(ls.categoryOrder) ||
-            s.showInSearch !== ls.showInSearch
-        )
-    }, [state, selectedIdsFingerprint, savedIdsFingerprint])
-
-    // ─── State Ref (for hooks to read fresh data without re-render) ────
-    const stateRef = useRef<BuilderCatalogData | null>(null)
-    stateRef.current = {
-        catalogName: state.catalogName,
-        catalogDescription: state.catalogDescription,
-        selectedProductIds: state.selectedProductIds,
-        layout: state.layout,
-        primaryColor: state.primaryColor,
-        showPrices: state.showPrices,
-        showDescriptions: state.showDescriptions,
-        showAttributes: state.showAttributes,
-        showSku: state.showSku,
-        showUrls: state.showUrls,
-        columnsPerRow: state.columnsPerRow,
-        backgroundColor: state.backgroundColor,
-        backgroundImage: state.backgroundImage,
-        backgroundImageFit: state.backgroundImageFit,
-        backgroundGradient: state.backgroundGradient,
-        logoUrl: state.logoUrl,
-        logoPosition: state.logoPosition,
-        logoSize: state.logoSize,
-        titlePosition: state.titlePosition,
-        productImageFit: state.productImageFit,
-        headerTextColor: state.headerTextColor,
-        enableCoverPage: state.enableCoverPage,
-        coverImageUrl: state.coverImageUrl,
-        coverDescription: state.coverDescription,
-        enableCategoryDividers: state.enableCategoryDividers,
-        categoryOrder: state.categoryOrder,
-        coverTheme: state.coverTheme,
-        isPublished: state.isPublished,
-        showInSearch: state.showInSearch,
-    }
-    const getState = useCallback((): BuilderCatalogData => {
-        // stateRef is always set synchronously after useRef, safe to assert
-        return stateRef.current!
+    // ─── Stable setters (dispatch is stable) ───────────────────────────
+    const draftSetters = useMemo(() => {
+        const setters: Record<string, (value: unknown) => void> = {}
+        for (const key of DRAFT_KEYS) {
+            const name = `set${key.charAt(0).toUpperCase()}${key.slice(1)}`
+            setters[name] = (value) => dispatch({ type: 'EDIT', patch: { [key]: value }, at: Date.now() })
+        }
+        return setters as DraftSetters
     }, [])
 
+    const uiSetters = useMemo(() => ({
+        setShowUpgradeModal: (v: boolean) => dispatch({ type: 'SET_UI', payload: { showUpgradeModal: v } }),
+        setShowShareModal: (v: boolean) => dispatch({ type: 'SET_UI', payload: { showShareModal: v } }),
+        setShowExitDialog: (v: boolean) => dispatch({ type: 'SET_UI', payload: { showExitDialog: v } }),
+        setView: (v: BuilderView) => dispatch({ type: 'SET_UI', payload: { view: v } }),
+        setCurrentCatalogId: (v: string | null) => dispatch({ type: 'SET_UI', payload: { currentCatalogId: v } }),
+        setIsPublished: (v: boolean) => dispatch({ type: 'SET_UI', payload: { isPublished: v } }),
+        /** Sunucuya yazılan anlık görüntüyü "kaydedildi" olarak işaretle. Kayıt sürerken
+         *  yapılan değişiklikler snapshot'ta olmadığı için kaydedilmemiş görünmeye devam eder. */
+        markSaved: (snapshot: BuilderCatalogData) => dispatch({ type: 'MARK_SAVED', snapshot: toDraft(snapshot) }),
+        undo: () => dispatch({ type: 'UNDO' }),
+        redo: () => dispatch({ type: 'REDO' }),
+    }), [])
+
+    const hasUnsavedChanges = useMemo(() => !draftsEqual(draft, state.saved), [draft, state.saved])
+
+    // ─── State Ref (for hooks to read fresh data without re-render) ────
+    const stateRef = useRef<BuilderCatalogData>({ ...draft, isPublished: state.isPublished })
+    stateRef.current = { ...draft, isPublished: state.isPublished }
+    const getState = useCallback((): BuilderCatalogData => ({ ...stateRef.current }), [])
+
     const selectedProducts = useMemo(() =>
-        state.selectedProductIds
+        draft.selectedProductIds
             .map((id) => productMap.get(id))
             .filter((p): p is Product => p !== undefined),
-        [state.selectedProductIds, productMap]
+        [draft.selectedProductIds, productMap]
     )
     const deferredSelectedProducts = useDeferredValue(selectedProducts)
 
     // PERF(Y1): Tüketicilerin tekrar tekrar `new Set(selectedProductIds)` yapmasını
     // engelle — tek bir kaynaktan memoize edilmiş Set paylaş.
     const selectedProductIdSet = useMemo(
-        () => new Set(state.selectedProductIds),
-        [state.selectedProductIds]
+        () => new Set(draft.selectedProductIds),
+        [draft.selectedProductIds]
     )
 
     // ─── Beforeunload Warning ──────────────────────────────────────────
+    // Tarayıcılar artık özel mesaj göstermiyor; preventDefault yeterli.
     useEffect(() => {
+        if (!hasUnsavedChanges) return
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges) {
-                const message = 'Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılmak istediğinizden emin misiniz?'
-                e.preventDefault()
-                e.returnValue = message
-                return message
-            }
+            e.preventDefault()
+            e.returnValue = ""
         }
         window.addEventListener('beforeunload', handleBeforeUnload)
         return () => window.removeEventListener('beforeunload', handleBeforeUnload)
     }, [hasUnsavedChanges])
 
-    // ─── Sync State on Catalog Change (P2: single dispatch replaces 25+ setters) ─
+    // ─── Reset state when a different catalog is loaded ────────────────
     useEffect(() => {
-        if (catalog) {
-            const nextState = buildInitialCatalogState(catalog, user?.logo_url)
-            dispatch({
-                type: 'SYNC_CATALOG',
-                payload: {
-                    // Preserve UI flags
-                    showUpgradeModal: false,
-                    showShareModal: false,
-                    showExitDialog: false,
-                    view: state.view,
-                    // Catalog identity
-                    currentCatalogId: catalog.id || null,
-                    isPublished: nextState.isPublished,
-                    // Content
-                    catalogName: nextState.catalogName,
-                    catalogDescription: nextState.catalogDescription,
-                    selectedProductIds: normalizeProductIds(nextState.selectedProductIds),
-                    layout: nextState.layout,
-                    // Design
-                    primaryColor: nextState.primaryColor,
-                    headerTextColor: nextState.headerTextColor,
-                    showPrices: nextState.showPrices,
-                    showDescriptions: nextState.showDescriptions,
-                    showAttributes: nextState.showAttributes,
-                    showSku: nextState.showSku,
-                    showUrls: nextState.showUrls,
-                    showInSearch: nextState.showInSearch,
-                    columnsPerRow: nextState.columnsPerRow,
-                    backgroundColor: nextState.backgroundColor,
-                    backgroundImage: nextState.backgroundImage,
-                    backgroundImageFit: nextState.backgroundImageFit,
-                    backgroundGradient: nextState.backgroundGradient,
-                    logoUrl: nextState.logoUrl,
-                    logoPosition: nextState.logoPosition,
-                    logoSize: nextState.logoSize,
-                    titlePosition: nextState.titlePosition,
-                    productImageFit: nextState.productImageFit,
-                    // Storytelling
-                    enableCoverPage: nextState.enableCoverPage,
-                    coverImageUrl: nextState.coverImageUrl,
-                    coverDescription: nextState.coverDescription,
-                    enableCategoryDividers: nextState.enableCategoryDividers,
-                    categoryOrder: nextState.categoryOrder,
-                    coverTheme: nextState.coverTheme,
-                    // Dirty
-                    isDirty: false,
-                    lastSavedState: buildSavedStateSnapshot(nextState),
-                },
-            })
-        }
+        if (!catalog) return
+        dispatch({
+            type: 'RESET',
+            draft: initialDraft(catalog, user?.logo_url),
+            currentCatalogId: catalog.id || null,
+            isPublished: catalog.is_published || false,
+        })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [catalog?.id])
 
     // PERF(F6): Auto-fix view on mobile/desktop switch (no separate resize listener)
     useEffect(() => {
         if (isMobile && state.view === "split") {
-            dispatch({ type: 'UPDATE', payload: { view: "editor" } })
+            dispatch({ type: 'SET_UI', payload: { view: "editor" } })
         } else if (!isMobile && state.view === "editor") {
-            dispatch({ type: 'UPDATE', payload: { view: "split" } })
+            dispatch({ type: 'SET_UI', payload: { view: "split" } })
         }
     }, [isMobile, state.view])
 
@@ -420,67 +293,35 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     const handleSelectedProductIdsChange = useCallback((ids: string[]) => {
         const normalized = normalizeProductIds(ids)
         startSelectionTransition(() => {
-            dispatch({ type: 'UPDATE', payload: { selectedProductIds: normalized } })
+            dispatch({ type: 'EDIT', patch: { selectedProductIds: normalized }, at: Date.now() })
         })
     }, [])
 
     // ─── Return ────────────────────────────────────────────────────────
-    // PERF: Memoize the returned object so consumers via context don't re-render
-    // when identity changes without any real data change. `state` from useReducer
-    // has stable identity across renders unless dispatch was called, and `setters`
-    // is stable (useMemo []), so this memo is valid.
+    // PERF: Memoize so context consumers only re-render on real changes.
     return useMemo(() => ({
+        // Catalog data (catalogName, primaryColor, …) + their setters
+        /** Taslağın tamamı; her düzenlemede kimliği değişir (otomatik kayıt bunu izler) */
+        draft,
+        ...draft,
+        ...draftSetters,
+        handleSelectedProductIdsChange,
+
         // UI state
-        showUpgradeModal: state.showUpgradeModal, setShowUpgradeModal: setters.setShowUpgradeModal,
-        showShareModal: state.showShareModal, setShowShareModal: setters.setShowShareModal,
-        showExitDialog: state.showExitDialog, setShowExitDialog: setters.setShowExitDialog,
-        view: state.view, setView: setters.setView,
+        showUpgradeModal: state.showUpgradeModal,
+        showShareModal: state.showShareModal,
+        showExitDialog: state.showExitDialog,
+        view: state.view,
         isMobile,
         isSelectionUpdatePending,
+        currentCatalogId: state.currentCatalogId,
+        isPublished: state.isPublished,
+        ...uiSetters,
 
-        // Catalog identity
-        currentCatalogId: state.currentCatalogId, setCurrentCatalogId: setters.setCurrentCatalogId,
-        isPublished: state.isPublished, setIsPublished: setters.setIsPublished,
-
-        // Content
-        catalogName: state.catalogName, setCatalogName: setters.setCatalogName,
-        catalogDescription: state.catalogDescription, setCatalogDescription: setters.setCatalogDescription,
-        selectedProductIds: state.selectedProductIds, handleSelectedProductIdsChange,
-        layout: state.layout, setLayout: setters.setLayout,
-
-        // Design
-        primaryColor: state.primaryColor, setPrimaryColor: setters.setPrimaryColor,
-        headerTextColor: state.headerTextColor, setHeaderTextColor: setters.setHeaderTextColor,
-        showPrices: state.showPrices, setShowPrices: setters.setShowPrices,
-        showDescriptions: state.showDescriptions, setShowDescriptions: setters.setShowDescriptions,
-        showAttributes: state.showAttributes, setShowAttributes: setters.setShowAttributes,
-        showSku: state.showSku, setShowSku: setters.setShowSku,
-        showUrls: state.showUrls, setShowUrls: setters.setShowUrls,
-        showInSearch: state.showInSearch, setShowInSearch: setters.setShowInSearch,
-        columnsPerRow: state.columnsPerRow, setColumnsPerRow: setters.setColumnsPerRow,
-        backgroundColor: state.backgroundColor, setBackgroundColor: setters.setBackgroundColor,
-        backgroundImage: state.backgroundImage, setBackgroundImage: setters.setBackgroundImage,
-        backgroundImageFit: state.backgroundImageFit, setBackgroundImageFit: setters.setBackgroundImageFit,
-        backgroundGradient: state.backgroundGradient, setBackgroundGradient: setters.setBackgroundGradient,
-        logoUrl: state.logoUrl, setLogoUrl: setters.setLogoUrl,
-        logoPosition: state.logoPosition, setLogoPosition: setters.setLogoPosition,
-        logoSize: state.logoSize, setLogoSize: setters.setLogoSize,
-        titlePosition: state.titlePosition, setTitlePosition: setters.setTitlePosition,
-        productImageFit: state.productImageFit, setProductImageFit: setters.setProductImageFit,
-
-        // Storytelling
-        enableCoverPage: state.enableCoverPage, setEnableCoverPage: setters.setEnableCoverPage,
-        coverImageUrl: state.coverImageUrl, setCoverImageUrl: setters.setCoverImageUrl,
-        coverDescription: state.coverDescription, setCoverDescription: setters.setCoverDescription,
-        enableCategoryDividers: state.enableCategoryDividers, setEnableCategoryDividers: setters.setEnableCategoryDividers,
-        categoryOrder: state.categoryOrder,
-        setCategoryOrder: setters.setCategoryOrder,
-        coverTheme: state.coverTheme, setCoverTheme: setters.setCoverTheme,
-
-        // Dirty tracking
-        isDirty: state.isDirty, setIsDirty: setters.setIsDirty,
-        lastSavedState: state.lastSavedState, setLastSavedState: setters.setLastSavedState,
+        // Save / history
         hasUnsavedChanges,
+        canUndo: state.past.length > 0,
+        canRedo: state.future.length > 0,
 
         // Derived
         getState,
@@ -494,11 +335,20 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         effectiveView,
         shouldUseSplitPreviewSampling,
     }), [
-        state,
-        setters,
+        draft,
+        draftSetters,
+        handleSelectedProductIdsChange,
+        state.showUpgradeModal,
+        state.showShareModal,
+        state.showExitDialog,
+        state.view,
+        state.currentCatalogId,
+        state.isPublished,
+        state.past.length,
+        state.future.length,
         isMobile,
         isSelectionUpdatePending,
-        handleSelectedProductIdsChange,
+        uiSetters,
         hasUnsavedChanges,
         getState,
         productMap,
