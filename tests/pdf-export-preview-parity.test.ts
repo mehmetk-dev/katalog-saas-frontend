@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { createCatalogPagesModel } from '@/components/builder/preview/use-catalog-pages'
 import { buildPages, resolvePdfDesignSettings } from '@/components/export/pdf-export-document'
 import type { Product } from '@/lib/actions/products'
+import type { Catalog } from '@/lib/actions/catalogs'
+import { buildInitialCatalogState } from '@/components/builder/builder-utils'
+import { getItemsPerPage } from '@/lib/constants'
 
 function product(id: string, category: string): Product {
     return {
@@ -25,16 +28,37 @@ function product(id: string, category: string): Product {
 }
 
 describe('PDF export / preview page parity', () => {
-    it('uses the saved cover theme and the same safe design defaults as the builder', () => {
-        expect(resolvePdfDesignSettings({
+    it('resolves design settings exactly like the builder (defaults, logo fallback, aliases)', () => {
+        const design = resolvePdfDesignSettings({
             cover_theme: 'luxury',
             description: 'Catalog metadata description',
-        })).toEqual({
+            layout: 'elegant-showcase',
+            columns_per_row: 3,
+        }, 'https://cdn.example.com/user-logo.png')
+
+        expect(design).toMatchObject({
             coverTheme: 'luxury',
-            coverDescription: 'Catalog metadata description',
-            columnsPerRow: 3,
-            logoPosition: 'header-left',
+            catalogDescription: 'Catalog metadata description',
+            // builder varsayılanları — önceden PDF'te mor ana renk, beyaz başlık, açık özellikler vardı
+            primaryColor: 'rgba(24, 24, 27, 1)',
+            headerTextColor: '#000000',
+            showAttributes: false,
+            titlePosition: 'left',
+            logoUrl: 'https://cdn.example.com/user-logo.png',
         })
+        expect(design).toEqual(buildInitialCatalogState({
+            cover_theme: 'luxury',
+            description: 'Catalog metadata description',
+            layout: 'elegant-showcase',
+            columns_per_row: 3,
+        } as unknown as Catalog, 'https://cdn.example.com/user-logo.png'))
+    })
+
+    it('paginates legacy layout aliases with the real template capacity', () => {
+        const products = Array.from({ length: 8 }, (_, i) => product(String(i + 1), 'A'))
+        const pages = buildPages({ layout: 'elegant-showcase' }, products)
+
+        expect(pages).toHaveLength(Math.ceil(8 / getItemsPerPage('elegant-cards')))
     })
 
     it('uses the same page sequence and page numbering as preview export mode', () => {

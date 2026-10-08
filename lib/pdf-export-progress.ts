@@ -31,6 +31,27 @@ function clampPercent(value: number): number {
 
 export type ProgressTranslate = (key: string) => string
 
+/** Worker/API'nin `error_message` alanına yazdığı kodlar (backend pdf-export-job-lifecycle.ts) */
+const PDF_EXPORT_ERROR_CODES = new Set([
+    "render_timeout",
+    "asset_timeout",
+    "render_failed",
+    "storage_failed",
+    "catalog_missing",
+    "worker_stalled",
+    "queue_unavailable",
+])
+
+/**
+ * Hata kodunu kullanıcı diline çevirir. Bilinmeyen/eski serbest metin hatalar (ör. "waiting-render-ready:
+ * Timeout 300000ms") teknik ayrıntı içerdiği için gösterilmez; genel mesaj döner.
+ */
+export function resolvePdfExportErrorMessage(errorMessage: string | null | undefined, t: ProgressTranslate): string {
+    const code = errorMessage?.trim()
+    if (code && PDF_EXPORT_ERROR_CODES.has(code)) return t(`pdf.errorCodes.${code}`)
+    return t("pdf.progressFailedDesc")
+}
+
 export function getPdfExportProgressDisplay(job: PdfExportProgressInput, t: ProgressTranslate): PdfExportProgressDisplay {
     const percent = clampPercent(job.progress)
 
@@ -58,7 +79,7 @@ export function getPdfExportProgressDisplay(job: PdfExportProgressInput, t: Prog
         return {
             stage: "error",
             title: t("pdf.phraseError"),
-            description: job.error_message || t("pdf.progressFailedDesc"),
+            description: resolvePdfExportErrorMessage(job.error_message, t),
             percent,
             isActive: false,
         }

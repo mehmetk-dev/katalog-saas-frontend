@@ -34,13 +34,14 @@ function yieldToMain(ms: number = 0): Promise<void> {
 interface UsePublicPdfExportOptions {
     catalogName: string
     expectedPageCount: number
+    t: (key: string) => string
 }
 
 /**
  * Handles client-side PDF generation for the public catalog view.
  * Dynamically imports jsPDF & html-to-image only when the user initiates a download.
  */
-export function usePublicPdfExport({ catalogName, expectedPageCount }: UsePublicPdfExportOptions) {
+export function usePublicPdfExport({ catalogName, expectedPageCount, t }: UsePublicPdfExportOptions) {
     const [isExporting, setIsExporting] = useState(false)
     const [pdfProgress, setPdfProgress] = useState<PdfProgressState>(PDF_PROGRESS_INITIAL_STATE)
     const cancelledRef = useRef(false)
@@ -82,7 +83,7 @@ export function usePublicPdfExport({ catalogName, expectedPageCount }: UsePublic
                 setPdfProgress({
                     phase: "error", currentPage: 0, totalPages: 0, percent: 0,
                     estimatedTimeLeft: "",
-                    errorMessage: "PDF oluşturulacak içerik bulunamadı.",
+                    errorMessage: t("pdf.noPagesToExport"),
                 })
                 return
             }
@@ -143,7 +144,7 @@ export function usePublicPdfExport({ catalogName, expectedPageCount }: UsePublic
 
             setPdfProgress({ phase: "saving", currentPage: totalPages, totalPages, percent: 95, estimatedTimeLeft: "" })
 
-            const sanitizedName = catalogName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+            const sanitizedName = catalogName.trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-') || 'katalog'
             pdf.save(`${sanitizedName}.pdf`)
 
             setPdfProgress({ phase: "done", currentPage: totalPages, totalPages, percent: 100, estimatedTimeLeft: "" })
@@ -156,12 +157,13 @@ export function usePublicPdfExport({ catalogName, expectedPageCount }: UsePublic
                 totalPages: 0,
                 percent: 0,
                 estimatedTimeLeft: "",
-                errorMessage: error instanceof Error ? error.message : "PDF oluşturulamadı. Lütfen tekrar deneyin.",
+                // html-to-image/jsPDF hata metinleri teknik; kullanıcıya genel mesaj gösterilir
+                errorMessage: t("pdf.exportFailed"),
             })
         } finally {
             setIsExporting(false)
         }
-    }, [catalogName, expectedPageCount])
+    }, [catalogName, expectedPageCount, t])
 
     return { isExporting, pdfProgress, handleDownload, cancelExport, closePdfModal }
 }

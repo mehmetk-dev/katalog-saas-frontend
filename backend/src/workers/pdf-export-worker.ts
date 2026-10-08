@@ -4,12 +4,18 @@ import http from 'http'
 
 import { supabase } from '../services/supabase'
 import { createPdfExportWorker, type PdfExportBullJob } from '../services/pdf-export-queue'
-import { getPdfExportRelativePath, writePdfExportFile } from '../services/pdf-export-storage'
+import { deletePdfExportFile, getPdfExportRelativePath, writePdfExportFile } from '../services/pdf-export-storage'
 import { createPdfExportToken } from '../services/pdf-export-token'
 import { cleanupExpiredPdfExports } from './pdf-export-cleanup'
 import { cacheKeys, deleteCache } from '../services/redis'
 import { shouldConsumePdfExportQuota } from './pdf-export-usage'
 import { startBillingDocumentWorker } from './billing-document-worker'
+import {
+    ACTIVE_PDF_EXPORT_STATUSES,
+    PdfExportJobCancelledError,
+    classifyPdfExportFailure,
+    isFinalAttempt,
+} from './pdf-export-job-lifecycle'
 
 let cachedFrontendOrigin: string | null = null
 
@@ -56,11 +62,16 @@ async function discoverFrontendOrigin(): Promise<string> {
     return fallback
 }
 
-async function updateJob(jobId: string, patch: Record<string, unknown>): Promise<void> {
+/**
+ * Yalnızca hâlâ aktif (queued/processing) işi günceller. Kullanıcı iptal ettiyse satır eşleşmez ve
+ * PdfExportJobCancelledError fırlatılır; böylece her ara adım aynı zamanda bir iptal kontrolüdür.
+ */
+async function updateActiveJob(jobId: string, patch: Record<string, unknown>): Promise<void> {
     const { data, error } = await supabase
         .from('pdf_export_jobs')
         .update(patch)
         .eq('id', jobId)
+        .in('status', [...ACTIVE_PDF_EXPORT_STATUSES])
         .select('id')
         .maybeSingle()
 
@@ -68,7 +79,7 @@ async function updateJob(jobId: string, patch: Record<string, unknown>): Promise
         throw new Error(`PDF export job update failed: ${getErrorMessage(error)}`)
     }
     if (!data) {
-        throw new Error(`PDF export job not found: ${jobId}`)
+        throw new PdfExportJobCancelledError(jobId)
     }
 }
 
@@ -179,10 +190,11 @@ const GOTO_TIMEOUT_MS = Number(process.env.PDF_EXPORT_GOTO_TIMEOUT_MS || 120_000
 async function renderPdf(job: PdfExportBullJob): Promise<void> {
     const { jobId, userId, catalogId } = job.data
     let phase = 'initializing'
+    let uploadedStoragePath: string | null = null
 
     try {
         phase = 'marking-processing'
-        await updateJob(jobId, {
+        await updateActiveJob(jobId, {
             status: 'processing',
             progress: 15,
             attempts: job.attemptsMade + 1,
@@ -234,7 +246,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             })
 
             await page.goto(renderUrl, { waitUntil: 'domcontentloaded', timeout: GOTO_TIMEOUT_MS })
-            await updateJob(jobId, { progress: 35 })
+            await updateActiveJob(jobId, { progress: 35 })
             console.log(`[pdf-export-worker] render page loaded ${jobId}; waiting for ready signal`)
 
             phase = 'waiting-render-ready'
@@ -276,7 +288,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
                 .locator('.catalog-page-wrapper')
                 .count()
                 .catch(() => null)
-            await updateJob(jobId, { progress: 50, page_count: pageCount })
+            await updateActiveJob(jobId, { progress: 50, page_count: pageCount })
 
             phase = 'waiting-images'
             await page.waitForFunction(
@@ -289,7 +301,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
                 { timeout: READY_TIMEOUT_MS }
             )
             console.log(`[pdf-export-worker] assets ready ${jobId} pages=${pageCount ?? 'unknown'}`)
-            await updateJob(jobId, { progress: 70 })
+            await updateActiveJob(jobId, { progress: 70 })
 
             phase = 'rendering-pdf'
             const pdfBuffer = await page.pdf({
@@ -305,9 +317,10 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
                 catalogName: catalogName?.name,
                 catalogSlug: catalogName?.share_slug,
             })
-            await updateJob(jobId, { progress: 90 })
+            await updateActiveJob(jobId, { progress: 90 })
             phase = 'uploading-r2'
             const { key, storagePath, size } = await writePdfExportFile(relativePath, pdfBuffer)
+            uploadedStoragePath = storagePath
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
             console.log(
@@ -328,16 +341,42 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
         }
     } catch (error) {
         const errorMessage = getErrorMessage(error)
+        const cancelled =
+            error instanceof PdfExportJobCancelledError ||
+            (phase === 'finalizing-job' && /cannot be completed from status/i.test(errorMessage))
+
+        // Tamamlanamayan iş için yüklenen dosya R2'de sahipsiz kalmasın
+        if (uploadedStoragePath) {
+            await deletePdfExportFile(uploadedStoragePath).catch((deleteError) => {
+                console.warn(`[pdf-export-worker] orphan file cleanup failed ${jobId}: ${getErrorMessage(deleteError)}`)
+            })
+        }
+
+        if (cancelled) {
+            // Kullanıcı iptal etti: başarısız sayma, yeniden deneme (BullMQ işi tamamlanmış sayar)
+            console.log(`[pdf-export-worker] ${jobId} cancelled during ${phase}; stopping`)
+            return
+        }
+
         const browserFailed = /browser.*closed|target.*closed|browser.*crash/i.test(errorMessage)
         if (browserFailed) browserCrashCount++
         if (browserCrashCount >= MAX_BROWSER_CRASHES || browserFailed) {
             await recoverBrowser()
         }
-        await updateJob(jobId, {
-            status: 'failed',
-            progress: 0,
-            error_message: `${phase}: ${errorMessage}`.slice(0, 1000),
-        }).catch(() => undefined)
+
+        console.error(`[pdf-export-worker] ${jobId} failed in ${phase}: ${errorMessage}`)
+        // Ara denemelerde iş tekrar kuyruğa döner; kullanıcı "başarısız" görüp yeni iş başlatmasın
+        const finalAttempt = isFinalAttempt(job)
+        await supabase
+            .from('pdf_export_jobs')
+            .update(
+                finalAttempt
+                    ? { status: 'failed', progress: 0, error_message: classifyPdfExportFailure(phase, errorMessage) }
+                    : { status: 'queued', progress: 0, error_message: null }
+            )
+            .eq('id', jobId)
+            .in('status', [...ACTIVE_PDF_EXPORT_STATUSES])
+            .then(undefined, () => undefined)
         throw new Error(`[${phase}] ${errorMessage}`)
     }
 }
@@ -351,6 +390,16 @@ worker.on('completed', (job) => {
 
 worker.on('failed', (job, error) => {
     console.error(`[pdf-export-worker] failed ${job?.id}:`, error)
+    // Takılan (stalled) işler renderPdf'in catch'ine hiç uğramaz; DB'de "processing" kalıp
+    // kullanıcının yeni export başlatmasını engellemesin
+    if (job && job.attemptsMade >= Math.max(1, job.opts.attempts ?? 1)) {
+        void supabase
+            .from('pdf_export_jobs')
+            .update({ status: 'failed', progress: 0, error_message: 'worker_stalled' })
+            .eq('id', job.data.jobId)
+            .in('status', [...ACTIVE_PDF_EXPORT_STATUSES])
+            .then(undefined, () => undefined)
+    }
 })
 
 async function shutdown(): Promise<void> {

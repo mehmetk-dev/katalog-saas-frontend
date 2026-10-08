@@ -10,6 +10,7 @@ import {
 import { getPdfExportSignedUrl } from '../services/pdf-export-storage'
 import { createPdfExportToken, verifyPdfExportToken } from '../services/pdf-export-token'
 import { safeErrorMessage } from '../utils/safe-error'
+import { isStaleActiveJob } from '../workers/pdf-export-job-lifecycle'
 import type { AuthUser } from '../middlewares/auth'
 
 const createExportSchema = z.object({
@@ -154,7 +155,8 @@ async function getProductsForCatalog(
 export async function createPdfExport(req: Request, res: Response) {
     try {
         if (!isPdfExportQueueConfigured()) {
-            return res.status(503).json({ error: 'PDF export queue is not configured.' })
+            console.error('[pdf-exports] REDIS_URL is not set; PDF export queue unavailable')
+            return res.status(503).json({ error: 'PDF servisi şu anda kullanılamıyor. Lütfen biraz sonra tekrar deneyin.', code: 'queue_unavailable' })
         }
 
         const userId = getRequestUserId(req)
@@ -186,13 +188,27 @@ export async function createPdfExport(req: Request, res: Response) {
             .limit(5)
 
         if (activeError) throw activeError
-        const matchingActiveJob = activeJobs?.find((job) => job.catalog_id === parsed.data.catalogId)
+
+        // Worker çöktüyse/yeniden başladıysa "processing" kalan iş kullanıcıyı sonsuza dek kilitlemesin
+        const staleJobs = (activeJobs || []).filter((job) => isStaleActiveJob(job))
+        if (staleJobs.length > 0) {
+            await supabase
+                .from('pdf_export_jobs')
+                .update({ status: 'failed', progress: 0, error_message: 'worker_stalled' })
+                .in('id', staleJobs.map((job) => job.id))
+                .in('status', ['queued', 'processing'])
+            await Promise.all(staleJobs.map((job) => removePdfExportQueueJob(job.id).catch(() => undefined)))
+        }
+        const liveJobs = (activeJobs || []).filter((job) => !isStaleActiveJob(job))
+
+        const matchingActiveJob = liveJobs.find((job) => job.catalog_id === parsed.data.catalogId)
         if (matchingActiveJob) {
             return res.status(200).json({ job: matchingActiveJob, reused: true })
         }
-        if (activeJobs?.[0]) {
+        if (liveJobs[0]) {
             return res.status(409).json({
-                error: 'Devam eden başka bir PDF export işi var. Lütfen tamamlanmasını bekleyin.',
+                error: 'Başka bir katalog için PDF hazırlanıyor. Lütfen tamamlanmasını bekleyin.',
+                code: 'another_export_running',
             })
         }
 
@@ -208,7 +224,7 @@ export async function createPdfExport(req: Request, res: Response) {
         const used = Number(profile.exports_used) || 0
         const limit = plan === 'pro' ? Number.POSITIVE_INFINITY : plan === 'plus' ? 50 : 1
         if (used >= limit) {
-            return res.status(403).json({ error: 'Export hakkınız doldu. Planınızı yükseltin.' })
+            return res.status(403).json({ error: 'PDF indirme hakkınız doldu. Planınızı yükseltin.', code: 'quota_exceeded' })
         }
         if (parsed.data.quality === 'high' && plan === 'free') {
             return res
@@ -238,11 +254,12 @@ export async function createPdfExport(req: Request, res: Response) {
                 quality: parsed.data.quality,
             })
         } catch (queueError) {
+            console.error(`[pdf-exports] enqueue failed for job=${job.id}:`, safeErrorMessage(queueError))
             await supabase
                 .from('pdf_export_jobs')
-                .update({ status: 'failed', error_message: 'PDF export queue unavailable' })
+                .update({ status: 'failed', error_message: 'queue_unavailable' })
                 .eq('id', job.id)
-            throw queueError
+            return res.status(503).json({ error: 'PDF servisi şu anda kullanılamıyor. Lütfen biraz sonra tekrar deneyin.', code: 'queue_unavailable' })
         }
 
         return res.status(202).json({ job, reused: false })

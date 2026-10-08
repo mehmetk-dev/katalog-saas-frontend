@@ -10,6 +10,9 @@ import type { TemplateProps } from '@/components/catalogs/templates/types'
 import { PdfExportModeProvider } from '@/components/ui/product-image-gallery'
 import { createCatalogPagesModel } from '@/components/builder/preview/use-catalog-pages'
 import { waitForPdfExportAssets } from '@/lib/pdf-export-assets'
+import { buildInitialCatalogState, type BuilderCatalogData } from '@/components/builder/builder-utils'
+import type { Catalog } from '@/lib/actions/catalogs'
+import { normalizeLayout } from '@/lib/catalog-layouts'
 
 // Static imports — no lazy loading, no ssr:false
 // Templates MUST be statically imported so Playwright can render them immediately
@@ -33,19 +36,15 @@ import { LuxuryTemplate } from '@/components/catalogs/templates/luxury'
 import { CleanWhiteTemplate } from '@/components/catalogs/templates/clean-white'
 import { ProductTilesTemplate } from '@/components/catalogs/templates/product-tiles'
 
+/** Kanonik şablon adları; takma adlar normalizeLayout ile çözülür */
 const TEMPLATE_MAP: Record<string, ComponentType<TemplateProps>> = {
     'modern-grid': ModernGridTemplate,
     'compact-list': CompactListTemplate,
-    list: CompactListTemplate,
     magazine: MagazineTemplate,
     minimalist: MinimalistTemplate,
-    'minimal-gallery': MinimalistTemplate,
     bold: BoldTemplate,
-    'bold-grid': BoldTemplate,
     'elegant-cards': ElegantCardsTemplate,
-    'elegant-showcase': ElegantCardsTemplate,
     'classic-catalog': ClassicCatalogTemplate,
-    'classic-list': ClassicCatalogTemplate,
     showcase: ShowcaseTemplate,
     'catalog-pro': CatalogProTemplate,
     retail: RetailTemplate,
@@ -69,50 +68,29 @@ interface PdfExportDocumentProps {
     user: User
 }
 
-function stringValue(value: unknown, fallback = ''): string {
-    return typeof value === 'string' ? value : fallback
+/**
+ * PDF, builder önizlemesiyle birebir aynı ayarlarla çizilmeli: varsayılanlar, sütun normalizasyonu ve
+ * kullanıcı logosu yedeği builder'ın `buildInitialCatalogState` fonksiyonundan gelir.
+ */
+export function resolvePdfDesignSettings(catalog: RenderCatalog, userLogoUrl?: string | null): BuilderCatalogData {
+    return buildInitialCatalogState(catalog as unknown as Catalog, userLogoUrl)
 }
 
-function booleanValue(value: unknown, fallback = false): boolean {
-    return typeof value === 'boolean' ? value : fallback
-}
-
-function numberValue(value: unknown, fallback: number): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-export function resolvePdfDesignSettings(catalog: RenderCatalog) {
-    return {
-        coverTheme: stringValue(catalog.cover_theme, 'modern'),
-        coverDescription:
-            stringValue(catalog.cover_description) || stringValue(catalog.description),
-        columnsPerRow: numberValue(catalog.columns_per_row, 3),
-        logoPosition: stringValue(catalog.logo_position, 'header-left'),
-    }
-}
-
-// -- Page types --
 type CatalogPage =
     | { type: 'cover' }
     | { type: 'divider'; categoryName: string; firstProductImage?: string }
     | { type: 'products'; products: Product[]; pageNumber: number; totalPages: number }
 
-export function buildPages(catalog: RenderCatalog, products: Product[]): CatalogPage[] {
-    const layout = stringValue(catalog.layout, 'modern-grid')
-    const columnsPerRow = numberValue(catalog.columns_per_row, 3)
-    const enableCoverPage = booleanValue(catalog.enable_cover_page, false)
-    const enableCategoryDividers = booleanValue(catalog.enable_category_dividers, false)
-    const categoryOrder = Array.isArray(catalog.category_order)
-        ? catalog.category_order.map(String)
-        : []
+export function buildPages(catalog: RenderCatalog, products: Product[], uncategorizedLabel = 'Kategorisiz'): CatalogPage[] {
+    const design = resolvePdfDesignSettings(catalog)
     const pageModel = createCatalogPagesModel({
         products,
-        layout,
-        columnsPerRow,
-        enableCoverPage,
-        enableCategoryDividers,
-        categoryOrder,
-        uncategorizedLabel: 'Kategorisiz',
+        layout: design.layout,
+        columnsPerRow: design.columnsPerRow,
+        enableCoverPage: design.enableCoverPage,
+        enableCategoryDividers: design.enableCategoryDividers,
+        categoryOrder: design.categoryOrder,
+        uncategorizedLabel,
     })
 
     return pageModel.getAllPages().map((page, index) => {
@@ -153,15 +131,11 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
         }
     }, [])
 
-    const layout = stringValue(catalog.layout, 'modern-grid')
-    const primaryColor = stringValue(catalog.primary_color, '#7c3aed')
-    const catalogName = stringValue(catalog.name, 'Katalog')
+    const design = useMemo(() => resolvePdfDesignSettings(catalog, user?.logo_url), [catalog, user?.logo_url])
     const isFreeUser = user?.plan === 'free'
-    const designSettings = resolvePdfDesignSettings(catalog)
 
     const pages = useMemo(() => buildPages(catalog, products), [catalog, products])
-    const TemplateComponent = (TEMPLATE_MAP[layout] ??
-        ModernGridTemplate) as ComponentType<TemplateProps>
+    const TemplateComponent = TEMPLATE_MAP[normalizeLayout(design.layout)] ?? ModernGridTemplate
 
     return (
         <UserProvider initialUser={user}>
@@ -179,75 +153,48 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
                             >
                                 {page.type === 'cover' && (
                                     <CoverPage
-                                        catalogName={catalogName}
-                                        coverImageUrl={stringValue(catalog.cover_image_url)}
-                                        coverDescription={designSettings.coverDescription}
-                                        logoUrl={stringValue(catalog.logo_url)}
-                                        primaryColor={primaryColor}
+                                        catalogName={design.catalogName}
+                                        coverImageUrl={design.coverImageUrl ?? undefined}
+                                        coverDescription={design.coverDescription || design.catalogDescription || undefined}
+                                        logoUrl={design.logoUrl ?? undefined}
+                                        primaryColor={design.primaryColor}
                                         productCount={products.length}
-                                        theme={designSettings.coverTheme}
+                                        isExporting
+                                        theme={design.coverTheme}
                                     />
                                 )}
                                 {page.type === 'divider' && (
                                     <CategoryDivider
                                         categoryName={page.categoryName}
                                         firstProductImage={page.firstProductImage}
-                                        primaryColor={primaryColor}
-                                        theme={designSettings.coverTheme}
+                                        primaryColor={design.primaryColor}
+                                        theme={design.coverTheme}
                                     />
                                 )}
                                 {page.type === 'products' && (
                                     <TemplateComponent
                                         products={page.products}
-                                        primaryColor={primaryColor}
-                                        catalogName={catalogName}
+                                        primaryColor={design.primaryColor}
+                                        catalogName={design.catalogName}
                                         pageNumber={page.pageNumber}
                                         totalPages={page.totalPages}
                                         isFreeUser={isFreeUser}
-                                        headerTextColor={stringValue(
-                                            catalog.header_text_color,
-                                            '#ffffff'
-                                        )}
-                                        showPrices={booleanValue(catalog.show_prices, true)}
-                                        showDescriptions={booleanValue(
-                                            catalog.show_descriptions,
-                                            true
-                                        )}
-                                        showAttributes={booleanValue(catalog.show_attributes, true)}
-                                        showSku={booleanValue(catalog.show_sku, true)}
-                                        showUrls={booleanValue(catalog.show_urls, false)}
-                                        productImageFit={
-                                            stringValue(catalog.product_image_fit, 'cover') as
-                                                | 'cover'
-                                                | 'contain'
-                                                | 'fill'
-                                        }
-                                        columnsPerRow={designSettings.columnsPerRow}
-                                        logoUrl={stringValue(catalog.logo_url)}
-                                        logoPosition={designSettings.logoPosition}
-                                        logoSize={stringValue(catalog.logo_size, 'medium')}
-                                        titlePosition={
-                                            stringValue(catalog.title_position, 'center') as
-                                                | 'left'
-                                                | 'center'
-                                                | 'right'
-                                        }
-                                        backgroundColor={stringValue(
-                                            catalog.background_color,
-                                            '#ffffff'
-                                        )}
-                                        backgroundImage={
-                                            stringValue(catalog.background_image) || null
-                                        }
-                                        backgroundImageFit={
-                                            stringValue(catalog.background_image_fit, 'cover') as
-                                                | 'cover'
-                                                | 'contain'
-                                                | 'fill'
-                                        }
-                                        backgroundGradient={
-                                            stringValue(catalog.background_gradient) || null
-                                        }
+                                        headerTextColor={design.headerTextColor}
+                                        showPrices={design.showPrices}
+                                        showDescriptions={design.showDescriptions}
+                                        showAttributes={design.showAttributes}
+                                        showSku={design.showSku}
+                                        showUrls={design.showUrls}
+                                        productImageFit={design.productImageFit}
+                                        columnsPerRow={design.columnsPerRow}
+                                        logoUrl={design.logoUrl ?? undefined}
+                                        logoPosition={design.logoPosition ?? undefined}
+                                        logoSize={design.logoSize}
+                                        titlePosition={design.titlePosition}
+                                        backgroundColor={design.backgroundColor}
+                                        backgroundImage={design.backgroundImage}
+                                        backgroundImageFit={design.backgroundImageFit}
+                                        backgroundGradient={design.backgroundGradient}
                                     />
                                 )}
 
@@ -263,18 +210,15 @@ export function PdfExportDocument({ catalog, products, user }: PdfExportDocument
                     ))}
                 </main>
             </PdfExportModeProvider>
+            {/* Yalnızca sayfa kırılımı ve gölge: şablonların overflow/h-full davranışına dokunulmaz.
+                Önceden tüm .overflow-hidden/.h-full ezildiği için görseller yazının üstüne taşıyor ve
+                alt bilgiler ayrı bir PDF sayfasına düşüyordu. */}
             <style>{`
-        .pdf-export-print,
-        .pdf-export-print .overflow-hidden,
-        .pdf-export-print .overflow-auto {
-          overflow: visible !important;
-        }
-        .pdf-export-print .h-full {
-          height: auto !important;
-        }
+        @page { size: A4; margin: 0; }
         .pdf-export-print .catalog-page-wrapper {
           break-after: page;
           page-break-after: always;
+          break-inside: avoid;
           margin-bottom: 0 !important;
         }
         .pdf-export-print .catalog-page-wrapper:last-child {

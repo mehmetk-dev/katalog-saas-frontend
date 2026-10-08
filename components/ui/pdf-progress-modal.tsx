@@ -181,12 +181,14 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    void navigator.clipboard.writeText(state.shareUrl || "")
-                                    toast.success("PDF linki kopyalandı.")
+                                    navigator.clipboard.writeText(state.shareUrl || "").then(
+                                        () => toast.success(tr(t, "pdf.linkCopied", "PDF linki kopyalandı.")),
+                                        () => toast.error(tr(t, "pdf.linkCopyFailed", "Link kopyalanamadı.")),
+                                    )
                                 }}
                             >
                                 <Copy className="h-3.5 w-3.5 mr-1.5" />
-                                Linki Kopyala
+                                {tr(t, "pdf.copyLink", "Linki Kopyala")}
                             </Button>
                         )}
                         {state.phase === "done" && state.downloadUrl && (
@@ -202,7 +204,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                                     download
                                 >
                                     <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                                    PDF İndir
+                                    {tr(t, "pdf.download", "PDF İndir")}
                                 </a>
                             </Button>
                         )}

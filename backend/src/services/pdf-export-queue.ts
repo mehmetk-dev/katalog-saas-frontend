@@ -33,8 +33,8 @@ export function getPdfExportQueue(): Queue<PdfExportQueuePayload> {
         queue = new Queue<PdfExportQueuePayload>(PDF_EXPORT_QUEUE_NAME, {
             connection: createBullConnection(),
             defaultJobOptions: {
-attempts: 2,
-            backoff: { type: 'exponential', delay: 60_000 },
+                attempts: 2,
+                backoff: { type: 'exponential', delay: 60_000 },
                 removeOnComplete: 100,
                 removeOnFail: 500,
             },
@@ -43,15 +43,32 @@ attempts: 2,
     return queue;
 }
 
-export async function enqueuePdfExportJob(payload: PdfExportQueuePayload): Promise<void> {
-    await getPdfExportQueue().add('render-catalog-pdf', payload, {
-        jobId: payload.jobId,
+const QUEUE_OPERATION_TIMEOUT_MS = 10_000;
+
+/**
+ * BullMQ bağlantısı maxRetriesPerRequest: null ile kurulu; Redis erişilemezse komutlar süresiz bekler.
+ * API isteği asılı kalmasın diye kuyruk işlemlerine süre sınırı konur.
+ */
+async function withQueueTimeout<T>(operation: Promise<T>): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('PDF export queue did not respond in time')), QUEUE_OPERATION_TIMEOUT_MS);
     });
+    try {
+        return await Promise.race([operation, timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+export async function enqueuePdfExportJob(payload: PdfExportQueuePayload): Promise<void> {
+    await withQueueTimeout(getPdfExportQueue().add('render-catalog-pdf', payload, { jobId: payload.jobId }));
 }
 
 export async function removePdfExportQueueJob(jobId: string): Promise<void> {
-    const queuedJob = await getPdfExportQueue().getJob(jobId);
-    await queuedJob?.remove();
+    const queuedJob = await withQueueTimeout(getPdfExportQueue().getJob(jobId));
+    // İşlenmekte olan (kilitli) iş kaldırılamaz; worker DB durumundan iptali kendisi fark eder
+    await withQueueTimeout(queuedJob?.remove() ?? Promise.resolve());
 }
 
 export function createPdfExportWorker(

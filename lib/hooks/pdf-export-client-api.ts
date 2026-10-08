@@ -20,6 +20,13 @@ import type { PdfExportJob, PdfExportQuality } from "@/lib/actions/pdf-export-ty
 const API_BASE =
     process.env.NEXT_PUBLIC_API_URL || "/api"
 
+export class PdfExportApiError extends Error {
+    constructor(message: string, readonly status: number, readonly code?: string) {
+        super(message)
+        this.name = "PdfExportApiError"
+    }
+}
+
 async function getAuthHeaders(): Promise<Record<string, string>> {
     const session = await getSessionSafe()
     const headers: Record<string, string> = {
@@ -46,9 +53,7 @@ async function clientFetch<T>(
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-            errorData.error || `API error ${response.status}`,
-        )
+        throw new PdfExportApiError(errorData.error || `API error ${response.status}`, response.status, errorData.code)
     }
 
     if (response.status === 204) return {} as T

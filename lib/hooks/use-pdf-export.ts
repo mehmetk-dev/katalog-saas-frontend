@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useCallback, useRef } from "react"
 import { toast } from "sonner"
@@ -9,8 +9,22 @@ import {
     clientCreatePdfExportJob,
     clientGetPdfExportJob,
     clientGetPdfExportShareLink,
+    PdfExportApiError,
 } from "@/lib/hooks/pdf-export-client-api"
-import { getPdfExportProgressDisplay, type PdfExportTrackingStage } from "@/lib/pdf-export-progress"
+import type { PdfExportJob } from "@/lib/actions/pdf-export-types"
+import {
+    getPdfExportProgressDisplay,
+    resolvePdfExportErrorMessage,
+    type PdfExportTrackingStage,
+} from "@/lib/pdf-export-progress"
+
+const POLL_INTERVAL_MS = 2000
+/** Art arda bu kadar anket hatası (≈ ağ kesintisi) olmadan pes edilmez */
+const MAX_CONSECUTIVE_POLL_ERRORS = 6
+/** Worker işi bu sürede almazsa servis yanıt vermiyor sayılır */
+const QUEUE_PICKUP_TIMEOUT_MS = 10 * 60 * 1000
+/** Hiçbir iş bu kadar sürmemeli; backend 40 dk sonra takılmış iş olarak işaretler */
+const MAX_TRACKING_MS = 45 * 60 * 1000
 
 interface UsePdfExportOptions {
     catalogId: string | null
@@ -119,14 +133,46 @@ export function usePdfExport({
                 stageLabel: t("pdf.stageQueued"),
                 stageDescription: t("pdf.stageQueuedDesc"),
             })
-            const { job } = await clientCreatePdfExportJob(targetCatalogId, "standard")
+            let job: PdfExportJob
+            try {
+                job = (await clientCreatePdfExportJob(targetCatalogId, "standard")).job
+            } catch (createError) {
+                if (createError instanceof PdfExportApiError && createError.code === "quota_exceeded") {
+                    resetProgress()
+                    onShowUpgradeModal()
+                    return
+                }
+                throw createError
+            }
             activeJobIdRef.current = job.id
 
             const startedAt = Date.now()
             let lastPercent = Math.max(15, job.progress || 0)
+            let consecutivePollErrors = 0
 
             while (!cancelledRef.current) {
-                const { job: latestJob } = await clientGetPdfExportJob(job.id)
+                let latestJob: PdfExportJob
+                try {
+                    latestJob = (await clientGetPdfExportJob(job.id)).job
+                    consecutivePollErrors = 0
+                } catch (pollError) {
+                    // 404: iş silinmiş; diğer hatalar (ağ kesintisi, 5xx) geçici olabilir
+                    if (pollError instanceof PdfExportApiError && pollError.status === 404) throw pollError
+                    consecutivePollErrors++
+                    if (consecutivePollErrors >= MAX_CONSECUTIVE_POLL_ERRORS) {
+                        throw new Error(t("pdf.connectionLost"))
+                    }
+                    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS * consecutivePollErrors))
+                    continue
+                }
+
+                const trackedFor = Date.now() - startedAt
+                const notPickedUp = latestJob.status === "queued" && !latestJob.started_at && trackedFor > QUEUE_PICKUP_TIMEOUT_MS
+                if (notPickedUp || trackedFor > MAX_TRACKING_MS) {
+                    void clientCancelPdfExportJob(job.id).catch(() => undefined)
+                    throw new Error(t("pdf.stuckInQueue"))
+                }
+
                 lastPercent = Math.max(lastPercent, latestJob.progress || 0)
                 const display = getPdfExportProgressDisplay(latestJob, t)
 
@@ -172,7 +218,7 @@ export function usePdfExport({
                 }
 
                 if (latestJob.status === "failed") {
-                    throw new Error(latestJob.error_message || t("pdf.exportFailed"))
+                    throw new Error(resolvePdfExportErrorMessage(latestJob.error_message, t))
                 }
 
                 if (latestJob.status === "cancelled" || latestJob.status === "expired") {
@@ -194,18 +240,18 @@ export function usePdfExport({
                     })
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 2000))
+                await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
             }
 
         } catch (err) {
             if (cancelledRef.current) return
-            const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err))
+            const msg = err instanceof Error && err.message ? err.message : t("pdf.exportFailed")
             setPhase("error", { errorMessage: msg, percent: 0, estimatedTimeLeft: "" })
         } finally {
             activeJobIdRef.current = null
             setIsExporting(false)
         }
-    }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, setPhase, t])
+    }, [catalogId, hasUnsavedChanges, canExport, refreshUser, onSaveCatalog, onShowUpgradeModal, resetProgress, setPhase, t])
 
     return { isExporting, handleDownloadPDF, pdfProgress, cancelExport, closePdfModal, dismissPdfModal }
 }

@@ -67,7 +67,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 8 | Kataloglar listesi | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek backend ile doğrulama kaldı) |
 | 9 | Katalog editörü (builder) | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
 | 10 | Yayındaki katalog sayfası (`/catalog/[slug]`) | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek verili uçtan uca kaldı) |
-| 11 | PDF export | 🔴 Yüksek | ⏳ |
+| 11 | PDF export | 🔴 Yüksek | 🟢 Kod + testler yapıldı (Redis/worker/R2 ile uçtan uca kaldı) |
 | 12 | Şablonlar sayfası | 🟢 Düşük | ⏳ |
 | 13 | Analitik | 🟡 Orta | ⏳ |
 | 14 | Ayarlar | 🟡 Orta | ⏳ |
@@ -236,6 +236,19 @@ Kalan:
 - [ ] Plan kotası (export sayısı), kota dolunca yükseltme penceresi
 - [ ] PDF içeriği builder önizlemesiyle birebir mi (CSS düzeltmesi sonrası tekrar kontrol)
 - [ ] Redis yokken anlamlı hata
+
+**Yapılanlar (8 Ekim 2026):**
+- **PDF builder'dan farklı görünüyordu:** render belgesinde global CSS tüm `.overflow-hidden` öğelerini `visible`, tüm `.h-full` öğelerini `height:auto` yapıyordu → görseller ürün adlarının üstüne taşıyor, alt bilgiler (“Sayfa 1/2”) kayboluyor ya da ayrı bir PDF sayfasına düşüyordu (modern-grid, luxury, magazine'de PDF katalogdan 1 sayfa fazlaydı). Ayrıca varsayılanlar farklıydı: ana renk eski mor (#7c3aed), başlık rengi beyaz, "özellikler" açık, başlık ortada, sütun normalizasyonu ve kullanıcı logosu yedeği yok, eski şablon adları yanlış sayfalanıyordu. Artık render belgesi builder'ın `buildInitialCatalogState` + `normalizeLayout` kullanıyor; override CSS kaldırıldı. Playwright ile 16 şablonun hepsinde gerçek PDF üretildi: sayfa sayısı = katalog sayfa sayısı, görünüm ekranla aynı.
+- **İptal edilen iş işlenmeye devam ediyordu:** worker iptali hiç kontrol etmiyordu; tamamlama aşamasında hata alıp işi "başarısız" yapıyor, BullMQ işi yeniden deneyip PDF'i bir kez daha üretiyor, yüklenen dosya R2'de sahipsiz kalıyordu. Artık her ara adım yalnızca aktif işi günceller (iptal edilmişse sessizce durur, yeniden denenmez), tamamlanamayan işin dosyası silinir.
+- **İlk denemede hata, kullanıcıya "başarısız" görünüyordu** ama BullMQ 60 sn sonra tekrar deniyordu (kullanıcı yeni iş başlatıp çift PDF üretebiliyordu) → ara denemelerde iş "sırada"ya döner, yalnızca son denemede "başarısız".
+- **Takılan iş kullanıcıyı kalıcı kilitliyordu:** worker çökerse/yeniden başlarsa iş DB'de "processing" kalıyor, yeni her istek 409 "devam eden iş var" alıyordu → 40 dk güncellenmeyen aktif iş takılmış sayılıp kapatılır; takılan (stalled) işler worker'ın `failed` olayında da kapatılır.
+- **Redis'e ulaşılamazsa istek sonsuza dek asılı kalıyordu** (`maxRetriesPerRequest: null`) → kuyruk işlemlerine 10 sn sınır; Redis yok/erişilemez ise anlamlı 503 mesajı.
+- **Kullanıcıya teknik hata metni gösteriliyordu** (“waiting-render-ready: Timeout 300000ms exceeded”) → worker hata kodu yazar (`render_timeout`, `asset_timeout`, `storage_failed`…), frontend çevirir; eski serbest metinler genel mesaja düşer.
+- **İstemci:** tek bir ağ kesintisinde PDF süreci hata veriyordu → art arda 6 hataya kadar bekler; worker 10 dk içinde işi almazsa iş iptal edilip "servis yanıt vermiyor" denir; kota dolu (403) ise plan yükseltme penceresi açılır.
+- İlerleme penceresinde sabit metinler ("Linki Kopyala", "PDF İndir", toast) ve eksik `pdf.continueInBackground` çevirisi; yayındaki sayfanın PDF hata metinleri çevrildi, dosya adında Türkçe harfler korunuyor.
+- Testler: `pdf-export-lifecycle.test.ts`, `use-pdf-export.test.tsx` (ağ kesintisi, kota, takılı kuyruk, hata kodları), `pdf-export-preview-parity.test.ts` güncellendi.
+
+**Kalan:** gerçek Redis + worker + R2 ile uçtan uca deneme (yerelden Coolify'daki Redis'e erişilemiyor); bildirimden indirme ve link süresi dolması akışının canlıda kontrolü.
 
 ### 12. Şablonlar sayfası
 `components/templates/templates-page-client.tsx`
