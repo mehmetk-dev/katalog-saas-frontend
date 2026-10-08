@@ -74,7 +74,8 @@ export function useProductsPageController(props: ProductsPageClientProps) {
   })
 
   const handleSortFieldChange = (field: typeof state.sortField) => {
-    const nextSortOrder = field === "order" ? "asc" : "desc"
+    // Metin sütunları A→Z, sayısal/tarih sütunları büyükten küçüğe başlar
+    const nextSortOrder = field === "order" || field === "name" || field === "category" ? "asc" : "desc"
     state.setSortField(field)
     state.setSortOrder(nextSortOrder)
     state.setCurrentPage(1)

@@ -24,7 +24,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { type ProductViewProps } from "../types"
-import { getStockStatus, getCurrencySymbol, isSafeUrl } from "../utils/product-helpers"
+import { getStockStatus, formatProductPrice, isSafeUrl } from "../utils/product-helpers"
 import { DeleteAlertDialog } from "../components/delete-alert-dialog"
 
 export function ProductGridView({
@@ -67,7 +67,7 @@ export function ProductGridView({
 
     return (
         <TooltipProvider>
-            <div className="space-y-4 p-1">
+            <div>
                 <div className={cn(
                     "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4",
                     "lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4"
@@ -96,11 +96,10 @@ export function ProductGridView({
                                     }
                                 }}
                                 className={cn(
-                                    "group overflow-hidden cursor-move transition-all duration-200",
-                                    "hover:shadow-md border border-border",
-                                    "shadow-sm bg-card relative",
-                                    isSelected && "border-primary bg-accent/50",
-                                    isDragging && "opacity-50 scale-95",
+                                    // Card'ın varsayılan py-6/gap-6 boşluğu görselin üstünde boşluk bırakıyordu
+                                    "group relative cursor-grab gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md active:cursor-grabbing",
+                                    isSelected && "ring-2 ring-primary",
+                                    isDragging && "opacity-50",
                                     isDragOver && "border-dashed border-primary"
                                 )}
                             >
@@ -166,38 +165,38 @@ export function ProductGridView({
                                 </div>
 
                                 {/* İçerik alanı */}
-                                <div className="p-3">
-                                    <h3 className="font-semibold text-sm text-foreground truncate">
+                                <div className="space-y-1 p-3">
+                                    <h3 className="truncate text-sm font-medium text-foreground" title={product.name}>
                                         {product.name}
                                     </h3>
-                                    <p className="text-base font-bold text-primary mt-1">
-                                        {getCurrencySymbol(product)}
+                                    <p className="text-sm font-semibold tabular-nums text-foreground">
+                                        {formatProductPrice(product)}
                                     </p>
-                                    <div className="flex items-center justify-between mt-2">
+                                    <div className="flex items-center justify-between pt-1">
                                         <span className={cn(
-                                            "text-xs",
+                                            "text-xs tabular-nums",
                                             stockStatus.variant === "destructive" && "text-destructive",
                                             stockStatus.variant === "secondary" && "text-warning-soft-foreground",
-                                            stockStatus.variant === "default" && "text-success"
+                                            stockStatus.variant === "default" && "text-muted-foreground"
                                         )}>
-                                            {product.stock} adet
+                                            {t("products.unitCount", { count: product.stock })}
                                         </span>
                                         <DropdownMenu modal={false}>
                                             <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 -mr-1">
-                                                    <MoreHorizontal className="w-3 h-3" />
+                                                <Button variant="ghost" size="icon-sm" className="-mr-1.5 size-7 text-muted-foreground" aria-label={t("products.actions")}>
+                                                    <MoreHorizontal className="size-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem className="gap-2 text-xs" onClick={() => onEdit(product)}>
-                                                    <Pencil className="w-3 h-3" /> Düzenle
+                                                    <Pencil className="w-3 h-3" /> {t("common.edit")}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem className="gap-2 text-xs" onClick={() => handleDuplicate(product)} disabled={isPending}>
-                                                    <Copy className="w-3 h-3" /> Kopyala
+                                                    <Copy className="w-3 h-3" /> {t("products.duplicate")}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="gap-2 text-xs text-destructive" onClick={() => initiateDelete(product.id)}>
-                                                    <Trash2 className="w-3 h-3" /> Sil
+                                                <DropdownMenuItem className="gap-2 text-xs" variant="destructive" onClick={() => initiateDelete(product.id)}>
+                                                    <Trash2 className="w-3 h-3" /> {t("common.delete")}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -208,18 +207,10 @@ export function ProductGridView({
                     })}
                 </div>
 
-                {filteredProducts.length === 0 && allProducts.length > 0 && (
-                    <div className="p-12 text-center text-muted-foreground border rounded-xl bg-muted/20">
-                        <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p className="font-medium">Aramanızla eşleşen ürün bulunamadı</p>
-                    </div>
-                )
-                }
-            </div >
+            </div>
 
             {/* Preview Dialog */}
-            < Dialog open={!!previewProduct
-            } onOpenChange={() => setPreviewProduct(null)}>
+            <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
                 <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden">
                     {previewProduct ? (() => {
                         const allImagesArr = (previewProduct.images && previewProduct.images.length > 0)
@@ -333,7 +324,7 @@ export function ProductGridView({
                                             "border border-border"
                                         )}>
                                             <p className="text-xs text-primary">Fiyat</p>
-                                            <p className="text-xl font-bold text-primary">{getCurrencySymbol(previewProduct)}</p>
+                                            <p className="text-xl font-bold text-primary">{formatProductPrice(previewProduct)}</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-muted/50 border">
                                             <p className="text-xs text-muted-foreground">Stok</p>

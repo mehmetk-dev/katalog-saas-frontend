@@ -1,7 +1,5 @@
 "use client"
 
-import { Package } from "lucide-react"
-
 import { useProductsTable } from "./hooks/use-products-table"
 import { ProductGridView } from "./views/product-grid-view"
 import { ProductListView } from "./views/product-list-view"
@@ -23,23 +21,14 @@ export function ProductsTable(props: ProductsTableProps) {
     allProducts,
   } = tableState
 
-  // Empty state
-  if (filteredProducts.length === 0 && allProducts.length === 0) {
-    return (
-      <div className="border rounded-xl p-12 text-center bg-gradient-to-b from-muted/50 to-transparent">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-muted flex items-center justify-center">
-          <Package className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h3 className="font-semibold text-lg mb-2">{t("products.noProducts")}</h3>
-        <p className="text-sm text-muted-foreground mb-4">{t("products.noProductsDesc")}</p>
-      </div>
-    )
-  }
+  // Boş/sonuçsuz durumlar sayfa seviyesinde (ProductsPageClient) ele alınır
+  if (filteredProducts.length === 0 && allProducts.length === 0) return null
 
   const viewProps = {
     ...tableState,
     products: props.products,
     onEdit,
+    sort: props.sort,
   }
 
   if (viewMode === "grid") {

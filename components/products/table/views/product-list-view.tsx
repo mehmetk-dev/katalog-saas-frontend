@@ -1,6 +1,6 @@
 "use client"
 
-import { GripVertical, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ExternalLink } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronsUpDown, MoreHorizontal, Pencil, Trash2, Copy, Package, Eye, ExternalLink } from "lucide-react"
 import NextImage from "next/image"
 
 import { Checkbox } from "@/components/ui/checkbox"
@@ -16,10 +16,57 @@ import {
 import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { type ProductViewProps } from "../types"
-import { getStockStatus, getCurrencySymbol, isSafeUrl } from "../utils/product-helpers"
+import { type ProductViewProps, type ProductsTableSort, type SortableColumn } from "../types"
+import { getStockStatus, formatProductPrice, isSafeUrl } from "../utils/product-helpers"
 import { DeleteAlertDialog } from "../components/delete-alert-dialog"
 import { ProductPreviewDialog } from "../components/product-preview-dialog"
+
+/** Masaüstü satır ızgarası: seçim | ürün | fiyat | stok | kategori | aksiyonlar */
+const ROW_GRID = "md:grid-cols-[1.25rem_minmax(0,1fr)_8rem_7rem_minmax(0,10rem)_4.5rem]"
+
+function SortHeader({ column, label, sort, t, align = "left" }: {
+    column: SortableColumn
+    label: string
+    sort?: ProductsTableSort
+    t: ProductViewProps["t"]
+    align?: "left" | "right" | "center"
+}) {
+    const active = sort?.field === column
+    const Icon = !active ? ChevronsUpDown : sort.order === "asc" ? ArrowUp : ArrowDown
+    if (!sort) return <span className={cn(align === "right" && "text-right", align === "center" && "text-center")}>{label}</span>
+    return (
+        <button
+            type="button"
+            onClick={() => sort.onSort(column)}
+            aria-label={t("products.sortByColumn", { column: label })}
+            aria-sort={active ? (sort.order === "asc" ? "ascending" : "descending") : undefined}
+            className={cn(
+                "group/sort inline-flex items-center gap-1 rounded hover:text-foreground",
+                align === "right" && "justify-self-end",
+                align === "center" && "justify-self-center",
+                active && "text-foreground"
+            )}
+        >
+            {label}
+            <Icon className={cn("size-3.5", !active && "opacity-0 group-hover/sort:opacity-60")} />
+        </button>
+    )
+}
+
+function StockBadge({ stock, variant, className, t }: { stock: number; variant: "default" | "secondary" | "destructive"; className?: string; t: ProductViewProps["t"] }) {
+    return (
+        <Badge
+            variant={variant === "destructive" ? "outline" : variant === "secondary" ? "warning" : "success"}
+            className={cn(
+                "tabular-nums",
+                variant === "destructive" && "border-destructive/20 bg-destructive-soft text-destructive-soft-foreground",
+                className
+            )}
+        >
+            {t("products.unitCount", { count: stock })}
+        </Badge>
+    )
+}
 
 export function ProductListView({
     filteredProducts,
@@ -49,28 +96,20 @@ export function ProductListView({
     setDeleteId,
     setDeleteCatalogs,
     t,
+    sort,
 }: ProductViewProps) {
     return (
         <TooltipProvider>
-            <div className="rounded-xl border bg-card overflow-hidden">
-                {/* Tablo Header */}
-                <div className="hidden md:grid grid-cols-[80px_1fr_100px_100px_100px_100px] gap-4 px-4 py-2.5 bg-muted/50 border-b text-xs font-medium text-muted-foreground items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-3.5" />
-                            <Checkbox
-                                checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
-                                onCheckedChange={toggleSelectAll}
-                                className="h-4 w-4 scale-75 origin-center"
-                            />
-                        </div>
-                        <div className="w-11" />
-                    </div>
-                    <div>Ürün</div>
-                    <div className="text-right pr-2">Fiyat</div>
-                    <div className="text-center">Stok</div>
-                    <div>Kategori</div>
-                    <div className="text-right">İşlemler</div>
+            <div className="overflow-hidden rounded-xl border bg-card">
+                {/* Tablo başlığı */}
+                <div className={cn("hidden gap-4 border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground md:grid md:items-center", ROW_GRID)}>
+                    {/* Tümünü seç toolbar'da (bütün sayfalar); burada ikinci bir seçici kafa karıştırıyordu */}
+                    <span aria-hidden />
+                    <SortHeader column="name" label={t("products.name")} sort={sort} t={t} />
+                    <SortHeader column="price" label={t("products.price")} sort={sort} t={t} align="right" />
+                    <SortHeader column="stock" label={t("products.stock")} sort={sort} t={t} align="center" />
+                    <SortHeader column="category" label={t("products.category")} sort={sort} t={t} />
+                    <span className="sr-only">{t("products.actions")}</span>
                 </div>
 
                 {/* Ürün Listesi */}
@@ -91,11 +130,12 @@ export function ProductListView({
                                 onDrop={(e) => handleDrop(e, product.id)}
                                 onDragEnd={handleDragEnd}
                                 className={cn(
-                                    "group grid grid-cols-[auto_1fr_auto] md:grid-cols-[80px_1fr_100px_100px_100px_100px] gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 items-center cursor-move transition-all duration-200",
-                                    "hover:bg-gradient-to-r hover:from-muted/50 hover:to-muted/30",
-                                    isSelected && "bg-accent",
-                                    isDragging && "opacity-50 scale-[0.98]",
-                                    isDragOver && "bg-accent/50"
+                                    "group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 transition-colors sm:px-4 md:gap-4",
+                                    ROW_GRID,
+                                    "hover:bg-muted/40",
+                                    isSelected && "bg-accent/60 hover:bg-accent/60",
+                                    isDragging && "opacity-50",
+                                    isDragOver && "shadow-[inset_0_2px_0_0_var(--primary)]"
                                 )}
                                 onClick={(e) => {
                                     if (isMobile && !e.defaultPrevented && (e.target as HTMLElement).tagName !== 'BUTTON' && (e.target as HTMLElement).tagName !== 'INPUT') {
@@ -103,20 +143,21 @@ export function ProductListView({
                                     }
                                 }}
                             >
-                                {/* Checkbox + Resim */}
-                                <div className="flex items-center gap-3">
-                                    <div className={cn("flex items-center gap-1.5", isMobile && !isSelected && "opacity-60")}>
-                                        <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40 hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <Checkbox
-                                            checked={isSelected}
-                                            onCheckedChange={() => toggleSelect(product.id)}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="h-4 w-4"
-                                        />
-                                    </div>
-                                    <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-lg overflow-hidden shrink-0 bg-muted ring-1 ring-black/5">
+                                {/* Seçim */}
+                                <div className="flex items-center">
+                                    <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() => toggleSelect(product.id)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        aria-label={product.name}
+                                    />
+                                </div>
+
+                                {/* Ürün: görsel + ad + SKU */}
+                                <div className="flex min-w-0 cursor-grab items-center gap-3 active:cursor-grabbing">
+                                    <div className="relative size-10 shrink-0 overflow-hidden rounded-md border bg-muted">
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <Package className="w-5 h-5 text-muted-foreground/70" />
+                                            <Package className="size-4 text-muted-foreground/60" />
                                         </div>
                                         {(() => {
                                             const imageUrl = (product.image_url || product.images?.[0]) as string | undefined
@@ -135,104 +176,75 @@ export function ProductListView({
                                             ) : null
                                         })()}
                                     </div>
-                                </div>
-
-                                {/* Ürün Bilgisi */}
-                                <div className="min-w-0 flex flex-col gap-0 sm:gap-0.5 pl-1 sm:pl-2">
-                                    <div className="flex items-center gap-1 sm:gap-2">
-                                        <h3 className="font-medium text-xs sm:text-sm truncate">{product.name}</h3>
-                                        {product.product_url && isSafeUrl(product.product_url) && (
-                                            <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary" onClick={(e) => e.stopPropagation()}>
-                                                <ExternalLink className="w-3 h-3" />
-                                            </a>
-                                        )}
-                                    </div>
-                                    {product.sku && (
-                                        <p className="text-[10px] sm:text-[11px] text-muted-foreground font-mono tracking-tight truncate max-w-[120px] sm:max-w-none">{product.sku}</p>
-                                    )}
-                                    <div className="flex items-center gap-2 mt-1 md:hidden">
-                                        <span className="font-bold text-sm text-primary">{getCurrencySymbol(product)}</span>
-                                        <Badge
-                                            variant={stockStatus.variant}
-                                            className={cn(
-                                                "text-[10px] h-5 px-1.5",
-                                                stockStatus.variant === "destructive" && "bg-destructive-soft text-destructive-soft-foreground",
-                                                stockStatus.variant === "secondary" && "bg-warning-soft text-warning-soft-foreground",
-                                                stockStatus.variant === "default" && "bg-success-soft text-success-soft-foreground"
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                            <h3 className="truncate text-sm font-medium text-foreground">{product.name}</h3>
+                                            {product.product_url && isSafeUrl(product.product_url) && (
+                                                <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                                                    <ExternalLink className="size-3" />
+                                                </a>
                                             )}
-                                        >
-                                            {product.stock}
-                                        </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            {product.sku && <span className="truncate font-mono">{product.sku}</span>}
+                                            {/* Mobil: fiyat + stok */}
+                                            <span className="font-medium tabular-nums text-foreground md:hidden">{formatProductPrice(product)}</span>
+                                            <StockBadge stock={product.stock} variant={stockStatus.variant} className="md:hidden" t={t} />
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Fiyat - Desktop */}
-                                <div className="hidden md:block text-right pr-2">
-                                    <span className="font-bold text-sm text-primary">{getCurrencySymbol(product)}</span>
+                                {/* Fiyat */}
+                                <div className="hidden text-right text-sm font-medium tabular-nums text-foreground md:block">
+                                    {formatProductPrice(product)}
                                 </div>
 
-                                {/* Stok - Desktop */}
-                                <div className="hidden md:flex justify-center">
-                                    <Badge
-                                        variant={stockStatus.variant}
-                                        className={cn(
-                                            "text-[10px] h-5 px-2 font-medium",
-                                            stockStatus.variant === "destructive" && "bg-destructive-soft text-destructive-soft-foreground border-destructive/20",
-                                            stockStatus.variant === "secondary" && "bg-warning-soft text-warning-soft-foreground border-warning/30",
-                                            stockStatus.variant === "default" && "bg-success-soft text-success-soft-foreground border-success/20"
-                                        )}
-                                    >
-                                        {product.stock} adet
-                                    </Badge>
+                                {/* Stok */}
+                                <div className="hidden justify-center md:flex">
+                                    <StockBadge stock={product.stock} variant={stockStatus.variant} t={t} />
                                 </div>
 
-                                {/* Kategori - Desktop */}
-                                <div className="hidden md:block">
+                                {/* Kategori */}
+                                <div className="hidden min-w-0 md:block">
                                     {product.category ? (
-                                        <span className="text-xs text-muted-foreground truncate block max-w-[100px]" title={product.category}>
+                                        <span className="block truncate text-sm text-muted-foreground" title={product.category}>
                                             {product.category.split(',')[0].trim()}
                                         </span>
                                     ) : (
-                                        <span className="text-xs text-muted-foreground/50">—</span>
+                                        <span className="text-sm text-muted-foreground/50">—</span>
                                     )}
                                 </div>
 
                                 {/* Aksiyonlar */}
-                                <div className="flex items-center gap-0.5 sm:gap-1">
+                                <div className="flex items-center justify-end gap-0.5">
                                     <Button
                                         variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 sm:h-8 sm:w-8 transition-opacity hidden sm:inline-flex opacity-0 group-hover:opacity-100"
-                                        onClick={(e) => { e.stopPropagation(); setPreviewProduct(product); }}
-                                    >
-                                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 sm:h-8 sm:w-8 transition-opacity hidden sm:inline-flex opacity-0 group-hover:opacity-100"
+                                        size="icon-sm"
+                                        className="hidden text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 sm:inline-flex"
                                         onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                                        aria-label={t("common.edit")}
+                                        title={t("common.edit")}
                                     >
-                                        <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                                        <Pencil className="size-4" />
                                     </Button>
                                     <DropdownMenu modal={false}>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <MoreHorizontal className="w-4 h-4" />
+                                            <Button variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label={t("products.actions")}>
+                                                <MoreHorizontal className="size-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem className="gap-2" onClick={() => setPreviewProduct(product)}>
-                                                <Eye className="w-4 h-4" /> Önizle
+                                                <Eye className="w-4 h-4" /> {t("products.preview")}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem className="gap-2" onClick={() => onEdit(product)}>
                                                 <Pencil className="w-4 h-4" /> {t("common.edit")}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem className="gap-2" onClick={() => handleDuplicate(product)} disabled={isPending}>
-                                                <Copy className="w-4 h-4" /> Kopyala
+                                                <Copy className="w-4 h-4" /> {t("products.duplicate")}
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="gap-2 text-destructive" onClick={() => initiateDelete(product.id)}>
+                                            <DropdownMenuItem className="gap-2" variant="destructive" onClick={() => initiateDelete(product.id)}>
                                                 <Trash2 className="w-4 h-4" /> {t("common.delete")}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

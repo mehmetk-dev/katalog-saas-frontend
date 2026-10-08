@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { type Product } from "../types"
-import { getStockStatus, getCurrencySymbol, isSafeUrl } from "../utils/product-helpers"
+import { getStockStatus, formatProductPrice, isSafeUrl } from "../utils/product-helpers"
 
 interface ProductPreviewDialogProps {
     product: Product
@@ -136,7 +136,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                         "border border-border"
                     )}>
                         <p className="text-xs text-primary font-medium">Fiyat</p>
-                        <p className="text-xl font-bold text-primary">{getCurrencySymbol(product)}</p>
+                        <p className="text-xl font-bold text-primary">{formatProductPrice(product)}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-muted/50 border">
                         <p className="text-xs text-muted-foreground font-medium">Stok</p>

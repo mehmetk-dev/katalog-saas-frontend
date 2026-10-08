@@ -1,12 +1,22 @@
 "use client"
 
 import Link from "next/link"
+import { FileDown, Image as ImageIcon, MoreHorizontal, Package, Percent, Plus, SearchX, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { ProductsTable } from "./table/products-table"
 import { ProductModal } from "./modals/product-modal"
 import { ImportExportModal } from "./modals/import-export-modal"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { PageHeader } from "@/components/ui/page-header"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -25,6 +35,8 @@ import type { Product } from "@/lib/actions/products"
 import { ProductStatsCards } from "./toolbar/stats-cards"
 import { ProductsToolbar } from "./toolbar/toolbar"
 import { ProductsFilterSheet } from "./filters/filter-sheet"
+import { ActiveFilters } from "./filters/active-filters"
+import type { SortableColumn } from "./table/types"
 import { ProductsPagination } from "./table/pagination"
 import { ProductsBulkPriceModal } from "./bulk/bulk-price-modal"
 import { ProductsBulkActionsBar } from "./toolbar/bulk-actions-bar"
@@ -107,12 +119,63 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     maxProducts,
   } = useProductsPageController(props)
 
+  const activeFilterCount =
+    (selectedCategory !== "all" ? 1 : 0) +
+    (stockFilter !== "all" ? 1 : 0) +
+    (priceRange[0] > 0 || priceRange[1] > 0 ? 1 : 0)
+
+  const handleColumnSort = (field: SortableColumn) => {
+    if (field === sortField) handleSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
+    else handleSortFieldChange(field)
+  }
+
+  const tr = (key: string, params?: Record<string, unknown>) => t(key, params) as string
+
   return (
     <TooltipProvider>
-      <div className="flex flex-col min-h-[calc(100vh-200px)] -m-4 sm:-m-6 p-4 sm:p-6 bg-muted/50">
-        <div className="space-y-3">
-          <ProductStatsCards stats={stats} />
+      <div className="space-y-5">
+        <PageHeader
+          title={tr("sidebar.products")}
+          description={tr("products.pageDescription", { count: metadata.total })}
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                <FileDown className="size-4" />
+                <span className="hidden sm:inline">{tr("products.importExportShort")}</span>
+              </Button>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label={tr("products.moreTools")} title={tr("products.moreTools")}>
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => setShowBulkImageModal(true)}>
+                    <ImageIcon />
+                    {tr("products.bulkImageUpload")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowPriceModal(true)}>
+                    <Percent />
+                    {tr("products.bulkPriceUpdate")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleTestImport}>
+                    <Sparkles />
+                    {tr("products.addTestProducts")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button onClick={handleAddProduct}>
+                <Plus className="size-4" />
+                {tr("products.addProduct")}
+              </Button>
+            </>
+          }
+        />
 
+        <ProductStatsCards stats={stats} />
+
+        <div className="space-y-3">
           <ProductsToolbar
             selectedCount={selectedIds.length}
             totalFilteredCount={filteredCount}
@@ -120,61 +183,86 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             search={search}
             onSearchChange={handleSearchChange}
             onOpenFilters={() => setShowFilters(true)}
-            hasActiveFilters={hasActiveFilters}
+            activeFilterCount={activeFilterCount}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            itemsPerPage={itemsPerPage}
-            onItemsPerPageChange={handleItemsPerPageChange}
-            pageSizeOptions={PAGE_SIZE_OPTIONS}
-            onOpenImportExport={() => setShowImportModal(true)}
-            onOpenBulkImageUpload={() => setShowBulkImageModal(true)}
-            onOpenBulkPriceUpdate={() => setShowPriceModal(true)}
-            onBulkDelete={handleBulkDelete}
-            onAddTestProducts={handleTestImport}
-            onAddProduct={handleAddProduct}
           />
-
-          <ProductsFilterSheet
-            open={showFilters}
-            onOpenChange={setShowFilters}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSortFieldChange={(field) => handleSortFieldChange(field as typeof sortField)}
-            onSortOrderChange={handleSortOrderChange}
+          <ActiveFilters
+            search={search}
             selectedCategory={selectedCategory}
-            onCategoryChange={handleCategoryChange}
-            categories={categories}
             stockFilter={stockFilter}
-            onStockFilterChange={(filter) => {
-              handleStockFilterChange(filter as typeof stockFilter)
-            }}
             priceRange={priceRange}
-            onPriceRangeChange={handlePriceRangeChange}
-            hasActiveFilters={hasActiveFilters}
-            onClearFilters={clearAllFilters}
-            filteredCount={filteredCount}
+            onClearSearch={() => handleSearchChange("")}
+            onClearCategory={() => handleCategoryChange("all")}
+            onClearStock={() => handleStockFilterChange("all")}
+            onClearPrice={() => handlePriceRangeChange([0, 0])}
+            onClearAll={clearAllFilters}
           />
         </div>
 
-        <div className={cn("transition-all duration-300", isPending && "opacity-50 pointer-events-none grayscale-[0.5]")}>
-          <div className="mt-2">
-            <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{(t("products.deleteConfirmTitle") as string) || "Emin misiniz?"}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {(t("products.deleteConfirmDesc", { count: selectedIds.length }) as string) || `Secili ${selectedIds.length} urunu silmek uzereisiniz.`}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t("common.cancel") as string}</AlertDialogCancel>
-                  <AlertDialogAction onClick={executeBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    {t("common.delete") as string}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+        <ProductsFilterSheet
+          open={showFilters}
+          onOpenChange={setShowFilters}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSortFieldChange={(field) => handleSortFieldChange(field as typeof sortField)}
+          onSortOrderChange={handleSortOrderChange}
+          selectedCategory={selectedCategory}
+          onCategoryChange={handleCategoryChange}
+          categories={categories}
+          stockFilter={stockFilter}
+          onStockFilterChange={(filter) => handleStockFilterChange(filter as typeof stockFilter)}
+          priceRange={priceRange}
+          onPriceRangeChange={handlePriceRangeChange}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearAllFilters}
+          filteredCount={filteredCount}
+        />
 
+        <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{tr("products.deleteConfirmTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>{tr("products.deleteConfirmDesc", { count: selectedIds.length })}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{tr("common.cancel")}</AlertDialogCancel>
+              <AlertDialogAction onClick={executeBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {tr("common.delete")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <div className={cn("transition-opacity", isPending && "pointer-events-none opacity-60")}>
+          {products.length === 0 ? (
+            hasActiveFilters ? (
+              <EmptyState
+                icon={SearchX}
+                title={tr("products.noResults")}
+                description={tr("products.noResultsDesc")}
+                action={<Button variant="outline" onClick={clearAllFilters}>{tr("products.clearFilters")}</Button>}
+              />
+            ) : (
+              <EmptyState
+                icon={Package}
+                title={tr("products.noProducts")}
+                description={tr("products.noProductsDesc")}
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button onClick={handleAddProduct}>
+                      <Plus className="size-4" />
+                      {tr("products.addProduct")}
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                      <FileDown className="size-4" />
+                      {tr("products.importExportShort")}
+                    </Button>
+                  </div>
+                }
+              />
+            )
+          ) : (
             <ProductsTable
               products={paginatedProducts}
               allProducts={products}
@@ -187,11 +275,9 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
               viewMode={viewMode}
               reorderOffset={(currentPage - 1) * itemsPerPage}
               onProductsReorder={(newProducts: Product[]) => handleTableReorder(newProducts)}
-              onReorderSuccess={async () => {
-                // no-op: controller refreshes where needed
-              }}
+              sort={{ field: sortField, order: sortOrder, onSort: handleColumnSort }}
             />
-          </div>
+          )}
 
           <ProductsPagination
             currentPage={currentPage}

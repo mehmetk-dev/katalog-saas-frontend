@@ -17,8 +17,11 @@ export function getStockStatus(stock: number) {
     return { label: "Stokta", variant: "default" as const }
 }
 
-export function getCurrencySymbol(product: Product) {
-    const currency = product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
-    const symbol = currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₺"
-    return `${symbol}${Number(product.price).toFixed(2)}`
+const SUPPORTED_CURRENCIES = new Set(["TRY", "USD", "EUR", "GBP"])
+
+/** Ürün fiyatını para birimiyle ve binlik ayraçla biçimlendirir: ₺4.500,00 / $1.200,00 */
+export function formatProductPrice(product: Product) {
+    const raw = product.custom_attributes?.find((a) => a.name === "currency")?.value?.toUpperCase() || "TRY"
+    const currency = SUPPORTED_CURRENCIES.has(raw) ? raw : "TRY"
+    return new Intl.NumberFormat("tr-TR", { style: "currency", currency, minimumFractionDigits: 2 }).format(Number(product.price) || 0)
 }

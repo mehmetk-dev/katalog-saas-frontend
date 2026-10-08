@@ -32,7 +32,7 @@ function StatCard({ label, value, icon: Icon, hint, tone, className }: StatCardP
   return (
     <div
       data-slot="stat-card"
-      className={cn('flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5', className)}
+      className={cn('flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5', className)}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
@@ -42,7 +42,7 @@ function StatCard({ label, value, icon: Icon, hint, tone, className }: StatCardP
           </span>
         )}
       </div>
-      <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{value}</div>
+      <div className="truncate text-xl font-semibold tracking-tight tabular-nums sm:text-2xl xl:text-3xl" title={typeof value === "string" ? value : undefined}>{value}</div>
       {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
     </div>
   )

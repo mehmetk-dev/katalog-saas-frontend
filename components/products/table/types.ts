@@ -15,6 +15,16 @@ export interface ProductsTableProps {
     reorderOffset?: number
     onProductsReorder?: (products: Product[]) => void
     onReorderSuccess?: () => void
+    /** Liste görünümünde sütun başlığından sıralama */
+    sort?: ProductsTableSort
+}
+
+export type SortableColumn = "name" | "price" | "stock" | "category"
+
+export interface ProductsTableSort {
+    field: string
+    order: "asc" | "desc"
+    onSort: (field: SortableColumn) => void
 }
 
 export interface ProductViewProps {
@@ -45,5 +55,6 @@ export interface ProductViewProps {
     setPreviewProduct: (product: Product | null) => void
     setDeleteId: (id: string | null) => void
     setDeleteCatalogs: (catalogs: { id: string; name: string }[]) => void
-    t: (key: string) => string
+    t: (key: string, params?: Record<string, unknown>) => string
+    sort?: ProductsTableSort
 }
