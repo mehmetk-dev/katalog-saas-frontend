@@ -8,6 +8,7 @@ const layout = {
             login: "Giriş Yap",
             createCatalog: "Katalog Oluştur",
             demo: "Demo Oluştur",
+            section: "Bölüm",
         },
         footer: {
             description: "Modern işletmeler için yeni nesil katalog oluşturma platformu.",
@@ -17,6 +18,7 @@ const layout = {
             blog: "Blog",
             support: "Destek",
             contact: "İletişim",
+            faq: "Sıkça Sorulan Sorular",
             rights: "© 2025 FogCatalog. Tüm hakları saklıdır.",
             privacy: "Gizlilik Politikası",
             terms: "Kullanım Şartları",
@@ -51,6 +53,7 @@ const layout = {
             login: "Sign In",
             createCatalog: "Create Catalog",
             demo: "Create Demo",
+            section: "Section",
         },
         footer: {
             description: "Next generation catalog creation platform for modern businesses.",
@@ -60,6 +63,7 @@ const layout = {
             blog: "Blog",
             support: "Support",
             contact: "Contact",
+            faq: "FAQ",
             rights: "© 2025 FogCatalog. All rights reserved.",
             privacy: "Privacy Policy",
             terms: "Terms of Service",
