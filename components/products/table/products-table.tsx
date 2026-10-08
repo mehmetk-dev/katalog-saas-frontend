@@ -15,11 +15,7 @@ export function ProductsTable(props: ProductsTableProps) {
 
   const tableState = useProductsTable(props)
 
-  const {
-    t,
-    filteredProducts,
-    allProducts,
-  } = tableState
+  const { filteredProducts, allProducts } = tableState
 
   // Boş/sonuçsuz durumlar sayfa seviyesinde (ProductsPageClient) ele alınır
   if (filteredProducts.length === 0 && allProducts.length === 0) return null

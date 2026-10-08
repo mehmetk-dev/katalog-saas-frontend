@@ -14,7 +14,6 @@ interface UseProductsPageDerivedParams {
   priceRange: [number, number]
   metadataTotal: number
   metadataTotalPages: number
-  t: (key: string, params?: Record<string, unknown>) => string
 }
 
 export function useProductsPageDerived({
@@ -26,7 +25,6 @@ export function useProductsPageDerived({
   priceRange,
   metadataTotal,
   metadataTotalPages,
-  t,
 }: UseProductsPageDerivedParams): ProductsPageDerived {
   const categories = useMemo(() => {
     const pageCategories = products.map((p) => p.category).filter(Boolean) as string[]
@@ -43,17 +41,6 @@ export function useProductsPageDerived({
   const filteredCount = metadataTotal
   const paginatedProducts = products
   const totalPagesCount = metadataTotalPages
-
-  const categoryStats = useMemo(() => {
-    const statsMap: Record<string, { count: number; totalValue: number }> = {}
-    products.forEach((p) => {
-      const cat = (p.category || (t && t("products.uncategorized") ? t("products.uncategorized") : "Kategorisiz")) as string
-      if (!statsMap[cat]) statsMap[cat] = { count: 0, totalValue: 0 }
-      statsMap[cat].count++
-      statsMap[cat].totalValue += (Number(p.price) || 0) * p.stock
-    })
-    return Object.entries(statsMap).sort((a, b) => b[1].count - a[1].count)
-  }, [products, t])
 
   return {
     categories,

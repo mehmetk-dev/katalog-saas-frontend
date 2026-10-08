@@ -9,8 +9,6 @@ import type { SortField, StockFilter } from "@/components/products/products-page
 interface UseProductsSelectionActionsParams {
   t: (key: string, params?: Record<string, unknown>) => string
   products: Product[]
-  selectedIds: string[]
-  paginatedProducts: Product[]
   sortField: SortField
   search: string
   selectedCategory: string
@@ -31,8 +29,6 @@ interface UseProductsSelectionActionsParams {
 export function useProductsSelectionActions({
   t,
   products,
-  selectedIds,
-  paginatedProducts,
   sortField,
   search,
   selectedCategory,

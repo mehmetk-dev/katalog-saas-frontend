@@ -56,8 +56,6 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
   const selectionActions = useProductsSelectionActions({
     t: params.t,
     products: params.products,
-    selectedIds: params.selectedIds,
-    paginatedProducts: params.paginatedProducts,
     sortField: params.sortField,
     search: params.search,
     selectedCategory: params.selectedCategory,

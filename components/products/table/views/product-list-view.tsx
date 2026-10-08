@@ -80,7 +80,6 @@ export function ProductListView({
     deleteId,
     deleteCatalogs,
     previewProduct,
-    toggleSelectAll,
     toggleSelect,
     onEdit,
     handleDuplicate,

@@ -25,7 +25,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     priceRange: state.priceRange,
     metadataTotal: state.metadata.total,
     metadataTotalPages: state.metadata.totalPages,
-    t: (key, params) => String(t(key, params)),
   })
 
   const actions = useProductsPageActions({

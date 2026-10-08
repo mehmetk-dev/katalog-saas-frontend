@@ -1,9 +1,15 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type React from 'react'
 import { ProductsPageClient } from '@/components/products/products-page-client'
 import { CatalogsPageClient } from '@/components/catalogs/catalogs-page-client'
 import type { Catalog } from '@/lib/actions/catalogs'
+
+// Dashboard kabuğu React Query sağlayıcısı verir; ürün sayfasındaki toplu işlem modalları bunu kullanır
+const renderWithQuery = (ui: React.ReactElement) =>
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 
 // Mock dependencies
 vi.mock('@/lib/contexts/i18n-provider', () => ({
@@ -93,8 +99,7 @@ describe('Plan Limitleri Testleri', () => {
                 updated_at: new Date().toISOString(),
             }))
 
-            render(
-                <ProductsPageClient
+            renderWithQuery(<ProductsPageClient
                     initialProducts={mockProducts as Parameters<typeof ProductsPageClient>[0]['initialProducts']}
                     initialMetadata={{ total: 50, page: 1, limit: 50, totalPages: 1 }}
                     initialStats={{ total: 50, inStock: 50, lowStock: 0, outOfStock: 0, totalValue: 5000 }}

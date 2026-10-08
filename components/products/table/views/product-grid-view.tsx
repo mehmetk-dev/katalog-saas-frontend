@@ -29,7 +29,6 @@ import { DeleteAlertDialog } from "../components/delete-alert-dialog"
 
 export function ProductGridView({
     filteredProducts,
-    allProducts,
     selectedIds,
     isMobile,
     isPending,

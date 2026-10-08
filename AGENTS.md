@@ -251,8 +251,8 @@
 ├── 📂 products/                           ← 📦 Ürün Yönetimi
 │   ├── products-page-client.tsx           # Ana container & CSV export
 │   ├── modals/
-│   │   ├── product-modal.tsx              # ⚠️ Ürün CRUD modal (~60KB)
-│   │   ├── import-export-modal.tsx        # ⚠️ Excel/CSV import (~64KB)
+│   │   ├── product-modal.tsx              # Ürün CRUD modal (sekmeler tabs/ altında)
+│   │   ├── import-export-modal.tsx        # Excel/CSV import (adımlar import-export/ altında)
 │   │   └── import-export/                 # Import alt modülleri
 │   │       ├── constants.ts               #   Header aliases & system fields
 │   │       ├── file-utils.ts              #   Dosya parse (CSV, Excel)
@@ -631,8 +631,8 @@
 
 | Dosya | Boyut | Karmaşıklık | Durum | Açıklama |
 |-------|-------|-------------|-------|----------|
-| `components/products/modals/import-export-modal.tsx` | ~64KB | 🔴 Yüksek | ⚠️ Refactor önerilir | Excel/CSV import — parsing, mapping, validation hepsi içinde |
-| `components/products/modals/product-modal.tsx` | ~60KB | 🔴 Yüksek | ⚠️ Refactor önerilir | Ürün CRUD — tabs, görseller, özellikler tek dosyada |
+| `components/products/modals/import-export-modal.tsx` | ~15KB | 🟢 Düşük | ✅ Parçalandı | Excel/CSV import — parsing/mapping `import-export/` altında |
+| `components/products/modals/product-modal.tsx` | ~13KB | 🟢 Düşük | ✅ Parçalandı | Ürün CRUD — sekmeler `components/products/tabs/` altında |
 | `backend/src/controllers/catalogs.ts` | ~36KB | 🟡 Orta | ✅ Modülerleştirildi | Monolith + modüler `catalogs/` alt klasörü mevcut |
 | `backend/src/controllers/products.ts` | ~31KB | 🟡 Orta | ✅ Modülerleştirildi | Monolith + modüler `products/` alt klasörü mevcut |
 | `app/page.tsx` | ~33KB | 🟡 Orta | ℹ️ Normal | Landing page — animasyonlar, SEO, hero bölümleri |
@@ -918,7 +918,7 @@ interface Catalog {
 **Dosyalar:**
 - `lib/storage/cloudinary.ts` - Upload implementation
 - `lib/storage/types.ts` - StorageProvider interface
-- `components/products/product-modal.tsx` - Image picker UI
+- `components/products/tabs/product-images-tab.tsx` - Image picker UI
 
 ### 5.5 Abonelik/Plan Sistemi
 
