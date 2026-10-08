@@ -33,21 +33,12 @@ export function useProductsPageDerived({
     return [...new Set([...initialAllCategories, ...pageCategories])].sort()
   }, [products, initialAllCategories])
 
-  const priceStats = useMemo(() => {
-    const prices = products.map((p) => Number(p.price) || 0)
-    const calculatedMax = prices.length > 0 ? Math.max(...prices) : 0
-    return {
-      min: Math.min(...prices, 0),
-      max: Math.max(calculatedMax, 0),
-    }
-  }, [products])
-
   const hasActiveFilters =
     search !== "" ||
     selectedCategory !== "all" ||
     stockFilter !== "all" ||
-    priceRange[0] !== 0 ||
-    priceRange[1] !== priceStats.max
+    priceRange[0] > 0 ||
+    priceRange[1] > 0
 
   const filteredCount = metadataTotal
   const paginatedProducts = products
@@ -66,7 +57,6 @@ export function useProductsPageDerived({
 
   return {
     categories,
-    priceStats,
     hasActiveFilters,
     paginatedProducts,
     totalPagesCount,

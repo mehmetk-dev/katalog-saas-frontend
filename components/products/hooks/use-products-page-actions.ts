@@ -23,8 +23,6 @@ interface UseProductsPageActionsParams {
   itemsPerPage: number
   search: string
   priceRange: [number, number]
-  hasMaxPriceFilter: boolean
-  priceStatsMax: number
   priceChangeType: "increase" | "decrease"
   priceChangeMode: "percentage" | "fixed"
   priceChangeAmount: number
@@ -65,8 +63,6 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
     selectedCategory: params.selectedCategory,
     stockFilter: params.stockFilter,
     priceRange: params.priceRange,
-    hasMaxPriceFilter: params.hasMaxPriceFilter,
-    priceStatsMax: params.priceStatsMax,
     setSelectedIds: params.setSelectedIds,
     setProducts: params.setProducts,
     setSortField: params.setSortField,
@@ -112,7 +108,6 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
     selectedCategory: params.selectedCategory,
     stockFilter: params.stockFilter,
     priceRange: params.priceRange,
-    hasMaxPriceFilter: params.hasMaxPriceFilter,
     sortField: params.sortField,
     sortOrder: params.sortOrder,
     setProducts: params.setProducts,

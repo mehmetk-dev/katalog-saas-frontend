@@ -61,7 +61,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     priceChangeMode,
     priceChangeAmount,
     categories,
-    priceStats,
     hasActiveFilters,
     paginatedProducts,
     totalPagesCount,
@@ -151,7 +150,6 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             }}
             priceRange={priceRange}
             onPriceRangeChange={handlePriceRangeChange}
-            maxPrice={priceStats.max}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearAllFilters}
             filteredCount={filteredCount}

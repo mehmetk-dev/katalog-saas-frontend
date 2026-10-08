@@ -15,7 +15,6 @@ interface UseProductsImportExportActionsParams {
   selectedCategory: string
   stockFilter: StockFilter
   priceRange: [number, number]
-  hasMaxPriceFilter: boolean
   sortField: SortField
   sortOrder: SortOrder
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>
@@ -37,7 +36,6 @@ export function useProductsImportExportActions({
   selectedCategory,
   stockFilter,
   priceRange,
-  hasMaxPriceFilter,
   sortField,
   sortOrder,
   setProducts,
@@ -104,7 +102,7 @@ export function useProductsImportExportActions({
       category: selectedCategory,
       stockFilter,
       minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
-      maxPrice: hasMaxPriceFilter && priceRange[1] > 0 ? priceRange[1] : undefined,
+      maxPrice: priceRange[1] > 0 ? priceRange[1] : undefined,
       sortBy: mapSortFieldToProductSort(sortField),
       sortOrder,
     })
@@ -112,7 +110,7 @@ export function useProductsImportExportActions({
     setMetadata(response.metadata)
     setShowBulkImageModal(false)
     toast.success(t("toasts.photosUpdated") as string)
-  }, [currentPage, itemsPerPage, search, selectedCategory, stockFilter, priceRange, hasMaxPriceFilter, sortField, sortOrder, setProducts, setMetadata, setShowBulkImageModal, t])
+  }, [currentPage, itemsPerPage, search, selectedCategory, stockFilter, priceRange, sortField, sortOrder, setProducts, setMetadata, setShowBulkImageModal, t])
 
   return {
     downloadAllProducts,

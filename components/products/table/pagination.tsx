@@ -1,10 +1,10 @@
 "use client"
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 
 interface ProductsPaginationProps {
@@ -17,6 +17,18 @@ interface ProductsPaginationProps {
     pageSizeOptions: number[]
 }
 
+/** Görünen sayfa numaraları: ilk, son, mevcut ±1; aralar "…" */
+function getPageItems(current: number, total: number): Array<number | "gap"> {
+    const pages = new Set([1, total, current - 1, current, current + 1].filter((p) => p >= 1 && p <= total))
+    const sorted = [...pages].sort((a, b) => a - b)
+    const items: Array<number | "gap"> = []
+    sorted.forEach((page, i) => {
+        if (i > 0 && page - sorted[i - 1] > 1) items.push("gap")
+        items.push(page)
+    })
+    return items
+}
+
 export function ProductsPagination({
     currentPage,
     totalPages,
@@ -24,205 +36,71 @@ export function ProductsPagination({
     totalItems,
     onPageChange,
     onItemsPerPageChange,
-    pageSizeOptions
+    pageSizeOptions,
 }: ProductsPaginationProps) {
-    if (totalPages === 0) return null
+    const { t: baseT } = useTranslation()
+    const t = (key: string, params?: Record<string, unknown>) => baseT(`products.pagination.${key}`, params) as string
+
+    // Ürün yoksa sayfalama gösterilmez ("0 üründen 1-0" gibi anlamsız metin olmasın)
+    if (totalItems === 0 || totalPages === 0) return null
+
+    const from = (currentPage - 1) * itemsPerPage + 1
+    const to = Math.min(currentPage * itemsPerPage, totalItems)
+    const isFirst = currentPage <= 1
+    const isLast = currentPage >= totalPages
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t bg-gradient-to-r from-muted/30 via-transparent to-muted/30 rounded-xl px-4 mt-6">
-            {/* Sol: Sayfa bilgisi ve sayfa boyutu */}
-            <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">{totalItems}</span> ürün içinden{' '}
-                    <span className="font-medium text-foreground">
-                        {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalItems)}
-                    </span> gösteriliyor
-                </span>
-
-                {/* Sayfa boyutu seçici */}
-                <div className="hidden sm:flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Sayfa başına:</span>
-                    <Select
-                        value={itemsPerPage.toString()}
-                        onValueChange={(value) => onItemsPerPageChange(parseInt(value))}
-                    >
-                        <SelectTrigger className="h-8 w-[70px] text-xs">
+        <nav aria-label="pagination" className="mt-4 flex flex-col-reverse items-center justify-between gap-3 sm:flex-row">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="tabular-nums">{t("range", { total: totalItems, from, to })}</span>
+                <div className="hidden items-center gap-2 sm:flex">
+                    <span className="text-xs">{t("perPage")}</span>
+                    <Select value={itemsPerPage.toString()} onValueChange={(value) => onItemsPerPageChange(parseInt(value))}>
+                        <SelectTrigger size="sm" className="w-[72px]">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             {pageSizeOptions.map((size) => (
-                                <SelectItem key={size} value={size.toString()}>
-                                    {size}
-                                </SelectItem>
+                                <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 </div>
             </div>
 
-            {/* Sağ: Pagination kontrolleri */}
             {totalPages > 1 && (
                 <div className="flex items-center gap-1">
-                    {/* İlk Sayfa */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" className="hidden sm:inline-flex" onClick={() => onPageChange(1)} disabled={isFirst} aria-label={t("first")} title={t("first")}>
+                        <ChevronsLeft className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => onPageChange(currentPage - 1)} disabled={isFirst} aria-label={t("previous")} title={t("previous")}>
+                        <ChevronLeft className="size-4" />
+                    </Button>
+                    {getPageItems(currentPage, totalPages).map((item, i) =>
+                        item === "gap" ? (
+                            <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                        ) : (
                             <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => onPageChange(1)}
-                                disabled={currentPage === 1}
+                                key={item}
+                                variant={item === currentPage ? "default" : "ghost"}
+                                size="icon-sm"
+                                className={cn("tabular-nums", item === currentPage && "pointer-events-none")}
+                                onClick={() => onPageChange(item)}
+                                aria-label={t("page", { page: item })}
+                                aria-current={item === currentPage ? "page" : undefined}
                             >
-                                <ChevronsLeft className="h-4 w-4" />
+                                {item}
                             </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>İlk sayfa</TooltipContent>
-                    </Tooltip>
-
-                    {/* Önceki Sayfa */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => onPageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Önceki sayfa</TooltipContent>
-                    </Tooltip>
-
-                    {/* Sayfa numaraları */}
-                    <div className="flex items-center gap-1 mx-1">
-                        {/* İlk sayfa (uzaksa) */}
-                        {currentPage > 3 && totalPages > 5 && (
-                            <>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 text-xs"
-                                    onClick={() => onPageChange(1)}
-                                >
-                                    1
-                                </Button>
-                                {currentPage > 4 && (
-                                    <span className="text-muted-foreground text-xs px-1">...</span>
-                                )}
-                            </>
-                        )}
-
-                        {/* Orta sayfa numaraları */}
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            let pageNum: number
-                            if (totalPages <= 5) {
-                                pageNum = i + 1
-                            } else if (currentPage <= 3) {
-                                pageNum = i + 1
-                            } else if (currentPage >= totalPages - 2) {
-                                pageNum = totalPages - 4 + i
-                            } else {
-                                pageNum = currentPage - 2 + i
-                            }
-
-                            if (
-                                (pageNum === 1 && currentPage > 3 && totalPages > 5) ||
-                                (pageNum === totalPages && currentPage < totalPages - 2 && totalPages > 5)
-                            ) {
-                                return null
-                            }
-
-                            return (
-                                <Button
-                                    key={pageNum}
-                                    variant={currentPage === pageNum ? "default" : "ghost"}
-                                    size="sm"
-                                    className={cn(
-                                        "h-8 w-8 text-xs font-medium transition-all",
-                                        currentPage === pageNum && "bg-primary text-primary-foreground shadow-lg shadow-black/10"
-                                    )}
-                                    onClick={() => onPageChange(pageNum)}
-                                >
-                                    {pageNum}
-                                </Button>
-                            )
-                        }).filter(Boolean)}
-
-                        {/* Son sayfa (uzaksa) */}
-                        {currentPage < totalPages - 2 && totalPages > 5 && (
-                            <>
-                                {currentPage < totalPages - 3 && (
-                                    <span className="text-muted-foreground text-xs px-1">...</span>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 text-xs"
-                                    onClick={() => onPageChange(totalPages)}
-                                >
-                                    {totalPages}
-                                </Button>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Sonraki Sayfa */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => onPageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Sonraki sayfa</TooltipContent>
-                    </Tooltip>
-
-                    {/* Son Sayfa */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => onPageChange(totalPages)}
-                                disabled={currentPage === totalPages}
-                            >
-                                <ChevronsRight className="h-4 w-4" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Son sayfa</TooltipContent>
-                    </Tooltip>
-
-                    {/* Sayfa numarasına git - masaüstü için */}
-                    <div className="hidden md:flex items-center gap-2 ml-3 pl-3 border-l">
-                        <span className="text-xs text-muted-foreground">Git:</span>
-                        <Input
-                            type="number"
-                            min={1}
-                            max={totalPages}
-                            placeholder={currentPage.toString()}
-                            className="h-8 w-14 text-xs text-center"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    const target = e.target as HTMLInputElement
-                                    const page = parseInt(target.value)
-                                    if (page >= 1 && page <= totalPages) {
-                                        onPageChange(page)
-                                        target.value = ''
-                                    }
-                                }
-                            }}
-                        />
-                    </div>
+                        )
+                    )}
+                    <Button variant="ghost" size="icon-sm" onClick={() => onPageChange(currentPage + 1)} disabled={isLast} aria-label={t("next")} title={t("next")}>
+                        <ChevronRight className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" className="hidden sm:inline-flex" onClick={() => onPageChange(totalPages)} disabled={isLast} aria-label={t("last")} title={t("last")}>
+                        <ChevronsRight className="size-4" />
+                    </Button>
                 </div>
             )}
-        </div>
+        </nav>
     )
 }

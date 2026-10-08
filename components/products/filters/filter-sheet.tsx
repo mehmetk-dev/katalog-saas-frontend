@@ -1,20 +1,29 @@
 "use client"
 
-import { useMemo } from "react"
-import { Filter, X, Check, SortAsc, SortDesc } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { cn } from "@/lib/utils"
 
 const SORT_OPTIONS = [
+    { value: "order", labelKey: "filters.sortManual" },
     { value: "created_at", labelKey: "filters.sortNew" },
     { value: "name", labelKey: "filters.sortName" },
     { value: "price", labelKey: "filters.sortPrice" },
     { value: "stock", labelKey: "filters.sortStock" },
+] as const
+
+const STOCK_OPTIONS = [
+    { value: "all", labelKey: "filters.all" },
+    { value: "in_stock", labelKey: "filters.inStock" },
+    { value: "low_stock", labelKey: "filters.lowStock" },
+    { value: "out_of_stock", labelKey: "filters.outOfStock" },
 ] as const
 
 interface ProductsFilterSheetProps {
@@ -29,12 +38,29 @@ interface ProductsFilterSheetProps {
     categories: string[]
     stockFilter: string
     onStockFilterChange: (filter: string) => void
+    /** [min, max]; 0 = sınır yok */
     priceRange: [number, number]
     onPriceRangeChange: (range: [number, number]) => void
-    maxPrice: number
     hasActiveFilters: boolean
     onClearFilters: () => void
     filteredCount: number
+}
+
+function ToggleButton({ active, className, ...props }: React.ComponentProps<typeof Button> & { active: boolean }) {
+    return (
+        <Button
+            variant={active ? "default" : "outline"}
+            size="sm"
+            aria-pressed={active}
+            className={cn("justify-center", className)}
+            {...props}
+        />
+    )
+}
+
+function parsePriceInput(value: string): number {
+    const parsed = Number(value.replace(",", "."))
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
 export function ProductsFilterSheet({
@@ -51,75 +77,71 @@ export function ProductsFilterSheet({
     onStockFilterChange,
     priceRange,
     onPriceRangeChange,
-    maxPrice,
     hasActiveFilters,
     onClearFilters,
     filteredCount,
 }: ProductsFilterSheetProps) {
-    const { t } = useTranslation()
+    const { t: baseT } = useTranslation()
+    const t = (key: string) => baseT(key) as string
 
-    const priceQuickOptions = useMemo(() => [
-        { label: t("filters.all") as string, min: 0, max: maxPrice },
-        { label: "₺0-100", min: 0, max: 100 },
-        { label: "₺100-500", min: 100, max: 500 },
-        { label: "₺500-1000", min: 500, max: 1000 },
-        { label: "₺1000+", min: 1000, max: maxPrice },
-    ], [maxPrice, t])
+    // Fiyat alanları her tuşta sunucuya gitmesin: taslak tutulur, alandan çıkınca/Enter'da uygulanır
+    const [minDraft, setMinDraft] = useState(priceRange[0] ? String(priceRange[0]) : "")
+    const [maxDraft, setMaxDraft] = useState(priceRange[1] ? String(priceRange[1]) : "")
+    useEffect(() => {
+        setMinDraft(priceRange[0] ? String(priceRange[0]) : "")
+        setMaxDraft(priceRange[1] ? String(priceRange[1]) : "")
+    }, [priceRange])
+
+    const commitPrice = () => {
+        const next: [number, number] = [parsePriceInput(minDraft), parsePriceInput(maxDraft)]
+        if (next[0] !== priceRange[0] || next[1] !== priceRange[1]) onPriceRangeChange(next)
+    }
+
+    const isManualOrder = sortField === "order"
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="right" className="w-[320px] sm:w-[380px] overflow-y-auto">
-                <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                        <Filter className="w-5 h-5" />
-                        {t("products.filterBy") as string}
-                    </SheetTitle>
-                    <SheetDescription>
-                        {t("filters.description") as string}
-                    </SheetDescription>
+            <SheetContent side="right" className="flex w-full flex-col gap-0 sm:max-w-sm">
+                <SheetHeader className="border-b">
+                    <SheetTitle>{t("products.filterBy")}</SheetTitle>
+                    <SheetDescription>{t("filters.description")}</SheetDescription>
                 </SheetHeader>
-                <div className="space-y-6 mt-6">
+
+                <div className="flex-1 space-y-6 overflow-y-auto p-4">
                     {/* Sıralama */}
-                    <div className="space-y-3">
-                        <Label className="text-sm font-medium">{t("filters.sort") as string}</Label>
-                        <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                        <Label>{t("filters.sort")}</Label>
+                        <div className="flex flex-wrap gap-1.5">
                             {SORT_OPTIONS.map((opt) => (
-                                <Button
-                                    key={opt.value}
-                                    variant={sortField === opt.value ? "default" : "outline"}
-                                    size="sm"
-                                    className={cn(
-                                        "justify-between",
-                                        sortField === opt.value && "bg-primary hover:bg-primary/90"
-                                    )}
-                                    onClick={() => {
-                                        if (sortField === opt.value) {
-                                            onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
-                                        } else {
-                                            onSortFieldChange(opt.value)
-                                        }
-                                    }}
-                                >
-                                    {t(opt.labelKey) as string}
-                                    {sortField === opt.value && (
-                                        sortOrder === "asc" ? <SortAsc className="w-3 h-3" /> : <SortDesc className="w-3 h-3" />
-                                    )}
-                                </Button>
+                                <ToggleButton key={opt.value} active={sortField === opt.value} onClick={() => onSortFieldChange(opt.value)}>
+                                    {t(opt.labelKey)}
+                                </ToggleButton>
                             ))}
+                        </div>
+                        <div className={cn("flex items-center gap-2 pt-1", isManualOrder && "opacity-50")}>
+                            <span className="text-xs text-muted-foreground">{t("filters.sortDirection")}</span>
+                            <div className="flex gap-1.5">
+                                <ToggleButton active={!isManualOrder && sortOrder === "asc"} disabled={isManualOrder} onClick={() => onSortOrderChange("asc")}>
+                                    <ArrowUpNarrowWide className="size-3.5" />
+                                    {t("filters.ascending")}
+                                </ToggleButton>
+                                <ToggleButton active={!isManualOrder && sortOrder === "desc"} disabled={isManualOrder} onClick={() => onSortOrderChange("desc")}>
+                                    <ArrowDownWideNarrow className="size-3.5" />
+                                    {t("filters.descending")}
+                                </ToggleButton>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="border-t pt-4" />
-
                     {/* Kategori */}
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t("filters.category") as string}</Label>
+                        <Label>{t("filters.category")}</Label>
                         <Select value={selectedCategory} onValueChange={onCategoryChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t("filters.allCategories") as string} />
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder={t("filters.allCategories")} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{t("filters.allCategories") as string}</SelectItem>
+                                <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
                                 {categories.map((cat) => (
                                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                 ))}
@@ -127,90 +149,61 @@ export function ProductsFilterSheet({
                         </Select>
                     </div>
 
-                    {/* Stok Durumu */}
+                    {/* Stok */}
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t("filters.stockStatus") as string}</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {[
-                                { value: "all", label: t("filters.all") as string },
-                                { value: "in_stock", label: t("filters.inStock") as string },
-                                { value: "low_stock", label: t("filters.lowStock") as string },
-                                { value: "out_of_stock", label: t("filters.outOfStock") as string },
-                            ].map((opt) => (
-                                <Button
-                                    key={opt.value}
-                                    variant={stockFilter === opt.value ? "default" : "outline"}
-                                    size="sm"
-                                    className={stockFilter === opt.value ? "bg-primary hover:bg-primary/90" : ""}
-                                    onClick={() => onStockFilterChange(opt.value)}
-                                >
-                                    {opt.label}
-                                </Button>
+                        <Label>{t("filters.stockStatus")}</Label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                            {STOCK_OPTIONS.map((opt) => (
+                                <ToggleButton key={opt.value} active={stockFilter === opt.value} onClick={() => onStockFilterChange(opt.value)}>
+                                    {t(opt.labelKey)}
+                                </ToggleButton>
                             ))}
                         </div>
                     </div>
 
-                    {/* Fiyat Aralığı */}
-                    <div className="space-y-3">
-                        <Label className="text-sm font-medium">{t("filters.priceRange") as string}</Label>
+                    {/* Fiyat */}
+                    <div className="space-y-2">
+                        <Label>{t("filters.priceRange")}</Label>
                         <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₺</span>
-                                <Input
-                                    type="number"
-                                    placeholder={t("filters.min") as string}
-                                    value={priceRange[0] || ""}
-                                    onChange={(e) => onPriceRangeChange([Math.max(0, Number(e.target.value) || 0), priceRange[1]])}
-                                    className="pl-7 h-9"
-                                />
-                            </div>
-                            <span className="text-muted-foreground">-</span>
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₺</span>
-                                <Input
-                                    type="number"
-                                    placeholder={t("filters.max") as string}
-                                    value={priceRange[1] || ""}
-                                    onChange={(e) => onPriceRangeChange([priceRange[0], Math.max(0, Number(e.target.value) || maxPrice)])}
-                                    className="pl-7 h-9"
-                                />
-                            </div>
-                        </div>
-                        {/* Hızlı Fiyat Seçenekleri */}
-                        <div className="flex flex-wrap gap-1.5">
-                            {priceQuickOptions.map((opt) => (
-                                <Button
-                                    key={opt.label}
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs"
-                                    onClick={() => onPriceRangeChange([opt.min, opt.max])}
-                                >
-                                    {opt.label}
-                                </Button>
+                            {([["min", minDraft, setMinDraft], ["max", maxDraft, setMaxDraft]] as const).map(([key, value, setValue], index) => (
+                                <div key={key} className="contents">
+                                    {index === 1 && <span className="text-muted-foreground">–</span>}
+                                    <div className="relative flex-1">
+                                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₺</span>
+                                        <Input
+                                            inputMode="decimal"
+                                            aria-label={t(`filters.${key}`)}
+                                            placeholder={key === "min" ? t("filters.min") : t("filters.noLimit")}
+                                            value={value}
+                                            onChange={(e) => setValue(e.target.value)}
+                                            onBlur={commitPrice}
+                                            onKeyDown={(e) => { if (e.key === "Enter") commitPrice() }}
+                                            className="pl-7"
+                                        />
+                                    </div>
+                                </div>
                             ))}
-                        </div>
-                    </div>
-
-                    {/* Alt Butonlar */}
-                    <div className="pt-4 border-t space-y-2">
-                        <div className="flex gap-2 pt-2">
-                            {hasActiveFilters && (
-                                <Button variant="outline" className="flex-1 gap-2" onClick={onClearFilters}>
-                                    <X className="w-4 h-4" />
-                                    {t("filters.clear") as string}
-                                </Button>
-                            )}
-                            <Button
-                                className={cn("flex-1 gap-2 bg-primary hover:bg-primary/90", !hasActiveFilters && "w-full")}
-                                onClick={() => onOpenChange(false)}
-                            >
-                                <Check className="w-4 h-4" />
-                                {t("filters.apply") as string} ({filteredCount} {t("products.product") as string})
-                            </Button>
                         </div>
                     </div>
                 </div>
+
+                <SheetFooter className="flex-row gap-2 border-t">
+                    {hasActiveFilters && (
+                        <Button variant="outline" className="flex-1" onClick={onClearFilters}>
+                            {t("filters.clear")}
+                        </Button>
+                    )}
+                    <Button
+                        className="flex-1"
+                        onClick={() => {
+                            commitPrice()
+                            onOpenChange(false)
+                        }}
+                    >
+                        {t("filters.showResults")}
+                        <span className="tabular-nums opacity-70">({filteredCount})</span>
+                    </Button>
+                </SheetFooter>
             </SheetContent>
         </Sheet>
     )

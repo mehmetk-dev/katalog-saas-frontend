@@ -16,8 +16,6 @@ interface UseProductsSelectionActionsParams {
   selectedCategory: string
   stockFilter: StockFilter
   priceRange: [number, number]
-  hasMaxPriceFilter: boolean
-  priceStatsMax: number
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>
   setSortField: React.Dispatch<React.SetStateAction<"name" | "price" | "stock" | "created_at" | "category" | "order">>
@@ -40,8 +38,6 @@ export function useProductsSelectionActions({
   selectedCategory,
   stockFilter,
   priceRange,
-  hasMaxPriceFilter,
-  priceStatsMax,
   setSelectedIds,
   setProducts,
   setSortField,
@@ -57,10 +53,10 @@ export function useProductsSelectionActions({
     setSearch("")
     setSelectedCategory("all")
     setStockFilter("all")
-    setPriceRange([0, priceStatsMax])
+    setPriceRange([0, 0])
     setCurrentPage(1)
     updateUrl({ search: "", category: "all", stockFilter: "all", minPrice: null, maxPrice: null, page: 1 })
-  }, [setSearch, setSelectedCategory, setStockFilter, setPriceRange, priceStatsMax, setCurrentPage, updateUrl])
+  }, [setSearch, setSelectedCategory, setStockFilter, setPriceRange, setCurrentPage, updateUrl])
 
   const handleToolbarSelectAll = useCallback(async (checked: boolean) => {
     if (!checked) {
@@ -76,7 +72,7 @@ export function useProductsSelectionActions({
         category: selectedCategory,
         stockFilter,
         minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
-        maxPrice: hasMaxPriceFilter && priceRange[1] > 0 ? priceRange[1] : undefined,
+        maxPrice: priceRange[1] > 0 ? priceRange[1] : undefined,
       })
       if (allIds && allIds.length > 0) {
         setSelectedIds(allIds)
@@ -89,7 +85,7 @@ export function useProductsSelectionActions({
       setSelectedIds(products.map((p) => p.id))
       toast.dismiss("select-all")
     }
-  }, [setSelectedIds, t, products, search, selectedCategory, stockFilter, priceRange, hasMaxPriceFilter])
+  }, [setSelectedIds, t, products, search, selectedCategory, stockFilter, priceRange])
 
   const handleTableReorder = useCallback((newProducts: Product[]) => {
     setProducts(newProducts)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import type { Product, ProductStats } from "@/lib/actions/products"
@@ -20,6 +20,9 @@ import {
 } from "@/components/products/products-page-utils"
 import type { ProductsPageClientProps } from "@/components/products/products-page-types"
 import type { ProductsMetadata } from "./products-page-controller.types"
+
+const SEARCH_DEBOUNCE_MS = 300
+const VIEW_MODE_STORAGE_KEY = "products-view-mode"
 
 interface UseProductsPageStateParams extends ProductsPageClientProps {
   t: (key: string, params?: Record<string, unknown>) => string
@@ -74,25 +77,23 @@ export function useProductsPageState({
     setStats(initialStats)
   }, [initialProducts, initialMetadata, initialStats])
 
-  // Sync priceRange max with actual product price stats
+  // Görünüm tercihi tarayıcıda hatırlanır (ilk render sunucuyla aynı kalsın diye mount sonrası okunur)
   useEffect(() => {
-    const prices = products.map((p) => Number(p.price) || 0)
-    const maxPrice = prices.length > 0 ? Math.max(...prices, 0) : 0
-    setPriceRange(prev => {
-      // Initialize if never set
-      if (prev[1] === 0 && maxPrice > 0) {
-        return [0, maxPrice]
-      }
-      // Clamp if current max exceeds new dataset ceiling
-      if (prev[1] > maxPrice) {
-        return [Math.min(prev[0], maxPrice), maxPrice]
-      }
-      return prev
-    })
-  }, [products])
+    try {
+      const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY)
+      if (stored === "grid" || stored === "list") setViewMode(stored)
+    } catch {
+      // localStorage erişilemiyorsa varsayılan liste görünümü
+    }
+  }, [])
 
-  useEffect(() => {
-    setViewMode("list")
+  const changeViewMode = useCallback((mode: ViewMode) => {
+    setViewMode(mode)
+    try {
+      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode)
+    } catch {
+      // yok say
+    }
   }, [])
 
   const updateUrl = useCallback((newParams: Record<string, string | number | null>) => {
@@ -105,8 +106,9 @@ export function useProductsPageState({
       }
     })
 
+    // Filtre/arama değişiklikleri geçmişe yeni kayıt eklemez (Geri tuşu harf harf geri gitmesin)
     startTransition(() => {
-      router.push(`?${params.toString()}`)
+      router.replace(`?${params.toString()}`, { scroll: false })
     })
   }, [router, searchParams])
 
@@ -159,10 +161,19 @@ export function useProductsPageState({
     updateUrl({ page })
   }, [updateUrl])
 
+  // Arama kutusu anında güncellenir; sunucuya istek son tuştan SEARCH_DEBOUNCE_MS sonra gider
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+  }, [])
+
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value)
     setCurrentPage(1)
-    updateUrl({ search: value, page: 1 })
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      updateUrl({ search: value.trim(), page: 1 })
+    }, SEARCH_DEBOUNCE_MS)
   }, [updateUrl])
 
   const handleCategoryChange = useCallback((cat: string) => {
@@ -210,7 +221,7 @@ export function useProductsPageState({
     showDeleteAlert,
     setShowDeleteAlert,
     viewMode,
-    setViewMode,
+    setViewMode: changeViewMode,
     sortField,
     setSortField,
     sortOrder,

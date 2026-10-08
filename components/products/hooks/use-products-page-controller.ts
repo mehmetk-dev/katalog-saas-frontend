@@ -44,8 +44,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     itemsPerPage: state.itemsPerPage,
     search: state.search,
     priceRange: state.priceRange,
-    hasMaxPriceFilter: state.searchParams.has("maxPrice"),
-    priceStatsMax: derived.priceStats.max,
     priceChangeType: state.priceChangeType,
     priceChangeMode: state.priceChangeMode,
     priceChangeAmount: state.priceChangeAmount,
@@ -98,10 +96,10 @@ export function useProductsPageController(props: ProductsPageClientProps) {
   const handlePriceRangeChange = (range: [number, number]) => {
     state.setPriceRange(range)
     state.setCurrentPage(1)
-    const shouldClearMax = derived.priceStats.max > 0 && range[1] >= derived.priceStats.max
+    // 0 = sınır yok
     state.updateUrl({
       minPrice: range[0] > 0 ? range[0] : null,
-      maxPrice: range[1] > 0 && !shouldClearMax ? range[1] : null,
+      maxPrice: range[1] > 0 ? range[1] : null,
       page: 1,
     })
   }
@@ -138,7 +136,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     priceChangeAmount: state.priceChangeAmount,
 
     categories: derived.categories,
-    priceStats: derived.priceStats,
     hasActiveFilters: derived.hasActiveFilters,
     paginatedProducts: derived.paginatedProducts,
     totalPagesCount: derived.totalPagesCount,

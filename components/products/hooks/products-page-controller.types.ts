@@ -37,7 +37,6 @@ export interface ProductsPageState {
 
 export interface ProductsPageDerived {
   categories: string[]
-  priceStats: { min: number; max: number }
   hasActiveFilters: boolean
   paginatedProducts: Product[]
   totalPagesCount: number

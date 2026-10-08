@@ -118,7 +118,6 @@ describe('products page regressions', () => {
             selectedCategory: 'all',
             stockFilter: 'all' as const,
             priceRange: [0, 0] as [number, number],
-            hasMaxPriceFilter: false,
             sortField: 'order' as const,
             sortOrder: 'asc' as const,
             setProducts,
@@ -156,7 +155,6 @@ describe('products page regressions', () => {
             selectedCategory: 'Furniture',
             stockFilter: 'low_stock' as const,
             priceRange: [100, 250] as [number, number],
-            hasMaxPriceFilter: true,
             sortField: 'price' as const,
             sortOrder: 'desc' as const,
             setProducts: vi.fn(),
@@ -206,7 +204,6 @@ describe('products page regressions', () => {
                 onStockFilterChange={vi.fn()}
                 priceRange={[0, 0]}
                 onPriceRangeChange={vi.fn()}
-                maxPrice={0}
                 hasActiveFilters={false}
                 onClearFilters={vi.fn()}
                 filteredCount={0}
@@ -228,12 +225,10 @@ describe('products page regressions', () => {
             selectedIds: [],
             paginatedProducts: [makeProduct('visible')],
             sortField: 'order' as const,
-            priceStatsMax: 500,
             search: 'chair',
             selectedCategory: 'Furniture',
             stockFilter: 'low_stock' as const,
             priceRange: [100, 250] as [number, number],
-            hasMaxPriceFilter: true,
             setSelectedIds,
             setProducts: vi.fn(),
             setSortField: vi.fn(),
