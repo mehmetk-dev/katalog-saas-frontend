@@ -72,7 +72,7 @@ const CatalogThumbnail = memo(function CatalogThumbnail({ catalog, products }: {
     )
 
     if (catalogProducts.length === 0) {
-        return <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-violet-500" />
+        return <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
     }
 
     if (catalogProducts.length === 1) {
@@ -81,7 +81,7 @@ const CatalogThumbnail = memo(function CatalogThumbnail({ catalog, products }: {
     }
 
     return (
-        <div className="grid grid-cols-2 w-full h-full gap-0.5 bg-violet-100/50">
+        <div className="grid grid-cols-2 w-full h-full gap-0.5 bg-accent/50">
             {catalogProducts.map((p, i) => {
                 const imgUrl = (p.images?.[0] || p.image_url) as string
                 return (
@@ -275,15 +275,15 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                 </p>
                                 <div className={cn(
                                     "p-2 rounded-xl",
-                                    stat.color === 'violet' && "bg-violet-100 dark:bg-violet-900/30",
-                                    stat.color === 'blue' && "bg-blue-100 dark:bg-blue-900/30",
-                                    stat.color === 'emerald' && "bg-emerald-100 dark:bg-emerald-900/30",
+                                    stat.color === 'violet' && "bg-accent",
+                                    stat.color === 'blue' && "bg-info-soft",
+                                    stat.color === 'emerald' && "bg-success-soft",
                                 )}>
                                     <Icon className={cn(
                                         "w-4 h-4",
-                                        stat.color === 'violet' && "text-violet-600 dark:text-violet-400",
-                                        stat.color === 'blue' && "text-blue-600 dark:text-blue-400",
-                                        stat.color === 'emerald' && "text-emerald-600 dark:text-emerald-400",
+                                        stat.color === 'violet' && "text-primary",
+                                        stat.color === 'blue' && "text-info",
+                                        stat.color === 'emerald' && "text-success",
                                     )} />
                                 </div>
                             </CardHeader>
@@ -301,8 +301,8 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                                     className={cn(
                                                         "text-[10px] px-1.5 py-0 h-4 font-medium border-0",
                                                         stat.trendUp
-                                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                                            ? "bg-success-soft text-success-soft-foreground"
+                                                            : "bg-destructive-soft text-destructive-soft-foreground"
                                                     )}
                                                 >
                                                     {stat.trendUp ? <ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> : <ArrowDownRight className="w-2.5 h-2.5 mr-0.5" />}
@@ -326,7 +326,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                     <div>
                         <CardTitle className={cn(
                             "text-lg font-bold flex items-center gap-2.5",
-                            "text-slate-800 dark:text-slate-200"
+                            "text-foreground dark:text-slate-200"
                         )}>
                             {t("dashboard.recentActivity")}
                         </CardTitle>
@@ -352,8 +352,8 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                 onClick={createNewCatalog}
                                 disabled={isCreating}
                                 className={cn(
-                                    "bg-gradient-to-r from-violet-600 to-indigo-600",
-                                    "hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/20"
+                                    "bg-primary",
+                                    "hover:from-primary hover:to-primary shadow-lg shadow-black/20"
                                 )}
                             >
                                 <Plus className="w-4 h-4" />
@@ -371,10 +371,10 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                         {/* Catalog Thumbnail/Preview */}
                                         <div className={cn(
                                             "w-12 h-12 sm:w-14 sm:h-14 rounded-xl",
-                                            "bg-gradient-to-br from-violet-100 to-indigo-100",
-                                            "dark:from-violet-900/30 dark:to-indigo-900/30",
+                                            "bg-muted",
+                                            "",
                                             "flex items-center justify-center shrink-0",
-                                            "border border-violet-200/50 dark:border-violet-800/50 overflow-hidden relative"
+                                            "border border-border/50 overflow-hidden relative"
                                         )}>
                                             {catalog.logo_url ? (
                                                 <NextImage src={catalog.logo_url} alt="" fill className="object-cover" unoptimized />
@@ -408,7 +408,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                             variant={catalog.is_published ? "default" : "secondary"}
                                             className={cn(
                                                 "text-xs font-medium",
-                                                catalog.is_published && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 border-0"
+                                                catalog.is_published && "bg-success-soft text-success-soft-foreground hover:bg-success/15 border-0"
                                             )}
                                         >
                                             {catalog.is_published ? t("dashboard.published") : t("dashboard.draft")}
@@ -438,7 +438,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                 <Card className="relative overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all group">
                     {/* Gradient Background */}
                     <div className={cn(
-                        "absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-indigo-500/5"
+                        "absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5"
                     )} />
 
                     {/* Dot Pattern */}
@@ -449,11 +449,11 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
 
                     {/* Floating Icon */}
                     <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Package className="w-32 h-32 text-violet-500" />
+                        <Package className="w-32 h-32 text-primary" />
                     </div>
 
                     <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative z-10">
-                        <div className="p-3 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/30 transition-shadow">
+                        <div className="p-3 bg-primary rounded-xl shadow-lg shadow-black/20 group-hover:shadow-black/30 transition-shadow">
                             <Package className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -462,7 +462,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                         </div>
                         <Button
                             asChild
-                            className="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all"
+                            className="w-full sm:w-auto bg-primary hover:from-primary hover:to-primary shadow-md hover:shadow-lg transition-all"
                         >
                             <Link href="/dashboard/products?action=import" className="gap-2" prefetch={false}>
                                 <Plus className="w-4 h-4" />
@@ -475,7 +475,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                 {/* Templates Card */}
                 <Card className="relative overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all group">
                     {/* Gradient Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-orange-500/5" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-warning/5 via-transparent to-warning/5" />
 
                     {/* Line Pattern */}
                     <div className="absolute inset-0 opacity-20" style={{
@@ -485,11 +485,11 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
 
                     {/* Floating Icon */}
                     <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Palette className="w-32 h-32 text-amber-500" />
+                        <Palette className="w-32 h-32 text-warning-soft-foreground" />
                     </div>
 
                     <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative z-10">
-                        <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/30 transition-shadow">
+                        <div className="p-3 bg-warning rounded-xl shadow-lg shadow-warning/20 group-hover:shadow-warning/30 transition-shadow">
                             <Palette className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -499,7 +499,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                         <Button
                             variant="secondary"
                             asChild
-                            className="w-full sm:w-auto bg-white/80 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 shadow-md hover:shadow-lg transition-all border-0"
+                            className="w-full sm:w-auto bg-background/80 hover:bg-card shadow-md hover:shadow-lg transition-all border-0"
                         >
                             <Link href="/dashboard/templates" className="gap-2" prefetch={false}>
                                 <Sparkles className="w-4 h-4" />

@@ -156,7 +156,7 @@ export function DashboardSidebar() {
                   <span className="truncate flex-1">{item.label}</span>
                 )}
                 {(!isCollapsed || isMobile) && showPremiumBadge && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 bg-violet-100 text-violet-700">
+                  <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 bg-accent text-primary">
                     Plus
                   </Badge>
                 )}
@@ -218,9 +218,9 @@ export function DashboardSidebar() {
               <Card className={cn(
                 "border-sidebar-border overflow-hidden",
                 user?.plan === "pro"
-                  ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-0"
+                  ? "bg-primary text-primary-foreground border-0"
                   : user?.plan === "plus"
-                    ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0"
+                    ? "bg-warning text-white border-0"
                     : "bg-sidebar-accent/50"
               )}>
                 <CardContent className="p-4 space-y-3">
@@ -238,7 +238,7 @@ export function DashboardSidebar() {
                           <Sparkles className="w-4 h-4" />
                           <span className="font-semibold">{t("common.proPackage")}</span>
                         </div>
-                        <Badge className="bg-white/20 text-white border-0 text-xs">
+                        <Badge className="bg-background/20 text-white border-0 text-xs">
                           {t("common.active")}
                         </Badge>
                       </div>
@@ -256,7 +256,7 @@ export function DashboardSidebar() {
                           <Sparkles className="w-4 h-4" />
                           <span className="font-semibold">{t("common.plusPackage")}</span>
                         </div>
-                        <Badge className="bg-white/20 text-white border-0 text-xs">
+                        <Badge className="bg-background/20 text-white border-0 text-xs">
                           {t("common.active")}
                         </Badge>
                       </div>
@@ -269,7 +269,7 @@ export function DashboardSidebar() {
                         </div>
                         <Progress
                           value={((user?.catalogsCount ?? 0) / 10) * 100}
-                          className="h-1.5 bg-white/20"
+                          className="h-1.5 bg-background/20"
                         />
                         <div className="flex items-center justify-between text-xs">
                           <span className="opacity-80">{t("sidebar.products")}</span>
@@ -279,10 +279,10 @@ export function DashboardSidebar() {
                         </div>
                         <Progress
                           value={((user?.productsCount ?? 0) / 1000) * 100}
-                          className="h-1.5 bg-white/20"
+                          className="h-1.5 bg-background/20"
                         />
                       </div>
-                      <Button size="sm" className="w-full gap-2 bg-white/20 hover:bg-white/30 text-white border-0" onClick={() => setShowUpgradeModal(true)}>
+                      <Button size="sm" className="w-full gap-2 bg-background/20 hover:bg-background/30 text-white border-0" onClick={() => setShowUpgradeModal(true)}>
                         {t("settings.upgrade")}
                         <ArrowUpRight className="w-3 h-3" />
                       </Button>
@@ -316,7 +316,7 @@ export function DashboardSidebar() {
                         <Progress value={((user?.productsCount ?? 0) / 50) * 100} className="h-2" />
                       </div>
 
-                      <Button size="sm" className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" onClick={() => setShowUpgradeModal(true)}>
+                      <Button size="sm" className="w-full gap-2 bg-primary hover:from-primary hover:to-primary" onClick={() => setShowUpgradeModal(true)}>
                         <Sparkles className="w-4 h-4" />
                         {t("settings.upgrade")}
                         <ArrowUpRight className="w-3 h-3" />
@@ -336,7 +336,7 @@ export function DashboardSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="w-full flex justify-center">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600">
+                    <div className="p-2 rounded-lg bg-primary">
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   </div>
@@ -347,7 +347,7 @@ export function DashboardSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="w-full flex justify-center">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
+                    <div className="p-2 rounded-lg bg-warning">
                       <Sparkles className="w-4 h-4 text-white" />
                     </div>
                   </div>

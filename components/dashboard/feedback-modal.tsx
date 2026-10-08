@@ -339,7 +339,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-violet-600" />
+                            <MessageSquare className="w-5 h-5 text-primary" />
                             {t('feedback.title')}
                         </DialogTitle>
                         <DialogDescription>
@@ -381,8 +381,8 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                                     <NextImage src={file.preview} alt="" fill className="object-cover" unoptimized />
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-slate-100">
-                                                    <Film className="w-8 h-8 text-slate-400" />
+                                                <div className="w-full h-full flex items-center justify-center bg-muted">
+                                                    <Film className="w-8 h-8 text-muted-foreground" />
                                                 </div>
                                             )}
                                             {uploading && (
@@ -394,7 +394,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFile(index)}
-                                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                                     disabled={loading}
                                                 >
                                                     <X className="w-3 h-3" />
@@ -410,7 +410,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                                             handleUploadClick()
                                             fileInputRef.current?.click()
                                         }}
-                                        className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center hover:border-violet-500 hover:bg-violet-50 transition-all text-slate-500 hover:text-violet-600"
+                                        className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center hover:border-primary hover:bg-accent transition-all text-muted-foreground hover:text-primary"
                                     >
                                         <Paperclip className="w-6 h-6" />
                                         <span className="text-[10px] mt-1">{t('feedback.selectFile')}</span>
@@ -430,9 +430,9 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                             </p>
                         </div>
 
-                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
-                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                            <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-warning-soft border border-warning/30">
+                            <AlertCircle className="w-4 h-4 text-warning-soft-foreground mt-0.5 shrink-0" />
+                            <p className="text-[11px] text-warning-soft-foreground">
                                 {t('feedback.alert')}
                             </p>
                         </div>
@@ -450,7 +450,7 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="bg-violet-600 hover:bg-violet-700 gap-2"
+                            className="bg-primary hover:bg-primary/90 gap-2"
                         >
                             {loading ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

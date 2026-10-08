@@ -47,7 +47,7 @@ export default function BuilderLoading() {
         </div>
 
         {/* Preview panel */}
-        <div className="w-1/2 bg-slate-100 dark:bg-[#03040a] flex items-center justify-center p-6">
+        <div className="w-1/2 bg-muted dark:bg-[#03040a] flex items-center justify-center p-6">
           <div className="w-full max-w-md space-y-4">
             <Skeleton className="aspect-[210/297] w-full rounded-lg" />
             <div className="flex justify-center gap-2">

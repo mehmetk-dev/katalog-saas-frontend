@@ -64,18 +64,18 @@ export function NotificationDropdown() {
     const getNotificationIcon = (type: string) => {
         switch (type) {
             case "catalog_created":
-                return <Package className="w-4 h-4 text-blue-500" />
+                return <Package className="w-4 h-4 text-info" />
             case "catalog_downloaded":
-                return <Download className="w-4 h-4 text-green-500" />
+                return <Download className="w-4 h-4 text-success" />
             case "subscription_started":
             case "subscription_cancelled":
             case "subscription_expiring":
             case "subscription_expired":
-                return <CreditCard className="w-4 h-4 text-violet-500" />
+                return <CreditCard className="w-4 h-4 text-primary" />
             case "welcome":
-                return <Sparkles className="w-4 h-4 text-amber-500" />
+                return <Sparkles className="w-4 h-4 text-warning-soft-foreground" />
             default:
-                return <Bell className="w-4 h-4 text-gray-500" />
+                return <Bell className="w-4 h-4 text-muted-foreground" />
         }
     }
 
@@ -112,7 +112,7 @@ export function NotificationDropdown() {
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
                             {unreadCount > 9 ? "9+" : unreadCount}
                         </span>
                     )}
@@ -169,7 +169,7 @@ export function NotificationDropdown() {
                                     key={notification.id}
                                     className={cn(
                                         "p-3 hover:bg-muted/50 transition-colors relative group",
-                                        !notification.is_read && "bg-blue-50/50 dark:bg-blue-950/20"
+                                        !notification.is_read && "bg-info-soft/50"
                                     )}
                                 >
                                     <div className="flex gap-3 pr-14">
@@ -185,7 +185,7 @@ export function NotificationDropdown() {
                                                     {notification.title}
                                                 </p>
                                                 {!notification.is_read && (
-                                                    <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+                                                    <div className="w-2 h-2 rounded-full bg-info shrink-0 mt-1.5" />
                                                 )}
                                             </div>
                                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 break-words">
@@ -307,45 +307,45 @@ function PdfExportStatusCard({
     }, [t])
 
     return (
-        <div className="border-b bg-violet-50/60 p-3 dark:bg-violet-950/20">
+        <div className="border-b bg-accent/60 p-3">
             <div className="flex gap-3">
                 <div className="mt-0.5 shrink-0">
                     {isActive ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     ) : isFailed ? (
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
                     ) : isExpired ? (
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <AlertTriangle className="h-4 w-4 text-warning-soft-foreground" />
                     ) : shareLinkError ? (
-                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <AlertTriangle className="h-4 w-4 text-warning-soft-foreground" />
                     ) : (
-                        <Download className="h-4 w-4 text-green-600" />
+                        <Download className="h-4 w-4 text-success" />
                     )}
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-foreground">{translate("common.pdf.pdfExportTitle", "PDF Export")}</p>
-                            <p className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                            <p className="text-xs font-medium text-primary">
                                 {isExpired ? translate("common.pdf.expired", "Süresi dolmuş") : title}
                             </p>
                         </div>
-                        <span className="shrink-0 text-xs font-bold text-violet-700 dark:text-violet-300">
+                        <span className="shrink-0 text-xs font-bold text-primary">
                             {isExpired ? "—" : `${Math.round(percent)}%`}
                         </span>
                     </div>
                     {isExpired ? (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                        <p className="text-xs text-warning-soft-foreground">
                             {translate("common.pdf.expiredDesc", "PDF indirme linkinin süresi dolmuş. Lütfen yeni bir PDF oluşturun.")}
                         </p>
                     ) : (
                         <>
-                            <Progress value={percent} className="h-2 bg-white/70 dark:bg-slate-900/60" />
+                            <Progress value={percent} className="h-2 bg-background/70" />
                             <p className="text-xs text-muted-foreground">{description}</p>
                         </>
                     )}
                     {shareLinkError && isCompleted && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                        <p className="text-xs text-warning-soft-foreground">
                             {translate("common.pdf.shareLinkError", "İndirme linki alınamadı. Tekrar deneyin.")}
                         </p>
                     )}
