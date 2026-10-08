@@ -251,7 +251,7 @@ describe('checkout flow', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Güvenli ödemeye geç' }))
 
         expect(await screen.findByRole('alert')).toHaveTextContent('hesabınıza giriş yapmalısınız')
-        expect(screen.getByRole('link', { name: 'Giriş yap' })).toHaveAttribute('href', '/auth')
+        expect(screen.getByRole('link', { name: 'Giriş yap' })).toHaveAttribute('href', `/auth?next=${encodeURIComponent('/checkout?plan=plus&billing=monthly')}`)
         expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 

@@ -72,7 +72,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 13 | Analitik | 🟡 Orta | ⏳ |
 | 14 | Ayarlar | 🟡 Orta | ⏳ |
 | 15 | Bildirimler | 🟢 Düşük | ⏳ |
-| 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | ⏳ |
+| 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | 🟡 Kod incelendi, güvenlik açığı kapatıldı (test POS ile uçtan uca kaldı) |
 | 17 | Admin paneli | 🟡 Orta | ⏳ |
 | 18 | Public site (landing, özellikler, SSS, iletişim, blog, yasal) | 🟡 Orta | ⏳ |
 | 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | ⏳ |
@@ -287,7 +287,18 @@ Kalan:
 - [ ] Ödeme sonrası plan ve limitlerin anında güncellenmesi
 - [ ] Makbuz / fatura belgesi oluşturma ve indirme
 - [ ] Callback güvenliği (imza doğrulama, tekrar oynatma)
-- [ ] Not: `POST /users/me/upgrade` her zaman 403 dönüyor — kullanılmayan kalıntı, kaldırılabilir
+- [x] Not: `POST /users/me/upgrade` her zaman 403 dönüyor — kullanılmayan kalıntı → kaldırıldı
+
+**Yapılanlar (8 Ekim 2026) — gerçek bankaya istek atılmadı, yalnızca kod incelemesi + birim testleri:**
+- **🔴 Güvenlik açığı — sahte "onay" callback'i:** Garanti callback imzası, callback'in kendi `hashparams` listesindeki alanların değerleri **ayraçsız** birleştirilerek doğrulanıyordu ve sonuç alanlarının imzalı olması şart değildi. Kendi siparişine ait gerçek bir *ret* callback'inde alan sınırlarını kaydırarak (`authcode`=“51”, `procreturncode` listeden çıkarılıp “00” yapılır) imza geçerli kalıyor, sipariş “ödendi” sayılıp plan veriliyordu (`tests/garanti-payment.test.ts` saldırıyı birebir yeniden üretir). Düzeltme: (1) `oid` ve `procreturncode` imzalı alanlar arasında değilse callback geçersiz; (2) **onay callback'i planı tek başına vermez** — banka VP sipariş sorgusuyla (`orderinq`) sunucudan teyit edilir; teyit yoksa sipariş beklemede kalır ve mevcut mutabakat worker'ı kesin sonucu bankadan alıp tamamlar; banka onaylamıyorsa kritik alarm.
+- **Ödeme sonrası plan 10 dk gecikmeli uygulanıyordu:** backend'in kullanıcı/katalog önbelleği (plan) ödeme, mutabakat ve iade sonrası temizlenmiyordu → ödeyen kullanıcı hâlâ ücretsiz limitlere (katalog limiti, kilitli kataloglar) takılıyordu. `services/plan-cache.ts` ile üç noktada temizleniyor.
+- **Giriş yapmamış kullanıcı** tüm fatura formunu doldurup gönderince “giriş yapın” uyarısı alıyor, girişten sonra panele düşüp plan seçimini/formu kaybediyordu → ödeme sayfası önce girişe yönlendirir (`/auth?next=/checkout?plan=…&billing=…`), girişten sonra aynı sayfaya döner.
+- Bankaya yönlendirilirken buton tekrar aktif oluyordu (çift tıklama) → yönlendirme sırasında kilitli kalır.
+- Sonuç sayfası “beklemede”yken elle yenilemek gerekiyordu → 3 dk boyunca 4 sn'de bir otomatik yenilenir.
+- Ölü `upgradeToPro` ucu kaldırıldı; tanıtım bölümündeki `/auth?plan=free` linki kayıt formuna (`?tab=signup`) çevrildi.
+- Testler: `garanti-callback-confirmation.test.ts` (banka teyidi olmadan plan verilmez), `garanti-payment.test.ts` (sahte callback senaryosu).
+
+**Kalan:** Garanti **TEST** ortamıyla uçtan uca deneme (test kartları, başarılı/başarısız/iptal dönüşleri, makbuz) — `.env`'de şu an PROD bilgileri var, test POS bilgileri gerekiyor. Fiyatlandırma sayfasındaki plan özellik metinleri sabit Türkçe (sayfa 18'de ele alınacak).
 
 ### 17. Admin paneli
 `app/admin/*`, `components/admin/admin-dashboard/*`

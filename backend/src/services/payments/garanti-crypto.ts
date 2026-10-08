@@ -33,7 +33,14 @@ export type GarantiCallbackClassification =
               | 'amount_mismatch'
               | 'currency_mismatch'
               | 'terminal_mismatch'
+              | 'unsigned_fields'
       }
+
+/**
+ * Sonucu belirleyen alanlar mutlaka bankanın imzaladığı `hashparams` listesinde olmalı. Aksi halde
+ * imzasız bir alan (ör. procreturncode=00) serbestçe değiştirilebilir.
+ */
+const REQUIRED_SIGNED_CALLBACK_FIELDS = ['oid', 'procreturncode'] as const
 
 const ISO_8859_9_TURKISH_BYTES = new Map<number, number>([
     [0x011e, 0xd0], // Ğ
@@ -175,6 +182,15 @@ export function classifyGarantiCallback(
     hashValid: boolean
 ): GarantiCallbackClassification {
     if (!hashValid) return { status: 'invalid', reason: 'invalid_hash' }
+    const signedFields = new Set(
+        getPayloadValue(payload, 'hashparams')
+            .split(':')
+            .filter(Boolean)
+            .map((field) => field.toLocaleLowerCase('en-US'))
+    )
+    if (REQUIRED_SIGNED_CALLBACK_FIELDS.some((field) => !signedFields.has(field))) {
+        return { status: 'invalid', reason: 'unsigned_fields' }
+    }
     if (getPayloadValue(payload, 'oid') !== expected.orderId) {
         return { status: 'invalid', reason: 'order_mismatch' }
     }

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 
 import { CheckoutPageClient } from '@/components/billing/checkout-page-client'
-import { normalizeBillingCycle, normalizePaidPlan } from '@/lib/billing/plans'
+import { buildCheckoutHref, normalizeBillingCycle, normalizePaidPlan } from '@/lib/billing/plans'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ async function getCheckoutCustomerPrefill() {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) return { fullName: '', email: '' }
+    if (!user) return null
 
     const { data: profile } = await supabase
         .from('users')
@@ -51,11 +52,19 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
         searchParams,
         getCheckoutCustomerPrefill(),
     ])
+    const planId = normalizePaidPlan(params.plan)
+    const billingCycle = normalizeBillingCycle(params.billing)
+
+    // Ödeme hesaba bağlı: fatura formunu doldurtup sonra girişe göndermek yerine önce giriş
+    // yaptırılır ve aynı plan seçimiyle buraya geri dönülür.
+    if (!initialCustomer) {
+        redirect(`/auth?next=${encodeURIComponent(buildCheckoutHref(planId, billingCycle))}`)
+    }
 
     return (
         <CheckoutPageClient
-            initialPlan={normalizePaidPlan(params.plan)}
-            initialBillingCycle={normalizeBillingCycle(params.billing)}
+            initialPlan={planId}
+            initialBillingCycle={billingCycle}
             initialCustomer={initialCustomer}
         />
     )

@@ -2,6 +2,7 @@
 
 import {
     useMemo,
+    useRef,
     useState,
     type ChangeEvent,
     type ComponentProps,
@@ -37,6 +38,7 @@ import {
     type BillingCycle,
     type PaidPlanId,
     CHECKOUT_PLANS,
+    buildCheckoutHref,
     getCheckoutTotals,
 } from '@/lib/billing/plans'
 import { useTranslation } from '@/lib/contexts/i18n-provider'
@@ -119,6 +121,7 @@ export function CheckoutPageClient({
     const [isSaving, setIsSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
     const [authRequired, setAuthRequired] = useState(false)
+    const redirectingToBankRef = useRef(false)
     const [fieldErrors, setFieldErrors] = useState<CheckoutFieldErrors>({})
 
     const totals = useMemo(() => getCheckoutTotals(planId, billingCycle), [planId, billingCycle])
@@ -290,6 +293,8 @@ export function CheckoutPageClient({
 
             const paymentResult = await startGarantiPayment(result.draft.id)
             if (paymentResult.success) {
+                // Banka sayfasına geçilirken buton tekrar aktif olmasın (çift ödeme denemesi)
+                redirectingToBankRef.current = true
                 submitHostedPaymentForm(paymentResult.payment.form)
                 return
             }
@@ -306,7 +311,7 @@ export function CheckoutPageClient({
         } catch {
             setSaveError(t('checkout.payment.saveError'))
         } finally {
-            setIsSaving(false)
+            if (!redirectingToBankRef.current) setIsSaving(false)
         }
     }
 
@@ -735,7 +740,7 @@ export function CheckoutPageClient({
                                             <p className="font-semibold">{saveError}</p>
                                             {authRequired && (
                                                 <Link
-                                                    href="/auth"
+                                                    href={`/auth?next=${encodeURIComponent(buildCheckoutHref(planId, billingCycle))}`}
                                                     className="mt-3 inline-flex items-center gap-2 font-semibold underline underline-offset-4"
                                                 >
                                                     <LogIn className="size-4" />

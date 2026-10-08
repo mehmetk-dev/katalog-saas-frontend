@@ -15,6 +15,7 @@ import {
     GarantiVpError,
     getGarantiVpConfig,
 } from '../services/payments/garanti-vp-client'
+import { invalidatePlanCachesForOrder } from '../services/plan-cache'
 import { supabase } from '../services/supabase'
 
 type OperationStatus =
@@ -231,6 +232,7 @@ async function processReconciliation(operation: PaymentOperationRow): Promise<vo
             classification.status === 'approved' ? classification.authorizationCode : '',
     })
     if (error) throw new Error('PAYMENT_RECONCILIATION_FINALIZE_FAILED')
+    await invalidatePlanCachesForOrder(operation.order_id)
     await resolvePaymentAlertsForOperation({
         operationId: operation.id,
         attemptId: operation.attempt_id,
@@ -264,6 +266,8 @@ async function verifyReversal(
         p_authorization_code: confirmed.authCode,
     })
     if (error) throw new Error('PAYMENT_REVERSAL_FINALIZE_FAILED')
+    // İade/iptal planı düşürebilir
+    await invalidatePlanCachesForOrder(operation.order_id)
     await resolvePaymentAlertsForOperation({
         operationId: operation.id,
         attemptId: operation.attempt_id,
@@ -323,6 +327,8 @@ async function processReversal(
         p_authorization_code: response.authorizationCode,
     })
     if (error) throw new Error('PAYMENT_REVERSAL_FINALIZE_FAILED')
+    // İade/iptal planı düşürebilir
+    await invalidatePlanCachesForOrder(operation.order_id)
     await resolvePaymentAlertsForOperation({
         operationId: operation.id,
         attemptId: operation.attempt_id,

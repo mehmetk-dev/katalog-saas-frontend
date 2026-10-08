@@ -80,6 +80,7 @@ describe('Garanti BBVA callback classification', () => {
                     clientid: '30691297',
                     procreturncode: '00',
                     response: 'Approved',
+                    hashparams: 'clientid:oid:procreturncode:response:',
                 },
                 expected,
                 true
@@ -97,6 +98,7 @@ describe('Garanti BBVA callback classification', () => {
                     clientid: '30691297',
                     procreturncode: '51',
                     response: 'Declined',
+                    hashparams: 'clientid:oid:procreturncode:response:',
                 },
                 expected,
                 true
@@ -283,5 +285,35 @@ describe('public bank callback boundary', () => {
         expect(
             isGarantiPaymentCallbackPath('/api/v1/billing/payments/garanti/callback', 'GET')
         ).toBe(false)
+    })
+
+    it('rejects a re-partitioned decline that leaves procreturncode unsigned', () => {
+        const storeKey = 'STOREKEY123'
+        // Bankanın imzaladığı gerçek ret callback'i
+        const genuine: Record<string, string> = {
+            clientid: '30691297',
+            oid: 'ORDER123',
+            authcode: '',
+            procreturncode: '51',
+            response: 'Declined',
+            rnd: 'a00b',
+            hashparams: 'clientid:oid:authcode:procreturncode:response:rnd:',
+        }
+        genuine.hash = computeGarantiCallbackHash(genuine, storeKey)
+
+        // Saldırgan alan sınırlarını kaydırır: "51" authcode'a geçer, procreturncode imza listesinden çıkar
+        const forged: Record<string, string> = {
+            ...genuine,
+            authcode: '51',
+            procreturncode: '00',
+            hashparams: 'clientid:oid:authcode:response:rnd:',
+        }
+
+        // Ayraçsız birleştirme yüzünden imza hâlâ geçerli görünür...
+        expect(verifyGarantiCallbackHash(forged, storeKey)).toBe(true)
+        // ...ama sonucu belirleyen alan imzasız olduğu için callback reddedilir
+        expect(
+            classifyGarantiCallback(forged, { orderId: 'ORDER123', amount: '50000', currencyCode: '949', terminalId: '30691297' }, true)
+        ).toEqual({ status: 'invalid', reason: 'unsigned_fields' })
     })
 })

@@ -289,18 +289,3 @@ export const incrementExportsUsed = async (req: Request, res: Response) => {
         res.status(500).json({ error: message });
     }
 };
-
-export const upgradeToPro = async (req: Request, res: Response) => {
-    try {
-        // SECURITY: Plan upgrade is disabled until payment integration (Stripe/Iyzico) is implemented.
-        // This endpoint must ONLY be callable from a verified payment webhook, not directly by users.
-        // TODO: Implement payment webhook verification before enabling plan upgrades.
-        return res.status(403).json({
-            error: 'Payment Required',
-            message: 'Plan yükseltme işlemi şu anda aktif değil. Ödeme entegrasyonu tamamlandığında kullanılabilir olacaktır.'
-        });
-    } catch (error: unknown) {
-        const message = safeErrorMessage(error);
-        res.status(500).json({ error: message });
-    }
-};

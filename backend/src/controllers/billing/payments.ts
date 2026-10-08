@@ -13,8 +13,14 @@ import {
     buildGarantiPaymentResultUrl,
     getGarantiPaymentConfig,
 } from '../../services/payments/garanti-gateway'
+import {
+    classifyGarantiOrderInquiry,
+    createGarantiVpClient,
+    getGarantiVpConfig,
+} from '../../services/payments/garanti-vp-client'
 import { recordPaymentAlert } from '../../services/payment-alerts'
 import { ensurePaymentReconciliation } from '../../services/payment-operations'
+import { invalidateUserPlanCaches } from '../../services/plan-cache'
 import { supabase } from '../../services/supabase'
 import { getTrustedBillingAmounts, type BillingCycle, type PaidPlanId } from './pricing'
 
@@ -45,6 +51,56 @@ interface PaymentAttemptRow {
     amount_minor: number
     currency_code: string
     status: string
+    customer_ip: string | null
+}
+
+type BankConfirmation =
+    | { status: 'approved'; bankReferenceNumber: string; authorizationCode: string }
+    | { status: 'declined' | 'mismatch' | 'unavailable' }
+
+/**
+ * Tarayıcı üzerinden gelen "onaylandı" callback'i planı vermek için tek başına yeterli sayılmaz:
+ * Garanti hash'i alanları ayraçsız birleştirdiğinden alan sınırları kaydırılarak imzalı bir ret
+ * callback'i "onay" gibi gösterilebilir. Bu yüzden onay, bankaya sunucudan sipariş sorgusuyla teyit ettirilir.
+ */
+async function confirmApprovalWithBank(attempt: PaymentAttemptRow): Promise<BankConfirmation> {
+    try {
+        if (!attempt.customer_ip || attempt.currency_code !== '949') return { status: 'unavailable' }
+        const vpConfig = getGarantiVpConfig()
+        const { data: details, error } = await supabase
+            .from('billing_order_details')
+            .select('email')
+            .eq('order_id', attempt.order_id)
+            .single()
+        if (error || !details) return { status: 'unavailable' }
+
+        const response = await createGarantiVpClient(vpConfig).orderInquiry({
+            orderId: attempt.provider_order_id,
+            amount: String(attempt.amount_minor),
+            currencyCode: '949',
+            customerEmail: String(details.email),
+            customerIp: attempt.customer_ip,
+        })
+        const classification = classifyGarantiOrderInquiry(response, {
+            orderId: attempt.provider_order_id,
+            amount: String(attempt.amount_minor),
+            terminalId: vpConfig.terminalId,
+            merchantId: vpConfig.merchantId,
+        })
+        if (classification.status === 'approved') {
+            return {
+                status: 'approved',
+                bankReferenceNumber: classification.bankReferenceNumber,
+                authorizationCode: classification.authorizationCode,
+            }
+        }
+        if (classification.status === 'declined' || classification.status === 'mismatch') {
+            return { status: classification.status }
+        }
+        return { status: 'unavailable' }
+    } catch {
+        return { status: 'unavailable' }
+    }
 }
 
 interface StartPaymentRpcRow {
@@ -252,7 +308,7 @@ export async function handleGarantiPaymentCallback(req: Request, res: Response) 
     try {
         const { data, error } = await supabase
             .from('billing_payment_attempts')
-            .select('id,order_id,user_id,provider_order_id,amount_minor,currency_code,status')
+            .select('id,order_id,user_id,provider_order_id,amount_minor,currency_code,status,customer_ip')
             .eq('provider', 'garanti_bbva')
             .eq('provider_order_id', providerOrderId)
             .single()
@@ -291,19 +347,49 @@ export async function handleGarantiPaymentCallback(req: Request, res: Response) 
             return res.redirect(303, redirectUrl)
         }
 
-        const bankReference =
+        let bankReference =
             getCallbackValue(payload, 'retrefnum') ||
             getCallbackValue(payload, 'hostrefnum') ||
             attempt.provider_order_id
+        let authorizationCode = getCallbackValue(payload, 'authcode')
+
+        if (result.status === 'approved') {
+            const confirmation = await confirmApprovalWithBank(attempt)
+            if (confirmation.status !== 'approved') {
+                // Plan verilmez; mutabakat worker'ı bankadan kesin sonucu alıp siparişi tamamlar.
+                await ensurePaymentReconciliation(attempt.id, 0).catch(() => undefined)
+                if (confirmation.status !== 'unavailable') {
+                    console.warn('[billing] Approved callback not confirmed by bank', {
+                        bankResult: confirmation.status,
+                    })
+                    await recordPaymentAlert({
+                        severity: 'critical',
+                        code: 'PAYMENT_CALLBACK_NOT_CONFIRMED',
+                        dedupeKey: `callback-unconfirmed:${attempt.id}`,
+                        title: 'Onay callback\'i banka sorgusuyla doğrulanmadı',
+                        message: 'Callback onay bildirdi ancak banka sorgusu onaylamadı; sipariş kesinleştirilmedi.',
+                        orderId: attempt.order_id,
+                        attemptId: attempt.id,
+                        safeDetails: { bankResult: confirmation.status },
+                    }).catch(() => undefined)
+                }
+                return res.redirect(303, redirectUrl)
+            }
+            bankReference = confirmation.bankReferenceNumber || bankReference
+            authorizationCode = confirmation.authorizationCode || authorizationCode
+        }
+
         const { error: finalizeError } = await supabase.rpc('finalize_garanti_payment', {
             p_attempt_id: attempt.id,
             p_result_status: result.status,
             p_bank_response_code: getCallbackValue(payload, 'procreturncode'),
             p_bank_reference_number: bankReference,
-            p_authorization_code: getCallbackValue(payload, 'authcode'),
+            p_authorization_code: authorizationCode,
         })
 
-        if (finalizeError) {
+        if (!finalizeError) {
+            await invalidateUserPlanCaches(attempt.user_id)
+        } else {
             console.error('[billing] Garanti callback could not be finalized', {
                 code: finalizeError.code,
             })

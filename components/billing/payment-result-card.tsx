@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw } from 'lucide-react'
 
 import type { BillingPaymentStatus } from '@/lib/actions/billing'
@@ -10,10 +12,34 @@ interface PaymentResultCardProps {
     payment: BillingPaymentStatus
 }
 
+const PENDING_REFRESH_INTERVAL_MS = 4000
+const PENDING_REFRESH_MAX_MS = 3 * 60 * 1000
+
+/**
+ * Banka sonucu teyit edilene kadar sipariş "beklemede" kalabilir (callback banka sorgusuyla doğrulanır,
+ * gerekirse mutabakat worker'ı tamamlar). Kullanıcı elle yenilemek zorunda kalmasın.
+ */
+function usePendingAutoRefresh(isPending: boolean) {
+    const router = useRouter()
+    useEffect(() => {
+        if (!isPending) return
+        const startedAt = Date.now()
+        const timer = setInterval(() => {
+            if (Date.now() - startedAt > PENDING_REFRESH_MAX_MS) {
+                clearInterval(timer)
+                return
+            }
+            router.refresh()
+        }, PENDING_REFRESH_INTERVAL_MS)
+        return () => clearInterval(timer)
+    }, [isPending, router])
+}
+
 export function PaymentResultCard({ payment }: PaymentResultCardProps) {
     const { t, language } = useTranslation()
     const isPaid = payment.status === 'paid'
     const isPending = payment.status === 'draft' || payment.status === 'payment_pending'
+    usePendingAutoRefresh(isPending)
     const planName = payment.planId === 'pro' ? 'Pro' : 'Plus'
     const formattedTotal =
         payment.total === null

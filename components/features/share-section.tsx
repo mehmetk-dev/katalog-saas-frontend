@@ -32,7 +32,7 @@ export function ShareSection() {
                         <CheckItem>{t('featuresPage.shareList2')}</CheckItem>
                         <CheckItem>{t('featuresPage.shareList3')}</CheckItem>
                     </ul>
-                    <Link href="/auth?plan=free">
+                    <Link href="/auth?tab=signup">
                         <Button className={cn(
                             "h-14 px-8 bg-info hover:bg-info/90 text-info-foreground",
                             "rounded-full text-lg font-bold shadow-lg shadow-info/20"
