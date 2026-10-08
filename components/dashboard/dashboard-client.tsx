@@ -17,6 +17,7 @@ import { type Product } from "@/lib/actions/products"
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
 import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
 import { cn } from "@/lib/utils"
+import { PageHeader } from "@/components/ui/page-header"
 
 interface DashboardClientProps {
     initialCatalogs: Catalog[]
@@ -235,16 +236,10 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
     return (
         <div className="space-y-6 md:space-y-8">
             {/* Welcome Section - Enhanced Typography */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="min-w-0">
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                        {t("dashboard.welcomeUser", { name: user?.name?.split(" ")[0] ?? t("common.user") })} 👋
-                    </h1>
-                    <p className="text-sm sm:text-base text-muted-foreground/80 mt-1">
-                        {t("landing.heroSubtitle")}
-                    </p>
-                </div>
-            </div>
+            <PageHeader
+                title={<>{t("dashboard.welcomeUser", { name: user?.name?.split(" ")[0] ?? t("common.user") })} 👋</>}
+                description={t("landing.heroSubtitle")}
+            />
 
             {/* Onboarding Checklist */}
             <OnboardingChecklist
@@ -326,7 +321,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                     <div>
                         <CardTitle className={cn(
                             "text-lg font-bold flex items-center gap-2.5",
-                            "text-foreground dark:text-slate-200"
+                            "text-foreground"
                         )}>
                             {t("dashboard.recentActivity")}
                         </CardTitle>
@@ -353,7 +348,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                                 disabled={isCreating}
                                 className={cn(
                                     "bg-primary",
-                                    "hover:from-primary hover:to-primary shadow-lg shadow-black/20"
+                                    "hover:from-primary hover:to-primary shadow-lg shadow-black/10"
                                 )}
                             >
                                 <Plus className="w-4 h-4" />
@@ -453,7 +448,7 @@ export function DashboardClient({ initialCatalogs, initialProducts, totalProduct
                     </div>
 
                     <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative z-10">
-                        <div className="p-3 bg-primary rounded-xl shadow-lg shadow-black/20 group-hover:shadow-black/30 transition-shadow">
+                        <div className="p-3 bg-primary rounded-xl shadow-lg shadow-black/10 group-hover:shadow-black/10 transition-shadow">
                             <Package className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">

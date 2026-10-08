@@ -14,6 +14,7 @@ import type { Category } from "./types"
 import { useCategoryImageUpload } from "./use-category-image-upload"
 import { CategoryCard } from "./category-card"
 import { CategoryFormModal } from "./category-form-modal"
+import { PageHeader } from "@/components/ui/page-header"
 
 interface CategoriesPageClientProps {
     initialCategories: Category[]
@@ -159,17 +160,17 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">{t("categories.title")}</h1>
-                    <p className="text-muted-foreground">{t("categories.subtitle")}</p>
-                </div>
-                <Button onClick={handleAddCategory} className="gap-2">
-                    {isFreeUser && <Lock className="w-4 h-4" />}
-                    <FolderPlus className="w-4 h-4" />
-                    {t("categories.newCategory")}
-                </Button>
-            </div>
+            <PageHeader
+                title={t("categories.title")}
+                description={t("categories.subtitle")}
+                actions={
+                    <Button onClick={handleAddCategory} className="gap-2">
+                        {isFreeUser && <Lock className="w-4 h-4" />}
+                        <FolderPlus className="w-4 h-4" />
+                        {t("categories.newCategory")}
+                    </Button>
+                }
+            />
 
 
 

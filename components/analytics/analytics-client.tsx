@@ -202,10 +202,10 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1 text-left">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground dark:from-white">
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                         {t("dashboard.analytics.title")}
                     </h1>
-                    <p className="text-muted-foreground text-sm md:text-base">
+                    <p className="text-sm text-muted-foreground">
                         {t("dashboard.analytics.subtitle")}
                     </p>
                 </div>
@@ -451,7 +451,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                         <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary font-bold text-sm shrink-0 shadow-sm">
                                                             {cName.charAt(0).toUpperCase()}
                                                         </div>
-                                                        <span className="font-semibold text-foreground dark:text-slate-200 group-hover:text-primary transition-colors">{cName}</span>
+                                                        <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{cName}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">

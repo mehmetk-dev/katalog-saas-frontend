@@ -13,6 +13,7 @@ import { useUser } from "@/lib/contexts/user-context"
 import { cn } from "@/lib/utils"
 
 import { useSettingsProfile } from "@/components/settings/hooks/use-settings-profile"
+import { PageHeader } from "@/components/ui/page-header"
 
 export default function SettingsPageClient() {
   const { user, setUser, isLoading, refreshUser } = useUser()
@@ -55,10 +56,7 @@ export default function SettingsPageClient() {
     <div className="max-w-5xl mx-auto space-y-8 pb-20 md:pb-10">
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("settings.title")}</h1>
-        <p className="text-muted-foreground mt-2 text-lg">{t("settings.managePreferences")}</p>
-      </div>
+      <PageHeader title={t("settings.title")} description={t("settings.managePreferences")} />
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList

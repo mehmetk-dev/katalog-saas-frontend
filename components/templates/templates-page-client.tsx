@@ -17,6 +17,7 @@ import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { CatalogPreview } from "../catalogs/catalog-preview"
 
 import { getPreviewProductsByLayout } from "./preview-data"
+import { PageHeader } from "@/components/ui/page-header"
 
 interface TemplatesPageClientProps {
   templates: CatalogTemplate[]
@@ -73,10 +74,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Şablonlar</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Yeni bir katalog oluşturmak için bir şablon seçin.</p>
-      </div>
+      <PageHeader title={t("sidebar.templates")} description={t("dashboard.templatesSubtitle")} />
 
       {templates.length === 0 ? (
         <div className="text-center py-8 sm:py-12">

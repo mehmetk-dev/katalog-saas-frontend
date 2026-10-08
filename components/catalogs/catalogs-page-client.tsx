@@ -53,6 +53,7 @@ interface CatalogsPageClientProps {
 }
 
 import { PLAN_LIMITS } from "@/lib/constants"
+import { PageHeader } from "@/components/ui/page-header"
 
 // Plan limitleri â€” uses shared constants
 const CATALOG_LIMITS = {
@@ -150,30 +151,32 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">{t("catalogs.title")}</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+      <PageHeader
+        title={t("catalogs.title")}
+        description={
+          <>
             {t("catalogs.subtitle")}
             {isFreeUser && (
               <Badge variant="secondary" className="ml-2 font-normal">
                 {t("catalogs.catalogCount", { count: catalogs.length, max: maxCatalogs })}
               </Badge>
             )}
-          </p>
-        </div>
-        <Button onClick={handleNewCatalog} className="w-full sm:w-auto gap-2">
-          <Plus className="w-4 h-4" />
-          {t("catalogs.createNew")}
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <Button onClick={handleNewCatalog} className="w-full sm:w-auto gap-2">
+            <Plus className="w-4 h-4" />
+            {t("catalogs.createNew")}
+          </Button>
+        }
+      />
 
       {/* Limit Warning for Free Users */}
       {isFreeUser && isAtLimit && (
         <Card className="bg-primary/10 border-border/50 shadow-sm">
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-black/20">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-black/10">
                 <Lock className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -183,7 +186,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
             </div>
             <Button
               onClick={() => setShowUpgradeModal(true)}
-              className="bg-primary hover:from-primary hover:to-primary shadow-lg shadow-black/25"
+              className="bg-primary hover:from-primary hover:to-primary shadow-lg shadow-black/10"
             >
               {t("catalogs.upgradePlan")}
             </Button>
@@ -414,7 +417,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <p className="text-[10px] text-muted-foreground">{t("catalogs.currentPlan")}</p>
               </div>
               <div className="text-right">
-                <span className="text-sm font-black text-foreground">1</span>
+                <span className="text-sm font-bold text-foreground">1</span>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase">{t("catalogs.catalog")}</p>
               </div>
             </div>
@@ -425,7 +428,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 setShowLimitModal(false)
                 setShowUpgradeModal(true)
               }}>
-              <div className="absolute -top-2 left-6 px-2 py-0.5 bg-info text-info-foreground text-[9px] font-black rounded-full shadow-sm uppercase tracking-tighter">
+              <div className="absolute -top-2 left-6 px-2 py-0.5 bg-info text-info-foreground text-[9px] font-bold rounded-full shadow-sm uppercase tracking-tighter">
                 {t("catalogs.recommended")}
               </div>
               <div className="w-10 h-10 rounded-xl bg-info-soft flex items-center justify-center shrink-0">
@@ -436,7 +439,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <p className="text-[10px] text-info/70 font-medium">{t("catalogs.proPlanDesc")}</p>
               </div>
               <div className="text-right">
-                <span className="text-sm font-black text-info-soft-foreground">10</span>
+                <span className="text-sm font-bold text-info-soft-foreground">10</span>
                 <p className="text-[9px] font-bold text-info/50 uppercase">{t("catalogs.catalog")}</p>
               </div>
             </div>
@@ -455,7 +458,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 <p className="text-[10px] text-primary/70 font-medium">{t("catalogs.unlimitedOps")}</p>
               </div>
               <div className="text-right">
-                <span className="text-sm font-black text-primary">âˆ</span>
+                <span className="text-sm font-bold text-primary">âˆ</span>
                 <p className="text-[9px] font-bold text-primary/50 uppercase whitespace-nowrap">{t("catalogs.unlimited")}</p>
               </div>
             </div>

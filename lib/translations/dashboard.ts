@@ -2,6 +2,7 @@ const dashboard = {
     tr: {
         dashboard: {
             welcomeUser: "Hoş geldin, {name}",
+            templatesSubtitle: "Yeni bir katalog oluşturmak için bir şablon seçin.",
             products: "Ürünler",
             catalogs: "Kataloglar",
             createCatalog: "Katalog Oluştur",
@@ -128,6 +129,7 @@ const dashboard = {
     en: {
         dashboard: {
             welcomeUser: "Welcome, {name}",
+            templatesSubtitle: "Choose a template to create a new catalog.",
             products: "Products",
             catalogs: "Catalogs",
             createCatalog: "Create Catalog",
