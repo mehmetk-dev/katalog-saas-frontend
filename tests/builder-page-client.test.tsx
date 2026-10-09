@@ -84,7 +84,6 @@ vi.mock('@/lib/actions/catalogs', () => ({
 }))
 
 vi.mock('@/lib/actions/user', () => ({
-  upgradeUserToPro: vi.fn().mockResolvedValue({ success: true }),
 }))
 
 vi.mock('@/components/builder/editor/catalog-editor', () => ({

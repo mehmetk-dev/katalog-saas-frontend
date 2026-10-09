@@ -182,12 +182,57 @@ export const updateMe = async (req: Request, res: Response) => {
     }
 };
 
+/** Muhasebe kaydı oldukları için kullanıcıya ON DELETE RESTRICT ile bağlı tablolar */
+const RETAINED_BILLING_TABLES = ['billing_payment_attempts', 'billing_documents'] as const;
+/** Ödeme geçmişi olan hesapta silinen kullanıcı içeriği (FK'leri users'a cascade) */
+const USER_CONTENT_TABLES = ['catalogs', 'products', 'category_metadata', 'notifications'] as const;
+
+async function hasRetainedBillingRecords(userId: string): Promise<boolean> {
+    const counts = await Promise.all(
+        RETAINED_BILLING_TABLES.map((table) =>
+            supabase.from(table).select('id', { count: 'exact', head: true }).eq('user_id', userId)
+        )
+    );
+    const failed = counts.find((result) => result.error);
+    if (failed?.error) throw failed.error;
+    return counts.some((result) => (result.count ?? 0) > 0);
+}
+
+/** Admin panelindeki "silinen kullanıcılar" listesi için iz (best-effort) */
+async function recordDeletedUser(userId: string, reason: string) {
+    const { data: profile } = await supabase
+        .from('users')
+        .select('email, full_name, company, avatar_url, plan, exports_used, created_at')
+        .eq('id', userId)
+        .maybeSingle();
+    if (!profile) return;
+    const { error } = await supabase.from('deleted_users').upsert({
+        id: userId,
+        email: profile.email,
+        full_name: profile.full_name,
+        company: profile.company,
+        avatar_url: profile.avatar_url,
+        plan: profile.plan,
+        exports_used: profile.exports_used,
+        original_created_at: profile.created_at,
+        deleted_by: 'user',
+        deletion_reason: reason,
+    }, { onConflict: 'id' });
+    if (error) console.warn('[users] deleted_users kaydı yazılamadı', error.message);
+}
+
+/**
+ * Hesap silme. Ödeme denemesi/belgesi olan kullanıcı silinemiyordu: bu tablolar users'a
+ * ON DELETE RESTRICT ile bağlı (muhasebe kayıtları yasal olarak saklanmalı), auth kullanıcısını
+ * silmek zincirleme silmede hata veriyor ve kullanıcı yalnızca "hesap silinemedi" görüyordu.
+ * Böyle hesaplarda içerik ve kişisel bilgiler silinir, e-posta serbest bırakılır, giriş kalıcı
+ * olarak kapatılır; ödeme kayıtları kalır.
+ */
 export const deleteMe = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
         const { ipAddress, userAgent } = getRequestInfo(req);
 
-        // Log activity before deletion
         await logActivity({
             userId,
             activityType: 'account_deleted',
@@ -196,13 +241,52 @@ export const deleteMe = async (req: Request, res: Response) => {
             userAgent
         });
 
-        // Transactional delete: Deleting from Auth (via Admin) triggers 
-        // ON DELETE CASCADE on public.users, which cascades to other tables.
-        const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+        if (!(await hasRetainedBillingRecords(userId))) {
+            await recordDeletedUser(userId, 'user_request');
+            // auth kullanıcısını silmek public.users ve bağlı tablolara zincirleme yayılır
+            const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+            if (authError) throw authError;
+            return res.json({ success: true, mode: 'deleted' });
+        }
 
+        await recordDeletedUser(userId, 'user_request_billing_retained');
+
+        for (const table of USER_CONTENT_TABLES) {
+            const { error } = await supabase.from(table).delete().eq('user_id', userId);
+            if (error) throw error;
+        }
+
+        const placeholderEmail = `deleted-${userId}@deleted.fogcatalog.invalid`;
+        const { error: profileError } = await supabase
+            .from('users')
+            .update({
+                email: placeholderEmail,
+                full_name: null,
+                company: null,
+                avatar_url: null,
+                logo_url: null,
+                instagram_url: null,
+                youtube_url: null,
+                website_url: null,
+                plan: 'free',
+                subscription_status: 'inactive',
+                subscription_end: null,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
+        if (profileError) throw profileError;
+
+        // E-posta yer tutucuya alınır (aynı adresle yeniden kayıt olunabilsin), giriş kapatılır
+        const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+            email: placeholderEmail,
+            email_confirm: true,
+            user_metadata: {},
+            ban_duration: '876000h',
+        });
         if (authError) throw authError;
 
-        res.json({ success: true });
+        await deleteCache(cacheKeys.user(userId)).catch(() => undefined);
+        res.json({ success: true, mode: 'anonymized' });
     } catch (error: unknown) {
         const message = safeErrorMessage(error);
         res.status(500).json({ error: message });

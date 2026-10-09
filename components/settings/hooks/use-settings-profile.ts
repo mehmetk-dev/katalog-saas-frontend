@@ -318,15 +318,20 @@ export function useSettingsProfile({ user, setUser, refreshUser, t }: UseSetting
 
         await updateProfile(formData, avatarUrlToSave, logoUrlToSave)
 
+        // Boşaltılan alanlar boş kalmalı; önceden `||` ile eski değer geri geliyordu
+        const field = (key: string) => {
+          const value = formData.get(key)
+          return typeof value === "string" ? value.trim() || null : null
+        }
         setUser({
           ...user,
-          name: (formData.get("fullName") as string) || user.name,
-          company: (formData.get("company") as string) || user.company,
+          name: field("fullName") ?? user.name,
+          company: field("company") ?? "",
           avatar_url: avatarUrlToSave || user.avatar_url,
           logo_url: logoUrlToSave || user.logo_url,
-          instagram_url: (formData.get("instagramUrl") as string) || user.instagram_url,
-          youtube_url: (formData.get("youtubeUrl") as string) || user.youtube_url,
-          website_url: (formData.get("websiteUrl") as string) || user.website_url,
+          instagram_url: field("instagramUrl"),
+          youtube_url: field("youtubeUrl"),
+          website_url: field("websiteUrl"),
         })
 
         void refreshUser().catch(() => undefined)

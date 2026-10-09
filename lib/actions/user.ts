@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache"
 
 import { apiFetch } from "@/lib/api"
-import { signOut } from "@/lib/actions/auth"
 import { validate, profileUpdateSchema } from "@/lib/validations"
 
 export async function updateUserProfile(data: {
@@ -33,39 +32,6 @@ export async function getUserProfile() {
     return null
   }
 }
-
-export async function deleteUserAccount() {
-  try {
-    await apiFetch("/users/me", {
-      method: "DELETE",
-    })
-    await signOut()
-    return { success: true }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
-    return { success: false, error: errorMessage }
-  }
-}
-
-export async function upgradeUserToPlan(plan: "free" | "plus" | "pro") {
-  try {
-    await apiFetch("/users/me/upgrade", {
-      method: "POST",
-      body: JSON.stringify({ plan }),
-    })
-    revalidatePath("/dashboard")
-    return { success: true }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
-    return { error: errorMessage }
-  }
-}
-
-/** @deprecated Use `upgradeUserToPlan("pro")` instead */
-export async function upgradeUserToPro() { return upgradeUserToPlan("pro") }
-
-/** @deprecated Use `upgradeUserToPlan("plus")` instead */
-export async function upgradeUserToPlus() { return upgradeUserToPlan("plus") }
 
 export async function sendWelcomeNotification() {
   try {
