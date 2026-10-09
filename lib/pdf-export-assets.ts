@@ -23,20 +23,20 @@ export function waitForImageSettlement(
 
     return new Promise((resolve) => {
         let settled = false
-        let timer: ReturnType<typeof setTimeout> | undefined
 
         const finish = () => {
             if (settled) return
             settled = true
             image.removeEventListener('load', finish)
             image.removeEventListener('error', finish)
-            if (timer) clearTimeout(timer)
+            clearTimeout(timer)
             resolve()
         }
 
         image.addEventListener('load', finish, { once: true })
         image.addEventListener('error', finish, { once: true })
-        timer = setTimeout(finish, timeoutMs)
+        // finish yalnızca olaylardan/aşağıdaki kontrolden çağrılır; timer o anda tanımlıdır
+        const timer = setTimeout(finish, timeoutMs)
 
         if (image.complete) finish()
     })

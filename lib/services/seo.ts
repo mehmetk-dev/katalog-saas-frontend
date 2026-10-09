@@ -85,7 +85,7 @@ export const SEO_CONFIG = {
     }),
     pricing: generateSEO({
         title: 'Fiyatlandırma',
-        description: 'İşletmeniz için en uygun planı seçin. Ücretsiz başlayın; daha fazla katalog ve ürün için Plus'a, sınırsız kullanım için Pro'ya geçin.',
+        description: "İşletmeniz için en uygun planı seçin. Ücretsiz başlayın; daha fazla katalog ve ürün için Plus'a, sınırsız kullanım için Pro'ya geçin.",
         url: '/pricing',
         keywords: [
             'katalog fiyatları', 'fiyatlandırma', 'katalog oluşturma fiyat', 'dijital katalog paketleri',
