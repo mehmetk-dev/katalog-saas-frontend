@@ -58,25 +58,25 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | # | Sayfa / akış | Öncelik | Durum |
 |---|---|---|---|
 | 1 | Giriş / kayıt / şifre işlemleri | 🔴 Yüksek | 🟢 Kod + birim testleri yapıldı; süresi dolmuş oturum hatası düzeltildi (gerçek e-posta/Google uçtan uca kaldı) |
-| 2 | Dashboard ana sayfa | 🟡 Orta | ⏳ |
+| 2 | Dashboard ana sayfa | 🟡 Orta | 🟢 Yapıldı |
 | 3 | Ürünler | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
 | 4 | Ürün ekle/düzenle modalı | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek Cloudinary yüklemesi ve AI ucu canlıda denenmedi) |
 | 5 | İçe / dışa aktarma (Excel/CSV) | 🔴 Yüksek | 🟢 Hata/yarıda kalma akışı düzeltildi (gerçek büyük dosya ile canlı deneme kalmadı) |
-| 6 | Kategoriler | 🟡 Orta | ⏳ |
-| 7 | Excel düzenleyici (+ AI) | 🟡 Orta | ⏳ |
+| 6 | Kategoriler | 🟡 Orta | 🟢 Yapıldı |
+| 7 | Excel düzenleyici (+ AI) | 🟡 Orta | 🟢 Kayıt akışı + AI kotası yapıldı |
 | 8 | Kataloglar listesi | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek backend ile doğrulama kaldı) |
 | 9 | Katalog editörü (builder) | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
 | 10 | Yayındaki katalog sayfası (`/catalog/[slug]`) | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek verili uçtan uca kaldı) |
 | 11 | PDF export | 🔴 Yüksek | 🟢 Kod + testler yapıldı (Redis/worker/R2 ile uçtan uca kaldı) |
-| 12 | Şablonlar sayfası | 🟢 Düşük | ⏳ |
-| 13 | Analitik | 🟡 Orta | ⏳ |
-| 14 | Ayarlar | 🟡 Orta | ⏳ |
-| 15 | Bildirimler | 🟢 Düşük | ⏳ |
+| 12 | Şablonlar sayfası | 🟢 Düşük | 🟢 Yapıldı |
+| 13 | Analitik | 🟡 Orta | 🟢 Yapıldı |
+| 14 | Ayarlar | 🟡 Orta | 🟢 Yapıldı (şifre değiştirme yalnızca "şifremi unuttum" akışıyla) |
+| 15 | Bildirimler | 🟢 Düşük | 🟢 İncelendi, sorun bulunmadı |
 | 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | 🟡 Kod incelendi, güvenlik açığı kapatıldı (test POS ile uçtan uca kaldı) |
-| 17 | Admin paneli | 🟡 Orta | ⏳ |
+| 17 | Admin paneli | 🟡 Orta | 🟢 Plan değiştirme düzeltildi |
 | 18 | Public site (landing, özellikler, SSS, iletişim, blog, yasal) | 🟡 Orta | 🟢 Tek tip tasarım + içerik doğrulaması yapıldı (iletişim formu gerçek e-postayla denenmedi) |
 | 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | 🟡 Stil hizalandı; i18n ve gerçek builder ile birleştirme kararı kaldı |
-| 20 | Hata / 404 sayfaları | 🟢 Düşük | ⏳ |
+| 20 | Hata / 404 sayfaları | 🟢 Düşük | 🟢 Yapıldı |
 
 **Önerilen sıra:** Faz 0 → 1 → 3–5 (doğrulama) → 8 → 9 → 10 → 11 → 16 → 2 → 6 → 7 → 14 → 13 → 17 → 18 → kalanlar.
 Mantık: önce kullanıcının para ve veri kaybedebileceği akışlar (giriş, ürün, katalog, yayın, PDF, ödeme), sonra yardımcı sayfalar.
@@ -380,3 +380,19 @@ Kalan:
 1. Test için ayrı Supabase projesi açılsın mı? (Faz 0'ın ön koşulu)
 2. Öncelik sırası (bölüm 3) uygun mu, değiştirmek istediğin bir şey var mı?
 3. Her sayfa için önce rapor → onay → düzeltme mi, yoksa açık hataları doğrudan düzeltip sadece tasarım kararlarını mı soralım?
+
+## 8. 9 Ekim 2026 — ikinci tur özeti (2, 6, 7, 12, 13, 14, 15, 17, 20)
+
+| Sayfa | Bulunan / düzeltilen |
+|---|---|
+| Dashboard | İstatistik etiketleri açık temada görünmüyordu; küçük grafikler uydurmaydı; "Ürün ekle" içe aktarmayı açıyordu; onboarding "Paylaş" yanlış tamamlanıyordu; sidebar plan kartında limitler elle yazılmıştı, aylık PDF görünmüyordu |
+| Kategoriler | Yeniden adlandırma alt metin eşleştirip "Masa Lambası"na dokunuyordu, birleşmede "A, A" oluşuyordu; noktalama içeren kategori silinemiyordu; renk/kapak ve katalog ayraç sırası güncellenmiyordu; yeni kategori yenilemede kayboluyordu; Türkçe harflerde kart kimlikleri çakışıyordu |
+| Excel + AI | Toplu AI uçlarında kota yoktu (maliyet) → günlük plan kotası; yarıda kalan kayıt tekrar denemede yeni satırları ikiler ekliyordu; adı eksik satır "Kaydet"i sessizce kilitliyordu |
+| Analitik | 1000+ görüntülenmede veriler ilk 1000 satırla sınırlıydı; dönem seçimi ana sayıyı değiştirmiyordu |
+| Ayarlar | Ödeme geçmişi olan kullanıcı hesabını silemiyordu (RESTRICT FK) → içerik + kişisel veri silinir, ödeme kayıtları saklanır, giriş kapanır; boşaltılan profil alanları ekranda geri geliyordu |
+| Admin | Elle verilen ücretli plan, geçmişteki bitiş tarihi yüzünden hemen ücretsize düşüyordu; plan değişikliği onaysızdı |
+| Şablonlar | Premium şablon backend'de kontrol edilmiyordu; sabit metinler, dokunmatikte görünmeyen buton |
+| Hata sayfaları | "api" geçen her hata "sunucuya ulaşılamıyor" sayılıyordu; tek tip ve çevirili |
+
+**Kalanlar:** Faz 0 (test Supabase + gerçek uçtan uca denemeler), demo oluşturucu i18n ve builder ile birleştirme kararı, admin kullanıcı listesinde 1000 satır sınırı (şimdilik kullanıcı az), bulut görsellerinin (Cloudinary) hesap silmede temizlenmemesi, Excel AI kotasının sunucu belleğinde tutulması (tek frontend süreciyle yeterli).
+
