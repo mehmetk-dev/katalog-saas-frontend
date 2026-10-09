@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { UNCATEGORIZED_ID } from "./build-categories"
 import type { Category } from "./types"
 
 interface CategoryCardProps {
@@ -23,7 +24,8 @@ interface CategoryCardProps {
 
 export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {
     const { t } = useTranslation()
-    const isUncategorized = category.name === 'Kategorisiz'
+    const isUncategorized = category.id === UNCATEGORIZED_ID
+    const displayName = isUncategorized ? t("categories.uncategorized") : category.name
 
     return (
         <Card
@@ -36,7 +38,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
                 {category.cover_image ? (
                     <NextImage
                         src={category.cover_image}
-                        alt={category.name}
+                        alt={displayName}
                         fill
                         className="object-cover"
                         unoptimized
@@ -45,7 +47,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
                     category.images.length === 1 ? (
                         <NextImage
                             src={category.images[0]}
-                            alt={category.name}
+                            alt={displayName}
                             fill
                             className="object-cover"
                             unoptimized
@@ -88,7 +90,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
                 )}
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-foreground/60 via-transparent to-transparent p-3 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
                     {!isUncategorized && (
                         <div className="flex gap-1">
                             <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onEdit(category) }}>
@@ -125,7 +127,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: category.color }}
                     />
-                    <h3 className="font-medium text-sm truncate">{category.name}</h3>
+                    <h3 className="font-medium text-sm truncate">{displayName}</h3>
                 </div>
                 {category.productNames && category.productNames.length > 0 && (
                     <p className="text-[10px] text-muted-foreground mt-1 truncate">

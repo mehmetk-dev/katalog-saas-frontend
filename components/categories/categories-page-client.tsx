@@ -1,14 +1,25 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { FolderPlus, Lock, FolderOpen } from "lucide-react"
 import { toast } from "sonner"
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { UNCATEGORIZED_ID } from "./build-categories"
 import { CATEGORY_COLORS } from "./types"
 import type { Category } from "./types"
 import { useCategoryImageUpload } from "./use-category-image-upload"
@@ -32,6 +43,13 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     const [selectedColor, setSelectedColor] = useState(CATEGORY_COLORS[0])
     const [coverImage, setCoverImage] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
+    const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
+    const router = useRouter()
+
+    // router.refresh() sonrası sunucudaki gerçek liste (sayılar, birleşen kategoriler) yerel durumun yerine geçer
+    useEffect(() => {
+        setCategories(initialCategories)
+    }, [initialCategories])
 
     const isFreeUser = userPlan === "free"
     const { t } = useTranslation()
@@ -84,48 +102,67 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     }
 
     const handleSaveCategory = async () => {
-        if (!newCategoryName.trim()) {
+        const name = newCategoryName.trim()
+        if (!name) {
             toast.error(t('toasts.categoryNameEmpty'))
+            return
+        }
+        // Ürünlerde kategoriler virgülle ayrılarak saklanır
+        if (name.includes(',')) {
+            toast.error(t('categories.nameHasComma'))
+            return
+        }
+        const isRename = Boolean(editingCategory && editingCategory.name !== name)
+        const clashes = categories.some(
+            (c) => c.id !== UNCATEGORIZED_ID && c.id !== editingCategory?.id && c.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr'),
+        )
+        if (!editingCategory && clashes) {
+            toast.error(t('categories.nameExists'))
             return
         }
 
         startTransition(async () => {
             try {
-                // 1. Save metadata (color & cover image)
+                // Önce yeniden adlandırma: ürünler, renk/kapak kaydı ve katalog sıraları backend'de taşınır.
+                // Önceden renk/kapak önce yeni ada kaydediliyor, eski kayıt sahipsiz kalıyordu.
+                if (editingCategory && isRename) {
+                    const { renameCategory } = await import("@/lib/actions/products")
+                    await renameCategory(editingCategory.name, name)
+                }
+
                 const { updateCategoryMetadata } = await import("@/lib/actions/categories")
-                await updateCategoryMetadata(newCategoryName.trim(), {
-                    color: selectedColor,
-                    cover_image: coverImage
-                })
+                await updateCategoryMetadata(name, { color: selectedColor, cover_image: coverImage })
 
                 if (editingCategory) {
-                    // Kategori adını güncelle - tüm ürünlerde (Eğer isim değiştiyse)
-                    if (editingCategory.name !== newCategoryName.trim()) {
-                        const { renameCategory } = await import("@/lib/actions/products")
-                        await renameCategory(editingCategory.name, newCategoryName.trim())
-                    }
-
-                    // Local state güncelle
-                    setCategories(categories.map(c =>
-                        c.id === editingCategory.id
-                            ? { ...c, name: newCategoryName.trim(), color: selectedColor, cover_image: coverImage || undefined }
-                            : c
-                    ))
+                    setCategories((prev) => {
+                        const merged = prev
+                            // Var olan bir kategoriyle birleştiyse eskisi listeden kalkar, sayılar toplanır
+                            .filter((c) => !(clashes && c.id !== editingCategory.id && c.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr')))
+                            .map((c) =>
+                                c.id === editingCategory.id
+                                    ? {
+                                        ...c,
+                                        id: `cat-${encodeURIComponent(name)}`,
+                                        name,
+                                        color: selectedColor,
+                                        cover_image: coverImage || undefined,
+                                        productCount: c.productCount + (clashes ? prev.find((o) => o.id !== c.id && o.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr'))?.productCount ?? 0 : 0),
+                                    }
+                                    : c,
+                            )
+                        return merged
+                    })
                     toast.success(t('toasts.categoryUpdated'))
                 } else {
-                    // Yeni kategori - sadece local state'e ekle
-                    // (kategori ürüne eklendiğinde otomatik oluşur)
-                    const newCategory: Category = {
-                        id: `cat-${Date.now()}`,
-                        name: newCategoryName.trim(),
-                        color: selectedColor,
-                        productCount: 0,
-                        cover_image: coverImage || undefined
-                    }
-                    setCategories([...categories, newCategory])
+                    // Renk/kapak kaydı sayesinde ürün eklenmeden de listede kalır
+                    setCategories((prev) => [
+                        ...prev,
+                        { id: `cat-${encodeURIComponent(name)}`, name, color: selectedColor, productCount: 0, cover_image: coverImage || undefined },
+                    ])
                     toast.success(t('toasts.categoryCreated'))
                 }
                 setShowAddModal(false)
+                router.refresh()
             } catch (error) {
                 console.error("Category save error:", error)
                 toast.error(t('toasts.errorOccurred'))
@@ -138,18 +175,21 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
             setShowUpgradeModal(true)
             return
         }
+        setDeletingCategory(category)
+    }
 
-        if (!confirm(t('categories.deleteConfirm', { name: category.name }))) {
-            return
-        }
-
+    const confirmDeleteCategory = () => {
+        const category = deletingCategory
+        if (!category) return
         startTransition(async () => {
             try {
                 const { deleteCategory } = await import("@/lib/actions/products")
                 await deleteCategory(category.name)
 
-                setCategories(categories.filter(c => c.id !== category.id))
+                setCategories((prev) => prev.filter((c) => c.id !== category.id))
+                setDeletingCategory(null)
                 toast.success(t('toasts.categoryDeleted'))
+                router.refresh()
             } catch (error) {
                 console.error("Category delete error:", error)
                 toast.error(t('toasts.categoryDeleteFailed'))
@@ -235,6 +275,30 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                 fileInputRef={fileInputRef}
                 onImageUpload={handleImageUpload}
             />
+
+            <AlertDialog open={Boolean(deletingCategory)} onOpenChange={(open) => !open && !isPending && setDeletingCategory(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t("categories.deleteTitle", { name: deletingCategory?.name ?? "" })}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t("categories.deleteDesc", { count: deletingCategory?.productCount ?? 0 })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isPending}>{t("common.cancel")}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(event) => {
+                                event.preventDefault()
+                                confirmDeleteCategory()
+                            }}
+                            disabled={isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {t("common.delete")}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Upgrade Modal */}
             <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CategoriesPageClient } from '@/components/categories/categories-page-client'
 
@@ -474,6 +474,57 @@ describe('Categories Page Client Testleri', () => {
             await waitFor(() => {
                 expect(screen.queryByRole('heading', { name: /Yeni Kategori|categories.newCategory/i })).not.toBeInTheDocument()
             })
+        })
+    })
+
+    describe('Silme ve yeniden adlandırma akışı', () => {
+        it('silme onay penceresinden sonra kategoriyi siler', async () => {
+            const user = userEvent.setup()
+            const { deleteCategory } = await import('@/lib/actions/products')
+            render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
+
+            const deleteButtons = screen.getAllByRole('button', { name: /common.delete|Sil/ })
+            await user.click(deleteButtons[0])
+            expect(await screen.findByText(/categories.deleteTitle/)).toBeInTheDocument()
+            expect(deleteCategory).not.toHaveBeenCalled()
+
+            const dialog = screen.getByRole('alertdialog')
+            await user.click(within(dialog).getByRole('button', { name: /common.delete|Sil/ }))
+            await waitFor(() => expect(deleteCategory).toHaveBeenCalledWith('Elektronik'))
+            await waitFor(() => expect(screen.queryByText('Elektronik')).not.toBeInTheDocument())
+        })
+
+        it('yeniden adlandırmada önce ürünler taşınır, sonra renk/kapak kaydedilir', async () => {
+            const user = userEvent.setup()
+            const order: string[] = []
+            const products = await import('@/lib/actions/products')
+            const categories = await import('@/lib/actions/categories')
+            vi.mocked(products.renameCategory).mockImplementation(async () => { order.push('rename'); return [] as never })
+            vi.mocked(categories.updateCategoryMetadata).mockImplementation(async () => { order.push('metadata') })
+            render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
+
+            await user.click(screen.getAllByRole('button', { name: /common.edit|Düzenle/ })[0])
+            const input = await screen.findByDisplayValue('Elektronik')
+            await user.clear(input)
+            await user.type(input, 'Elektronik Ürünler')
+            await user.click(screen.getByRole('button', { name: /common.save|Kaydet|Güncelle|categories.update/i }))
+
+            await waitFor(() => expect(order).toEqual(['rename', 'metadata']))
+            expect(products.renameCategory).toHaveBeenCalledWith('Elektronik', 'Elektronik Ürünler')
+        })
+
+        it('virgül içeren adı kaydetmez', async () => {
+            const user = userEvent.setup()
+            const products = await import('@/lib/actions/products')
+            render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
+
+            await user.click(screen.getAllByRole('button', { name: /common.edit|Düzenle/ })[0])
+            const input = await screen.findByDisplayValue('Elektronik')
+            await user.clear(input)
+            await user.type(input, 'Elektronik, TV')
+            await user.click(screen.getByRole('button', { name: /common.save|Kaydet|Güncelle|categories.update/i }))
+
+            expect(products.renameCategory).not.toHaveBeenCalled()
         })
     })
 })
