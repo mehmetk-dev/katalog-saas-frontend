@@ -410,5 +410,9 @@ Kalan:
 - Admin ödeme işlemleri sekmesi TR/EN; "İncelendi"/"Tekrar sorgula" hata verince tüm admin paneli hata ekranına düşüyordu; kalan tutardan büyük iade bankaya gitmeden reddediliyor.
 - Ayarlar: şifre değiştirme (mevcut şifre doğrulamalı; Google hesabında şifre belirleme); dil seçimindeki "????" simgeleri düzeltildi, kodlama kontrolü bu kalıbı da yakalıyor.
 
+- Admin giriş sayfası koyu temada okunmuyordu (beyaz başlık açık zeminde) → ortak giriş kabuğu, TR/EN; bağlantı hatası "şifre hatalı" görünüyordu.
+- Kalan sabit Türkçe metinler (yükleme ekranları, içe aktarma uyarısı) çevrildi.
+- SEO açıklamalarında olmayan "WhatsApp entegrasyonu/siparişleri" ve "Plus'ta sınırsız" iddiaları düzeltildi; CLAUDE.md/AGENTS.md plan tablosu güncellendi.
+
 **Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, AI kotasının sunucu belleğinde tutulması (tek frontend süreciyle yeterli; deploy'da sıfırlanır).
 
