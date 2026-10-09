@@ -57,7 +57,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 
 | # | Sayfa / akış | Öncelik | Durum |
 |---|---|---|---|
-| 1 | Giriş / kayıt / şifre işlemleri | 🔴 Yüksek | 🟢 Kod + birim testleri yapıldı (gerçek e-posta/Google uçtan uca kaldı) |
+| 1 | Giriş / kayıt / şifre işlemleri | 🔴 Yüksek | 🟢 Kod + birim testleri yapıldı; süresi dolmuş oturum hatası düzeltildi (gerçek e-posta/Google uçtan uca kaldı) |
 | 2 | Dashboard ana sayfa | 🟡 Orta | ⏳ |
 | 3 | Ürünler | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
 | 4 | Ürün ekle/düzenle modalı | 🔴 Yüksek | ⏳ |
@@ -74,8 +74,8 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 15 | Bildirimler | 🟢 Düşük | ⏳ |
 | 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | 🟡 Kod incelendi, güvenlik açığı kapatıldı (test POS ile uçtan uca kaldı) |
 | 17 | Admin paneli | 🟡 Orta | ⏳ |
-| 18 | Public site (landing, özellikler, SSS, iletişim, blog, yasal) | 🟡 Orta | ⏳ |
-| 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | ⏳ |
+| 18 | Public site (landing, özellikler, SSS, iletişim, blog, yasal) | 🟡 Orta | 🟢 Tek tip tasarım + içerik doğrulaması yapıldı (iletişim formu gerçek e-postayla denenmedi) |
+| 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | 🟡 Stil hizalandı; i18n ve gerçek builder ile birleştirme kararı kaldı |
 | 20 | Hata / 404 sayfaları | 🟢 Düşük | ⏳ |
 
 **Önerilen sıra:** Faz 0 → 1 → 3–5 (doğrulama) → 8 → 9 → 10 → 11 → 16 → 2 → 6 → 7 → 14 → 13 → 17 → 18 → kalanlar.
@@ -110,6 +110,12 @@ Mantık: önce kullanıcının para ve veri kaybedebileceği akışlar (giriş, 
 - Form erişilebilirliği: etiketler input'lara bağlandı, pozitif `tabIndex`'ler kaldırıldı, şifre göster/gizle butonuna etiket, `autocomplete` değerleri.
 - Kullanılmayan eski giriş formu (`components/auth/auth-form.tsx` + `auth-form/`, ~800 satır) silindi.
 - Testler: `auth.test.tsx` (+5), `forgot-password.test.tsx` (birleşik forma göre yeniden), `auth-next-path.test.ts`, `supabase-proxy-session.test.ts`.
+
+**Yapılanlar (9 Ekim 2026) — oturum hatası:**
+- Uzun süre sonra gelen kullanıcı panele giriyor, katalog açınca "Invalid or expired token" hata sayfası alıyordu. Middleware yalnızca `refresh_token_not_found`'u ölü oturum sayıyordu; `refresh_token_already_used`, `session_not_found`, `session_expired` vb. artık çerezleri temizleyip `/auth?session=expired`'a yönlendiriyor.
+- 12 saatlik hareketsizlik kontrolü zamanlayıcı çerezi (1 hafta) silinince hiç çalışmıyordu → çerez yoksa `last_sign_in_at` esas alınıyor; admin etkinliği de zamanlayıcıyı yeniliyor.
+- Backend token'ı reddederse (`apiFetch` 401) sayfa çökmek yerine girişe yönleniyor; giriş sayfası tarayıcıdaki oturumu kapatıp "oturum süresi doldu" gösteriyor. Supabase Auth'a ulaşılamaması 401 değil 503.
+- Testler: `supabase-proxy-session.test.ts` (+6), `api-session-expired.test.ts`.
 
 **Kalan (gerçek hesap/e-posta gerektiriyor):** kayıt e-postası, Google OAuth, sıfırlama e-postası uçtan uca; onboarding; `users` profil satırı.
 **Supabase ayarı kontrolü:** Auth → Password minimum length 8 yapılırsa sunucu tarafı da aynı kuralı uygular.
@@ -316,6 +322,18 @@ Kalan:
 - [ ] Blog listesi ve yazılar, SEO meta, sitemap / robots
 - [ ] Yasal metinler güncel mi (KVKK, mesafeli satış, iptal/iade)
 - [ ] Mobil menü, dil değiştirici
+
+**Yapılanlar (9 Ekim 2026):**
+- Tüm public sayfalar ortak `components/marketing` yapı taşlarına geçti (PageHero, Section, FeatureCard, StepCard, CtaBanner, LegalDocument…): sans başlık, brand dönüşüm butonu + outline ikincil buton, dashboard ile aynı kartlar. Ana sayfa yeniden yazıldı (gerçek şablonlarla önizleme).
+- **SSS sayfasının tamamı canlıda bozuk karakterle görünüyordu** (çift kodlanmış UTF-8; Cloudinary hata mesajları ve magazine şablonu da) → düzeltildi, `npm run lint` artık `scripts/check-encoding.mjs` ile yakalıyor.
+- Plan özellikleri tek kaynakta (`lib/billing/plan-features.ts`): fiyatlandırma, plan yükseltme penceresi ve Ayarlar > Abonelik aynı listeyi gösteriyor. Uygulamada olmayan özellikler (4K PDF, SEO ayarları, 7/24 WhatsApp destek, WhatsApp sipariş/sepet) ve gerçek olmayan sayılar ("binlerce/5.000+/10.000+ işletme") kaldırıldı. SSS ve Google FAQ şeması gerçek davranışa göre (ödemeler otomatik yenilenmez, fiyatlar KDV dahil).
+- Giriş ekranı, yasal sayfalar, blog, iletişim ve demo aynı stile getirildi; 390 px'te taşma yok.
+
+**Karar/inceleme bekleyenler:**
+- `exports_used` hiç sıfırlanmıyor: Ücretsiz plan ömür boyu 1, Plus ömür boyu 50 PDF hakkı demek (aylık/yıllık değil). Bilinçli mi?
+- Kullanım koşullarında yetkili mahkeme "İstanbul", şirket adresi Bursa; KVKK metninde ödeme kuruluşu örneği "İyzico, Stripe" (kullanılan Garanti BBVA). Hukuki metinlere dokunulmadı.
+- Blog yazısı "Dijital Katalog ile Satışlarınızı Artırmanın 5 Yolu" var olmayan WhatsApp sipariş butonundan bahsediyor (içerik dokunulmadı).
+- Panelde abonelik iptal butonu yok (backend ucu var); ödemeler zaten otomatik yenilenmediği için SSS buna göre yazıldı.
 
 ### 19. Demo oluşturucu
 `app/create-demo`, `components/demo/demo-builder.tsx`
