@@ -44,10 +44,10 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
 
     return (
         <>
-            <div className="px-6 py-4 border-b bg-primary shrink-0">
+            <div className="px-6 py-4 border-b shrink-0">
                 <DialogHeader>
-                    <DialogTitle className="text-white text-lg font-bold pr-8">{product.name}</DialogTitle>
-                    {product.sku && <p className="text-white/70 text-sm font-mono mt-1">SKU: {product.sku}</p>}
+                    <DialogTitle className="text-lg font-semibold pr-8">{product.name}</DialogTitle>
+                    {product.sku && <p className="text-muted-foreground text-sm font-mono mt-1">SKU: {product.sku}</p>}
                 </DialogHeader>
             </div>
 

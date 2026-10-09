@@ -264,7 +264,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
           </span>
         }
         actions={
-          <Button onClick={handleNewCatalog} disabled={isCreating} className="w-full gap-2 sm:w-auto">
+          <Button onClick={handleNewCatalog} disabled={isCreating} className="gap-2">
             {isCreating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             {t("catalogs.createNew")}
           </Button>
@@ -413,7 +413,7 @@ export function CatalogsPageClient({ initialCatalogs, userProducts, userPlan = "
                 void handleDelete()
               }}
               disabled={isDeleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting && <Loader2 className="size-4 animate-spin" />}
               {t("catalogs.delete")}

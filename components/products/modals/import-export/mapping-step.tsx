@@ -166,7 +166,7 @@ export function MappingStep({
                                                     <SelectItem value="ignore" className="text-muted-foreground italic">
                                                         <span className="flex items-center gap-2"><Unlink2 className="w-3.5 h-3.5" />{t('importExport.ignore')}</span>
                                                     </SelectItem>
-                                                    <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-t my-1">
+                                                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-b border-t my-1">
                                                         {t('importExport.systemFieldsTitle') || 'Sistem Alanları'}
                                                     </div>
                                                     {systemFields.map((f) => (

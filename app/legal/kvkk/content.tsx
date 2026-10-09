@@ -48,32 +48,32 @@ export function KvkkContent() {
                         {t("legal.kvkk.processedData.desc")}
                     </p>
                     <div className="grid md:grid-cols-2 gap-4 ">
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.kvkk.processedData.identity.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.kvkk.processedData.identity.items")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.kvkk.processedData.contact.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.kvkk.processedData.contact.items")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.kvkk.processedData.transaction.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.kvkk.processedData.transaction.items")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.kvkk.processedData.security.label")}
                             </span>
                             <p className="text-foreground">
@@ -148,7 +148,7 @@ export function KvkkContent() {
                         <p className="text-muted-foreground">
                             {t("legal.kvkk.rights.desc")}
                         </p>
-                        <div className="p-4 bg-background border border-border border-l-2 border-l-foreground">
+                        <div className="rounded-xl border border-border bg-muted/40 p-4">
                             <p className="text-foreground font-medium">
                                 {t("legal.kvkk.rights.contact")}
                             </p>

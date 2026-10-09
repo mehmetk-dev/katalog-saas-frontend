@@ -84,7 +84,7 @@ export function DashboardClient({ initialCatalogs, totalProductCount, initialSta
 
             <OnboardingChecklist hasProducts={totalProductCount > 0} hasCatalogs={totalCatalogs > 0} hasPublishedCatalog={publishedCount > 0} />
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                 <StatCard
                     label={t("dashboard.totalProducts")}
                     value={totalProductCount.toLocaleString(language === "en" ? "en-US" : "tr-TR")}
@@ -102,6 +102,7 @@ export function DashboardClient({ initialCatalogs, totalProductCount, initialSta
                     hint={t("dashboard.home.catalogsHint", { published: publishedCount, drafts: Math.max(0, totalCatalogs - publishedCount) })}
                 />
                 <StatCard
+                    className="col-span-2 sm:col-span-1"
                     label={t("dashboard.home.viewsLast30")}
                     value={(initialStats?.periodViews ?? 0).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
                     icon={Eye}

@@ -35,7 +35,7 @@ export function ThemeToggle() {
             title={isDark ? (t('common.lightTheme') || 'Light theme') : (t('common.darkTheme') || 'Dark theme')}
         >
             {isDark ? (
-                <Sun className="h-4 w-4 text-warning" />
+                <Sun className="h-4 w-4" />
             ) : (
                 <Moon className="h-4 w-4" />
             )}

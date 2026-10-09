@@ -28,6 +28,7 @@ export function Section({ id, tone = "default", className, children }: SectionPr
   return (
     <section
       id={id}
+      data-tone={tone}
       className={cn(
         "py-16 sm:py-24",
         tone === "muted" && "border-y border-border bg-muted/40",
@@ -190,7 +191,8 @@ interface CtaBannerProps {
 /** Tüm public sayfaların sonunda aynı kapanış bölümü */
 export function CtaBanner({ title, description, action, note }: CtaBannerProps) {
   return (
-    <section className="py-16 sm:py-24">
+    // Düz zeminli bir Section'ın hemen ardından geliyorsa iki dikey boşluk üst üste binmesin
+    <section className="py-16 sm:py-24 [[data-tone=default]+&]:pt-0">
       <div className={MARKETING_CONTAINER}>
         <div className="flex flex-col items-center gap-6 rounded-2xl border border-border bg-muted/40 px-6 py-12 text-center sm:px-12 sm:py-16">
           <h2 className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h2>

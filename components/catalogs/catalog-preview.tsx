@@ -71,7 +71,7 @@ export function CatalogPreview({
     layout,
     catalogName,
     products,
-    primaryColor = "#7c3aed",
+    primaryColor = "#18181b",
     headerTextColor,
     catalog,
     showPrices = true,

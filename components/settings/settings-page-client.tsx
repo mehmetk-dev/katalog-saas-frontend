@@ -53,7 +53,7 @@ export default function SettingsPageClient() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20 md:pb-10">
+    <div className="max-w-5xl space-y-6 pb-20 md:pb-10">
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
       <PageHeader title={t("settings.title")} description={t("settings.managePreferences")} />
@@ -70,8 +70,7 @@ export default function SettingsPageClient() {
           <TabsTrigger
             value="profile"
             className={cn(
-              "h-full rounded-full gap-2 font-bold",
-              "text-[11px] sm:text-xs uppercase tracking-tight",
+              "h-full rounded-full gap-2 text-xs font-medium sm:text-sm",
               "transition-all duration-300",
               "data-[state=active]:bg-card",
               "data-[state=active]:shadow-sm data-[state=active]:text-primary",
@@ -84,8 +83,7 @@ export default function SettingsPageClient() {
           <TabsTrigger
             value="subscription"
             className={cn(
-              "h-full rounded-full gap-2 font-bold",
-              "text-[11px] sm:text-xs uppercase tracking-tight",
+              "h-full rounded-full gap-2 text-xs font-medium sm:text-sm",
               "transition-all duration-300",
               "data-[state=active]:bg-card",
               "data-[state=active]:shadow-sm data-[state=active]:text-primary",
@@ -98,8 +96,7 @@ export default function SettingsPageClient() {
           <TabsTrigger
             value="preferences"
             className={cn(
-              "h-full rounded-full gap-2 font-bold",
-              "text-[11px] sm:text-xs uppercase tracking-tight",
+              "h-full rounded-full gap-2 text-xs font-medium sm:text-sm",
               "transition-all duration-300",
               "data-[state=active]:bg-card",
               "data-[state=active]:shadow-sm data-[state=active]:text-primary",

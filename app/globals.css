@@ -81,11 +81,12 @@
   --input: hsl(240 6% 90%);
   --ring: hsl(240 5% 65%);
 
-  --chart-1: hsl(0 82% 45%);
-  --chart-2: hsl(221 83% 53%);
-  --chart-3: hsl(163 94% 30%);
-  --chart-4: hsl(38 92% 50%);
-  --chart-5: hsl(262 83% 58%);
+  /* Grafik paleti: marka kırmızısı ilk seride yer almaz (en sona alındı) */
+  --chart-1: hsl(221 83% 53%);
+  --chart-2: hsl(163 94% 30%);
+  --chart-3: hsl(38 92% 50%);
+  --chart-4: hsl(262 83% 58%);
+  --chart-5: hsl(0 82% 45%);
 
   --radius: 0.75rem;
 
@@ -149,11 +150,11 @@
   --input: hsl(240 4% 18%);
   --ring: hsl(240 5% 45%);
 
-  --chart-1: hsl(0 80% 58%);
-  --chart-2: hsl(213 94% 68%);
-  --chart-3: hsl(158 64% 52%);
-  --chart-4: hsl(43 96% 56%);
-  --chart-5: hsl(258 90% 76%);
+  --chart-1: hsl(213 94% 68%);
+  --chart-2: hsl(158 64% 52%);
+  --chart-3: hsl(43 96% 56%);
+  --chart-4: hsl(258 90% 76%);
+  --chart-5: hsl(0 80% 58%);
 
   --sidebar: hsl(240 6% 6%);
   --sidebar-foreground: hsl(0 0% 96%);

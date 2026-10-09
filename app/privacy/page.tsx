@@ -29,16 +29,8 @@ export default function PrivacyPage() {
             </ul>
           </div>
 
-          {/* Detaylı Hukuki Metin — Açılır/Kapanır */}
-          <details className="group bg-card rounded-xl border border-border overflow-hidden">
-            <summary className="flex items-center justify-between cursor-pointer px-8 py-5 hover:bg-muted/50 transition-colors select-none">
-              <span className="text-sm font-semibold text-foreground">Detaylı Hukuki Metin</span>
-              <svg className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-
-            <div className="px-8 md:px-10 pb-8 md:pb-10 pt-2 space-y-10 border-t border-border">
+          {/* Detaylı Hukuki Metin */}
+          <div className="space-y-10">
               <section>
                 <h2 className="text-xl font-semibold text-foreground mb-4">1. Toplanan Veriler ve Kullanım Amacı</h2>
                 <p className="text-muted-foreground leading-relaxed mb-4">
@@ -132,7 +124,6 @@ export default function PrivacyPage() {
                 </p>
               </section>
             </div>
-          </details>
     </LegalDocument>
   )
 }

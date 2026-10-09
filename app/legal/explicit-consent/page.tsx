@@ -42,16 +42,16 @@ export default function ExplicitConsentPage() {
                     </p>
                 </section>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 ">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     {[
                         { icon: <Mail className="w-4 h-4" />, label: "E-Posta" },
                         { icon: <MessageSquare className="w-4 h-4" />, label: "SMS" },
                         { icon: <Phone className="w-4 h-4" />, label: "Telefon" },
                         { icon: <Bell className="w-4 h-4" />, label: "Push" }
                     ].map((channel, i) => (
-                        <div key={i} className="flex flex-col items-center justify-center gap-3 bg-card border border-border p-6 text-center">
+                        <div key={i} className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-6 text-center">
                             <div className="text-muted-foreground">{channel.icon}</div>
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{channel.label}</span>
+                            <span className="text-sm font-medium text-foreground">{channel.label}</span>
                         </div>
                     ))}
                 </div>
@@ -73,7 +73,7 @@ export default function ExplicitConsentPage() {
 
                 {/* Açık Rıza Onayı */}
                 <div >
-                    <div className="border border-border bg-muted/50 p-6 flex flex-col sm:flex-row items-center gap-6">
+                    <div className="flex flex-col items-center gap-6 rounded-xl border border-border bg-muted/50 p-6 sm:flex-row">
                         <div className="p-3 bg-card border border-border rounded-full flex-shrink-0">
                             <ShieldCheck className="w-6 h-6 text-foreground" />
                         </div>
@@ -94,15 +94,15 @@ Bilgilendirme
                     <div className="space-y-4 text-muted-foreground">
                         <ul className="space-y-4">
                             <li className="flex gap-4 items-start">
-                                <div className="text-[10px] font-bold mt-0.5">01</div>
+                                <div className="min-w-6 font-semibold text-foreground tabular-nums">01</div>
                                 <p>Dilediğiniz zaman hiçbir gerekçe göstermeksizin ticari ileti almayı durdurabilirsiniz.</p>
                             </li>
                             <li className="flex gap-4 items-start">
-                                <div className="text-[10px] font-bold mt-0.5">02</div>
+                                <div className="min-w-6 font-semibold text-foreground tabular-nums">02</div>
                                 <p>Red talebiniz Şirket'e ulaştığı tarihten itibaren 3 iş günü içinde SMS/E-posta gönderimi durdurulur.</p>
                             </li>
                             <li className="flex gap-4 items-start">
-                                <div className="text-[10px] font-bold mt-0.5">03</div>
+                                <div className="min-w-6 font-semibold text-foreground tabular-nums">03</div>
                                 <p>
                                     İptal işlemi için gelen mesajlardaki red linkini
                                     kullanabilir veya doğrudan <strong className="text-foreground">{FOGCATALOG_COMPANY.email}</strong> adresine yazabilirsiniz.

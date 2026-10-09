@@ -165,7 +165,7 @@ export function ColorField({
                         <button
                             type="button"
                             aria-label={typeof label === "string" ? label : undefined}
-                            className="size-9 shrink-0 rounded-md border shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="size-9 shrink-0 rounded-md border border-foreground/15 shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             style={{ backgroundColor: swatch }}
                         />
                     </PopoverTrigger>

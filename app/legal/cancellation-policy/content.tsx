@@ -38,9 +38,9 @@ export function CancellationContent() {
                         {t("legal.cancellationPolicy.refundPolicy.desc")}
                     </p>
                     <div >
-                        <div className="p-4 bg-background border border-border border-l-2 border-l-foreground">
-                            <strong className="block text-xs uppercase mb-2 text-foreground">{t("legal.cancellationPolicy.warning")}</strong>
-                            <p className="text-xs text-muted-foreground">{t("legal.cancellationPolicy.refundPolicy.importantInfo")}</p>
+                        <div className="rounded-xl border border-warning/40 bg-warning-soft p-4">
+                            <strong className="mb-1 block text-sm font-semibold text-warning-soft-foreground">{t("legal.cancellationPolicy.warning")}</strong>
+                            <p className="text-sm text-foreground">{t("legal.cancellationPolicy.refundPolicy.importantInfo")}</p>
                         </div>
                     </div>
                 </section>
@@ -55,32 +55,32 @@ export function CancellationContent() {
                     </p>
 
                     <div className="grid md:grid-cols-2 gap-4 ">
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.howTo.title")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.howTo.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.rights.title")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.rights.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.expiry.title")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.expiry.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cancellationPolicy.cancellationProcess.data.title")}
                             </span>
                             <p className="text-foreground">

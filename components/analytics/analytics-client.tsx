@@ -225,7 +225,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                             className={cn(
                                 "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
                                 timeRange === range
-                                    ? "bg-card text-foreground shadow-sm ring-1 ring-black/5"
+                                    ? "bg-card text-foreground shadow-sm ring-1 ring-border"
                                     : "text-muted-foreground hover:text-foreground"
                             )}
                         >
@@ -271,7 +271,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             {/* Main Chart Section */}
             <div className="grid gap-6 lg:grid-cols-7">
                 <Card className="lg:col-span-4 border-border/50 shadow-sm min-w-0">
-                    <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/5 py-4">
+                    <CardHeader className="flex flex-row items-center justify-between border-b">
                         <div className="text-left">
                             <CardTitle className="text-base font-semibold">{t("dashboard.analytics.viewsOverTime")}</CardTitle>
                             <CardDescription className="text-xs">
@@ -280,7 +280,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         </div>
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-primary" />
-                            <span className="text-[10px] font-medium text-muted-foreground uppercase">{t("dashboard.analytics.views")}</span>
+                            <span className="text-xs font-medium text-muted-foreground">{t("dashboard.analytics.views")}</span>
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
@@ -290,8 +290,8 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                     <BarChart data={barChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.8} />
-                                                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.1} />
+                                                <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.85} />
+                                                <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.25} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
@@ -310,7 +310,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
                                         />
                                         <Tooltip
-                                            cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }}
+                                            cursor={{ fill: 'var(--muted)' }}
                                             contentStyle={{
                                                 borderRadius: '12px',
                                                 border: 'none',
@@ -338,7 +338,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
 
                 {/* Device Distribution Card */}
                 <Card className="lg:col-span-3 border-border/50 shadow-sm flex flex-col min-w-0">
-                    <CardHeader className="text-left border-b bg-muted/5 py-4">
+                    <CardHeader className="text-left border-b">
                         <CardTitle className="text-base font-semibold">{t("dashboard.analytics.deviceStats")}</CardTitle>
                         <CardDescription className="text-xs">
                             {t("dashboard.analytics.deviceDistributionDescription")}
@@ -377,7 +377,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                 <span className="text-2xl font-bold">
                                     {devicePieData.reduce((acc, curr) => acc + curr.value, 0).toLocaleString()}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground uppercase">{t("dashboard.analytics.views")}</span>
+                                <span className="text-xs text-muted-foreground">{t("dashboard.analytics.views")}</span>
                             </div>
                         </div>
 
@@ -406,7 +406,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
 
             {/* Bottom Row - Top Catalogs Table */}
             <Card className="border-border/50 shadow-sm overflow-hidden">
-                <CardHeader className="border-b bg-muted/20 text-left py-4">
+                <CardHeader className="border-b text-left">
                     <CardTitle className="text-base font-semibold">{t("dashboard.analytics.topCatalogs")}</CardTitle>
                     <CardDescription className="text-xs">
                         {t("dashboard.analytics.topCatalogsDescription")}
@@ -426,11 +426,11 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="bg-muted/30 text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
+                                <thead className="border-b bg-muted/30 text-xs text-muted-foreground">
                                     <tr>
-                                        <th className="px-6 py-3 font-semibold">{t('dashboard.analytics.catalogNameHeader')}</th>
-                                        <th className="px-6 py-3 font-semibold text-right">{t("dashboard.analytics.views").toUpperCase()}</th>
-                                        <th className="px-6 py-3 font-semibold hidden md:table-cell">{t('dashboard.analytics.popularity')}</th>
+                                        <th className="px-6 py-3 font-medium">{t('dashboard.analytics.catalogNameHeader')}</th>
+                                        <th className="px-6 py-3 font-medium text-right">{t("dashboard.analytics.views")}</th>
+                                        <th className="px-6 py-3 font-medium hidden md:table-cell">{t('dashboard.analytics.popularity')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/50">

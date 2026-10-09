@@ -65,10 +65,10 @@ export function ProfileTab({
 }: ProfileTabProps) {
   return (
     <>
-      <Card className="border-0 shadow-md ring-1 ring-border bg-card">
-        <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
+      <Card>
+        <CardHeader className="border-b">
           <div className="flex items-center gap-2">
-            <div className={cn("p-2 bg-info-soft", "text-info rounded-lg")}>
+            <div className="rounded-lg bg-muted p-2 text-muted-foreground">
               <User className="w-5 h-5" />
             </div>
             <div>
@@ -81,7 +81,7 @@ export function ProfileTab({
           <form onSubmit={(event) => void handleSaveProfile(event)} className="space-y-6">
             <div className="flex items-center gap-6 pb-6 border-b">
               <div className="relative group">
-                <Avatar className="w-20 h-20 border-4 border-white dark:border-background shadow-lg">
+                <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                   <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} className="dark:brightness-100" />
                   <AvatarFallback className={cn("text-xl bg-gradient-to-br", "from-primary to-primary text-primary-foreground")}>
                     {user?.name?.charAt(0).toUpperCase() || "U"}
@@ -241,7 +241,7 @@ export function ProfileTab({
 
       <PasswordCard email={user?.email} t={t} />
 
-      <Card className="border-destructive/20 shadow-sm ring-1 ring-destructive/10 bg-card">
+      <Card className="border-destructive/30">
         <CardHeader>
           <div className="flex items-center gap-2 text-destructive">
             <Trash2 className="w-5 h-5" />

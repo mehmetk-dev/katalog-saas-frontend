@@ -4,7 +4,7 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
 import { LegalDocument } from "@/components/marketing"
-import { FileText } from "lucide-react"
+import { AlertTriangle, Check, FileText } from "lucide-react"
 
 export function DistanceSalesContent() {
     const { t } = useTranslation()
@@ -35,14 +35,13 @@ export function DistanceSalesContent() {
 
                 {/* 1. Taraflar / Parties */}
                 <section>
-                    <h2 className="text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-3 text-foreground">
-                        
+                    <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">
                         {t("legal.distanceSales.parties.title")}
                     </h2>
 
                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="p-6 bg-background border border-border">
-                            <h3 className="font-bold tracking-wider text-foreground text-xs mb-4 uppercase text-center border-b border-border pb-2">
+                        <div className="rounded-xl border border-border bg-card p-6">
+                            <h3 className="mb-4 border-b border-border pb-2 text-sm font-semibold text-foreground">
                                 {t("legal.distanceSales.parties.seller.title")}
                             </h3>
                             <div className="space-y-2 text-muted-foreground text-xs">
@@ -62,21 +61,21 @@ export function DistanceSalesContent() {
                                     <span className="text-muted-foreground">{t("legal.distanceSales.parties.seller.phoneLabel")}</span>
                                     <span className="font-medium text-right">{t("legal.distanceSales.parties.seller.phone")}</span>
                                 </div>
-                                <div className="pt-2 text-[11px] leading-tight text-muted-foreground text-center whitespace-pre-line">
+                                <div className="pt-2 text-xs leading-relaxed text-muted-foreground whitespace-pre-line">
                                     {sellerAddressSafe}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 bg-background border border-border flex flex-col justify-center">
-                            <h3 className="font-bold tracking-wider text-foreground text-xs mb-4 uppercase text-center border-b border-border pb-2">
+                        <div className="rounded-xl border border-border bg-card p-6">
+                            <h3 className="mb-4 border-b border-border pb-2 text-sm font-semibold text-foreground">
                                 {t("legal.distanceSales.parties.buyer.title")}
                             </h3>
-                            <div className="space-y-4 text-muted-foreground text-center">
-                                <div className="bg-card p-3 border border-border rounded-sm relative">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-[10px] text-muted-foreground">
-                                        {t("legal.distanceSales.parties.buyer.scope")}
-                                    </div>
+                            <div className="space-y-1 text-muted-foreground">
+                                <span className="block text-xs font-medium text-muted-foreground">
+                                    {t("legal.distanceSales.parties.buyer.scope")}
+                                </span>
+                                <div>
                                     <p>
                                         {t("legal.distanceSales.parties.buyer.desc")}
                                     </p>
@@ -91,7 +90,7 @@ export function DistanceSalesContent() {
                     <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
 {t("legal.distanceSales.subject.title")}
                     </h2>
-                    <p className="text-muted-foreground ">
+                    <p className="text-muted-foreground">
                         {t("legal.distanceSales.subject.desc")}
                     </p>
                 </section>
@@ -101,25 +100,25 @@ export function DistanceSalesContent() {
                     <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
 {t("legal.distanceSales.service.title")}
                     </h2>
-                    <div className="grid md:grid-cols-3 gap-4 ">
-                        <div className="bg-card p-4 border border-border hover:border-border transition-colors">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.distanceSales.service.item1.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.distanceSales.service.item1.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border hover:border-border transition-colors">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.distanceSales.service.item2.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.distanceSales.service.item2.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border hover:border-border transition-colors">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.distanceSales.service.item3.label")}
                             </span>
                             <p className="text-foreground">
@@ -163,19 +162,14 @@ export function DistanceSalesContent() {
                 </section>
 
                 {/* 5. Cayma Hakkı / Right of Withdrawal */}
-                <section className="bg-background p-8 border border-brand/20 relative overflow-hidden group hover:border-brand/20 transition-colors">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-brand">
-                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                    </div>
-                    <h2 className="text-xs font-bold uppercase tracking-widest mb-6 text-brand flex items-center gap-3">
-                        <span className="w-4 h-[1px] bg-brand"></span>
+                <section className="rounded-xl border border-warning/40 bg-warning-soft p-6 sm:p-8">
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold tracking-tight text-warning-soft-foreground">
+                        <AlertTriangle className="size-5 shrink-0" />
                         {t("legal.distanceSales.withdrawal.title")}
                     </h2>
-                    <div className="space-y-4 text-foreground text-[13px] relative z-10 ">
+                    <div className="space-y-4 text-sm text-foreground">
                         <div className="flex gap-3">
-                            <span className="font-bold text-brand-soft-foreground min-w-[24px]">5.1.</span>
+                            <span className="min-w-[24px] font-bold text-warning-soft-foreground">5.1.</span>
                             <p>
                                 {t("legal.distanceSales.withdrawal.item1Part1")}
                                 <strong>
@@ -185,21 +179,21 @@ export function DistanceSalesContent() {
                             </p>
                         </div>
                         <div className="flex gap-3">
-                            <span className="font-bold text-brand-soft-foreground min-w-[24px]">5.2.</span>
+                            <span className="min-w-[24px] font-bold text-warning-soft-foreground">5.2.</span>
                             <p>
                                 {t("legal.distanceSales.withdrawal.item2Part1")}
-                                <span className="bg-brand-soft text-brand-soft-foreground font-medium px-1">
+                                <strong className="font-semibold text-warning-soft-foreground">
                                     {t("legal.distanceSales.withdrawal.item2Badge")}
-                                </span>
+                                </strong>
                                 {t("legal.distanceSales.withdrawal.item2Part2")}
                             </p>
                         </div>
                         <div className="flex gap-3 pt-2">
-                            <span className="font-bold text-brand-soft-foreground min-w-[24px]">5.3.</span>
+                            <span className="min-w-[24px] font-bold text-warning-soft-foreground">5.3.</span>
                             <div>
                                 <strong>{t("legal.distanceSales.withdrawal.item3Label")}</strong>
                                 {t("legal.distanceSales.withdrawal.item3Desc")}
-                                <ul className="list-disc pl-4 mt-1 space-y-1 text-muted-foreground text-xs">
+                                <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
                                     <li>{t("legal.distanceSales.withdrawal.list1")}</li>
                                     <li>{t("legal.distanceSales.withdrawal.list2")}</li>
                                     <li>{t("legal.distanceSales.withdrawal.list3")}</li>
@@ -209,13 +203,13 @@ export function DistanceSalesContent() {
                     </div>
                 </section>
 
-                <div className="grid md:grid-cols-2 gap-12">
+                <div className="grid gap-12 md:grid-cols-2">
                     {/* 6. Gizlilik ve KVKK / Privacy */}
                     <section>
                         <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
 {t("legal.distanceSales.privacy.title")}
                         </h2>
-                        <p className="text-muted-foreground text-xs mb-4">
+                        <p className="text-muted-foreground">
                             {t("legal.distanceSales.privacy.desc")}
                         </p>
                     </section>
@@ -225,13 +219,13 @@ export function DistanceSalesContent() {
                         <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
 {t("legal.distanceSales.jurisdiction.title")}
                         </h2>
-                        <div >
-                            <p className="text-muted-foreground text-xs mb-3">
+                        <div>
+                            <p className="mb-3 text-muted-foreground">
                                 {t("legal.distanceSales.jurisdiction.desc")}
                             </p>
-                            <div className="text-center py-3 font-bold text-foreground border border-black/10 bg-background">
+                            <div className="rounded-xl border border-border bg-card py-3 text-center font-semibold text-foreground">
                                 {t("legal.distanceSales.jurisdiction.court")}
-                                <div className="text-[9px] font-normal text-muted-foreground mt-1">
+                                <div className="mt-1 text-xs font-normal text-muted-foreground">
                                     {t("legal.distanceSales.jurisdiction.office")}
                                 </div>
                             </div>
@@ -244,13 +238,11 @@ export function DistanceSalesContent() {
                     <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">
 {t("legal.distanceSales.enforcement.title")}
                     </h2>
-                    <div className="flex items-center gap-4 bg-background p-4 border-l-2 border-black">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                    <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-success-soft text-success-soft-foreground">
+                            <Check className="size-4" strokeWidth={3} />
                         </div>
-                        <p className="text-foreground font-medium text-xs">
+                        <p className="text-sm font-medium text-foreground">
                             {t("legal.distanceSales.enforcement.desc")}
                         </p>
                     </div>

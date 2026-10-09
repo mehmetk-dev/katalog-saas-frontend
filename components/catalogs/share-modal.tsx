@@ -3,22 +3,14 @@
 import React, { useState, useEffect } from "react"
 import QRCode from "qrcode"
 import NextImage from "next/image"
-import {
-    Copy,
-    Check,
-    Download,
-    Share2,
-    QrCode,
-    Smartphone,
-    Link as LinkIcon,
-    Globe,
-    Send
-} from "lucide-react"
+import { Check, Copy, Download, Globe, Link as LinkIcon, QrCode, Send } from "lucide-react"
 import { toast } from "sonner"
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type Catalog } from "@/lib/actions/catalogs"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
@@ -40,14 +32,14 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
 
     const catalogName = catalog?.name || "Katalog"
 
-    // Generate QR Code with premium styling
+    // QR kodu (görsel içeriği: koyu modül, beyaz zemin — taranabilirlik için temadan bağımsız)
     useEffect(() => {
         if (open && shareUrl && isPublished) {
             QRCode.toDataURL(shareUrl, {
                 width: 600,
                 margin: 2,
                 color: {
-                    dark: "#0f172a", // Slate 900
+                    dark: "#18181b",
                     light: "#ffffff"
                 },
                 errorCorrectionLevel: "H"
@@ -102,219 +94,92 @@ export function ShareModal({ open, onOpenChange, catalog, isPublished, shareUrl,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl bg-background rounded-[2rem]">
-                <DialogTitle className="sr-only">{t("share.title")}</DialogTitle>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t("share.title")}</DialogTitle>
+                    <DialogDescription className="truncate">{catalogName}</DialogDescription>
+                </DialogHeader>
 
-                {/* Minimalist Header Style (Matching UpgradeModal) */}
-                <div className="relative border-b border-border bg-gradient-to-b from-background to-muted/20 pb-1">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-full bg-primary/5 blur-[80px] pointer-events-none" />
+                {!isPublished ? (
+                    <div className="flex flex-col items-center gap-4 rounded-lg border border-warning/30 bg-warning-soft px-6 py-8 text-center">
+                        <Globe className="size-8 text-warning-soft-foreground" />
+                        <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground">{t("share.notPublishedTitle")}</h3>
+                            <p className="mx-auto max-w-xs text-sm text-muted-foreground">{t("share.notPublishedDesc")}</p>
+                        </div>
+                        {onDownloadPdf && (
+                            <Button variant="outline" onClick={() => { onOpenChange(false); void onDownloadPdf() }}>
+                                <Download /> {t("share.downloadPdf")}
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "link" | "qr")} className="gap-5">
+                        <TabsList className="w-full">
+                            <TabsTrigger value="link"><LinkIcon /> {t("share.linkTab")}</TabsTrigger>
+                            <TabsTrigger value="qr"><QrCode /> {t("share.qrTab")}</TabsTrigger>
+                        </TabsList>
 
-                    <div className="relative px-6 pt-6 pb-2">
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-card shadow-sm border border-border flex items-center justify-center">
-                                <Share2 className="w-6 h-6 text-primary" />
-                            </div>
-                            <div className="text-center space-y-1">
-                                <h2 className="text-xl font-bold tracking-tight text-foreground">{t("share.title")}</h2>
-                                <p className="text-xs text-muted-foreground">{catalogName}</p>
-                            </div>
-
-                            {/* Pill Toggle (Matching UpgradeModal Style) */}
-                            {isPublished && (
-                                <div className="relative flex items-center p-1 bg-muted/50 rounded-full border border-border shadow-inner w-full max-w-[240px]">
-                                    <div
-                                        className={cn(
-                                            "absolute h-[calc(100%-8px)] rounded-full bg-background shadow-sm border border-border/10 transition-all duration-300 ease-in-out",
-                                            activeTab === "qr" ? "left-[calc(50%+4px)] w-[calc(50%-8px)]" : "left-1 w-[calc(50%-8px)]"
-                                        )}
+                        <TabsContent value="link" className="space-y-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="share-url">{t("share.catalogLink")}</Label>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <Input
+                                        id="share-url"
+                                        readOnly
+                                        value={shareUrl.replace(/^https?:\/\//, "")}
+                                        onFocus={(e) => e.currentTarget.select()}
+                                        className="font-mono text-xs"
                                     />
-                                    <button
-                                        onClick={() => setActiveTab("link")}
-                                        className={cn(
-                                            "relative flex-1 py-1.5 text-[11px] font-bold z-10 transition-colors flex items-center justify-center gap-1.5",
-                                            activeTab === "link" ? "text-foreground" : "text-muted-foreground"
-                                        )}
-                                    >
-                                        <LinkIcon className="w-3 h-3" />
-                                        {t("share.linkTab")}
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab("qr")}
-                                        className={cn(
-                                            "relative flex-1 py-1.5 text-[11px] font-bold z-10 flex items-center justify-center gap-1.5 transition-colors",
-                                            activeTab === "qr" ? "text-foreground" : "text-muted-foreground"
-                                        )}
-                                    >
-                                        <QrCode className="w-3 h-3" />
-                                        {t("share.qrTab")}
-                                    </button>
+                                    <Button onClick={handleCopyLink} className="shrink-0">
+                                        {copied ? <Check /> : <Copy />}
+                                        {copied ? t("share.copied") : t("share.copyLink")}
+                                    </Button>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                            </div>
 
-                {/* Main Content Area */}
-                <div className="px-6 py-6 overflow-y-auto max-h-[60vh] custom-scrollbar bg-muted/30 dark:bg-background/20">
-                    {!isPublished ? (
-                        <div className="text-center py-6 space-y-4">
-                            <div className="w-16 h-16 bg-warning-soft rounded-full flex items-center justify-center mx-auto border border-warning/30">
-                                <Globe className="w-8 h-8 text-warning-soft-foreground" />
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium text-foreground">{t("share.quickShare")}</p>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { name: "WhatsApp", icon: "/icons/social/whatsapp.png", url: `https://wa.me/?text=${encodedText}%20${encodedUrl}` },
+                                        { name: "Telegram", icon: "/icons/social/telegram.png", url: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}` },
+                                        { name: "Email", icon: "/icons/social/gmail.png", url: `mailto:?subject=${encodeURIComponent(catalogName)}&body=${encodedText}%0A%0A${encodedUrl}` },
+                                        { name: "LinkedIn", icon: "/icons/social/linkedin.png", url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
+                                    ].map((soc) => (
+                                        <a
+                                            key={soc.name}
+                                            href={soc.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex flex-col items-center gap-1.5 rounded-lg border bg-card px-2 py-3 text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
+                                            <NextImage src={soc.icon} width={24} height={24} alt="" className="object-contain" unoptimized />
+                                            {soc.name}
+                                        </a>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                                <h3 className="font-bold text-foreground">{t("share.notPublishedTitle")}</h3>
-                                <p className="text-muted-foreground text-[11px] max-w-[240px] mx-auto">
-                                    {t("share.notPublishedDesc")}
-                                </p>
+                        </TabsContent>
+
+                        <TabsContent value="qr" className="flex flex-col items-center gap-4">
+                            <div className="flex size-52 items-center justify-center rounded-lg border bg-card p-3">
+                                {qrCodeUrl && (
+                                    <NextImage src={qrCodeUrl} alt={t("share.qrCodeTitle").replace("{name}", catalogName)} width={180} height={180} unoptimized className="rounded-md" />
+                                )}
                             </div>
-                            {onDownloadPdf && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => { onOpenChange(false); void onDownloadPdf() }}
-                                    className="h-10 px-6 rounded-xl text-xs font-bold"
-                                >
-                                    <Download className="w-3.5 h-3.5 mr-2" /> {t("share.downloadPdf")}
+                            <p className="max-w-xs text-center text-sm text-muted-foreground">{t("share.qrDescription")}</p>
+                            <div className="grid w-full grid-cols-2 gap-2">
+                                <Button onClick={handleShareQR}>
+                                    <Send /> {t("share.shareBtn")}
                                 </Button>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="animate-in fade-in duration-500">
-                            {activeTab === "link" ? (
-                                <div className="space-y-6">
-                                    {/* Link Card - Premium Stylized */}
-                                    <div className="group relative bg-card dark:bg-card border border-border rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:border-border">
-                                        <div className="flex flex-col gap-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("share.catalogLink")}</span>
-                                                {copied && (
-                                                    <span className="flex items-center gap-1 text-[10px] font-bold text-success animate-in fade-in slide-in-from-right-2">
-                                                        <Check className="w-3 h-3" /> {t("share.copied")}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2 p-3 bg-muted/40 rounded-xl border border-dashed border-border/50 select-all overflow-hidden shrink-0">
-                                                <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-                                                <code className="text-xs font-medium text-foreground truncate flex-1 font-mono">
-                                                    {shareUrl.replace(/^https?:\/\//, '')}
-                                                </code>
-                                            </div>
-                                            <Button
-                                                onClick={handleCopyLink}
-                                                className={cn(
-                                                    "w-full h-10 font-bold text-xs rounded-xl transition-all",
-                                                    copied ? "bg-success hover:bg-success/90 text-success-foreground" : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                                                )}
-                                            >
-                                                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                                                {copied ? t("share.linkCopied") : t("share.copyLink")}
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {/* Social Connect Grid */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2 px-1">
-                                            <div className="h-px bg-border flex-1" />
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("share.quickShare")}</span>
-                                            <div className="h-px bg-border flex-1" />
-                                        </div>
-
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {[
-                                                { name: "WhatsApp", color: "bg-[#25D366]", icon: "/icons/social/whatsapp.png", url: `https://wa.me/?text=${encodedText}%20${encodedUrl}` },
-                                                { name: "Telegram", color: "bg-[#0088cc]", icon: "/icons/social/telegram.png", url: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}` },
-                                                { name: "Email", color: "bg-primary", icon: "/icons/social/gmail.png", url: `mailto:?subject=${encodeURIComponent(catalogName)}&body=${encodedText}%0A%0A${encodedUrl}` },
-                                                { name: "LinkedIn", color: "bg-[#0077b5]", icon: "/icons/social/linkedin.png", url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
-                                            ].map((soc) => (
-                                                <a
-                                                    key={soc.name}
-                                                    href={soc.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex flex-col items-center gap-1.5 group transition-transform hover:-translate-y-1"
-                                                >
-                                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-card dark:bg-card border border-border shadow-sm group-hover:shadow-md")}>
-                                                        <NextImage src={soc.icon} width={24} height={24} alt={soc.name} className="object-contain transition-transform group-hover:scale-110" unoptimized />
-                                                    </div>
-                                                    <span className="text-[9px] font-bold text-muted-foreground">{soc.name}</span>
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center space-y-6 animate-in slide-in-from-right-4 duration-500">
-                                    {/* QR Code Frame - High-End Aesthetic */}
-                                    <div className="relative p-6 bg-card dark:bg-card rounded-[2.5rem] shadow-xl border border-border group overflow-hidden">
-                                        {/* Abstract background for QR */}
-                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                        {/* Corner Frames (Minimalist) */}
-                                        <div className="absolute top-6 left-6 w-8 h-8 border-l-2 border-t-2 border-border rounded-tl-xl" />
-                                        <div className="absolute top-6 right-6 w-8 h-8 border-r-2 border-t-2 border-border rounded-tr-xl" />
-                                        <div className="absolute bottom-6 left-6 w-8 h-8 border-l-2 border-b-2 border-border rounded-bl-xl" />
-                                        <div className="absolute bottom-6 right-6 w-8 h-8 border-r-2 border-b-2 border-border rounded-br-xl" />
-
-                                        {qrCodeUrl && (
-                                            <div className="relative z-10 bg-card p-2 rounded-2xl shadow-sm border border-border">
-                                                <NextImage
-                                                    src={qrCodeUrl}
-                                                    alt="QR"
-                                                    width={180}
-                                                    height={180}
-                                                    unoptimized
-                                                    className="mix-blend-multiply transition-transform group-hover:scale-105 duration-700"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="text-center space-y-4 w-full">
-                                        <p className="text-[11px] text-muted-foreground font-medium px-8 leading-relaxed">
-                                            {t("share.qrDescription")}
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <Button
-                                                onClick={handleShareQR}
-                                                className="h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[11px]"
-                                            >
-                                                <Send className="w-3.5 h-3.5 mr-2" /> {t("share.shareBtn")}
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleDownloadQR}
-                                                className="h-10 rounded-xl font-bold text-[11px] border-border text-primary bg-accent/10 hover:bg-accent"
-                                            >
-                                                <Download className="w-3.5 h-3.5 mr-2" /> {t("share.downloadBtn")}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer Trust Section (Matching UpgradeModal) */}
-                <div className="px-6 py-4 border-t border-border bg-muted/10">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        <div className="flex items-center gap-1.5">
-                            <Smartphone className="w-3.5 h-3.5 text-success" />
-                            <span>{t("share.mobileReady")}</span>
-                        </div>
-                        <div className="h-3 w-px bg-border/50" />
-                        <div className="flex items-center gap-1.5 px-4">
-                            <Download className="w-3.5 h-3.5 text-info" />
-                            <span>{t("share.pdfSupported")}</span>
-                        </div>
-                        <div className="h-3 w-px bg-border/50" />
-                        <div className="flex items-center gap-1.5">
-                            <Globe className="w-3.5 h-3.5 text-primary" />
-                            <span>{t("share.liveLink")}</span>
-                        </div>
-                    </div>
-                </div>
-
+                                <Button variant="outline" onClick={handleDownloadQR}>
+                                    <Download /> {t("share.downloadBtn")}
+                                </Button>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                )}
             </DialogContent>
         </Dialog>
     )

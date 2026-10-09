@@ -46,7 +46,7 @@ export function ExcelToolbar({
       </div>
 
       <span className="hidden text-xs tabular-nums text-muted-foreground sm:block">
-        {totalCount} {t("products.title")}
+        {t("excel.productCount", { count: totalCount })}
       </span>
 
       <div className="flex-1" />

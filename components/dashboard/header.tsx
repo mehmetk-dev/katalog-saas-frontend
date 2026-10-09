@@ -20,6 +20,7 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useSidebar } from "@/lib/contexts/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { Logo } from "@/components/ui/logo"
 import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
 
 // 1. Import usePathname
@@ -148,6 +149,10 @@ export function DashboardHeader() {
               }
             </TooltipContent>
           </Tooltip>
+          {/* Mobilde sidebar kapalıyken marka görünür kalsın */}
+          <Link href="/dashboard" prefetch={false} className="flex items-center lg:hidden" aria-label="FogCatalog">
+            <Logo markOnly />
+          </Link>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">

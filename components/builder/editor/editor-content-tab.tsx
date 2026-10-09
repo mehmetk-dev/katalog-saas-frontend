@@ -1,10 +1,12 @@
 "use client"
 
 import React from "react"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import Link from "next/link"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Package, Search, SearchX } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -345,6 +347,28 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                         <div className="col-span-full rounded-lg border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
                             {t('common.loading')}
                         </div>
+                    )}
+                    {!isLoadingProducts && visibleProducts.length === 0 && (
+                        searchQuery.trim() || selectedCategory !== "all" ? (
+                            <EmptyState
+                                className="col-span-full py-8"
+                                icon={SearchX}
+                                title={t('builder.noMatchingProducts')}
+                                description={t('builder.noMatchingProductsHint')}
+                            />
+                        ) : (
+                            <EmptyState
+                                className="col-span-full py-8"
+                                icon={Package}
+                                title={t('builder.noAccountProducts')}
+                                description={t('builder.noAccountProductsHint')}
+                                action={
+                                    <Button asChild size="sm">
+                                        <Link href="/dashboard/products">{t('builder.goToProducts')}</Link>
+                                    </Button>
+                                }
+                            />
+                        )
                     )}
                     {visibleProducts.map(product => (
                         <ProductCard

@@ -337,12 +337,8 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
       ref={containerRef}
       className={props.isExporting
         ? "flex flex-col h-auto overflow-visible bg-white relative isolate"
-        : "flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-[#0a0c1a] dark:to-[#020308] relative isolate"}
+        : "flex flex-col h-full overflow-hidden bg-muted/40 relative isolate"}
     >
-      {/* Decorative Effects - Static for stability */}
-      <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[70%] bg-indigo-500/15 blur-[140px] rounded-full pointer-events-none hidden dark:block -z-10" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[70%] h-[70%] bg-violet-600/10 blur-[140px] rounded-full pointer-events-none hidden dark:block -z-10" />
-
       {!props.isExporting && (
         <PreviewControlBar
           viewMode={viewMode}

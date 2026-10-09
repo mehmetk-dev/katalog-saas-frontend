@@ -98,10 +98,10 @@ export function PasswordCard({ email, t }: { email?: string | null; t: TFunction
   }
 
   return (
-    <Card className="border-0 shadow-md ring-1 ring-border bg-card">
-      <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
+    <Card>
+      <CardHeader className="border-b">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-info-soft text-info-soft-foreground rounded-lg">
+          <div className="rounded-lg bg-muted p-2 text-muted-foreground">
             <KeyRound className="w-5 h-5" />
           </div>
           <div>

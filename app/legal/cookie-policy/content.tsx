@@ -50,24 +50,24 @@ export function CookiePolicyContent() {
                     </h2>
 
                     <div className="grid md:grid-cols-3 gap-4 ">
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cookiePolicy.types.mandatory.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.cookiePolicy.types.mandatory.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cookiePolicy.types.analytic.label")}
                             </span>
                             <p className="text-foreground">
                                 {t("legal.cookiePolicy.types.analytic.desc")}
                             </p>
                         </div>
-                        <div className="bg-card p-4 border border-border">
-                            <span className="block text-[10px] uppercase text-muted-foreground mb-2 font-bold tracking-widest">
+                        <div className="rounded-xl border border-border bg-card p-4">
+                            <span className="mb-1 block text-xs font-medium text-muted-foreground">
                                 {t("legal.cookiePolicy.types.functional.label")}
                             </span>
                             <p className="text-foreground">

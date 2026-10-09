@@ -3,6 +3,7 @@ const excel = {
     excel: {
       title: "Excel Düzenleyici",
       description: "Ürünlerinizi tablo görünümünde hızlıca düzenleyin",
+      productCount: "{count} ürün",
       save: "Kaydet",
       saving: "Kaydediliyor...",
       saved: "Başarıyla güncellendi",
@@ -58,6 +59,7 @@ const excel = {
     excel: {
       title: "Excel Editor",
       description: "Quickly edit your products in a table view",
+      productCount: "{count} products",
       save: "Save",
       saving: "Saving...",
       saved: "Successfully updated",

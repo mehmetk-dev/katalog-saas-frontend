@@ -92,7 +92,7 @@ export function ProductSelector({ allProducts, selectedProductId, onSelect, disa
                             >
                                 <span className="truncate">{product.name}</span>
                                 {product.sku && (
-                                    <span className={cn("text-[10px] truncate", selectedProductId === product.id ? "text-white/80" : "text-muted-foreground")}>
+                                    <span className={cn("text-[10px] truncate", selectedProductId === product.id ? "text-primary-foreground/80" : "text-muted-foreground")}>
                                         SKU: {product.sku}
                                     </span>
                                 )}

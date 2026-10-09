@@ -72,16 +72,16 @@ export function ImageCard({
                 <div className="w-full">
                     <div className="flex items-center gap-1 mb-1 justify-between">
                         {matchedProduct ? (
-                            <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-success bg-success-soft px-1.5 py-0.5 rounded">
+                            <div className="flex items-center gap-1 text-xs font-medium text-success-soft-foreground bg-success-soft px-1.5 py-0.5 rounded">
                                 <Check className="w-3 h-3" /> {t("bulkImages.matched")}
                             </div>
                         ) : (
-                            <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-warning-soft-foreground bg-warning-soft px-1.5 py-0.5 rounded">
+                            <div className="flex items-center gap-1 text-xs font-medium text-warning-soft-foreground bg-warning-soft px-1.5 py-0.5 rounded">
                                 <AlertCircle className="w-3 h-3" /> {t("bulkImages.notMatched")}
                             </div>
                         )}
 
-                        {isOverLimit && <div className="text-[10px] font-bold text-destructive bg-destructive-soft px-1.5 py-0.5 rounded">{t("bulkImages.limitReached")}</div>}
+                        {isOverLimit && <div className="text-xs font-medium text-destructive-soft-foreground bg-destructive-soft px-1.5 py-0.5 rounded">{t("bulkImages.limitReached")}</div>}
                     </div>
 
                     <ProductSelector

@@ -20,9 +20,9 @@ const legal = {
                         "İptal sonrası mevcut dönem sonuna kadar hizmet devam eder, verileriniz silinmez."
                     ]
                 },
-                warning: "ÖNEMLİ BİLGİLENDİRME",
+                warning: "Önemli Bilgilendirme",
                 refundPolicy: {
-                    title: "1. İADE POLİTİKASI",
+                    title: "1. İade Politikası",
                     desc:
                         "FogCatalog, kullanıcılara dijital bir yazılım hizmeti (SaaS) sunmaktadır. " +
                         "6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği'nin 15. maddesi uyarınca " +
@@ -37,7 +37,7 @@ const legal = {
                         "kullanıcı, sistemi yeterince tecrübe ettiğini ve hizmeti beğendiğini kabul etmiş sayılır."
                 },
                 cancellationProcess: {
-                    title: "2. ABONELİK İPTAL SÜRECİ",
+                    title: "2. Abonelik İptal Süreci",
                     desc: "Aboneliğinizi dilediğiniz zaman, hiçbir taahhüt bedeli veya cayma cezası ödemeden iptal edebilirsiniz.",
                     howTo: {
                         title: "Nasıl İptal Ederim?",
@@ -66,7 +66,7 @@ const legal = {
                     }
                 },
                 exceptions: {
-                    title: "3. İSTİSNAİ DURUMLAR",
+                    title: "3. İstisnai Durumlar",
                     desc:
                         "FogCatalog kaynaklı teknik bir sorun nedeniyle hizmetin hiç verilemediği veya " +
                         "sistemin 24 saatten uzun süre erişime kapalı kaldığı (uptime sorunu) durumlarda, " +
@@ -196,7 +196,7 @@ const legal = {
                 parties: {
                     title: "1. Taraflar",
                     seller: {
-                        title: "1.1. SATICI (Hizmet Sağlayıcı)",
+                        title: "1.1. Satıcı (Hizmet Sağlayıcı)",
                         nameLabel: "Ünvan",
                         name: FOGCATALOG_COMPANY.legalName,
                         taxOfficeLabel: "Vergi D.",
@@ -211,8 +211,8 @@ const legal = {
                         address: FOGCATALOG_LEGAL_ADDRESS_HTML_TR
                     },
                     buyer: {
-                        title: "1.2. ALICI (Müşteri)",
-                        scope: "KAPSAM",
+                        title: "1.2. Alıcı (Müşteri)",
+                        scope: "Kapsam",
                         desc:
                             "Hizmeti satın alan, Platform'a üye olurken bildirdiği ad-soyad " +
                             "ve fatura bilgileri esas alınan gerçek veya tüzel kişidir."
@@ -231,21 +231,21 @@ const legal = {
                 service: {
                     title: "3. Hizmet ve Ödeme Bilgileri",
                     item1: {
-                        label: "3.1. HİZMETİN TANIMI",
+                        label: "3.1. Hizmetin Tanımı",
                         desc:
                             "FogCatalog, kullanıcıların dijital ortamda ürün katalogları " +
                             "oluşturmasını, yönetmesini ve paylaşmasını sağlayan bulut " +
                             "tabanlı bir yazılım hizmetidir."
                     },
                     item2: {
-                        label: "3.2. SÜRE VE YENİLEME",
+                        label: "3.2. Süre ve Yenileme",
                         desc:
                             "Hizmet, Alıcı'nın seçtiği periyot (Aylık/Yıllık) boyunca sunulur. " +
                             "Alıcı iptal etmediği sürece, süre bitiminde güncel fiyat üzerinden " +
                             "otomatik yenilenir."
                     },
                     item3: {
-                        label: "3.3. TESLİMAT ŞEKLİ",
+                        label: "3.3. Teslimat Şekli",
                         desc:
                             "Hizmet, 'Elektronik Ortamda Anında İfa' niteliğindedir. Ödeme onayı " +
                             "alındığı anda Alıcı'nın hesabına erişim yetkisi tanımlanır."
@@ -302,8 +302,8 @@ const legal = {
                     desc:
                         "İşbu sözleşmeden doğan uyuşmazlıklarda, T.C. Ticaret Bakanlığı " +
                         "parasal sınırları dahilinde Tüketici Hakem Heyetleri, aşan durumlarda ise:",
-                    court: "İSTANBUL TÜKETİCİ MAHKEMELERİ",
-                    office: "VE İCRA DAİRELERİ"
+                    court: "İstanbul Tüketici Mahkemeleri",
+                    office: "ve İcra Daireleri"
                 },
                 enforcement: {
                     title: "8. Yürürlük",
@@ -414,9 +414,9 @@ const legal = {
                         "After cancellation, service continues until the end of the current period — your data is not deleted."
                     ]
                 },
-                warning: "IMPORTANT INFORMATION",
+                warning: "Important Information",
                 refundPolicy: {
-                    title: "1. REFUND POLICY",
+                    title: "1. Refund Policy",
                     desc:
                         "FogCatalog provides a digital software service (SaaS) to users. " +
                         "Pursuant to Article 15 of Law No. 6502 and the Distance Contracts " +
@@ -433,7 +433,7 @@ const legal = {
                         "experienced the system and approved the service."
                 },
                 cancellationProcess: {
-                    title: "2. SUBSCRIPTION CANCELLATION PROCESS",
+                    title: "2. Subscription Cancellation Process",
                     desc: "You can cancel your subscription at any time without paying any commitment fee or withdrawal penalty.",
                     howTo: {
                         title: "How Do I Cancel?",
@@ -464,7 +464,7 @@ const legal = {
                     }
                 },
                 exceptions: {
-                    title: "3. EXCEPTIONAL CIRCUMSTANCES",
+                    title: "3. Exceptional Circumstances",
                     desc:
                         "In cases where the service cannot be provided at all due to a " +
                         "technical problem caused by FogCatalog or the system remains " +
@@ -593,7 +593,7 @@ const legal = {
                 parties: {
                     title: "1. Parties",
                     seller: {
-                        title: "1.1. SELLER (Service Provider)",
+                        title: "1.1. Seller (Service Provider)",
                         nameLabel: "Title",
                         name: FOGCATALOG_COMPANY.legalName,
                         taxOfficeLabel: "Tax Office",
@@ -608,8 +608,8 @@ const legal = {
                         address: FOGCATALOG_LEGAL_ADDRESS_HTML_EN
                     },
                     buyer: {
-                        title: "1.2. BUYER (Customer)",
-                        scope: "SCOPE",
+                        title: "1.2. Buyer (Customer)",
+                        scope: "Scope",
                         desc:
                             "The real or legal person whose name-surname and invoice " +
                             "information declared while subscribing to the Platform is " +
@@ -630,20 +630,20 @@ const legal = {
                 service: {
                     title: "3. Service and Payment Details",
                     item1: {
-                        label: "3.1. SERVICE DESCRIPTION",
+                        label: "3.1. Service Description",
                         desc:
                             "FogCatalog is a cloud-based software service that allows users " +
                             "to create, manage and share product catalogs digitally."
                     },
                     item2: {
-                        label: "3.2. DURATION & RENEWAL",
+                        label: "3.2. Duration & Renewal",
                         desc:
                             "Service is provided for the period selected by the Buyer " +
                             "(Monthly/Yearly). Unless cancelled, it automatically renews " +
                             "at the current price at the end of the term."
                     },
                     item3: {
-                        label: "3.3. DELIVERY METHOD",
+                        label: "3.3. Delivery Method",
                         desc:
                             "The service is of 'Immediate Performance in Electronic " +
                             "Environment' nature. Access authority is defined to the " +
@@ -704,8 +704,8 @@ const legal = {
                     desc:
                         "In disputes arising from this agreement, Consumer Arbitration " +
                         "Committees within the monetary limits, and in exceeding cases:",
-                    court: "ISTANBUL CONSUMER COURTS",
-                    office: "AND ENFORCEMENT OFFICES"
+                    court: "Istanbul Consumer Courts",
+                    office: "and Enforcement Offices"
                 },
                 enforcement: {
                     title: "8. Enforcement",

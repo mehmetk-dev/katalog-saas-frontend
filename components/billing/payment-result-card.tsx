@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw } from 'lucide-react'
 
 import type { BillingPaymentStatus } from '@/lib/actions/billing'
+import { Button } from '@/components/ui/button'
 import { useTranslation } from '@/lib/contexts/i18n-provider'
 
 interface PaymentResultCardProps {
@@ -51,11 +52,11 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
               }).format(payment.total)
 
     const icon = isPaid ? (
-        <CheckCircle2 className="size-9 text-success" />
+        <CheckCircle2 className="text-success size-9" />
     ) : isPending ? (
-        <Clock3 className="size-9 text-warning-soft-foreground" />
+        <Clock3 className="text-warning-soft-foreground size-9" />
     ) : (
-        <AlertCircle className="size-9 text-destructive" />
+        <AlertCircle className="text-destructive size-9" />
     )
     const title = isPaid
         ? t('checkout.result.paidTitle')
@@ -69,36 +70,33 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
           : t('checkout.result.failedDescription')
 
     return (
-        <section className="w-full max-w-xl border border-border bg-card p-6 shadow-xl shadow-black/5 sm:p-9">
+        <section className="border-border bg-card w-full max-w-xl rounded-xl border p-6 shadow-sm sm:p-9">
             <div className="flex items-start gap-4">
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted/50">
+                <div className="bg-muted/50 flex size-14 shrink-0 items-center justify-center rounded-full">
                     {icon}
                 </div>
                 <div>
-                    <p className="text-xs font-bold tracking-[0.18em] text-brand uppercase">
-                        FogCatalog Checkout
-                    </p>
-                    <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
                         {title}
                     </h1>
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
+                    <p className="text-muted-foreground mt-3 text-sm leading-6">{description}</p>
                 </div>
             </div>
 
-            <dl className="mt-7 grid gap-3 border-y border-border py-5 text-sm">
+            <dl className="border-border mt-7 grid gap-3 border-y py-5 text-sm">
                 <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">{t('checkout.result.plan')}</dt>
-                    <dd className="font-bold text-foreground">{planName}</dd>
+                    <dd className="text-foreground font-bold">{planName}</dd>
                 </div>
                 {formattedTotal && (
                     <div className="flex justify-between gap-4">
                         <dt className="text-muted-foreground">{t('checkout.result.total')}</dt>
-                        <dd className="font-bold text-foreground">{formattedTotal}</dd>
+                        <dd className="text-foreground font-bold">{formattedTotal}</dd>
                     </div>
                 )}
                 <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">{t('checkout.result.order')}</dt>
-                    <dd className="max-w-[220px] truncate font-mono text-xs text-foreground">
+                    <dd className="text-foreground max-w-[220px] truncate font-mono text-xs">
                         {payment.orderId}
                     </dd>
                 </div>
@@ -106,27 +104,24 @@ export function PaymentResultCard({ payment }: PaymentResultCardProps) {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 {isPaid ? (
-                    <Link
-                        href="/dashboard"
-                        className="inline-flex min-h-12 flex-1 items-center justify-center bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-brand/90"
-                    >
-                        {t('checkout.result.dashboard')}
-                    </Link>
+                    <Button asChild size="xl" className="flex-1">
+                        <Link href="/dashboard">{t('checkout.result.dashboard')}</Link>
+                    </Button>
                 ) : isPending ? (
-                    <Link
-                        href={`/checkout/result?order=${payment.orderId}`}
-                        className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 bg-primary px-5 text-sm font-bold text-primary-foreground hover:bg-brand/90"
-                    >
-                        <RefreshCw className="size-4" />
-                        {t('checkout.result.refresh')}
-                    </Link>
+                    <Button asChild size="xl" className="flex-1">
+                        <Link href={`/checkout/result?order=${payment.orderId}`}>
+                            <RefreshCw />
+                            {t('checkout.result.refresh')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <Link
-                        href={`/checkout?plan=${payment.planId}&billing=${payment.billingCycle}`}
-                        className="inline-flex min-h-12 flex-1 items-center justify-center bg-brand px-5 text-sm font-bold text-brand-foreground hover:bg-primary/90"
-                    >
-                        {t('checkout.result.retry')}
-                    </Link>
+                    <Button asChild size="xl" variant="brand" className="flex-1">
+                        <Link
+                            href={`/checkout?plan=${payment.planId}&billing=${payment.billingCycle}`}
+                        >
+                            {t('checkout.result.retry')}
+                        </Link>
+                    </Button>
                 )}
             </div>
         </section>
@@ -137,20 +132,17 @@ export function PaymentResultUnavailable() {
     const { t } = useTranslation()
 
     return (
-        <section className="w-full max-w-xl border border-border bg-card p-6 shadow-xl shadow-black/5 sm:p-9">
-            <AlertCircle className="size-10 text-warning-soft-foreground" />
-            <h1 className="mt-5 text-2xl font-bold tracking-tight text-foreground">
+        <section className="border-border bg-card w-full max-w-xl rounded-xl border p-6 shadow-sm sm:p-9">
+            <AlertCircle className="text-warning-soft-foreground size-10" />
+            <h1 className="text-foreground mt-5 text-2xl font-bold tracking-tight">
                 {t('checkout.result.unavailableTitle')}
             </h1>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
                 {t('checkout.result.unavailableDescription')}
             </p>
-            <Link
-                href="/dashboard"
-                className="mt-6 inline-flex min-h-12 items-center justify-center bg-primary px-6 text-sm font-bold text-primary-foreground hover:bg-brand/90"
-            >
-                {t('checkout.result.dashboard')}
-            </Link>
+            <Button asChild size="xl" className="mt-6">
+                <Link href="/dashboard">{t('checkout.result.dashboard')}</Link>
+            </Button>
         </section>
     )
 }

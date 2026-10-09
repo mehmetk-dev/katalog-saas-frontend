@@ -31,10 +31,10 @@ function LanguageCode({ code, active }: { code: string; active: boolean }) {
 
 export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps) {
   return (
-    <Card className="border-0 shadow-md ring-1 ring-border bg-card">
-      <CardHeader className="pb-4 border-b bg-muted/30 dark:bg-muted/10">
+    <Card>
+      <CardHeader className="border-b">
         <div className="flex items-center gap-2">
-          <div className={cn("p-2 bg-warning-soft", "text-warning-soft-foreground rounded-lg")}>
+          <div className="rounded-lg bg-muted p-2 text-muted-foreground">
             <Globe className="w-5 h-5" />
           </div>
           <div>
