@@ -70,7 +70,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 11 | PDF export | 🔴 Yüksek | 🟢 Kod + testler yapıldı (Redis/worker/R2 ile uçtan uca kaldı) |
 | 12 | Şablonlar sayfası | 🟢 Düşük | 🟢 Yapıldı |
 | 13 | Analitik | 🟡 Orta | 🟢 Yapıldı |
-| 14 | Ayarlar | 🟡 Orta | 🟢 Yapıldı (şifre değiştirme yalnızca "şifremi unuttum" akışıyla) |
+| 14 | Ayarlar | 🟡 Orta | 🟢 Yapıldı (şifre değiştirme eklendi) |
 | 15 | Bildirimler | 🟢 Düşük | 🟢 İncelendi, sorun bulunmadı |
 | 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | 🟡 Kod incelendi, güvenlik açığı kapatıldı (test POS ile uçtan uca kaldı) |
 | 17 | Admin paneli | 🟡 Orta | 🟢 Plan değiştirme düzeltildi |
@@ -407,6 +407,8 @@ Kalan:
 - Builder: tasarım bölümleri ~70 prop yerine ortak bir kaynaktan (DesignSource) besleniyor.
 - Demo builder'ın tasarım bölümlerini ve önizlemesini kullanıyor (16 şablon, kapak, arka plan); görseller sunucuya gitmiyor; PDF çok sayfalı.
 - Logo yüklenince konum "gösterme"de kaldığı için logo görünmüyordu (builder + demo).
+- Admin ödeme işlemleri sekmesi TR/EN; "İncelendi"/"Tekrar sorgula" hata verince tüm admin paneli hata ekranına düşüyordu; kalan tutardan büyük iade bankaya gitmeden reddediliyor.
+- Ayarlar: şifre değiştirme (mevcut şifre doğrulamalı; Google hesabında şifre belirleme); dil seçimindeki "????" simgeleri düzeltildi, kodlama kontrolü bu kalıbı da yakalıyor.
 
-**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
+**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, AI kotasının sunucu belleğinde tutulması (tek frontend süreciyle yeterli; deploy'da sıfırlanır).
 
