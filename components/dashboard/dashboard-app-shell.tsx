@@ -10,6 +10,7 @@ import { SidebarProvider } from '@/lib/contexts/sidebar-context'
 import { UserProvider } from '@/lib/contexts/user-context'
 import { getPlanLimits } from '@/lib/constants'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { countMonthlyExports } from '@/lib/billing/export-quota'
 
 export async function DashboardAppShell({ children }: { children: ReactNode }) {
     const supabase = await createServerSupabaseClient()
@@ -19,10 +20,10 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
 
     if (!user) redirect('/auth')
 
-    const [profileResult, productsResult, catalogsResult] = await Promise.all([
+    const [profileResult, productsResult, catalogsResult, monthlyExports] = await Promise.all([
         supabase
             .from('users')
-            .select('full_name, company, avatar_url, plan, exports_used')
+            .select('full_name, company, avatar_url, plan')
             .eq('id', user.id)
             .single(),
         supabase
@@ -33,6 +34,7 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
             .from('catalogs')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', user.id),
+        countMonthlyExports(supabase, user.id).catch(() => 0),
     ])
 
     const { data: profile } = profileResult
@@ -49,7 +51,7 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
         catalogsCount: catalogsResult.count || 0,
         maxProducts: planLimits.maxProducts === Infinity ? 999999 : planLimits.maxProducts,
         maxExports: planLimits.maxExports === Infinity ? 999999 : planLimits.maxExports,
-        exportsUsed: profile?.exports_used || 0,
+        exportsUsed: monthlyExports,
     }
 
     const cookieStore = await cookies()

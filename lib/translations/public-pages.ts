@@ -46,7 +46,7 @@ const publicPages = {
                     { q: "Ürünlerimi toplu ekleyebilir miyim?", a: "Evet. Excel veya CSV dosyanızı yükleyip kolonları eşleştirerek yüzlerce ürünü tek seferde ekleyebilirsiniz. Görselleri de toplu yükleyebilirsiniz; dosya adlarına göre ürünlerle otomatik eşleşir." },
                     { q: "Görsellerin kalitesi düşer mi?", a: "Hayır. Görseller hızlı açılmaları için tarayıcıya uygun formatta (WebP/AVIF) sunulur, görünür kalite korunur." },
                     { q: "Fiyatları göstermeden katalog hazırlayabilir miyim?", a: "Evet. Katalog ayarlarından fiyat gösterimini kapatabilirsiniz; bu özellikle toptan satış yapan firmalar için kullanışlıdır." },
-                    { q: "Kataloğumun PDF'ini alabilir miyim?", a: "Evet. Kataloğunuzu ekranda gördüğünüzle birebir aynı, A4 boyutunda PDF olarak indirebilirsiniz. PDF indirme hakkı planınıza göre değişir." },
+                    { q: "Kataloğumun PDF'ini alabilir miyim?", a: "Evet. Kataloğunuzu ekranda gördüğünüzle birebir aynı, A4 boyutunda PDF olarak indirebilirsiniz. Aylık PDF indirme hakkı planınıza göre değişir ve her ayın başında yenilenir." },
                     { q: "Ürünlerimi dışa aktarabilir miyim?", a: "Evet. Ürün listenizi fiyat ve açıklamalarıyla birlikte istediğiniz zaman CSV olarak dışa aktarabilirsiniz." },
                 ],
                 sharing: [
@@ -286,7 +286,7 @@ const publicPages = {
                     { q: "Can I add products in bulk?", a: "Yes. Upload an Excel or CSV file and map the columns to add hundreds of products at once. You can also upload images in bulk; they are matched to products by file name." },
                     { q: "Will image quality drop?", a: "No. Images are served in browser-friendly formats (WebP/AVIF) so they load fast while keeping their visible quality." },
                     { q: "Can I create a catalog without prices?", a: "Yes. You can turn off prices in the catalog settings, which is especially useful for wholesale businesses." },
-                    { q: "Can I get a PDF of my catalog?", a: "Yes. Download your catalog as an A4 PDF that matches what you see on screen. The number of PDF downloads depends on your plan." },
+                    { q: "Can I get a PDF of my catalog?", a: "Yes. Download your catalog as an A4 PDF that matches what you see on screen. Your monthly PDF downloads depend on your plan and renew at the start of each month." },
                     { q: "Can I export my products?", a: "Yes. You can export your product list with prices and descriptions as CSV at any time." },
                 ],
                 sharing: [

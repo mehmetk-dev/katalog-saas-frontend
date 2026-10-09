@@ -26,7 +26,6 @@ export interface UserProfileRow {
   avatar_url: string | null
   logo_url: string | null
   plan: string | null
-  exports_used: number | null
   is_admin: boolean | null
   instagram_url: string | null
   youtube_url: string | null

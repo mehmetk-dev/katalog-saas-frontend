@@ -72,6 +72,8 @@ interface MockSupabaseClient {
     }
     from: ReturnType<typeof vi.fn>
     setMockProfile: (data: MockProfile) => void
+    /** Bu ay tamamlanan PDF sayısı (pdf_export_jobs) */
+    setMonthlyExports: (count: number) => void
 }
 describe('User Context Testleri', () => {
     let mockSupabaseClient: MockSupabaseClient
@@ -94,6 +96,13 @@ describe('User Context Testleri', () => {
             eq: vi.fn().mockResolvedValue({ count, error: null }),
         })
 
+        let monthlyExports = 0
+        const mockExportJobsBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            gte: vi.fn(() => Promise.resolve({ count: monthlyExports, error: null })),
+        }
+
         mockSupabaseClient = {
             auth: {
                 getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null }),
@@ -107,6 +116,7 @@ describe('User Context Testleri', () => {
                 if (table === 'users') return mockUsersBuilder
                 if (table === 'products') return mockCountBuilder(0)
                 if (table === 'catalogs') return mockCountBuilder(0)
+                if (table === 'pdf_export_jobs') return mockExportJobsBuilder
                 return mockUsersBuilder
             }),
         } as unknown as MockSupabaseClient
@@ -115,6 +125,9 @@ describe('User Context Testleri', () => {
 
         mockSupabaseClient.setMockProfile = (data: MockProfile) => {
             mockUsersBuilder.single.mockResolvedValue({ data, error: null })
+        }
+        mockSupabaseClient.setMonthlyExports = (count: number) => {
+            monthlyExports = count
         }
     })
 
@@ -281,21 +294,24 @@ describe('User Context Testleri', () => {
             })
         })
 
-        it('Free plan kullanıcısı export yapamaz', async () => {
-            const mockUser = {
-                id: 'user-1',
-                email: 'test@example.com',
-                plan: 'free',
-                exports_used: 0,
-                maxExports: 0,
-            }
+        it('Free plan kullanıcısı ayda 1 PDF indirebilir', async () => {
+            mockSupabaseClient.setMockProfile({ id: 'user-1', email: 'test@example.com', plan: 'free' })
+            mockSupabaseClient.setMonthlyExports(0)
 
-            mockSupabaseClient.auth.getUser.mockResolvedValueOnce({
-                data: { user: { id: 'user-1', email: 'test@example.com' } },
-                error: null,
+            render(
+                <UserProvider>
+                    <TestComponent />
+                </UserProvider>
+            )
+
+            await waitFor(() => {
+                expect(screen.getByTestId('can-export')).toHaveTextContent('yes')
             })
+        })
 
-                mockSupabaseClient.setMockProfile(mockUser)
+        it('Free plan kullanıcısı bu ayki hakkını kullandıysa export yapamaz', async () => {
+            mockSupabaseClient.setMockProfile({ id: 'user-1', email: 'test@example.com', plan: 'free' })
+            mockSupabaseClient.setMonthlyExports(1)
 
             render(
                 <UserProvider>
@@ -340,9 +356,8 @@ describe('User Context Testleri', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 plan: 'plus',
-                exports_used: 50,
-                maxExports: 50,
             }
+            mockSupabaseClient.setMonthlyExports(50)
 
             mockSupabaseClient.auth.getUser.mockResolvedValueOnce({
                 data: { user: { id: 'user-1', email: 'test@example.com' } },

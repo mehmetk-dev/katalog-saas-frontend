@@ -12,6 +12,7 @@ import { createPdfExportToken, verifyPdfExportToken } from '../services/pdf-expo
 import { safeErrorMessage } from '../utils/safe-error'
 import { isStaleActiveJob } from '../workers/pdf-export-job-lifecycle'
 import type { AuthUser } from '../middlewares/auth'
+import { countMonthlyExports, getMonthlyExportLimit } from '../services/pdf-export-quota'
 
 const createExportSchema = z.object({
     catalogId: z.string().uuid(),
@@ -214,17 +215,18 @@ export async function createPdfExport(req: Request, res: Response) {
 
         const { data: profile, error: profileError } = await supabase
             .from('users')
-            .select('plan, exports_used')
+            .select('plan')
             .eq('id', userId)
             .single()
         if (profileError || !profile) {
             return res.status(403).json({ error: 'Kullanıcı planı doğrulanamadı.' })
         }
         const plan = (profile.plan as string) || 'free'
-        const used = Number(profile.exports_used) || 0
-        const limit = plan === 'pro' ? Number.POSITIVE_INFINITY : plan === 'plus' ? 50 : 1
+        // Hak her ay yenilenir: kullanım bu ay tamamlanan PDF sayısıdır
+        const limit = getMonthlyExportLimit(plan)
+        const used = Number.isFinite(limit) ? await countMonthlyExports(userId) : 0
         if (used >= limit) {
-            return res.status(403).json({ error: 'PDF indirme hakkınız doldu. Planınızı yükseltin.', code: 'quota_exceeded' })
+            return res.status(403).json({ error: 'Bu ayki PDF indirme hakkınız doldu. Planınızı yükseltin.', code: 'quota_exceeded' })
         }
         if (parsed.data.quality === 'high' && plan === 'free') {
             return res

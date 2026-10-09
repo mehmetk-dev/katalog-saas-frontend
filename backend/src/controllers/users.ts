@@ -5,6 +5,7 @@ import { supabase } from '../services/supabase';
 import { deleteCache, cacheKeys } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 import { safeErrorMessage } from '../utils/safe-error';
+import { countMonthlyExports, getMonthlyExportLimit } from '../services/pdf-export-quota';
 
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
@@ -18,9 +19,6 @@ const updateMeSchema = z.object({
     logo_url: z.union([z.string().url(), z.literal('')]).optional().nullable(),
 });
 
-const incrementExportsSchema = z.object({
-    catalogName: z.string().max(200).optional().nullable(),
-});
 
 export const getMe = async (req: Request, res: Response) => {
     try {
@@ -78,6 +76,8 @@ export const getMe = async (req: Request, res: Response) => {
         // Get counts (already fetched in parallel above)
         const productsCount = productsCountResult.count;
         const catalogsCount = catalogsCountResult.count;
+        const exportLimit = getMonthlyExportLimit(profile?.plan);
+        const monthlyExports = await countMonthlyExports(userId);
 
         const result = {
             id: userId,
@@ -90,8 +90,9 @@ export const getMe = async (req: Request, res: Response) => {
             catalogsCount: catalogsCount || 0,
             maxProducts: profile?.plan === 'pro' ? 999999 : profile?.plan === 'plus' ? 1000 : 50,
             maxCatalogs: profile?.plan === 'pro' ? 999999 : profile?.plan === 'plus' ? 10 : 1,
-            maxExports: profile?.plan === 'pro' ? 999999 : profile?.plan === 'plus' ? 50 : 1,
-            exportsUsed: profile?.exports_used || 0,
+            maxExports: Number.isFinite(exportLimit) ? exportLimit : 999999,
+            // PDF hakkı aylık: bu ay tamamlanan PDF sayısı
+            exportsUsed: monthlyExports,
         };
 
         res.json(result);
@@ -202,88 +203,6 @@ export const deleteMe = async (req: Request, res: Response) => {
         if (authError) throw authError;
 
         res.json({ success: true });
-    } catch (error: unknown) {
-        const message = safeErrorMessage(error);
-        res.status(500).json({ error: message });
-    }
-};
-
-export const incrementExportsUsed = async (req: Request, res: Response) => {
-    try {
-        const userId = getUserId(req);
-        const parsed = incrementExportsSchema.safeParse(req.body);
-        if (!parsed.success) {
-            const issue = parsed.error.issues[0];
-            return res.status(400).json({ error: issue?.message || 'Invalid request body' });
-        }
-        const catalogName = parsed.data.catalogName ?? undefined;
-
-        // Small retry loop to handle race conditions safely (compare-and-swap)
-        for (let attempt = 0; attempt < 3; attempt++) {
-            // First get current
-            const { data: profile, error: fetchError } = await supabase
-                .from('users')
-                .select('exports_used, plan')
-                .eq('id', userId)
-                .single();
-
-            if (fetchError) throw fetchError;
-
-            const plan = profile.plan || 'free';
-            const used = profile.exports_used || 0;
-
-            let limit = 1; // free
-            if (plan === 'plus') limit = 50;
-            if (plan === 'pro') limit = 999999999; // unlimited
-
-            if (used >= limit) {
-                return res.status(403).json({ error: 'Export limit reached' });
-            }
-
-            // CAS-style update: only update if the counter is still the same
-            const { data: updatedRows, error: updateError } = await supabase
-                .from('users')
-                .update({ exports_used: used + 1 })
-                .eq('id', userId)
-                .eq('exports_used', used)
-                .select('id')
-                .limit(1);
-
-            if (updateError) throw updateError;
-
-            if (updatedRows && updatedRows.length > 0) {
-                // Log activity
-                const { ipAddress, userAgent } = getRequestInfo(req);
-                await logActivity({
-                    userId,
-                    activityType: 'pdf_downloaded',
-                    description: ActivityDescriptions.pdfDownloaded(catalogName || 'Katalog'),
-                    metadata: { catalogName },
-                    ipAddress,
-                    userAgent
-                });
-
-                // Bildirim gönder
-                try {
-                    const { createNotification } = await import('./notifications');
-                    await createNotification(
-                        userId,
-                        'catalog_downloaded',
-                        'Katalog İndirildi 📥',
-                        catalogName
-                            ? `"${catalogName}" kataloğunuz PDF olarak indirildi.`
-                            : 'Kataloğunuz PDF olarak indirildi.',
-                        '/dashboard/catalogs'
-                    );
-                } catch (notifError) {
-                    console.error('Notification error:', notifError);
-                }
-
-                return res.json({ success: true });
-            }
-        }
-        return res.status(409).json({ error: 'Export counter update conflict, please retry' });
-
     } catch (error: unknown) {
         const message = safeErrorMessage(error);
         res.status(500).json({ error: message });

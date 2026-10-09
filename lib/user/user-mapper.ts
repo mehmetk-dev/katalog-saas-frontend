@@ -1,5 +1,6 @@
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
+import { getPlanLimits } from "@/lib/constants"
 import type { User, UserPlan, UserProfileRow } from "@/lib/user/types"
 
 interface BuildUserParams {
@@ -7,13 +8,12 @@ interface BuildUserParams {
   profile: UserProfileRow | null
   productsCount: number
   catalogsCount: number
+  monthlyExports: number
 }
 
-const PLAN_LIMITS: Record<UserPlan, { maxProducts: number; maxExports: number }> = {
-  free: { maxProducts: 50, maxExports: 0 },
-  plus: { maxProducts: 1000, maxExports: 50 },
-  pro: { maxProducts: 999999, maxExports: 999999 },
-}
+/** Sınırsız limitler UI'da sayı olarak taşınır */
+const UNLIMITED = 999999
+const finiteLimit = (value: number) => (Number.isFinite(value) ? value : UNLIMITED)
 
 export function normalizePlan(plan: string | null | undefined): UserPlan {
   const normalized = plan?.toLowerCase()
@@ -37,9 +37,10 @@ function getSafeDisplayName(profileName: string | null, metadataName: unknown): 
   return "Kullanıcı"
 }
 
-export function buildUserFromProfile({ authUser, profile, productsCount, catalogsCount }: BuildUserParams): User {
+export function buildUserFromProfile({ authUser, profile, productsCount, catalogsCount, monthlyExports }: BuildUserParams): User {
   const plan = normalizePlan(profile?.plan)
-  const limits = PLAN_LIMITS[plan]
+  // Limitler tek kaynaktan (lib/constants); önceden burada ücretsiz plan PDF hakkı 0 yazıyordu
+  const limits = getPlanLimits(plan)
 
   return {
     id: authUser.id,
@@ -51,9 +52,9 @@ export function buildUserFromProfile({ authUser, profile, productsCount, catalog
     plan,
     productsCount,
     catalogsCount,
-    maxProducts: limits.maxProducts,
-    maxExports: limits.maxExports,
-    exportsUsed: profile?.exports_used || 0,
+    maxProducts: finiteLimit(limits.maxProducts),
+    maxExports: finiteLimit(limits.maxExports),
+    exportsUsed: monthlyExports,
     isAdmin: profile?.is_admin || false,
     instagram_url: profile?.instagram_url || null,
     youtube_url: profile?.youtube_url || null,

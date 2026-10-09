@@ -47,22 +47,6 @@ export async function deleteUserAccount() {
   }
 }
 
-export async function incrementUserExports(catalogName?: string) {
-  try {
-    await apiFetch("/users/me/export", {
-      method: "POST",
-      body: JSON.stringify({ catalogName }),
-    })
-    return { success: true }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
-    if (errorMessage.includes("Export limit reached")) {
-      return { error: "limit_reached" }
-    }
-    return { error: errorMessage }
-  }
-}
-
 export async function upgradeUserToPlan(plan: "free" | "plus" | "pro") {
   try {
     await apiFetch("/users/me/upgrade", {

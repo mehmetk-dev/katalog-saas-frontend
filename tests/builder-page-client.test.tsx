@@ -75,7 +75,6 @@ vi.mock('@/components/ui/alert-dialog', () => ({
 }))
 
 import * as catalogActions from '@/lib/actions/catalogs'
-import * as userActions from '@/lib/actions/user'
 
 vi.mock('@/lib/actions/catalogs', () => ({
   updateCatalog: vi.fn().mockResolvedValue({ success: true }),
@@ -85,7 +84,6 @@ vi.mock('@/lib/actions/catalogs', () => ({
 }))
 
 vi.mock('@/lib/actions/user', () => ({
-  incrementUserExports: vi.fn().mockResolvedValue({ success: true }),
   upgradeUserToPro: vi.fn().mockResolvedValue({ success: true }),
 }))
 
@@ -308,8 +306,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     const downloadOption = screen.getByText('builder.downloadAsPdf')
     fireEvent.click(downloadOption)
 
-    await waitFor(() => {
-      expect(userActions.incrementUserExports).not.toHaveBeenCalled()
-    })
+    // Hak dolunca PDF işi başlatılmaz, plan yükseltme penceresi açılır
+    expect(await screen.findByText('upgradeModal.title')).toBeInTheDocument()
   })
 })

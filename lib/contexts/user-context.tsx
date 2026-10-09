@@ -45,7 +45,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
   const fetchUserProfile = useCallback(
     async (authUser: SupabaseUser): Promise<boolean> => {
       try {
-        const { profile, productsCount, catalogsCount } = await fetchUserProfileDataWithRetry(supabase, authUser.id)
+        const { profile, productsCount, catalogsCount, monthlyExports } = await fetchUserProfileDataWithRetry(supabase, authUser.id)
 
         setUser(
           buildUserFromProfile({
@@ -53,6 +53,7 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
             profile,
             productsCount,
             catalogsCount,
+            monthlyExports,
           }),
         )
 
