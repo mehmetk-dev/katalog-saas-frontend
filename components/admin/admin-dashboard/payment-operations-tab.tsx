@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 import {
     Table,
     TableBody,
@@ -28,19 +29,27 @@ import {
     TableRow,
 } from '@/components/ui/table'
 
-function money(minor: number, currency = 'TRY') {
-    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency }).format(minor / 100)
-}
+const PENDING_STATUSES = ['queued', 'processing', 'retry_scheduled', 'verification_pending']
 
 function statusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
     if (['succeeded', 'paid'].includes(status)) return 'default'
     if (['manual_review', 'failed', 'declined'].includes(status)) return 'destructive'
-    if (['queued', 'processing', 'retry_scheduled', 'verification_pending'].includes(status))
-        return 'secondary'
+    if (PENDING_STATUSES.includes(status)) return 'secondary'
     return 'outline'
 }
 
 export function PaymentOperationsTab() {
+    const { t: baseT, language } = useTranslation()
+    const t = (key: string, params?: Record<string, unknown>) =>
+        baseT(`admin.paymentOps.${key}`, params) as string
+    // Bankadan/DB'den gelen kodlar: çevirisi yoksa ham değer gösterilir
+    const label = (group: string, value: string) =>
+        baseT<Record<string, string>>(`admin.paymentOps.${group}`)?.[value] ?? value
+    const locale = language === 'en' ? 'en-US' : 'tr-TR'
+    const money = (minor: number, currency = 'TRY') =>
+        new Intl.NumberFormat(locale, { style: 'currency', currency }).format(minor / 100)
+    const formatDate = (value: string) => new Date(value).toLocaleString(locale)
+
     const [orders, setOrders] = useState<AdminPaymentOrder[]>([])
     const [operations, setOperations] = useState<AdminPaymentOperation[]>([])
     const [alerts, setAlerts] = useState<AdminPaymentAlert[]>([])
@@ -58,28 +67,50 @@ export function PaymentOperationsTab() {
             setOperations(data.operations)
             setAlerts(data.alerts)
         } catch {
-            toast.error('Ödeme operasyonları yüklenemedi.')
+            toast.error(t('loadError'))
         } finally {
             setLoading(false)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => void load(), [load])
+
+    const refundableOrders = useMemo(
+        () => orders.filter((order) => ['paid', 'partially_refunded'].includes(order.status)),
+        [orders]
+    )
 
     const openAlerts = useMemo(
         () => alerts.filter((alert) => alert.status !== 'resolved'),
         [alerts]
     )
 
-    const reverse = (order: AdminPaymentOrder) => {
+    // Hata yakalanmazsa transition içindeki hata tüm admin sayfasını hata ekranına düşürür
+    const runAction = (action: () => Promise<void>) =>
+        startTransition(async () => {
+            try {
+                await action()
+            } catch {
+                toast.error(t('actionError'))
+            }
+            await load()
+        })
+
+    const reverse = (order: AdminPaymentOrder, remainingMinor: number) => {
         const amount = Number(amounts[order.id])
         const reason = reasons[order.id]?.trim() ?? ''
         const amountMinor = Math.round(amount * 100)
         if (!Number.isFinite(amount) || amount <= 0 || reason.length < 3) {
-            toast.error('Geçerli iade tutarı ve en az 3 karakter gerekçe girin.')
+            toast.error(t('invalidReversal'))
             return
         }
-        if (!window.confirm(`${money(amountMinor)} için iptal/iade isteği oluşturulsun mu?`)) return
+        if (amountMinor > remainingMinor) {
+            toast.error(t('exceedsRemaining', { amount: money(remainingMinor, order.currency) }))
+            return
+        }
+        if (!window.confirm(t('confirmReversal', { amount: money(amountMinor, order.currency) })))
+            return
         const idempotencyKey = idempotencyKeys[order.id] || crypto.randomUUID()
         setIdempotencyKeys((current) => ({ ...current, [order.id]: idempotencyKey }))
         startTransition(async () => {
@@ -90,15 +121,13 @@ export function PaymentOperationsTab() {
                     reason,
                     idempotencyKey,
                 })
-                toast.success('İptal/iade operasyonu güvenli kuyruğa alındı.')
+                toast.success(t('reversalQueued'))
                 setAmounts((current) => ({ ...current, [order.id]: '' }))
                 setReasons((current) => ({ ...current, [order.id]: '' }))
                 setIdempotencyKeys((current) => ({ ...current, [order.id]: '' }))
                 await load()
             } catch {
-                toast.error(
-                    'İptal/iade oluşturulamadı; kalan tutar ve sipariş durumunu kontrol edin.'
-                )
+                toast.error(t('reversalError'))
             }
         })
     }
@@ -108,30 +137,24 @@ export function PaymentOperationsTab() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription>Açık alarm</CardDescription>
+                        <CardDescription>{t('openAlerts')}</CardDescription>
                         <CardTitle>{openAlerts.length}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription>Bekleyen operasyon</CardDescription>
+                        <CardDescription>{t('pendingOperations')}</CardDescription>
                         <CardTitle>
                             {
-                                operations.filter((item) =>
-                                    [
-                                        'queued',
-                                        'processing',
-                                        'retry_scheduled',
-                                        'verification_pending',
-                                    ].includes(item.status)
-                                ).length
+                                operations.filter((item) => PENDING_STATUSES.includes(item.status))
+                                    .length
                             }
                         </CardTitle>
                     </CardHeader>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription>Manuel inceleme</CardDescription>
+                        <CardDescription>{t('manualReview')}</CardDescription>
                         <CardTitle>
                             {operations.filter((item) => item.status === 'manual_review').length}
                         </CardTitle>
@@ -144,11 +167,9 @@ export function PaymentOperationsTab() {
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             <ShieldAlert className="size-5" />
-                            Hata alarmları
+                            {t('alertsTitle')}
                         </CardTitle>
-                        <CardDescription>
-                            Hassas veri içermeyen kalıcı ödeme alarmları.
-                        </CardDescription>
+                        <CardDescription>{t('alertsDesc')}</CardDescription>
                     </div>
                     <Button
                         variant="outline"
@@ -157,12 +178,12 @@ export function PaymentOperationsTab() {
                         disabled={loading || pending}
                     >
                         <RefreshCw className="size-4" />
-                        Yenile
+                        {t('refresh')}
                     </Button>
                 </CardHeader>
                 <CardContent>
                     {openAlerts.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">Açık alarm yok.</p>
+                        <p className="text-muted-foreground text-sm">{t('noAlerts')}</p>
                     ) : (
                         <div className="space-y-3">
                             {openAlerts.map((alert) => (
@@ -184,10 +205,11 @@ export function PaymentOperationsTab() {
                                                 {alert.message}
                                             </p>
                                             <p className="text-muted-foreground mt-1 text-xs">
-                                                {alert.code} · {alert.occurrence_count} kez ·{' '}
-                                                {new Date(alert.last_seen_at).toLocaleString(
-                                                    'tr-TR'
-                                                )}
+                                                {alert.code} ·{' '}
+                                                {t('occurrences', {
+                                                    count: alert.occurrence_count,
+                                                })}{' '}
+                                                · {formatDate(alert.last_seen_at)}
                                             </p>
                                         </div>
                                     </div>
@@ -197,13 +219,12 @@ export function PaymentOperationsTab() {
                                             variant="outline"
                                             disabled={pending}
                                             onClick={() =>
-                                                startTransition(async () => {
-                                                    await acknowledgeAdminPaymentAlert(alert.id)
-                                                    await load()
-                                                })
+                                                runAction(() =>
+                                                    acknowledgeAdminPaymentAlert(alert.id)
+                                                )
                                             }
                                         >
-                                            İncelendi
+                                            {t('acknowledge')}
                                         </Button>
                                     )}
                                 </div>
@@ -217,31 +238,28 @@ export function PaymentOperationsTab() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Banknote className="size-5" />
-                        Sipariş iptal/iade
+                        {t('reversalTitle')}
                     </CardTitle>
-                    <CardDescription>
-                        Aynı gün dokunulmamış tam tutar otomatik iptal, diğer tutarlar iade olur.
-                    </CardDescription>
+                    <CardDescription>{t('reversalDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Sipariş</TableHead>
-                                <TableHead>Paket</TableHead>
-                                <TableHead>Durum</TableHead>
-                                <TableHead>Kalan</TableHead>
-                                <TableHead>Tutar (TL)</TableHead>
-                                <TableHead>Gerekçe</TableHead>
-                                <TableHead />
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {orders
-                                .filter((order) =>
-                                    ['paid', 'partially_refunded'].includes(order.status)
-                                )
-                                .map((order) => {
+                    {refundableOrders.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">{t('noRefundableOrders')}</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{t('order')}</TableHead>
+                                    <TableHead>{t('plan')}</TableHead>
+                                    <TableHead>{t('status')}</TableHead>
+                                    <TableHead>{t('remaining')}</TableHead>
+                                    <TableHead>{t('amount')}</TableHead>
+                                    <TableHead>{t('reason')}</TableHead>
+                                    <TableHead />
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {refundableOrders.map((order) => {
                                     const totalMinor = Math.round(Number(order.total_amount) * 100)
                                     const remaining =
                                         totalMinor - Number(order.refunded_amount_minor || 0)
@@ -251,11 +269,12 @@ export function PaymentOperationsTab() {
                                                 {order.id.slice(0, 8)}
                                             </TableCell>
                                             <TableCell>
-                                                {order.plan_id} / {order.billing_cycle}
+                                                {order.plan_id} /{' '}
+                                                {label('cycles', order.billing_cycle)}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant={statusVariant(order.status)}>
-                                                    {order.status}
+                                                    {label('statuses', order.status)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -285,7 +304,7 @@ export function PaymentOperationsTab() {
                                             <TableCell>
                                                 <Input
                                                     className="min-w-44"
-                                                    placeholder="İade gerekçesi"
+                                                    placeholder={t('reasonPlaceholder')}
                                                     value={reasons[order.id] ?? ''}
                                                     onChange={(event) => {
                                                         setReasons((current) => ({
@@ -304,80 +323,86 @@ export function PaymentOperationsTab() {
                                                     size="sm"
                                                     variant="destructive"
                                                     disabled={pending}
-                                                    onClick={() => reverse(order)}
+                                                    onClick={() => reverse(order, remaining)}
                                                 >
-                                                    İptal / İade
+                                                    {t('reverse')}
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
                                     )
                                 })}
-                        </TableBody>
-                    </Table>
+                            </TableBody>
+                        </Table>
+                    )}
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Mutabakat operasyonları</CardTitle>
-                    <CardDescription>
-                        Banka sipariş sorgusu, iptal/iade ve manuel kontrol durumları.
-                    </CardDescription>
+                    <CardTitle>{t('operationsTitle')}</CardTitle>
+                    <CardDescription>{t('operationsDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tür</TableHead>
-                                <TableHead>Durum</TableHead>
-                                <TableHead>Tutar</TableHead>
-                                <TableHead>Banka kodu</TableHead>
-                                <TableHead>Hata</TableHead>
-                                <TableHead>Tarih</TableHead>
-                                <TableHead />
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {operations.map((operation) => (
-                                <TableRow key={operation.id}>
-                                    <TableCell>{operation.operation_type}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={statusVariant(operation.status)}>
-                                            {operation.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{money(operation.requested_amount_minor)}</TableCell>
-                                    <TableCell>{operation.bank_response_code ?? '-'}</TableCell>
-                                    <TableCell className="text-xs">
-                                        {operation.last_error_code ?? '-'}
-                                    </TableCell>
-                                    <TableCell className="text-xs">
-                                        {new Date(operation.created_at).toLocaleString('tr-TR')}
-                                    </TableCell>
-                                    <TableCell>
-                                        {operation.operation_type === 'reconciliation' &&
-                                            operation.status === 'manual_review' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={pending}
-                                                    onClick={() =>
-                                                        startTransition(async () => {
-                                                            await reconcileAdminPaymentAttempt(
-                                                                operation.attempt_id
-                                                            )
-                                                            await load()
-                                                        })
-                                                    }
-                                                >
-                                                    Tekrar sorgula
-                                                </Button>
-                                            )}
-                                    </TableCell>
+                    {operations.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">{t('noOperations')}</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{t('type')}</TableHead>
+                                    <TableHead>{t('status')}</TableHead>
+                                    <TableHead>{t('operationAmount')}</TableHead>
+                                    <TableHead>{t('bankCode')}</TableHead>
+                                    <TableHead>{t('error')}</TableHead>
+                                    <TableHead>{t('date')}</TableHead>
+                                    <TableHead />
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {operations.map((operation) => (
+                                    <TableRow key={operation.id}>
+                                        <TableCell>
+                                            {label('operationTypes', operation.operation_type)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={statusVariant(operation.status)}>
+                                                {label('statuses', operation.status)}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {money(operation.requested_amount_minor)}
+                                        </TableCell>
+                                        <TableCell>{operation.bank_response_code ?? '-'}</TableCell>
+                                        <TableCell className="text-xs">
+                                            {operation.last_error_code ?? '-'}
+                                        </TableCell>
+                                        <TableCell className="text-xs">
+                                            {formatDate(operation.created_at)}
+                                        </TableCell>
+                                        <TableCell>
+                                            {operation.operation_type === 'reconciliation' &&
+                                                operation.status === 'manual_review' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={pending}
+                                                        onClick={() =>
+                                                            runAction(() =>
+                                                                reconcileAdminPaymentAttempt(
+                                                                    operation.attempt_id
+                                                                )
+                                                            )
+                                                        }
+                                                    >
+                                                        {t('retry')}
+                                                    </Button>
+                                                )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </CardContent>
             </Card>
         </div>
