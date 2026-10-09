@@ -75,7 +75,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | 🟡 Kod incelendi, güvenlik açığı kapatıldı (test POS ile uçtan uca kaldı) |
 | 17 | Admin paneli | 🟡 Orta | 🟢 Plan değiştirme düzeltildi |
 | 18 | Public site (landing, özellikler, SSS, iletişim, blog, yasal) | 🟡 Orta | 🟢 Tek tip tasarım + içerik doğrulaması yapıldı (iletişim formu gerçek e-postayla denenmedi) |
-| 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | 🟢 i18n, kırık kayıt linki, arka plan rengi, PDF düzeltildi (builder ile birleştirme kararı kaldı) |
+| 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | 🟢 Builder ile birleştirildi (ortak tasarım bölümleri ve önizleme) |
 | 20 | Hata / 404 sayfaları | 🟢 Düşük | 🟢 Yapıldı |
 
 **Önerilen sıra:** Faz 0 → 1 → 3–5 (doğrulama) → 8 → 9 → 10 → 11 → 16 → 2 → 6 → 7 → 14 → 13 → 17 → 18 → kalanlar.
@@ -372,7 +372,7 @@ Kalan:
 - ~~Supabase `catalogs.primary_color` varsayılanı mor~~ → backend oluşturmada `#18181b` yazıyor (DB varsayılanı değişmedi)
 - ~~Toplu görsel yükleme penceresi sabit Türkçe~~ → çevrildi; 20 görsel / 20 MB
 - ~~Builder tasarım sekmesinde ~70 prop aktarımı~~ → bölümler state'i context'ten okuyor (design-context.tsx)
-- Demo builder gerçek builder'ın ayrı kopyası
+- ~~Demo builder gerçek builder'ın ayrı kopyası~~ → builder parçalarını kullanıyor
 - Branch'teki son commit'ler push edilmedi, main'e birleştirilmedi
 
 ## 7. Karar bekleyen sorular
@@ -403,5 +403,5 @@ Kalan:
 - Toplu görsel yükleme çevrildi, sınırlar 20 görsel / 20 MB; ürün ızgarasındaki ~200 satırlık önizleme kopyası kaldırıldı.
 - Yeni kataloglar DB varsayılanı yüzünden mor vurgu rengiyle açılıyordu.
 
-**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, demo/builder birleştirme kararı, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
+**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
 
