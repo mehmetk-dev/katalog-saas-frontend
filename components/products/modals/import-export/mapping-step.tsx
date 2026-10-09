@@ -109,8 +109,8 @@ export function MappingStep({
                         <Crown className="w-4 h-4 text-destructive" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-destructive-soft-foreground">Kategori sütunu eşlendi ancak kaydedilmeyecek</p>
-                        <p className="text-xs text-destructive">Free planda kategori bilgisi içe aktarılamaz. Kategori sütunundaki değerler atlanacak. Kategorileri kaydetmek için planınızı yükseltin.</p>
+                        <p className="text-sm font-medium text-destructive-soft-foreground">{t('importExport.categoryMappedFree')}</p>
+                        <p className="text-xs text-destructive">{t('importExport.categoryMappedFreeDesc')}</p>
                     </div>
                 </div>
             )}

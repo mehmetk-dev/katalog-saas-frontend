@@ -2,6 +2,10 @@ const admin = {
     tr: {
         admin: {
             payments: "Ödemeler",
+            loginTitle: "Yönetici girişi",
+            loginDesc: "Yönetim paneline erişim",
+            loginNotAdmin: "Bu hesabın yönetici yetkisi yok.",
+            loginFooter: "Yalnızca yetkili yöneticiler erişebilir.",
             paymentOps: {
                 loadError: "Ödeme işlemleri yüklenemedi.",
                 actionError: "İşlem yapılamadı; durumu yenileyip tekrar deneyin.",
@@ -178,6 +182,10 @@ const admin = {
     en: {
         admin: {
             payments: "Payments",
+            loginTitle: "Admin sign in",
+            loginDesc: "Access the admin panel",
+            loginNotAdmin: "This account does not have admin access.",
+            loginFooter: "Only authorized administrators can access this page.",
             paymentOps: {
                 loadError: "Could not load payment operations.",
                 actionError: "The action failed; refresh and try again.",

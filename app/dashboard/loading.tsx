@@ -4,8 +4,10 @@ import { Loader2 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTranslation } from '@/lib/contexts/i18n-provider'
 
 export default function DashboardLoading() {
+    const { t } = useTranslation()
     return (
         <div className="flex-1 p-6 space-y-6">
             {/* Header Skeleton */}
@@ -73,7 +75,7 @@ export default function DashboardLoading() {
             {/* Loading indicator */}
             <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Yükleniyor...</span>
+                <span className="ml-2 text-sm text-muted-foreground">{t('common.loading')}</span>
             </div>
         </div>
     )

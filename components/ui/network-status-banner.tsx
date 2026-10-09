@@ -4,7 +4,7 @@ import { useNetworkStatus } from "@/lib/hooks/use-network-status"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 export function NetworkStatusBanner() {
-    const { isOnline, isSlowConnection } = useNetworkStatus({ showToasts: false })
+    const { isOnline, isSlowConnection } = useNetworkStatus()
     const { t } = useTranslation()
 
     if (isOnline && !isSlowConnection) return null

@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { toast } from 'sonner'
 
+/** Durum, NetworkStatusBanner'da (çevrili) gösterilir; hook kendi bildirimini açmaz */
 interface UseNetworkStatusOptions {
-    showToasts?: boolean
     onOnline?: () => void
     onOffline?: () => void
 }
@@ -24,7 +23,7 @@ interface NetworkInformation extends EventTarget {
 }
 
 export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetworkStatusReturn {
-    const { showToasts = true, onOnline, onOffline } = options
+    const { onOnline, onOffline } = options
 
     const [isOnline, setIsOnline] = useState(true)
     const [isSlowConnection, setIsSlowConnection] = useState(false)
@@ -54,20 +53,11 @@ export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetw
 
         const handleOnline = () => {
             setIsOnline(true)
-            if (showToasts) {
-                toast.success('İnternet bağlantısı geri geldi!', { duration: 3000 })
-            }
             onOnline?.()
         }
 
         const handleOffline = () => {
             setIsOnline(false)
-            if (showToasts) {
-                toast.error('İnternet bağlantısı kesildi!', {
-                    duration: 5000,
-                    description: 'Bazı özellikler çalışmayabilir.'
-                })
-            }
             onOffline?.()
         }
 
@@ -85,13 +75,6 @@ export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetw
 
                 const slowTypes = ['slow-2g', '2g']
                 setIsSlowConnection(slowTypes.includes(connection.effectiveType))
-
-                if (slowTypes.includes(connection.effectiveType) && showToasts) {
-                    toast.warning('Yavaş internet bağlantısı algılandı', {
-                        duration: 4000,
-                        description: 'Yüklemeler beklenenden uzun sürebilir.'
-                    })
-                }
             }
         }
 
@@ -110,7 +93,7 @@ export function useNetworkStatus(options: UseNetworkStatusOptions = {}): UseNetw
                 connection.removeEventListener('change', updateConnectionInfo)
             }
         }
-    }, [showToasts, onOnline, onOffline])
+    }, [onOnline, onOffline])
 
     return {
         isOnline,
