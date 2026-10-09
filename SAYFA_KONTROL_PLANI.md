@@ -218,7 +218,7 @@ Kalan:
 - [ ] Gerçek backend ile kaydet / otomatik kayıt / yayınla / yayından kaldır / slug güncelle
 - [ ] Logo, arka plan, kapak görseli yükleme
 - [ ] 1000+ ürünlü katalogda performans
-- [ ] Teknik borç: tasarım sekmesine ~70 prop aktarımı, demo builder'ın ayrı kopya olması
+- [x] Teknik borç: tasarım sekmesine ~70 prop aktarımı kaldırıldı; demo builder'ın parçalarını kullanıyor
 
 ### 10. Yayındaki katalog sayfası (`/catalog/[slug]`) — müşterinin gördüğü yüz
 `app/catalog/[slug]/*`
@@ -394,7 +394,7 @@ Kalan:
 | Şablonlar | Premium şablon backend'de kontrol edilmiyordu; sabit metinler, dokunmatikte görünmeyen buton |
 | Hata sayfaları | "api" geçen her hata "sunucuya ulaşılamıyor" sayılıyordu; tek tip ve çevirili |
 
-**Kalanlar:** Faz 0 (test Supabase + gerçek uçtan uca denemeler), demo oluşturucu i18n ve builder ile birleştirme kararı, admin kullanıcı listesinde 1000 satır sınırı (şimdilik kullanıcı az), bulut görsellerinin (Cloudinary) hesap silmede temizlenmemesi, Excel AI kotasının sunucu belleğinde tutulması (tek frontend süreciyle yeterli).
+**Kalanlar:** Faz 0 (test Supabase + gerçek uçtan uca denemeler), admin kullanıcı listesinde 1000 satır sınırı (şimdilik kullanıcı az), bulut görsellerinin (Cloudinary) hesap silmede temizlenmemesi, Excel AI kotasının sunucu belleğinde tutulması (tek frontend süreciyle yeterli).
 
 ### Üçüncü tur (9 Ekim 2026)
 - Demo: "Ücretsiz hesap oluştur" 404 veren /auth/register'a gidiyordu; arka plan rengi etkisizdi; PDF küçültülmüş önizlemeden alınıyordu; tamamen çevrildi.
@@ -402,6 +402,11 @@ Kalan:
 - Hesap silmede ürün/katalog/kategori/profil görselleri Cloudinary'de "silinenler" klasörüne taşınıyor.
 - Toplu görsel yükleme çevrildi, sınırlar 20 görsel / 20 MB; ürün ızgarasındaki ~200 satırlık önizleme kopyası kaldırıldı.
 - Yeni kataloglar DB varsayılanı yüzünden mor vurgu rengiyle açılıyordu.
+
+### Dördüncü tur (9 Ekim 2026)
+- Builder: tasarım bölümleri ~70 prop yerine ortak bir kaynaktan (DesignSource) besleniyor.
+- Demo builder'ın tasarım bölümlerini ve önizlemesini kullanıyor (16 şablon, kapak, arka plan); görseller sunucuya gitmiyor; PDF çok sayfalı.
+- Logo yüklenince konum "gösterme"de kaldığı için logo görünmüyordu (builder + demo).
 
 **Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
 
