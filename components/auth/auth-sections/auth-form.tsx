@@ -1,5 +1,5 @@
 import type { AuthState, AuthHandlers, TranslateFn } from "./types"
-import { BackgroundDecorations, AuthFormBackButton, AuthFormHeader } from "./auth-form-header"
+import { AuthFormBackButton, AuthFormHeader } from "./auth-form-header"
 import { AuthFormError, ResetLinkSent } from "./auth-form-alerts"
 import { AuthFormFields } from "./auth-form-fields"
 import { AuthFormActions } from "./auth-form-actions"
@@ -26,7 +26,6 @@ export function AuthForm({ t, state, handlers }: AuthFormProps) {
 
     return (
         <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-background lg:w-1/2">
-            <BackgroundDecorations />
             <AuthFormBackButton t={t} />
 
             <div className="relative z-10 w-full max-w-[420px] px-4 py-20 sm:px-6 lg:p-12">

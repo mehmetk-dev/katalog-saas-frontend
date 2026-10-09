@@ -1,21 +1,16 @@
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
+import { LegalDocument } from "@/components/marketing"
 import { FileText, Upload, ShieldCheck, CreditCard, Scale, Mail } from "lucide-react"
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-muted/50">
-      <PublicHeader />
-
-      <main className="pt-32 pb-20">
-        <div className="max-w-3xl mx-auto px-6">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">Kullanım Koşulları</h1>
-          <p className="text-muted-foreground mb-10">Son güncelleme: 25 Ocak 2026</p>
+    <LegalDocument header={<PublicHeader />} footer={<PublicFooter />} title="Kullanım Koşulları" meta="Son güncelleme: 25 Ocak 2026">
 
           {/* Özet Kutusu */}
-          <div className="bg-info-soft border border-info/60 rounded-2xl p-8 mb-10">
+          <div className="rounded-xl border border-border bg-muted/40 p-6">
             <div className="flex items-center gap-2 mb-5">
-              <FileText className="w-5 h-5 text-info" />
+              <FileText className="w-5 h-5 text-muted-foreground" />
               <h2 className="text-lg font-bold text-foreground">Kısaca</h2>
             </div>
             <ul className="space-y-3">
@@ -27,7 +22,7 @@ export default function TermsPage() {
                 { icon: Mail, text: "Sorularınız için: legal@fogcatalog.com" },
               ].map(({ icon: Icon, text }, i) => (
                 <li key={i} className="flex gap-3 items-start">
-                  <Icon className="w-4 h-4 text-info mt-0.5 shrink-0" />
+                  <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                   <span className="text-foreground text-sm leading-relaxed">{text}</span>
                 </li>
               ))}
@@ -35,7 +30,7 @@ export default function TermsPage() {
           </div>
 
           {/* Detaylı Hukuki Metin — Açılır/Kapanır */}
-          <details className="group bg-card rounded-2xl border border-border overflow-hidden">
+          <details className="group bg-card rounded-xl border border-border overflow-hidden">
             <summary className="flex items-center justify-between cursor-pointer px-8 py-5 hover:bg-muted/50 transition-colors select-none">
               <span className="text-sm font-semibold text-foreground">Detaylı Hukuki Metin</span>
               <svg className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,10 +102,6 @@ export default function TermsPage() {
               </section>
             </div>
           </details>
-        </div>
-      </main>
-
-      <PublicFooter />
-    </div>
+    </LegalDocument>
   )
 }

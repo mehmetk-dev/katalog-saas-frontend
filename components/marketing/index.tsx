@@ -241,3 +241,27 @@ export function FeatureRow({ icon, title, description, bullets }: FeatureRowProp
     </div>
   )
 }
+
+interface LegalDocumentProps {
+  title: ReactNode
+  /** Yürürlük / son güncelleme tarihi satırı */
+  meta?: ReactNode
+  header: ReactNode
+  footer: ReactNode
+  children: ReactNode
+}
+
+/** KVKK, gizlilik, şartlar gibi yasal metinlerin ortak sayfa düzeni */
+export function LegalDocument({ title, meta, header, footer, children }: LegalDocumentProps) {
+  return (
+    <MarketingPage header={header} footer={footer}>
+      <article className={cn(MARKETING_CONTAINER, "max-w-3xl pb-16 pt-28 sm:pb-24 sm:pt-36")}>
+        <header className="mb-10 border-b border-border pb-8">
+          <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>
+          {meta ? <p className="mt-3 text-sm text-muted-foreground">{meta}</p> : null}
+        </header>
+        <div className="space-y-10 text-[15px] leading-relaxed text-foreground">{children}</div>
+      </article>
+    </MarketingPage>
+  )
+}

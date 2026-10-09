@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { AuthBackLink, AuthBackground } from "@/components/auth/auth-shell"
+import { AuthBackLink } from "@/components/auth/auth-shell"
 import { cn } from "@/lib/utils"
 import type { AuthMode, TranslateFn } from "./types"
 import { Logo } from "@/components/ui/logo"
@@ -45,4 +45,3 @@ export function AuthFormHeader({ mode, t }: AuthFormHeaderProps) {
     )
 }
 
-export { AuthBackground as BackgroundDecorations }

@@ -7,6 +7,7 @@ import {
 const legal = {
     tr: {
         legal: {
+            effectiveDateLabel: "Yürürlük tarihi",
             cancellationPolicy: {
                 title: "İptal ve İade Koşulları",
                 ref: "REF: LEG-REF-2026/V1",
@@ -400,6 +401,7 @@ const legal = {
     },
     en: {
         legal: {
+            effectiveDateLabel: "Effective date",
             cancellationPolicy: {
                 title: "Cancellation & Refund Policy",
                 ref: "REF: LEG-REF-2026/V1",

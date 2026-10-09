@@ -1,55 +1,35 @@
 import Link from "next/link"
-import NextImage from "next/image"
-import { CheckCircle2 } from "lucide-react"
-import type { TranslateFn } from "./types"
+import { Check } from "lucide-react"
+
 import { Logo } from "@/components/ui/logo"
+import type { TranslateFn } from "./types"
 
 interface HeroPanelProps {
     t: TranslateFn
 }
 
+const FEATURE_KEYS = ["feature1", "feature2", "feature3", "feature4", "feature5"] as const
+
+/** Giriş/kayıt ekranının sol paneli — public site ile aynı sade dil */
 export function HeroPanel({ t }: HeroPanelProps) {
     return (
-        <div className="hidden lg:flex w-1/2 relative overflow-hidden flex-col p-12 text-white">
-            <div className="absolute inset-0 z-0">
-                <NextImage
-                    src="/auth-hero-bg.webp"
-                    alt="Background"
-                    fill
-                    sizes="(max-width: 1024px) 0vw, 50vw"
-                    className="object-cover"
-                    priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
-                <div className="absolute inset-0 bg-primary/20 mix-blend-overlay" />
-            </div>
+        <div className="relative hidden w-1/2 flex-col border-r border-border bg-muted/40 p-12 lg:flex">
+            <Link href="/" className="inline-flex w-fit">
+                <Logo size="lg" />
+            </Link>
 
-            <div className="relative z-20">
-                <Link href="/" className="flex items-center group">
-                    <Logo size="lg" className="text-white" />
-                </Link>
-            </div>
-
-            <div className="relative z-10 flex-1 flex flex-col justify-center max-w-lg">
-                <h2 className="text-4xl font-bold tracking-tight mb-4 leading-tight">
-                    {t('marketing.authHeroTitle')}
+            <div className="flex max-w-md flex-1 flex-col justify-center">
+                <h2 className="text-balance text-4xl font-semibold tracking-tight text-foreground">
+                    {t("marketing.authHeroTitle")}
                 </h2>
-                <p className="text-lg text-white/70 mb-10 leading-relaxed">
-                    {t('landing.heroSubtitle')}
-                </p>
-                <ul className="space-y-5">
-                    {[
-                        t('marketing.feature1'),
-                        t('marketing.feature2'),
-                        t('marketing.feature3'),
-                        t('marketing.feature4'),
-                        t('marketing.feature5')
-                    ].map((feature, idx) => (
-                        <li key={idx} className="flex items-center gap-3 text-white/90">
-                            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center shadow-lg shadow-brand/20">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                            </div>
-                            <span className="font-medium text-[17px]">{feature}</span>
+                <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{t("landing.heroSubtitle")}</p>
+                <ul className="mt-10 space-y-4">
+                    {FEATURE_KEYS.map((key) => (
+                        <li key={key} className="flex items-center gap-3 text-foreground">
+                            <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-background">
+                                <Check className="size-3.5 text-success" aria-hidden />
+                            </span>
+                            {t(`marketing.${key}`)}
                         </li>
                     ))}
                 </ul>

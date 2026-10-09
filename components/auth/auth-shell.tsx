@@ -5,16 +5,6 @@ import { ArrowLeft } from "lucide-react"
 import { Logo } from "@/components/ui/logo"
 import { cn } from "@/lib/utils"
 
-/** Giriş ekranı ve yardımcı auth sayfalarının ortak arka planı */
-export function AuthBackground() {
-    return (
-        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-48 left-1/2 h-96 w-[44rem] -translate-x-1/2 rounded-full bg-brand/10 blur-3xl" />
-            <div className="absolute inset-0 bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_55%)]" />
-        </div>
-    )
-}
-
 export function AuthBackLink({ href, label }: { href: string; label: string }) {
     return (
         <Link
@@ -47,7 +37,6 @@ interface AuthShellProps {
 export function AuthShell({ title, description, icon, iconTone = "muted", back, children }: AuthShellProps) {
     return (
         <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-background px-4 py-16">
-            <AuthBackground />
             {back && <AuthBackLink href={back.href} label={back.label} />}
 
             <div className="relative z-10 w-full max-w-[400px]">
