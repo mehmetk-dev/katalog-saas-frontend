@@ -7,6 +7,7 @@ import NextImage from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import { type Product } from "../types"
 import { getStockStatus, formatProductPrice, isSafeUrl } from "../utils/product-helpers"
@@ -18,6 +19,7 @@ interface ProductPreviewDialogProps {
 }
 
 export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPreviewDialogProps) {
+    const { t } = useTranslation()
     const [activeImageIndex, setActiveImageIndex] = useState(0)
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
@@ -135,24 +137,24 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                         "p-3 rounded-lg bg-accent",
                         "border border-border"
                     )}>
-                        <p className="text-xs text-primary font-medium">Fiyat</p>
+                        <p className="text-xs text-primary font-medium">{t("productPreview.price")}</p>
                         <p className="text-xl font-bold text-primary">{formatProductPrice(product)}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-muted/50 border">
-                        <p className="text-xs text-muted-foreground font-medium">Stok</p>
+                        <p className="text-xs text-muted-foreground font-medium">{t("productPreview.stock")}</p>
                         <p className={cn(
                             "text-xl font-bold",
                             stockStatus.variant === "destructive" && "text-destructive",
                             stockStatus.variant === "secondary" && "text-warning-soft-foreground",
                             stockStatus.variant === "default" && "text-success"
                         )}>
-                            {product.stock} adet
+                            {t("productPreview.units", { count: product.stock })}
                         </p>
                     </div>
                 </div>
 
                 <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Kategori</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.category")}</p>
                     {product.category ? (
                         <div className="flex flex-wrap gap-1">
                             {product.category.split(',').map((cat, idx) => (
@@ -165,7 +167,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                 </div>
 
                 <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Açıklama</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.description")}</p>
                     <div className="text-sm text-foreground/90 leading-relaxed">
                         {product.description || "—"}
                     </div>
@@ -173,7 +175,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
 
                 {product.product_url && isSafeUrl(product.product_url) && (
                     <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Ürün Linki</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.link")}</p>
                         <a
                             href={product.product_url}
                             target="_blank"
@@ -192,7 +194,7 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
 
                 {customAttrs.length > 0 && (
                     <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">Özellikler</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.attributes")}</p>
                         <div className="grid grid-cols-2 gap-1.5">
                             {customAttrs.map((attr, idx) => (
                                 <div key={idx} className={cn(
@@ -216,9 +218,9 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
                     )}
                     onClick={() => { onClose(); onEdit(product) }}
                 >
-                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Düzenle
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> {t("common.edit")}
                 </Button>
-                <Button size="sm" variant="outline" onClick={onClose}>Kapat</Button>
+                <Button size="sm" variant="outline" onClick={onClose}>{t("common.close")}</Button>
             </div>
         </>
     )

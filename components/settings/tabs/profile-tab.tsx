@@ -187,7 +187,7 @@ export function ProfileTab({
               <div className="flex items-center gap-2 pb-1 border-b">
                 <Link2 className="w-4 h-4 text-muted-foreground" />
                 <h3 className="text-sm font-semibold text-foreground">Sosyal Medya &amp; Web</h3>
-                <span className="text-xs text-muted-foreground">(isteğe bağlı)</span>
+                <span className="text-xs text-muted-foreground">{t("productForm.optional")}</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-1">
                 <SocialUrlField

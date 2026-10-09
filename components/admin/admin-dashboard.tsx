@@ -63,7 +63,7 @@ export function AdminDashboardClient() {
                     <TabsTrigger value="deleted">{t("admin.deletedUsers")} ({deletedUsers.length})</TabsTrigger>
                     <TabsTrigger value="feedbacks">{t("admin.feedbacks")} ({feedbacks.length})</TabsTrigger>
                     <TabsTrigger value="activity">{t("admin.activityLogs")}</TabsTrigger>
-                    <TabsTrigger value="payments"><CreditCard className="size-4" />Ödemeler</TabsTrigger>
+                    <TabsTrigger value="payments"><CreditCard className="size-4" />{t("admin.payments")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">

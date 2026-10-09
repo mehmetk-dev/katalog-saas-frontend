@@ -1,5 +1,14 @@
 const products = {
     tr: {
+        productPreview: {
+            units: "{count} adet",
+            description: "Açıklama",
+            link: "Ürün linki",
+            attributes: "Özellikler",
+            price: "Fiyat",
+            stock: "Stok",
+            category: "Kategori",
+        },
         bulkImages: {
             title: "Toplu fotoğraf yükle ve eşleştir",
             description: "Fotoğrafları sürükleyip bırakın. Dosya adı ürün kodu (SKU) veya adıyla eşleşenler otomatik bağlanır.",
@@ -293,6 +302,15 @@ const products = {
         },
     },
     en: {
+        productPreview: {
+            units: "{count} units",
+            description: "Description",
+            link: "Product link",
+            attributes: "Attributes",
+            price: "Price",
+            stock: "Stock",
+            category: "Category",
+        },
         bulkImages: {
             title: "Bulk upload & match photos",
             description: "Drag and drop photos. Files whose names match a product's SKU or name are linked automatically.",
