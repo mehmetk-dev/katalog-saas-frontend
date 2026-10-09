@@ -22,6 +22,8 @@ vi.mock("@/backend/src/services/supabase", () => {
         return Promise.resolve({ error: null })
       },
       eq: (col: string, value: unknown) => (filters.push((r) => r[col] === value), builder),
+      order: () => builder,
+      range: () => builder,
       maybeSingle: () => ((maybeSingle = true), builder),
       then(resolve: (value: unknown) => void) {
         const rows = db.tables[table] ?? []
@@ -64,6 +66,17 @@ vi.mock("@/backend/src/services/activity-logger", () => ({
   ActivityDescriptions: { accountDeleted: () => "deleted" },
 }))
 
+const cleanup = vi.hoisted(() => ({ calls: [] as string[][] }))
+vi.mock("@/backend/src/controllers/products/media", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/backend/src/controllers/products/media")>()
+  return {
+    ...actual,
+    cleanupProductPhotos: vi.fn(async (urls: string[]) => {
+      cleanup.calls.push(urls)
+    }),
+  }
+})
+
 import { deleteMe } from "@/backend/src/controllers/users"
 
 async function run() {
@@ -79,11 +92,15 @@ async function run() {
 
 describe("hesap silme", () => {
   beforeEach(() => {
+    cleanup.calls = []
     db.auth = { deleted: [], updated: [] }
     db.tables = {
       users: [{ id: "u1", email: "ayse@example.com", full_name: "Ayşe", company: "Ayşe Ltd", plan: "plus" }],
-      products: [{ id: "p1", user_id: "u1" }, { id: "p2", user_id: "other" }],
-      catalogs: [{ id: "c1", user_id: "u1" }],
+      products: [
+        { id: "p1", user_id: "u1", image_url: "https://res.cloudinary.com/x/p1.jpg", images: ["https://res.cloudinary.com/x/p1.jpg", "https://res.cloudinary.com/x/p1b.jpg"] },
+        { id: "p2", user_id: "other", image_url: "https://res.cloudinary.com/x/other.jpg", images: [] },
+      ],
+      catalogs: [{ id: "c1", user_id: "u1", cover_image_url: "https://res.cloudinary.com/x/cover.jpg", logo_url: null, background_image: null }],
       category_metadata: [],
       notifications: [],
       billing_payment_attempts: [],
@@ -114,5 +131,15 @@ describe("hesap silme", () => {
     expect(db.tables.users[0]).toMatchObject({ full_name: null, company: null, plan: "free" })
     expect(String(db.tables.users[0].email)).toMatch(/^deleted-u1@/)
     expect(db.auth.updated[0]).toMatchObject({ id: "u1", attrs: expect.objectContaining({ ban_duration: "876000h" }) })
+  })
+
+  it("hesabın görsellerini (yalnızca kendi) Cloudinary temizliğine gönderir", async () => {
+    await run()
+    expect(cleanup.calls).toHaveLength(1)
+    expect(cleanup.calls[0].sort()).toEqual([
+      "https://res.cloudinary.com/x/cover.jpg",
+      "https://res.cloudinary.com/x/p1.jpg",
+      "https://res.cloudinary.com/x/p1b.jpg",
+    ])
   })
 })

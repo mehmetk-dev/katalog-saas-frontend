@@ -39,15 +39,30 @@ router.post('/billing/attempts/:attemptId/reconcile', billingMutationLimiter, re
 router.post('/billing/orders/:orderId/reversal', billingMutationLimiter, createPaymentReversal);
 router.post('/billing/alerts/:alertId/acknowledge', billingMutationLimiter, acknowledgePaymentAlert);
 
+const PAGE_SIZE = 1000;
+
+/** Supabase tek sorguda en fazla 1000 satır döndürür; admin listeleri tamamını okur */
+async function fetchAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+    const rows: T[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await page(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < PAGE_SIZE) return rows;
+    }
+}
+
 // GET /admin/users - Tum kullanicilari getir
 router.get('/users', async (_req: Request, res: Response) => {
     try {
-        const { data: users, error } = await supabase
-            .from('users')
-            .select('id, email, full_name, company, plan, subscription_status, subscription_end, is_admin, exports_used, created_at, updated_at')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
+        const users = await fetchAll((from, to) =>
+            supabase
+                .from('users')
+                .select('id, email, full_name, company, plan, subscription_status, subscription_end, is_admin, exports_used, created_at, updated_at')
+                .order('created_at', { ascending: false })
+                .order('id')
+                .range(from, to)
+        );
         res.json(users);
     } catch (error: unknown) {
         res.status(500).json({ error: safeErrorMessage(error) });
@@ -57,13 +72,16 @@ router.get('/users', async (_req: Request, res: Response) => {
 // GET /admin/deleted-users - Silinen kullanicilari getir
 router.get('/deleted-users', async (_req: Request, res: Response) => {
     try {
-        const { data: users, error } = await supabase
-            .from('deleted_users')
-            .select('id, email, full_name, company, plan, deleted_at, created_at')
-            .order('deleted_at', { ascending: false });
-
-        if (error) throw error;
-        res.json(users || []);
+        // Tabloda created_at yok, hesabın açılış tarihi original_created_at'te (önceden sorgu hata veriyordu)
+        const users = await fetchAll((from, to) =>
+            supabase
+                .from('deleted_users')
+                .select('id, email, full_name, company, plan, deleted_at, deletion_reason, original_created_at')
+                .order('deleted_at', { ascending: false })
+                .order('id')
+                .range(from, to)
+        );
+        res.json(users);
     } catch (error: unknown) {
         res.status(500).json({ error: safeErrorMessage(error) });
     }

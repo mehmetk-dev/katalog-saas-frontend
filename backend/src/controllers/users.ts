@@ -6,6 +6,7 @@ import { deleteCache, cacheKeys } from '../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../services/activity-logger';
 import { safeErrorMessage } from '../utils/safe-error';
 import { countMonthlyExports, getMonthlyExportLimit } from '../services/pdf-export-quota';
+import { cleanupProductPhotos, collectPhotoUrlsFromProducts } from './products/media';
 
 // Helper to get user ID from request (attached by auth middleware)
 const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
@@ -221,6 +222,37 @@ async function recordDeletedUser(userId: string, reason: string) {
     if (error) console.warn('[users] deleted_users kaydı yazılamadı', error.message);
 }
 
+/** Hesaba ait tüm yüklenmiş görsellerin URL'leri (ürün, katalog, kategori, profil) */
+async function collectAccountImageUrls(userId: string): Promise<string[]> {
+    const urls = new Set<string>();
+    const add = (value: unknown) => {
+        if (typeof value === 'string' && value.startsWith('http')) urls.add(value);
+    };
+
+    for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+            .from('products')
+            .select('image_url, images')
+            .eq('user_id', userId)
+            .order('id')
+            .range(from, from + 999);
+        if (error) throw error;
+        collectPhotoUrlsFromProducts(data || []).forEach(add);
+        if (!data || data.length < 1000) break;
+    }
+
+    const [catalogs, categories, profile] = await Promise.all([
+        supabase.from('catalogs').select('logo_url, cover_image_url, background_image').eq('user_id', userId),
+        supabase.from('category_metadata').select('cover_image').eq('user_id', userId),
+        supabase.from('users').select('avatar_url, logo_url').eq('id', userId).maybeSingle(),
+    ]);
+    (catalogs.data || []).forEach((c) => { add(c.logo_url); add(c.cover_image_url); add(c.background_image); });
+    (categories.data || []).forEach((c) => add(c.cover_image));
+    add(profile.data?.avatar_url);
+    add(profile.data?.logo_url);
+    return Array.from(urls);
+}
+
 /**
  * Hesap silme. Ödeme denemesi/belgesi olan kullanıcı silinemiyordu: bu tablolar users'a
  * ON DELETE RESTRICT ile bağlı (muhasebe kayıtları yasal olarak saklanmalı), auth kullanıcısını
@@ -241,11 +273,24 @@ export const deleteMe = async (req: Request, res: Response) => {
             userAgent
         });
 
+        // Görseller DB kayıtları silinmeden önce toplanır; Cloudinary'de "silinenler" klasörüne
+        // taşıma yanıtı bekletmeden arka planda yapılır (önceden hiç temizlenmiyordu)
+        const imageUrls = await collectAccountImageUrls(userId).catch((error) => {
+            console.warn('[users] hesap görselleri toplanamadı', safeErrorMessage(error));
+            return [] as string[];
+        });
+        const cleanupImages = () => {
+            void cleanupProductPhotos(imageUrls, 'deleteAccount').catch((error) =>
+                console.warn('[users] hesap görselleri temizlenemedi', safeErrorMessage(error))
+            );
+        };
+
         if (!(await hasRetainedBillingRecords(userId))) {
             await recordDeletedUser(userId, 'user_request');
             // auth kullanıcısını silmek public.users ve bağlı tablolara zincirleme yayılır
             const { error: authError } = await supabase.auth.admin.deleteUser(userId);
             if (authError) throw authError;
+            cleanupImages();
             return res.json({ success: true, mode: 'deleted' });
         }
 
@@ -286,6 +331,7 @@ export const deleteMe = async (req: Request, res: Response) => {
         if (authError) throw authError;
 
         await deleteCache(cacheKeys.user(userId)).catch(() => undefined);
+        cleanupImages();
         res.json({ success: true, mode: 'anonymized' });
     } catch (error: unknown) {
         const message = safeErrorMessage(error);

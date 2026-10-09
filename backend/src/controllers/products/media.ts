@@ -134,7 +134,7 @@ export const collectPhotoUrlsFromProducts = (products: ProductMedia[]): string[]
     return photoUrls;
 };
 
-export const cleanupProductPhotos = async (photoUrls: string[], context: 'deleteProduct' | 'bulkDeleteProducts') => {
+export const cleanupProductPhotos = async (photoUrls: string[], context: 'deleteProduct' | 'bulkDeleteProducts' | 'deleteAccount') => {
     if (photoUrls.length === 0) {
         return;
     }
