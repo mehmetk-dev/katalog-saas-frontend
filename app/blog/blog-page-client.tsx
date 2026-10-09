@@ -40,10 +40,8 @@ export default function BlogPageClient({ posts }: BlogPageClientProps) {
         [languagePosts],
     )
     const filteredPosts = languagePosts.filter((post) => activeCategory === "all" || post.category === activeCategory)
-    const categoryLabel = (id: string) => {
-        const label = t(`blogPage.categories.${id}`)
-        return label === `blogPage.categories.${id}` ? id : label
-    }
+    const categoryLabel = (id: string) =>
+        id === "all" || (CATEGORY_IDS as readonly string[]).includes(id) ? t(`blogPage.categories.${id}`) : id
 
     return (
         <MarketingPage header={<PublicHeader />} footer={<PublicFooter />}>

@@ -122,22 +122,22 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setIndustry(ind.id)}
                                 className={`
-                                    cursor-pointer p-3 rounded-xl border-2 transition-all duration-300 flex flex-col items-center text-center gap-2 relative overflow-hidden
-                                    ${industry === ind.id ? 'border-brand bg-brand-soft/50' : 'border-border bg-card hover:border-border'}
+                                    cursor-pointer p-3 rounded-xl border transition-colors flex flex-col items-center text-center gap-2 relative overflow-hidden
+                                    ${industry === ind.id ? 'border-foreground bg-muted' : 'border-border bg-card hover:border-foreground/30'}
                                 `}
                             >
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${industry === ind.id ? 'bg-brand text-brand-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${industry === ind.id ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}>
                                     <ind.icon className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-[10px] uppercase tracking-tight leading-tight">{ind.name}</h3>
+                                    <h3 className="text-xs font-medium leading-tight">{ind.name}</h3>
                                     {/* <p className="text-[10px] text-muted-foreground font-medium line-clamp-1">{ind.description}</p> */}
                                 </div>
                                 {industry === ind.id && (
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
-                                        className="absolute top-1 right-1 w-4 h-4 bg-brand rounded-full flex items-center justify-center text-brand-foreground"
+                                        className="absolute top-1 right-1 w-4 h-4 bg-foreground rounded-full flex items-center justify-center text-background"
                                     >
                                         <Check className="w-2.5 h-2.5" />
                                     </motion.div>
@@ -156,8 +156,8 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setTemplateId(tmpl.id)}
                                 className={`
-                                    cursor-pointer rounded-2xl border-2 transition-all duration-300 flex flex-col relative overflow-hidden
-                                    ${templateId === tmpl.id ? 'border-brand bg-brand-soft/30 ring-4 ring-brand/20' : 'border-border bg-card hover:border-border shadow-sm'}
+                                    cursor-pointer rounded-xl border transition-colors flex flex-col relative overflow-hidden
+                                    ${templateId === tmpl.id ? 'border-foreground ring-1 ring-foreground' : 'border-border bg-card hover:border-foreground/30'}
                                 `}
                             >
                                 {/* Template Preview - A4 aspect ratio */}
@@ -219,8 +219,8 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
 
                                     {/* Selection overlay */}
                                     {templateId === tmpl.id && (
-                                        <div className="absolute inset-0 bg-brand/10 backdrop-blur-[1px] flex items-center justify-center z-30">
-                                            <div className="w-10 h-10 bg-card rounded-full shadow-2xl flex items-center justify-center text-brand animate-in zoom-in duration-300">
+                                        <div className="absolute inset-0 bg-foreground/5 flex items-center justify-center z-30">
+                                            <div className="w-10 h-10 bg-card rounded-full shadow-sm flex items-center justify-center text-foreground animate-in zoom-in duration-300">
                                                 <Check className="w-5 h-5 stroke-[4px]" />
                                             </div>
                                         </div>
@@ -230,11 +230,11 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                 {/* Bottom info bar */}
                                 <div className="px-3 py-2.5 flex items-center justify-between border-t border-border">
                                     <div className="min-w-0">
-                                        <h3 className="font-black text-xs uppercase tracking-tighter truncate">{tmpl.name}</h3>
-                                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest truncate">{tmpl.description}</p>
+                                        <h3 className="text-sm font-semibold truncate">{tmpl.name}</h3>
+                                        <p className="text-xs text-muted-foreground truncate">{tmpl.description}</p>
                                     </div>
                                     {templateId === tmpl.id && (
-                                        <span className="text-[9px] font-black text-brand uppercase shrink-0 ml-2">Seçili</span>
+                                        <span className="text-xs font-medium text-foreground shrink-0 ml-2">Seçili</span>
                                     )}
                                 </div>
                             </motion.div>
@@ -245,28 +245,28 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                 return (
                     <div className="space-y-6">
                         <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Katalog Kimliği</Label>
+                            <Label className="text-sm font-medium text-foreground">Katalog Kimliği</Label>
                             <div className="space-y-2">
                                 <span className="text-sm font-bold text-foreground">Görünen İsim</span>
                                 <Input
                                     value={catalogName}
                                     onChange={(e) => setCatalogName(e.target.value)}
-                                    className="h-12 rounded-xl border-border focus:border-brand focus:ring-brand/10 font-bold"
+                                    className="h-11"
                                     placeholder="Örn: Yaz Koleksiyonu 2024"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Marka Renkleri</Label>
+                            <Label className="text-sm font-medium text-foreground">Marka Renkleri</Label>
                             <div className="grid grid-cols-1 gap-4">
-                                <div className="p-4 rounded-2xl border border-border bg-muted/50 flex items-center justify-between">
+                                <div className="p-4 rounded-xl border border-border bg-muted/40 flex items-center justify-between">
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-foreground">Ana Renk</span>
                                         <span className="text-xs text-muted-foreground font-medium">{primaryColor}</span>
                                     </div>
                                     <div className="relative group">
-                                        <div className="w-12 h-12 rounded-xl shadow-inner border border-white" style={{ backgroundColor: primaryColor }} />
+                                        <div className="w-12 h-12 rounded-xl shadow-inner border border-border" style={{ backgroundColor: primaryColor }} />
                                         <Input
                                             type="color"
                                             value={primaryColor}
@@ -276,13 +276,13 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                     </div>
                                 </div>
 
-                                <div className="p-4 rounded-2xl border border-border bg-muted/50 flex items-center justify-between">
+                                <div className="p-4 rounded-xl border border-border bg-muted/40 flex items-center justify-between">
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-foreground">Arka Plan</span>
                                         <span className="text-xs text-muted-foreground font-medium">{backgroundColor}</span>
                                     </div>
                                     <div className="relative">
-                                        <div className="w-12 h-12 rounded-xl shadow-inner border border-white" style={{ backgroundColor: backgroundColor }} />
+                                        <div className="w-12 h-12 rounded-xl shadow-inner border border-border" style={{ backgroundColor: backgroundColor }} />
                                         <Input
                                             type="color"
                                             value={backgroundColor}
@@ -295,15 +295,15 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                         </div>
 
                         <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Detaylar</Label>
-                            <div className="p-4 rounded-2xl border border-border bg-muted/50 space-y-4">
+                            <Label className="text-sm font-medium text-foreground">Detaylar</Label>
+                            <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-bold text-foreground">Fiyatları Göster</span>
-                                    <Switch checked={showPrices} onCheckedChange={setShowPrices} className="data-[state=checked]:bg-brand" />
+                                    <Switch checked={showPrices} onCheckedChange={setShowPrices} />
                                 </div>
                                 <div className="flex items-center justify-between border-t border-border pt-4">
                                     <span className="text-sm font-bold text-foreground">Ürün Açıklamaları</span>
-                                    <Switch checked={showDescriptions} onCheckedChange={setShowDescriptions} className="data-[state=checked]:bg-brand" />
+                                    <Switch checked={showDescriptions} onCheckedChange={setShowDescriptions} />
                                 </div>
                             </div>
                         </div>
@@ -316,7 +316,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                             <Check className="w-10 h-10" />
                         </div>
                         <div>
-                            <h2 className="text-3xl font-black mb-2">Kataloğunuz Hazır!</h2>
+                            <h2 className="text-3xl font-semibold tracking-tight mb-2">Kataloğunuz Hazır!</h2>
                             <p className="text-muted-foreground max-w-md mx-auto">
                                 Saniyeler içinde harika bir katalog oluşturdunuz. Bu, Katalog'un yapabileceklerinin sadece küçük bir örneği.
                             </p>
@@ -368,8 +368,8 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
             {/* Step Indicator Overlay */}
             {!isEmbedded && (
                 <div className="absolute top-2 right-6 z-40 hidden lg:block">
-                    <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-full border shadow-sm text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                        ADIM <span className="text-brand">{step}</span> / 4
+                    <div className="bg-background/80 backdrop-blur-md px-4 py-2 rounded-full border shadow-sm text-xs font-medium text-muted-foreground">
+                        {step} / 4
                     </div>
                 </div>
             )}
@@ -383,7 +383,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                 `}>
                     <div className="p-4 lg:p-8 lg:overflow-y-auto flex-1 custom-scrollbar">
                         <div className="mb-8">
-                            <h1 className="text-2xl font-black mb-2 uppercase tracking-tighter text-foreground">
+                            <h1 className="text-2xl font-semibold tracking-tight mb-2 text-foreground">
                                 {step === 1 && "Kategori Seçin"}
                                 {step === 2 && "Şablon Seçin"}
                                 {step === 3 && "Kataloğu Tasarla"}
@@ -415,11 +415,11 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                         <div className="p-6 border-t bg-muted/50 flex-shrink-0">
                             <div className="flex gap-4">
                                 {step > 1 && (
-                                    <Button variant="outline" onClick={handleBack} className="h-12 px-3 sm:px-6 rounded-xl font-bold shrink-0">
+                                    <Button variant="outline" onClick={handleBack} size="lg" className="h-11 px-3 sm:px-6 shrink-0">
                                         <Undo2 className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Geri</span>
                                     </Button>
                                 )}
-                                <Button onClick={handleNext} className="h-12 w-full flex-1 gap-2 bg-brand hover:bg-black text-brand-foreground shadow-xl shadow-brand/10 rounded-xl font-black uppercase tracking-tight text-xs sm:text-base">
+                                <Button onClick={handleNext} variant="brand" size="lg" className="h-11 w-full flex-1 gap-2">
                                     {step === 3 ? "Kataloğu Oluştur" : "Devam Et"} <ArrowRight className="w-5 h-5" />
                                 </Button>
                             </div>
@@ -430,7 +430,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                     <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
                         <Button
                             onClick={() => setShowMobilePreview(true)}
-                            className="w-full h-14 bg-primary text-primary-foreground font-bold rounded-2xl shadow-2xl flex items-center justify-center gap-2 text-base"
+                            className="w-full h-11 bg-primary text-primary-foreground font-medium rounded-md shadow-sm flex items-center justify-center gap-2 text-base"
                         >
                             <Eye className="w-5 h-5" /> Kataloğu Önizle
                         </Button>
@@ -446,7 +446,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                         {/* Status Badge */}
                         <div className="hidden lg:flex fixed top-24 right-8 items-center gap-2 px-3 py-1.5 bg-background/80 backdrop-blur-sm rounded-full border shadow-sm z-50">
                             <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Canlı Önizleme</span>
+                            <span className="text-sm font-medium text-foreground">Canlı Önizleme</span>
                         </div>
 
                         {/* Mobile Close Button */}
