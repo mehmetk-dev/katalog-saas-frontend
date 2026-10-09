@@ -60,8 +60,8 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 1 | Giriş / kayıt / şifre işlemleri | 🔴 Yüksek | 🟢 Kod + birim testleri yapıldı; süresi dolmuş oturum hatası düzeltildi (gerçek e-posta/Google uçtan uca kaldı) |
 | 2 | Dashboard ana sayfa | 🟡 Orta | ⏳ |
 | 3 | Ürünler | 🔴 Yüksek | 🟢 Büyük ölçüde yapıldı (gerçek backend ile doğrulama kaldı) |
-| 4 | Ürün ekle/düzenle modalı | 🔴 Yüksek | ⏳ |
-| 5 | İçe / dışa aktarma (Excel/CSV) | 🔴 Yüksek | ⏳ |
+| 4 | Ürün ekle/düzenle modalı | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek Cloudinary yüklemesi ve AI ucu canlıda denenmedi) |
+| 5 | İçe / dışa aktarma (Excel/CSV) | 🔴 Yüksek | 🟢 Hata/yarıda kalma akışı düzeltildi (gerçek büyük dosya ile canlı deneme kalmadı) |
 | 6 | Kategoriler | 🟡 Orta | ⏳ |
 | 7 | Excel düzenleyici (+ AI) | 🟡 Orta | ⏳ |
 | 8 | Kataloglar listesi | 🔴 Yüksek | 🟢 Kod + testler yapıldı (gerçek backend ile doğrulama kaldı) |
@@ -149,6 +149,19 @@ Kalan:
 - [ ] Para birimi (TRY/USD/EUR) — tabloda ve katalogda doğru görünüyor mu
 - [ ] Kaydedilmemiş değişiklikle kapatma uyarısı
 - [ ] Mobilde kullanım
+
+**Yapılanlar (9 Ekim 2026):**
+- **Fiyat yanlış kaydediliyordu:** "199,90" → 199, "1.250,50" → 1,25 (`parseFloat`). `lib/utils/number-input.ts` TR/EN biçimlerini ayrıştırıyor; düzenlemede fiyat kullanıcının biçiminde gösteriliyor.
+- **Görsel kaybı:** pencere 5 görselle sınırlıydı, 5'ten fazla görseli olan ürün kaydedilince fazlası siliniyordu → `MAX_PRODUCT_IMAGES` (20). 5 MB ham dosya sınırı telefon fotoğraflarını reddediyordu → 20 MB (yüklemeden önce WebP'ye sıkıştırılıyor).
+- Alan doğrulaması (ad ≥ 2, fiyat, stok, link) alanların altında; protokolsüz linke otomatik `https://`. Ürün limiti görsel yüklemeden önce kontrol ediliyor.
+- Kaydedilmemiş değişiklikle kapatmada onay; "AI ile Oluştur" artık gerçek yapay zeka (önceden 7 hazır metinden rastgele).
+- Testler: `product-modal-form.test.tsx`, `number-input.test.ts`.
+
+### 5. İçe / dışa aktarma — yapılanlar (9 Ekim 2026)
+- Başarısız aktarımda pencere "yükleniyor"da takılı kalıyordu (`useAsyncTimeout.execute` hatayı yutuyordu).
+- 500'lük partilerden biri başarısız olunca önceki partiler eklenmiş kalıyor, tekrar deneme onları ikinci kez ekliyordu → kaç ürünün eklendiği söyleniyor, tekrar denemede eklenenler atlanıyor.
+- Aktarım sürerken pencere kapatılamıyor. İçe aktarmanın Plus/Pro özelliği olduğu plan listesinde yazıyor.
+- Test: `import-resume.test.tsx`.
 
 ### 5. İçe / dışa aktarma
 `import-export-modal.tsx`, `modals/import-export/*`, backend `bulk-import`
@@ -329,11 +342,11 @@ Kalan:
 - Plan özellikleri tek kaynakta (`lib/billing/plan-features.ts`): fiyatlandırma, plan yükseltme penceresi ve Ayarlar > Abonelik aynı listeyi gösteriyor. Uygulamada olmayan özellikler (4K PDF, SEO ayarları, 7/24 WhatsApp destek, WhatsApp sipariş/sepet) ve gerçek olmayan sayılar ("binlerce/5.000+/10.000+ işletme") kaldırıldı. SSS ve Google FAQ şeması gerçek davranışa göre (ödemeler otomatik yenilenmez, fiyatlar KDV dahil).
 - Giriş ekranı, yasal sayfalar, blog, iletişim ve demo aynı stile getirildi; 390 px'te taşma yok.
 
-**Karar/inceleme bekleyenler:**
-- `exports_used` hiç sıfırlanmıyor: Ücretsiz plan ömür boyu 1, Plus ömür boyu 50 PDF hakkı demek (aylık/yıllık değil). Bilinçli mi?
-- Kullanım koşullarında yetkili mahkeme "İstanbul", şirket adresi Bursa; KVKK metninde ödeme kuruluşu örneği "İyzico, Stripe" (kullanılan Garanti BBVA). Hukuki metinlere dokunulmadı.
-- Blog yazısı "Dijital Katalog ile Satışlarınızı Artırmanın 5 Yolu" var olmayan WhatsApp sipariş butonundan bahsediyor (içerik dokunulmadı).
-- Panelde abonelik iptal butonu yok (backend ucu var); ödemeler zaten otomatik yenilenmediği için SSS buna göre yazıldı.
+**Kararlar (9 Ekim 2026, kullanıcı onayladı) — uygulandı:**
+- PDF hakkı artık **aylık** yenileniyor (bu ay tamamlanan PDF işleri sayılıyor, migration yok).
+- Yetkili mahkeme her yerde **İstanbul**; ödeme kuruluşu Garanti BBVA.
+- Blog yazılarındaki olmayan WhatsApp sipariş butonu, ürün satış linki olarak düzeltildi.
+- Ayarlar > Abonelik'e **iptal** seçeneği eklendi (dönem sonuna kadar sürer, iade yok).
 
 ### 19. Demo oluşturucu
 `app/create-demo`, `components/demo/demo-builder.tsx`
