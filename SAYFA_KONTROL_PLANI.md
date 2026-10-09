@@ -75,7 +75,7 @@ Bu oturuma kadar yapılan görsel kontroller **örnek verili geçici bir sayfayl
 | 16 | Fiyatlandırma → ödeme → sonuç → makbuz | 🔴 Yüksek | 🟡 Kod incelendi, güvenlik açığı kapatıldı (test POS ile uçtan uca kaldı) |
 | 17 | Admin paneli | 🟡 Orta | 🟢 Plan değiştirme düzeltildi |
 | 18 | Public site (landing, özellikler, SSS, iletişim, blog, yasal) | 🟡 Orta | 🟢 Tek tip tasarım + içerik doğrulaması yapıldı (iletişim formu gerçek e-postayla denenmedi) |
-| 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | 🟡 Stil hizalandı; i18n ve gerçek builder ile birleştirme kararı kaldı |
+| 19 | Demo oluşturucu (`/create-demo`) | 🟢 Düşük | 🟢 i18n, kırık kayıt linki, arka plan rengi, PDF düzeltildi (builder ile birleştirme kararı kaldı) |
 | 20 | Hata / 404 sayfaları | 🟢 Düşük | 🟢 Yapıldı |
 
 **Önerilen sıra:** Faz 0 → 1 → 3–5 (doğrulama) → 8 → 9 → 10 → 11 → 16 → 2 → 6 → 7 → 14 → 13 → 17 → 18 → kalanlar.
@@ -369,8 +369,8 @@ Kalan:
 
 ## 6. Bilinen açık noktalar
 
-- Supabase `catalogs.primary_color` varsayılanı hâlâ mor (`#7c3aed`) — migration kararı bekliyor
-- Toplu görsel yükleme penceresi sabit Türkçe
+- ~~Supabase `catalogs.primary_color` varsayılanı mor~~ → backend oluşturmada `#18181b` yazıyor (DB varsayılanı değişmedi)
+- ~~Toplu görsel yükleme penceresi sabit Türkçe~~ → çevrildi; 20 görsel / 20 MB
 - Builder tasarım sekmesinde ~70 prop aktarımı (teknik borç)
 - Demo builder gerçek builder'ın ayrı kopyası
 - Branch'teki son commit'ler push edilmedi, main'e birleştirilmedi
@@ -395,4 +395,13 @@ Kalan:
 | Hata sayfaları | "api" geçen her hata "sunucuya ulaşılamıyor" sayılıyordu; tek tip ve çevirili |
 
 **Kalanlar:** Faz 0 (test Supabase + gerçek uçtan uca denemeler), demo oluşturucu i18n ve builder ile birleştirme kararı, admin kullanıcı listesinde 1000 satır sınırı (şimdilik kullanıcı az), bulut görsellerinin (Cloudinary) hesap silmede temizlenmemesi, Excel AI kotasının sunucu belleğinde tutulması (tek frontend süreciyle yeterli).
+
+### Üçüncü tur (9 Ekim 2026)
+- Demo: "Ücretsiz hesap oluştur" 404 veren /auth/register'a gidiyordu; arka plan rengi etkisizdi; PDF küçültülmüş önizlemeden alınıyordu; tamamen çevrildi.
+- Admin: kullanıcı/silinen kullanıcı listeleri 1000 satırla sınırlıydı; silinen kullanıcılar sorgusu olmayan `created_at` sütununu istiyordu.
+- Hesap silmede ürün/katalog/kategori/profil görselleri Cloudinary'de "silinenler" klasörüne taşınıyor.
+- Toplu görsel yükleme çevrildi, sınırlar 20 görsel / 20 MB; ürün ızgarasındaki ~200 satırlık önizleme kopyası kaldırıldı.
+- Yeni kataloglar DB varsayılanı yüzünden mor vurgu rengiyle açılıyordu.
+
+**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, builder tasarım sekmesindeki ~70 prop aktarımı (teknik borç), demo/builder birleştirme kararı, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
 
