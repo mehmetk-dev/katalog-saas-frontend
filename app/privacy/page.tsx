@@ -93,7 +93,7 @@ export default function PrivacyPage() {
                   <li className="flex gap-3">
                     <span className="text-primary font-bold">•</span>
                     <div>
-                      <strong>Ödeme Altyapısı:</strong> Kredi kartı bilgileriniz sunucularımızda tutulmaz, doğrudan ödeme hizmet sağlayıcısı (örn: Iyzico, Stripe) tarafından işlenir.
+                      <strong>Ödeme Altyapısı:</strong> Kredi kartı bilgileriniz sunucularımızda tutulmaz, doğrudan ödeme hizmet sağlayıcısı (Garanti BBVA sanal POS, 3D Secure) tarafından işlenir.
                     </div>
                   </li>
                   <li className="flex gap-3">

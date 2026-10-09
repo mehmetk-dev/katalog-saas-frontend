@@ -144,7 +144,7 @@ const legal = {
                             label: "Hizmetin İfası:",
                             text:
                                 "Ödemelerin alınabilmesi için anlaşmalı ödeme kuruluşları " +
-                                "(Örn: Iyzico, Stripe) ve altyapı/sunucu hizmeti alınan " +
+                                "(Garanti BBVA sanal POS) ve altyapı/sunucu hizmeti alınan " +
                                 "teknoloji sağlayıcıları."
                         }
                     ]
@@ -188,7 +188,7 @@ const legal = {
                         "FogCatalog, bulut tabanlı bir dijital katalog yazılımıdır (SaaS).",
                         "Dijital hizmet olarak cayma hakkı istisnaları kapsamındadır — iade yoktur.",
                         "Abonelik istediğiniz zaman iptal edilebilir, kalan süre boyunca kullanım devam eder.",
-                        "Uyuşmazlıklarda Bursa Tüketici Mahkemeleri yetkilidir."
+                        "Uyuşmazlıklarda İstanbul Tüketici Mahkemeleri yetkilidir."
                     ]
                 },
                 effectiveDateLabel: "Yürürlük Tarihi:",
@@ -302,7 +302,7 @@ const legal = {
                     desc:
                         "İşbu sözleşmeden doğan uyuşmazlıklarda, T.C. Ticaret Bakanlığı " +
                         "parasal sınırları dahilinde Tüketici Hakem Heyetleri, aşan durumlarda ise:",
-                    court: "BURSA TÜKETİCİ MAHKEMELERİ",
+                    court: "İSTANBUL TÜKETİCİ MAHKEMELERİ",
                     office: "VE İCRA DAİRELERİ"
                 },
                 enforcement: {
@@ -539,7 +539,7 @@ const legal = {
                         {
                             label: "Performance of Service:",
                             text:
-                                "Contracted payment institutions (e.g. Iyzico, Stripe) and " +
+                                "Contracted payment institutions (Garanti BBVA virtual POS) and " +
                                 "technology providers from whom infrastructure/server service " +
                                 "is received to collect payments."
                         }
@@ -585,7 +585,7 @@ const legal = {
                         "FogCatalog is a cloud-based digital catalog software (SaaS).",
                         "As a digital service, it falls under withdrawal right exceptions — no refunds.",
                         "Subscription can be cancelled anytime; usage continues for the remaining period.",
-                        "Bursa Consumer Courts have jurisdiction for disputes."
+                        "Istanbul Consumer Courts have jurisdiction for disputes."
                     ]
                 },
                 effectiveDateLabel: "Effective Date:",
@@ -704,7 +704,7 @@ const legal = {
                     desc:
                         "In disputes arising from this agreement, Consumer Arbitration " +
                         "Committees within the monetary limits, and in exceeding cases:",
-                    court: "BURSA CONSUMER COURTS",
+                    court: "ISTANBUL CONSUMER COURTS",
                     office: "AND ENFORCEMENT OFFICES"
                 },
                 enforcement: {
