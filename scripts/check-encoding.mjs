@@ -6,6 +6,8 @@ import { join, relative } from "node:path"
 
 const ROOT = process.cwd()
 const SCAN_DIRS = ["app", "components", "lib", "backend/src", "tests", "content"]
+// Bir araç UTF-8'i ASCII'ye çevirirken karakterleri "?" ile değiştirmişse ("🇹🇷" → "????")
+const LOST_CHARS = /\?{3,}/
 const MOJIBAKE = /Ã[\u0080-\u00BF‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]|Ä[±°ž\u0178\u009F]|Å[\u009E\u009Fžş\u0178Ÿ]|â€[™œ\u009D”“¦]/
 
 function* walk(dir) {
@@ -25,6 +27,7 @@ for (const dir of SCAN_DIRS) {
     if (text.charCodeAt(0) === 0xfeff) problems.push(`${rel}: dosya başında BOM var`)
     text.split("\n").forEach((line, index) => {
       if (MOJIBAKE.test(line)) problems.push(`${rel}:${index + 1}: bozuk karakter kodlaması → ${line.trim().slice(0, 80)}`)
+      else if (LOST_CHARS.test(line)) problems.push(`${rel}:${index + 1}: kaybolmuş karakterler ("???") → ${line.trim().slice(0, 80)}`)
     })
   }
 }

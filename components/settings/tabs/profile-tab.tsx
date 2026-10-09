@@ -24,6 +24,7 @@ import type { User as AppUser } from "@/lib/contexts/user-context"
 import type { Language } from "@/lib/translations"
 import { cn } from "@/lib/utils"
 
+import { PasswordCard } from "@/components/settings/password-card"
 import { SocialUrlField } from "@/components/settings/social-url-field"
 import { validateInstagramUrl, validateWebsiteUrl, validateYoutubeUrl } from "@/components/settings/social-url-validators"
 
@@ -186,7 +187,7 @@ export function ProfileTab({
             <div className="space-y-4 pt-2">
               <div className="flex items-center gap-2 pb-1 border-b">
                 <Link2 className="w-4 h-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">Sosyal Medya &amp; Web</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t("settings.socialAndWeb")}</h3>
                 <span className="text-xs text-muted-foreground">{t("productForm.optional")}</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-1">
@@ -195,7 +196,7 @@ export function ProfileTab({
                   name="instagramUrl"
                   label="Instagram"
                   icon={<Instagram className="w-3.5 h-3.5 text-primary" />}
-                  placeholder="https://instagram.com/kullanici"
+                  placeholder={t("settings.instagramPlaceholder")}
                   defaultValue={user?.instagram_url}
                   validate={(value) => validateInstagramUrl(value, language)}
                 />
@@ -205,7 +206,7 @@ export function ProfileTab({
                   name="youtubeUrl"
                   label="YouTube"
                   icon={<Youtube className="w-3.5 h-3.5 text-destructive" />}
-                  placeholder="https://youtube.com/@kanal"
+                  placeholder={t("settings.youtubePlaceholder")}
                   defaultValue={user?.youtube_url}
                   validate={(value) => validateYoutubeUrl(value, language)}
                 />
@@ -213,9 +214,9 @@ export function ProfileTab({
                 <SocialUrlField
                   id="websiteUrl"
                   name="websiteUrl"
-                  label="Web Sitesi"
+                  label={t("settings.website")}
                   icon={<Globe className="w-3.5 h-3.5 text-info" />}
-                  placeholder="https://sirketiniz.com"
+                  placeholder={t("settings.websitePlaceholder")}
                   defaultValue={user?.website_url}
                   validate={(value) => validateWebsiteUrl(value, language)}
                 />
@@ -237,6 +238,8 @@ export function ProfileTab({
           </form>
         </CardContent>
       </Card>
+
+      <PasswordCard email={user?.email} t={t} />
 
       <Card className="border-destructive/20 shadow-sm ring-1 ring-destructive/10 bg-card">
         <CardHeader>

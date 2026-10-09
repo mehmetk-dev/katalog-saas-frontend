@@ -15,6 +15,20 @@ interface PreferencesTabProps {
   t: TFunction
 }
 
+// Bayrak emojileri Windows'ta harf olarak görünür; dil kodu her yerde aynı görünür
+function LanguageCode({ code, active }: { code: string; active: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold",
+        active ? "bg-primary-foreground/15 text-primary-foreground" : "bg-muted text-muted-foreground",
+      )}
+    >
+      {code}
+    </span>
+  )
+}
+
 export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps) {
   return (
     <Card className="border-0 shadow-md ring-1 ring-border bg-card">
@@ -40,7 +54,7 @@ export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps
               language === "tr" ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background" : "hover:bg-muted/50 dark:hover:bg-muted/20",
             )}
           >
-            <span className="text-2xl">????</span>
+            <LanguageCode code="TR" active={language === "tr"} />
             <div className="flex flex-col items-start">
               <span className={cn("font-semibold", language === "tr" ? "text-primary-foreground" : "text-foreground")}>Türkçe</span>
               <span className={cn("text-xs opacity-70", language === "tr" ? "text-primary-foreground" : "text-muted-foreground")}>{t("settings.defaultLanguage")}</span>
@@ -57,7 +71,7 @@ export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps
               language === "en" ? "ring-2 ring-primary ring-offset-2 dark:ring-offset-background" : "hover:bg-muted/50 dark:hover:bg-muted/20",
             )}
           >
-            <span className="text-2xl">????</span>
+            <LanguageCode code="EN" active={language === "en"} />
             <div className="flex flex-col items-start">
               <span className={cn("font-semibold", language === "en" ? "text-primary-foreground" : "text-foreground")}>English</span>
               <span className={cn("text-xs opacity-70", language === "en" ? "text-primary-foreground" : "text-muted-foreground")}>{t("settings.international")}</span>
