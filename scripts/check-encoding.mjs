@@ -5,7 +5,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 
 const ROOT = process.cwd()
-const SCAN_DIRS = ["app", "components", "lib", "backend/src"]
+const SCAN_DIRS = ["app", "components", "lib", "backend/src", "tests", "content"]
 const MOJIBAKE = /Ã[\u0080-\u00BF‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]|Ä[±°ž\u0178\u009F]|Å[\u009E\u009Fžş\u0178Ÿ]|â€[™œ\u009D”“¦]/
 
 function* walk(dir) {
@@ -13,7 +13,7 @@ function* walk(dir) {
     if (name === "node_modules" || name === "dist") continue
     const full = join(dir, name)
     if (statSync(full).isDirectory()) yield* walk(full)
-    else if (/\.(tsx?|mjs|css)$/.test(name)) yield full
+    else if (/\.(tsx?|mjs|css|mdx?)$/.test(name)) yield full
   }
 }
 

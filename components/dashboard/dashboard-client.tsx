@@ -1,509 +1,192 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useMemo, memo } from "react"
-import { Package, FileText, TrendingUp, UserPen, Plus, ArrowRight, ArrowUpRight, ArrowDownRight, Sparkles, Palette, LayoutGrid, FolderOpen } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
-import { tr } from "date-fns/locale"
 import NextImage from "next/image"
+import { useCallback, useMemo } from "react"
+import { ArrowRight, Eye, FileSpreadsheet, FolderOpen, LayoutGrid, LayoutTemplate, Loader2, Package, Plus, type LucideIcon } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { enUS, tr } from "date-fns/locale"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatCard } from "@/components/ui/stat-card"
+import type { Catalog, DashboardStats } from "@/lib/actions/catalogs"
+import { getPlanLimits } from "@/lib/constants"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useUser } from "@/lib/contexts/user-context"
-import { DashboardStats, type Catalog } from "@/lib/actions/catalogs"
-import { type Product } from "@/lib/actions/products"
-import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
 import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
-import { cn } from "@/lib/utils"
-import { PageHeader } from "@/components/ui/page-header"
 
 interface DashboardClientProps {
     initialCatalogs: Catalog[]
-    initialProducts: Product[]
     totalProductCount: number
     initialStats: DashboardStats | null
 }
 
-// Mini Sparkline Component
-const Sparkline = memo(function Sparkline({ data, color = "violet" }: { data: number[], color?: string }) {
-    const max = Math.max(...data, 1)
-    const min = Math.min(...data, 0)
-    const range = max - min || 1
+const RECENT_CATALOG_COUNT = 5
 
-    const points = data.map((value, i) => {
-        const x = (i / (data.length - 1)) * 100
-        const y = 100 - ((value - min) / range) * 100
-        return `${x},${y}`
-    }).join(' ')
-
-    return (
-        <svg className="w-full h-8 mt-2" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-                <linearGradient id={`sparkline-gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color === 'violet' ? '#8B5CF6' : color === 'blue' ? '#3B82F6' : '#10B981'} stopOpacity="0.3" />
-                    <stop offset="100%" stopColor={color === 'violet' ? '#8B5CF6' : color === 'blue' ? '#3B82F6' : '#10B981'} stopOpacity="0" />
-                </linearGradient>
-            </defs>
-            <polyline
-                fill="none"
-                stroke={color === 'violet' ? '#8B5CF6' : color === 'blue' ? '#3B82F6' : '#10B981'}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points={points}
-            />
-            <polygon
-                fill={`url(#sparkline-gradient-${color})`}
-                points={`0,100 ${points} 100,100`}
-            />
-        </svg>
-    )
-})
-
-// Catalog Thumbnail - extracted from inline IIFE for performance
-const CatalogThumbnail = memo(function CatalogThumbnail({ catalog, products }: { catalog: Catalog; products: Product[] }) {
-    const catalogProducts = useMemo(() =>
-        (products || [])
-            .filter((p) => catalog.product_ids?.includes(p.id))
-            .filter((p) => p.images?.[0] || p.image_url)
-            .slice(0, 4),
-        [catalog.product_ids, products]
-    )
-
-    if (catalogProducts.length === 0) {
-        return <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-    }
-
-    if (catalogProducts.length === 1) {
-        const imgUrl = (catalogProducts[0].images?.[0] || catalogProducts[0].image_url) as string
-        return <NextImage src={imgUrl} alt="" fill className="object-cover" unoptimized />
-    }
-
-    return (
-        <div className="grid grid-cols-2 w-full h-full gap-0.5 bg-accent/50">
-            {catalogProducts.map((p, i) => {
-                const imgUrl = (p.images?.[0] || p.image_url) as string
-                return (
-                    <div key={p.id} className={cn(
-                        "relative w-full h-full",
-                        catalogProducts.length === 3 && i === 2 && "col-span-2"
-                    )}>
-                        <NextImage src={imgUrl} alt="" fill className="object-cover" unoptimized />
-                    </div>
-                )
-            })}
-        </div>
-    )
-})
-
-// Extract catalog date formatting to avoid inline IIFE
-function formatCatalogDate(
-    catalog: Catalog | Record<string, unknown>,
-    t: (key: string) => string,
-    language: string
-): string {
-    const dateStr = (catalog as Record<string, unknown>).updated_at as string ||
-        (catalog as Record<string, unknown>).created_at as string ||
-        (catalog as Record<string, unknown>).updatedAt as string ||
-        (catalog as Record<string, unknown>).createdAt as string ||
-        (catalog as Record<string, unknown>).updated_At as string
-    if (!dateStr) return "-"
-    const errorText = t("common.updateError")
-    try {
-        let date = new Date(dateStr)
-        if (isNaN(date.getTime())) {
-            date = new Date(String(dateStr).replace(' ', 'T'))
-            if (isNaN(date.getTime())) return errorText
-        }
-        const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000)
-        if (diffInSeconds < 60) return t("common.justNow")
-        return formatDistanceToNow(date, {
-            addSuffix: true,
-            locale: language === 'tr' ? tr : undefined
-        })
-    } catch {
-        return errorText
-    }
+function formatUpdatedAt(value: string | undefined, language: string, justNow: string): string | null {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    if (Date.now() - date.getTime() < 60_000) return justNow
+    return formatDistanceToNow(date, { addSuffix: true, locale: language === "en" ? enUS : tr })
 }
 
-export function DashboardClient({ initialCatalogs, initialProducts, totalProductCount, initialStats }: DashboardClientProps) {
+function QuickAction({ href, icon: Icon, title, description }: { href: string; icon: LucideIcon; title: string; description: string }) {
+    return (
+        <Link
+            href={href}
+            prefetch={false}
+            className="group flex items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-foreground/30"
+        >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                <Icon className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-foreground">{title}</span>
+                <span className="block truncate text-xs text-muted-foreground">{description}</span>
+            </span>
+            <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </Link>
+    )
+}
+
+export function DashboardClient({ initialCatalogs, totalProductCount, initialStats }: DashboardClientProps) {
     const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-    const { user, isLoading } = useUser()
+    const { user } = useUser()
     const { createNewCatalog, isCreating } = useCreateCatalog()
 
-    // Veri normalizasyonu: Catalogs ve Products'ın her zaman array olmasını sağla
-    const currentCatalogs: Catalog[] = useMemo(() => Array.isArray(initialCatalogs) ? initialCatalogs : (initialCatalogs as { data?: Catalog[] })?.data || [], [initialCatalogs])
-    const currentProducts = useMemo(() => Array.isArray(initialProducts) ? initialProducts : (initialProducts as { products?: Product[] })?.products || [], [initialProducts])
-    const recentCatalogs = useMemo(() => currentCatalogs.slice(0, 3), [currentCatalogs])
-    const productCount = totalProductCount || currentProducts.length
+    const catalogs = useMemo(() => (Array.isArray(initialCatalogs) ? initialCatalogs : []), [initialCatalogs])
+    // Son düzenlenen önce; backend sırasına güvenmeden
+    const recentCatalogs = useMemo(
+        () =>
+            [...catalogs]
+                .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
+                .slice(0, RECENT_CATALOG_COUNT),
+        [catalogs],
+    )
 
-    // Ürün sayısını güvenli hesapla (Deduplicate & Clean & Validate against Master List)
-    const getSafeProductCount = useCallback((catalog: Catalog | Record<string, unknown>) => {
-        if (!catalog) return 0;
-        const catalogAny = catalog as Record<string, unknown>;
-        const rawIds = Array.isArray(catalogAny.product_ids) ? catalogAny.product_ids :
-            catalogAny.productIds && Array.isArray(catalogAny.productIds) ? catalogAny.productIds :
-                (typeof catalogAny.product_ids === 'string' ? catalogAny.product_ids.split(',') : []);
-
-        // Benzersiz ve boş olmayan ID'leri temizle
-        const uniqueIds = Array.from(new Set(
-            rawIds
-                .map((id) => String(id).trim())
-                .filter((id: string) => id.length > 0 && id !== 'undefined' && id !== 'null')
-        ));
-
-        return uniqueIds.length;
-    }, []);
-
-    // Memoized stats computation
-    const stats: Array<{
-        label: string;
-        value: string;
-        icon: React.ElementType;
-        change: string;
-        trend: string | null;
-        trendUp: boolean;
-        color: string;
-        sparkline: number[];
-    }> = useMemo(() => {
-        const generateSparkline = (current: number) => {
-            if (current === 0) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-            const base = Math.max(1, Math.floor(current * 0.6))
-            return Array.from({ length: 10 }, (_, i) => Math.floor(base + (current - base) * (i / 9)))
-        }
-
-        const totalCatalogCount = initialStats?.totalCatalogs ?? currentCatalogs.length
-        const publishedCount = initialStats?.publishedCatalogs ??
-            currentCatalogs.filter((c) => {
-                const isPub = 'is_published' in c ? c.is_published : false;
-                const pub = 'published' in c ? (c as Record<string, unknown>).published : false;
-                const status = 'status' in c ? (c as Record<string, unknown>).status : '';
-                return !!(isPub || pub || status === 'published');
-            }).length
-
-        return [
-            {
-                label: t("dashboard.totalProducts"),
-                value: productCount.toString(),
-                icon: Package,
-                change: user?.maxProducts === 999999 ? t("dashboard.unlimited") : t("dashboard.used", { current: productCount, max: user?.maxProducts || 0 }),
-                trend: null,
-                trendUp: true,
-                color: "violet",
-                sparkline: generateSparkline(productCount),
-            },
-            {
-                label: t("dashboard.catalogs"),
-                value: totalCatalogCount.toString(),
-                icon: FolderOpen,
-                change: t("dashboard.allCatalogs"),
-                trend: null,
-                trendUp: true,
-                color: "blue",
-                sparkline: generateSparkline(totalCatalogCount),
-            },
-            {
-                label: t("catalogs.published"),
-                value: publishedCount.toString(),
-                icon: TrendingUp,
-                change: t("dashboard.activeCatalogs"),
-                trend: null,
-                trendUp: true,
-                color: "emerald",
-                sparkline: generateSparkline(publishedCount),
-            },
-        ]
-    }, [productCount, user?.maxProducts, initialStats, currentCatalogs, t])
-
-    // User henüz yüklenmediyse basit bir skeleton göster
-    if (isLoading) {
-        return (
-            <div className="space-y-6 md:space-y-8 animate-pulse">
-                <div className="h-10 bg-muted rounded w-1/3"></div>
-                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-3">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-40 bg-muted rounded-xl"></div>
-                    ))}
-                </div>
-                <div className="h-64 bg-muted rounded-xl"></div>
-            </div>
-        )
-    }
+    const publishedCount = initialStats?.publishedCatalogs ?? catalogs.filter((c) => c.is_published).length
+    const totalCatalogs = initialStats?.totalCatalogs ?? catalogs.length
+    const productLimit = getPlanLimits(user?.plan).maxProducts
+    const firstName = user?.name?.split(" ")[0]
 
     return (
         <div className="space-y-6 md:space-y-8">
-            {/* Welcome Section - Enhanced Typography */}
             <PageHeader
-                title={<>{t("dashboard.welcomeUser", { name: user?.name?.split(" ")[0] ?? t("common.user") })} 👋</>}
-                description={t("landing.heroSubtitle")}
+                title={t("dashboard.welcomeUser", { name: firstName ?? t("common.user") })}
+                description={t("dashboard.home.subtitle")}
             />
 
-            {/* Onboarding Checklist */}
-            <OnboardingChecklist
-                hasProducts={currentProducts.length > 0}
-                hasCatalogs={currentCatalogs.length > 0}
-            />
+            <OnboardingChecklist hasProducts={totalProductCount > 0} hasCatalogs={totalCatalogs > 0} hasPublishedCatalog={publishedCount > 0} />
 
-            {/* Stats Grid - Premium Design */}
-            <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-3">
-                {stats.map((stat) => {
-                    const Icon = stat.icon
-                    return (
-                        <Card
-                            key={stat.label}
-                            className="relative overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-300 bg-card"
-                        >
-                            {/* Background Icon - Large & Faded */}
-                            <div className="absolute -right-4 -top-4 opacity-[0.06]">
-                                <Icon className="w-28 h-28" />
-                            </div>
-
-                            <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-5 relative z-10">
-                                <p className={cn(
-                                    "text-sm font-medium text-white/70",
-                                    "tracking-wide uppercase"
-                                )}>
-                                    {stat.label}
-                                </p>
-                                <div className={cn(
-                                    "p-2 rounded-xl",
-                                    stat.color === 'violet' && "bg-accent",
-                                    stat.color === 'blue' && "bg-info-soft",
-                                    stat.color === 'emerald' && "bg-success-soft",
-                                )}>
-                                    <Icon className={cn(
-                                        "w-4 h-4",
-                                        stat.color === 'violet' && "text-primary",
-                                        stat.color === 'blue' && "text-info",
-                                        stat.color === 'emerald' && "text-success",
-                                    )} />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0 relative z-10">
-                                <div className="flex items-end justify-between gap-2">
-                                    <div>
-                                        <div className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                                            {stat.value}
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <p className="text-xs text-muted-foreground">{stat.change}</p>
-                                            {stat.trend && (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className={cn(
-                                                        "text-[10px] px-1.5 py-0 h-4 font-medium border-0",
-                                                        stat.trendUp
-                                                            ? "bg-success-soft text-success-soft-foreground"
-                                                            : "bg-destructive-soft text-destructive-soft-foreground"
-                                                    )}
-                                                >
-                                                    {stat.trendUp ? <ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> : <ArrowDownRight className="w-2.5 h-2.5 mr-0.5" />}
-                                                    {stat.trend}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* Sparkline */}
-                                <Sparkline data={stat.sparkline} color={stat.color} />
-                            </CardContent>
-                        </Card>
-                    )
-                })}
+            <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard
+                    label={t("dashboard.totalProducts")}
+                    value={totalProductCount.toLocaleString(language === "en" ? "en-US" : "tr-TR")}
+                    icon={Package}
+                    hint={
+                        Number.isFinite(productLimit)
+                            ? t("dashboard.home.productsHint", { count: totalProductCount, max: productLimit })
+                            : t("dashboard.home.productsHintUnlimited")
+                    }
+                />
+                <StatCard
+                    label={t("dashboard.catalogs")}
+                    value={totalCatalogs}
+                    icon={FolderOpen}
+                    hint={t("dashboard.home.catalogsHint", { published: publishedCount, drafts: Math.max(0, totalCatalogs - publishedCount) })}
+                />
+                <StatCard
+                    label={t("dashboard.home.viewsLast30")}
+                    value={(initialStats?.periodViews ?? 0).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
+                    icon={Eye}
+                    hint={
+                        <Link href="/dashboard/analytics" prefetch={false} className="hover:text-foreground hover:underline">
+                            {initialStats ? t("dashboard.home.viewsHint", { total: initialStats.totalViews ?? 0 }) : t("dashboard.home.seeAnalytics")}
+                        </Link>
+                    }
+                />
             </div>
 
-            {/* Recent Catalogs - Enhanced */}
-            <Card className="border-0 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 sm:p-5 border-b bg-muted/30">
-                    <div>
-                        <CardTitle className={cn(
-                            "text-lg font-bold flex items-center gap-2.5",
-                            "text-foreground"
-                        )}>
-                            {t("dashboard.recentActivity")}
-                        </CardTitle>
-                        <CardDescription className="text-sm">{t("catalogs.title")}</CardDescription>
-                    </div>
-                    {currentCatalogs.length > 0 && (
-                        <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary" asChild>
+            <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-foreground">{t("dashboard.home.recentCatalogs")}</h2>
+                    {catalogs.length > 0 ? (
+                        <Button variant="ghost" size="sm" asChild>
                             <Link href="/dashboard/catalogs" prefetch={false}>
-                                {t("catalogs.view")}
-                                <ArrowRight className="w-4 h-4" />
+                                {t("dashboard.home.allCatalogs")}
+                                <ArrowRight className="size-4" />
                             </Link>
                         </Button>
-                    )}
-                </CardHeader>
-                <CardContent className="p-0">
-                    {recentCatalogs.length === 0 ? (
-                        <div className="text-center py-12 px-4">
-                            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                                <FileText className="w-8 h-8 text-muted-foreground/50" />
-                            </div>
-                            <p className="text-muted-foreground mb-4">{t("products.noProductsDesc")}</p>
-                            <Button
-                                onClick={createNewCatalog}
-                                disabled={isCreating}
-                                className={cn(
-                                    "bg-primary",
-                                    "hover:from-primary hover:to-primary shadow-lg shadow-black/10"
-                                )}
-                            >
-                                <Plus className="w-4 h-4" />
-                                {t("dashboard.createCatalog")}
+                    ) : null}
+                </div>
+
+                {recentCatalogs.length === 0 ? (
+                    <EmptyState
+                        icon={LayoutGrid}
+                        title={t("dashboard.home.noCatalogsTitle")}
+                        description={t("dashboard.home.noCatalogsDesc")}
+                        action={
+                            <Button onClick={createNewCatalog} disabled={isCreating}>
+                                {isCreating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                                {t("dashboard.home.newCatalog")}
                             </Button>
-                        </div>
-                    ) : (
-                        <div className="divide-y">
-                            {recentCatalogs.map((catalog: Catalog) => (
-                                <div
-                                    key={catalog.id}
-                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 hover:bg-muted/50 transition-colors group"
-                                >
-                                    <div className="flex items-center gap-4 min-w-0">
-                                        {/* Catalog Thumbnail/Preview */}
-                                        <div className={cn(
-                                            "w-12 h-12 sm:w-14 sm:h-14 rounded-xl",
-                                            "bg-muted",
-                                            "",
-                                            "flex items-center justify-center shrink-0",
-                                            "border border-border/50 overflow-hidden relative"
-                                        )}>
-                                            {catalog.logo_url ? (
-                                                <NextImage src={catalog.logo_url} alt="" fill className="object-cover" unoptimized />
+                        }
+                    />
+                ) : (
+                    <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+                        {recentCatalogs.map((catalog) => {
+                            const preview = catalog.cover_image_url || catalog.logo_url
+                            const updated = formatUpdatedAt(catalog.updated_at, language, t("common.justNow"))
+                            const productCount = new Set(catalog.product_ids ?? []).size
+                            return (
+                                <li key={catalog.id}>
+                                    <Link
+                                        href={`/dashboard/builder?id=${catalog.id}`}
+                                        prefetch={false}
+                                        className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/50"
+                                    >
+                                        <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                                            {preview ? (
+                                                <NextImage src={preview} alt="" fill sizes="48px" className="object-cover" unoptimized />
                                             ) : (
-                                                <CatalogThumbnail catalog={catalog} products={initialProducts} />
+                                                <LayoutGrid className="size-5 text-muted-foreground" />
                                             )}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-semibold text-sm sm:text-base truncate group-hover:text-primary transition-colors">
-                                                {catalog.name || (catalog as unknown as Record<string, unknown>).title as string || t("common.untitled")}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-xs text-muted-foreground">
-                                                    {getSafeProductCount(catalog)} {t('products.product').toLowerCase()}
-                                                </span>
-                                                <span className="text-muted-foreground/30">•</span>
-                                                <span
-                                                    className={cn(
-                                                        "text-xs text-muted-foreground",
-                                                        "flex items-center gap-1"
-                                                    )}
-                                                >
-                                                    <UserPen className="w-3 h-3" />
-                                                    {formatCatalogDate(catalog, t, language)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-3 sm:mt-0 ml-16 sm:ml-0">
-                                        <Badge
-                                            variant={catalog.is_published ? "default" : "secondary"}
-                                            className={cn(
-                                                "text-xs font-medium",
-                                                catalog.is_published && "bg-success-soft text-success-soft-foreground hover:bg-success/15 border-0"
-                                            )}
-                                        >
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-sm font-medium text-foreground">
+                                                {catalog.name || t("common.untitled")}
+                                            </span>
+                                            <span className="block truncate text-xs text-muted-foreground">
+                                                {t("dashboard.home.productCount", { count: productCount })}
+                                                {updated ? ` · ${updated}` : ""}
+                                            </span>
+                                        </span>
+                                        <Badge variant={catalog.is_published ? "default" : "secondary"} className={catalog.is_published ? "border-0 bg-success-soft text-success-soft-foreground" : undefined}>
                                             {catalog.is_published ? t("dashboard.published") : t("dashboard.draft")}
                                         </Badge>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            asChild
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Link href={`/dashboard/builder?id=${catalog.id}`} prefetch={false}>
-                                                {t("dashboard.edit")}
-                                                <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                        <ArrowRight className="hidden size-4 text-muted-foreground sm:block" />
+                                    </Link>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                )}
+            </section>
 
-            {/* Quick Actions - Premium Cards with Patterns */}
-            <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2">
-                {/* Add Product Card */}
-                <Card className="relative overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all group">
-                    {/* Gradient Background */}
-                    <div className={cn(
-                        "absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5"
-                    )} />
-
-                    {/* Dot Pattern */}
-                    <div className="absolute inset-0 opacity-30" style={{
-                        backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(139, 92, 246, 0.15) 1px, transparent 0)',
-                        backgroundSize: '20px 20px'
-                    }} />
-
-                    {/* Floating Icon */}
-                    <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Package className="w-32 h-32 text-primary" />
-                    </div>
-
-                    <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative z-10">
-                        <div className="p-3 bg-primary rounded-xl shadow-lg shadow-black/10 group-hover:shadow-black/10 transition-shadow">
-                            <Package className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base">{t("dashboard.addProduct")}</h3>
-                            <p className="text-sm text-muted-foreground mt-0.5">{t("dashboard.importExcel")}</p>
-                        </div>
-                        <Button
-                            asChild
-                            className="w-full sm:w-auto bg-primary hover:from-primary hover:to-primary shadow-md hover:shadow-lg transition-all"
-                        >
-                            <Link href="/dashboard/products?action=import" className="gap-2" prefetch={false}>
-                                <Plus className="w-4 h-4" />
-                                {t("products.addProduct")}
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-
-                {/* Templates Card */}
-                <Card className="relative overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all group">
-                    {/* Gradient Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-warning/5 via-transparent to-warning/5" />
-
-                    {/* Line Pattern */}
-                    <div className="absolute inset-0 opacity-20" style={{
-                        backgroundImage: 'linear-gradient(45deg, rgba(245, 158, 11, 0.1) 25%, transparent 25%, transparent 50%, rgba(245, 158, 11, 0.1) 50%, rgba(245, 158, 11, 0.1) 75%, transparent 75%, transparent)',
-                        backgroundSize: '40px 40px'
-                    }} />
-
-                    {/* Floating Icon */}
-                    <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Palette className="w-32 h-32 text-warning-soft-foreground" />
-                    </div>
-
-                    <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 relative z-10">
-                        <div className="p-3 bg-warning rounded-xl shadow-lg shadow-warning/20 group-hover:shadow-warning/30 transition-shadow">
-                            <Palette className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-base">{t("catalogs.template")}</h3>
-                            <p className="text-sm text-muted-foreground mt-0.5">{t("marketing.feature1")}</p>
-                        </div>
-                        <Button
-                            variant="secondary"
-                            asChild
-                            className="w-full sm:w-auto bg-background/80 hover:bg-card shadow-md hover:shadow-lg transition-all border-0"
-                        >
-                            <Link href="/dashboard/templates" className="gap-2" prefetch={false}>
-                                <Sparkles className="w-4 h-4" />
-                                {t("sidebar.templates")}
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
+            <section className="space-y-3">
+                <h2 className="text-base font-semibold text-foreground">{t("dashboard.home.quickActions")}</h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                    <QuickAction href="/dashboard/products?action=new" icon={Package} title={t("dashboard.home.addProduct")} description={t("dashboard.home.addProductDesc")} />
+                    <QuickAction href="/dashboard/products?action=import" icon={FileSpreadsheet} title={t("dashboard.home.importProducts")} description={t("dashboard.home.importProductsDesc")} />
+                    <QuickAction href="/dashboard/templates" icon={LayoutTemplate} title={t("dashboard.home.browseTemplates")} description={t("dashboard.home.browseTemplatesDesc")} />
+                </div>
+            </section>
         </div>
     )
 }

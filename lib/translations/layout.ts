@@ -30,6 +30,8 @@ const layout = {
             consent: "Açık Rıza Metni",
         },
         sidebar: {
+            pdfThisMonth: "PDF (bu ay)",
+            planCancelled: "İptal edildi",
             dashboard: "Panel",
             products: "Ürünler",
             categories: "Kategoriler",
@@ -75,6 +77,8 @@ const layout = {
             consent: "Explicit Consent",
         },
         sidebar: {
+            pdfThisMonth: "PDF (this month)",
+            planCancelled: "Cancelled",
             dashboard: "Dashboard",
             products: "Products",
             categories: "Categories",

@@ -14,25 +14,33 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 interface OnboardingChecklistProps {
     hasProducts: boolean
     hasCatalogs: boolean
+    /** Paylaşım adımı ancak yayında bir katalog varsa tamamlanmış sayılır */
+    hasPublishedCatalog: boolean
 }
 
 const ONBOARDING_DISMISSED_KEY = 'fogcatalog-onboarding-dismissed'
 
-export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChecklistProps) {
+export function OnboardingChecklist({ hasProducts, hasCatalogs, hasPublishedCatalog }: OnboardingChecklistProps) {
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-    const [isVisible, setIsVisible] = useState(true)
+    // localStorage okunana kadar gizli: kapatılmış kart her açılışta bir an görünüp kayboluyordu
+    const [isVisible, setIsVisible] = useState(false)
 
-    // Restore dismiss state from localStorage after mount
     useEffect(() => {
-        if (localStorage.getItem(ONBOARDING_DISMISSED_KEY) === 'true') {
-            setIsVisible(false)
+        try {
+            setIsVisible(localStorage.getItem(ONBOARDING_DISMISSED_KEY) !== 'true')
+        } catch {
+            setIsVisible(true)
         }
     }, [])
 
     const handleDismiss = useCallback(() => {
         setIsVisible(false)
-        localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true')
+        try {
+            localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true')
+        } catch {
+            // gizli sekme vb.: yalnızca bu oturumda kapanır
+        }
     }, [])
 
     if (!isVisible) return null
@@ -61,7 +69,7 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
             description: t("dashboard.onboarding.steps.share.description"),
             cta: t("dashboard.onboarding.steps.share.cta"),
             href: "/dashboard/catalogs",
-            completed: hasCatalogs, // Katalog varsa paylaşılabilir varsayalım
+            completed: hasPublishedCatalog,
         },
     ]
 
@@ -71,24 +79,17 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
     if (completedCount === steps.length) return null // Hepsi bittiyse gösterme
 
     return (
-        <Card className="bg-muted border-border shadow-sm relative overflow-hidden text-left">
-            {/* Dekoratif arka plan */}
-            <div className="absolute top-0 right-0 p-8 opacity-5 dark:opacity-10 pointer-events-none">
-                <svg width="200" height="200" viewBox="0 0 100 100" fill="currentColor" className="text-primary">
-                    <circle cx="50" cy="50" r="40" />
-                </svg>
-            </div>
-
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <div className="space-y-1">
-                    <CardTitle className="text-lg text-primary">{t("dashboard.onboarding.title")}</CardTitle>
+        <Card className="text-left">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <div className="space-y-1.5">
+                    <CardTitle className="text-base">{t("dashboard.onboarding.title")}</CardTitle>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Progress value={progress} className="w-24 h-2 bg-accent" />
+                        <Progress value={progress} className="h-1.5 w-24" />
                         <span>{t("dashboard.onboarding.completed", { percent: Math.round(progress) })}</span>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground h-8 w-8" onClick={handleDismiss}>
-                    <X className="w-4 h-4" />
+                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground" onClick={handleDismiss} aria-label={t("common.close")}>
+                    <X className="size-4" />
                 </Button>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -96,31 +97,27 @@ export function OnboardingChecklist({ hasProducts, hasCatalogs }: OnboardingChec
                     <div
                         key={step.id}
                         className={cn(
-                            "flex flex-col gap-3 p-4 rounded-lg border transition-all duration-200",
-                            step.completed
-                                ? "bg-background/50 dark:bg-card/50 border-transparent opacity-60"
-                                : "bg-card dark:bg-card border-border shadow-sm hover:shadow-md hover:border-border"
+                            "flex flex-col gap-3 rounded-lg border p-4",
+                            step.completed ? "bg-muted/40" : "bg-card",
                         )}
                     >
-                        <div className="flex items-center justify-between">
-                            <div className={cn(
-                                "p-2 rounded-full",
-                                step.completed
-                                    ? "bg-success-soft text-success"
-                                    : "bg-accent text-primary"
-                            )}>
-                                {step.completed ? <CheckCircle2 className="w-5 h-5" /> : <div className="w-5 h-5 flex items-center justify-center font-bold text-foreground">{index + 1}</div>}
-                            </div>
-                        </div>
+                        <span
+                            className={cn(
+                                "flex size-7 items-center justify-center rounded-full text-xs font-semibold",
+                                step.completed ? "bg-success-soft text-success" : "bg-muted text-foreground",
+                            )}
+                        >
+                            {step.completed ? <CheckCircle2 className="size-4" /> : index + 1}
+                        </span>
                         <div className="space-y-1">
-                            <h3 className={cn("font-medium text-foreground", step.completed && "line-through text-muted-foreground transition-all")}>{step.title}</h3>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{step.description}</p>
+                            <h3 className={cn("text-sm font-medium text-foreground", step.completed && "text-muted-foreground line-through")}>{step.title}</h3>
+                            <p className="line-clamp-2 text-xs text-muted-foreground">{step.description}</p>
                         </div>
                         {!step.completed && (
-                            <Button size="sm" variant="outline" className="mt-auto w-full group border-border hover:bg-accent hover:text-primary" asChild>
+                            <Button size="sm" variant="outline" className="mt-auto w-full" asChild>
                                 <Link href={step.href} prefetch={false}>
                                     {step.cta}
-                                    <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                                    <ChevronRight className="size-3.5" />
                                 </Link>
                             </Button>
                         )}

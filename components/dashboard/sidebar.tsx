@@ -3,21 +3,19 @@
 import { useState, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, ArrowUpRight, FolderOpen, X, ChevronLeft, ChevronRight, BarChart3, HelpCircle, Table2 } from "lucide-react"
+import { LayoutDashboard, Package, Palette, Settings, BookOpen, Sparkles, FolderOpen, X, ChevronLeft, ChevronRight, BarChart3, HelpCircle, Table2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { useUser } from "@/lib/contexts/user-context"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useSidebar } from "@/lib/contexts/sidebar-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 
 import { FeedbackModal } from "./feedback-modal"
+import { PlanUsageCard } from "./plan-usage-card"
 import { Logo } from "@/components/ui/logo"
 
 export function DashboardSidebar() {
@@ -215,116 +213,7 @@ export function DashboardSidebar() {
         {(!isCollapsed || isMobile) && (
           <div className="p-4 shrink-0 border-t border-sidebar-border overflow-hidden">
             <div className="w-[224px]">
-              <Card className={cn(
-                "border-sidebar-border overflow-hidden",
-                user?.plan === "pro"
-                  ? "bg-primary text-primary-foreground border-0"
-                  : user?.plan === "plus"
-                    ? "bg-warning text-white border-0"
-                    : "bg-sidebar-accent/50"
-              )}>
-                <CardContent className="p-4 space-y-3">
-                  {isLoading ? (
-                    <div className="space-y-3">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-2 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                    </div>
-                  ) : user?.plan === "pro" ? (
-                    /* PRO KULLANICI */
-                    <>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4" />
-                          <span className="font-semibold">{t("common.proPackage")}</span>
-                        </div>
-                        <Badge className="bg-background/20 text-white border-0 text-xs">
-                          {t("common.active")}
-                        </Badge>
-                      </div>
-                      <div className="text-xs opacity-90">
-                        ✓ {t("plans.unlimitedCatalogs")}<br />
-                        ✓ {t("plans.unlimitedDownloads")}<br />
-                        ✓ {t("plans.allTemplates")}
-                      </div>
-                    </>
-                  ) : user?.plan === "plus" ? (
-                    /* PLUS KULLANICI */
-                    <>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-4 h-4" />
-                          <span className="font-semibold">{t("common.plusPackage")}</span>
-                        </div>
-                        <Badge className="bg-background/20 text-white border-0 text-xs">
-                          {t("common.active")}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="opacity-80">{t("sidebar.catalogs")}</span>
-                          <span className="font-medium">
-                            {user?.catalogsCount ?? 0}/10
-                          </span>
-                        </div>
-                        <Progress
-                          value={((user?.catalogsCount ?? 0) / 10) * 100}
-                          className="h-1.5 bg-background/20"
-                        />
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="opacity-80">{t("sidebar.products")}</span>
-                          <span className="font-medium">
-                            {user?.productsCount ?? 0}/1000
-                          </span>
-                        </div>
-                        <Progress
-                          value={((user?.productsCount ?? 0) / 1000) * 100}
-                          className="h-1.5 bg-background/20"
-                        />
-                      </div>
-                      <Button size="sm" className="w-full gap-2 bg-background/20 hover:bg-background/30 text-white border-0" onClick={() => setShowUpgradeModal(true)}>
-                        {t("settings.upgrade")}
-                        <ArrowUpRight className="w-3 h-3" />
-                      </Button>
-                    </>
-                  ) : (
-                    /* FREE KULLANICI */
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-sidebar-foreground">
-                          {t("common.freePlan")}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          {t("catalogs.status")}
-                        </Badge>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{t("sidebar.catalogs")}</span>
-                          <span className="font-medium text-sidebar-foreground">
-                            {user?.catalogsCount ?? 0}/1
-                          </span>
-                        </div>
-                        <Progress value={((user?.catalogsCount ?? 0) / 1) * 100} className="h-2" />
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{t("sidebar.products")}</span>
-                          <span className="font-medium text-sidebar-foreground">
-                            {user?.productsCount ?? 0}/50
-                          </span>
-                        </div>
-                        <Progress value={((user?.productsCount ?? 0) / 50) * 100} className="h-2" />
-                      </div>
-
-                      <Button size="sm" className="w-full gap-2 bg-primary hover:from-primary hover:to-primary" onClick={() => setShowUpgradeModal(true)}>
-                        <Sparkles className="w-4 h-4" />
-                        {t("settings.upgrade")}
-                        <ArrowUpRight className="w-3 h-3" />
-                      </Button>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <PlanUsageCard user={user} isLoading={isLoading} onUpgrade={() => setShowUpgradeModal(true)} />
             </div>
           </div>
         )}
@@ -336,8 +225,8 @@ export function DashboardSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="w-full flex justify-center">
-                    <div className="p-2 rounded-lg bg-primary">
-                      <Sparkles className="w-4 h-4 text-white" />
+                    <div className="p-2 rounded-lg bg-sidebar-accent">
+                      <Sparkles className="w-4 h-4 text-sidebar-foreground" />
                     </div>
                   </div>
                 </TooltipTrigger>
@@ -347,8 +236,8 @@ export function DashboardSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="w-full flex justify-center">
-                    <div className="p-2 rounded-lg bg-warning">
-                      <Sparkles className="w-4 h-4 text-white" />
+                    <div className="p-2 rounded-lg bg-sidebar-accent">
+                      <Sparkles className="w-4 h-4 text-sidebar-foreground" />
                     </div>
                   </div>
                 </TooltipTrigger>

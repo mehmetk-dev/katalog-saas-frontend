@@ -9,18 +9,17 @@ export const metadata = SEO_CONFIG.dashboard
 export default async function DashboardPage() {
   const [catalogs, productsResponse, stats] = await Promise.all([
     getCatalogs(),
-    getProducts({ limit: 4 }),
-    getDashboardStats(),
+    // Yalnızca toplam ürün sayısı gerekiyor
+    getProducts({ limit: 1 }),
+    // Analitik alınamazsa ana sayfa yine açılsın
+    getDashboardStats().catch(() => null),
   ])
 
   return (
     <DashboardClient
       initialCatalogs={catalogs}
-      initialProducts={productsResponse.products}
       totalProductCount={productsResponse.metadata.total}
       initialStats={stats}
     />
   )
 }
-
-
