@@ -308,20 +308,18 @@ describe('checkout flow', () => {
 
     it('sends paid plan selections to checkout instead of showing a contact toast', () => {
         renderWithTranslations(<UpgradeModal open onOpenChange={vi.fn()} />)
+        const checkoutHrefs = () =>
+            screen
+                .getAllByRole('link', { name: /Plus'a Geç|Pro'ya Geç/ })
+                .map((link) => link.getAttribute('href'))
 
-        expect(
-            screen.getAllByRole('link', { name: 'Seç' }).map((link) => link.getAttribute('href'))
-        ).toEqual(['/checkout?plan=plus&billing=yearly', '/checkout?plan=pro&billing=yearly'])
+        expect(checkoutHrefs()).toEqual(['/checkout?plan=plus&billing=yearly', '/checkout?plan=pro&billing=yearly'])
 
         fireEvent.click(screen.getByRole('button', { name: 'Aylık' }))
-        expect(
-            screen.getAllByRole('link', { name: 'Seç' }).map((link) => link.getAttribute('href'))
-        ).toEqual(['/checkout?plan=plus&billing=monthly', '/checkout?plan=pro&billing=monthly'])
+        expect(checkoutHrefs()).toEqual(['/checkout?plan=plus&billing=monthly', '/checkout?plan=pro&billing=monthly'])
 
         fireEvent.click(screen.getByRole('button', { name: /Yıllık/ }))
-        expect(
-            screen.getAllByRole('link', { name: 'Seç' }).map((link) => link.getAttribute('href'))
-        ).toEqual(['/checkout?plan=plus&billing=yearly', '/checkout?plan=pro&billing=yearly'])
+        expect(checkoutHrefs()).toEqual(['/checkout?plan=plus&billing=yearly', '/checkout?plan=pro&billing=yearly'])
         expect(
             screen.queryByText('Plan yükseltme için lütfen bizimle iletişime geçin.')
         ).not.toBeInTheDocument()

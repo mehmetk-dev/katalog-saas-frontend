@@ -1,127 +1,29 @@
 import React from "react"
-import { Users, FileText, Share2, type LucideIcon } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { Section, SectionHeader, StepCard } from "@/components/marketing"
 import type { TranslationFn } from "./types"
 
-interface TimelineStep {
-    step: string
-    titleKey: string
-    descKey: string
-    icon: LucideIcon
-}
+const STEPS = [
+    { title: "landing.step1Title", desc: "landing.step1Desc" },
+    { title: "landing.step2Title", desc: "landing.step2Desc" },
+    { title: "landing.step3Title", desc: "landing.step3Desc" },
+] as const
 
-const TIMELINE_STEPS: TimelineStep[] = [
-    { step: '01', titleKey: 'landing.step1Title', descKey: 'landing.step1Desc', icon: Users },
-    { step: '02', titleKey: 'landing.step2Title', descKey: 'landing.step2Desc', icon: FileText },
-    { step: '03', titleKey: 'landing.step3Title', descKey: 'landing.step3Desc', icon: Share2 },
-]
-
-interface HowItWorksSectionProps {
-    t: TranslationFn
-}
-
-export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: HowItWorksSectionProps) {
+export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: { t: TranslationFn }) {
     return (
-        <section id="nasıl-çalışır" className="py-32 bg-card relative">
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="flex flex-col lg:flex-row gap-20">
-                    {/* Left - Dashboard Mockup */}
-                    <div className="w-full lg:w-1/2 lg:sticky lg:top-32 lg:self-start">
-                        <DashboardMockup />
-                    </div>
-
-                    {/* Right - Timeline */}
-                    <div className="w-full lg:w-1/2">
-                        <Badge className="mb-6 bg-accent text-primary hover:bg-accent border-0">
-                            {t('landing.howItWorksBadge')}
-                        </Badge>
-                        <h2 className="text-4xl md:text-5xl font-bold mb-16 tracking-tight">
-                            {t('landing.howItWorksTitle')}
-                        </h2>
-
-                        {/* Timeline */}
-                        <div className="relative">
-                            {/* Vertical Line */}
-                            <div className={cn(
-                                "absolute left-6 top-0 bottom-0 w-0.5",
-                                "bg-primary"
-                            )} />
-
-                            <div className="space-y-16">
-                                {TIMELINE_STEPS.map((item, i) => (
-                                    <div key={i} className="relative flex gap-8 group">
-                                        {/* Step Circle */}
-                                        <div className={cn(
-                                            "relative z-10 w-12 h-12 rounded-full",
-                                            "bg-primary",
-                                            "flex items-center justify-center text-white font-bold",
-                                            "shadow-lg shadow-black/10 shrink-0",
-                                            "group-hover:scale-110 transition-transform"
-                                        )}>
-                                            <item.icon className="w-5 h-5" />
-                                        </div>
-                                        {/* Content */}
-                                        <div className="pt-2">
-                                            <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                                                {t('landing.step')} {item.step}
-                                            </span>
-                                            <h3 className="text-xl font-bold mt-1 mb-2">{t(item.titleKey)}</h3>
-                                            <p className="text-muted-foreground leading-relaxed">{t(item.descKey)}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <Section id="nasil-calisir">
+            <SectionHeader eyebrow={t("landing.howItWorksBadge")} title={t("landing.howItWorksTitle")} />
+            <div className="grid gap-4 md:grid-cols-3">
+                {STEPS.map((step, index) => (
+                    <StepCard
+                        key={step.title}
+                        step={index + 1}
+                        label={`${t("landing.step")} ${index + 1}`}
+                        title={t(step.title)}
+                        description={t(step.desc)}
+                    />
+                ))}
             </div>
-        </section>
+        </Section>
     )
 })
-
-/* ------------------------------------------------------------------ */
-/*  Dashboard mockup (pure visual, no translation needed)              */
-/* ------------------------------------------------------------------ */
-
-function DashboardMockup() {
-    return (
-        <div className={cn(
-            "relative rounded-2xl shadow-2xl shadow-black/10",
-            "border border-border overflow-hidden bg-card"
-        )}>
-            {/* Browser Chrome */}
-            <div className="h-10 bg-muted/50 border-b border-border flex items-center px-4 gap-2">
-                <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-brand" />
-                    <div className="w-3 h-3 rounded-full bg-warning" />
-                    <div className="w-3 h-3 rounded-full bg-success" />
-                </div>
-            </div>
-            {/* Dashboard Content */}
-            <div className="p-6 bg-muted/50 aspect-[4/3]">
-                <div className="grid grid-cols-12 gap-4 h-full">
-                    {/* Sidebar */}
-                    <div className={cn(
-                        "col-span-3 bg-card rounded-xl shadow-sm",
-                        "border border-border p-3 space-y-2"
-                    )}>
-                        <div className="h-8 bg-accent rounded-lg" />
-                        <div className="h-6 bg-muted rounded w-3/4" />
-                        <div className="h-6 bg-muted rounded w-1/2" />
-                    </div>
-                    {/* Main Content */}
-                    <div className="col-span-9 space-y-4">
-                        <div className="h-24 bg-card rounded-xl shadow-sm border border-border" />
-                        <div className="grid grid-cols-3 gap-3">
-                            <div className="h-20 bg-card rounded-xl shadow-sm border border-border" />
-                            <div className="h-20 bg-card rounded-xl shadow-sm border border-border" />
-                            <div className="h-20 bg-card rounded-xl shadow-sm border border-border" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}

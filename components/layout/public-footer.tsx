@@ -51,7 +51,7 @@ export function PublicFooter() {
                 </div>
 
                 <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-                    <p>{t('footer.rights')}</p>
+                    <p>{t('footer.rights', { year: new Date().getFullYear() })}</p>
                     <div className="flex items-center gap-6">
                         <Link href="/privacy" className="hover:text-foreground transition-colors">{t('footer.privacy')}</Link>
                         <Link href="/terms" className="hover:text-foreground transition-colors">{t('footer.terms')}</Link>

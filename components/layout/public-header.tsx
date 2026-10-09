@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { Sparkles, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
@@ -67,12 +67,10 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                     <Button
                         asChild
                         variant="brand"
-                        size="lg"
-                        className="hidden sm:inline-flex rounded-full shadow-lg shadow-brand/20 font-black uppercase text-[11px] tracking-wider"
+                        className="hidden sm:inline-flex"
                     >
                         <Link href="/auth?tab=signup" prefetch={false}>
                             {t('header.createCatalog')}
-                            <Sparkles className="w-3.5 h-3.5" />
                         </Link>
                     </Button>
 
@@ -93,7 +91,6 @@ export function PublicHeader({ fullWidth = false }: { fullWidth?: boolean }) {
                     language={language}
                     setLanguage={setLanguage}
                     createCatalogLabel={t('header.createCatalog')}
-                    sectionLabel={t('header.section')}
                     onClose={() => setIsMobileMenuOpen(false)}
                 />
             ) : null}

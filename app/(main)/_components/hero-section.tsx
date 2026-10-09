@@ -1,10 +1,8 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useRef } from "react"
-import Link from "next/link"
-import Image from "next/image"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { PageHero, SecondaryButton, SignupButton } from "@/components/marketing"
 import { cn } from "@/lib/utils"
 import type { TranslationFn } from "./types"
 
@@ -15,231 +13,152 @@ interface HeroSectionProps {
     t: TranslationFn
 }
 
+/** Önizlemede dönen gerçek katalog şablonları (katalog çıktısı kendi renklerini taşır) */
 const CAROUSEL_SLIDES = [
-    { key: 'classic-catalog', color: '#2b2b5f' },
-    { key: 'modern-grid', color: '#3b82f6' },
-    { key: 'product-tiles', color: '#10b981' },
-    { key: 'minimalist', color: '#171717' },
+    { key: "modern-grid", color: "#18181b" },
+    { key: "classic-catalog", color: "#2b2b5f" },
+    { key: "product-tiles", color: "#0f766e" },
+    { key: "minimalist", color: "#171717" },
 ]
 
-const SEO_PREVIEW_ITEMS = [
-    {
-        name: "Dijital Ürün Kataloğu",
-        description: "Online paylaşım ve QR kod desteği",
-    },
-    {
-        name: "PDF Katalog Tasarımı",
-        description: "Profesyonel şablonlarla dışa aktarım",
-    },
-    {
-        name: "Excel Ürün Aktarımı",
-        description: "Toplu ürün yükleme ve düzenleme",
-    },
-    {
-        name: "Online Katalog Linki",
-        description: "Müşterilerle hızlı katalog paylaşımı",
-    },
-    {
-        name: "Katalog Analitikleri",
-        description: "Görüntülenme ve etkileşim takibi",
-    },
-    {
-        name: "QR Kodlu Katalog",
-        description: "Satış ekipleri için kolay erişim",
-    },
-]
+const TEMPLATE_WIDTH = 800
+const TEMPLATE_HEIGHT = 1131
+const SLIDE_INTERVAL_MS = 7000
+const PAGE_GAP = 24
 
 export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionProps) {
     const [currentSlide, setCurrentSlide] = useState(0)
-    const [scale, setScale] = useState(0.25)
-    const [screenDims, setScreenDims] = useState({ w: 0, h: 0 })
-    const [isMounted, setIsMounted] = useState(false)
+    const [layout, setLayout] = useState({ scale: 0, pages: 1 })
     const screenRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        setIsMounted(true)
-    }, [])
 
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % CAROUSEL_SLIDES.length)
-        }, 8000)
+        }, SLIDE_INTERVAL_MS)
         return () => clearInterval(timer)
     }, [])
 
     useEffect(() => {
-        if (!screenRef.current) return
-
-        const resizeObserver = new ResizeObserver((entries) => {
-            if (entries[0]) {
-                const width = entries[0].contentRect.width
-                const height = entries[0].contentRect.height
-                setScale(width / 800)
-                setScreenDims({ w: width, h: height })
-            }
+        const node = screenRef.current
+        if (!node) return
+        const observer = new ResizeObserver(([entry]) => {
+            if (!entry) return
+            const { width, height } = entry.contentRect
+            const pages = width >= 840 ? 3 : width >= 560 ? 2 : 1
+            const byHeight = (height - PAGE_GAP * 2) / TEMPLATE_HEIGHT
+            const byWidth = (width - PAGE_GAP * (pages + 1)) / (pages * TEMPLATE_WIDTH)
+            setLayout({ scale: Math.min(byHeight, byWidth), pages })
         })
-
-        resizeObserver.observe(screenRef.current)
-        return () => resizeObserver.disconnect()
+        observer.observe(node)
+        return () => observer.disconnect()
     }, [])
 
-    const activeSlide = CAROUSEL_SLIDES[currentSlide] ?? CAROUSEL_SLIDES[0]
-    const ActiveTemplateComponent = ALL_TEMPLATES[activeSlide.key]
-    const activeProducts = useMemo(() => (
-        getPreviewProductsByLayout(activeSlide.key).map((product, productIndex) => {
-            const previewItem = SEO_PREVIEW_ITEMS[productIndex % SEO_PREVIEW_ITEMS.length]
-
-            return {
-                ...product,
-                name: previewItem.name,
-                description: previewItem.description,
-                category: "Dijital Katalog",
-            }
-        }).slice(0, 8)
-    ), [activeSlide.key])
-
-    const unscaledScreenHeight = scale > 0 ? screenDims.h / scale : 0
-    const maxScrollY = screenDims.h > 0 ? Math.max(0, 1131 - unscaledScreenHeight) : 0
-    const translateY = (isMounted && screenDims.h > 0) ? -maxScrollY : 0
+    // Aktif şablon ortada, yanında sıradaki şablonlar (geniş ekranda) tam sayfa görünür
+    const visibleSlides = useMemo(
+        () => Array.from({ length: layout.pages }, (_, offset) => CAROUSEL_SLIDES[(currentSlide + offset) % CAROUSEL_SLIDES.length]),
+        [currentSlide, layout.pages],
+    )
 
     return (
-        <section className="relative pt-24 pb-16 md:pt-32 lg:pt-36 md:pb-24 overflow-hidden bg-muted/50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
-            <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
-                {/* Title Centered */}
-                <div className="text-center mb-16 lg:mb-20">
-                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground max-w-4xl mx-auto tracking-tight">
-                        {t('landing.heroAlternativeTitle')}
-                    </h1>
+        <PageHero
+            eyebrow={t("landing.badge")}
+            title={t("landing.heroAlternativeTitle")}
+            description={t("landing.heroSubtitle")}
+            actions={
+                <>
+                    <SignupButton>{t("landing.heroStartCreating")}</SignupButton>
+                    <SecondaryButton href="/create-demo">{t("header.demo")}</SecondaryButton>
+                </>
+            }
+        >
+            <p className="mt-4 text-sm text-muted-foreground">{t("landing.heroNote")}</p>
+
+            {/* Gerçek şablonlarla canlı önizleme */}
+            <div className="mt-12 w-full max-w-4xl sm:mt-16">
+                <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                    <div className="flex h-9 items-center gap-1.5 border-b border-border bg-muted/60 px-4" aria-hidden>
+                        <span className="size-2.5 rounded-full bg-border" />
+                        <span className="size-2.5 rounded-full bg-border" />
+                        <span className="size-2.5 rounded-full bg-border" />
+                        <span className="ml-3 h-5 w-48 max-w-[50%] rounded-md bg-background" />
+                    </div>
+                    <div ref={screenRef} className="relative h-[340px] overflow-hidden bg-muted sm:h-[460px]">
+                        <div className="flex h-full items-center justify-center" style={{ gap: PAGE_GAP }}>
+                            {layout.scale > 0
+                                ? visibleSlides.map((slide, index) => (
+                                    <TemplatePage
+                                        key={`${slide.key}-${index}`}
+                                        templateKey={slide.key}
+                                        color={slide.color}
+                                        name={t("landing.summerCollection")}
+                                        scale={layout.scale}
+                                    />
+                                ))
+                                : null}
+                        </div>
+                    </div>
                 </div>
 
-                {/* 2 Column Grid */}
-                <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 lg:items-stretch max-w-7xl mx-auto">
-                    {/* Left Column - Bullets */}
-                    <div className="lg:col-span-5 flex flex-col justify-between h-full animate-in fade-in slide-in-from-left-8 duration-700">
-                        <ul className="space-y-8 text-foreground text-lg">
-                            <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span className="leading-relaxed">
-                                    <strong className="font-bold text-foreground">{t('landing.heroFeature1Start')}</strong>
-                                    {t('landing.heroFeature1End')}
-                                </span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span className="leading-relaxed">
-                                    <strong className="font-bold text-foreground">{t('landing.heroFeature2Start')}</strong>
-                                    {t('landing.heroFeature2End')}
-                                </span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span className="leading-relaxed">
-                                    <strong className="font-bold text-foreground">{t('landing.heroFeature3Start')}</strong>
-                                    {t('landing.heroFeature3End')}
-                                </span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="mr-3 mt-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                                <span className="leading-relaxed">
-                                    <strong className="font-bold text-foreground">{t('landing.heroFeature4Start')}</strong>
-                                    {t('landing.heroFeature4End')}
-                                </span>
-                            </li>
-                        </ul>
-
-                        <div className="mt-auto pt-10 flex items-end">
-                            <Link href="/auth?tab=signup" className="w-full">
-                                <Button variant="brand" className="px-8 py-7 rounded-md text-lg font-semibold transition-all hover:scale-105 shadow-lg shadow-brand/20">
-                                    {t('landing.heroStartCreating')}
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* Right Column - Laptop Mockup */}
-                    <div className="lg:col-span-7 relative animate-in fade-in slide-in-from-right-8 duration-700 delay-200">
-
-                        <div className="relative mx-auto w-full max-w-[800px] flex justify-center items-center">
-                            {/* User's Laptop Frame */}
-                            <Image
-                                src="/laptop-frame.png"
-                                alt="Laptop Mockup"
-                                className="w-full h-auto relative z-10 drop-shadow-2xl pointer-events-none"
-                                width={1000}
-                                height={750}
-                                priority
+                <div className="mt-4 flex justify-center gap-2">
+                    {CAROUSEL_SLIDES.map((slide, idx) => (
+                        <button
+                            key={slide.key}
+                            type="button"
+                            onClick={() => setCurrentSlide(idx)}
+                            className="flex size-6 items-center justify-center"
+                            aria-label={`${t("landing.heroMockupCaption")} ${idx + 1}`}
+                            aria-current={idx === currentSlide}
+                        >
+                            <span
+                                className={cn(
+                                    "h-1.5 rounded-full transition-all duration-300",
+                                    idx === currentSlide ? "w-5 bg-foreground" : "w-1.5 bg-border",
+                                )}
                             />
-
-                            {/* Inner Screen Background (Black) placed ON TOP of the laptop image's frame */}
-                            <div className="absolute top-[5.3%] bottom-[15.3%] left-[15.5%] right-[15.5%] z-20 bg-black overflow-hidden rounded-sm md:rounded-md lg:rounded-lg">
-                                <div ref={screenRef} className="w-full h-full relative">
-
-                                    {ActiveTemplateComponent ? (
-                                            <div
-                                                key={activeSlide.key}
-                                                className={cn(
-                                                    "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-                                                    (isMounted && screenDims.w > 0) ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
-                                                )}
-                                            >
-                                                <div className="w-full h-full relative">
-                                                    <div 
-                                                        className="origin-top-left absolute top-0 left-0 w-[800px] h-[1131px]"
-                                                        style={{ transform: `scale(${scale})` }}
-                                                    >
-                                                        <div
-                                                            className="w-full h-full bg-card antialiased"
-                                                            style={{
-                                                                transform: `translateY(${translateY}px)`,
-                                                                transitionProperty: 'transform',
-                                                                transitionDuration: '8000ms',
-                                                                transitionTimingFunction: 'ease-in-out',
-                                                                textRendering: 'optimizeLegibility',
-                                                                WebkitFontSmoothing: 'antialiased',
-                                                                backfaceVisibility: 'hidden'
-                                                            }}
-                                                        >
-                                                            <div className="pointer-events-none p-6 h-full w-full">
-                                                                <ActiveTemplateComponent
-                                                                catalogName="Dijital Katalog"
-                                                                products={activeProducts}
-                                                                primaryColor={activeSlide.color}
-                                                                showPrices={true}
-                                                                showDescriptions={true}
-                                                                showAttributes={false}
-                                                                showSku={false}
-                                                                isFreeUser={false}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : null}
-
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 text-center lg:mt-8">
-                            <div className="flex justify-center gap-2 mb-3">
-                                {CAROUSEL_SLIDES.map((_, idx) => (
-                                    <span
-                                        key={idx}
-                                        className={cn(
-                                            "w-2 h-2 rounded-full transition-colors duration-500",
-                                            idx === currentSlide ? "bg-brand" : "bg-border"
-                                        )}
-                                    />
-                                ))}
-                            </div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                                {t('landing.heroMockupCaption')}
-                            </p>
-                        </div>
-                    </div>
+                        </button>
+                    ))}
                 </div>
             </div>
-        </section>
+        </PageHero>
     )
 })
+
+interface TemplatePageProps {
+    templateKey: string
+    color: string
+    name: string
+    scale: number
+    className?: string
+}
+
+function TemplatePage({ templateKey, color, name, scale, className }: TemplatePageProps) {
+    const Template = ALL_TEMPLATES[templateKey]
+    const products = useMemo(() => getPreviewProductsByLayout(templateKey).slice(0, 8), [templateKey])
+    if (!Template) return null
+
+    return (
+        <div
+            className={cn("relative shrink-0 overflow-hidden rounded-sm shadow-md ring-1 ring-border animate-in fade-in duration-700", className)}
+            style={{ width: TEMPLATE_WIDTH * scale, height: TEMPLATE_HEIGHT * scale }}
+            aria-hidden
+        >
+            <div
+                className="catalog-light pointer-events-none absolute left-0 top-0 origin-top-left"
+                style={{ width: TEMPLATE_WIDTH, height: TEMPLATE_HEIGHT, transform: `scale(${scale})` }}
+            >
+                <div className="h-full w-full p-6">
+                    <Template
+                        catalogName={name}
+                        products={products}
+                        primaryColor={color}
+                        showPrices
+                        showDescriptions
+                        showAttributes={false}
+                        showSku={false}
+                        isFreeUser={false}
+                    />
+                </div>
+            </div>
+        </div>
+    )
+}
