@@ -1,5 +1,15 @@
 const dashboard = {
     tr: {
+        templatesPage: {
+            premiumTemplate: "Premium şablon",
+            premiumRequired: "Plus veya Pro gerekli",
+            limitReached: "Katalog limiti doldu",
+            use: "Bu şablonla oluştur",
+            preparing: "Hazırlanıyor...",
+            viewPlans: "Planları incele",
+            defaultDescription: "Katalog şablonu",
+            premiumBadge: "Premium",
+        },
         dashboard: {
             home: {
                 subtitle: "Ürünleriniz, kataloglarınız ve son 30 günün özeti.",
@@ -162,6 +172,16 @@ const dashboard = {
         },
     },
     en: {
+        templatesPage: {
+            premiumTemplate: "Premium template",
+            premiumRequired: "Plus or Pro required",
+            limitReached: "Catalog limit reached",
+            use: "Create with this template",
+            preparing: "Preparing...",
+            viewPlans: "View plans",
+            defaultDescription: "Catalog template",
+            premiumBadge: "Premium",
+        },
         dashboard: {
             home: {
                 subtitle: "Your products, catalogs and a summary of the last 30 days.",

@@ -76,6 +76,34 @@ const INSERT_OPTIONAL_FIELDS = [
     'cover_theme', 'show_in_search', 'category_order'
 ];
 
+/** Premium (is_pro) şablon kimlikleri; 10 dk önbellekli */
+async function getPremiumTemplateIds(): Promise<Set<string>> {
+    const ids = await getOrSetCache<string[]>('katalog:templates:premium-ids', 600, async () => {
+        const { data, error } = await supabase.from('templates').select('id').eq('is_pro', true);
+        if (error) throw error;
+        return (data || []).map((row) => String(row.id));
+    });
+    return new Set(ids);
+}
+
+/**
+ * Ücretsiz planda premium şablon yalnızca arayüzde engelleniyordu; API'ye doğrudan istekle
+ * premium şablonlu katalog oluşturulabiliyordu. Güncellemede yalnızca şablon değişiyorsa
+ * kontrol edilir: plan düşürülen kullanıcının premium şablonlu mevcut kataloğu kaydedilmeye
+ * devam edebilmeli.
+ */
+async function isPremiumTemplateBlocked(plan: string, layout: string | null | undefined): Promise<boolean> {
+    if (plan !== 'free' || !layout) return false;
+    return (await getPremiumTemplateIds()).has(layout);
+}
+
+// apiFetch kullanıcıya `error` alanını gösterir
+const PREMIUM_TEMPLATE_ERROR = {
+    error: 'Bu şablon Plus ve Pro planlarda kullanılabilir.',
+    code: 'premium_template',
+    message: 'Bu şablon Plus ve Pro planlarda kullanılabilir.',
+};
+
 export const createCatalog = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
@@ -122,6 +150,10 @@ export const createCatalog = async (req: Request, res: Response) => {
                 error: 'Limit Reached',
                 message: `Katalog oluşturma limitinize ulaştınız (${plan.toUpperCase()} planı için ${maxCatalogs} adet). Daha fazla oluşturmak için paketinizi yükseltin.`
             });
+        }
+
+        if (await isPremiumTemplateBlocked(plan, layout)) {
+            return res.status(403).json(PREMIUM_TEMPLATE_ERROR);
         }
 
         const shareSlug = generateShareSlug(userName, name);
@@ -246,10 +278,21 @@ export const updateCatalog = async (req: Request, res: Response) => {
         // Eski slug'ı bul (cache temizlemek için)
         const { data: oldCatalog } = await supabase
             .from('catalogs')
-            .select('share_slug')
+            .select('share_slug, layout')
             .eq('id', id)
             .eq('user_id', userId)
             .single();
+
+        const nextLayout = (parsed.data as { layout?: string }).layout;
+        if (nextLayout && nextLayout !== oldCatalog?.layout) {
+            const userData = await getOrSetCache(cacheKeys.user(userId), cacheTTL.user, async () => {
+                const { data } = await supabase.from('users').select('plan, full_name, company').eq('id', userId).single();
+                return data;
+            }) as { plan?: string } | null;
+            if (await isPremiumTemplateBlocked(userData?.plan || 'free', nextLayout)) {
+                return res.status(403).json(PREMIUM_TEMPLATE_ERROR);
+            }
+        }
 
         // Build update data dynamically
         // SECURITY: Use parsed.data (Zod-validated) instead of raw req.body

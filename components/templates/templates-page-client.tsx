@@ -7,9 +7,9 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import { useUser } from "@/lib/contexts/user-context"
 import { type CatalogTemplate, createCatalog } from "@/lib/actions/catalogs"
+import { getPlanLimits } from "@/lib/constants"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
@@ -31,9 +31,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
   const isFreeUser = user?.plan === "free"
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
-  // Toplam katalog sayısı (dashboard'dan veya stats'tan gelmediği için user limit kontrolü)
-  // userContext içinde totalCatalogs var mı kontrol edelim
-  const catalogLimit = user?.plan === "pro" ? 999999 : (user?.plan === "plus" ? 10 : 1)
+  const catalogLimit = getPlanLimits(user?.plan).maxCatalogs
   const isLimitReached = (user?.catalogsCount || 0) >= catalogLimit
 
   const handleUseTemplate = (template: CatalogTemplate) => {
@@ -100,32 +98,30 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                   <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
                     <div className="text-center">
                       <Lock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-xs sm:text-sm font-medium text-foreground">Pro Şablon</p>
+                      <p className="text-xs sm:text-sm font-medium text-foreground">{t("templatesPage.premiumTemplate")}</p>
                     </div>
                   </div>
                 )}
 
                 {/* Hover overlay button - Fixed Layout */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-3 z-30 invisible group-hover:visible">
-                  <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 flex flex-col items-center gap-2 w-full px-4 text-center">
+                {/* Dokunmatik ekranda her zaman, farede üzerine gelince görünür */}
+                <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 bg-gradient-to-t from-foreground/60 to-transparent p-4 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
+                  <div className="flex w-full flex-col items-center gap-2 text-center">
                     <Button
                       variant="secondary"
                       size="default"
-                      className={cn(
-                        "rounded-full px-8 font-bold shadow-2xl transition-all",
-                        (isLimitReached || (template.is_premium && isFreeUser)) && "bg-background/10 text-white border border-white/20 hover:bg-background/20"
-                      )}
+                      className="min-w-32"
                       disabled={loadingId === template.id}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleUseTemplate(template)
                       }}
                     >
-                      {loadingId === template.id ?
-                        "Hazırlanıyor..." :
-                        (template.is_premium && isFreeUser) ? "Pro Gerekli" :
-                          isLimitReached ? "Limit Doldu" : "Kullan"
-                      }
+                      {loadingId === template.id
+                        ? t("templatesPage.preparing")
+                        : (template.is_premium && isFreeUser)
+                          ? t("templatesPage.premiumRequired")
+                          : isLimitReached ? t("templatesPage.limitReached") : t("templatesPage.use")}
                     </Button>
 
                     {(isLimitReached || (template.is_premium && isFreeUser)) && (
@@ -134,9 +130,9 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                           e.stopPropagation()
                           setShowUpgradeModal(true)
                         }}
-                        className="text-[11px] text-white/90 font-bold underline underline-offset-4 hover:text-white transition-colors bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm"
+                        className="text-xs font-medium text-background underline underline-offset-4"
                       >
-                        Planları İncele
+                        {t("templatesPage.viewPlans")}
                       </button>
                     )}
                   </div>
@@ -147,10 +143,10 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="font-medium text-sm sm:text-base truncate text-foreground">{template.name}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{template.description || "Katalog Şablonu"}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{template.description || t("templatesPage.defaultDescription")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {template.is_premium && <Badge variant="secondary" className="bg-gradient-to-r from-warning-soft to-warning text-warning-soft-foreground border-0 text-xs">Premium</Badge>}
+                    {template.is_premium && <Badge variant="secondary" className="text-xs">{t("templatesPage.premiumBadge")}</Badge>}
                   </div>
                 </div>
               </CardContent>
