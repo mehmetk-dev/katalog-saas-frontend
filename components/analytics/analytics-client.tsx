@@ -29,6 +29,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { StatCard } from "@/components/ui/stat-card"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { DashboardStats, Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
@@ -83,7 +84,8 @@ function calculateTrend(currentValue: number, previousValue: number) {
 }
 
 // Pie chart color palette — constant, no need to recreate per render
-const DEVICE_COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B']
+// Tema grafik renkleri (globals.css --chart-*)
+const DEVICE_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
 
 export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClientProps) {
     const { t: baseT, language } = useTranslation()
@@ -163,11 +165,13 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
     // Fix #2: totalViews (all-time) as main value, trend compares period vs prev period
     const kpiStats = useMemo(() => [
         {
-            label: t("dashboard.analytics.totalViews"),
-            value: validatedStats.totalViews,
+            // Seçilen dönemin görüntülenmesi (önceden tüm zamanlar gösteriliyor, dönem seçimi sayıyı değiştirmiyordu)
+            label: t("dashboard.analytics.views"),
+            value: validatedStats.periodViews,
             icon: Eye,
             color: "violet" as const,
-            trend: calculateTrend(validatedStats.periodViews, validatedStats.prevTotalViews)
+            trend: calculateTrend(validatedStats.periodViews, validatedStats.prevTotalViews),
+            hint: t("dashboard.analytics.allTimeViews", { count: validatedStats.totalViews.toLocaleString(language === "en" ? "en-US" : "tr-TR") }),
         },
         {
             label: t("dashboard.analytics.uniqueVisitors"),
@@ -181,16 +185,18 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             value: validatedStats.publishedCatalogs,
             icon: FileText,
             color: "emerald" as const,
-            trend: { show: false, value: 0, isPositive: true }
+            trend: { show: false, value: 0, isPositive: true },
+            hint: t("dashboard.analytics.ofCatalogs", { count: validatedStats.totalCatalogs }),
         },
         {
             label: t("dashboard.analytics.totalProducts"),
             value: validatedStats.totalProducts,
             icon: Package,
             color: "amber" as const,
-            trend: { show: false, value: 0, isPositive: true }
+            trend: { show: false, value: 0, isPositive: true },
+            hint: t("dashboard.analytics.currentTotal"),
         }
-    ], [validatedStats, t])
+    ] as Array<{ label: string; value: number; icon: typeof Eye; color: string; trend: ReturnType<typeof calculateTrend>; hint?: string }>, [validatedStats, t, language])
 
     const hasCatalogs = catalogs.length > 0
 
@@ -233,44 +239,32 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
 
             {/* KPI Grid - 2 columns on mobile to see charts sooner */}
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-                {kpiStats.map((stat, i) => (
-                    <Card key={i} className="border-border/50 shadow-sm hover:shadow-md transition-all overflow-hidden relative group">
-                        <div className={cn(
-                            "absolute right-0 top-0 w-24 h-24 -mr-8 -mt-8 opacity-5 group-hover:opacity-10 transition-opacity",
-                            stat.color === 'violet' && "text-primary",
-                            stat.color === 'blue' && "text-info",
-                            stat.color === 'emerald' && "text-success",
-                            stat.color === 'amber' && "text-warning-soft-foreground",
-                        )}>
-                            <stat.icon className="w-full h-full" />
-                        </div>
-                        <CardHeader className="pb-1 sm:pb-2 space-y-0 text-left px-3 sm:px-6">
-                            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-left px-3 sm:px-6 pb-3 sm:pb-6">
-                            <div className="text-xl sm:text-2xl font-bold">{stat.value.toLocaleString()}</div>
-                            <div className="flex items-center gap-1.5 mt-1 min-h-[20px]">
+                {kpiStats.map((stat) => (
+                    <StatCard
+                        key={stat.label}
+                        label={stat.label}
+                        value={stat.value.toLocaleString(language === "en" ? "en-US" : "tr-TR")}
+                        icon={stat.icon}
+                        hint={
+                            <span className="flex flex-wrap items-center gap-1.5">
                                 {stat.trend.show && stat.value > 0 ? (
                                     <>
                                         <Badge variant="outline" className={cn(
-                                            "text-[10px] px-1.5 py-0 border-0 font-bold",
-                                            stat.trend.isPositive ? "bg-success-soft text-success-soft-foreground" : "bg-destructive-soft text-destructive"
+                                            "border-0 px-1.5 py-0 text-[10px] font-semibold",
+                                            stat.trend.isPositive ? "bg-success-soft text-success-soft-foreground" : "bg-destructive-soft text-destructive-soft-foreground"
                                         )}>
-                                            {stat.trend.isPositive ? <ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> : <ArrowDownRight className="w-2.5 h-2.5 mr-0.5" />}
+                                            {stat.trend.isPositive ? <ArrowUpRight className="mr-0.5 size-2.5" /> : <ArrowDownRight className="mr-0.5 size-2.5" />}
                                             {stat.trend.value}%
                                         </Badge>
-                                        <span className="text-[10px] text-muted-foreground">
-                                            {trendLabel}
-                                        </span>
+                                        <span>{trendLabel}</span>
+                                        {stat.hint ? <span className="basis-full">{stat.hint}</span> : null}
                                     </>
                                 ) : (
-                                    <span className="text-[10px] text-muted-foreground">
-                                        {t("dashboard.analytics.currentPeriodData")}
-                                    </span>
+                                    <span>{stat.hint ?? t("dashboard.analytics.currentPeriodData")}</span>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </span>
+                        }
+                    />
                 ))}
             </div>
 
@@ -296,16 +290,16 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                     <BarChart data={barChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                                                <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.1} />
+                                                <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.8} />
+                                                <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.1} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                                         <XAxis
                                             dataKey="name"
                                             axisLine={false}
                                             tickLine={false}
-                                            tick={{ fontSize: 10, fill: '#64748B' }}
+                                            tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
                                             dy={10}
                                             interval={timeRange === '7d' ? 0 : (timeRange === '30d' ? 5 : 14)}
                                         />
@@ -313,7 +307,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             axisLine={false}
                                             tickLine={false}
                                             allowDecimals={false}
-                                            tick={{ fontSize: 10, fill: '#64748B' }}
+                                            tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
                                         />
                                         <Tooltip
                                             cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }}
@@ -323,9 +317,9 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                                 boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
                                                 fontSize: '12px',
                                                 backgroundColor: 'var(--color-card, white)',
-                                                color: 'var(--color-card-foreground, #1e293b)'
+                                                color: 'var(--card-foreground)'
                                             }}
-                                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--color-card-foreground, #1e293b)' }}
+                                            labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--card-foreground)' }}
                                             formatter={(value: unknown) => [`${value} ${t("dashboard.analytics.views")}`, '']}
                                         />
                                         <Bar

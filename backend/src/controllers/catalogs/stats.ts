@@ -3,6 +3,23 @@ import { supabase } from '../../services/supabase';
 import { getUserId } from './helpers';
 import { cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 
+const VIEW_PAGE_SIZE = 1000;
+/** Çok büyük hesaplarda isteği sınırlamak için üst sınır (ör. 90 günde 200 bin görüntülenme) */
+const MAX_VIEW_ROWS = 200_000;
+
+async function fetchAllViewRows<T>(
+    page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+): Promise<{ data: T[] }> {
+    const rows: T[] = [];
+    for (let from = 0; from < MAX_VIEW_ROWS; from += VIEW_PAGE_SIZE) {
+        const { data, error } = await page(from, from + VIEW_PAGE_SIZE - 1);
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < VIEW_PAGE_SIZE) break;
+    }
+    return { data: rows };
+}
+
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
@@ -63,22 +80,31 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 
             if (catalogIds.length > 0) {
                 // Current period + previous period views in parallel
+                // Supabase tek sorguda en fazla 1000 satır döndürür; önceden 1000+ görüntülenmede dönem
+                // sayısı, günlük grafik ve cihaz dağılımı yalnızca ilk 1000 kayda göre hesaplanıyordu.
                 const [currentPeriodResult, prevPeriodResult] = await Promise.all([
-                    supabase
-                        .from('catalog_views')
-                        .select('catalog_id, device_type, view_date, visitor_hash')
-                        .in('catalog_id', catalogIds)
-                        .eq('is_owner', false)
-                        .gte('view_date', dateThresholdStr),
-                    supabase
-                        .from('catalog_views')
-                        .select('catalog_id, visitor_hash')
-                        .in('catalog_id', catalogIds)
-                        .eq('is_owner', false)
-                        .gte('view_date', prevDateThresholdStr)
-                        .lt('view_date', dateThresholdStr)
+                    fetchAllViewRows<{ catalog_id: string; device_type: string | null; view_date: string; visitor_hash: string | null }>((from, to) =>
+                        supabase
+                            .from('catalog_views')
+                            .select('catalog_id, device_type, view_date, visitor_hash')
+                            .in('catalog_id', catalogIds)
+                            .eq('is_owner', false)
+                            .gte('view_date', dateThresholdStr)
+                            .order('id')
+                            .range(from, to)
+                    ),
+                    fetchAllViewRows<{ catalog_id: string; visitor_hash: string | null }>((from, to) =>
+                        supabase
+                            .from('catalog_views')
+                            .select('catalog_id, visitor_hash')
+                            .in('catalog_id', catalogIds)
+                            .eq('is_owner', false)
+                            .gte('view_date', prevDateThresholdStr)
+                            .lt('view_date', dateThresholdStr)
+                            .order('id')
+                            .range(from, to)
+                    ),
                 ]);
-
                 const periodViewRows = currentPeriodResult.data;
                 const prevPeriodRows = prevPeriodResult.data;
 
