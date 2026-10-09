@@ -18,14 +18,17 @@ import {
     Book,
     Utensils,
     Eye,
+    Loader2,
     X
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { AnimatePresence, motion } from "framer-motion"
 import { DEMO_DATA } from "@/lib/demo-data"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { ModernGridTemplate } from "@/components/catalogs/templates/modern-grid"
 import { FashionLookbookTemplate } from "@/components/catalogs/templates/fashion-lookbook"
 import { MagazineTemplate } from "@/components/catalogs/templates/magazine"
@@ -35,28 +38,29 @@ import { ElegantCardsTemplate } from "@/components/catalogs/templates/elegant-ca
 import { MinimalistTemplate } from "@/components/catalogs/templates/minimalist"
 import { CatalogProTemplate } from "@/components/catalogs/templates/catalog-pro"
 
+// Ad ve açıklamalar çeviride (demoPage.industries / demoPage.templates)
 export const INDUSTRIES = [
-    { id: 'fashion', name: 'Moda ve Giyim', icon: ShoppingBag, description: 'Giyim, ayakkabı ve aksesuarlar' },
-    { id: 'tech', name: 'Teknoloji ve Elektronik', icon: Smartphone, description: 'Elektronik, bilgisayar ve donanım' },
-    { id: 'cosmetic', name: 'Güzellik ve Kozmetik', icon: Sparkles, description: 'Cilt bakımı, makyaj ve kişisel bakım' },
-    { id: 'home', name: 'Ev ve Yaşam', icon: Home, description: 'Dekorasyon ve ev tekstili' },
-    { id: 'furniture', name: 'Mobilya ve Dekorasyon', icon: Armchair, description: 'Konforlu ve şık yaşam alanları' },
-    { id: 'automotive', name: 'Otomotiv ve Aksesuar', icon: Car, description: 'Araç içi ekipman ve bakım' },
-    { id: 'sports', name: 'Spor ve Outdoor', icon: Trophy, description: 'Kamp ve spor ekipmanları' },
-    { id: 'toys', name: 'Oyuncak ve Hobi', icon: ToyBrick, description: 'Eğitici ve eğlenceli setler' },
-    { id: 'books', name: 'Kitap ve Kırtasiye', icon: Book, description: 'Ofis ve yaratıcılık araçları' },
-    { id: 'food', name: 'Gıda ve Gurme', icon: Utensils, description: 'Yöresel ve gurme lezzetler' },
+    { id: 'fashion', icon: ShoppingBag },
+    { id: 'tech', icon: Smartphone },
+    { id: 'cosmetic', icon: Sparkles },
+    { id: 'home', icon: Home },
+    { id: 'furniture', icon: Armchair },
+    { id: 'automotive', icon: Car },
+    { id: 'sports', icon: Trophy },
+    { id: 'toys', icon: ToyBrick },
+    { id: 'books', icon: Book },
+    { id: 'food', icon: Utensils },
 ]
 
 export const TEMPLATES = [
-    { id: 'modern-grid', name: 'Modern Izgara', component: ModernGridTemplate, description: 'Temiz ve çok yönlü ızgara düzeni.' },
-    { id: 'fashion-lookbook', name: 'Moda Lookbook', component: FashionLookbookTemplate, description: 'Büyük görsellerle dergi stili.' },
-    { id: 'magazine', name: 'Magazin', component: MagazineTemplate, description: 'Hikaye odaklı profesyonel mizanpaj.' },
-    { id: 'luxury', name: 'Lüks', component: LuxuryTemplate, description: 'Premium, koyu temalı zarafet.' },
-    { id: 'bold', name: 'Cesur', component: BoldTemplate, description: 'Güçlü renkler, dikkat çekici stil.' },
-    { id: 'elegant-cards', name: 'Zarif Kartlar', component: ElegantCardsTemplate, description: 'Şık kartlarla premium sunum.' },
-    { id: 'minimalist', name: 'Minimalist', component: MinimalistTemplate, description: 'Sade, az ama öz tasarım.' },
-    { id: 'catalog-pro', name: 'Katalog Pro', component: CatalogProTemplate, description: 'Profesyonel iş kataloğu.' },
+    { id: 'modern-grid', component: ModernGridTemplate },
+    { id: 'fashion-lookbook', component: FashionLookbookTemplate },
+    { id: 'magazine', component: MagazineTemplate },
+    { id: 'luxury', component: LuxuryTemplate },
+    { id: 'bold', component: BoldTemplate },
+    { id: 'elegant-cards', component: ElegantCardsTemplate },
+    { id: 'minimalist', component: MinimalistTemplate },
+    { id: 'catalog-pro', component: CatalogProTemplate },
 ]
 
 interface DemoBuilderProps {
@@ -65,13 +69,14 @@ interface DemoBuilderProps {
 }
 
 export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
+    const { t } = useTranslation()
     // State
     const [step, setStep] = useState(1)
     const [industry, setIndustry] = useState('fashion')
     const [templateId, setTemplateId] = useState('modern-grid')
 
     // Customization State
-    const [catalogName, setCatalogName] = useState('Harika Kataloğum')
+    const [catalogName, setCatalogName] = useState(() => t('demoPage.defaultName'))
     const [primaryColor, setPrimaryColor] = useState('#000000')
     const [headerTextColor] = useState('#000000')
     const [backgroundColor, setBackgroundColor] = useState('#ffffff')
@@ -106,6 +111,41 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
     const CurrentTemplate = TEMPLATES.find(t => t.id === templateId)?.component || ModernGridTemplate
     const currentProducts = DEMO_DATA[industry] || []
 
+    const [isExporting, setIsExporting] = useState(false)
+
+    const handleDownloadPdf = async () => {
+        if (!previewRef.current) return
+        setIsExporting(true)
+        // Mobilde önizleme gizli (display: none) olduğu için önce açılır; aksi halde PDF boş çıkıyordu
+        const wasHidden = previewRef.current.offsetParent === null
+        if (wasHidden) {
+            setShowMobilePreview(true)
+            await new Promise((resolve) => setTimeout(resolve, 300))
+        }
+        try {
+            const node = previewRef.current
+            if (!node) throw new Error("preview_missing")
+            const { toJpeg } = await import('html-to-image')
+            const { default: jsPDF } = await import('jspdf')
+            // Önizleme ekrana sığsın diye küçültülmüş; PDF tam boyuttan alınır
+            const dataUrl = await toJpeg(node, {
+                quality: 0.95,
+                pixelRatio: 2,
+                backgroundColor,
+                style: { transform: 'none' },
+            })
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297)
+            pdf.save(`${catalogName || 'katalog'}-demo.pdf`)
+        } catch (err) {
+            console.error('PDF export error:', err)
+            toast.error(t('demoPage.pdfFailed'))
+        } finally {
+            if (wasHidden) setShowMobilePreview(false)
+            setIsExporting(false)
+        }
+    }
+
     const handleNext = () => setStep(prev => prev + 1)
     const handleBack = () => setStep(prev => prev - 1)
 
@@ -130,8 +170,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                     <ind.icon className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xs font-medium leading-tight">{ind.name}</h3>
-                                    {/* <p className="text-[10px] text-muted-foreground font-medium line-clamp-1">{ind.description}</p> */}
+                                    <h3 className="text-xs font-medium leading-tight">{t(`demoPage.industries.${ind.id}`)}</h3>
                                 </div>
                                 {industry === ind.id && (
                                     <motion.div
@@ -205,6 +244,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                                     products={currentProducts.slice(0, 6)}
                                                     catalogName={catalogName}
                                                     primaryColor={primaryColor}
+                                                    backgroundColor={backgroundColor}
                                                     headerTextColor={headerTextColor}
                                                     showPrices={showPrices}
                                                     showDescriptions={showDescriptions}
@@ -230,11 +270,11 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                 {/* Bottom info bar */}
                                 <div className="px-3 py-2.5 flex items-center justify-between border-t border-border">
                                     <div className="min-w-0">
-                                        <h3 className="text-sm font-semibold truncate">{tmpl.name}</h3>
-                                        <p className="text-xs text-muted-foreground truncate">{tmpl.description}</p>
+                                        <h3 className="text-sm font-semibold truncate">{t(`demoPage.templates.${tmpl.id}.name`)}</h3>
+                                        <p className="text-xs text-muted-foreground truncate">{t(`demoPage.templates.${tmpl.id}.desc`)}</p>
                                     </div>
                                     {templateId === tmpl.id && (
-                                        <span className="text-xs font-medium text-foreground shrink-0 ml-2">Seçili</span>
+                                        <span className="text-xs font-medium text-foreground shrink-0 ml-2">{t("demoPage.selected")}</span>
                                     )}
                                 </div>
                             </motion.div>
@@ -245,24 +285,24 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                 return (
                     <div className="space-y-6">
                         <div className="space-y-4">
-                            <Label className="text-sm font-medium text-foreground">Katalog Kimliği</Label>
+                            <Label className="text-sm font-medium text-foreground">{t("demoPage.identity")}</Label>
                             <div className="space-y-2">
-                                <span className="text-sm font-bold text-foreground">Görünen İsim</span>
+                                <span className="text-sm font-bold text-foreground">{t("demoPage.displayName")}</span>
                                 <Input
                                     value={catalogName}
                                     onChange={(e) => setCatalogName(e.target.value)}
                                     className="h-11"
-                                    placeholder="Örn: Yaz Koleksiyonu 2024"
+                                    placeholder={t("demoPage.namePlaceholder")}
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-4">
-                            <Label className="text-sm font-medium text-foreground">Marka Renkleri</Label>
+                            <Label className="text-sm font-medium text-foreground">{t("demoPage.brandColors")}</Label>
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="p-4 rounded-xl border border-border bg-muted/40 flex items-center justify-between">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-foreground">Ana Renk</span>
+                                        <span className="text-sm font-bold text-foreground">{t("demoPage.primaryColor")}</span>
                                         <span className="text-xs text-muted-foreground font-medium">{primaryColor}</span>
                                     </div>
                                     <div className="relative group">
@@ -278,7 +318,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
 
                                 <div className="p-4 rounded-xl border border-border bg-muted/40 flex items-center justify-between">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-foreground">Arka Plan</span>
+                                        <span className="text-sm font-bold text-foreground">{t("demoPage.background")}</span>
                                         <span className="text-xs text-muted-foreground font-medium">{backgroundColor}</span>
                                     </div>
                                     <div className="relative">
@@ -295,14 +335,14 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                         </div>
 
                         <div className="space-y-4">
-                            <Label className="text-sm font-medium text-foreground">Detaylar</Label>
+                            <Label className="text-sm font-medium text-foreground">{t("demoPage.details")}</Label>
                             <div className="p-4 rounded-xl border border-border bg-muted/40 space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold text-foreground">Fiyatları Göster</span>
+                                    <span className="text-sm font-bold text-foreground">{t("demoPage.showPrices")}</span>
                                     <Switch checked={showPrices} onCheckedChange={setShowPrices} />
                                 </div>
                                 <div className="flex items-center justify-between border-t border-border pt-4">
-                                    <span className="text-sm font-bold text-foreground">Ürün Açıklamaları</span>
+                                    <span className="text-sm font-bold text-foreground">{t("demoPage.showDescriptions")}</span>
                                     <Switch checked={showDescriptions} onCheckedChange={setShowDescriptions} />
                                 </div>
                             </div>
@@ -316,45 +356,27 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                             <Check className="w-10 h-10" />
                         </div>
                         <div>
-                            <h2 className="text-3xl font-semibold tracking-tight mb-2">Kataloğunuz Hazır!</h2>
-                            <p className="text-muted-foreground max-w-md mx-auto">
-                                Saniyeler içinde harika bir katalog oluşturdunuz. Bu, Katalog'un yapabileceklerinin sadece küçük bir örneği.
-                            </p>
+                            <h2 className="text-3xl font-semibold tracking-tight mb-2">{t("demoPage.readyTitle")}</h2>
+                            <p className="text-muted-foreground max-w-md mx-auto">{t("demoPage.readyDesc")}</p>
                         </div>
                         <div className="flex gap-4">
                             <Button variant="outline" onClick={handleBack} className="gap-2" size="lg">
-                                <Undo2 className="w-4 h-4" /> Geri
+                                <Undo2 className="w-4 h-4" /> {t("demoPage.back")}
                             </Button>
                             <Button
                                 className="gap-2"
                                 size="lg"
-                                onClick={async () => {
-                                    if (!previewRef.current) return
-                                    try {
-                                        const { toJpeg } = await import('html-to-image')
-                                        const { default: jsPDF } = await import('jspdf')
-
-                                        const dataUrl = await toJpeg(previewRef.current, {
-                                            quality: 0.95,
-                                            pixelRatio: 2,
-                                            backgroundColor: '#ffffff',
-                                        })
-
-                                        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-                                        pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297)
-                                        pdf.save(`${catalogName || 'katalog'}-demo.pdf`)
-                                    } catch (err) {
-                                        console.error('PDF export error:', err)
-                                    }
-                                }}
+                                disabled={isExporting}
+                                onClick={handleDownloadPdf}
                             >
-                                <Download className="w-4 h-4" /> PDF İndir
+                                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {t("demoPage.downloadPdf")}
                             </Button>
                         </div>
-                        <div className="bg-info-soft p-4 rounded-lg border border-info/20 mt-8 max-w-md">
-                            <h4 className="font-bold text-info-soft-foreground mb-1">Bu kataloğu kaydetmek ister misiniz?</h4>
-                            <p className="text-sm text-info-soft-foreground mb-3">Çalışmanızı kaydetmek, gerçek ürünler eklemek ve dünyayla paylaşmak için hemen kaydolun.</p>
-                            <Button className="w-full bg-info hover:bg-info/90 text-info-foreground font-bold" onClick={() => router.push('/auth/register')}>Ücretsiz Hesap Oluştur</Button>
+                        <div className="mt-8 max-w-md rounded-xl border border-border bg-muted/40 p-5">
+                            <h4 className="mb-1 font-semibold text-foreground">{t("demoPage.saveTitle")}</h4>
+                            <p className="mb-4 text-sm text-muted-foreground">{t("demoPage.saveDesc")}</p>
+                            {/* Önceden /auth/register'a gidiyordu; böyle bir sayfa yok (404) */}
+                            <Button variant="brand" className="w-full" onClick={() => router.push('/auth?tab=signup')}>{t("demoPage.signup")}</Button>
                         </div>
                     </div>
                 )
@@ -384,16 +406,10 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                     <div className="p-4 lg:p-8 lg:overflow-y-auto flex-1 custom-scrollbar">
                         <div className="mb-8">
                             <h1 className="text-2xl font-semibold tracking-tight mb-2 text-foreground">
-                                {step === 1 && "Kategori Seçin"}
-                                {step === 2 && "Şablon Seçin"}
-                                {step === 3 && "Kataloğu Tasarla"}
-                                {step === 4 && "Harika!"}
+                                {t(`demoPage.steps.${step}.title`)}
                             </h1>
                             <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                                {step === 1 && "İşinize en uygun kategoriyi belirleyin."}
-                                {step === 2 && "Marka kimliğinizi yansıtan stili seçin."}
-                                {step === 3 && "Detayları marka renklerinize göre uyarlayın."}
-                                {step === 4 && "Kataloğunuz başarıyla oluşturuldu."}
+                                {t(`demoPage.steps.${step}.desc`)}
                             </p>
                         </div>
 
@@ -416,11 +432,11 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                             <div className="flex gap-4">
                                 {step > 1 && (
                                     <Button variant="outline" onClick={handleBack} size="lg" className="h-11 px-3 sm:px-6 shrink-0">
-                                        <Undo2 className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Geri</span>
+                                        <Undo2 className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">{t("demoPage.back")}</span>
                                     </Button>
                                 )}
                                 <Button onClick={handleNext} variant="brand" size="lg" className="h-11 w-full flex-1 gap-2">
-                                    {step === 3 ? "Kataloğu Oluştur" : "Devam Et"} <ArrowRight className="w-5 h-5" />
+                                    {step === 3 ? t("demoPage.create") : t("demoPage.next")} <ArrowRight className="w-5 h-5" />
                                 </Button>
                             </div>
                         </div>
@@ -432,7 +448,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                             onClick={() => setShowMobilePreview(true)}
                             className="w-full h-11 bg-primary text-primary-foreground font-medium rounded-md shadow-sm flex items-center justify-center gap-2 text-base"
                         >
-                            <Eye className="w-5 h-5" /> Kataloğu Önizle
+                            <Eye className="w-5 h-5" /> {t("demoPage.preview")}
                         </Button>
                     </div>
                 </div>
@@ -446,13 +462,13 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                         {/* Status Badge */}
                         <div className="hidden lg:flex fixed top-24 right-8 items-center gap-2 px-3 py-1.5 bg-background/80 backdrop-blur-sm rounded-full border shadow-sm z-50">
                             <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                            <span className="text-sm font-medium text-foreground">Canlı Önizleme</span>
+                            <span className="text-sm font-medium text-foreground">{t("demoPage.livePreview")}</span>
                         </div>
 
                         {/* Mobile Close Button */}
                         {showMobilePreview && (
                             <div className="lg:hidden fixed top-4 right-4 z-[60]">
-                                <Button variant="secondary" size="icon" className="rounded-full shadow-lg bg-background/80 backdrop-blur-md text-foreground hover:bg-card border border-border w-12 h-12" onClick={() => setShowMobilePreview(false)}>
+                                <Button variant="secondary" size="icon" aria-label={t("common.close")} className="rounded-full shadow-lg bg-background/80 backdrop-blur-md text-foreground hover:bg-card border border-border w-12 h-12" onClick={() => setShowMobilePreview(false)}>
                                     <X className="w-6 h-6" />
                                 </Button>
                             </div>
@@ -483,11 +499,13 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
                                     }}
                                 >
                                     {/* Actual Preview Content */}
-                                    <div className="p-4 bg-card h-full overflow-hidden">
+                                    {/* bg-card seçilen arka plan rengini örtüyordu */}
+                                    <div className="catalog-light h-full overflow-hidden p-4" style={{ backgroundColor }}>
                                         <CurrentTemplate
                                             products={currentProducts}
                                             catalogName={catalogName}
                                             primaryColor={primaryColor}
+                                            backgroundColor={backgroundColor}
                                             headerTextColor={headerTextColor}
                                             showPrices={showPrices}
                                             showDescriptions={showDescriptions}
