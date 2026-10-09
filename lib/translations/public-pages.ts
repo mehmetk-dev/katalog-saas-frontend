@@ -56,7 +56,7 @@ const publicPages = {
                     { q: "Katalog mobilde düzgün görünür mü?", a: "Evet. Kataloglar telefon, tablet ve bilgisayarda ekrana uyum sağlar." },
                 ],
                 account: [
-                    { q: "Aboneliğim otomatik yenilenir mi?", a: "Hayır. Ödemeler aylık veya yıllık dönem için tek seferlik alınır ve otomatik yenilenmez. Dönem bittiğinde hesabınız Ücretsiz plana geçer; sizden ek ücret alınmaz." },
+                    { q: "Aboneliğim otomatik yenilenir mi?", a: "Hayır. Ödemeler aylık veya yıllık dönem için tek seferlik alınır ve otomatik yenilenmez. Dönem bittiğinde hesabınız Ücretsiz plana geçer; sizden ek ücret alınmaz. Dilerseniz Ayarlar > Abonelik sekmesinden aboneliğinizi iptal edebilirsiniz; planınız dönem sonuna kadar kullanılmaya devam eder." },
                     { q: "Planımı değiştirebilir miyim?", a: "Daha üst bir plana dilediğiniz zaman geçebilirsiniz. Daha düşük bir plan için mevcut dönemin bitmesini bekleyip o planı satın almanız yeterlidir." },
                     { q: "Fatura alabilir miyim?", a: "Ödemenizin ardından ödeme belgeniz hazırlanır. Fatura ile ilgili talepleriniz için iletişim sayfasından bize yazabilirsiniz." },
                     { q: "Teknik destek veriyor musunuz?", a: "Tüm kullanıcılarımıza e-posta ile destek veriyoruz. Pro plan kullanıcılarının talepleri öncelikli olarak yanıtlanır." },
@@ -296,7 +296,7 @@ const publicPages = {
                     { q: "Does the catalog look good on mobile?", a: "Yes. Catalogs adapt to phones, tablets and computers." },
                 ],
                 account: [
-                    { q: "Does my subscription renew automatically?", a: "No. Payments are taken once for a monthly or yearly period and do not renew automatically. When the period ends your account moves to the Free plan; you are not charged again." },
+                    { q: "Does my subscription renew automatically?", a: "No. Payments are taken once for a monthly or yearly period and do not renew automatically. When the period ends your account moves to the Free plan; you are not charged again. You can also cancel from Settings > Subscription; your plan stays active until the end of the period." },
                     { q: "Can I change my plan?", a: "You can move to a higher plan at any time. For a lower plan, wait for the current period to end and purchase that plan." },
                     { q: "Can I get an invoice?", a: "A payment document is prepared after your payment. For invoice requests, write to us from the contact page." },
                     { q: "Do you offer technical support?", a: "We support all users by email. Requests from Pro users are answered with priority." },
