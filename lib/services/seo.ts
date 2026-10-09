@@ -21,7 +21,7 @@ export function generateSEO({
     keywords = [
         'katalog', 'ürün kataloğu', 'PDF katalog', 'dijital katalog', 'katalog oluşturma',
         'catalog builder', 'digital catalog', 'product catalog', 'online catalog', 'PDF catalog creator',
-        'B2B catalog', 'wholesale catalog builder', 'whatsapp order catalog'
+        'B2B catalog', 'wholesale catalog builder'
     ],
     image = DEFAULT_IMAGE,
     url,
@@ -76,7 +76,7 @@ export function generateSEO({
 export const SEO_CONFIG = {
     home: generateSEO({
         title: 'Profesyonel Ürün Kataloğu Oluşturucu',
-        description: 'Dakikalar içinde profesyonel dijital ürün katalogları oluşturun, paylaşın ve yayınlayın. WhatsApp entegrasyonu ile toptan ve perakende satışlarınızı artırın.',
+        description: 'Dakikalar içinde profesyonel dijital ürün katalogları oluşturun, paylaşın ve yayınlayın. Link, QR kod ve PDF ile toptan ve perakende müşterilerinize ulaştırın.',
         url: '/',
         keywords: [
             'katalog', 'ürün kataloğu', 'PDF katalog', 'dijital katalog',
@@ -85,7 +85,7 @@ export const SEO_CONFIG = {
     }),
     pricing: generateSEO({
         title: 'Fiyatlandırma',
-        description: 'İşletmeniz için en uygun planı seçin. Ücretsiz başlayın veya Plus ve Pro planlarıyla sınırsız katalog ve ürün özelliklerinin kilidini açın.',
+        description: 'İşletmeniz için en uygun planı seçin. Ücretsiz başlayın; daha fazla katalog ve ürün için Plus'a, sınırsız kullanım için Pro'ya geçin.',
         url: '/pricing',
         keywords: [
             'katalog fiyatları', 'fiyatlandırma', 'katalog oluşturma fiyat', 'dijital katalog paketleri',
@@ -114,7 +114,7 @@ export const SEO_CONFIG = {
     }),
     faq: generateSEO({
         title: 'Sıkça Sorulan Sorular',
-        description: 'Katalog oluşturma, fiyatlandırma, WhatsApp siparişleri ve teknik destek hakkındaki sorularınızın yanıtlarını bulun.',
+        description: 'Katalog oluşturma, paylaşım, fiyatlandırma ve teknik destek hakkındaki sorularınızın yanıtlarını bulun.',
         url: '/faq',
     }),
     auth: generateSEO({

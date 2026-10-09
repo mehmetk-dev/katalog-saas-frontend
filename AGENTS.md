@@ -921,20 +921,20 @@ interface Catalog {
 
 ### 5.5 Abonelik/Plan Sistemi
 
-```
-┌─────────────┐    ┌──────────────┐    ┌──────────────┐
-│ Free Plan   │    │ Plus Plan    │    │ Pro Plan     │
-│ - 3 katalog │    │ - 10 katalog │    │ - Unlimited  │
-│ - 50 ürün   │    │ - 500 ürün   │    │ - All templ. │
-│ - 3 şablon  │    │ - All templ. │    │ - Analytics  │
-└─────────────┘    └──────────────┘    └──────────────┘
-                          │
-                          ▼ (Upgrade Modal)
-                   ┌──────────────┐
-                   │ Manual       │ ◄── Henüz otomatik ödeme yok
-                   │ Payment      │     (İyzico/Stripe entegre edilebilir)
-                   └──────────────┘
-```
+> Kaynak gerçek: limitler `lib/constants.ts` (`getPlanLimits`), plan özellik listeleri `lib/billing/plan-features.ts`. Aşağıdaki tablo özet; sayılar değişirse önce koda bak.
+
+| | Free | Plus | Pro |
+|---|---|---|---|
+| Katalog | 1 | 10 | Sınırsız |
+| Ürün | 50 | 1000 | Sınırsız |
+| PDF export (aylık) | 1 | 50 | Sınırsız |
+| Şablon | 4 ücretsiz şablon | Tümü | Tümü |
+| Kategori, Excel import | — | ✓ | ✓ |
+| PDF filigranı | Var | Yok | Yok |
+
+- **Ödeme:** Garanti BBVA sanal POS (`app/checkout`, `backend/src/services/payments/garanti-*`). Abonelik otomatik yenilenmez; iptal Ayarlar → Abonelik sekmesinden.
+- **İade/iptal:** Admin paneli → Ödemeler sekmesi (backend kuyruğu + worker).
+- Premium şablon kontrolü backend'de de yapılır.
 
 ---
 
@@ -1091,7 +1091,7 @@ export async function createProduct(formData: FormData) {
 | 🔴 HIGH | **Büyük Component'lar** | `catalog-editor.tsx` (76KB) parçalanmalı |
 | 🔴 HIGH | **translations.ts** | 142KB tek dosya - modüle bölünmeli |
 | 🟡 MED | **Test Eksikliği** | Unit/Integration testler yetersiz |
-| 🟡 MED | **Ödeme Entegrasyonu** | Stripe/İyzico entegre edilmeli |
+| 🟡 MED | **Ödeme uçtan uca testi** | Garanti BBVA entegrasyonu var; test POS ile uçtan uca deneme yapılmadı |
 | 🟡 MED | **Server Actions Güvenlik** | Tüm action'lara auth middleware |
 | 🟢 LOW | **Code Splitting** | Büyük bundle'lar optimize edilmeli |
 
@@ -1110,7 +1110,6 @@ components/builder/catalog-editor.tsx (76KB)
 
 ```typescript
 // Kod içinde bulunan TODO'lar:
-// TODO: Implement automatic payment integration (Iyzico/Stripe)
 // TODO: Add multi-language PDF generation
 // TODO: Implement workspace/team features
 // TODO: Add catalog password protection
@@ -1125,7 +1124,6 @@ components/builder/catalog-editor.tsx (76KB)
    - Bundle size optimizasyonu
 
 2. **Orta Vadeli (3-6 ay)**
-   - Ödeme entegrasyonu (Stripe/İyzico)
    - Workspace/Team özelliği
    - AI açıklama oluşturucu
 

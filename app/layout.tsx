@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   keywords: [
     "katalog", "ürün kataloğu", "PDF katalog", "dijital katalog", "katalog oluşturma",
     "catalog builder", "digital catalog", "product catalog", "online catalog", "PDF catalog creator",
-    "B2B catalog", "wholesale catalog builder", "whatsapp order catalog"
+    "B2B catalog", "wholesale catalog builder"
   ],
   authors: [{ name: "FogCatalog", url: siteUrl }],
   creator: "FogCatalog",
