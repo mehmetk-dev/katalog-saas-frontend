@@ -1,18 +1,12 @@
 import { LayoutTemplate } from "lucide-react"
 import { TEMPLATES } from "@/lib/constants"
 import { TemplatePreviewCard } from "@/components/builder/preview/template-preview-card"
-import type { TemplateSectionProps } from "./types"
+import { useDesignProps } from "./design-context"
 import { SectionWrapper } from "./section-wrapper"
 
-export function TemplateSection({
-    t,
-    layout,
-    onLayoutChange,
-    userPlan,
-    onUpgrade,
-    isOpen = true,
-    onToggle,
-}: TemplateSectionProps) {
+export function TemplateSection() {
+    const { t, layout, onLayoutChange, userPlan, onUpgrade, openSections, toggleSection } = useDesignProps()
+    const isOpen = openSections.template ?? true
     const current = TEMPLATES.find((tmpl) => tmpl.id === layout)
 
     const handleTemplateSelect = (templateId: string, isPro: boolean) => {
@@ -34,7 +28,7 @@ export function TemplateSection({
             }
             icon={<LayoutTemplate />}
             isOpen={isOpen}
-            onToggle={onToggle ?? (() => undefined)}
+            onToggle={() => toggleSection('template')}
         >
             <div className="@container custom-scrollbar -mr-2 max-h-[30rem] overflow-y-auto pr-2">
                 <div className="grid grid-cols-2 gap-3 @md:grid-cols-3">

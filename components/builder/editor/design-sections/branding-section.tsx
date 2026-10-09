@@ -1,34 +1,35 @@
 import { Stamp } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Catalog } from "@/lib/actions/catalogs"
-import type { BrandingSectionProps } from "./types"
+import { useDesignProps } from "./design-context"
 import { ColorField, Field, ImageField, SectionWrapper } from "./section-wrapper"
 
 /** Katalog vurgu rengi için hızlı seçenekler (müşterinin kataloğu — uygulama teması değil) */
 const ACCENT_PRESETS = ['#cf1414', '#18181b', '#2563eb', '#0f766e', '#d97706', '#7c3aed', '#db2777', '#475569']
 const TEXT_PRESETS = ['#000000', '#18181b', '#475569', '#ffffff']
 
-export function BrandingSection({
-    t,
-    openSections,
-    toggleSection,
-    logoUrl,
-    onLogoUrlChange,
-    onLogoPositionChange,
-    logoPosition,
-    logoSize,
-    onLogoSizeChange,
-    titlePosition,
-    onTitlePositionChange,
-    primaryColor,
-    primaryColorParsed,
-    debouncedPrimaryColorChange,
-    headerTextColor,
-    debouncedHeaderTextColorChange,
-    handleUploadClick,
-    handleFileUpload,
-    logoInputRef,
-}: BrandingSectionProps) {
+export function BrandingSection() {
+    const {
+        t,
+        openSections,
+        toggleSection,
+        logoUrl,
+        onLogoUrlChange,
+        onLogoPositionChange,
+        logoPosition,
+        logoSize,
+        onLogoSizeChange,
+        titlePosition,
+        onTitlePositionChange,
+        primaryColor,
+        primaryColorParsed,
+        debouncedPrimaryColorChange,
+        headerTextColor,
+        debouncedHeaderTextColorChange,
+        handleUploadClick,
+        handleFileUpload,
+        logoInputRef,
+    } = useDesignProps()
     const pickLogo = () => {
         handleUploadClick()
         logoInputRef.current?.click()

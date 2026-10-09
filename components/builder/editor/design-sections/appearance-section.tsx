@@ -1,28 +1,29 @@
 import { LayoutGrid } from "lucide-react"
-import type { AppearanceSectionProps } from "./types"
+import { useDesignProps } from "./design-context"
 import { Field, Segmented, SectionWrapper, ToggleRow } from "./section-wrapper"
 
-export function AppearanceSection({
-    t,
-    openSections,
-    toggleSection,
-    layout,
-    showPrices,
-    onShowPricesChange,
-    showDescriptions,
-    onShowDescriptionsChange,
-    showAttributes,
-    onShowAttributesChange,
-    showSku,
-    onShowSkuChange,
-    showUrls,
-    onShowUrlsChange,
-    productImageFit,
-    onProductImageFitChange,
-    columnsPerRow,
-    onColumnsPerRowChange,
-    availableColumns,
-}: AppearanceSectionProps) {
+export function AppearanceSection() {
+    const {
+        t,
+        openSections,
+        toggleSection,
+        layout,
+        showPrices,
+        onShowPricesChange,
+        showDescriptions,
+        onShowDescriptionsChange,
+        showAttributes,
+        onShowAttributesChange,
+        showSku,
+        onShowSkuChange,
+        showUrls,
+        onShowUrlsChange,
+        productImageFit,
+        onProductImageFitChange,
+        columnsPerRow,
+        onColumnsPerRowChange,
+        availableColumns,
+    } = useDesignProps()
     const attributesDisabled = layout === 'magazine'
 
     return (

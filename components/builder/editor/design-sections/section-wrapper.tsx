@@ -36,6 +36,9 @@ export function SectionWrapper({ id, title, icon, isOpen, onToggle, children }: 
                 id={contentId}
                 className="grid transition-[grid-template-rows] duration-200 ease-out"
                 style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+                // Kapalıyken içerik görsel olarak gizli ama DOM'da; klavye ve ekran okuyucu ulaşmasın
+                inert={!isOpen}
+                aria-hidden={!isOpen}
             >
                 <div className={cn("min-h-0", isOpen ? "overflow-visible" : "overflow-hidden")}>
                     <div className="space-y-5 border-t px-4 py-4">{children}</div>

@@ -2,12 +2,10 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react"
 import dynamic from "next/dynamic"
-import type { Catalog } from "@/lib/actions/catalogs"
 import type { ProductSortField, ProductSortOrder } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
-import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
 import { useAllProductIds, useProducts } from "@/lib/hooks/use-products"
 import { MAX_CATALOG_PRODUCTS } from "@/lib/constants"
 import { toast } from "sonner"
@@ -27,58 +25,24 @@ import { useBuilder } from "@/components/builder/builder-context"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// PERF(F14): Color utilities consolidated in builder-utils
-// parseColor and rgbToHex are now imported from builder-utils
-import { getAvailableColumns, parseColor, rgbToHex } from "@/components/builder/builder-utils"
+import { DesignToolsProvider } from "./design-sections/design-context"
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /** FIX(F2): CatalogEditor now reads all data from BuilderContext via useBuilder().
  *  No props needed — eliminates 60+ prop drilling. */
 export function CatalogEditor() {
-  const { state, initialProductsResponse, userPlan } = useBuilder()
+  const { state, initialProductsResponse } = useBuilder()
 
-  // Destructure state for readability
+  // İçerik sekmesinin kullandıkları; tasarım ayarlarını bölümler kendileri okur (DesignToolsProvider)
   const {
     selectedProductIds, handleSelectedProductIdsChange: onSelectedProductIdsChange,
     catalogDescription: description, setCatalogDescription: onDescriptionChange,
-    layout, setLayout: onLayoutChange,
-    primaryColor, setPrimaryColor: onPrimaryColorChange,
-    headerTextColor, setHeaderTextColor: onHeaderTextColorChange,
-    showPrices, setShowPrices: onShowPricesChange,
-    showDescriptions, setShowDescriptions: onShowDescriptionsChange,
-    showAttributes, setShowAttributes: onShowAttributesChange,
-    showSku, setShowSku: onShowSkuChange,
-    showUrls, setShowUrls: onShowUrlsChange,
-    productImageFit, setProductImageFit: onProductImageFitChange,
-    columnsPerRow, setColumnsPerRow: onColumnsPerRowChange,
-    backgroundColor, setBackgroundColor: onBackgroundColorChange,
-    backgroundImage, setBackgroundImage: onBackgroundImageChange,
-    backgroundImageFit, setBackgroundImageFit,
-    backgroundGradient, setBackgroundGradient: onBackgroundGradientChange,
-    logoUrl, setLogoUrl: onLogoUrlChange,
-    logoPosition, setLogoPosition,
-    logoSize, setLogoSize,
-    titlePosition, setTitlePosition,
-    enableCoverPage, setEnableCoverPage: onEnableCoverPageChange,
-    coverImageUrl, setCoverImageUrl: onCoverImageUrlChange,
-    coverDescription, setCoverDescription: onCoverDescriptionChange,
-    enableCategoryDividers, setEnableCategoryDividers: onEnableCategoryDividersChange,
-    categoryOrder, setCategoryOrder: onCategoryOrderChange,
-    coverTheme, setCoverTheme: onCoverThemeChange,
-    catalogName, setShowUpgradeModal,
     loadedProductsCount,
     upsertLoadedProducts,
     selectedProductIdSet,
+    productMap,
   } = state
-
-  const onUpgrade = useCallback(() => setShowUpgradeModal(true), [setShowUpgradeModal])
-  const onBackgroundImageFitChange = useCallback((v: NonNullable<Catalog['background_image_fit']>) => setBackgroundImageFit(v), [setBackgroundImageFit])
-  const onLogoPositionChange = useCallback((v: NonNullable<Catalog['logo_position']>) => setLogoPosition(v), [setLogoPosition])
-  const onLogoSizeChange = useCallback((v: NonNullable<Catalog['logo_size']>) => setLogoSize(v), [setLogoSize])
-  const onTitlePositionChange = useCallback((v: NonNullable<Catalog['title_position']>) => setTitlePosition(v), [setTitlePosition])
-  const { productMap } = state
-  const loadedProductsArray = useMemo(() => Array.from(productMap.values()), [productMap])
 
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
@@ -86,43 +50,6 @@ export function CatalogEditor() {
   // ─── Local State ──────────────────────────────────────────────────────────
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: true, appearance: true, branding: true })
-  const toggleSection = useCallback((key: string) => {
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
-  }, [])
-
-  const primaryColorParsed = useMemo(() => {
-    const rgb = parseColor(primaryColor)
-    const hexColor = rgbToHex(rgb.r, rgb.g, rgb.b)
-    const opacity = Math.round(rgb.a * 100)
-    return { rgb, hexColor, opacity }
-  }, [primaryColor])
-
-  // Debounced color change callbacks
-  const debouncedPrimaryColorChange = useDebouncedCallback(
-    (color: string) => onPrimaryColorChange(color), 50
-  )
-  const debouncedHeaderTextColorChange = useDebouncedCallback(
-    (color: string) => onHeaderTextColorChange?.(color), 50
-  )
-  const debouncedBackgroundColorChange = useDebouncedCallback(
-    (color: string) => onBackgroundColorChange?.(color), 50
-  )
-
-  // ─── Upload Hook ──────────────────────────────────────────────────────────
-  const {
-    logoInputRef,
-    bgInputRef,
-    coverInputRef,
-    handleUploadClick,
-    handleFileUpload,
-  } = useEditorUpload({
-    onLogoUrlChange,
-    onCoverImageUrlChange,
-    onBackgroundImageChange,
-    backgroundImage,
-    t,
-  })
 
   // ─── Search & Pagination ──────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
@@ -300,12 +227,10 @@ export function CatalogEditor() {
     onSelectedProductIdsChange(selectedProductIds.filter(i => i !== id))
   }, [selectedProductIds, onSelectedProductIdsChange])
 
-  // ─── Column Constraints ───────────────────────────────────────────────────
-  // Şablon değişince geçersiz sütun sayısı reducer'da aynı adımda düzeltilir.
-  const availableColumns = useMemo(() => getAvailableColumns(layout), [layout])
-
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
+    // Sekme değişince açık bölümler ve süren yüklemeler korunsun diye sağlayıcı editör seviyesinde
+    <DesignToolsProvider>
     <div className="flex h-full flex-col overflow-hidden bg-background">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         <div className="shrink-0 border-b px-3 py-2 sm:px-6">
@@ -368,77 +293,11 @@ export function CatalogEditor() {
 
           <TabsContent value="design" className="m-0">
             {/* FIX(P6): Only compute 40+ design props when design tab is active */}
-            {activeTab === 'design' && <EditorDesignTab
-              t={t}
-              openSections={openSections}
-              toggleSection={toggleSection}
-              layout={layout}
-              onLayoutChange={onLayoutChange}
-              showPrices={showPrices}
-              onShowPricesChange={onShowPricesChange}
-              showDescriptions={showDescriptions}
-              onShowDescriptionsChange={onShowDescriptionsChange}
-              showAttributes={showAttributes}
-              onShowAttributesChange={onShowAttributesChange}
-              showSku={showSku}
-              onShowSkuChange={onShowSkuChange}
-              showUrls={showUrls}
-              onShowUrlsChange={onShowUrlsChange}
-              productImageFit={productImageFit}
-              onProductImageFitChange={onProductImageFitChange}
-              columnsPerRow={columnsPerRow}
-              onColumnsPerRowChange={onColumnsPerRowChange}
-              availableColumns={availableColumns}
-              primaryColor={primaryColor}
-              onPrimaryColorChange={onPrimaryColorChange}
-              primaryColorParsed={primaryColorParsed}
-              debouncedPrimaryColorChange={debouncedPrimaryColorChange}
-              headerTextColor={headerTextColor}
-              onHeaderTextColorChange={onHeaderTextColorChange}
-              debouncedHeaderTextColorChange={debouncedHeaderTextColorChange}
-              backgroundColor={backgroundColor}
-              onBackgroundColorChange={onBackgroundColorChange}
-              debouncedBackgroundColorChange={debouncedBackgroundColorChange}
-              backgroundImage={backgroundImage}
-              onBackgroundImageChange={onBackgroundImageChange}
-              backgroundImageFit={backgroundImageFit}
-              onBackgroundImageFitChange={onBackgroundImageFitChange}
-              backgroundGradient={backgroundGradient}
-              onBackgroundGradientChange={onBackgroundGradientChange}
-              logoUrl={logoUrl}
-              onLogoUrlChange={onLogoUrlChange}
-              logoPosition={logoPosition}
-              onLogoPositionChange={onLogoPositionChange}
-              logoSize={logoSize}
-              onLogoSizeChange={onLogoSizeChange}
-              titlePosition={titlePosition}
-              onTitlePositionChange={onTitlePositionChange}
-              enableCoverPage={enableCoverPage}
-              onEnableCoverPageChange={onEnableCoverPageChange}
-              coverImageUrl={coverImageUrl}
-              onCoverImageUrlChange={onCoverImageUrlChange}
-              coverDescription={coverDescription}
-              onCoverDescriptionChange={onCoverDescriptionChange}
-              enableCategoryDividers={enableCategoryDividers}
-              onEnableCategoryDividersChange={onEnableCategoryDividersChange}
-              categoryOrder={categoryOrder}
-              onCategoryOrderChange={onCategoryOrderChange}
-              coverTheme={coverTheme}
-              onCoverThemeChange={onCoverThemeChange}
-              catalogName={catalogName}
-              products={loadedProductsArray}
-              handleUploadClick={handleUploadClick}
-              handleFileUpload={handleFileUpload}
-              logoInputRef={logoInputRef}
-              bgInputRef={bgInputRef}
-              coverInputRef={coverInputRef}
-              userPlan={userPlan}
-              onUpgrade={onUpgrade}
-              selectedProductIds={selectedProductIds}
-            />}
+            {activeTab === 'design' && <EditorDesignTab />}
           </TabsContent>
         </div>
       </Tabs>
     </div>
+    </DesignToolsProvider>
   )
 }

@@ -4,28 +4,29 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { COVER_THEMES } from "@/components/catalogs/covers"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import type { StorytellingSectionProps } from "./types"
+import { useDesignProps } from "./design-context"
 import { Field, ImageField, SectionWrapper, ToggleRow } from "./section-wrapper"
 
-export function StorytellingSection({
-    openSections,
-    toggleSection,
-    enableCoverPage,
-    onEnableCoverPageChange,
-    coverImageUrl,
-    onCoverImageUrlChange,
-    coverDescription,
-    onCoverDescriptionChange,
-    enableCategoryDividers,
-    onEnableCategoryDividersChange,
-    coverTheme,
-    onCoverThemeChange,
-    categoryOrder,
-    onCategoryOrderChange,
-    products,
-    handleFileUpload,
-    coverInputRef,
-}: StorytellingSectionProps) {
+export function StorytellingSection() {
+    const {
+        openSections,
+        toggleSection,
+        enableCoverPage,
+        onEnableCoverPageChange,
+        coverImageUrl,
+        onCoverImageUrlChange,
+        coverDescription,
+        onCoverDescriptionChange,
+        enableCategoryDividers,
+        onEnableCategoryDividersChange,
+        coverTheme,
+        onCoverThemeChange,
+        categoryOrder,
+        onCategoryOrderChange,
+        products,
+        handleFileUpload,
+        coverInputRef,
+    } = useDesignProps()
     const { t } = useTranslation()
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
     const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null)

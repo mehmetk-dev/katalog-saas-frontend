@@ -1,7 +1,7 @@
 import { Image as ImageIcon } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Catalog } from "@/lib/actions/catalogs"
-import type { BackgroundSectionProps } from "./types"
+import { useDesignProps } from "./design-context"
 import { ColorField, Field, ImageField, SectionWrapper, Segmented } from "./section-wrapper"
 
 const BACKGROUND_PRESETS = ['#ffffff', '#fafaf9', '#f4f4f5', '#fef7ed', '#f0f9ff', '#18181b']
@@ -12,22 +12,23 @@ const GRADIENTS = [
     { value: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', labelKey: 'builder.pinkCloud' },
 ]
 
-export function BackgroundSection({
-    t,
-    openSections,
-    toggleSection,
-    backgroundColor,
-    debouncedBackgroundColorChange,
-    backgroundImage,
-    onBackgroundImageChange,
-    backgroundImageFit,
-    onBackgroundImageFitChange,
-    backgroundGradient,
-    onBackgroundGradientChange,
-    handleUploadClick,
-    bgInputRef,
-    handleFileUpload,
-}: BackgroundSectionProps) {
+export function BackgroundSection() {
+    const {
+        t,
+        openSections,
+        toggleSection,
+        backgroundColor,
+        debouncedBackgroundColorChange,
+        backgroundImage,
+        onBackgroundImageChange,
+        backgroundImageFit,
+        onBackgroundImageFitChange,
+        backgroundGradient,
+        onBackgroundGradientChange,
+        handleUploadClick,
+        bgInputRef,
+        handleFileUpload,
+    } = useDesignProps()
     const pickImage = () => {
         handleUploadClick()
         bgInputRef.current?.click()
