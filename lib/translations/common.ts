@@ -1,5 +1,16 @@
 const common = {
     tr: {
+        errorPage: {
+            title: "Bir şeyler ters gitti",
+            desc: "Bu sayfa yüklenirken beklenmedik bir hata oluştu. Tekrar deneyebilir ya da başka bir sayfaya dönebilirsiniz.",
+            connectionTitle: "Sunucuya ulaşılamıyor",
+            connectionDesc: "İnternet bağlantınızı kontrol edin. Sorun bizden kaynaklanıyorsa kısa sürede düzelecektir.",
+            retry: "Tekrar dene",
+            goHome: "Ana sayfaya dön",
+            goDashboard: "Panele dön",
+            goAdmin: "Admin paneline dön",
+            code: "Hata kodu",
+        },
         common: {
             more: "Diğer",
             dashboard: "Panel",
@@ -157,6 +168,17 @@ const common = {
         },
     },
     en: {
+        errorPage: {
+            title: "Something went wrong",
+            desc: "An unexpected error occurred while loading this page. You can try again or go to another page.",
+            connectionTitle: "Can't reach the server",
+            connectionDesc: "Check your internet connection. If the problem is on our side, it will be fixed shortly.",
+            retry: "Try again",
+            goHome: "Go to home page",
+            goDashboard: "Back to dashboard",
+            goAdmin: "Back to admin panel",
+            code: "Error code",
+        },
         common: {
             more: "More",
             dashboard: "Dashboard",
