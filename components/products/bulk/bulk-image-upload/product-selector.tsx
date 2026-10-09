@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { type Product } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 interface ProductSelectorProps {
     allProducts: Product[]
@@ -15,6 +16,7 @@ interface ProductSelectorProps {
 }
 
 export function ProductSelector({ allProducts, selectedProductId, onSelect, disabled, matchedProduct }: ProductSelectorProps) {
+    const { t } = useTranslation()
     const [open, setOpen] = React.useState(false)
     const [search, setSearch] = React.useState("")
 
@@ -46,7 +48,7 @@ export function ProductSelector({ allProducts, selectedProductId, onSelect, disa
                     disabled={disabled}
                 >
                     <span className="text-xs truncate font-medium">
-                        {matchedProduct ? `${matchedProduct.name}${matchedProduct.sku ? ` [${matchedProduct.sku}]` : ""}` : "Ürün Seçilmedi"}
+                        {matchedProduct ? `${matchedProduct.name}${matchedProduct.sku ? ` [${matchedProduct.sku}]` : ""}` : t("bulkImages.noProduct")}
                     </span>
                     <ChevronDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                 </Button>
@@ -58,7 +60,7 @@ export function ProductSelector({ allProducts, selectedProductId, onSelect, disa
                         <input
                             autoFocus
                             className="flex-1 h-9 px-3 text-sm border border-border rounded-md outline-none focus:border-primary/50 transition-all font-medium placeholder:text-muted-foreground"
-                            placeholder="Ürün adı veya SKU ara..."
+                            placeholder={t("bulkImages.searchPlaceholder")}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -73,7 +75,7 @@ export function ProductSelector({ allProducts, selectedProductId, onSelect, disa
                             }}
                         >
                             <X className="w-3 h-3 mr-2" />
-                            Seçimi Kaldır
+                            {t("bulkImages.clearSelection")}
                         </button>
 
                         {filteredProducts.map((product) => (
@@ -99,7 +101,7 @@ export function ProductSelector({ allProducts, selectedProductId, onSelect, disa
 
                         {filteredProducts.length === 0 && (
                             <div className="px-3 py-8 text-xs text-center text-muted-foreground italic bg-card rounded-md border border-dashed border-border m-1">
-                                Eşleşen ürün bulunamadı.
+                                {t("bulkImages.noResults")}
                             </div>
                         )}
                     </div>

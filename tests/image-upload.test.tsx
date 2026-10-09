@@ -1,3 +1,4 @@
+import { MAX_PRODUCT_IMAGES } from '@/lib/constants'
 import type React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -377,25 +378,25 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('dosyaları sadece sayfadaki ürünlerle değil bütün ürünlerle eşleştirir', async () => {
             // Sayfada hiç ürün yok; eşleşme sunucudan gelen tüm ürün listesinden gelmeli
             renderModal(<BulkImageUploadModal {...defaultProps} products={[]} />)
-            await screen.findByText('Bilgisayardan Seç')
+            await screen.findByText('bulkImages.choose')
 
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
             changeFileInput(input, createMockImageFile('LUP-001.jpg'))
 
             await waitFor(() => {
-                expect(screen.getByText(/1<\/strong>|eşleşme bulundu/)).toBeTruthy()
+                expect(screen.getByText(/bulkImages.summary/)).toBeTruthy()
                 expect(screen.getAllByText(/LUPİN YATAK ODASI/i).length).toBeGreaterThan(0)
             }, { timeout: 3000 })
         })
 
         it('modal açıldığında drop zone gösterir', () => {
             renderModal(<BulkImageUploadModal {...defaultProps} />)
-            expect(screen.getByText(/Fotoğrafları Buraya Bırakın/i)).toBeTruthy()
+            expect(screen.getByText(/bulkImages.dropTitle/)).toBeTruthy()
         })
 
         it('dosya seçme inputunu gösterir', async () => {
             renderModal(<BulkImageUploadModal {...defaultProps} />)
-            const selectButton = await screen.findByText(/Bilgisayardan Seç/i)
+            const selectButton = await screen.findByText(/bulkImages.choose/)
             expect(selectButton).toBeTruthy()
         })
 
@@ -456,7 +457,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             changeFileInput(input, file)
 
             await waitFor(() => {
-                const noMatchBadge = screen.getByText(/Eşleşme Yok/i)
+                const noMatchBadge = screen.getByText(/bulkImages.notMatched/)
                 expect(noMatchBadge).toBeTruthy()
             })
         })
@@ -492,7 +493,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             changeFileInput(input, file)
 
             await waitFor(() => {
-                const uploadButton = screen.getByRole('button', { name: /Yüklemeyi Başlat/i })
+                const uploadButton = screen.getByRole('button', { name: /bulkImages.start/ })
                 expect(uploadButton).toBeTruthy()
             })
         })
@@ -516,7 +517,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             })
 
             // Yükleme butonuna tıkla
-            const uploadButton = screen.getByRole('button', { name: /Yüklemeyi Başlat/i })
+            const uploadButton = screen.getByRole('button', { name: /bulkImages.start/ })
             await user.click(uploadButton)
 
             await waitFor(() => {
@@ -531,26 +532,20 @@ describe('Fotoğraf Yükleme Testleri', () => {
             }, { timeout: 5000 })
         })
 
-        it('5 resim limitini kontrol eder', async () => {
+        it('ürün başına görsel sınırını (MAX_PRODUCT_IMAGES) kontrol eder', async () => {
             const product = createMockProduct('prod-1', 'Test Product')
-            product.images = [
-                'https://example.com/img1.jpg',
-                'https://example.com/img2.jpg',
-                'https://example.com/img3.jpg',
-                'https://example.com/img4.jpg',
-                'https://example.com/img5.jpg',
-            ]
+            product.images = Array.from({ length: MAX_PRODUCT_IMAGES }, (_, i) => `https://example.com/img${i + 1}.jpg`)
 
             vi.mocked(getAllProductsForExport).mockResolvedValue([product])
             renderModal(<BulkImageUploadModal {...defaultProps} products={[product]} />)
-            await screen.findByText(/Bilgisayardan Seç/i)
+            await screen.findByText(/bulkImages.choose/)
 
             const file = createMockImageFile('test.jpg')
             const input = document.querySelector('input[type="file"]') as HTMLInputElement
             changeFileInput(input, file)
 
             await waitFor(() => {
-                const limitBadge = screen.getByText(/Limit Dolu/i)
+                const limitBadge = screen.getByText(/bulkImages.limitReached/)
                 expect(limitBadge).toBeTruthy()
             })
         })
@@ -564,11 +559,11 @@ describe('Fotoğraf Yükleme Testleri', () => {
             changeFileInput(input, file)
 
             await waitFor(() => {
-                const uploadButton = screen.queryByRole('button', { name: /Yüklemeyi Başlat/i })
+                const uploadButton = screen.queryByRole('button', { name: /bulkImages.start/ })
                 expect(uploadButton).toBeTruthy()
             }, { timeout: 3000 })
 
-            const uploadButton = screen.getByRole('button', { name: /Yüklemeyi Başlat/i })
+            const uploadButton = screen.getByRole('button', { name: /bulkImages.start/ })
             await user.click(uploadButton)
 
             // Progress bar veya yükleme mesajı görünmeli
@@ -590,11 +585,11 @@ describe('Fotoğraf Yükleme Testleri', () => {
             changeFileInput(input, file)
 
             await waitFor(() => {
-                const uploadButton = screen.queryByRole('button', { name: /Yüklemeyi Başlat/i })
+                const uploadButton = screen.queryByRole('button', { name: /bulkImages.start/ })
                 expect(uploadButton).toBeTruthy()
             }, { timeout: 3000 })
 
-            const uploadButton = screen.getByRole('button', { name: /Yüklemeyi Başlat/i })
+            const uploadButton = screen.getByRole('button', { name: /bulkImages.start/ })
             await user.click(uploadButton)
 
             // Hata mesajı veya toast.error çağrılmalı
@@ -639,9 +634,9 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('drag and drop ile dosya ekler', async () => {
             renderModal(<BulkImageUploadModal {...defaultProps} />)
             // Ürün listesi yüklenene kadar bırakılan dosyalar eşleştirilmez
-            await screen.findByText(/Bilgisayardan Seç/i)
+            await screen.findByText(/bulkImages.choose/)
 
-            const dropZone = screen.getByText(/Fotoğrafları Buraya Bırakın/i).closest('div')
+            const dropZone = screen.getByText(/bulkImages.dropTitle/).closest('div')
             expect(dropZone).toBeTruthy()
 
             const file = createMockImageFile('test.jpg')
@@ -676,11 +671,11 @@ describe('Fotoğraf Yükleme Testleri', () => {
             changeFileInput(input, files)
 
             await waitFor(() => {
-                const uploadButton = screen.queryByRole('button', { name: /Yüklemeyi Başlat/i })
+                const uploadButton = screen.queryByRole('button', { name: /bulkImages.start/ })
                 expect(uploadButton).toBeTruthy()
             }, { timeout: 3000 })
 
-            const uploadButton = screen.getByRole('button', { name: /Yüklemeyi Başlat/i })
+            const uploadButton = screen.getByRole('button', { name: /bulkImages.start/ })
             await user.click(uploadButton)
 
             // Upload çağrılarının yapıldığını kontrol et

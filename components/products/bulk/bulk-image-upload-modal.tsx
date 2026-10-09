@@ -10,13 +10,15 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { createClient } from "@/lib/supabase/client"
 import { useAllProducts } from "@/lib/hooks/use-products"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 import { ImageCard } from "./bulk-image-upload/image-card"
 import { findBestProductMatch } from "./bulk-image-upload/matcher"
 import { uploadMatchedImages } from "./bulk-image-upload/upload-service"
 import { type BulkImageUploadModalProps, type ImageFile } from "./bulk-image-upload/types"
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024
+/** Ham dosya sınırı: yüklemeden önce sıkıştırıldığı için telefon fotoğrafları kabul edilir (önceden 5 MB) */
+const MAX_FILE_SIZE = 20 * 1024 * 1024
 
 /** Magic bytes doğrulaması — dosya uzantısı spoofing'e karşı koruma */
 async function validateImageMagicBytes(file: File): Promise<boolean> {
@@ -39,6 +41,7 @@ async function validateImageMagicBytes(file: File): Promise<boolean> {
 }
 
 export function BulkImageUploadModal({ open, onOpenChange, products: pageProducts, onSuccess }: BulkImageUploadModalProps) {
+    const { t } = useTranslation()
     // Dosya adları sadece sayfadaki 12 ürünle değil, bütün envanterle eşleştirilmeli
     const allProductsQuery = useAllProducts({ enabled: open })
     const products = allProductsQuery.data ?? pageProducts
@@ -91,14 +94,14 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
             for (const file of Array.from(files)) {
                 if (!file.type.startsWith("image/")) continue
                 if (file.size > MAX_FILE_SIZE) {
-                    toast.error(`${file.name} çok büyük (Max 5MB).`)
+                    toast.error(t("bulkImages.tooLarge", { name: file.name, max: MAX_FILE_SIZE / 1024 / 1024 }))
                     continue
                 }
 
                 // Magic bytes doğrulaması — uzantı spoofing koruması
                 const isValid = await validateImageMagicBytes(file)
                 if (!isValid) {
-                    toast.error(`${file.name} geçersiz dosya formatı.`)
+                    toast.error(t("bulkImages.invalidFormat", { name: file.name }))
                     continue
                 }
 
@@ -118,7 +121,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                 setImages((prev) => [...prev, ...nextImages])
             }
         },
-        [products],
+        [products, t],
     )
 
     const openFileDialog = React.useCallback(
@@ -134,12 +137,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
     const handleUpload = React.useCallback(async () => {
         const pendingMatched = images.filter((img) => img.status === "pending" && img.matchedProductId)
         if (!pendingMatched.length) {
-            toast.error("Yüklenecek uygun ve eşleşmiş fotoğraf bulunamadı.")
+            toast.error(t("bulkImages.nothingToUpload"))
             return
         }
 
         setIsUploading(true)
-        const toastId = toast.loading(`${pendingMatched.length} fotoğraf yükleniyor...`)
+        const toastId = toast.loading(t("bulkImages.uploading", { count: pendingMatched.length }))
 
         const abortController = new AbortController()
         uploadAbortControllerRef.current = abortController
@@ -152,29 +155,29 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                     setImages((prev) => prev.map((img) => (img.id === id ? { ...img, status, error } : img)))
                 },
                 onProgress: (processed, total) => {
-                    toast.loading(`${processed}/${total} işlendi...`, { id: toastId })
+                    toast.loading(t("bulkImages.progress", { processed, total }), { id: toastId })
                 },
                 onBeforeDatabaseSync: () => {
-                    toast.loading("Veritabanı güncelleniyor...", { id: toastId })
+                    toast.loading(t("bulkImages.saving"), { id: toastId })
                 },
             })
 
             if (result.successCount > 0) {
-                toast.success(`${result.successCount} fotoğraf yüklendi.`, { id: toastId })
+                toast.success(t("bulkImages.uploaded", { count: result.successCount }), { id: toastId })
                 if (result.successCount === result.total) {
                     setTimeout(() => onSuccess(), 500)
                 }
             } else {
-                toast.error("Yükleme başarısız.", { id: toastId })
+                toast.error(t("bulkImages.failed"), { id: toastId })
             }
         } catch (error) {
             console.error(error)
-            toast.error("Genel bir hata oluştu.", { id: toastId })
+            toast.error(t("bulkImages.unexpected"), { id: toastId })
         } finally {
             setIsUploading(false)
             uploadAbortControllerRef.current = null
         }
-    }, [images, onSuccess])
+    }, [images, onSuccess, t])
 
     const removeImage = React.useCallback((id: string) => {
         setImages((prev) => {
@@ -199,10 +202,10 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle className="flex items-center gap-2">
                         <ImageIcon className="w-5 h-5 text-primary" />
-                        Toplu Fotoğraf Yükle & Eşleştir
+                        {t("bulkImages.title")}
                     </DialogTitle>
                     <DialogDescription>
-                        Fotoğrafları sürükleyip bırakın. İsimleri ürün kodu (SKU) veya adıyla eşleşenler otomatik bağlanır.
+                        {t("bulkImages.description")}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -242,8 +245,8 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                                     <Upload className="w-8 h-8 text-muted-foreground" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-lg text-foreground">Fotoğrafları Buraya Bırakın</h3>
-                                    <p className="text-muted-foreground mt-1">veya dosya seçmek için tıklayın</p>
+                                    <h3 className="font-semibold text-lg text-foreground">{t("bulkImages.dropTitle")}</h3>
+                                    <p className="text-muted-foreground mt-1">{t("bulkImages.dropDesc")}</p>
                                 </div>
                                 <Button
                                     variant="outline"
@@ -255,7 +258,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                                     }}
                                 >
                                     {isLoadingProducts && <Loader2 className="size-4 animate-spin" />}
-                                    {isLoadingProducts ? "Ürünler yükleniyor…" : "Bilgisayardan Seç"}
+                                    {isLoadingProducts ? t("bulkImages.loadingProducts") : t("bulkImages.choose")}
                                 </Button>
                                 <input
                                     ref={bulkInputRef}
@@ -271,11 +274,11 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <div className="px-6 py-3 bg-card border-b flex items-center justify-between text-sm">
                                 <div className="text-muted-foreground">
-                                    <strong>{images.length}</strong> fotoğraf seçildi • <strong>{matchedCount}</strong> eşleşme bulundu
+                                    {t("bulkImages.summary", { count: images.length, matched: matchedCount })}
                                 </div>
 
                                 <Button variant="ghost" size="sm" onClick={() => void openFileDialog("more")}>
-                                    <Upload className="w-4 h-4 mr-2" /> Daha Fazla Ekle
+                                    <Upload className="w-4 h-4 mr-2" /> {t("bulkImages.addMore")}
                                 </Button>
                                 <input
                                     ref={addMoreInputRef}
@@ -311,7 +314,7 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                 <DialogFooter className="px-6 py-4 border-t bg-card">
                     <div className="flex-1 flex items-center justify-end gap-4">
                         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
-                            İptal
+                            {t("common.cancel")}
                         </Button>
 
                         <Button
@@ -322,12 +325,12 @@ export function BulkImageUploadModal({ open, onOpenChange, products: pageProduct
                             {isUploading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Yükleniyor...
+                                    {t("bulkImages.uploadingShort")}
                                 </>
                             ) : (
                                 <>
                                     <Upload className="w-4 h-4 mr-2" />
-                                    Yüklemeyi Başlat
+                                    {t("bulkImages.start")}
                                 </>
                             )}
                         </Button>

@@ -2,7 +2,9 @@ import { AlertCircle, Check, Loader2, X } from "lucide-react"
 import NextImage from "next/image"
 
 import { type Product } from "@/lib/actions/products"
+import { MAX_PRODUCT_IMAGES } from "@/lib/constants"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { ProductSelector } from "./product-selector"
 import { type ImageFile } from "./types"
 
@@ -27,6 +29,7 @@ export function ImageCard({
     onRemove,
     onMatchChange,
 }: ImageCardProps) {
+    const { t } = useTranslation()
     const matchedProduct = products.find((p) => p.id === image.matchedProductId)
     const isError = image.status === "error"
     const isSuccess = image.status === "success"
@@ -37,7 +40,8 @@ export function ImageCard({
         .filter((item) => item.matchedProductId === image.matchedProductId && (item.status === "pending" || item.status === "uploading"))
         .length
 
-    const isOverLimit = existingImages.length + pendingBefore >= 5
+    // Sınır ürün penceresi ve backend ile aynı (önceden 5)
+    const isOverLimit = existingImages.length + pendingBefore >= MAX_PRODUCT_IMAGES
 
     return (
         <div
@@ -49,7 +53,7 @@ export function ImageCard({
             )}
         >
             <div className="relative w-24 h-24 shrink-0 bg-muted rounded-lg overflow-hidden border border-border">
-                <NextImage src={image.preview} fill className="object-cover" alt="Preview" unoptimized />
+                <NextImage src={image.preview} fill className="object-cover" alt="" unoptimized />
                 {image.status === "uploading" && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Loader2 className="w-6 h-6 text-white animate-spin" />
@@ -69,15 +73,15 @@ export function ImageCard({
                     <div className="flex items-center gap-1 mb-1 justify-between">
                         {matchedProduct ? (
                             <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-success bg-success-soft px-1.5 py-0.5 rounded">
-                                <Check className="w-3 h-3" /> Eşleşti
+                                <Check className="w-3 h-3" /> {t("bulkImages.matched")}
                             </div>
                         ) : (
                             <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-warning-soft-foreground bg-warning-soft px-1.5 py-0.5 rounded">
-                                <AlertCircle className="w-3 h-3" /> Eşleşme Yok
+                                <AlertCircle className="w-3 h-3" /> {t("bulkImages.notMatched")}
                             </div>
                         )}
 
-                        {isOverLimit && <div className="text-[10px] font-bold text-destructive bg-destructive-soft px-1.5 py-0.5 rounded">Limit Dolu</div>}
+                        {isOverLimit && <div className="text-[10px] font-bold text-destructive bg-destructive-soft px-1.5 py-0.5 rounded">{t("bulkImages.limitReached")}</div>}
                     </div>
 
                     <ProductSelector
@@ -109,7 +113,7 @@ export function ImageCard({
                                 isOverLimit ? "text-destructive bg-destructive-soft border-destructive/20" : "text-muted-foreground bg-muted/50 border-border",
                             )}
                         >
-                            {existingImages.length + pendingBefore + 1}/5
+                            {existingImages.length + pendingBefore + 1}/{MAX_PRODUCT_IMAGES}
                         </div>
                     </div>
                 )}
@@ -125,7 +129,7 @@ export function ImageCard({
 
             {isError && (
                 <div className="absolute bottom-2 right-2 text-xs text-destructive bg-card px-2 py-1 rounded shadow-sm border border-destructive/20">
-                    {image.error || "Hata oluştu"}
+                    {image.error || t("bulkImages.cardError")}
                 </div>
             )}
         </div>
