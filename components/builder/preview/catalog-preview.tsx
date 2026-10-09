@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect, useCallback } from "react"
-import { useUser } from "@/lib/contexts/user-context"
+import { useOptionalUser } from "@/lib/contexts/user-context"
 import type { Product } from "@/lib/actions/products"
 import type { TemplateProps } from "@/components/catalogs/templates/types"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
@@ -49,12 +49,14 @@ interface CatalogPreviewProps {
   pages?: CatalogPage[]
   showControls?: boolean
   isExporting?: boolean
+  /** Verilmezse giriş yapmış kullanıcının planından (ücretsiz → filigran) */
+  isFreeUser?: boolean
 }
 
 export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogPreviewProps) {
-  const { user } = useUser()
+  const userContext = useOptionalUser()
   const { t } = useTranslation()
-  const isFreeUser = user?.plan === "free"
+  const isFreeUser = props.isFreeUser ?? userContext?.user?.plan === "free"
 
   const uncategorizedLabel = t('preview.uncategorized') as string || 'Kategorisiz'
   const [currentPage, setCurrentPage] = useState(0)

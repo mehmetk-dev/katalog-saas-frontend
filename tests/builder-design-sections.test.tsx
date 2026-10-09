@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { buildInitialCatalogState } from "@/components/builder/builder-utils"
+import { buildInitialCatalogState, toDraft, type DraftSetters } from "@/components/builder/builder-utils"
 import { AppearanceSection, TemplateSection } from "@/components/builder/editor/design-sections"
-import { DesignToolsProvider } from "@/components/builder/editor/design-sections/design-context"
+import { DesignToolsProvider, type DesignSource } from "@/components/builder/editor/design-sections/design-context"
 
 vi.mock("@/lib/contexts/i18n-provider", () => ({
   useTranslation: () => ({ t: (key: string) => key, language: "tr" }),
@@ -25,21 +25,25 @@ vi.mock("@/components/builder/preview/template-preview-card", () => ({
   ),
 }))
 
-const builder = vi.hoisted(() => ({ value: null as unknown }))
-vi.mock("@/components/builder/builder-context", () => ({ useBuilder: () => builder.value }))
-
 function makeState(overrides: Record<string, unknown> = {}) {
-  const data = { ...buildInitialCatalogState(null), ...overrides }
+  const draft = { ...toDraft(buildInitialCatalogState(null)), ...overrides }
   const setters = Object.fromEntries(
-    Object.keys(data).map((key) => [`set${key.charAt(0).toUpperCase()}${key.slice(1)}`, vi.fn()]),
-  ) as Record<string, ReturnType<typeof vi.fn>>
-  return { ...data, ...setters, setShowUpgradeModal: vi.fn(), productMap: new Map() } as unknown as typeof data & Record<string, ReturnType<typeof vi.fn>>
+    Object.keys(draft).map((key) => [`set${key.charAt(0).toUpperCase()}${key.slice(1)}`, vi.fn()]),
+  ) as Record<string, ReturnType<typeof vi.fn<(...args: unknown[]) => void>>>
+  return { draft, ...setters, setShowUpgradeModal: vi.fn() } as unknown as { draft: DesignSource["draft"] } & Record<string, ReturnType<typeof vi.fn<(...args: unknown[]) => void>>>
 }
 
 function renderSections(state: ReturnType<typeof makeState>, userPlan = "pro") {
-  builder.value = { state, userPlan }
+  const source: DesignSource = {
+    draft: state.draft,
+    setters: state as unknown as DraftSetters,
+    edit: vi.fn(),
+    products: [],
+    userPlan,
+    onUpgrade: () => state.setShowUpgradeModal(true),
+  }
   return render(
-    <DesignToolsProvider>
+    <DesignToolsProvider source={source}>
       <TemplateSection />
       <AppearanceSection />
     </DesignToolsProvider>,

@@ -25,14 +25,15 @@ import { useBuilder } from "@/components/builder/builder-context"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-import { DesignToolsProvider } from "./design-sections/design-context"
+import { DesignToolsProvider, type DesignSource } from "./design-sections/design-context"
+import type { DraftSetters } from "@/components/builder/builder-utils"
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /** FIX(F2): CatalogEditor now reads all data from BuilderContext via useBuilder().
  *  No props needed — eliminates 60+ prop drilling. */
 export function CatalogEditor() {
-  const { state, initialProductsResponse } = useBuilder()
+  const { state, initialProductsResponse, userPlan } = useBuilder()
 
   // İçerik sekmesinin kullandıkları; tasarım ayarlarını bölümler kendileri okur (DesignToolsProvider)
   const {
@@ -46,6 +47,18 @@ export function CatalogEditor() {
 
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
+
+  // Tasarım bölümlerinin kaynağı: builder taslağı + setter'lar (otomatik kayıt / geri al buradan)
+  const { draft, setShowUpgradeModal } = state
+  const designProducts = useMemo(() => Array.from(productMap.values()), [productMap])
+  const designSource = useMemo<DesignSource>(() => ({
+    draft,
+    setters: state as unknown as DraftSetters,
+    edit: state.editDraft,
+    products: designProducts,
+    userPlan,
+    onUpgrade: () => setShowUpgradeModal(true),
+  }), [draft, state, designProducts, userPlan, setShowUpgradeModal])
 
   // ─── Local State ──────────────────────────────────────────────────────────
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -230,7 +243,7 @@ export function CatalogEditor() {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     // Sekme değişince açık bölümler ve süren yüklemeler korunsun diye sağlayıcı editör seviyesinde
-    <DesignToolsProvider>
+    <DesignToolsProvider source={designSource}>
     <div className="flex h-full flex-col overflow-hidden bg-background">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         <div className="shrink-0 border-b px-3 py-2 sm:px-6">

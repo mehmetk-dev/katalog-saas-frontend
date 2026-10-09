@@ -125,6 +125,11 @@ export function UserProvider({ children, initialUser = null, initialSupabaseUser
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
 }
 
+/** UserProvider dışında (ör. public demo) null döner */
+export function useOptionalUser(): UserContextType | null {
+  return useContext(UserContext) ?? null
+}
+
 export function useUser() {
   const context = useContext(UserContext)
   if (context === undefined) {

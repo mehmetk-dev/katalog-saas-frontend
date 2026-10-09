@@ -8,8 +8,8 @@ import { useBuilderSelectedProducts } from "@/lib/hooks/use-builder-selected-pro
 import {
     type BuilderCatalogData,
     type CatalogDraft,
-    DRAFT_KEYS,
     buildInitialCatalogState,
+    createDraftSetters,
     draftsEqual,
     normalizeColumnsPerRow,
     patchChangesDraft,
@@ -157,10 +157,6 @@ function initialDraft(catalog: Catalog | null, userLogoUrl?: string | null): Cat
     return { ...draft, selectedProductIds: normalizeProductIds(draft.selectedProductIds) }
 }
 
-/** setCatalogName, setPrimaryColor… — her taslak alanı için bir setter */
-type DraftSetters = {
-    [K in keyof CatalogDraft as `set${Capitalize<K & string>}`]: (value: CatalogDraft[K]) => void
-}
 
 // ─── Hook ───────────────────────────────────────────────────────────────────────
 
@@ -199,14 +195,9 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     const isMobile = windowWidth < 768
 
     // ─── Stable setters (dispatch is stable) ───────────────────────────
-    const draftSetters = useMemo(() => {
-        const setters: Record<string, (value: unknown) => void> = {}
-        for (const key of DRAFT_KEYS) {
-            const name = `set${key.charAt(0).toUpperCase()}${key.slice(1)}`
-            setters[name] = (value) => dispatch({ type: 'EDIT', patch: { [key]: value }, at: Date.now() })
-        }
-        return setters as DraftSetters
-    }, [])
+    /** Birden çok alanı tek geri alma adımında değiştirir */
+    const editDraft = useCallback((patch: Partial<CatalogDraft>) => dispatch({ type: 'EDIT', patch, at: Date.now() }), [])
+    const draftSetters = useMemo(() => createDraftSetters(editDraft), [editDraft])
 
     const uiSetters = useMemo(() => ({
         setShowUpgradeModal: (v: boolean) => dispatch({ type: 'SET_UI', payload: { showUpgradeModal: v } }),
@@ -305,6 +296,7 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         draft,
         ...draft,
         ...draftSetters,
+        editDraft,
         handleSelectedProductIdsChange,
 
         // UI state
@@ -337,6 +329,7 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     }), [
         draft,
         draftSetters,
+        editDraft,
         handleSelectedProductIdsChange,
         state.showUpgradeModal,
         state.showShareModal,

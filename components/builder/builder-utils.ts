@@ -73,6 +73,11 @@ export function buildCatalogPayload(data: BuilderCatalogData) {
 /** Katalog taslağı: kaydedilen, geri alınabilen her alan (yayın durumu hariç) */
 export type CatalogDraft = Omit<BuilderCatalogData, 'isPublished'>
 
+/** setCatalogName, setPrimaryColor… — her taslak alanı için bir setter */
+export type DraftSetters = {
+    [K in keyof CatalogDraft as `set${Capitalize<K & string>}`]: (value: CatalogDraft[K]) => void
+}
+
 export function toDraft(data: BuilderCatalogData): CatalogDraft {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { isPublished, ...draft } = data
@@ -275,3 +280,12 @@ export function normalizeColumnsPerRow(layout: string, columns: number): number 
 /** Tüm taslak alanları — buildInitialCatalogState tek kaynak.
  *  (Dosyanın sonunda: buildInitialCatalogState'in kullandığı sabitler önce tanımlanmalı.) */
 export const DRAFT_KEYS = Object.keys(toDraft(buildInitialCatalogState(null))) as Array<keyof CatalogDraft>
+
+/** Her taslak alanı için `setX(value)` → `edit({ x: value })` üretir (builder ve demo ortak) */
+export function createDraftSetters(edit: (patch: Partial<CatalogDraft>) => void): DraftSetters {
+    const setters: Record<string, (value: unknown) => void> = {}
+    for (const key of DRAFT_KEYS) {
+        setters[`set${key.charAt(0).toUpperCase()}${key.slice(1)}`] = (value) => edit({ [key]: value } as Partial<CatalogDraft>)
+    }
+    return setters as DraftSetters
+}

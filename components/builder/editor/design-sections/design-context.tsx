@@ -1,27 +1,39 @@
 "use client"
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode, type RefObject } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
 
-import { useBuilder } from "@/components/builder/builder-context"
-import { getAvailableColumns, parseColor, rgbToHex } from "@/components/builder/builder-utils"
+import { type CatalogDraft, type DraftSetters, getAvailableColumns, parseColor, rgbToHex } from "@/components/builder/builder-utils"
 import type { Catalog } from "@/lib/actions/catalogs"
+import type { Product } from "@/lib/actions/products"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
 import { useEditorUpload } from "@/lib/hooks/use-editor-upload"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 /*
  * Tasarım sekmesinin bölümleri (şablon, görünüm, marka, arka plan, kapak) değerlerini ve
- * değiştiricilerini doğrudan builder state'inden okur. Önceden CatalogEditor ~70 değeri ve
- * setter'ı tek tek EditorDesignTab'a, o da her bölüme aynı adlarla yeniden aktarıyordu; yeni bir
- * ayar eklemek dört dosyayı değiştirmeyi gerektiriyordu.
+ * değiştiricilerini bir "kaynaktan" okur. Builder kaynağı builder state'idir (otomatik kayıt,
+ * geri al); demo kaynağı sayfadaki yerel taslaktır. Böylece builder ve /create-demo aynı
+ * bölümleri kullanır.
  *
- * Bu context yalnızca editöre özgü araçları taşır: hangi bölümün açık olduğu, dosya yükleme ve
- * renk seçicilerdeki gecikmeli güncelleme.
+ * Önceden CatalogEditor ~70 değeri ve setter'ı tek tek EditorDesignTab'a, o da her bölüme
+ * aynı adlarla yeniden aktarıyordu; demo ise ayarları ayrıca kopyalıyordu.
  */
+
+export interface DesignSource {
+    draft: CatalogDraft
+    setters: DraftSetters
+    /** Birden çok alanı tek adımda değiştirir (builder'da tek geri alma adımı) */
+    edit: (patch: Partial<CatalogDraft>) => void
+    /** Kapak sayfası önizlemesi ve kategori sırası için yüklü ürünler */
+    products: Product[]
+    userPlan: string
+    onUpgrade: () => void
+}
 
 type UploadType = "logo" | "bg" | "cover"
 
 interface DesignTools {
+    source: DesignSource
     openSections: Record<string, boolean>
     toggleSection: (key: string) => void
     handleUploadClick: () => void
@@ -36,13 +48,33 @@ interface DesignTools {
 
 const DesignToolsContext = createContext<DesignTools | null>(null)
 
-export function DesignToolsProvider({ children }: { children: ReactNode }) {
-    const { state } = useBuilder()
-    const { setPrimaryColor, setHeaderTextColor, setBackgroundColor, setLogoUrl, setCoverImageUrl, setBackgroundImage, backgroundImage } = state
+interface DesignToolsProviderProps {
+    source: DesignSource
+    /**
+     * cloud: görseller Cloudinary'ye yüklenir (builder).
+     * local: yalnızca tarayıcıda gösterilir, sunucuya gitmez (giriş yapmamış demo ziyaretçisi).
+     */
+    uploadMode?: "cloud" | "local"
+    initialOpenSections?: Record<string, boolean>
+    children: ReactNode
+}
+
+export function DesignToolsProvider({ source, uploadMode = "cloud", initialOpenSections, children }: DesignToolsProviderProps) {
+    const { setPrimaryColor, setHeaderTextColor, setBackgroundColor, setCoverImageUrl, setBackgroundImage } = source.setters
+    const { edit } = source
+    const logoPosition = source.draft.logoPosition
+
+    // Logo yüklenince konum "gösterme"deyse logo hiçbir yerde görünmüyordu; sol üste alınır
+    const setLogoUrl = useCallback((url: string | null) => {
+        const hidden = !logoPosition || logoPosition === "none"
+        edit(url && hidden ? { logoUrl: url, logoPosition: "header-left" } : { logoUrl: url })
+    }, [edit, logoPosition])
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
-    const [openSections, setOpenSections] = useState<Record<string, boolean>>({ template: true, appearance: true, branding: true })
+    const [openSections, setOpenSections] = useState<Record<string, boolean>>(
+        initialOpenSections ?? { template: true, appearance: true, branding: true },
+    )
     const toggleSection = useCallback((key: string) => {
         setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
     }, [])
@@ -52,114 +84,128 @@ export function DesignToolsProvider({ children }: { children: ReactNode }) {
     const debouncedHeaderTextColorChange = useDebouncedCallback((color: string) => setHeaderTextColor(color), 50)
     const debouncedBackgroundColorChange = useDebouncedCallback((color: string) => setBackgroundColor(color), 50)
 
-    const upload = useEditorUpload({
+    const cloudUpload = useEditorUpload({
         onLogoUrlChange: setLogoUrl,
         onCoverImageUrlChange: setCoverImageUrl,
         onBackgroundImageChange: setBackgroundImage,
-        backgroundImage,
+        backgroundImage: source.draft.backgroundImage,
         t,
     })
 
+    // Yerel mod: dosya seçilince blob: adresi oluşturulur, sayfa kapanınca bırakılır
+    const localUrlsRef = useRef<string[]>([])
+    useEffect(() => () => localUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)), [])
+    const handleLocalFile = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: UploadType) => {
+        const file = e.target.files?.[0]
+        e.target.value = ""
+        if (!file || !file.type.startsWith("image/")) return
+        const url = URL.createObjectURL(file)
+        localUrlsRef.current.push(url)
+        if (type === "logo") setLogoUrl(url)
+        else if (type === "bg") setBackgroundImage(url)
+        else setCoverImageUrl(url)
+    }, [setLogoUrl, setBackgroundImage, setCoverImageUrl])
+
     const value = useMemo<DesignTools>(() => ({
+        source,
         openSections,
         toggleSection,
-        handleUploadClick: upload.handleUploadClick,
-        handleFileUpload: upload.handleFileUpload,
-        logoInputRef: upload.logoInputRef,
-        bgInputRef: upload.bgInputRef,
-        coverInputRef: upload.coverInputRef,
+        handleUploadClick: uploadMode === "local" ? () => undefined : cloudUpload.handleUploadClick,
+        handleFileUpload: uploadMode === "local" ? handleLocalFile : cloudUpload.handleFileUpload,
+        logoInputRef: cloudUpload.logoInputRef,
+        bgInputRef: cloudUpload.bgInputRef,
+        coverInputRef: cloudUpload.coverInputRef,
         debouncedPrimaryColorChange,
         debouncedHeaderTextColorChange,
         debouncedBackgroundColorChange,
-    }), [openSections, toggleSection, upload.handleUploadClick, upload.handleFileUpload, upload.logoInputRef, upload.bgInputRef, upload.coverInputRef, debouncedPrimaryColorChange, debouncedHeaderTextColorChange, debouncedBackgroundColorChange])
+    }), [source, openSections, toggleSection, uploadMode, cloudUpload.handleUploadClick, cloudUpload.handleFileUpload, handleLocalFile, cloudUpload.logoInputRef, cloudUpload.bgInputRef, cloudUpload.coverInputRef, debouncedPrimaryColorChange, debouncedHeaderTextColorChange, debouncedBackgroundColorChange])
 
     return <DesignToolsContext.Provider value={value}>{children}</DesignToolsContext.Provider>
 }
 
 /**
  * Bölümlerin kullandığı değerler ve değiştiriciler — eski prop adlarıyla aynı, böylece bölüm
- * gövdeleri değişmeden context'ten beslenir.
+ * gövdeleri değişmeden kaynaktan beslenir.
  */
 export function useDesignProps() {
     const tools = useContext(DesignToolsContext)
     if (!tools) throw new Error("useDesignProps must be used within DesignToolsProvider")
-    const { state, userPlan } = useBuilder()
+    const { source, ...rest } = tools
+    const { draft, setters } = source
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
     const primaryColorParsed = useMemo(() => {
-        const rgb = parseColor(state.primaryColor)
+        const rgb = parseColor(draft.primaryColor)
         return { rgb, hexColor: rgbToHex(rgb.r, rgb.g, rgb.b), opacity: Math.round(rgb.a * 100) }
-    }, [state.primaryColor])
-    const availableColumns = useMemo(() => getAvailableColumns(state.layout), [state.layout])
-    const products = useMemo(() => Array.from(state.productMap.values()), [state.productMap])
-    const onUpgrade = useCallback(() => state.setShowUpgradeModal(true), [state])
+    }, [draft.primaryColor])
+    const availableColumns = useMemo(() => getAvailableColumns(draft.layout), [draft.layout])
 
     return {
-        ...tools,
+        ...rest,
         t,
-        userPlan,
-        onUpgrade,
-        catalogName: state.catalogName,
-        products,
+        userPlan: source.userPlan,
+        onUpgrade: source.onUpgrade,
+        catalogName: draft.catalogName,
+        products: source.products,
 
         // Şablon ve görünüm
-        layout: state.layout,
-        onLayoutChange: state.setLayout,
-        showPrices: state.showPrices,
-        onShowPricesChange: state.setShowPrices,
-        showDescriptions: state.showDescriptions,
-        onShowDescriptionsChange: state.setShowDescriptions,
-        showAttributes: state.showAttributes,
-        onShowAttributesChange: state.setShowAttributes,
-        showSku: state.showSku,
-        onShowSkuChange: state.setShowSku,
-        showUrls: state.showUrls,
-        onShowUrlsChange: state.setShowUrls,
-        productImageFit: state.productImageFit,
-        onProductImageFitChange: state.setProductImageFit as (fit: NonNullable<Catalog['product_image_fit']>) => void,
-        columnsPerRow: state.columnsPerRow,
-        onColumnsPerRowChange: state.setColumnsPerRow,
+        layout: draft.layout,
+        onLayoutChange: setters.setLayout,
+        showPrices: draft.showPrices,
+        onShowPricesChange: setters.setShowPrices,
+        showDescriptions: draft.showDescriptions,
+        onShowDescriptionsChange: setters.setShowDescriptions,
+        showAttributes: draft.showAttributes,
+        onShowAttributesChange: setters.setShowAttributes,
+        showSku: draft.showSku,
+        onShowSkuChange: setters.setShowSku,
+        showUrls: draft.showUrls,
+        onShowUrlsChange: setters.setShowUrls,
+        productImageFit: draft.productImageFit,
+        onProductImageFitChange: setters.setProductImageFit,
+        columnsPerRow: draft.columnsPerRow,
+        onColumnsPerRowChange: setters.setColumnsPerRow,
         availableColumns,
 
         // Marka
-        logoUrl: state.logoUrl,
-        onLogoUrlChange: state.setLogoUrl,
-        logoPosition: state.logoPosition,
-        onLogoPositionChange: state.setLogoPosition as (position: NonNullable<Catalog['logo_position']>) => void,
-        logoSize: state.logoSize,
-        onLogoSizeChange: state.setLogoSize as (size: NonNullable<Catalog['logo_size']>) => void,
-        titlePosition: state.titlePosition,
-        onTitlePositionChange: state.setTitlePosition as (position: NonNullable<Catalog['title_position']>) => void,
-        primaryColor: state.primaryColor,
-        onPrimaryColorChange: state.setPrimaryColor,
+        logoUrl: draft.logoUrl,
+        onLogoUrlChange: setters.setLogoUrl,
+        logoPosition: draft.logoPosition,
+        onLogoPositionChange: setters.setLogoPosition as (position: NonNullable<Catalog['logo_position']>) => void,
+        logoSize: draft.logoSize,
+        onLogoSizeChange: setters.setLogoSize as (size: NonNullable<Catalog['logo_size']>) => void,
+        titlePosition: draft.titlePosition,
+        onTitlePositionChange: setters.setTitlePosition as (position: NonNullable<Catalog['title_position']>) => void,
+        primaryColor: draft.primaryColor,
+        onPrimaryColorChange: setters.setPrimaryColor,
         primaryColorParsed,
-        headerTextColor: state.headerTextColor,
-        onHeaderTextColorChange: state.setHeaderTextColor,
+        headerTextColor: draft.headerTextColor,
+        onHeaderTextColorChange: setters.setHeaderTextColor,
 
         // Arka plan
-        backgroundColor: state.backgroundColor,
-        onBackgroundColorChange: state.setBackgroundColor,
-        backgroundImage: state.backgroundImage,
-        onBackgroundImageChange: state.setBackgroundImage,
-        backgroundImageFit: state.backgroundImageFit,
-        onBackgroundImageFitChange: state.setBackgroundImageFit as (fit: NonNullable<Catalog['background_image_fit']>) => void,
-        backgroundGradient: state.backgroundGradient,
-        onBackgroundGradientChange: state.setBackgroundGradient,
+        backgroundColor: draft.backgroundColor,
+        onBackgroundColorChange: setters.setBackgroundColor,
+        backgroundImage: draft.backgroundImage,
+        onBackgroundImageChange: setters.setBackgroundImage,
+        backgroundImageFit: draft.backgroundImageFit,
+        onBackgroundImageFitChange: setters.setBackgroundImageFit,
+        backgroundGradient: draft.backgroundGradient,
+        onBackgroundGradientChange: setters.setBackgroundGradient,
 
         // Kapak ve kategori ayraçları
-        enableCoverPage: state.enableCoverPage,
-        onEnableCoverPageChange: state.setEnableCoverPage,
-        coverImageUrl: state.coverImageUrl,
-        onCoverImageUrlChange: state.setCoverImageUrl,
-        coverDescription: state.coverDescription,
-        onCoverDescriptionChange: state.setCoverDescription,
-        enableCategoryDividers: state.enableCategoryDividers,
-        onEnableCategoryDividersChange: state.setEnableCategoryDividers,
-        categoryOrder: state.categoryOrder,
-        onCategoryOrderChange: state.setCategoryOrder,
-        coverTheme: state.coverTheme,
-        onCoverThemeChange: state.setCoverTheme,
+        enableCoverPage: draft.enableCoverPage,
+        onEnableCoverPageChange: setters.setEnableCoverPage,
+        coverImageUrl: draft.coverImageUrl,
+        onCoverImageUrlChange: setters.setCoverImageUrl,
+        coverDescription: draft.coverDescription,
+        onCoverDescriptionChange: setters.setCoverDescription,
+        enableCategoryDividers: draft.enableCategoryDividers,
+        onEnableCategoryDividersChange: setters.setEnableCategoryDividers,
+        categoryOrder: draft.categoryOrder,
+        onCategoryOrderChange: setters.setCategoryOrder,
+        coverTheme: draft.coverTheme,
+        onCoverThemeChange: setters.setCoverTheme,
     }
 }
 
