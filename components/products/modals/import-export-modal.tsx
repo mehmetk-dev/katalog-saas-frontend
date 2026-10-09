@@ -18,6 +18,19 @@ import { buildImportProducts, downloadTemplateCsv } from './import-export/import
 import { MappingStep } from './import-export/mapping-step'
 import { type ColumnMapping, type MappingStatus } from './import-export/types'
 
+/** Aynı ürün listesini tanımak için kısa parmak izi (ad, SKU, fiyat sırası) */
+function getImportKey(products: unknown[]): string {
+    const text = products
+        .map((p) => {
+            const product = p as { name?: unknown; sku?: unknown; price?: unknown }
+            return `${String(product.name ?? '')}|${String(product.sku ?? '')}|${String(product.price ?? '')}`
+        })
+        .join('\n')
+    let hash = 0
+    for (let i = 0; i < text.length; i++) hash = (Math.imul(31, hash) + text.charCodeAt(i)) | 0
+    return `${products.length}:${hash}`
+}
+
 interface ImportExportModalProps {
     onImport: (products: unknown[]) => Promise<void>
     onExport: () => void
@@ -53,6 +66,12 @@ export function ImportExportModal({
     const [currentPage, setCurrentPage] = useState(1)
     const [importProgress, setImportProgress] = useState({ percent: 0, message: '' })
     const [importWarnings, setImportWarnings] = useState<string[]>([])
+    /**
+     * Partiler halinde aktarım yarıda kalırsa eklenen partiler geri alınmaz (her istek kendi içinde
+     * atomik). Aynı dosya tekrar aktarılırken eklenenler atlanır; önceden tekrar denemek ilk
+     * partileri ikinci kez ekliyordu.
+     */
+    const [resumeState, setResumeState] = useState<{ key: string; imported: number } | null>(null)
 
     const open = controlledOpen !== undefined ? controlledOpen : internalOpen
     const canImport = userPlan === 'plus' || userPlan === 'pro'
@@ -64,7 +83,7 @@ export function ImportExportModal({
     const importTimeout = useAsyncTimeout({
         totalTimeoutMs: 90000,
         stuckTimeoutMs: 30000,
-        timeoutMessage: t('toasts.importTimeout') || 'İçe aktarma işlemi zaman aşımına uğradı.',
+        timeoutMessage: t('importExport.importTimeout'),
         showToast: true,
         onTimeout: () => setImportStatus('mapping'),
     })
@@ -80,6 +99,7 @@ export function ImportExportModal({
         setCurrentPage(1)
         setImportProgress({ percent: 0, message: '' })
         setImportWarnings([])
+        setResumeState(null)
     }
 
     const totalPages = Math.max(1, Math.ceil(csvData.length / ROWS_PER_PAGE))
@@ -114,7 +134,7 @@ export function ImportExportModal({
         // Dosya boyutu limiti — OOM crash önleme
         const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024 // 10MB
         if (file.size > MAX_IMPORT_FILE_SIZE) {
-            toast.error(t('toasts.fileTooLarge') || 'Dosya boyutu çok büyük (Max 10MB)')
+            toast.error(t('importExport.fileTooLarge', { max: MAX_IMPORT_FILE_SIZE / 1024 / 1024 }))
             e.target.value = ''
             return
         }
@@ -177,40 +197,32 @@ export function ImportExportModal({
         // State güncellemesinin render edilmesini bekle
         await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)))
 
+        const BATCH_SIZE = 500 // server action gövde sınırı (1 MB) içinde kalmak için
+        const totalProducts = products.length
+        const importKey = getImportKey(products)
+        const startIndex = resumeState?.key === importKey ? resumeState.imported : 0
+        if (startIndex > 0) {
+            toast.info(t('importExport.resuming', { count: startIndex }))
+        }
+        let imported = startIndex
+
+        // Not: importTimeout.execute hataları yutar (null döner); bu yüzden hata burada yakalanır.
+        // Önceden .catch hiç çalışmıyor, başarısız aktarımda pencere "yükleniyor"da kalıyordu.
         await importTimeout.execute(async () => {
-            const BATCH_SIZE = 500
-            const totalProducts = products.length
+            try {
+                const totalBatches = Math.ceil(totalProducts / BATCH_SIZE)
 
-            if (totalProducts <= BATCH_SIZE) {
-                // Küçük import: tek batch — simulated progress
-                setImportProgress({ percent: 20, message: t('importExport.uploading') })
-                importTimeout.setProgress(20)
-                await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 100)))
-
-                setImportProgress({ percent: 50, message: `${totalProducts} ${t('importExport.uploading')}` })
-                importTimeout.setProgress(50)
-
-                await onImport(products)
-
-                setImportProgress({ percent: 90, message: `${totalProducts} ${t('importExport.productsReady')}` })
-                importTimeout.setProgress(90)
-                await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 200)))
-
-                setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady')}` })
-            } else {
-                // Büyük import: batch'lere böl
-                let imported = 0
-
-                for (let i = 0; i < totalProducts; i += BATCH_SIZE) {
+                for (let i = startIndex; i < totalProducts; i += BATCH_SIZE) {
                     const batch = products.slice(i, i + BATCH_SIZE)
                     const batchNum = Math.floor(i / BATCH_SIZE) + 1
-                    const totalBatches = Math.ceil(totalProducts / BATCH_SIZE)
 
                     // Progress: 10% → 90% arası batch'lere dağıt
                     const percent = 10 + Math.round((imported / totalProducts) * 80)
                     setImportProgress({
                         percent,
-                        message: `${imported}/${totalProducts} ${t('importExport.uploading')} (${batchNum}/${totalBatches})`,
+                        message: totalBatches > 1
+                            ? `${imported}/${totalProducts} ${t('importExport.uploading')} (${batchNum}/${totalBatches})`
+                            : `${totalProducts} ${t('importExport.uploading')}`,
                     })
                     importTimeout.setProgress(percent)
 
@@ -219,22 +231,35 @@ export function ImportExportModal({
                 }
 
                 setImportProgress({ percent: 100, message: `${totalProducts} ${t('importExport.productsReady')}` })
+                importTimeout.setProgress(100)
+                setResumeState(null)
+                setImportStatus('success')
+                setImportResult({ success: totalProducts - startIndex, failed: 0 })
+                toast.success(t('importExport.productsImported', { count: totalProducts - startIndex }))
+                setTimeout(resetState, 2000)
+            } catch (error) {
+                setImportStatus('mapping')
+                if (imported > 0 && imported < totalProducts) {
+                    setResumeState({ key: importKey, imported })
+                    toast.error(t('importExport.partialFailure', { imported, total: totalProducts }), { duration: 10000 })
+                    return
+                }
+                toast.error(error instanceof Error && error.message ? error.message : t('toasts.processingError'))
             }
-
-            importTimeout.setProgress(100)
-            setImportStatus('success')
-            setImportResult({ success: products.length, failed: 0 })
-            toast.success(t('importExport.productsImported', { count: products.length }))
-            setTimeout(resetState, 2000)
-        }).catch((error) => {
-            setImportStatus('mapping')
-            toast.error(error instanceof Error ? error.message : t('toasts.processingError'))
         })
     }
 
     return (
         <>
-            <Dialog open={open} onOpenChange={(value) => (value ? (onOpenChange ? onOpenChange(true) : setInternalOpen(true)) : resetState())}>
+            <Dialog
+                open={open}
+                onOpenChange={(value) => {
+                    if (value) return onOpenChange ? onOpenChange(true) : setInternalOpen(true)
+                    // Aktarım sürerken kapatılırsa işlem arka planda devam edip sonucu görünmez oluyordu
+                    if (importStatus === 'loading') return
+                    resetState()
+                }}
+            >
                 {!hideTrigger && (
                     <DialogTrigger asChild>
                         <Button variant="outline" className="gap-2" size="sm">

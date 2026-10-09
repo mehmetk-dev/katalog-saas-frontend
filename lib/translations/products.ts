@@ -189,6 +189,10 @@ const products = {
             removeImage: "Fotoğrafı kaldır",
         },
         importExport: {
+            partialFailure: "{imported}/{total} ürün eklendi, ardından aktarım kesildi. Tekrar \"İçe Aktar\"a basarsanız eklenenler atlanır, kalanlar eklenir.",
+            importTimeout: "İçe aktarma zaman aşımına uğradı. Bağlantınızı kontrol edip tekrar deneyin.",
+            fileTooLarge: "Dosya çok büyük (en fazla {max} MB).",
+            resuming: "Önceki denemede eklenen {count} ürün atlanıyor, kalanlar ekleniyor.",
             title: "Excel ile Toplu Ürün Yükle / İndir",
             import: "İçe Aktar",
             export: "Dışa Aktar",
@@ -449,6 +453,10 @@ const products = {
             removeImage: "Remove photo",
         },
         importExport: {
+            partialFailure: "{imported}/{total} products were added before the import stopped. Click \"Import\" again to skip those and add the rest.",
+            importTimeout: "The import timed out. Check your connection and try again.",
+            fileTooLarge: "The file is too large (max {max} MB).",
+            resuming: "Skipping {count} products added in the previous attempt and adding the rest.",
             title: "Import/Export",
             import: "Import",
             export: "Export",

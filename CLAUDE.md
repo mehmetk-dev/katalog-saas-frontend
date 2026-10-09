@@ -277,7 +277,6 @@
 │   │   ├── product-images-tab.tsx
 │   │   └── product-attributes-tab.tsx
 │   ├── bulk/                              # Toplu işlemler
-│   │   ├── bulk-actions-modal.tsx
 │   │   ├── bulk-price-modal.tsx
 │   │   ├── bulk-image-upload-modal.tsx
 │   │   └── bulk-image-upload/             # Toplu görsel yükleme

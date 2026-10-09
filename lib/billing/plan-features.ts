@@ -48,6 +48,7 @@ export function getPlanFeatures(plan: PlanType): PlanFeature[] {
         { key: "shareLinkQr" },
         { key: "analytics" },
         { key: "categories" },
+        { key: "excelImport" },
         { key: "highQualityPdf" },
         { key: "noWatermark" },
         ...(plan === "pro" ? [{ key: "prioritySupport" }] : []),
