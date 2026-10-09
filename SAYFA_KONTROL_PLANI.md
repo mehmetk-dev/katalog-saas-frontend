@@ -371,7 +371,7 @@ Kalan:
 
 - ~~Supabase `catalogs.primary_color` varsayılanı mor~~ → backend oluşturmada `#18181b` yazıyor (DB varsayılanı değişmedi)
 - ~~Toplu görsel yükleme penceresi sabit Türkçe~~ → çevrildi; 20 görsel / 20 MB
-- Builder tasarım sekmesinde ~70 prop aktarımı (teknik borç)
+- ~~Builder tasarım sekmesinde ~70 prop aktarımı~~ → bölümler state'i context'ten okuyor (design-context.tsx)
 - Demo builder gerçek builder'ın ayrı kopyası
 - Branch'teki son commit'ler push edilmedi, main'e birleştirilmedi
 
@@ -403,5 +403,5 @@ Kalan:
 - Toplu görsel yükleme çevrildi, sınırlar 20 görsel / 20 MB; ürün ızgarasındaki ~200 satırlık önizleme kopyası kaldırıldı.
 - Yeni kataloglar DB varsayılanı yüzünden mor vurgu rengiyle açılıyordu.
 
-**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, builder tasarım sekmesindeki ~70 prop aktarımı (teknik borç), demo/builder birleştirme kararı, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
+**Hâlâ açık:** Faz 0 (test ortamı + uçtan uca), branch'in main'e birleştirilmesi, demo/builder birleştirme kararı, admin ödeme işlemleri sekmesi yalnızca Türkçe (dahili araç), AI kotasının sunucu belleğinde tutulması.
 
