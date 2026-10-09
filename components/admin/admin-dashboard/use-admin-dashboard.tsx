@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -78,7 +78,7 @@ export function useAdminDashboard() {
             setDeletedUsers(deletedUsersData as DeletedUser[])
             setFeedbacksData(feedbacksData)
 
-            // Activity logs â€” baÄŸÄ±msÄ±z hata yÃ¶netimi
+            // Activity logs — bağımsız hata yönetimi
             fetchActivityLogs(0).catch((err) => console.error("Failed to load activity logs:", err))
         } catch (error: unknown) {
             console.error("Failed to load admin data:", error)

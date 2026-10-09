@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { revalidatePath } from "next/cache"
 
@@ -21,7 +21,7 @@ export interface Template {
     updated_at: string
 }
 
-// TÃ¼m template'leri getir
+// Tüm template'leri getir
 export async function getTemplates(): Promise<Template[]> {
     const supabase = await createClient()
 
@@ -38,7 +38,7 @@ export async function getTemplates(): Promise<Template[]> {
     return data || []
 }
 
-// Sadece sistem ÅŸablonlarÄ±nÄ± getir
+// Sadece sistem şablonlarını getir
 export async function getSystemTemplates(): Promise<Template[]> {
     const supabase = await createClient()
 
@@ -56,7 +56,7 @@ export async function getSystemTemplates(): Promise<Template[]> {
     return data || []
 }
 
-// Sadece custom ÅŸablonlarÄ± getir
+// Sadece custom şablonları getir
 export async function getCustomTemplates(): Promise<Template[]> {
     const supabase = await createClient()
 
@@ -92,7 +92,7 @@ export async function getTemplate(id: string): Promise<Template | null> {
     return data
 }
 
-// Yeni template oluÅŸtur (Admin only)
+// Yeni template oluştur (Admin only)
 export async function createTemplate(data: {
     name: string
     id: string
@@ -161,7 +161,7 @@ export async function createTemplate(data: {
     }
 }
 
-// Template gÃ¼ncelle (Admin only)
+// Template güncelle (Admin only)
 export async function updateTemplate(id: string, data: Partial<{
     name: string
     description: string
@@ -206,7 +206,7 @@ export async function updateTemplate(id: string, data: Partial<{
     }
 }
 
-// Template fotoÄŸrafÄ±nÄ± gÃ¼ncelle (Admin only)
+// Template fotoğrafını güncelle (Admin only)
 export async function updateTemplateImage(id: string, imageUrl: string) {
     try {
         await requireAdmin()
@@ -232,7 +232,7 @@ export async function updateTemplateImage(id: string, imageUrl: string) {
     }
 }
 
-// Template sil (Admin only, sadece custom ÅŸablonlar)
+// Template sil (Admin only, sadece custom şablonlar)
 export async function deleteTemplate(id: string) {
     try {
         await requireAdmin()

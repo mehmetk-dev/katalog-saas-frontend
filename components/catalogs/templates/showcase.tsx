@@ -1,4 +1,4 @@
-﻿import React from "react"
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
@@ -36,7 +36,7 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
     const safeProducts = products || []
     const [main, ...others] = safeProducts
 
-    // KullanÄ±cÄ± isteÄŸi: Vitrin (Showcase) saÄŸ taraf tek sÃ¼tun
+    // Kullanıcı isteği: Vitrin (Showcase) sağ taraf tek sütun
     const getRightCols = () => "grid-cols-1"
 
     const {
@@ -109,7 +109,7 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
                     )}
                 </div>
 
-                {/* SaÄŸ Alan */}
+                {/* Sağ Alan */}
                 <div className="flex-1 flex items-center justify-end min-w-0 gap-8 text-right relative">
                     {isCollisionRight ? (
                         <div className="flex items-center gap-6 flex-row-reverse text-right">

@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . && node scripts/check-design-tokens.mjs",
+    "lint": "eslint . && node scripts/check-design-tokens.mjs && node scripts/check-encoding.mjs",
     "lint:colors": "node scripts/check-design-tokens.mjs",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

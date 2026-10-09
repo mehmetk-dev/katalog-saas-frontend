@@ -1,4 +1,4 @@
-﻿import React from "react"
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
@@ -113,7 +113,7 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
                         )}
                     </div>
 
-                    {/* SaÄŸ Alan */}
+                    {/* Sağ Alan */}
                     <div className="flex-1 flex items-end justify-end min-w-0 z-10 gap-6 text-right">
                         {isCollisionRight ? (
                             <div className="flex flex-col gap-3 items-end">
@@ -149,7 +149,7 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
                 </div>
             </header>
 
-            {/* Ã‡ok temiz Dinamik grid */}
+            {/* Çok temiz Dinamik grid */}
             <div className={`flex-1 px-12 py-6 grid ${getGridCols()} ${getGridRows()} gap-x-8 gap-y-6 overflow-hidden`} style={{ maxHeight: 'calc(100% - 112px)' }}>
                 {safeProducts.map((product) => {
                     const productUrl = sanitizeHref(product.product_url)

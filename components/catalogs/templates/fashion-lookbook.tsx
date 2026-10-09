@@ -1,4 +1,4 @@
-﻿import React from "react"
+import React from "react"
 import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
@@ -47,7 +47,7 @@ export const FashionLookbookTemplate = React.memo(function FashionLookbookTempla
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
-    // Arka plan stili oluÅŸtur
+    // Arka plan stili oluştur
     const containerStyle: React.CSSProperties = {
         ...buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient }),
         borderLeftColor: primaryColor,
@@ -58,7 +58,7 @@ export const FashionLookbookTemplate = React.memo(function FashionLookbookTempla
             {/* Side Page Indicator - Vertical */}
             <div className="absolute left-[-30px] top-0 h-full flex items-center justify-center pointer-events-none">
                 <span className="rotate-[-90deg] text-white text-[10px] font-black tracking-[1em] uppercase whitespace-nowrap opacity-50">
-                    {catalogName} â€¢ PAGE {pageNumber.toString().padStart(2, '0')}
+                    {catalogName} • PAGE {pageNumber.toString().padStart(2, '0')}
                 </span>
             </div>
 
@@ -93,7 +93,7 @@ export const FashionLookbookTemplate = React.memo(function FashionLookbookTempla
                             </div>
                         )}
                         {!isHeaderLogo && titlePosition !== 'left' && (
-                            <div className="text-[10px] uppercase tracking-[0.5em] font-medium whitespace-nowrap opacity-50 block mb-1 mt-auto pt-4">LOOKBOOK â€” VOL.{String(pageNumber).padStart(2, '0')}</div>
+                            <div className="text-[10px] uppercase tracking-[0.5em] font-medium whitespace-nowrap opacity-50 block mb-1 mt-auto pt-4">LOOKBOOK — VOL.{String(pageNumber).padStart(2, '0')}</div>
                         )}
                     </div>
 
@@ -118,7 +118,7 @@ export const FashionLookbookTemplate = React.memo(function FashionLookbookTempla
                         )}
                     </div>
 
-                    {/* SaÄŸ Alan */}
+                    {/* Sağ Alan */}
                     <div className="flex-1 flex flex-col items-end justify-end min-w-0 z-10 gap-4 text-right">
                         {isCollisionRight ? (
                             <div className="flex flex-col gap-4 items-end">
@@ -292,7 +292,7 @@ export const FashionLookbookTemplate = React.memo(function FashionLookbookTempla
                         />
                     </div>
                     <div className="text-[10px] font-serif italic" style={{ color: headerTextColor ? `${headerTextColor}4D` : 'rgba(0,0,0,0.3)' }}>
-                        {catalogName} â€¢ Lookbook Archive
+                        {catalogName} • Lookbook Archive
                     </div>
                 </div>
             </div>
