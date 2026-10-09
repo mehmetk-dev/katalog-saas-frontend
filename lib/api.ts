@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isNetworkError } from "@/lib/utils/retry";
 
 const BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const SESSION_EXPIRED_PATH = "/auth?session=expired";
 
 type FetchOptions = Omit<RequestInit, "headers"> & {
     headers?: Record<string, string>;
@@ -93,6 +95,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     if (userAgent) headersList["user-agent"] = userAgent;
 
     // Only attach auth headers if BOTH user is validated AND session has a token
+    const sentAuth = Boolean(user && session?.access_token);
     if (user && session?.access_token) {
         headersList["Authorization"] = `Bearer ${session.access_token}`;
         headersList["x-user-id"] = user.id;
@@ -148,6 +151,13 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
                 partialError.details = partialData;
                 partialError.isExpected = true;
                 throw partialError;
+            }
+
+            // Gönderdiğimiz oturum token'ını backend reddetti: oturum aslında bitmiş.
+            // Sayfayı hata ekranına düşürmek yerine girişe yönlendir (giriş sayfası
+            // tarayıcıdaki ölü oturumu da kapatır).
+            if (response.status === 401 && sentAuth) {
+                redirect(SESSION_EXPIRED_PATH);
             }
 
             // Diğer HTTP hataları

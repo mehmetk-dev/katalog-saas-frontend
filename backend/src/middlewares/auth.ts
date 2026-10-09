@@ -21,6 +21,12 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
+        // Supabase Auth'a ulaşılamadıysa token geçersiz değildir; 401 frontend'de oturumu
+        // kapattırır, bu yüzden geçici hata olarak bildirilir.
+        if (error && (error.name === 'AuthRetryableFetchError' || (error.status ?? 0) >= 500)) {
+            return res.status(503).json({ error: 'Authentication service unavailable' });
+        }
+
         if (error || !user) {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }

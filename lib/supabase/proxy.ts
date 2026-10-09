@@ -1,22 +1,55 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+export const SESSION_TIMER_COOKIE = "auth_session_timer"
+/** Panelde bu kadar süre hareketsiz kalan oturum kapatılır */
+export const MAX_SESSION_IDLE_MS = 12 * 60 * 60 * 1000
+
+/**
+ * Supabase'in "bu oturum artık kullanılamaz" anlamına gelen hata kodları. Bunlarda çerezler
+ * temizlenmezse tarayıcı ölü token'ı göndermeye devam eder: sayfa açılır ama backend her
+ * isteği "Invalid or expired token" ile reddeder.
+ */
+const DEAD_SESSION_ERROR_CODES = new Set([
+  "refresh_token_not_found",
+  "refresh_token_already_used",
+  "session_not_found",
+  "session_expired",
+  "user_not_found",
+  "user_banned",
+  "bad_jwt",
+])
+
+function isDeadSessionError(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    DEAD_SESSION_ERROR_CODES.has(String((error as { code: unknown }).code)),
+  )
+}
+
+/**
+ * Son panel etkinliği. Zamanlayıcı çerezi yoksa (ilk giriş ya da çerezin kendi süresi
+ * dolacak kadar uzun bir ara) son giriş zamanı esas alınır; aksi halde uzun süre sonra
+ * gelen kullanıcı hareketsizlik kontrolüne hiç takılmadan içeri giriyordu.
+ */
+function getLastActivityMs(timerCookie: string | undefined, lastSignInAt: string | undefined): number | null {
+  const fromCookie = timerCookie ? Number.parseInt(timerCookie, 10) : Number.NaN
+  if (Number.isFinite(fromCookie)) return fromCookie
+  const fromSignIn = lastSignInAt ? Date.parse(lastSignInAt) : Number.NaN
+  return Number.isFinite(fromSignIn) ? fromSignIn : null
+}
+
 /**
  * Clears all Supabase auth cookies from a response object.
  * Removes session timer + chunked auth-token cookies.
  */
-function clearAuthCookies(response: NextResponse): void {
-  response.cookies.delete("auth_session_timer")
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    try {
-      const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
-      const projectId = url.hostname.split('.')[0]
-      const name = `sb-${projectId}-auth-token`
+function clearAuthCookies(request: NextRequest, response: NextResponse): void {
+  response.cookies.delete(SESSION_TIMER_COOKIE)
+  for (const { name } of request.cookies.getAll()) {
+    if (name.startsWith("sb-") && name.includes("-auth-token")) {
       response.cookies.delete(name)
-      response.cookies.delete(`${name}.0`)
-      response.cookies.delete(`${name}.1`)
-    } catch {
-      // ignore malformed URL
     }
   }
 }
@@ -51,19 +84,19 @@ export async function updateSession(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser()
 
-    // --- Session Expiry Logic & Redirection Helpers ---
-    const MAX_SESSION_AGE = 12 * 60 * 60 * 1000; // 12 Hours in ms
-    const sessionAgeCookie = request.cookies.get("auth_session_timer")?.value;
-    const now = Date.now();
+    const sessionTimerCookie = request.cookies.get(SESSION_TIMER_COOKIE)?.value
+    const now = Date.now()
 
     const pathname = request.nextUrl.pathname
     const isProtectedRoute = pathname.startsWith("/dashboard") ||
       (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login"))
 
-    const redirectToLogin = () => {
+    const redirectToLogin = (reason?: "expired") => {
       const url = request.nextUrl.clone()
       url.pathname = "/auth"
       url.search = ""
+      // Giriş sayfası tarayıcıdaki oturumu da kapatıp "oturum süresi doldu" mesajı gösterir
+      if (reason === "expired") url.searchParams.set("session", "expired")
       // Girişten sonra kullanıcı istediği sayfaya geri dönebilsin
       if (request.method === "GET" && pathname.startsWith("/dashboard")) {
         const nextParams = new URLSearchParams(request.nextUrl.searchParams)
@@ -87,37 +120,33 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url, 303)
     }
 
-    // 1. Handle invalid refresh tokens (common after database resets or token expiry)
-    // Simplified logic to avoid Edge Runtime hangs or infinite loops
-    if (authError && typeof authError === 'object' && authError !== null && 'code' in authError && (authError as { code: string }).code === 'refresh_token_not_found') {
-
+    // 1. Kullanılamaz hale gelmiş oturum (refresh token yok/tekrar kullanılmış, oturum silinmiş…)
+    if (isDeadSessionError(authError)) {
       // Public sayfalar ve /auth (döngüyü önlemek için) yönlendirilmez; yalnızca çerezler temizlenir.
       if (!isProtectedRoute) {
-        clearAuthCookies(supabaseResponse)
+        clearAuthCookies(request, supabaseResponse)
         return supabaseResponse
       }
 
-      const redirectResponse = redirectToLogin()
-      clearAuthCookies(redirectResponse)
+      const redirectResponse = redirectToLogin("expired")
+      clearAuthCookies(request, redirectResponse)
       return redirectResponse
     }
 
-    // 2. Session Expiry Logic
+    // 2. Hareketsizlik süresi
     if (user) {
-      if (sessionAgeCookie) {
-        const lastAuth = parseInt(sessionAgeCookie);
-        if (now - lastAuth > MAX_SESSION_AGE) {
-          // Session too old, force logout. Public sayfalar (katalog linki, landing, blog)
-          // yönlendirilmez; yalnızca oturum çerezleri temizlenir.
-          const response = isProtectedRoute ? redirectToLogin() : supabaseResponse
-          clearAuthCookies(response)
-          return response;
-        }
+      const lastActivity = getLastActivityMs(sessionTimerCookie, user.last_sign_in_at)
+      if (lastActivity !== null && now - lastActivity > MAX_SESSION_IDLE_MS) {
+        // Session too old, force logout. Public sayfalar (katalog linki, landing, blog)
+        // yönlendirilmez; yalnızca oturum çerezleri temizlenir.
+        const response = isProtectedRoute ? redirectToLogin("expired") : supabaseResponse
+        clearAuthCookies(request, response)
+        return response
       }
 
-      // Update activity timer if on a dashboard route
-      if (pathname.startsWith("/dashboard")) {
-        supabaseResponse.cookies.set("auth_session_timer", now.toString(), {
+      // Panel ve admin etkinliği zamanlayıcıyı yeniler
+      if (isProtectedRoute) {
+        supabaseResponse.cookies.set(SESSION_TIMER_COOKIE, now.toString(), {
           maxAge: 60 * 60 * 24 * 7, // 1 week cookie life
           path: "/",
           httpOnly: true,
@@ -125,9 +154,9 @@ export async function updateSession(request: NextRequest) {
           sameSite: "lax",
         });
       }
-    } else {
+    } else if (sessionTimerCookie) {
       // No user, clear the timer
-      supabaseResponse.cookies.delete("auth_session_timer");
+      supabaseResponse.cookies.delete(SESSION_TIMER_COOKIE);
     }
 
     // 3. Redirect to login if accessing dashboard without auth

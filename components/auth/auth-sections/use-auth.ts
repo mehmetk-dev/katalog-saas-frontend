@@ -23,6 +23,8 @@ const CALLBACK_PATH = "/auth/callback"
 const AUTH_VERIFY_PATH = "/auth/verify"
 const LOGGED_OUT_PARAM = "logged_out"
 const LOGGED_OUT_VALUE = "1"
+const SESSION_PARAM = "session"
+const SESSION_EXPIRED_VALUE = "expired"
 
 function parseAuthMode(value: string | null): AuthMode {
     return value === "signup" || value === "forgot-password" ? value : "signin"
@@ -155,6 +157,26 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
             return
         }
 
+        // Middleware veya backend oturumu geçersiz buldu: tarayıcıdaki kopyası da kapatılır,
+        // yoksa aşağıdaki kontrol kullanıcıyı ölü oturumla tekrar panele gönderirdi.
+        if (searchParams.get(SESSION_PARAM) === SESSION_EXPIRED_VALUE) {
+            try {
+                await supabase.auth.signOut({ scope: "local" })
+            } catch {
+                // Sunucuda zaten geçersiz olabilir; yerel oturum yine de temizlenir.
+            }
+
+            setError(translate("auth.sessionExpired", "Oturum süreniz dolmuş. Lütfen tekrar giriş yapın."))
+
+            if (typeof window !== "undefined") {
+                const cleanUrl = new URL(window.location.href)
+                cleanUrl.searchParams.delete(SESSION_PARAM)
+                window.history.replaceState({}, "", cleanUrl.toString())
+            }
+
+            return
+        }
+
         try {
             const {
                 data: { session },
@@ -167,7 +189,7 @@ export function useAuth(): { state: AuthState; handlers: AuthHandlers; showOnboa
         } catch {
             setIsRedirecting(false)
         }
-    }, [nextPath, router, searchParams, supabase])
+    }, [nextPath, router, searchParams, supabase, translate])
 
     const resolveUrlErrorMessage = useCallback((params: AuthUrlErrorParams): { message: string; setForgotPasswordMode: boolean } | null => {
         const passwordResetExpiredMessage = translate(

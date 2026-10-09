@@ -69,4 +69,52 @@ describe("updateSession", () => {
 
     expect(response.headers.get("location")).toBeNull()
   })
+
+  it.each(["refresh_token_already_used", "session_not_found", "session_expired"])(
+    "logs out dashboard visits and clears cookies when the session is dead (%s)",
+    async (code) => {
+      getUserMock.mockResolvedValue({ data: { user: null }, error: { code } })
+
+      const response = await updateSession(
+        request("/dashboard/builder?id=c1", { "sb-project-auth-token.0": "a", "sb-project-auth-token.1": "b" }),
+      )
+
+      expect(response.status).toBe(303)
+      const location = new URL(response.headers.get("location")!)
+      expect(location.pathname).toBe("/auth")
+      expect(location.searchParams.get("session")).toBe("expired")
+      expect(location.searchParams.get("next")).toBe("/dashboard/builder?id=c1")
+      expect(response.cookies.get("sb-project-auth-token.0")?.value).toBe("")
+      expect(response.cookies.get("sb-project-auth-token.1")?.value).toBe("")
+    },
+  )
+
+  it("logs out a returning user whose timer cookie expired long ago (falls back to last sign-in)", async () => {
+    const lastSignIn = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", last_sign_in_at: lastSignIn } }, error: null })
+
+    const response = await updateSession(request("/dashboard"))
+
+    expect(response.status).toBe(303)
+    expect(new URL(response.headers.get("location")!).searchParams.get("session")).toBe("expired")
+  })
+
+  it("lets a fresh login in and starts the inactivity timer", async () => {
+    const lastSignIn = new Date(Date.now() - 60 * 1000).toISOString()
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", last_sign_in_at: lastSignIn } }, error: null })
+
+    const response = await updateSession(request("/dashboard"))
+
+    expect(response.headers.get("location")).toBeNull()
+    expect(Number(response.cookies.get("auth_session_timer")?.value)).toBeGreaterThan(Date.now() - 5000)
+  })
+
+  it("keeps an active user signed in even if they signed in days ago", async () => {
+    const lastSignIn = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", last_sign_in_at: lastSignIn } }, error: null })
+
+    const response = await updateSession(request("/dashboard", { auth_session_timer: String(Date.now() - 60 * 1000) }))
+
+    expect(response.headers.get("location")).toBeNull()
+  })
 })
