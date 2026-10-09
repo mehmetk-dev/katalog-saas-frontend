@@ -66,6 +66,9 @@ const FIELDS_WITHOUT_NULL_CHECK = [
 ];
 
 // All insertable optional fields
+/** Builder'ın yeni katalog varsayılanıyla aynı nötr koyu (zinc-900) */
+const DEFAULT_CATALOG_PRIMARY_COLOR = '#18181b';
+
 const INSERT_OPTIONAL_FIELDS = [
     'primary_color', 'show_prices', 'show_descriptions', 'show_attributes',
     'show_sku', 'show_urls', 'columns_per_row', 'background_color',
@@ -167,6 +170,9 @@ export const createCatalog = async (req: Request, res: Response) => {
             share_slug: shareSlug,
             product_ids: Array.isArray(product_ids) ? product_ids : [],
             is_published: false,
+            // DB sütun varsayılanı hâlâ eski mor (#7c3aed); katalog artık builder'dan önce oluşturulduğu
+            // için yeni kataloglar mor açılıyordu. Gönderilmişse aşağıda üzerine yazılır.
+            primary_color: DEFAULT_CATALOG_PRIMARY_COLOR,
         };
 
         // Include optional fields only if provided
