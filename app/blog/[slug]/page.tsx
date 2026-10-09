@@ -1,24 +1,28 @@
-import React from 'react'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { MDXRemote } from 'next-mdx-remote/rsc'
-import { PublicHeader } from '@/components/layout/public-header'
-import { PublicFooter } from '@/components/layout/public-footer'
-import { getPostBySlug, getAllPosts } from '@/lib/services/blog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { generateSEO } from '@/lib/services/seo'
-import { SITE_URL } from '@/lib/constants'
 import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
 
-const CATEGORY_LABELS: Record<string, string> = {
-    'guides': 'Rehberler',
-    'product-updates': 'Ürün Güncellemeleri',
-    'ecommerce-tips': 'E-ticaret İpuçları',
-    'success-stories': 'Başarı Hikayeleri',
+import { PublicHeader } from '@/components/layout/public-header'
+import { PublicFooter } from '@/components/layout/public-footer'
+import { CtaBanner, MARKETING_CONTAINER, MarketingPage, SignupButton } from '@/components/marketing'
+import { getPostBySlug, getAllPosts } from '@/lib/services/blog'
+import { generateSEO } from '@/lib/services/seo'
+import { SITE_URL } from '@/lib/constants'
+import { translations, type Language } from '@/lib/translations'
+import { cn } from '@/lib/utils'
+
+/** Yazının kendi dili (server component; kullanıcının arayüz dili burada bilinmiyor) */
+function blogText(language: string) {
+    const lang: Language = language === 'en' ? 'en' : 'tr'
+    return { lang, text: translations[lang].blogPage, locale: lang === 'en' ? 'en-US' : 'tr-TR' }
+}
+
+function categoryLabel(categories: Record<string, string>, id: string) {
+    return categories[id] ?? id
 }
 
 interface PostPageProps {
@@ -53,7 +57,7 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
     if (!post) notFound()
 
-    // Fetch related posts at top level instead of inside JSX IIFE
+    const { text, locale } = blogText(post.language)
     const relatedPosts = getAllPosts()
         .filter(p => p.slug !== post.slug && p.language === post.language)
         .slice(0, 2)
@@ -67,166 +71,95 @@ export default async function BlogPostPage({ params }: PostPageProps) {
         image: post.coverImage,
         datePublished: post.date,
         dateModified: post.lastModified || post.date,
-        author: {
-            '@type': 'Person',
-            name: post.author,
-            jobTitle: 'Ürün Yöneticisi & Büyüme Uzmanı',
-            description: '8+ yıllık SaaS ürün geliştirme ve büyüme pazarlaması deneyimine sahip dijital katalog ve e-ticaret uzmanı.',
-            url: SITE_URL,
-        },
+        author: { '@type': 'Person', name: post.author, url: SITE_URL },
         publisher: {
             '@type': 'Organization',
             name: 'FogCatalog',
-            logo: {
-                '@type': 'ImageObject',
-                url: `${SITE_URL}/icon.png`,
-            },
+            logo: { '@type': 'ImageObject', url: `${SITE_URL}/icon.png` },
         },
     }
 
     return (
-        <div className="min-h-screen bg-card">
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <PublicHeader />
+        <MarketingPage header={<PublicHeader />} footer={<PublicFooter />}>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-            <main className="pt-32 pb-24">
-                {/* Hero Header */}
-                <article className="max-w-4xl mx-auto px-6">
-                    <Link href="/blog" className="inline-flex items-center text-muted-foreground hover:text-primary font-bold text-sm mb-12 uppercase tracking-widest transition-colors group">
-                        <ArrowLeft className="mr-2 w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                        Blog'a Dön
-                    </Link>
+            <article className={cn(MARKETING_CONTAINER, "max-w-3xl pb-16 pt-28 sm:pt-36")}>
+                <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                    <ArrowLeft className="size-4" aria-hidden />
+                    {text.badge}
+                </Link>
 
-                    <div className="space-y-8 mb-16">
-                        <div className="flex items-center gap-4">
-                            <Badge className="bg-accent text-primary hover:bg-accent border-none px-4 py-1 uppercase tracking-widest text-[10px] font-black">
-                                {CATEGORY_LABELS[post.category] ?? post.category}
-                            </Badge>
-                        </div>
+                <header className="space-y-5">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        {categoryLabel(text.categories, post.category)} ·{' '}
+                        <time dateTime={post.date}>
+                            {new Date(post.date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </time>
+                        {post.readingTime ? ` · ${post.readingTime}` : ''}
+                    </p>
+                    <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">{post.title}</h1>
+                    <p className="text-pretty text-lg leading-relaxed text-muted-foreground">{post.excerpt}</p>
+                </header>
 
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground leading-[1.1]">
-                            {post.title}
-                        </h1>
+                <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-xl border border-border bg-muted">
+                    <Image src={post.coverImage} alt="" fill sizes="(min-width: 768px) 768px, 100vw" className="object-cover" priority />
+                </div>
 
-                        <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-medium italic border-l-4 border-border pl-8 py-2">
-                            {post.excerpt}
-                        </p>
+                <div className="prose prose-zinc mt-12 max-w-none dark:prose-invert
+                    prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground
+                    prose-p:leading-relaxed prose-p:text-muted-foreground
+                    prose-strong:text-foreground
+                    prose-a:text-foreground prose-a:underline-offset-4
+                    prose-img:rounded-xl
+                    prose-blockquote:border-l-brand prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-foreground
+                    prose-li:text-muted-foreground prose-li:marker:text-muted-foreground">
+                    <MDXRemote
+                        source={post.content}
+                        options={{ mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] } }}
+                    />
+                </div>
 
+                {post.tags.length > 0 ? (
+                    <ul className="mt-12 flex flex-wrap gap-2 border-t border-border pt-8">
+                        {post.tags.map(tag => (
+                            <li key={tag} className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                                #{tag}
+                            </li>
+                        ))}
+                    </ul>
+                ) : null}
 
-                        {/* Tarih Bilgisi */}
-                        <div className="py-6 border-y border-border">
-                            <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-                                Yayınlanma: {new Date(post.date).toLocaleDateString('tr-TR', { month: 'long', day: 'numeric', year: 'numeric' })}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Featured Image */}
-                    <div className="relative aspect-[16/9] rounded-[3rem] overflow-hidden shadow-2xl mb-20 bg-muted">
-                        <Image
-                            src={post.coverImage}
-                            alt={post.title}
-                            fill
-                            className="object-cover"
-                            priority
-                        />
-                    </div>
-
-                    {/* Content */}
-                    <div className="prose prose-slate prose-lg max-w-none 
-                        prose-headings:text-foreground prose-headings:font-bold prose-headings:tracking-tight
-                        prose-p:text-muted-foreground prose-p:leading-relaxed prose-p:text-xl
-                        prose-strong:text-foreground prose-strong:font-bold
-                        prose-a:text-brand prose-a:font-bold prose-a:no-underline hover:prose-a:underline
-                        prose-img:rounded-3xl prose-img:shadow-2xl
-                        prose-blockquote:border-l-4 prose-blockquote:border-brand prose-blockquote:bg-brand-soft prose-blockquote:py-4 prose-blockquote:px-8 prose-blockquote:rounded-r-2xl prose-blockquote:not-italic prose-blockquote:font-medium
-                        prose-ul:list-disc prose-ul:marker:text-brand
-                        mb-20">
-                        <MDXRemote
-                            source={post.content}
-                            options={{
-                                mdxOptions: {
-                                    remarkPlugins: [remarkGfm],
-                                    rehypePlugins: [rehypeSlug],
-                                }
-                            }}
-                        />
-                    </div>
-
-                    {/* Tags */}
-                    {post.tags.length > 0 && (
-                        <div className="pt-12 border-t border-border">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-6">Konuları Keşfet</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {post.tags.map(tag => (
-                                    <Badge key={tag} variant="outline" className="rounded-full border-border text-muted-foreground hover:bg-muted/50 cursor-pointer">
-                                        #{tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Related Posts - Internal Linking for SEO */}
-                    <div className="mt-20 pt-16 border-t-2 border-border">
-                        <h3 className="text-2xl font-black text-foreground mb-8 tracking-tight">İlgili Yazılar</h3>
-                        <div className="grid md:grid-cols-2 gap-6">
+                {relatedPosts.length > 0 ? (
+                    <section className="mt-16 border-t border-border pt-12">
+                        <div className="grid gap-6 sm:grid-cols-2">
                             {relatedPosts.map((relatedPost) => (
                                 <Link
                                     key={relatedPost.slug}
                                     href={`/blog/${relatedPost.slug}`}
-                                    className="group flex flex-col border border-border rounded-2xl overflow-hidden bg-card hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
+                                    className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/30"
                                 >
-                                    <div className="aspect-[16/9] relative overflow-hidden bg-muted">
-                                        <Image
-                                            src={relatedPost.coverImage}
-                                            alt={relatedPost.title}
-                                            fill
-                                            className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
+                                    <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+                                        <Image src={relatedPost.coverImage} alt="" fill sizes="(min-width: 640px) 50vw, 100vw" className="object-cover" />
                                     </div>
-                                    <div className="p-6">
-                                        <Badge className="mb-3 bg-accent text-primary hover:bg-accent">
-                                            {CATEGORY_LABELS[relatedPost.category] ?? relatedPost.category}
-                                        </Badge>
-                                        <h4 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors mb-2 line-clamp-2">
-                                            {relatedPost.title}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground line-clamp-2">
-                                            {relatedPost.excerpt}
-                                        </p>
+                                    <div className="space-y-2 p-5">
+                                        <span className="text-xs font-medium text-muted-foreground">
+                                            {categoryLabel(text.categories, relatedPost.category)}
+                                        </span>
+                                        <h2 className="line-clamp-2 font-semibold text-card-foreground group-hover:underline">{relatedPost.title}</h2>
+                                        <p className="line-clamp-2 text-sm text-muted-foreground">{relatedPost.excerpt}</p>
                                     </div>
                                 </Link>
                             ))}
                         </div>
-                    </div>
-                </article>
+                    </section>
+                ) : null}
+            </article>
 
-                {/* Newsletter / CTA */}
-                <section className="max-w-4xl mx-auto px-6 mt-32">
-                    <div className="bg-primary rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
-                        <div className="relative z-10">
-                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">
-                                Dijital Geleceğinizi <br /> Şimdi İnşa Edin
-                            </h2>
-                            <p className="text-muted-foreground text-lg mb-10 max-w-lg mx-auto">
-                                FogCatalog ile profesyonel kataloglar oluşturan 5.000+ işletmeye katılın.
-                            </p>
-                            <Link href="/auth?tab=signup">
-                                <Button size="lg" className="h-16 px-12 bg-card text-foreground hover:bg-primary/90 hover:text-white rounded-full text-lg font-bold transition-all shadow-xl shadow-white/5">
-                                    Ücretsiz Başlayın
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-                </section>
-            </main>
-
-            <PublicFooter />
-        </div>
+            <CtaBanner
+                title={text.ctaTitle}
+                description={text.ctaDesc}
+                action={<SignupButton>{text.ctaButton}</SignupButton>}
+            />
+        </MarketingPage>
     )
 }

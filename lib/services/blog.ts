@@ -44,6 +44,8 @@ export function getPostBySlug(slug: string): BlogPost | null {
         const minutes = noOfWords / wordsPerMinute
         const readingTime = Math.ceil(minutes)
 
+        const language = data.language || 'tr'
+
         return {
             slug: sanitizedSlug,
             title: data.title,
@@ -54,9 +56,9 @@ export function getPostBySlug(slug: string): BlogPost | null {
             author: data.author || 'FogCatalog Team',
             category: data.category || 'General',
             tags: data.tags || [],
-            language: data.language || 'tr',
+            language,
             content,
-            readingTime: `${readingTime} min read`,
+            readingTime: language === 'en' ? `${readingTime} min read` : `${readingTime} dk okuma`,
         }
     } catch {
         return null

@@ -1,465 +1,191 @@
 "use client"
 
-import { useState } from "react"
-import { AlertCircle, Mail, MapPin, Send, Sparkles, Globe, Instagram, Twitter, MessageSquare, HelpCircle, DollarSign, Handshake, Loader2, CheckCircle2 } from "lucide-react"
-import { PublicHeader } from "@/components/layout/public-header"
+import { useState, type FormEvent } from "react"
+import { AlertCircle, CheckCircle2, Clock, Loader2, Mail, MapPin, Phone, Send, type LucideIcon } from "lucide-react"
+
 import { PublicFooter } from "@/components/layout/public-footer"
+import { PublicHeader } from "@/components/layout/public-header"
+import { FeatureIcon, MarketingPage, PageHero, Section } from "@/components/marketing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
 import { sendContactMessage } from "@/lib/actions/contact"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { FOGCATALOG_COMPANY } from "@/lib/legal/fogcatalog-company"
-import { Toaster, toast } from "sonner"
+import { cn } from "@/lib/utils"
+
+/** id'ler sunucu tarafındaki SUBJECT_LABELS ile aynı */
+const SUBJECTS = [
+  { id: "genel", key: "general" },
+  { id: "destek", key: "support" },
+  { id: "fiyat", key: "pricing" },
+  { id: "isbirligi", key: "collaboration" },
+] as const
+
+function InfoItem({ icon, label, value, href }: { icon: LucideIcon; label: string; value: string; href?: string }) {
+  return (
+    <div className="flex items-start gap-4">
+      <FeatureIcon icon={icon} />
+      <div className="min-w-0">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        {href ? (
+          <a href={href} className="break-words font-medium text-foreground hover:underline">
+            {value}
+          </a>
+        ) : (
+          <p className="font-medium text-foreground">{value}</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function ContactPage() {
-  const [selectedSubject, setSelectedSubject] = useState<string>("")
+  const { t } = useTranslation()
+  const [selectedSubject, setSelectedSubject] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const subjects = [
-    { id: 'genel', label: 'Genel', icon: MessageSquare },
-    { id: 'destek', label: 'Destek', icon: HelpCircle },
-    { id: 'fiyat', label: 'Fiyat', icon: DollarSign },
-    { id: 'isbirligi', label: 'İş Birliği', icon: Handshake },
-  ]
+  // Public sayfalarda Toaster yok; hata formun içinde gösterilir
+  const showError = (message: string) => setFormError(message)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setFormError(null)
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    const name = String(formData.get("name") ?? "").trim()
+    const email = String(formData.get("email") ?? "").trim()
+    const message = String(formData.get("message") ?? "").trim()
+
+    if (!name || !email || !selectedSubject || !message) return showError(t("contact.errorRequired"))
+    if (message.length < 10) return showError(t("contact.errorMessageMin"))
+
+    setIsSubmitting(true)
+    try {
+      const result = await sendContactMessage({ name, email, subject: selectedSubject, message })
+      if (result.success) {
+        setIsSuccess(true)
+        form.reset()
+        setSelectedSubject("")
+      } else {
+        showError(result.error || t("contact.errorUnexpected"))
+      }
+    } catch (error) {
+      console.error("Contact form submit failed:", error)
+      showError(t("contact.errorUnexpected"))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-accent font-sans">
-      <PublicHeader />
+    <MarketingPage header={<PublicHeader />} footer={<PublicFooter />}>
+      <PageHero eyebrow={t("contact.title")} title={t("contact.formTitle")} description={t("contact.subtitle")} />
 
-      <main className="relative pt-24 pb-16 md:pt-32 md:pb-20 px-4 overflow-hidden">
-        {/* Ambient background */}
-        <div className="fixed inset-0 pointer-events-none -z-10 bg-background">
-          <div className={cn(
-            "absolute top-[-10%] right-[-10%] w-[60%] h-[60%]",
-            "bg-accent/30 rounded-full blur-[120px]"
-          )} />
-          <div className={cn(
-            "absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%]",
-            "bg-accent/20 rounded-full blur-[120px]"
-          )} />
-        </div>
+      <Section className="pt-0 sm:pt-0">
+        <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_1.4fr]">
+          <div className="space-y-6 rounded-xl border border-border bg-muted/40 p-6">
+            <InfoItem icon={Mail} label={t("contact.email")} value={FOGCATALOG_COMPANY.email} href={`mailto:${FOGCATALOG_COMPANY.email}`} />
+            <InfoItem
+              icon={Phone}
+              label={t("contact.phone")}
+              value={FOGCATALOG_COMPANY.phone}
+              href={`tel:${FOGCATALOG_COMPANY.phone.replace(/\s/g, "")}`}
+            />
+            <InfoItem icon={MapPin} label={t("contact.location")} value={FOGCATALOG_COMPANY.cityDistrict} />
+            <InfoItem icon={Clock} label={t("contact.hours")} value={`${t("contact.days")}, ${t("contact.time")}`} />
+          </div>
 
-        {/* Magazine Spread Container - Responsive */}
-        <div className="max-w-6xl mx-auto">
-          <div className={cn(
-            "relative flex flex-col md:flex-row",
-            "min-h-[auto] md:min-h-[70vh] md:max-h-[800px]",
-            "shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)]",
-            "md:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)]",
-            "animate-in fade-in zoom-in duration-1000"
-          )}>
-
-            {/* LEFT PAGE: Editorial Contents */}
-            <div className={cn(
-              "relative md:w-1/2 bg-primary text-primary-foreground/90",
-              "p-6 sm:p-8 md:p-10 lg:p-16",
-              "flex flex-col justify-between overflow-hidden",
-              "rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none"
-            )}>
-              {/* Paper Grain */}
-              <div className={cn(
-                "absolute inset-0 opacity-[0.05] pointer-events-none",
-                "mix-blend-overlay",
-                "bg-[url('/noise.svg')]"
-              )} />
-
-              {/* Inner shadow - Desktop only */}
-              <div className={cn(
-                "absolute top-0 right-0 w-24 h-full",
-                "bg-gradient-to-l from-black/20 to-transparent",
-                "pointer-events-none z-10 hidden md:block"
-              )} />
-
-              <div className="relative z-10">
-                {/* Header badge */}
-                <div className="flex items-center gap-3 mb-6 md:mb-10">
-                  <span className={cn(
-                    "text-[9px] sm:text-[10px] uppercase",
-                    "tracking-[0.3em] sm:tracking-[0.4em]",
-                    "font-bold text-primary"
-                  )}>İletişim / Foglio №01</span>
-                  <div className="h-px bg-primary flex-1" />
+          <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
+            {isSuccess ? (
+              <div className="flex flex-col items-center gap-4 py-10 text-center" role="status">
+                <span className="flex size-12 items-center justify-center rounded-full bg-success-soft text-success">
+                  <CheckCircle2 className="size-6" aria-hidden />
+                </span>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-card-foreground">{t("contact.successTitle")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("contact.successDesc")}</p>
                 </div>
-
-                {/* Title */}
-                <div className="mb-6 md:mb-8">
-                  <h1 className={cn(
-                    "text-4xl sm:text-5xl md:text-6xl",
-                    "lg:text-7xl xl:text-8xl font-black",
-                    "tracking-tighter leading-[0.85] italic",
-                    "mb-3 md:mb-4"
-                  )}>
-                    BAĞLANTI
-                    <br />
-                    <span className={cn(
-                      "text-transparent bg-clip-text bg-gradient-to-br",
-                      "from-primary via-muted to-background"
-                    )}>KURUN.</span>
-                  </h1>
-                  <p className={cn(
-                    "text-muted-foreground text-sm sm:text-base md:text-lg",
-                    "font-light leading-relaxed max-w-sm"
-                  )}>
-                    Sorularınız mı var? Size yardımcı olmaktan mutluluk duyarız. 24 saat içinde yanıt veririz.
-                  </p>
-                </div>
-
-                {/* Contact info */}
-                <div className="space-y-5 md:space-y-8 mt-8 md:mt-12">
-                  {[
-                    { icon: Mail, label: "E-posta", value: FOGCATALOG_COMPANY.email },
-                    { icon: MapPin, label: "Konum", value: FOGCATALOG_COMPANY.cityDistrict },
-                    { icon: Globe, label: "Durum", value: "Çevrimiçi / 7-24" }
-                  ].map((item, i) => (
-                    <div key={i} className="group cursor-pointer">
-                      <p className={cn(
-                        "text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em]",
-                        "text-muted-foreground mb-1.5 md:mb-2 font-bold"
-                      )}>{item.label}</p>
-                      <div className="flex items-center gap-2.5 md:gap-3">
-                        <item.icon className={cn(
-                          "w-3.5 h-3.5 md:w-4 md:h-4 text-primary",
-                          "group-hover:scale-125 transition-transform"
-                        )} />
-                        <p className={cn(
-                          "text-base sm:text-lg md:text-xl font-medium",
-                          "tracking-tight group-hover:text-primary",
-                          "transition-colors break-all sm:break-normal"
-                        )}>{item.value}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Button type="button" variant="outline" onClick={() => setIsSuccess(false)}>
+                  {t("contact.newMessage")}
+                </Button>
               </div>
-
-              {/* Footer */}
-              <div className={cn(
-                "relative z-10 pt-8 md:pt-12 mt-8 md:mt-0",
-                "border-t border-primary flex items-center justify-between"
-              )}>
-                <div className="flex gap-4 md:gap-6">
-                  <Instagram className={cn(
-                    "w-4 h-4 md:w-5 md:h-5 text-muted-foreground",
-                    "hover:text-white transition-colors cursor-pointer"
-                  )} />
-                  <Twitter className={cn(
-                    "w-4 h-4 md:w-5 md:h-5 text-muted-foreground",
-                    "hover:text-white transition-colors cursor-pointer"
-                  )} />
-                </div>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">FogCatalog</span>
-              </div>
-            </div>
-
-            {/* SPINE - Desktop only */}
-            <div className="hidden md:block w-0.5 h-full relative z-20 bg-black/10">
-              <div className={cn(
-                "absolute inset-y-0 -left-6 w-12 bg-gradient-to-r",
-                "from-black/10 via-black/5 to-transparent pointer-events-none"
-              )} />
-              <div className={cn(
-                "absolute inset-y-0 -right-6 w-12 bg-gradient-to-l",
-                "from-black/10 via-black/5 to-transparent pointer-events-none"
-              )} />
-            </div>
-
-            {/* RIGHT PAGE: Form */}
-            <div className={cn(
-              "relative md:w-1/2 bg-card text-foreground",
-              "p-6 sm:p-8 md:p-10 lg:p-16 flex flex-col",
-              "rounded-b-2xl md:rounded-r-2xl md:rounded-bl-none",
-              "overflow-hidden"
-            )}>
-              <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('/noise.svg')]" />
-
-              <div className="relative z-10 flex flex-col h-full">
-                {/* Form header */}
-                <div className="mb-6 md:mb-10 text-right">
-                  <h2 className={cn(
-                    "text-[10px] sm:text-xs uppercase",
-                    "tracking-[0.3em] sm:tracking-[0.4em]",
-                    "font-black text-muted-foreground/70 mb-2 md:mb-3 font-montserrat"
-                  )}>Mesaj Gönderin</h2>
-                  <div className="h-0.5 bg-primary w-12 ml-auto" />
+            ) : (
+              <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-card-foreground">{t("contact.formTitle")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("contact.formDesc")}</p>
                 </div>
 
-                {isSuccess ? (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="w-16 h-16 bg-success-soft rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-8 h-8 text-success" />
-                    </div>
-                    <div className="text-center space-y-2">
-                      <h3 className="text-xl font-bold text-foreground">Mesajınız Gönderildi!</h3>
-                      <p className="text-muted-foreground text-sm max-w-xs">En kısa sürede size dönüş yapacağız. Teşekkürler.</p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => setIsSuccess(false)}
-                      variant="outline"
-                      className="mt-4 rounded-full"
-                    >
-                      Yeni Mesaj Gönder
-                    </Button>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-name">{t("contact.name")}</Label>
+                    <Input id="contact-name" name="name" autoComplete="name" required maxLength={100} disabled={isSubmitting} />
                   </div>
-                ) : (
-                  <form className="flex-1 space-y-6 md:space-y-8" onSubmit={async (e) => {
-                    e.preventDefault()
-                    setFormError(null)
-                    const form = e.currentTarget
-                    const formData = new FormData(form)
-                    const name = (formData.get("name") as string)?.trim()
-                    const email = (formData.get("email") as string)?.trim()
-                    const message = (formData.get("message") as string)?.trim()
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-email">{t("contact.email")}</Label>
+                    <Input id="contact-email" name="email" type="email" autoComplete="email" required maxLength={255} disabled={isSubmitting} />
+                  </div>
+                </div>
 
-                    if (!name || !email || !selectedSubject || !message) {
-                      const error = "Lütfen tüm alanları doldurun ve bir konu seçin."
-                      setFormError(error)
-                      toast.error(error)
-                      return
-                    }
-                    if (message.length < 10) {
-                      const error = "Mesaj en az 10 karakter olmalıdır."
-                      setFormError(error)
-                      toast.error(error)
-                      return
-                    }
-
-                    setIsSubmitting(true)
-                    try {
-                      const result = await sendContactMessage({ name, email, subject: selectedSubject, message })
-                      if (result.success) {
-                        setIsSuccess(true)
-                        form.reset()
-                        setSelectedSubject("")
-                        toast.success("Mesajınız başarıyla gönderildi!")
-                      } else {
-                        const error = result.error || "Mesaj gönderilemedi."
-                        setFormError(error)
-                        toast.error(error)
-                      }
-                    } catch (error) {
-                      console.error("Contact form submit failed:", error)
-                      const message = "Beklenmedik bir hata oluştu. Lütfen tekrar deneyin."
-                      setFormError(message)
-                      toast.error(message)
-                    } finally {
-                      setIsSubmitting(false)
-                    }
-                  }}>
-                    <div className="space-y-6 md:space-y-8">
-                      {/* Name */}
-                      <div className="relative group">
-                        <Input
-                          id="name"
-                          name="name"
-                          placeholder=" "
-                          required
-                          disabled={isSubmitting}
-                          suppressHydrationWarning
-                          className={cn(
-                            "peer bg-transparent border-0 border-b-2",
-                            "border-border rounded-none h-10 sm:h-12 px-0",
-                            "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-primary",
-                            "transition-all placeholder:opacity-0"
-                          )}
-                        />
-                        <label
-                          htmlFor="name"
-                          className={cn(
-                            "absolute left-0 top-2 sm:top-3 text-muted-foreground",
-                            "text-sm sm:text-base transition-all",
-                            "peer-focus:-top-5 peer-focus:text-[10px]",
-                            "peer-focus:text-primary peer-focus:font-bold",
-                            "peer-[:not(:placeholder-shown)]:-top-5",
-                            "peer-[:not(:placeholder-shown)]:text-[10px]",
-                            "cursor-text uppercase tracking-widest"
-                          )}
-                        >
-                          Adınız
-                        </label>
-                      </div>
-
-                      {/* Email */}
-                      <div className="relative group">
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          placeholder=" "
-                          required
-                          disabled={isSubmitting}
-                          suppressHydrationWarning
-                          className={cn(
-                            "peer bg-transparent border-0 border-b-2",
-                            "border-border rounded-none h-10 sm:h-12 px-0",
-                            "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-primary",
-                            "transition-all placeholder:opacity-0"
-                          )}
-                        />
-                        <label
-                          htmlFor="email"
-                          className={cn(
-                            "absolute left-0 top-2 sm:top-3 text-muted-foreground",
-                            "text-sm sm:text-base transition-all",
-                            "peer-focus:-top-5 peer-focus:text-[10px]",
-                            "peer-focus:text-primary peer-focus:font-bold",
-                            "peer-[:not(:placeholder-shown)]:-top-5",
-                            "peer-[:not(:placeholder-shown)]:text-[10px]",
-                            "cursor-text uppercase tracking-widest"
-                          )}
-                        >
-                          E-posta
-                        </label>
-                      </div>
-
-                      {/* Subject */}
-                      <div className="space-y-2.5 md:space-y-3 pt-1 md:pt-2">
-                        <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Konu Seçin</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {subjects.map((subj) => {
-                            const Icon = subj.icon
-                            return (
-                              <button
-                                key={subj.id}
-                                type="button"
-                                disabled={isSubmitting}
-                                aria-pressed={selectedSubject === subj.id}
-                                onClick={() => {
-                                  setSelectedSubject(subj.id)
-                                  setFormError(null)
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1.5 sm:gap-2",
-                                  "text-[9px] sm:text-[10px] uppercase font-bold",
-                                  "py-2 sm:py-2.5 px-2 sm:px-3",
-                                  "border rounded-full transition-all min-h-[44px]",
-                                  selectedSubject === subj.id
-                                    ? "border-primary bg-accent text-primary"
-                                    : "border-border text-muted-foreground hover:border-border hover:text-primary"
-                                )}
-                              >
-                                <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                                <span className="truncate">{subj.label}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Message */}
-                      <div className="relative group pt-1 md:pt-2">
-                        <Textarea
-                          id="message"
-                          name="message"
-                          placeholder=" "
-                          required
-                          minLength={10}
-                          disabled={isSubmitting}
-                          suppressHydrationWarning
-                          className={cn(
-                            "peer bg-transparent border-0 border-b-2",
-                            "border-border rounded-none",
-                            "min-h-[80px] sm:min-h-[100px] px-0",
-                            "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-primary",
-                            "transition-all resize-none placeholder:opacity-0"
-                          )}
-                        />
-                        <label
-                          htmlFor="message"
-                          className={cn(
-                            "absolute left-0 top-3 sm:top-4 text-muted-foreground",
-                            "text-sm sm:text-base transition-all",
-                            "peer-focus:-top-4 peer-focus:text-[10px]",
-                            "peer-focus:text-primary peer-focus:font-bold",
-                            "peer-[:not(:placeholder-shown)]:-top-4",
-                            "peer-[:not(:placeholder-shown)]:text-[10px]",
-                            "cursor-text uppercase tracking-widest"
-                          )}
-                        >
-                          Mesajınız
-                        </label>
-                      </div>
-                    </div>
-
-                    {formError && (
-                      <div
-                        role="alert"
-                        className={cn(
-                          "flex items-start gap-2 rounded-xl border border-brand/20",
-                          "bg-brand-soft px-4 py-3 text-sm text-brand-soft-foreground"
-                        )}
-                      >
-                        <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                        <span>{formError}</span>
-                      </div>
-                    )}
-
-                    <div className="pt-4 md:pt-6">
-                      <Button
-                        type="submit"
+                <fieldset className="space-y-2">
+                  <legend className="mb-2 text-sm font-medium">{t("contact.subject")}</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {SUBJECTS.map((subject) => (
+                      <button
+                        key={subject.id}
+                        type="button"
+                        aria-pressed={selectedSubject === subject.id}
                         disabled={isSubmitting}
+                        onClick={() => {
+                          setSelectedSubject(subject.id)
+                          setFormError(null)
+                        }}
                         className={cn(
-                          "w-full h-12 sm:h-14 rounded-full",
-                          "bg-primary text-primary-foreground font-bold",
-                          "tracking-widest uppercase text-[10px] sm:text-xs",
-                          "hover:bg-primary/90 hover:scale-[1.02]",
-                          "shadow-2xl shadow-black/10 transition-all group",
-                          "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          "rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+                          selectedSubject === subject.id
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border bg-background text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            Gönderiliyor...
-                          </>
-                        ) : (
-                          <>
-                            Gönder
-                            <Send className={cn(
-                              "ml-2 sm:ml-3 w-3.5 h-3.5 sm:w-4 sm:h-4",
-                              "group-hover:translate-x-1 group-hover:-translate-y-1",
-                              "transition-transform"
-                            )} />
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                )}
-
-                <div className="mt-8 md:mt-10 flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/70 font-bold">v2.1</span>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground">FogCatalog</span>
+                        {t(`contact.subjects.${subject.key}`)}
+                      </button>
+                    ))}
                   </div>
-                </div>
-              </div>
-            </div>
+                </fieldset>
 
-            {/* Stacked pages effect */}
-            <div className={cn(
-              "hidden md:block absolute top-[10px] left-[10px]",
-              "w-full h-full bg-card rounded-2xl -z-10",
-              "shadow-lg border border-border"
-            )} />
-            <div className={cn(
-              "hidden md:block absolute top-[20px] left-[20px]",
-              "w-full h-full bg-card rounded-2xl -z-20",
-              "shadow-lg border border-border"
-            )} />
+                <div className="space-y-2">
+                  <Label htmlFor="contact-message">{t("contact.message")}</Label>
+                  <Textarea
+                    id="contact-message"
+                    name="message"
+                    rows={5}
+                    required
+                    maxLength={3000}
+                    placeholder={t("contact.messagePlaceholder")}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {formError ? (
+                  <p className="flex items-start gap-2 rounded-lg bg-destructive-soft px-3 py-2 text-sm text-destructive-soft-foreground" role="alert">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                    {formError}
+                  </p>
+                ) : null}
+
+                <Button type="submit" variant="brand" size="lg" className="h-11 w-full sm:w-auto" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Send className="size-4" aria-hidden />}
+                  {isSubmitting ? t("contact.sending") : t("contact.send")}
+                </Button>
+              </form>
+            )}
           </div>
         </div>
-      </main>
-
-      <PublicFooter />
-      <Toaster position="top-center" richColors />
-    </div>
+      </Section>
+    </MarketingPage>
   )
 }
