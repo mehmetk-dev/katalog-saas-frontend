@@ -14,6 +14,7 @@ import {
     reconcilePaymentAttempt,
 } from '../controllers/admin-billing';
 import { billingMutationLimiter } from '../middlewares/rate-limiters';
+import { invalidateUserPlanCaches } from '../services/plan-cache';
 
 const router = Router();
 const PLAN_VALUES = ['free', 'plus', 'pro'] as const;
@@ -112,15 +113,32 @@ router.put('/users/:id/plan', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Invalid plan' });
         }
 
+        const { data: current, error: fetchError } = await supabase
+            .from('users')
+            .select('subscription_end')
+            .eq('id', id)
+            .maybeSingle();
+        if (fetchError) throw fetchError;
+        if (!current) return res.status(404).json({ error: 'User not found' });
+
+        // Elle verilen ücretli plan: geçmişte kalmış bitiş tarihi temizlenir (süresiz). Önceden yalnızca
+        // plan güncelleniyordu ve eski subscription_end geçmişte olduğu için kullanıcının bir sonraki
+        // girişinde plan hemen tekrar ücretsize düşüyordu. İleri tarihli ödeme dönemi korunur.
+        const endTime = current.subscription_end ? new Date(current.subscription_end).getTime() : NaN;
+        const hasFuturePaidPeriod = Number.isFinite(endTime) && endTime > Date.now();
+        const update = plan === 'free'
+            ? { plan, subscription_status: 'inactive', subscription_end: null, subscription_cancelled_at: null }
+            : { plan, subscription_status: 'active', subscription_end: hasFuturePaidPeriod ? current.subscription_end : null };
+
         const { error } = await supabase
             .from('users')
-            .update({ plan })
+            .update({ ...update, updated_at: new Date().toISOString() })
             .eq('id', id);
 
         if (error) throw error;
 
-        // Plan degisti, ilgili cacheleri temizle
-        await deleteCache(cacheKeys.user(id));
+        // Plan değişti: kullanıcı, katalog (kilitli kataloglar) ve istatistik önbellekleri
+        await invalidateUserPlanCaches(id);
         await deleteCache(getAdminRoleCacheKey(id), true);
 
         res.json({ success: true });

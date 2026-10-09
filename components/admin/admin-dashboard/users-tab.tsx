@@ -1,5 +1,16 @@
+import { useState } from "react"
 import { Search } from "lucide-react"
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,8 +27,14 @@ interface UsersTabProps {
     t: TranslationFn
 }
 
+type Plan = "free" | "plus" | "pro"
+
 export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpdate, t }: UsersTabProps) {
+    // Plan değişikliği onaysız uygulanıyordu; yanlış seçim ödeme yapmış kullanıcının dönemini silebilir
+    const [pending, setPending] = useState<{ user: AdminUser; plan: Plan } | null>(null)
+
     return (
+        <>
         <Card>
             <CardHeader>
                 <div className="flex items-center justify-between">
@@ -85,7 +102,9 @@ export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpda
                                 <TableCell className="text-right">
                                     <Select
                                         value={user.plan || "free"}
-                                        onValueChange={(value) => onPlanUpdate(user.id, value as "free" | "plus" | "pro")}
+                                        onValueChange={(value) => {
+                                            if (value !== (user.plan || "free")) setPending({ user, plan: value as Plan })
+                                        }}
                                     >
                                         <SelectTrigger className="w-[100px] ml-auto h-8">
                                             <SelectValue />
@@ -110,5 +129,35 @@ export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpda
                 </Table>
             </CardContent>
         </Card>
+
+        <AlertDialog open={Boolean(pending)} onOpenChange={(open) => !open && setPending(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{t("admin.planChangeTitle")}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {pending
+                            ? t("admin.planChangeDesc", {
+                                email: pending.user.email ?? "",
+                                from: (pending.user.plan || "free").toUpperCase(),
+                                to: pending.plan.toUpperCase(),
+                            })
+                            : null}
+                        {pending?.plan === "free" ? ` ${t("admin.planChangeToFree")}` : null}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            if (pending) onPlanUpdate(pending.user.id, pending.plan)
+                            setPending(null)
+                        }}
+                    >
+                        {t("common.confirm")}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     )
 }

@@ -1,6 +1,6 @@
 export type { ActivityLog } from "@/lib/services/activity-logger"
 
-export type TranslationFn = (key: string) => string
+export type TranslationFn = (key: string, params?: Record<string, unknown>) => string
 
 export interface AdminStats {
     usersCount: number

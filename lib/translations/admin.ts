@@ -1,6 +1,9 @@
 const admin = {
     tr: {
         admin: {
+            planChangeTitle: "Plan değiştirilsin mi?",
+            planChangeDesc: "{email} kullanıcısının planı {from} → {to} olarak değişecek. Elle verilen ücretli plan süresizdir; ileri tarihli bir ödeme dönemi varsa korunur.",
+            planChangeToFree: "Ücretsiz plana almak varsa kalan ödeme dönemini de sonlandırır.",
             title: "Admin Paneli",
             subtitle: "Sistem yönetimi ve istatistikler",
             overview: "Genel Bakış",
@@ -116,6 +119,9 @@ const admin = {
     },
     en: {
         admin: {
+            planChangeTitle: "Change plan?",
+            planChangeDesc: "{email}'s plan will change from {from} to {to}. A manually granted paid plan has no end date; a future paid period is kept.",
+            planChangeToFree: "Moving to Free also ends any remaining paid period.",
             title: "Admin Panel",
             subtitle: "System management and statistics",
             overview: "Overview",
