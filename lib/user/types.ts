@@ -15,6 +15,10 @@ export interface User {
   maxProducts: number
   catalogsCount: number
   isAdmin?: boolean
+  /** active | cancelled | expired … (users.subscription_status) */
+  subscriptionStatus?: string | null
+  /** Ücretli planın geçerli olduğu son tarih (ISO) */
+  subscriptionEnd?: string | null
   instagram_url?: string | null
   youtube_url?: string | null
   website_url?: string | null
@@ -27,6 +31,8 @@ export interface UserProfileRow {
   logo_url: string | null
   plan: string | null
   is_admin: boolean | null
+  subscription_status: string | null
+  subscription_end: string | null
   instagram_url: string | null
   youtube_url: string | null
   website_url: string | null

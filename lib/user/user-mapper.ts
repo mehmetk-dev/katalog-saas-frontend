@@ -56,6 +56,8 @@ export function buildUserFromProfile({ authUser, profile, productsCount, catalog
     maxExports: finiteLimit(limits.maxExports),
     exportsUsed: monthlyExports,
     isAdmin: profile?.is_admin || false,
+    subscriptionStatus: profile?.subscription_status ?? null,
+    subscriptionEnd: profile?.subscription_end ?? null,
     instagram_url: profile?.instagram_url || null,
     youtube_url: profile?.youtube_url || null,
     website_url: profile?.website_url || null,

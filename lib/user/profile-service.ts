@@ -24,7 +24,7 @@ async function fetchUserProfileData(supabase: SupabaseClient, userId: string): P
   const [profileResult, productsResult, catalogsResult, monthlyExports] = await Promise.all([
     supabase
       .from("users")
-      .select("full_name, company, avatar_url, logo_url, plan, is_admin, instagram_url, youtube_url, website_url")
+      .select("full_name, company, avatar_url, logo_url, plan, is_admin, subscription_status, subscription_end, instagram_url, youtube_url, website_url")
       .eq("id", userId)
       .single(),
     supabase

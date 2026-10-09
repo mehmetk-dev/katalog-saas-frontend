@@ -23,7 +23,7 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
     const [profileResult, productsResult, catalogsResult, monthlyExports] = await Promise.all([
         supabase
             .from('users')
-            .select('full_name, company, avatar_url, plan')
+            .select('full_name, company, avatar_url, plan, subscription_status, subscription_end')
             .eq('id', user.id)
             .single(),
         supabase
@@ -52,6 +52,8 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
         maxProducts: planLimits.maxProducts === Infinity ? 999999 : planLimits.maxProducts,
         maxExports: planLimits.maxExports === Infinity ? 999999 : planLimits.maxExports,
         exportsUsed: monthlyExports,
+        subscriptionStatus: profile?.subscription_status ?? null,
+        subscriptionEnd: profile?.subscription_end ?? null,
     }
 
     const cookieStore = await cookies()

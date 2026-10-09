@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 
 import { supabase } from '../services/supabase';
 import { safeErrorMessage } from '../utils/safe-error';
+import { invalidateUserPlanCaches } from '../services/plan-cache';
 
 const getUserId = (req: Request) => (req as unknown as { user: { id: string } }).user.id;
 
@@ -168,24 +169,31 @@ export const createNotification = async (
 };
 
 // Cancel subscription
+/**
+ * Aboneliği iptal eder. Ödemeler zaten otomatik yenilenmez; iptal, planın ödenen dönem sonuna
+ * kadar sürüp sonra Ücretsiz plana geçeceğini kayda alır (iade yok — dijital hizmet). Yeni bir
+ * ödeme durumu tekrar "active" yapar ve iptal tarihini temizler (garanti_payment_operations).
+ */
 export const cancelSubscription = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
 
-        // Get current user info
         const { data: user, error: fetchError } = await supabase
             .from('users')
-            .select('plan, subscription_end')
+            .select('plan, subscription_end, subscription_status')
             .eq('id', userId)
             .single();
 
         if (fetchError) throw fetchError;
 
-        if (user.plan === 'free') {
-            return res.status(400).json({ error: 'No active subscription to cancel' });
+        if (!user || user.plan === 'free') {
+            return res.status(400).json({ error: 'İptal edilecek aktif bir abonelik yok.', code: 'no_active_subscription' });
         }
 
-        // Update subscription status to cancelled
+        if (user.subscription_status === 'cancelled') {
+            return res.json({ success: true, alreadyCancelled: true, subscriptionEnd: user.subscription_end ?? null });
+        }
+
         const { error: updateError } = await supabase
             .from('users')
             .update({
@@ -195,22 +203,19 @@ export const cancelSubscription = async (req: Request, res: Response) => {
             .eq('id', userId);
 
         if (updateError) throw updateError;
+        await invalidateUserPlanCaches(userId);
 
-        // Create notification
         await createNotification(
             userId,
             'subscription_cancelled',
             'Üyelik İptal Edildi',
             user.subscription_end
-                ? `Üyeliğiniz iptal edildi. ${new Date(user.subscription_end).toLocaleDateString('tr-TR')} tarihine kadar premium özelliklerinizi kullanmaya devam edebilirsiniz.`
+                ? `Üyeliğiniz iptal edildi. ${new Date(user.subscription_end).toLocaleDateString('tr-TR')} tarihine kadar mevcut planınızı kullanmaya devam edebilirsiniz; ardından hesabınız Ücretsiz plana geçer.`
                 : 'Üyeliğiniz iptal edildi.',
             '/dashboard/settings'
         );
 
-        res.json({
-            success: true,
-            message: 'Subscription cancelled. You can continue using premium features until the end date.'
-        });
+        res.json({ success: true, subscriptionEnd: user.subscription_end ?? null });
     } catch (error: unknown) {
         const message = safeErrorMessage(error);
         res.status(500).json({ error: message });
