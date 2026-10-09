@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { guardAiRequest } from "@/lib/services/ai-guard"
 
 const requestSchema = z.object({
     language: z.enum(["tr", "en"]).optional(),
@@ -91,14 +91,9 @@ function buildUserPrompt(input: z.infer<typeof requestSchema>): string {
 
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createServerSupabaseClient()
-        const {
-            data: { user },
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-        }
+        // Giriş + plan bazlı günlük kota (lib/services/ai-guard)
+        const guard = await guardAiRequest()
+        if (!guard.ok) return guard.response
 
         const body = await request.json().catch(() => null)
         const parsedRequest = requestSchema.safeParse(body)

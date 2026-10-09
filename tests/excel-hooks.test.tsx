@@ -148,6 +148,9 @@ describe("excel hooks", () => {
       deletedIds,
       canSave: true,
       discardAll,
+      clearEditedCells: vi.fn(),
+      removeNewRows: vi.fn(),
+      clearDeletions: vi.fn(),
       refreshData,
       t,
       getCachedProduct: (productId: string) => (productId === "p1" ? product : undefined),
@@ -186,6 +189,9 @@ describe("excel hooks", () => {
       deletedIds: new Set(),
       canSave: false,
       discardAll: vi.fn(),
+      clearEditedCells: vi.fn(),
+      removeNewRows: vi.fn(),
+      clearDeletions: vi.fn(),
       refreshData: vi.fn().mockResolvedValue(undefined),
       t: (key: string) => key,
       getCachedProduct: () => undefined,
@@ -213,6 +219,9 @@ describe("excel hooks", () => {
       deletedIds: new Set(),
       canSave: true,
       discardAll: vi.fn(),
+      clearEditedCells: vi.fn(),
+      removeNewRows: vi.fn(),
+      clearDeletions: vi.fn(),
       refreshData: vi.fn().mockResolvedValue(undefined),
       t: (key: string) => key,
       getCachedProduct: () => product,
@@ -226,5 +235,41 @@ describe("excel hooks", () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("common.error")
     })
+  })
+
+  it("useExcelCrud: yeni satırlar eklendikten sonra silme başarısız olursa eklenenler bekleyen listeden düşer", async () => {
+    vi.mocked(bulkUpdateFields).mockResolvedValue({ updatedCount: 1 } as never)
+    vi.mocked(bulkImportProducts).mockResolvedValue([] as never)
+    vi.mocked(deleteProducts).mockRejectedValue(new Error("network"))
+    const clearEditedCells = vi.fn()
+    const removeNewRows = vi.fn()
+    const clearDeletions = vi.fn()
+    const discardAll = vi.fn()
+    const product = makeProduct({ id: "p1" })
+
+    const { result } = renderHook(() => useExcelCrud({
+      editedCells: new Map([["p1", new Map([["name", "Yeni ad"]])]]),
+      newRows: [{ tempId: "tmp-1", name: "Yeni Urun", sku: "", price: 1, stock: 1, category: "", description: "", product_url: "", custom_attributes: [] }],
+      deletedIds: new Set(["p2"]),
+      canSave: true,
+      discardAll,
+      clearEditedCells,
+      removeNewRows,
+      clearDeletions,
+      refreshData: vi.fn().mockResolvedValue(undefined),
+      t: (key: string) => key,
+      getCachedProduct: () => product,
+    }))
+
+    await act(async () => {
+      expect(await result.current.saveAll()).toBe(false)
+    })
+
+    // Kaydedilen aşamalar temizlendi; tekrar kaydet yeni satırı ikinci kez eklemez
+    expect(clearEditedCells).toHaveBeenCalled()
+    expect(removeNewRows).toHaveBeenCalledWith(["tmp-1"])
+    expect(clearDeletions).not.toHaveBeenCalled()
+    expect(discardAll).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith("excel.partiallySaved")
   })
 })

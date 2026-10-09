@@ -99,6 +99,9 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
     deletedIds: spreadsheet.deletedIds,
     canSave: spreadsheet.canSave,
     discardAll: spreadsheet.discardAll,
+    clearEditedCells: spreadsheet.clearEditedCells,
+    removeNewRows: spreadsheet.removeNewRows,
+    clearDeletions: spreadsheet.clearDeletions,
     refreshData: refreshCurrentPage,
     applyLocalCommit,
     t: tFn,
@@ -375,6 +378,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
               newCount={spreadsheet.newRows.length}
               deletedCount={spreadsheet.deletedIds.size}
               errorCount={spreadsheet.errorCount}
+              incompleteCount={spreadsheet.incompleteNewRowCount}
               canSave={spreadsheet.canSave}
               isSaving={crud.isSaving}
               onSave={() => {

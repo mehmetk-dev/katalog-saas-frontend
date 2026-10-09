@@ -13,6 +13,9 @@ interface UseExcelCrudParams {
   deletedIds: Set<string>
   canSave: boolean
   discardAll: () => void
+  clearEditedCells: () => void
+  removeNewRows: (tempIds: string[]) => void
+  clearDeletions: () => void
   refreshData: () => Promise<void>
   applyLocalCommit?: (payload: { updates: BulkFieldUpdate[]; deletedIds: string[] }) => void
   t: (key: string, params?: Record<string, unknown>) => string
@@ -51,7 +54,7 @@ function isCustomAttributeField(field: string): field is `attr:${string}` {
 }
 
 export function useExcelCrud({
-  editedCells, newRows, deletedIds, canSave, discardAll, refreshData, applyLocalCommit, t, getCachedProduct
+  editedCells, newRows, deletedIds, canSave, discardAll, clearEditedCells, removeNewRows, clearDeletions, refreshData, applyLocalCommit, t, getCachedProduct
 }: UseExcelCrudParams) {
   const [isSaving, setIsSaving] = useState(false)
 
@@ -96,22 +99,26 @@ export function useExcelCrud({
     if (!canSave) return false
     setIsSaving(true)
 
-    try {
-      let totalUpdated = 0
-      let totalAdded = 0
-      let totalDeleted = 0
+    let totalUpdated = 0
+    let totalAdded = 0
+    let totalDeleted = 0
+    const updates = buildUpdates()
+    const idsToDelete = Array.from(deletedIds)
 
+    try {
       // 1. Update existing products
-      const updates = buildUpdates()
       if (updates.length > 0) {
         const result = await bulkUpdateFields(updates)
         totalUpdated += result.updatedCount
+        applyLocalCommit?.({ updates, deletedIds: [] })
+        clearEditedCells()
       }
 
       // 2. Create new rows (batch import for lower request overhead)
-      const normalizedNewRows = newRows
-        .filter((row) => row.name && row.name.trim().length >= 2)
-        .map((row, index) => ({
+      const rowsToCreate = newRows.filter((row) => row.name && row.name.trim().length >= 2)
+      for (let i = 0; i < rowsToCreate.length; i += NEW_ROWS_BULK_CHUNK_SIZE) {
+        const chunkRows = rowsToCreate.slice(i, i + NEW_ROWS_BULK_CHUNK_SIZE)
+        const chunk = chunkRows.map((row, index) => ({
           name: row.name.trim(),
           sku: row.sku || null,
           description: row.description || null,
@@ -122,27 +129,20 @@ export function useExcelCrud({
           images: [] as string[],
           product_url: row.product_url || null,
           custom_attributes: (row.custom_attributes || []) as CustomAttribute[],
-          order: index,
+          order: i + index,
         }))
-
-      for (let i = 0; i < normalizedNewRows.length; i += NEW_ROWS_BULK_CHUNK_SIZE) {
-        const chunk = normalizedNewRows.slice(i, i + NEW_ROWS_BULK_CHUNK_SIZE)
-        if (chunk.length === 0) continue
         await bulkImportProducts(chunk)
         totalAdded += chunk.length
+        removeNewRows(chunkRows.map((row) => row.tempId))
       }
 
       // 3. Delete marked products
-      const idsToDelete = Array.from(deletedIds)
       if (idsToDelete.length > 0) {
         await deleteProducts(idsToDelete)
         totalDeleted += idsToDelete.length
+        applyLocalCommit?.({ updates: [], deletedIds: idsToDelete })
+        clearDeletions()
       }
-
-      applyLocalCommit?.({
-        updates,
-        deletedIds: idsToDelete,
-      })
 
       discardAll()
       await refreshData()
@@ -168,14 +168,18 @@ export function useExcelCrud({
           t("excel.partialFailure", { attempted, rolledBack }) ||
           `${rolledBack}/${attempted} ürün geri alındı. İçe aktarım başarısız.`
         )
+      } else if (totalUpdated + totalAdded + totalDeleted > 0) {
+        // Bir kısmı kaydedildi; kaydedilenler bekleyen listeden düştü, tekrar kaydet yalnızca kalanları gönderir
+        toast.error(t("excel.partiallySaved", { updated: totalUpdated, added: totalAdded }))
       } else {
         toast.error(t("common.error"))
       }
+      if (totalUpdated + totalAdded + totalDeleted > 0) await refreshData().catch(() => undefined)
       return false
     } finally {
       setIsSaving(false)
     }
-  }, [canSave, buildUpdates, newRows, deletedIds, applyLocalCommit, discardAll, t, refreshData])
+  }, [canSave, buildUpdates, newRows, deletedIds, applyLocalCommit, clearEditedCells, removeNewRows, clearDeletions, discardAll, t, refreshData])
 
   return { isSaving, saveAll }
 }

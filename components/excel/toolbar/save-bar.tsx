@@ -11,6 +11,8 @@ interface SaveBarProps {
   newCount: number
   deletedCount: number
   errorCount: number
+  /** Adı girilmemiş yeni satır sayısı — kaydetmeyi engeller */
+  incompleteCount?: number
   canSave: boolean
   isSaving: boolean
   onSave: () => void
@@ -18,7 +20,7 @@ interface SaveBarProps {
 }
 
 export function SaveBar({
-  editedCount, newCount, deletedCount, errorCount,
+  editedCount, newCount, deletedCount, errorCount, incompleteCount = 0,
   canSave, isSaving, onSave, onDiscard,
 }: SaveBarProps) {
   const { t } = useTranslation()
@@ -42,6 +44,11 @@ export function SaveBar({
         {deletedCount > 0 && (
           <Badge variant="secondary" className="bg-destructive-soft text-destructive-soft-foreground">
             {t("excel.deleted", { count: deletedCount })}
+          </Badge>
+        )}
+        {incompleteCount > 0 && (
+          <Badge variant="destructive">
+            {t("excel.incompleteRows", { count: incompleteCount })}
           </Badge>
         )}
         {errorCount > 0 && (

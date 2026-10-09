@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // aaa Fetch user plan for rate limiting aaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Fetch user plan for rate limiting ──
         const { data: userProfile } = await supabase
             .from('users')
             .select('plan')
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
             .single()
         const userPlan: string = (userProfile?.plan as string) || 'free'
 
-        // aaa Per-user daily rate limit (plan-based) aaaaaaaaaaaaaaaaaaaaaaa
+        // ── Per-user daily rate limit (plan-based) ──
         const dailyLimit = AI_CHAT_LIMITS[userPlan] ?? AI_CHAT_LIMITS.free
         const rl = checkUserRateLimit(user.id, 'excel-ai', dailyLimit, AI_CHAT_WINDOW_MS)
         if (!rl.allowed) {
@@ -98,13 +98,13 @@ export async function POST(request: NextRequest) {
         resolvedLanguage = language
         const message = parsedRequest.data.message
 
-        // aaa Safety: Sensitive content check aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Safety: Sensitive content check ──
         const sensitiveCategory = detectSensitiveContent(message)
         if (sensitiveCategory) {
             return jsonWithQuota(buildSensitiveContentResponse(sensitiveCategory, language))
         }
 
-        // aaa Preset commands aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Preset commands ──
         if (parsedRequest.data.presetId) {
             const needsProfile = parsedRequest.data.presetId === 'intro_capabilities'
             const profile = needsProfile
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // aaa Name introduction detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Name introduction detection ──
         const introducedName = extractUserNameFromMessage(message)
         if (introducedName) {
             const profile = await fetchCatalogProfile(supabase, user.id).catch((error) => {
@@ -129,12 +129,12 @@ export async function POST(request: NextRequest) {
             return jsonWithQuota(buildNameAwareResponse(language, introducedName, profile))
         }
 
-        // aaa Product generation detection (must run BEFORE guardrail aaaaaaaaa
+        // ── Product generation detection (must run BEFORE guardrail ──
         // so that 'X urun ekle' doesn't get blocked by the unsupported-capability
         // pattern 'urun ekle'.
         const earlyProductGenRequest = detectProductGenerationRequest(message)
 
-        // aaa Unsupported capability guardrail aaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Unsupported capability guardrail ──
         const normalizedMsg = normalizeForMatch(message)
         if (
             !earlyProductGenRequest &&
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
             return jsonWithQuota(buildUnsupportedCapabilityGuardrail(language))
         }
 
-        // aaa High confidence intent detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── High confidence intent detection ──
         const highConfidenceIntent = earlyProductGenRequest
             ? null
             : tryHighConfidenceIntent(parsedRequest.data, language)
@@ -151,13 +151,13 @@ export async function POST(request: NextRequest) {
             return jsonWithQuota(highConfidenceIntent)
         }
 
-        // aaa Casual conversation detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Casual conversation detection ──
         const casualCategory = detectCasualConversation(message)
         if (casualCategory) {
             return jsonWithQuota(buildCasualConversationResponse(casualCategory, language))
         }
 
-        // aaa Identity, About, Greeting detection aaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Identity, About, Greeting detection ──
         const wantsAboutPlatform = isAboutFogCatalogQuestion(message)
         const wantsIdentity = isIdentityOrCapabilitiesQuestion(message)
         const wantsGreeting = isGreetingMessage(message)
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
             return jsonWithQuota(buildGreetingResponse(language, profile))
         }
 
-        // aaa Low Stock Alert Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Low Stock Alert Detection ──
         const wantsLowStockAlert = detectLowStockRequest(message)
         if (wantsLowStockAlert) {
             const lowStockResponse = await buildLowStockAlertResponse(
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
         const useTools = process.env.EXCEL_AI_USE_TOOLS === 'true'
 
-        // aaa Product Generation Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Product Generation Detection ──
         // Reuse the early detection from above so we don't run the regex twice.
         const productGenRequest = earlyProductGenRequest
         if (!useTools && productGenRequest) {
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // aaa AI Provider Fallthrough aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── AI Provider Fallthrough ──
         const aiProvider = process.env.AI_PROVIDER || 'groq'
         const providerConfig = aiProvider === 'openrouter'
             ? {
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
 
         const groqJson = await groqResponse.json()
 
-        // aaa Try tool-call parsing first (when useTools=true) aaaaaaaaaa
+        // ── Try tool-call parsing first (when useTools=true) ──
         if (useTools && isGroqToolCallResponse(groqJson)) {
             const hasToolCalls = Boolean(groqJson.choices?.[0]?.message?.tool_calls?.length)
 
@@ -359,7 +359,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // aaa JSON-mode parsing (legacy or fallback) aaaaaaaaaaaaaaaaaaaaa
+        // ── JSON-mode parsing (legacy or fallback) ──
         const content = (groqJson as { choices?: Array<{ message?: { content?: string } }> })
             .choices?.[0]?.message?.content
         if (!content) {
@@ -403,7 +403,7 @@ export async function POST(request: NextRequest) {
             },
         })
 
-        // aaa Post-filter chat responses aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        // ── Post-filter chat responses ──
         if (parsedModelResponse.data.mode === 'chat') {
             const normalized = normalizeChatResponse(parsedModelResponse.data, language)
             if ('assistantMessage' in normalized && normalized.assistantMessage) {

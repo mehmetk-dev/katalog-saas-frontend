@@ -2,7 +2,7 @@ import type { Language, ParsedRequest, ParsedAiResponse } from './schemas'
 import { normalizeForMatch, includesAnyToken } from './helpers'
 import { detectHighConfidenceOperation, describeOperation } from './operations/registry'
 
-// aaa FogCatalog Knowledge Base Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── FogCatalog Knowledge Base Detection ──
 
 export const ABOUT_FOGCATALOG_PATTERNS = [
     'fogcatalog ne',
@@ -65,7 +65,7 @@ export function isAboutFogCatalogQuestion(message: string): boolean {
     return ABOUT_FOGCATALOG_PATTERNS.some((p) => normalized.includes(p))
 }
 
-// aaa Identity & Capabilities Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── Identity & Capabilities Detection ──
 
 export function isIdentityOrCapabilitiesQuestion(message: string): boolean {
     const normalized = normalizeForMatch(message)
@@ -89,7 +89,7 @@ export function isIdentityOrCapabilitiesQuestion(message: string): boolean {
     ].some((token) => normalized.includes(token))
 }
 
-// aaa Greeting Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── Greeting Detection ──
 
 export function isGreetingMessage(message: string): boolean {
     const normalized = normalizeForMatch(message)
@@ -119,7 +119,7 @@ export function isGreetingMessage(message: string): boolean {
     )
 }
 
-// aaa Casual Conversation Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── Casual Conversation Detection ──
 
 export type CasualCategory =
     | 'thanks'
@@ -224,7 +224,7 @@ export function detectCasualConversation(message: string): CasualCategory | null
     return null
 }
 
-// aaa User Name Extraction aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── User Name Extraction ──
 
 export function extractUserNameFromMessage(message: string): string | null {
     const trimmed = message.trim()
@@ -245,7 +245,7 @@ export function extractUserNameFromMessage(message: string): string | null {
     return null
 }
 
-// aaa Sensitive Content Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── Sensitive Content Detection ──
 
 const VIOLENCE_PATTERNS = [
     'seni oldur',
@@ -306,7 +306,7 @@ export function detectSensitiveContent(message: string): SensitiveCategory {
     return null
 }
 
-// aaa Low Stock Alert Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── Low Stock Alert Detection ──
 
 const LOW_STOCK_PATTERNS = [
     'dusuk stok',
@@ -335,7 +335,7 @@ export function detectLowStockRequest(message: string): number | null {
     return Math.max(1, Math.min(threshold, 10000))
 }
 
-// aaa Product Generation Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── Product Generation Detection ──
 
 const PRODUCT_GENERATION_PATTERNS = [
     /(\d+)\s*(?:tane|adet)?\s*urun\s*(?:ekle|olustur|yarat|uret|gir)/i,
@@ -373,7 +373,7 @@ export function detectProductGenerationRequest(message: string): ProductGenerati
     return null
 }
 
-// aaa High Confidence Intent Detection aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// ── High Confidence Intent Detection ──
 // Implementation moved to operations/registry.ts (one detector per operation).
 // This is now a thin adapter that wraps the detected op into a ParsedAiResponse.
 

@@ -216,7 +216,8 @@ export function useSpreadsheet(products: Product[]) {
   const dirtyProductCount = editedCells.size
   const hasErrors = validationErrors.size > 0
   const errorCount = Array.from(validationErrors.values()).reduce((sum, errs) => sum + errs.length, 0)
-  const hasIncompleteNewRows = newRows.some((row) => !row.name || row.name.trim().length < 2)
+  const incompleteNewRowCount = newRows.filter((row) => !row.name || row.name.trim().length < 2).length
+  const hasIncompleteNewRows = incompleteNewRowCount > 0
   const canSave = isDirty && !hasErrors && !hasIncompleteNewRows
 
   const addEmptyRow = useCallback(() => {
@@ -292,6 +293,15 @@ export function useSpreadsheet(products: Product[]) {
     setDeletedIds(new Set())
   }, [])
 
+  // Kayıt aşamaları ayrı ayrı tamamlanınca bekleyen değişikliklerden düşülür; kayıt yarıda kalırsa
+  // tekrar denemek yalnızca kalanları gönderir (önceden yeni satırlar ikinci kez ekleniyordu)
+  const clearEditedCells = useCallback(() => setEditedCells(new Map()), [])
+  const removeNewRows = useCallback((tempIds: string[]) => {
+    const ids = new Set(tempIds)
+    setNewRows((prev) => prev.filter((row) => !ids.has(row.tempId)))
+  }, [])
+  const clearDeletions = useCallback(() => setDeletedIds(new Set()), [])
+
   return {
     editedCells,
     newRows,
@@ -300,6 +310,7 @@ export function useSpreadsheet(products: Product[]) {
     dirtyProductCount,
     hasErrors,
     errorCount,
+    incompleteNewRowCount,
     canSave,
     customColumns,
     allColumns,
@@ -318,6 +329,9 @@ export function useSpreadsheet(products: Product[]) {
     unmarkDeletion,
     applyBulkChanges,
     discardAll,
+    clearEditedCells,
+    removeNewRows,
+    clearDeletions,
   }
 }
 
