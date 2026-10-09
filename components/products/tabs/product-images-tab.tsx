@@ -5,6 +5,7 @@ import NextImage from "next/image"
 import { Trash2, Upload, Loader2, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MAX_PRODUCT_IMAGES } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
 // ─── Props ───────────────────────────────────────────────────────────
@@ -24,10 +25,10 @@ interface ProductImagesTabProps {
 export const ProductImagesTab = memo(function ProductImagesTab({
     images, activeImageUrl, isUploading,
     onSetCover, onRemove, onFilesSelected, onUploadClick,
-    maxImages = 5, t,
+    maxImages = MAX_PRODUCT_IMAGES, t,
 }: ProductImagesTabProps) {
     return (
-        <div className="p-1">
+        <div className="relative p-1">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {images.map((url, idx) => (
                     <div
@@ -37,16 +38,16 @@ export const ProductImagesTab = memo(function ProductImagesTab({
                             activeImageUrl === url && "ring-2 ring-primary ring-offset-2"
                         )}
                     >
-                        <NextImage src={url} fill className="object-cover" alt={`Ürün görseli ${idx + 1}`} unoptimized />
+                        <NextImage src={url} fill className="object-cover" alt={t("productForm.imageAlt", { index: idx + 1 })} unoptimized />
 
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                        {/* İşlemler: dokunmatik ekranda her zaman, farede üzerine gelince görünür */}
+                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-foreground/60 to-transparent p-2 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
                             {activeImageUrl !== url && (
-                                <Button type="button" size="sm" variant="secondary" className="h-8 text-xs bg-background/90 hover:bg-card" onClick={() => onSetCover(url)}>
+                                <Button type="button" size="sm" variant="secondary" className="h-8 text-xs" onClick={() => onSetCover(url)}>
                                     <Sparkles className="w-3.5 h-3.5 mr-1" /> {t("products.makeCover")}
                                 </Button>
                             )}
-                            <Button type="button" size="icon" variant="destructive" className="h-8 w-8" onClick={() => onRemove(idx)} aria-label="Fotoğrafı sil">
+                            <Button type="button" size="icon" variant="destructive" className="ml-auto h-8 w-8" onClick={() => onRemove(idx)} aria-label={t("productForm.removeImage")}>
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </div>
@@ -96,7 +97,7 @@ export const ProductImagesTab = memo(function ProductImagesTab({
                     </div>
                 )}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-4 text-center">{t("products.maxPhotosDesc")}</p>
+            <p className="mt-4 text-center text-xs text-muted-foreground">{t("products.maxPhotosDesc", { max: maxImages })}</p>
         </div>
     )
 })

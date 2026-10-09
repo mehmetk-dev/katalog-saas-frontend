@@ -2,7 +2,7 @@
 
 import React, { useState, memo } from "react"
 import { toast } from "sonner"
-import { Plus, Sparkles, Tag, Barcode, Wand2, ChevronDown, ChevronUp, FolderPlus, X } from "lucide-react"
+import { Plus, Sparkles, Tag, Barcode, Wand2, ChevronDown, ChevronUp, FolderPlus, Loader2, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,26 +12,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-// ─── Magic Descriptions ──────────────────────────────────────────────
-const MAGIC_DESCRIPTIONS: Record<string, string[]> = {
-    tr: [
-        "Modern tasarımı ve üstün kalitesiyle yaşam alanınıza zarafet katacak bu ürün, dayanıklı malzemelerden üretilmiş olup uzun ömürlü kullanım sunar.",
-        "Ergonomik yapısı ve şık detaylarıyla dikkat çeken bu parça, beklentilerinizi fazlasıyla karşılayacak. Hem fonksiyonel hem estetik.",
-        "Minimalist çizgileri ve fonksiyonel yapısıyla öne çıkan bu tasarım, kullanım kolaylığı sağlarken şıklığından ödün vermiyor.",
-        "Kaliteden ödün vermeyenler için özel olarak tasarlandı. Her detayı özenle düşünülen bu ürün, stil sahibi kullanıcılar için ideal.",
-        "Yüksek performans ve estetik bir arada. Bu ürün, günlük ihtiyaçlarınızı karşılarken mekanınıza modern bir dokunuş katacak.",
-        "Profesyonel kullanım için tasarlanan bu ürün, üstün kalite standartlarıyla öne çıkıyor. Dayanıklı yapısıyla uzun yıllar size eşlik edecek.",
-        "Zarif tasarımı ve kullanışlı özellikleriyle dikkat çeken bu ürün, her ortama uyum sağlayacak şekilde tasarlandı.",
-    ],
-    en: [
-        "With its modern design and superior quality, this product adds elegance to your living space. Made from durable materials for long-lasting use.",
-        "Standing out with its ergonomic structure and stylish details, this piece will exceed your expectations. Both functional and aesthetic.",
-        "Featuring minimalist lines and functional structure, this design offers ease of use without compromising on style.",
-        "Designed specifically for those who do not compromise on quality. Every detail is carefully considered, ideal for stylish users.",
-        "High performance and aesthetics combined. This product will add a modern touch to your space while meeting your daily needs.",
-        "Designed for professional use, this product stands out with superior quality standards. It will accompany you for many years with its durable structure.",
-        "Attention-grabbing with its elegant design and useful features, this product is designed to fit into any environment.",
-    ],
+export type ProductFormField = "name" | "price" | "stock" | "productUrl"
+export type ProductFormErrors = Partial<Record<ProductFormField, string>>
+
+/** "siteniz.com/urun" gibi protokolsüz linklere https:// ekler */
+export function normalizeProductUrl(value: string): string {
+    const url = value.trim()
+    if (!url) return ""
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `https://${url}`
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+    if (!message) return null
+    return (
+        <p id={id} className="text-xs text-destructive" role="alert">
+            {message}
+        </p>
+    )
 }
 
 // ─── Props ───────────────────────────────────────────────────────────
@@ -55,6 +52,7 @@ interface ProductBasicTabProps {
     allCategories: string[]
     canCreateCategory: boolean
     language: string
+    errors?: ProductFormErrors
     t: (key: string, params?: Record<string, unknown>) => string
 }
 
@@ -63,16 +61,44 @@ export const ProductBasicTab = memo(function ProductBasicTab({
     name, onNameChange, sku, onSkuChange, description, onDescriptionChange,
     price, onPriceChange, stock, onStockChange, currency, onCurrencyChange,
     productUrl, onProductUrlChange, category, onCategoryChange,
-    allCategories, canCreateCategory, language, t,
+    allCategories, canCreateCategory, language, errors = {}, t,
 }: ProductBasicTabProps) {
     const [categoryInput, setCategoryInput] = useState("")
     const [showCategories, setShowCategories] = useState(false)
+    const [isGenerating, setIsGenerating] = useState(false)
 
-    const generateMagicDescription = () => {
-        const pool = MAGIC_DESCRIPTIONS[language] || MAGIC_DESCRIPTIONS.tr
-        const random = pool[Math.floor(Math.random() * pool.length)]
-        onDescriptionChange(name ? `${name} - ${random}` : random)
-        toast.success(t("toasts.magicDescription"))
+    // Gerçek yapay zeka açıklaması (Excel düzenleyicisinin kullandığı uç); önceden ürüne bakmadan
+    // 7 hazır metinden biri rastgele seçiliyordu.
+    const generateAiDescription = async () => {
+        if (!name.trim()) {
+            toast.error(t("productForm.aiNeedsName"))
+            return
+        }
+        setIsGenerating(true)
+        try {
+            const response = await fetch("/api/excel-ai/generate-descriptions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    language: language === "en" ? "en" : "tr",
+                    products: [{
+                        id: "draft",
+                        name: name.trim().slice(0, 300),
+                        category: category.join(", ").slice(0, 200) || null,
+                        currentDescription: description.trim().slice(0, 5000) || null,
+                    }],
+                }),
+            })
+            const data = await response.json().catch(() => null) as { descriptions?: { productId: string; description: string }[] } | null
+            const generated = data?.descriptions?.find((item) => item.productId === "draft")?.description
+            if (!response.ok || !generated) throw new Error("ai_failed")
+            onDescriptionChange(generated)
+            toast.success(t("productForm.aiDone"))
+        } catch {
+            toast.error(t("productForm.aiFailed"))
+        } finally {
+            setIsGenerating(false)
+        }
     }
 
     const generateSKU = () => {
@@ -115,9 +141,13 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                         value={name}
                         onChange={(e) => onNameChange(e.target.value)}
                         required
+                        maxLength={200}
+                        aria-invalid={Boolean(errors.name)}
+                        aria-describedby={errors.name ? "name-error" : undefined}
                         placeholder={t("products.productNamePlaceholder")}
                         className="h-11"
                     />
+                    <FieldError id="name-error" message={errors.name} />
                 </div>
 
                 {/* SKU */}
@@ -134,7 +164,7 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             placeholder={t("products.skuPlaceholder")}
                             className="h-11"
                         />
-                        <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={generateSKU}>
+                        <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={generateSKU} aria-label={t("toasts.skuGenerated")}>
                             <Sparkles className="w-4 h-4" />
                         </Button>
                     </div>
@@ -296,22 +326,21 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                         />
                     </svg>
                     {t("products.productUrl")}
-                    <span className="text-xs text-muted-foreground font-normal">(opsiyonel)</span>
+                    <span className="text-xs text-muted-foreground font-normal">{t("productForm.optional")}</span>
                 </Label>
                 <Input
                     id="productUrl"
                     type="url"
+                    inputMode="url"
                     value={productUrl}
                     onChange={(e) => onProductUrlChange(e.target.value)}
-                    onBlur={(e) => {
-                        const url = e.target.value.trim()
-                        if (url && !/^https?:\/\//i.test(url)) {
-                            toast.warning(t("products.urlProtocolWarning") || "URL http:// veya https:// ile başlamalıdır")
-                        }
-                    }}
+                    onBlur={(e) => onProductUrlChange(normalizeProductUrl(e.target.value))}
+                    aria-invalid={Boolean(errors.productUrl)}
+                    aria-describedby={errors.productUrl ? "productUrl-error" : undefined}
                     placeholder="https://example.com/urun-sayfasi"
                     className="h-10"
                 />
+                <FieldError id="productUrl-error" message={errors.productUrl} />
                 <p className="text-xs text-muted-foreground">{t("products.productUrlDesc")}</p>
             </div>
 
@@ -327,10 +356,11 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             "h-7 text-xs gap-1.5 text-primary",
                             "hover:text-primary hover:bg-accent"
                         )}
-                        onClick={generateMagicDescription}
+                        onClick={generateAiDescription}
+                        disabled={isGenerating}
                     >
-                        <Wand2 className="w-3.5 h-3.5" />
-                        {t("products.generateAi")}
+                        {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                        {isGenerating ? t("productForm.aiGenerating") : t("products.generateAi")}
                     </Button>
                 </div>
                 <Textarea
@@ -339,6 +369,7 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                     onChange={(e) => onDescriptionChange(e.target.value)}
                     placeholder={t("products.descriptionPlaceholder")}
                     rows={4}
+                    maxLength={5000}
                     className="resize-none"
                 />
             </div>
@@ -370,13 +401,16 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             inputMode="decimal"
                             value={price}
                             onChange={(e) => onPriceChange(e.target.value.replace(/[^0-9.,]/g, ""))}
-                            placeholder="0.00"
+                            aria-invalid={Boolean(errors.price)}
+                            aria-describedby={errors.price ? "price-error" : undefined}
+                            placeholder={language === "en" ? "0.00" : "0,00"}
                             className={cn(
                                 "flex-1 h-12 text-2xl font-bold border-0",
                                 "bg-transparent focus-visible:ring-0 text-right"
                             )}
                         />
                     </div>
+                    <FieldError id="price-error" message={errors.price} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="stock" className="text-sm font-medium">{t("products.stockCount")}</Label>
@@ -385,8 +419,12 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             id="stock"
                             type="number"
                             min="0"
+                            step="1"
+                            inputMode="numeric"
                             value={stock}
                             onChange={(e) => onStockChange(e.target.value)}
+                            aria-invalid={Boolean(errors.stock)}
+                            aria-describedby={errors.stock ? "stock-error" : undefined}
                             placeholder="0"
                             className={cn(
                                 "flex-1 h-12 text-2xl font-bold border-0",
@@ -411,6 +449,7 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             )}
                         </div>
                     </div>
+                    <FieldError id="stock-error" message={errors.stock} />
                 </div>
             </div>
         </div>

@@ -223,7 +223,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             })
 
             await waitFor(() => {
-                expect(screen.getByRole('button', { name: /sil/i })).toBeTruthy()
+                expect(screen.getByRole('button', { name: 'productForm.removeImage' })).toBeTruthy()
             })
         })
 
@@ -268,7 +268,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             // 5 fotoğraf yüklendikten sonra input kaybolmalı (limit doldu)
             await waitFor(() => {
                 const uploadInput = screen.queryByTestId('file-upload')
-                const images = screen.queryAllByAltText(/Ürün görseli/)
+                const images = screen.queryAllByAltText(/productForm\.imageAlt/)
                 // Input kaybolmalı veya en fazla 5 resim olmalı
                 expect(uploadInput === null || images.length <= 5).toBeTruthy()
             }, { timeout: 3000 })
@@ -286,7 +286,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
             await user.click(tab)
 
             await waitFor(() => {
-                const images = screen.getAllByAltText(/Ürün görseli/)
+                const images = screen.getAllByAltText(/productForm\.imageAlt/)
                 expect(images.length).toBeGreaterThanOrEqual(2)
             })
         })
@@ -303,12 +303,12 @@ describe('Fotoğraf Yükleme Testleri', () => {
             const input = await screen.findByTestId('file-upload')
             await user.upload(input, file)
 
-            const deleteBtn = await screen.findByRole('button', { name: /sil/i })
+            const deleteBtn = await screen.findByRole('button', { name: 'productForm.removeImage' })
             await user.click(deleteBtn)
 
             // Fotoğrafın kaldırıldığını kontrol et
             await waitFor(() => {
-                expect(screen.queryByRole('button', { name: /sil/i })).toBeNull()
+                expect(screen.queryByRole('button', { name: 'productForm.removeImage' })).toBeNull()
             })
         })
 

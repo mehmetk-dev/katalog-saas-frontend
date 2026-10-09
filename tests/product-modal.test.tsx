@@ -1,3 +1,4 @@
+import { MAX_PRODUCT_IMAGES } from '@/lib/constants'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProductModal } from '@/components/products/modals/product-modal'
@@ -121,7 +122,7 @@ describe('ProductModal Image Upload', () => {
         })
     })
 
-    it('prevents uploading more than 5 images', async () => {
+    it('prevents uploading more than MAX_PRODUCT_IMAGES images', async () => {
         const user = userEvent.setup()
         render(<ProductModal {...defaultProps} />)
 
@@ -130,13 +131,13 @@ describe('ProductModal Image Upload', () => {
         await user.click(tab)
 
         // First upload 5 files
-        const firstBatch = Array.from({ length: 5 }, (_, i) => new File(['content'], `test-${i}.png`, { type: 'image/png' }))
+        const firstBatch = Array.from({ length: MAX_PRODUCT_IMAGES }, (_, i) => new File(['content'], `test-${i}.png`, { type: 'image/png' }))
         const input = await screen.findByTestId('file-upload')
         await user.upload(input, firstBatch)
 
         // Wait for upload to complete and images to be added
         await waitFor(() => {
-            expect(global.URL.createObjectURL).toHaveBeenCalledTimes(5)
+            expect(global.URL.createObjectURL).toHaveBeenCalledTimes(MAX_PRODUCT_IMAGES)
         }, { timeout: 3000 })
 
         // Wait for input to be hidden (because 5 images are now present)
@@ -170,12 +171,12 @@ describe('ProductModal Image Upload', () => {
         await user.upload(input, file)
 
         // Find delete button and click using the new aria-label
-        const deleteBtn = await screen.findByRole('button', { name: "Fotoğrafı sil" })
+        const deleteBtn = await screen.findByRole('button', { name: "productForm.removeImage" })
         await user.click(deleteBtn)
 
         // Verify image is gone by checking delete button is gone
         await waitFor(() => {
-            expect(screen.queryByRole('button', { name: "Fotoğrafı sil" })).toBeNull()
+            expect(screen.queryByRole('button', { name: "productForm.removeImage" })).toBeNull()
         })
     })
 })

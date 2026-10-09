@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { storage } from "@/lib/storage"
 import { optimizeImage } from "@/lib/utils/image-utils"
 import type { Product } from "@/lib/actions/products"
+import { MAX_PRODUCT_IMAGES } from "@/lib/constants"
 
 // ─── Types ──────────────────────────────────────────────────────────
 export interface PendingImage {
@@ -19,8 +20,34 @@ interface UseProductImagesOptions {
     t: (key: string, params?: Record<string, unknown>) => string
 }
 
+/** Ham dosya sınırı: yüklemeden önce 2000px WebP'ye sıkıştırıldığı için telefon fotoğrafları kabul edilir */
+const DEFAULT_MAX_FILE_SIZE = 20 * 1024 * 1024
+
+/** Ürünün görsel listesi ve kapağı (eski additional_images alanı dahil) — saf fonksiyon */
+export function getProductImages(product: Product | null): { images: string[]; cover: string } {
+    let images: string[] = []
+    if (product?.images?.length) {
+        images = [...product.images]
+    } else if (product?.image_url) {
+        images = [product.image_url]
+        // Legacy additional_images in custom_attributes
+        const legacy = product.custom_attributes?.find((a) => a.name === "additional_images")?.value
+        if (legacy) {
+            try {
+                const parsed = JSON.parse(legacy)
+                if (Array.isArray(parsed)) parsed.forEach((img: string) => { if (img && img !== product.image_url && !images.includes(img)) images.push(img) })
+            } catch { /* ignore */ }
+        }
+    }
+
+    const valid = images.filter((i): i is string => typeof i === "string" && i.length > 0)
+    return { images: valid, cover: product?.image_url || valid[0] || "" }
+}
+
 // ─── Hook ───────────────────────────────────────────────────────────
-export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024, t }: UseProductImagesOptions) {
+// maxImages backend şemasıyla aynı (MAX_PRODUCT_IMAGES); önceden 5'ti ve 5'ten fazla görseli olan
+// (ör. Excel'den gelen) bir ürün kaydedilince fazlası sessizce siliniyordu.
+export function useProductImages({ maxImages = MAX_PRODUCT_IMAGES, maxFileSize = DEFAULT_MAX_FILE_SIZE, t }: UseProductImagesOptions) {
     const [activeImageUrl, setActiveImageUrl] = useState("")
     const [additionalImages, setAdditionalImages] = useState<string[]>([])
     const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
@@ -74,7 +101,7 @@ export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024,
 
         const accepted = Array.from(files).slice(0, allowed).filter((f) => {
             if (f.size > maxFileSize) {
-                toast.error(`${f.name} çok büyük (Max ${maxFileSize / 1024 / 1024}MB).`)
+                toast.error(t("productForm.imageTooLarge", { name: f.name, max: maxFileSize / 1024 / 1024 }))
                 return false
             }
             return true
@@ -173,7 +200,7 @@ export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024,
         setIsUploading(true)
         const toastId = `img-upload-${Date.now()}`
         toastIdRef.current = toastId
-        toast.loading(`Fotoğraflar yükleniyor (0/${snap.length})...`, { id: toastId })
+        toast.loading(t("productForm.imageUploadProgress", { current: 0, total: snap.length }), { id: toastId })
 
         const mainAbort = new AbortController()
         abortControllers.current.set("main", mainAbort)
@@ -189,7 +216,7 @@ export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024,
                 const { file, previewUrl, uploadId } = snap[i]
 
                 try {
-                    toast.loading(`Yükleniyor (${i + 1}/${snap.length})...`, { id: toastId })
+                    toast.loading(t("productForm.imageUploadProgress", { current: i + 1, total: snap.length }), { id: toastId })
                     const publicUrl = await uploadOne(file, uploadId, mainAbort.signal)
 
                     uploaded.push(publicUrl)
@@ -217,11 +244,15 @@ export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024,
             const finalUrls = [...existing, ...uploaded].slice(0, maxImages)
             setAdditionalImages(finalUrls)
 
-            if (uploaded.length > 0) {
-                toast.success(`${uploaded.length} fotoğraf yüklendi.`, { id: toastId })
-            } else {
-                toast.error("Fotoğraf yüklenemedi. İşlem durduruldu.", { id: toastId })
+            const failed = snap.length - uploaded.length
+            if (uploaded.length === 0) {
+                toast.error(t("productForm.imagesFailed"), { id: toastId })
                 throw new Error("No images uploaded")
+            }
+            if (failed > 0) {
+                toast.warning(t("productForm.imagesPartiallyFailed", { failed }), { id: toastId })
+            } else {
+                toast.success(t("productForm.imagesUploaded", { count: uploaded.length }), { id: toastId })
             }
 
             return { finalUrls, urlMap }
@@ -230,7 +261,7 @@ export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024,
             cancelAllUploads()
             setIsUploading(false)
         }
-    }, [pendingImages, additionalImages, maxImages, uploadOne, revokeBlobUrl, cancelAllUploads])
+    }, [pendingImages, additionalImages, maxImages, uploadOne, revokeBlobUrl, cancelAllUploads, t])
 
     // ─── Reset (modal open/close) ──────────────────────────────────────
     const lastProductIdRef = useRef<string | null>(null)
@@ -240,24 +271,9 @@ export function useProductImages({ maxImages = 5, maxFileSize = 5 * 1024 * 1024,
         if (lastProductIdRef.current === pid) return
         lastProductIdRef.current = pid
 
-        let images: string[] = []
-        if (product?.images?.length) {
-            images = [...product.images]
-        } else if (product?.image_url) {
-            images = [product.image_url]
-            // Legacy additional_images in custom_attributes
-            const legacy = product.custom_attributes?.find((a) => a.name === "additional_images")?.value
-            if (legacy) {
-                try {
-                    const parsed = JSON.parse(legacy)
-                    if (Array.isArray(parsed)) parsed.forEach((img: string) => { if (img && img !== product.image_url && !images.includes(img)) images.push(img) })
-                } catch { /* ignore */ }
-            }
-        }
-
-        const valid = images.filter((i): i is string => typeof i === "string" && i.length > 0)
+        const { images: valid, cover } = getProductImages(product)
         setAdditionalImages(valid)
-        setActiveImageUrl(product?.image_url || valid[0] || "")
+        setActiveImageUrl(cover)
         setPendingImages([])
     }, [])
 
