@@ -433,19 +433,11 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                         />
                         <div className="shrink-0">
                             {Number(stock) === 0 ? (
-                                <Badge variant="destructive" className="text-sm px-3 py-1">{t("products.outOfStock")}</Badge>
+                                <Badge className="border-destructive/20 bg-destructive-soft px-3 py-1 text-sm text-destructive-soft-foreground">{t("products.outOfStock")}</Badge>
                             ) : Number(stock) < 10 ? (
-                                <Badge className={cn(
-                                    "bg-warning-soft text-warning-soft-foreground",
-                                    "",
-                                    "text-sm px-3 py-1"
-                                )}>{t("products.lowStock")}</Badge>
+                                <Badge variant="warning" className="px-3 py-1 text-sm">{t("products.lowStock")}</Badge>
                             ) : (
-                                <Badge className={cn(
-                                    "bg-success-soft text-success-soft-foreground",
-                                    "",
-                                    "text-sm px-3 py-1"
-                                )}>{t("products.inStock")}</Badge>
+                                <Badge variant="success" className="px-3 py-1 text-sm">{t("products.inStock")}</Badge>
                             )}
                         </div>
                     </div>

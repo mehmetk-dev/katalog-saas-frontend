@@ -92,7 +92,7 @@ export function SubscriptionTab({ onUpgradeClick, t, user }: SubscriptionTabProp
           </p>
         ) : null}
       </CardHeader>
-      <CardContent className="grid gap-8 pt-6 md:grid-cols-2">
+      <CardContent className="grid gap-8 md:grid-cols-2">
         <div className="space-y-4">
           <h3 className="font-semibold text-foreground">{t("settings.planFeatures")}</h3>
           {/* Fiyatlandırma sayfası ve plan penceresiyle aynı liste */}

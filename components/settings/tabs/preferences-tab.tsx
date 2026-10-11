@@ -43,7 +43,7 @@ export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button
             variant={language === "tr" ? "default" : "outline"}

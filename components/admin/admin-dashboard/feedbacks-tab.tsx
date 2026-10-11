@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -72,10 +73,7 @@ export function FeedbacksTab({
             </CardHeader>
             <CardContent>
                 {feedbacks.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                        <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                        <p>{t("admin.noFeedbacks")}</p>
-                    </div>
+                    <EmptyState icon={FileText} title={t("admin.noFeedbacks")} className="border-0 bg-transparent" />
                 ) : (
                     <>
                         {selectedFeedbackIds.length > 0 && (
@@ -179,7 +177,7 @@ export function FeedbacksTab({
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-medium text-xs">{feedback.subject}</TableCell>
-                                        <TableCell className="text-xs max-w-[200px] break-words">{feedback.message}</TableCell>
+                                        <TableCell className="min-w-[220px] max-w-[320px] whitespace-normal break-words text-xs">{feedback.message}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-wrap gap-1 max-w-[120px]">
                                                 {feedback.attachments?.map((url, idx) => {
@@ -214,7 +212,7 @@ export function FeedbacksTab({
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-[10px] text-primary font-mono">
+                                        <TableCell className="max-w-[160px] truncate font-mono text-xs text-muted-foreground" title={feedback.page_url}>
                                             {feedback.page_url || "-"}
                                         </TableCell>
                                         <TableCell>
@@ -235,7 +233,7 @@ export function FeedbacksTab({
                                                     value={feedback.status}
                                                     onValueChange={(value) => onStatusUpdate(feedback.id, value as Feedback["status"])}
                                                 >
-                                                    <SelectTrigger className="w-[110px] h-7 text-[10px]">
+                                                    <SelectTrigger className="w-[110px] h-7 text-xs" aria-label={t("admin.status")}>
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -250,6 +248,7 @@ export function FeedbacksTab({
                                                             variant="ghost"
                                                             size="sm"
                                                             className="h-7 w-7 p-0 text-destructive hover:text-destructive-soft-foreground hover:bg-destructive/15"
+                                                            aria-label={t("common.delete")}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>

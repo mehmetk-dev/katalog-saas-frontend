@@ -62,11 +62,12 @@ vi.mock('next/image', () => ({
 }))
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-}))
+// `new ResizeObserver(...)` ile çağrılabilmesi için sınıf olmalı (ok fonksiyonu kurucu olamaz)
+global.ResizeObserver = class {
+    observe = vi.fn()
+    unobserve = vi.fn()
+    disconnect = vi.fn()
+} as unknown as typeof ResizeObserver
 
 // Mock PointerEvent (for Radix UI)
 if (!global.PointerEvent) {

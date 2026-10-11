@@ -24,7 +24,7 @@ export function BillingCycleToggle({ isYearly, onChange }: { isYearly: boolean; 
                     onClick={() => onChange(yearly)}
                     aria-pressed={isYearly === yearly}
                     className={cn(
-                        "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
                         isYearly === yearly ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
                     )}
                 >
@@ -93,7 +93,7 @@ export function PlanCards({ isYearly, currentPlan }: PlanCardsProps) {
 
                         {actionDisabled ? (
                             <Button variant="outline" size="lg" className="mt-6 h-11 w-full" disabled>
-                                {isCurrent ? t("upgradeModal.currentPlan") : t(`planCatalog.names.${plan}`)}
+                                {isCurrent ? t("upgradeModal.currentPlan") : plan === "free" ? t("upgradeModal.alwaysFree") : t(`planCatalog.names.${plan}`)}
                             </Button>
                         ) : (
                             <Button asChild variant={recommended ? "brand" : "outline"} size="lg" className="mt-6 h-11 w-full">

@@ -3,7 +3,8 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, approximateSurfaceColor, readableAccent } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 /**
  * Retail Template - "The High-Street Gallery"
@@ -44,21 +45,17 @@ export const RetailTemplate = React.memo(function RetailTemplate({
         }
     }
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#000000', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     const renderTitleBlock = () => (
         <div>
-            <h1 className="text-4xl font-[900] uppercase tracking-tighter leading-none" style={{ color: headerTextColor || '#000000' }}>
+            <h1 className="line-clamp-2 text-4xl font-[900] uppercase leading-none tracking-tighter" style={{ color: textColor }}>
                 {catalogName || "COLLECTION_2026"}
             </h1>
             <div className="flex items-center gap-3 mt-2">
@@ -70,6 +67,9 @@ export const RetailTemplate = React.memo(function RetailTemplate({
         </div>
     )
 
+    // Fiyat/ikon vurgusu beyaz ürün kartı üzerinde: kart rengi okunmuyorsa aynı tonda koyulaştırılır
+    const accentColor = readableAccent(primaryColor, '#ffffff')
+
     return (
         <div className="h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Top Fashion Strip */}
@@ -77,68 +77,14 @@ export const RetailTemplate = React.memo(function RetailTemplate({
 
             {/* Header - High Impact */}
             <header className="h-32 px-12 flex items-center justify-between shrink-0 z-10 transition-colors" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent' }}>
-                {/* Sol Alan */}
-                <div className="flex-1 flex items-center justify-start min-w-0 gap-8">
-                    {isCollisionLeft ? (
-                        <div className="flex items-center gap-6">
-                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {renderTitleBlock()}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-6">
-                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {titlePosition === 'left' && renderTitleBlock()}
-                        </div>
-                    )}
-                </div>
-
-                {/* Orta Alan */}
-                <div className="flex-1 flex items-center justify-center min-w-0 gap-8 text-center">
-                    {isCollisionCenter ? (
-                        <div className="flex items-center flex-col gap-4">
-                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {renderTitleBlock()}
-                        </div>
-                    ) : (
-                        <div className="flex items-center flex-col gap-4 text-center">
-                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {titlePosition === 'center' && renderTitleBlock()}
-                        </div>
-                    )}
-                </div>
-
-                {/* Sağ Alan */}
-                <div className="flex-1 flex items-center justify-end min-w-0 gap-6 text-right relative">
-                    {isCollisionRight ? (
-                        <div className="flex flex-col items-end gap-2 text-right">
-                            {titlePosition === 'right' && renderTitleBlock()}
-                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                            )}
-                            <div className="text-[11px] font-bold border-2 px-3 py-1 italic mt-1" style={{ borderColor: headerTextColor || '#000000', color: headerTextColor || '#000000' }}>
-                                PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-end gap-2 text-right">
-                            {titlePosition === 'right' && renderTitleBlock()}
-                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                            )}
-                            <div className="text-[11px] font-bold border-2 px-3 py-1 italic mt-1" style={{ borderColor: headerTextColor || '#000000', color: headerTextColor || '#000000' }}>
-                                PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                <HeaderSlots
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={renderTitleBlock()}
+                    aside={<div className="whitespace-nowrap border-2 px-3 py-1 text-[11px] font-bold italic" style={{ borderColor: textColor, color: textColor }}>PAGE_{pageNumber.toString().padStart(2, '0')} OF {totalPages.toString().padStart(2, '0')}</div>}
+                />
             </header>
 
             {/* Retail Grid - Sophisticated Cards */}
@@ -201,7 +147,7 @@ export const RetailTemplate = React.memo(function RetailTemplate({
                                 <div className="mt-auto pt-4 flex items-center justify-between">
                                     {showPrices && (
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg font-[900] tracking-tighter" style={{ color: primaryColor }}>
+                                            <span className="text-lg font-[900] tracking-tighter" style={{ color: accentColor }}>
                                                 {formatProductPrice(product)}
                                             </span>
                                             <div className="w-12 h-[2px] bg-zinc-100" />
@@ -228,12 +174,12 @@ export const RetailTemplate = React.memo(function RetailTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-16 px-12 border-t flex items-center justify-between shrink-0 transition-colors z-10" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent', borderColor: headerTextColor ? `${headerTextColor}20` : '#f4f4f5' }}>
-                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: headerTextColor || '#000000' }}>
+            <div className="h-16 px-12 border-t flex items-center justify-between shrink-0 transition-colors z-10" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent', borderColor: `${textColor}20` }}>
+                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: textColor }}>
                     <span className="w-12 h-0.5 bg-black" style={{ backgroundColor: primaryColor || '#000000' }} />
                     <span>Archive Edition</span>
                 </div>
-                <div className="text-[10px] font-bold opacity-60" style={{ color: headerTextColor || '#000000' }}>
+                <div className="text-[10px] font-bold opacity-60" style={{ color: textColor }}>
                     © {new Date().getFullYear()} {catalogName?.toUpperCase()}
                 </div>
             </div>

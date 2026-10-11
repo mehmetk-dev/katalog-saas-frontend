@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { MessageSquare, Send, Loader2, AlertCircle, Paperclip, X, Film } from "lucide-react"
+import { MessageSquare, Send, Loader2, Info, Paperclip, X, Film } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 import NextImage from "next/image"
@@ -430,9 +430,9 @@ export function FeedbackModal({ children }: FeedbackModalProps) {
                             </p>
                         </div>
 
-                        <div className="flex items-start gap-2 p-3 rounded-lg bg-warning-soft border border-warning/30">
-                            <AlertCircle className="w-4 h-4 text-warning-soft-foreground mt-0.5 shrink-0" />
-                            <p className="text-[11px] text-warning-soft-foreground">
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-muted border border-border">
+                            <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <p className="text-xs text-muted-foreground">
                                 {t('feedback.alert')}
                             </p>
                         </div>

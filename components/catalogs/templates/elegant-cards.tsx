@@ -4,7 +4,8 @@ import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
 import { cn } from "@/lib/utils"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, approximateSurfaceColor, isLightColor } from "./utils"
+import { HeaderSlots } from "./header-slots"
 import { getItemsPerPage } from "@/lib/constants"
 
 /**
@@ -47,20 +48,19 @@ export const ElegantCardsTemplate = React.memo(function ElegantCardsTemplate({
         }
     }
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#000000', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
+    // Koyu sayfa zemininde ürün metinleri açık tona çevrilir (globals.css → .catalog-on-dark)
+    const onDarkSurface = !isLightColor(approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
-        <div className="h-full flex flex-col relative overflow-hidden selection:bg-stone-200 transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#fdfaf6' }}>
+        <div className={`${onDarkSurface ? "catalog-on-dark " : ""}h-full flex flex-col relative overflow-hidden selection:bg-stone-200 transition-colors`} style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#fdfaf6' }}>
             {/* Background Orbs for Depth */}
             <div
                 className={cn(
@@ -78,79 +78,14 @@ export const ElegantCardsTemplate = React.memo(function ElegantCardsTemplate({
             />
 
             {/* Header */}
-            <header className="h-32 px-12 flex items-center justify-between shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
-                <div className="flex-1 flex items-center justify-between relative w-full h-full">
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
-                        {isCollisionLeft ? (
-                            <div className="flex flex-col gap-3 items-start">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'left' && (
-                                    <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
-                                )}
-                            </div>
-                        )}
-                        {!isHeaderLogo && titlePosition !== 'left' && (
-                            <div className="text-[10px] uppercase tracking-[0.4em] font-medium whitespace-nowrap opacity-50">SERIES COLLECTION // {String(pageNumber).padStart(2, '0')}</div>
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
-                        {isCollisionCenter ? (
-                            <div className="flex flex-col gap-3 items-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'center' && (
-                                    <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex flex-col gap-3 items-end">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'right' && (
-                                    <div className="flex flex-col items-end">
-                                        <h1 className="text-3xl font-serif italic tracking-tight truncate">{catalogName || "Elegance"}</h1>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {!isHeaderLogo && titlePosition !== 'right' && (
-                            <div className="w-12 h-[1px] opacity-30" style={{ backgroundColor: headerTextColor }} />
-                        )}
-                    </div>
-                </div>
+            <header className="h-32 px-12 flex items-center justify-between shrink-0 relative z-10 transition-colors" style={{ color: textColor }}>
+                <HeaderSlots
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<h1 className="truncate font-serif text-3xl italic tracking-tight">{catalogName || "Elegance"}</h1>}
+                />
             </header>
 
             {/* Grid - The Cards (Optimized for 4 items: 2x2) */}

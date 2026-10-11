@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { getProducts, type Product, type ProductsResponse } from "@/lib/actions/products"
 import { getPlanLimits } from "@/lib/constants"
+import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/ui/page-header"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { ExcelAiIntent, GeneratedProduct } from "@/lib/excel-ai/types"
 import type { CellField } from "./types"
@@ -352,13 +355,10 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
   const pageOffset = (metadata.page - 1) * metadata.limit
 
   return (
-    <div className="-mt-1 flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="border-b px-4 pb-2 pt-1.5">
-        <h1 className="text-lg font-semibold">{t("excel.title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("excel.description")}</p>
-      </div>
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+      <PageHeader title={t("excel.title")} description={t("excel.description")} />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-background shadow-sm">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <ExcelToolbar
             selectedCount={selectedIds.length}
@@ -413,26 +413,32 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
                 {isLoading ? ` - ${t("common.loading")}` : ""}
               </span>
 
-              <div className="flex gap-2">
-                <button
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage <= 1 || isLoading}
-                  className="rounded border px-3 py-1.5 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={t("products.pagination.previous")}
+                  title={t("products.pagination.previous")}
                 >
-                  {"<"}
-                </button>
+                  <ChevronLeft />
+                </Button>
 
-                <span className="px-3 py-1.5 text-sm tabular-nums">
+                <span className="px-2 text-sm tabular-nums">
                   {metadata.page} / {metadata.totalPages}
                 </span>
 
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage >= metadata.totalPages || isLoading}
-                  className="rounded border px-3 py-1.5 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={t("products.pagination.next")}
+                  title={t("products.pagination.next")}
                 >
-                  {">"}
-                </button>
+                  <ChevronRight />
+                </Button>
               </div>
             </div>
           )}

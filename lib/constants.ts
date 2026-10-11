@@ -179,7 +179,8 @@ export function getItemsPerPage(layout: string, columnsPerRow?: number): number 
     if (layoutKey === 'magazine') return 1 + (columnsPerRow || 3) * 2
     if (layoutKey === 'showcase' || layoutKey === 'fashion-lookbook') return 5
     if (layoutKey === 'industrial') return 6
-    if (layoutKey === 'luxury') return 6
+    // Luxury: 2 sütunda 3 satır, 3-4 sütunda 2 satır (şablondaki grid-rows ile aynı)
+    if (layoutKey === 'luxury') return columnsPerRow === 4 ? 8 : 6
     if (layoutKey === 'compact-list') return 10
     if (layoutKey === 'retail') return (columnsPerRow || 3) * 5
     if (layoutKey === 'catalog-pro' || layoutKey === 'elegant-cards') return 4

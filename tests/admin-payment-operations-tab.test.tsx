@@ -81,7 +81,7 @@ describe("PaymentOperationsTab", () => {
   it("durum, tür ve dönem kodlarını çevirerek gösterir", async () => {
     renderTab()
     expect(await screen.findByText("Ödendi")).toBeInTheDocument()
-    expect(screen.getByText("pro / Yıllık")).toBeInTheDocument()
+    expect(screen.getByText("Pro / Yıllık")).toBeInTheDocument()
     expect(screen.getByText("Mutabakat")).toBeInTheDocument()
     expect(screen.getAllByText("Manuel inceleme").length).toBeGreaterThan(1)
     expect(screen.getByText(/3 kez/)).toBeInTheDocument()

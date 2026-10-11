@@ -4,7 +4,8 @@ import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, readableAccent } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 export const ModernGridTemplate = React.memo(function ModernGridTemplate({
     catalogName,
@@ -50,14 +51,6 @@ export const ModernGridTemplate = React.memo(function ModernGridTemplate({
 
     // getGridRows function removed as it is no longer used
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
-
     const logoHeight = getStandardLogoHeight(logoSize)
 
     // Arka plan stili oluştur
@@ -65,73 +58,20 @@ export const ModernGridTemplate = React.memo(function ModernGridTemplate({
     // Header/footer barı primaryColor zeminde: yazı rengi okunmuyorsa otomatik siyah/beyaz
     const barTextColor = ensureReadable(headerTextColor, primaryColor, { minRatio: 4.5 })
 
+    // Fiyat/ikon vurgusu beyaz ürün kartı üzerinde: kart rengi okunmuyorsa aynı tonda koyulaştırılır
+    const accentColor = readableAccent(primaryColor, '#ffffff')
+
     return (
         <div className="h-full flex flex-col relative overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#f4f4f5' }}>
             {/* Header */}
             <header className="shrink-0 transition-colors" style={{ height: HEADER_HEIGHT, backgroundColor: primaryColor, color: barTextColor }}>
                 <div className={`h-full px-8 flex items-center justify-between relative w-full ${pageNumber !== 1 ? 'border-b border-gray-200' : ''}`}>
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-4">
-                        {isCollisionLeft ? (
-                            <div className="flex items-center gap-4">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-4">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'left' && (
-                                    <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-4">
-                        {isCollisionCenter ? (
-                            <div className="flex items-center justify-center gap-4">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <span className="text-lg font-bold tracking-tight truncate max-w-[250px] text-center whitespace-nowrap">{catalogName || "Katalog"}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-4 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'center' && (
-                                    <span className="text-lg font-bold tracking-tight truncate max-w-[250px] text-center whitespace-nowrap">{catalogName || "Katalog"}</span>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-4 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex items-center gap-4 flex-row-reverse">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-4 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'right' && (
-                                    <span className="text-lg font-bold tracking-tight truncate max-w-[250px]">{catalogName || "Katalog"}</span>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    <HeaderSlots
+                        logoPosition={logoPosition}
+                        titlePosition={titlePosition}
+                        logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                        title={<span className="block truncate text-lg font-bold tracking-tight">{catalogName || "Katalog"}</span>}
+                    />
                 </div>
             </header>
 
@@ -161,7 +101,7 @@ export const ModernGridTemplate = React.memo(function ModernGridTemplate({
                                     <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 flex-1">{product.name}</h3>
                                     {showPrices && (
                                         <div className="flex items-center gap-1.5 shrink-0">
-                                            <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                                            <span className="font-bold text-sm" style={{ color: accentColor }}>
                                                 {formatProductPrice(product)}
                                             </span>
                                         </div>
@@ -197,7 +137,7 @@ export const ModernGridTemplate = React.memo(function ModernGridTemplate({
                                         className="absolute bottom-2 right-2 p-1.5 rounded-full bg-gray-50 hover:bg-gray-100 border border-gray-200 shadow-sm transition-all group-hover:scale-110 active:scale-95"
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        <ShoppingBag className="w-4 h-4" style={{ color: primaryColor }} />
+                                        <ShoppingBag className="w-4 h-4" style={{ color: accentColor }} />
                                     </a>
                                 )}
                             </div>

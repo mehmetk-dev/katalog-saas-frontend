@@ -77,13 +77,13 @@ export function ProfileTab({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent>
           <form onSubmit={(event) => void handleSaveProfile(event)} className="space-y-6">
             <div className="flex items-center gap-6 pb-6 border-b">
               <div className="relative group">
                 <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                   <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} className="dark:brightness-100" />
-                  <AvatarFallback className={cn("text-xl bg-gradient-to-br", "from-primary to-primary text-primary-foreground")}>
+                  <AvatarFallback className="bg-primary/10 text-xl font-medium text-primary">
                     {user?.name?.charAt(0).toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>

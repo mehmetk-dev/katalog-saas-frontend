@@ -25,6 +25,13 @@ export function ActivityLogsTab({
     onPageChange,
     t,
 }: ActivityLogsTabProps) {
+    // Bilinmeyen (yeni eklenmiş) türlerde ham kod gösterilir
+    const activityLabel = (type: string) => {
+        const key = `admin.activityTypes.${type}`
+        const label = t(key)
+        return label === key ? type : label
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -72,7 +79,7 @@ export function ActivityLogsTab({
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="text-xs">
-                                                {log.activity_type || "-"}
+                                                {log.activity_type ? activityLabel(log.activity_type) : "-"}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-xs max-w-[200px] truncate" title={log.description}>

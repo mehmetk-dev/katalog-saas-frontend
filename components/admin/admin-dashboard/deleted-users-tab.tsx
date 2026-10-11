@@ -34,7 +34,7 @@ export function DeletedUsersTab({ deletedUsers, t }: DeletedUsersTabProps) {
                             <TableRow>
                                 <TableHead>{t("admin.user")}</TableHead>
                                 <TableHead>{t("admin.email")}</TableHead>
-                                <TableHead>{t("admin.layout")}</TableHead>
+                                <TableHead>{t("admin.currentPlan")}</TableHead>
                                 <TableHead>{t("admin.registerDate")}</TableHead>
                                 <TableHead>{t("admin.deletionDate")}</TableHead>
                                 <TableHead>{t("admin.deletedBy")}</TableHead>

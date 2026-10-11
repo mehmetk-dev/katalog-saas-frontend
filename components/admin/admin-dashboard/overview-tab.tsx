@@ -1,6 +1,7 @@
 import { Download, FileText, Package, Users } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { StatCard } from "@/components/ui/stat-card"
+import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { AdminStats, TranslationFn } from "@/components/admin/admin-dashboard/types"
 
 interface OverviewTabProps {
@@ -9,48 +10,15 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ stats, t }: OverviewTabProps) {
+    const { language } = useTranslation()
+    const format = (value: number) => value.toLocaleString(language === "en" ? "en-US" : "tr-TR")
+
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("admin.totalUsers")}</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats.usersCount}</div>
-                    <p className="text-xs text-muted-foreground">{t("admin.totalUsersDesc")}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("admin.totalProducts")}</CardTitle>
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats.productsCount}</div>
-                    <p className="text-xs text-muted-foreground">{t("admin.totalProductsDesc")}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("admin.totalCatalogs")}</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats.catalogsCount}</div>
-                    <p className="text-xs text-muted-foreground">{t("admin.totalCatalogsDesc")}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("admin.downloads")}</CardTitle>
-                    <Download className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats.totalExports}</div>
-                    <p className="text-xs text-muted-foreground">{t("admin.downloadsDesc")}</p>
-                </CardContent>
-            </Card>
+            <StatCard label={t("admin.totalUsers")} value={format(stats.usersCount)} icon={Users} hint={t("admin.totalUsersDesc")} />
+            <StatCard label={t("admin.totalProducts")} value={format(stats.productsCount)} icon={Package} hint={t("admin.totalProductsDesc")} />
+            <StatCard label={t("admin.totalCatalogs")} value={format(stats.catalogsCount)} icon={FileText} hint={t("admin.totalCatalogsDesc")} />
+            <StatCard label={t("admin.downloads")} value={format(stats.totalExports)} icon={Download} hint={t("admin.downloadsDesc")} />
         </div>
     )
 }

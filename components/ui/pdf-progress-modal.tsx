@@ -67,13 +67,13 @@ function tr(t: PdfProgressModalProps["t"], key: string, fallback: string, params
 /** Static phase icons — safe to define at module scope (no props dependency) */
 const PHASE_ICONS: Record<PdfExportPhase, React.ReactNode> = {
     idle: null,
-    queued: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
-    preparing: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
-    rendering: <FileDown className="h-6 w-6 text-brand animate-pulse" />,
-    generating: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
-    uploading: <Loader2 className="h-6 w-6 animate-spin text-success" />,
-    processing: <Loader2 className="h-6 w-6 animate-spin text-brand" />,
-    saving: <Loader2 className="h-6 w-6 animate-spin text-success" />,
+    queued: <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />,
+    preparing: <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />,
+    rendering: <FileDown className="h-6 w-6 text-muted-foreground animate-pulse" />,
+    generating: <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />,
+    uploading: <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />,
+    processing: <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />,
+    saving: <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />,
     done: <CheckCircle2 className="h-6 w-6 text-success" />,
     error: <XCircle className="h-6 w-6 text-destructive" />,
     cancelled: <X className="h-6 w-6 text-warning" />,
@@ -136,7 +136,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                         <div className="space-y-2">
                             <Progress
                                 value={state.percent}
-                                className="h-3 bg-muted [&>div]:bg-brand [&>div]:transition-all [&>div]:duration-300"
+                                className="h-2 bg-muted [&>div]:bg-primary [&>div]:transition-all [&>div]:duration-300"
                             />
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>
@@ -148,7 +148,7 @@ export function PdfProgressModal({ state, onCancel, onDismiss, t }: PdfProgressM
                                     {state.estimatedTimeLeft && (
                                         <span>{tr(t, "pdf.estimated", "Tahmini: {time}", { time: state.estimatedTimeLeft })}</span>
                                     )}
-                                    <span className="font-semibold text-brand">{Math.round(state.percent)}%</span>
+                                    <span className="font-semibold text-foreground tabular-nums">{Math.round(state.percent)}%</span>
                                 </div>
                             </div>
                         </div>

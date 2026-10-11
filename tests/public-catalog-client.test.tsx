@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { buildSpreads } from "@/app/catalog/[slug]/_components/book-viewer"
 import { PublicCatalogClient } from "@/app/catalog/[slug]/public-catalog-client"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
@@ -45,6 +46,14 @@ vi.mock("@/components/catalogs/category-divider", () => ({
 }))
 
 beforeAll(() => {
+  // Node 26'nın global localStorage'ı jsdom'unkini gölgeliyor; bellek içi taklit (görünüm tercihi için)
+  const store = new Map<string, string>()
+  vi.stubGlobal("localStorage", {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => { store.set(k, v) },
+    removeItem: (k: string) => { store.delete(k) },
+    clear: () => store.clear(),
+  })
   window.matchMedia = vi.fn().mockImplementation(() => ({
     matches: false,
     addEventListener: vi.fn(),
@@ -76,7 +85,12 @@ function catalog(overrides: Partial<Catalog> = {}): Catalog {
   }
 }
 
+const VIEW_MODE_KEY = "fogcatalog:public-view-mode"
+
 describe("PublicCatalogClient", () => {
+  // Sayfa modeli testleri tüm sayfaların DOM'da olduğu liste görünümünde çalışır
+  beforeEach(() => window.localStorage.setItem(VIEW_MODE_KEY, "list"))
+
   it("resolves legacy layout aliases to the same template and page size as the builder", () => {
     const products = Array.from({ length: 12 }, (_, i) => product(i))
     render(<PublicCatalogClient catalog={catalog({ layout: "list" })} products={products} />)
@@ -122,6 +136,59 @@ describe("PublicCatalogClient", () => {
 
     await user.click(screen.getByRole("button", { name: "catalogs.public.resetFilters" }))
     expect(screen.getByTestId("template")).toBeInTheDocument()
+  })
+})
+
+describe("buildSpreads", () => {
+  it("keeps the cover alone on the right like a closed book", () => {
+    expect(buildSpreads(5, true)).toEqual([[null, 0], [1, 2], [3, 4]])
+    expect(buildSpreads(4, true)).toEqual([[null, 0], [1, 2], [3, null]])
+  })
+
+  it("opens to two pages when there is no cover", () => {
+    expect(buildSpreads(3, false)).toEqual([[0, 1], [2, null]])
+    expect(buildSpreads(0, false)).toEqual([])
+  })
+})
+
+describe("PublicCatalogClient book view", () => {
+  beforeEach(() => window.localStorage.removeItem(VIEW_MODE_KEY))
+
+  const bookCatalog = () => (
+    <PublicCatalogClient
+      catalog={catalog({ enable_cover_page: true, enable_category_dividers: true })}
+      products={[product(1, "A"), product(2, "B")]}
+    />
+  )
+
+  it("starts closed on the cover and turns pages with buttons and arrow keys", async () => {
+    const user = userEvent.setup()
+    render(bookCatalog())
+
+    // kapak, A ayracı, A ürünleri, B ayracı, B ürünleri → [kapak] [A ayracı | A] [B ayracı | B]
+    expect(screen.getByTestId("cover")).toBeInTheDocument()
+    expect(screen.queryByTestId("divider")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "catalogs.public.previousPage" })).toBeDisabled()
+
+    await user.click(screen.getByRole("button", { name: "catalogs.public.nextPage" }))
+    expect(screen.queryByTestId("cover")).not.toBeInTheDocument()
+    expect(screen.getByTestId("divider")).toHaveTextContent("A")
+    expect(screen.getByTestId("template")).toHaveAttribute("data-page", "3/5")
+
+    await user.keyboard("{ArrowRight}")
+    expect(screen.getByTestId("divider")).toHaveTextContent("B")
+    expect(screen.getByTestId("template")).toHaveAttribute("data-page", "5/5")
+    expect(screen.getByRole("button", { name: "catalogs.public.nextPage" })).toBeDisabled()
+
+    await user.keyboard("{ArrowLeft}")
+    expect(screen.getByTestId("divider")).toHaveTextContent("A")
+  })
+
+  it("does not mark book pages for PDF capture (export renders its own copies)", () => {
+    const { container } = render(bookCatalog())
+
+    expect(container.querySelector('[data-pdf-page="true"]')).toBeNull()
+    expect(container.querySelector(".catalog-light")).not.toBeNull()
   })
 })
 

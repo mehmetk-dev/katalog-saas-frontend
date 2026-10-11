@@ -82,7 +82,7 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
           {templates.map((template) => (
-            <Card key={template.id} className="overflow-hidden group hover:shadow-md transition-shadow ring-1 ring-border border-0 bg-card">
+            <Card key={template.id} className="gap-0 py-0 overflow-hidden group hover:shadow-md transition-shadow ring-1 ring-border border-0 bg-card">
               {/* Template Preview - Her şablon kendi temasına uygun ürünlerle */}
               <div className="relative border-b group-hover:opacity-95 transition-opacity bg-muted/30 dark:bg-muted/50">
                 <ResponsiveContainer>

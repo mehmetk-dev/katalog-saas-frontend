@@ -2,12 +2,14 @@
 
 import React from "react"
 import Link from "next/link"
-import { Download, Loader2, Maximize2, Minus, Plus, Search, Share2, X } from "lucide-react"
+import { BookOpen, Download, Loader2, Maximize2, Minus, Plus, Rows3, Search, Share2, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Logo } from "@/components/ui/logo"
 import { cn } from "@/lib/utils"
+
+export type CatalogViewMode = "book" | "list"
 
 interface CatalogHeaderProps {
     catalogName: string
@@ -26,6 +28,9 @@ interface CatalogHeaderProps {
     onZoomOut: () => void
     onZoomReset: () => void
     isMobile: boolean
+    /** Masaüstünde kitap / liste görünümü */
+    viewMode: CatalogViewMode
+    onViewModeChange: (mode: CatalogViewMode) => void
     t: (key: string) => string
 }
 
@@ -45,6 +50,8 @@ export const CatalogHeader = React.memo(function CatalogHeader({
     onZoomOut,
     onZoomReset,
     isMobile,
+    viewMode,
+    onViewModeChange,
     t,
 }: CatalogHeaderProps) {
     return (
@@ -75,6 +82,30 @@ export const CatalogHeader = React.memo(function CatalogHeader({
                         </Button>
 
                         {!isMobile && (
+                            <div role="group" aria-label={t("catalogs.public.bookView")} className="ml-1 flex items-center rounded-full border bg-muted/60 p-0.5">
+                                {([
+                                    { mode: "book", icon: BookOpen, label: t("catalogs.public.bookView") },
+                                    { mode: "list", icon: Rows3, label: t("catalogs.public.listView") },
+                                ] as const).map(({ mode, icon: Icon, label }) => (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        onClick={() => onViewModeChange(mode)}
+                                        aria-pressed={viewMode === mode}
+                                        aria-label={label}
+                                        title={label}
+                                        className={cn(
+                                            "flex size-8 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                                            viewMode === mode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                                        )}
+                                    >
+                                        <Icon className="size-4" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {!isMobile && viewMode === "list" && (
                             <div className="ml-1 flex items-center rounded-full border bg-muted/60 p-0.5">
                                 <Button variant="ghost" size="icon" onClick={onZoomOut} className="size-8 rounded-full" aria-label={t("catalogs.public.zoomOut")} title={t("catalogs.public.zoomOut")}>
                                     <Minus className="size-3.5" />

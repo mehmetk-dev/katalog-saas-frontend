@@ -107,12 +107,12 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
                 <div className="prose prose-zinc mt-12 max-w-none dark:prose-invert
                     prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground
-                    prose-p:leading-relaxed prose-p:text-muted-foreground
+                    prose-p:leading-relaxed prose-p:text-foreground/80
                     prose-strong:text-foreground
                     prose-a:text-foreground prose-a:underline-offset-4
                     prose-img:rounded-xl
-                    prose-blockquote:border-l-brand prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-foreground
-                    prose-li:text-muted-foreground prose-li:marker:text-muted-foreground">
+                    prose-blockquote:border-l-foreground/30 prose-blockquote:font-normal prose-blockquote:not-italic prose-blockquote:text-foreground
+                    prose-li:text-foreground/80 prose-li:marker:text-muted-foreground">
                     <MDXRemote
                         source={post.content}
                         options={{ mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] } }}

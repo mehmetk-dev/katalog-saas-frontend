@@ -3,7 +3,8 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, approximateSurfaceColor, readableAccent, isLightColor } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 /**
  * Classic Catalog Template - "The Archive Editorial"
@@ -38,93 +39,30 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
     // Arka plan stili oluştur
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#000000', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+    // Fiyat/ikon vurgusu sayfa zemini üzerinde: kart rengi okunmuyorsa aynı tonda koyulaştırılır
+    const accentColor = readableAccent(primaryColor, approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
+    // Koyu sayfa zemininde ürün metinleri açık tona çevrilir (globals.css → .catalog-on-dark)
+    const onDarkSurface = !isLightColor(approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
-        <div className="h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12 transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
+        <div className={`${onDarkSurface ? "catalog-on-dark " : ""}h-full flex flex-col relative overflow-hidden selection:bg-black selection:text-white pb-12 transition-colors`} style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Header - Classic & Time-Honored */}
-            <header className="h-24 px-16 flex items-end pb-6 border-b border-black/10 shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
-                <div className="flex-1 flex items-end justify-between relative w-full h-full">
-                    {/* Sol Alan */}
-                    <div className={`${titlePosition === 'left' ? 'flex-[2]' : 'flex-1'} flex items-end justify-start min-w-0 z-10 gap-8`}>
-                        {isCollisionLeft ? (
-                            <div className="flex flex-col gap-4 items-start">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-8">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                )}
-                                {titlePosition === 'left' && (
-                                    <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex items-end justify-center min-w-0 z-10 gap-8">
-                        {isCollisionCenter ? (
-                            <div className="flex flex-col gap-4 items-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-8">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                )}
-                                {titlePosition === 'center' && (
-                                    <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-end justify-end min-w-0 z-10 gap-8 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex flex-col gap-4 items-end">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
-                                <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-8 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                )}
-                                {titlePosition === 'right' && (
-                                    <div className="flex flex-col items-end">
-                                        <h1 className="text-xl font-serif tracking-[0.2em] uppercase leading-snug line-clamp-2">{catalogName || "ARCHIVE"}</h1>
-                                        <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
-                                    </div>
-                                )}
-                                {titlePosition !== 'right' && logoAlignment !== 'right' && (
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-serif tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+            <header className="h-24 px-16 flex items-end pb-6 border-b border-black/10 shrink-0 relative z-10 transition-colors" style={{ color: textColor }}>
+                <HeaderSlots
+                    align="end"
+                    gapClassName="gap-8"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<h1 className="line-clamp-2 font-serif text-xl uppercase leading-snug tracking-[0.2em]">{catalogName || "ARCHIVE"}</h1>}
+                    aside={<span className="font-serif text-[10px] tracking-[0.2em] opacity-60">VOL. {pageNumber.toString().padStart(2, '0')}</span>}
+                />
             </header>
 
             {/* Content - Vertical Flow (Max 3 Items Per Page usually appropriate for this style) */}
@@ -197,7 +135,7 @@ export const ClassicCatalogTemplate = React.memo(function ClassicCatalogTemplate
 
                                     {showPrices && (
                                         <div className="mt-auto pt-6 border-t border-black/10 w-32 flex items-center justify-between">
-                                            <span className="text-xl font-serif italic block" style={{ color: primaryColor }}>
+                                            <span className="text-xl font-serif italic block" style={{ color: accentColor }}>
                                                 {formatProductPrice(product)}
                                             </span>
                                             {showUrls && productUrl && (

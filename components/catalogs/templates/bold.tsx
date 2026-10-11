@@ -4,7 +4,8 @@ import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, ensureReadable, approximateSurfaceColor } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 /**
  * Bold Template - "The Neo-Brutalist"
@@ -45,100 +46,28 @@ export const BoldTemplate = React.memo(function BoldTemplate({
         }
     }
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#000000', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
         <div className="h-full flex flex-col overflow-hidden selection:bg-black selection:text-white transition-colors" style={{ border: `8px solid ${primaryColor}`, ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Header - Huge and Loud */}
-            <div className="shrink-0 flex items-stretch border-b-8 transition-colors" style={{ height: HEADER_HEIGHT, borderColor: primaryColor, color: headerTextColor }}>
-                <div className="flex-1 flex items-center px-6 relative w-full">
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6 h-full">
-                        {isCollisionLeft ? (
-                            <>
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <div className="mr-4 border-r-8 pr-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                    </div>
-                                )}
-                                <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
-                            </>
-                        ) : (
-                            <>
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <div className="mr-6 border-r-8 pr-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                    </div>
-                                )}
-                                {titlePosition === 'left' && (
-                                    <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
-                                )}
-                            </>
-                        )}
-                    </div>
+            <div className="shrink-0 flex items-stretch border-b-8 transition-colors" style={{ height: HEADER_HEIGHT, borderColor: primaryColor, color: textColor }}>
+                <HeaderSlots
+                    gapClassName="gap-6"
+                    className="h-full px-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <div className={`flex h-full items-center ${logoPosition === 'header-right' ? 'border-l-8 pl-4' : 'border-r-8 pr-4'}`} style={{ borderColor: primaryColor }}><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div> : null}
+                    title={<h1 className="line-clamp-2 break-words text-3xl font-[900] uppercase italic leading-[0.95] tracking-tighter">{catalogName || "KATALOG"}</h1>}
+                />
 
-                    {/* Orta Alan */}
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-20 w-full max-w-[50%] gap-6 h-full">
-                        {isCollisionCenter ? (
-                            <>
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <div className="border-r-8 pr-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                    </div>
-                                )}
-                                <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
-                            </>
-                        ) : (
-                            <>
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <div className="h-full flex items-center">
-                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                    </div>
-                                )}
-                                {titlePosition === 'center' && (
-                                    <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
-                                )}
-                            </>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 h-full">
-                        {isCollisionRight ? (
-                            <>
-                                <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <div className="ml-4 border-l-8 pl-4 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                {titlePosition === 'right' && (
-                                    <h1 className="text-3xl font-[900] uppercase tracking-tighter leading-[0.95] italic line-clamp-2 break-words">{catalogName || "KATALOG"}</h1>
-                                )}
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <div className="ml-6 border-l-8 pl-6 h-full flex items-center" style={{ borderColor: primaryColor }}>
-                                        <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                <div className="w-[120px] shrink-0 flex items-center justify-center border-l-8 text-white font-black italic text-2xl transition-colors" style={{ backgroundColor: primaryColor, borderColor: primaryColor }}>
+                <div className="w-[120px] shrink-0 flex items-center justify-center border-l-8 font-black italic text-2xl transition-colors" style={{ backgroundColor: primaryColor, borderColor: primaryColor, color: ensureReadable('#ffffff', primaryColor, { minRatio: 4.5 }) }}>
                     {pageNumber.toString().padStart(2, '0')}
                 </div>
             </div>

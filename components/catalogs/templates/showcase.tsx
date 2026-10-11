@@ -3,7 +3,8 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable, resolveTemplateBackground } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, resolveTemplateBackground } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 /**
  * Showcase Template - "The Spotlight Noir"
@@ -39,13 +40,6 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
     // Kullanıcı isteği: Vitrin (Showcase) sağ taraf tek sütun
     const getRightCols = () => "grid-cols-1"
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
@@ -71,70 +65,14 @@ export const ShowcaseTemplate = React.memo(function ShowcaseTemplate({
         <div className="h-full flex flex-col overflow-hidden text-white selection:bg-blue-500/30 transition-colors" style={{ ...containerStyle, backgroundColor: pageBackground }}>
             {/* Minimal High-End Header */}
             <header className="h-20 px-10 flex items-center justify-between border-b shrink-0 z-50 transition-colors" style={{ backgroundColor: primaryColor ? `${primaryColor}10` : 'transparent', borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
-                {/* Sol Alan */}
-                <div className="flex-1 flex items-center justify-start min-w-0 gap-10">
-                    {isCollisionLeft ? (
-                        <div className="flex items-center gap-6">
-                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {renderTitleBlock()}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-6">
-                            {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {titlePosition === 'left' && renderTitleBlock()}
-                        </div>
-                    )}
-                </div>
-
-                {/* Orta Alan */}
-                <div className="flex-1 flex items-center justify-center min-w-0 gap-10 text-center">
-                    {isCollisionCenter ? (
-                        <div className="flex items-center gap-4">
-                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {renderTitleBlock()}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-4 text-center">
-                            {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {titlePosition === 'center' && renderTitleBlock()}
-                        </div>
-                    )}
-                </div>
-
-                {/* Sağ Alan */}
-                <div className="flex-1 flex items-center justify-end min-w-0 gap-8 text-right relative">
-                    {isCollisionRight ? (
-                        <div className="flex items-center gap-6 flex-row-reverse text-right">
-                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {renderTitleBlock()}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-6 flex-row-reverse text-right">
-                            {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain filter brightness-110" style={{ maxHeight: logoHeight }} />
-                            )}
-                            {titlePosition === 'right' && renderTitleBlock()}
-                        </div>
-                    )}
-
-                    {/* Pagination indicators */}
-                    <div className="flex items-center gap-6 pl-4 border-l" style={{ borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}>
-                        <div className="text-right">
-                            <span className="text-[11px] font-mono font-bold block leading-none" style={{ color: headerTextColor ? `${headerTextColor}99` : '#ffffff66' }}>PV_{pageNumber}</span>
-                            <span className="text-[9px] mt-1 block" style={{ color: headerTextColor ? `${headerTextColor}66` : '#ffffff33' }}>T_VOL: {totalPages}</span>
-                        </div>
-                    </div>
-                </div>
+                <HeaderSlots
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={120} height={logoHeight} className="object-contain brightness-110" style={{ maxHeight: logoHeight }} /> : null}
+                    title={renderTitleBlock()}
+                    aside={<div className="flex items-center gap-6 border-l pl-4" style={{ borderColor: headerTextColor ? `${headerTextColor}20` : '#ffffff1a' }}><div className="text-right"><span className="block font-mono text-[11px] font-bold leading-none" style={{ color: headerTextColor ? `${headerTextColor}99` : '#ffffff66' }}>PV_{pageNumber}</span><span className="mt-1 block text-[9px]" style={{ color: headerTextColor ? `${headerTextColor}66` : '#ffffff33' }}>T_VOL: {totalPages}</span></div></div>}
+                />
             </header>
 
             {/* Main Cinematic Content */}

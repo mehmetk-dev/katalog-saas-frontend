@@ -1,5 +1,7 @@
 "use client"
 
+import { AlertTriangle } from "lucide-react"
+
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +19,7 @@ interface DeleteAlertDialogProps {
     isPending: boolean
     onClose: () => void
     onConfirm: (id: string) => void
-    t: (key: string) => string
+    t: (key: string, params?: Record<string, unknown>) => string
 }
 
 export function DeleteAlertDialog({
@@ -38,8 +40,9 @@ export function DeleteAlertDialog({
                             <p>{t("products.deleteConfirm")}</p>
                             {deleteCatalogs.length > 0 && (
                                 <div className="p-3 bg-warning-soft border border-warning/30 rounded-lg">
-                                    <p className="text-warning-soft-foreground font-medium text-sm mb-2">
-                                        ⚠️ Bu ürün {deleteCatalogs.length} katalogda kullanılıyor:
+                                    <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-warning-soft-foreground">
+                                        <AlertTriangle className="size-4 shrink-0" aria-hidden />
+                                        {t("products.deleteUsedInCatalogs", { count: deleteCatalogs.length })}
                                     </p>
                                     <ul className="text-warning-soft-foreground text-sm space-y-1">
                                         {deleteCatalogs.map(c => (
@@ -50,7 +53,7 @@ export function DeleteAlertDialog({
                                         ))}
                                     </ul>
                                     <p className="text-warning-soft-foreground text-xs mt-2">
-                                        Silme işlemi sonrası ürün bu kataloglardan otomatik kaldırılacaktır.
+                                        {t("products.deleteRemovedFromCatalogs")}
                                     </p>
                                 </div>
                             )}
@@ -64,7 +67,7 @@ export function DeleteAlertDialog({
                         disabled={isPending}
                         className="bg-destructive text-destructive-foreground"
                     >
-                        {deleteCatalogs.length > 0 ? "Yine de Sil" : t("common.delete")}
+                        {deleteCatalogs.length > 0 ? t("products.deleteAnyway") : t("common.delete")}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

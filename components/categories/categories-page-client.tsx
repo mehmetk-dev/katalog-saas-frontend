@@ -26,6 +26,7 @@ import { useCategoryImageUpload } from "./use-category-image-upload"
 import { CategoryCard } from "./category-card"
 import { CategoryFormModal } from "./category-form-modal"
 import { PageHeader } from "@/components/ui/page-header"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface CategoriesPageClientProps {
     initialCategories: Category[]
@@ -216,7 +217,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
             {/* Free User Banner */}
             {isFreeUser && (
-                <Card className="bg-primary/10 border-border">
+                <Card className="gap-0 py-0 bg-primary/10 border-border">
                     <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4">
                         <div className="flex items-center gap-3">
                             <Lock className="w-5 h-5 text-primary" />
@@ -234,17 +235,17 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
             {/* Categories Grid */}
             {categories.length === 0 ? (
-                <Card className="border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <FolderOpen className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                        <h3 className="font-medium mb-1">{t("categories.noCategories")}</h3>
-                        <p className="text-sm text-muted-foreground mb-4">{t("categories.noCategoriesDesc")}</p>
-                        <Button onClick={handleAddCategory} variant="outline" className="gap-2">
+                <EmptyState
+                    icon={FolderOpen}
+                    title={t("categories.noCategories")}
+                    description={t("categories.noCategoriesDesc")}
+                    action={
+                        <Button onClick={handleAddCategory} className="gap-2">
                             <FolderPlus className="w-4 h-4" />
                             {t("categories.createFirst")}
                         </Button>
-                    </CardContent>
-                </Card>
+                    }
+                />
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {categories.map(category => (

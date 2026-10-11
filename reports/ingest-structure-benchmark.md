@@ -1,6 +1,6 @@
 # Ingest Structure Benchmark
 
-Generated: 2026-10-08T19:41:37.157Z
+Generated: 2026-10-11T20:32:30.349Z
 
 ## Scenario
 - Total products: 10000
@@ -11,8 +11,8 @@ Generated: 2026-10-08T19:41:37.157Z
 - Bulk import calls: 50
 - Call reduction: 99.5%
 - Reduction factor: 200x fewer requests
-- Single loop CPU time: 9.53 ms
-- Bulk loop CPU time: 0.29 ms
+- Single loop CPU time: 24.22 ms
+- Bulk loop CPU time: 0.35 ms
 
 ## Interpretation
 - Single flow models 'teker teker urun ekleme' request pattern.

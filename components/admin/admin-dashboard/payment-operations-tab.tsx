@@ -31,11 +31,12 @@ import {
 
 const PENDING_STATUSES = ['queued', 'processing', 'retry_scheduled', 'verification_pending']
 
-function statusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-    if (['succeeded', 'paid'].includes(status)) return 'default'
+/** Durum rozetleri uygulamanın geri kalanındaki anlam renklerini kullanır */
+function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 'secondary' {
+    if (['succeeded', 'paid'].includes(status)) return 'success'
     if (['manual_review', 'failed', 'declined'].includes(status)) return 'destructive'
-    if (PENDING_STATUSES.includes(status)) return 'secondary'
-    return 'outline'
+    if (status === 'pending' || PENDING_STATUSES.includes(status)) return 'warning'
+    return 'secondary'
 }
 
 export function PaymentOperationsTab() {
@@ -269,7 +270,7 @@ export function PaymentOperationsTab() {
                                                 {order.id.slice(0, 8)}
                                             </TableCell>
                                             <TableCell>
-                                                {order.plan_id} /{' '}
+                                                {baseT(`planCatalog.names.${order.plan_id}`) as string} /{' '}
                                                 {label('cycles', order.billing_cycle)}
                                             </TableCell>
                                             <TableCell>

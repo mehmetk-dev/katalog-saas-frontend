@@ -198,6 +198,27 @@
  * koyu zemin üstünde koyu yazı).
  */
 
+/*
+ * Ürün metnini doğrudan sayfa zemininin üstüne koyan şablonlar (product-tiles, clean-white,
+ * minimalist, classic-catalog, elegant-cards, catalog-pro, magazine) koyu bir arka plan seçildiğinde kökte
+ * `catalog-on-dark` taşır: sabit koyu yazı tonları açık karşılıklarına çevrilir ve
+ * zeminle çarpılan (multiply) görseller kararmasın diye karışım kapatılır.
+ * Yalnızca bu sınıfı taşıyan şablonları etkiler (genel bir ezme kuralı değildir).
+ */
+.catalog-on-dark :is(.text-black, .text-gray-900, .text-gray-800, .text-gray-700, .text-stone-900, .text-stone-800, .text-slate-950, .text-slate-900, .text-\[\#1c1917\], .text-\[\#1a1a1a\], .text-\[\#444\]),
+.catalog-on-dark:is(.text-black, .text-gray-900, .text-gray-800, .text-gray-700, .text-stone-900, .text-stone-800, .text-slate-950, .text-slate-900, .text-\[\#1c1917\], .text-\[\#1a1a1a\], .text-\[\#444\]) {
+  color: #f4f4f5;
+}
+.catalog-on-dark :is(.text-black\/60, .text-gray-600, .text-gray-500, .text-stone-600, .text-stone-500, .text-slate-500, .text-\[\#777\]) {
+  color: rgb(244 244 245 / 0.72);
+}
+.catalog-on-dark :is(.text-black\/40, .text-black\/30, .text-black\/20, .text-gray-400, .text-gray-300, .text-stone-400, .text-stone-300, .text-stone-200, .text-\[\#bbb\]) {
+  color: rgb(244 244 245 / 0.5);
+}
+.catalog-on-dark .mix-blend-multiply {
+  mix-blend-mode: normal;
+}
+
 @theme {
   --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
   --font-montserrat: "Montserrat", "Montserrat Fallback", sans-serif;

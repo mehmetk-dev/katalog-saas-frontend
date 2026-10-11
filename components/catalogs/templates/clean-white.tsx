@@ -3,7 +3,8 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, ensureReadable, approximateSurfaceColor, readableAccent, isLightColor } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 // Clean White - Temiz minimalist beyaz
 export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
@@ -44,13 +45,8 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
         return "grid-rows-3"
     }
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
+    // Başlık ve alt bilgi sayfa zemini üzerinde: seçilen yazı rengi okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor, approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
@@ -58,95 +54,25 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
 
 
 
+    // Fiyat/ikon vurgusu sayfa zemini üzerinde: kart rengi okunmuyorsa aynı tonda koyulaştırılır
+    const accentColor = readableAccent(primaryColor, approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
+    // Koyu sayfa zemininde ürün metinleri açık tona çevrilir (globals.css → .catalog-on-dark)
+    const onDarkSurface = !isLightColor(approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
-        <div className="bg-transparent h-full flex flex-col overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
+        <div className={`${onDarkSurface ? "catalog-on-dark " : ""}bg-transparent h-full flex flex-col overflow-hidden transition-colors`} style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Minimal Header */}
-            <header className="h-20 px-12 flex items-end pb-4 shrink-0 relative z-10 transition-colors" style={{ color: headerTextColor }}>
-                <div className="flex-1 flex items-end justify-between relative w-full h-full">
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-end justify-start min-w-0 z-10 gap-6">
-                        {isCollisionLeft ? (
-                            <div className="flex flex-col gap-3 items-start">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl ? (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                ) : (logoAlignment === 'left' && isHeaderLogo && !logoUrl && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
-                                ))}
-                                <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-6">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl ? (
-                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                ) : (logoAlignment === 'left' && isHeaderLogo && !logoUrl && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mb-1" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
-                                ))}
-                                {titlePosition === 'left' && (
-                                    <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex items-end justify-center min-w-0 z-10 gap-6">
-                        {isCollisionCenter ? (
-                            <div className="flex flex-col gap-3 items-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl ? (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                ) : (logoAlignment === 'center' && isHeaderLogo && !logoUrl && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
-                                ))}
-                                <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-6 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl ? (
-                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                ) : (logoAlignment === 'center' && isHeaderLogo && !logoUrl && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mb-1" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
-                                ))}
-                                {titlePosition === 'center' && (
-                                    <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-end justify-end min-w-0 z-10 gap-6 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex flex-col gap-3 items-end">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl ? (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                ) : (logoAlignment === 'right' && isHeaderLogo && !logoUrl && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
-                                ))}
-                                <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
-                                {pageNumber > 1 && <span className="font-medium opacity-50 text-xs">{pageNumber}</span>}
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-6 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl ? (
-                                    <div className="mb-1"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                ) : (logoAlignment === 'right' && isHeaderLogo && !logoUrl && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mb-1" style={{ backgroundColor: primaryColor }}><span className="text-white text-xs font-medium">{(catalogName || "K")[0]}</span></div>
-                                ))}
-                                {titlePosition === 'right' && (
-                                    <div className="flex flex-col items-end">
-                                        <h1 className="text-lg font-medium tracking-tight truncate">{catalogName}</h1>
-                                        {pageNumber > 1 && <span className="font-medium opacity-50 text-xs mt-1">{pageNumber}</span>}
-                                    </div>
-                                )}
-                                {titlePosition !== 'right' && logoAlignment !== 'right' && pageNumber > 1 && (
-                                    <div className="flex flex-col items-end">
-                                        <span className="font-medium opacity-50 text-xs mt-1">{pageNumber}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+            <header className="h-20 px-12 flex items-end pb-4 shrink-0 relative z-10 transition-colors" style={{ color: textColor }}>
+                <HeaderSlots
+                    align="end"
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<h1 className="truncate text-lg font-medium tracking-tight">{catalogName}</h1>}
+                    aside={pageNumber > 1 ? <span className="text-xs font-medium opacity-50">{pageNumber}</span> : null}
+                />
             </header>
 
             {/* Çok temiz Dinamik grid */}
@@ -179,7 +105,7 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
                                         <h3 className="font-bold text-sm text-gray-900 line-clamp-1 group-hover:text-gray-600 transition-colors leading-tight flex-1">{product.name}</h3>
                                         {showPrices && (
                                             <div className="flex items-center gap-1.5 shrink-0">
-                                                <span className="font-bold text-sm leading-tight" style={{ color: primaryColor }}>
+                                                <span className="font-bold text-sm leading-tight" style={{ color: accentColor }}>
                                                     {formatProductPrice(product)}
                                                 </span>
                                             </div>
@@ -227,7 +153,7 @@ export const CleanWhiteTemplate = React.memo(function CleanWhiteTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-12 px-12 flex items-center justify-between border-t border-black/5 shrink-0 transition-colors" style={{ color: headerTextColor }}>
+            <div className="h-12 px-12 flex items-center justify-between border-t border-black/5 shrink-0 transition-colors" style={{ color: textColor }}>
                 <span className="text-[9px] opacity-60 font-medium tracking-widest uppercase">{catalogName}</span>
                 <span className="text-xs opacity-80 font-bold px-3 py-1 rounded-full border border-black/10">{pageNumber} / {totalPages}</span>
             </div>

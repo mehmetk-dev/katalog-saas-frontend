@@ -22,7 +22,7 @@ export default function DashboardLoading() {
             {/* Stats Cards Skeleton */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {[...Array(4)].map((_, i) => (
-                    <Card key={i}>
+                    <Card key={i} className="gap-0 py-0">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-2">
@@ -38,7 +38,7 @@ export default function DashboardLoading() {
 
             {/* Content Skeleton */}
             <div className="grid gap-4 md:grid-cols-2">
-                <Card>
+                <Card className="gap-0 py-0">
                     <CardContent className="p-6 space-y-4">
                         <Skeleton className="h-6 w-32" />
                         <div className="space-y-3">
@@ -54,7 +54,7 @@ export default function DashboardLoading() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="gap-0 py-0">
                     <CardContent className="p-6 space-y-4">
                         <Skeleton className="h-6 w-32" />
                         <div className="space-y-3">

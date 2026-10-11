@@ -17,8 +17,9 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { CatalogPreloader, LightboxProvider } from "@/lib/contexts/lightbox-context"
 import { cn } from "@/lib/utils"
 
+import { BookViewer } from "./_components/book-viewer"
 import { CatalogFooter } from "./_components/catalog-footer"
-import { CatalogHeader } from "./_components/catalog-header"
+import { CatalogHeader, type CatalogViewMode } from "./_components/catalog-header"
 import { PageRenderer } from "./_components/page-renderer"
 import { usePublicPdfExport } from "./_hooks/use-public-pdf-export"
 import { useCatalogPages } from "./_hooks/use-catalog-pages"
@@ -28,6 +29,7 @@ const DEFAULT_ZOOM = 0.85
 const MIN_ZOOM = 0.4
 const MAX_ZOOM = 1.5
 const ZOOM_STEP = 0.1
+const VIEW_MODE_STORAGE_KEY = "fogcatalog:public-view-mode"
 
 interface PublicCatalogClientProps {
     catalog: Catalog
@@ -44,6 +46,28 @@ function useIsMobile() {
         return () => query.removeEventListener("change", update)
     }, [])
     return isMobile
+}
+
+/** Masaüstü görünüm tercihi (kitap / liste); ziyaretçinin tarayıcısında hatırlanır */
+function useViewMode() {
+    const [viewMode, setViewModeState] = useState<CatalogViewMode>("book")
+    useEffect(() => {
+        try {
+            const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY)
+            if (stored === "book" || stored === "list") setViewModeState(stored)
+        } catch {
+            // Gizli pencere vb.: varsayılan kitap görünümü
+        }
+    }, [])
+    const setViewMode = useCallback((mode: CatalogViewMode) => {
+        setViewModeState(mode)
+        try {
+            window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode)
+        } catch {
+            // Kaydedilemezse yalnızca bu oturumda geçerli
+        }
+    }, [])
+    return [viewMode, setViewMode] as const
 }
 
 /** Tarayıcının tam ekran durumunu izler (Esc ile çıkış dahil). */
@@ -78,6 +102,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const { isFullscreen, isSupported: canFullscreen, toggle: toggleFullscreen } = useFullscreen()
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [zoomScale, setZoomScale] = useState(DEFAULT_ZOOM)
+    const [viewMode, setViewMode] = useViewMode()
+    const isBook = !isMobile && viewMode === "book"
 
     const {
         design,
@@ -103,6 +129,17 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
 
     const totalPages = catalogPages.length
 
+    const renderPageContent = useCallback((page: typeof catalogPages[number], index: number) => (
+        <PageRenderer
+            page={page}
+            design={design}
+            pageNumber={index + 1}
+            totalPages={totalPages}
+            productCount={products.length}
+            isExporting={isExporting}
+        />
+    ), [design, isExporting, products.length, totalPages])
+
     const renderPage = useCallback((page: typeof catalogPages[number], index: number) => (
         <LazyPage key={index} index={index} isExporting={isExporting}>
             <div
@@ -111,17 +148,10 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 className="catalog-page catalog-light relative mx-auto shrink-0 overflow-hidden rounded-sm bg-white shadow-xl ring-1 ring-black/5"
                 style={{ width: A4_WIDTH_PX, height: A4_HEIGHT_PX }}
             >
-                <PageRenderer
-                    page={page}
-                    design={design}
-                    pageNumber={index + 1}
-                    totalPages={totalPages}
-                    productCount={products.length}
-                    isExporting={isExporting}
-                />
+                {renderPageContent(page, index)}
             </div>
         </LazyPage>
-    ), [design, isExporting, products.length, totalPages])
+    ), [isExporting, renderPageContent])
 
     const isPdfTerminal =
         pdfProgress.phase === "done" ||
@@ -151,7 +181,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
         <LightboxProvider>
             <CatalogPreloader products={preloaderProducts} />
             {/* Mobilde sayfa kaydırması yerine yakınlaştırılabilir alan ekranı doldurur */}
-            <div className={cn("flex flex-col", isMobile ? "h-dvh overflow-hidden" : "min-h-dvh", isFullscreen ? "bg-black" : "bg-muted/50")}>
+            <div className={cn("flex flex-col", isMobile || isBook ? "h-dvh overflow-hidden" : "min-h-dvh", isFullscreen ? "bg-black" : "bg-muted/50")}>
                 <ImageLightbox />
                 <Toaster position="top-center" richColors />
 
@@ -196,6 +226,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                         onZoomOut={handleZoomOut}
                         onZoomReset={handleZoomReset}
                         isMobile={isMobile}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
                         t={t}
                     />
                 )}
@@ -203,6 +235,21 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 <main className="relative min-h-0 w-full flex-1">
                     {catalogPages.length === 0 ? (
                         emptyState
+                    ) : isBook ? (
+                        <>
+                            <BookViewer
+                                pages={catalogPages}
+                                renderPageContent={renderPageContent}
+                                onDarkBackground={isFullscreen}
+                                t={t}
+                            />
+                            {/* PDF indirme tüm sayfaları DOM'da arar; kitapta yalnızca açık sayfalar çizildiği için ekran dışında çizilir */}
+                            {isExporting && (
+                                <div aria-hidden className="pointer-events-none fixed left-[-100000px] top-0 flex flex-col gap-10">
+                                    {catalogPages.map(renderPage)}
+                                </div>
+                            )}
+                        </>
                     ) : isMobile ? (
                         <TransformWrapper
                             initialScale={Math.min(1, (window.innerWidth - 16) / A4_WIDTH_PX)}

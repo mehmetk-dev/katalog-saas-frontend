@@ -80,14 +80,7 @@ export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpda
                                     )}
                                 </TableCell>
                                 <TableCell>
-                                    <Badge
-                                        variant={user.subscription_status === "active" ? "outline" : "destructive"}
-                                        className={
-                                            user.subscription_status === "active"
-                                                ? "bg-success-soft text-success-soft-foreground border-success/20 hover:bg-success/15"
-                                                : ""
-                                        }
-                                    >
+                                    <Badge variant={user.subscription_status === "active" ? "success" : "secondary"}>
                                         {user.subscription_status === "active" ? t("common.active") : t("common.passive")}
                                     </Badge>
                                 </TableCell>
@@ -106,7 +99,7 @@ export function UsersTab({ filteredUsers, searchTerm, onSearchChange, onPlanUpda
                                             if (value !== (user.plan || "free")) setPending({ user, plan: value as Plan })
                                         }}
                                     >
-                                        <SelectTrigger className="w-[100px] ml-auto h-8">
+                                        <SelectTrigger className="w-[100px] ml-auto h-8" aria-label={`${t("admin.currentPlan")}: ${user.email}`}>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>

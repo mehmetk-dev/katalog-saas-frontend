@@ -4,7 +4,8 @@ import { ShoppingBag } from "lucide-react"
 
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, approximateSurfaceColor, readableAccent } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 // Reusable Title Component (For Collisions) - moved outside render
 function TitleBlock({
@@ -63,18 +64,17 @@ export const CompactListTemplate = React.memo(function CompactListTemplate({
     const FOOTER_HEIGHT = "50px"
 
     // Logo boyutu - Header büyüdüğü için logoları da biraz büyüttük
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
     // Arka plan stili
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#1a1a1a', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
+    // Fiyat/ikon vurgusu beyaz ürün kartı üzerinde: kart rengi okunmuyorsa aynı tonda koyulaştırılır
+    const accentColor = readableAccent(primaryColor, '#ffffff')
 
     return (
         <div className="h-full flex flex-col relative overflow-hidden transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
@@ -83,70 +83,14 @@ export const CompactListTemplate = React.memo(function CompactListTemplate({
                 {/* Dekoratif Üst Çizgi */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 w-full" style={{ backgroundColor: primaryColor }} />
 
-                <div className="absolute inset-0 px-8 flex items-center justify-between pt-2">
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
-                        {isCollisionLeft ? (
-                            <div className="flex items-center gap-4">
-                                {logoUrl && isHeaderLogo && logoAlignment === 'left' && (
-                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {(titlePosition === 'left' || !titlePosition) && (
-                                    <TitleBlock align="left" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
-                        {isCollisionCenter ? (
-                            <div className="flex items-center gap-4 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <TitleBlock align="center" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'center' && (
-                                    <TitleBlock align="center" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex items-center gap-4 flex-row-reverse">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <TitleBlock align="right" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'right' && (
-                                    <TitleBlock align="right" catalogName={catalogName} headerTextColor={headerTextColor} primaryColor={primaryColor} />
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <HeaderSlots
+                    className="absolute inset-0 px-8 pt-2"
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={160} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<TitleBlock align={titlePosition === 'center' || titlePosition === 'right' ? titlePosition : 'left'} catalogName={catalogName} headerTextColor={textColor} primaryColor={primaryColor} />}
+                />
             </div>
 
             {/* İçerik Alanı - Daha ferah grid/gap */}
@@ -208,7 +152,7 @@ export const CompactListTemplate = React.memo(function CompactListTemplate({
                                     {/* Fiyat Alanı */}
                                     {showPrices && (
                                         <div className="flex items-center gap-2 pl-2 shrink-0 self-center">
-                                            <span className="font-bold text-xl tracking-tight" style={{ color: primaryColor }}>
+                                            <span className="font-bold text-xl tracking-tight" style={{ color: accentColor }}>
                                                 {formatProductPrice(product)}
                                             </span>
                                         </div>
@@ -221,7 +165,7 @@ export const CompactListTemplate = React.memo(function CompactListTemplate({
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 group-hover:bg-primary/10 transition-colors"
-                                            style={{ color: primaryColor }}
+                                            style={{ color: accentColor }}
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             <ShoppingBag className="w-5 h-5" />
@@ -240,7 +184,7 @@ export const CompactListTemplate = React.memo(function CompactListTemplate({
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColor }} />
-                        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: headerTextColor }}>{catalogName}</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: textColor }}>{catalogName}</span>
                     </div>
                     <div className="h-4 w-px bg-gray-300" />
                     <span className="text-xs font-medium text-gray-400">

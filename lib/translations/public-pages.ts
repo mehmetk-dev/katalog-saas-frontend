@@ -142,9 +142,9 @@ const publicPages = {
         notFound: {
             title: "Sayfa Bulunamadı",
             desc: "Aradığınız sayfa bulunamadı",
-            text: "Bu sayfa taşınmış, silinmiş veya hiç var olmamış olabilir. Ana sayfaya dönerek yolculuğunuza devam edebilirsiniz.",
-            home: "Ana Sayfaya Git",
-            dashboard: "Dashboard'a Dön",
+            text: "Bu sayfa taşınmış, silinmiş veya hiç var olmamış olabilir.",
+            home: "Ana sayfaya git",
+            dashboard: "Panele dön",
         },
         marketing: {
             heroTitle: "Dakikalar içinde harika ürün katalogları oluşturun",
@@ -408,10 +408,10 @@ const publicPages = {
         },
         notFound: {
             title: "Page Not Found",
-            desc: "The page you looking for was not found",
-            text: "This page might have been moved, deleted or never existed. You can go back to home page to continue your journey.",
-            home: "Go to Home",
-            dashboard: "Back to Dashboard",
+            desc: "The page you are looking for was not found",
+            text: "This page may have been moved, deleted, or never existed.",
+            home: "Go to home page",
+            dashboard: "Back to dashboard",
         },
         marketing: {
             heroTitle: "Create stunning product catalogs in minutes",

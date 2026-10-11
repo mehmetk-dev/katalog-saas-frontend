@@ -50,9 +50,11 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
             return (
               <button
                 key={industry.id}
+                type="button"
+                aria-pressed={selected === industry.id}
                 onClick={() => setSelected(industry.id)}
                 className={cn(
-                  "flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                  "flex flex-col items-center gap-2 p-4 rounded-lg border-2 outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   "hover:border-primary/50 hover:bg-accent",
                   selected === industry.id ? "border-primary bg-primary/5" : "border-border",
                 )}

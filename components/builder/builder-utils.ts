@@ -254,7 +254,8 @@ const TEMPLATE_COLUMNS: Record<string, number[]> = {
     'tech-modern': [2, 3, 4],
     'tech-catalog': [2, 3, 4],
     'clean-white': [2, 3, 4],
-    retail: [2, 3, 4],
+    // 4 sütunda kartlar ürün adını gösteremeyecek kadar daralıyor
+    retail: [2, 3],
     minimalist: [2],
     'minimal-gallery': [2],
     'catalog-minimalist': [2],

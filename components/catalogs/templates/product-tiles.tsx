@@ -3,7 +3,7 @@ import NextImage from "next/image"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout, ensureReadable, isLightColor, approximateSurfaceColor } from "./utils"
 
 /**
  * Product Tiles Template - Redesigned V2
@@ -80,9 +80,12 @@ export const ProductTilesTemplate = React.memo(function ProductTilesTemplate({
         </div>
     )
 
+    // Koyu sayfa zemininde ürün metinleri açık tona çevrilir (globals.css → .catalog-on-dark)
+    const onDarkSurface = !isLightColor(approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
         <div
-            className="h-full flex flex-col relative font-serif text-[#1c1917] selection:bg-black selection:text-white"
+            className={`${onDarkSurface ? "catalog-on-dark " : ""}h-full flex flex-col relative font-serif text-[#1c1917] selection:bg-black selection:text-white`}
             style={containerStyle}
         >
             {/* Header - Minimalist Editorial - Smaller */}

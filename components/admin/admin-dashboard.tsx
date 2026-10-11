@@ -53,18 +53,20 @@ export function AdminDashboardClient() {
     }
 
     return (
-        <div className="space-y-8 p-8 max-w-7xl mx-auto">
+        <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:p-8">
             <AdminHeader onReload={loadData} t={t} />
 
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="bg-muted/50 p-1">
-                    <TabsTrigger value="overview">{t("admin.overview")}</TabsTrigger>
-                    <TabsTrigger value="users">{t("admin.users")} ({users.length})</TabsTrigger>
-                    <TabsTrigger value="deleted">{t("admin.deletedUsers")} ({deletedUsers.length})</TabsTrigger>
-                    <TabsTrigger value="feedbacks">{t("admin.feedbacks")} ({feedbacks.length})</TabsTrigger>
-                    <TabsTrigger value="activity">{t("admin.activityLogs")}</TabsTrigger>
-                    <TabsTrigger value="payments"><CreditCard className="size-4" />{t("admin.payments")}</TabsTrigger>
-                </TabsList>
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                    <TabsList className="bg-muted/50 p-1">
+                        <TabsTrigger value="overview">{t("admin.overview")}</TabsTrigger>
+                        <TabsTrigger value="users">{t("admin.users")} ({users.length})</TabsTrigger>
+                        <TabsTrigger value="deleted">{t("admin.deletedUsers")} ({deletedUsers.length})</TabsTrigger>
+                        <TabsTrigger value="feedbacks">{t("admin.feedbacks")} ({feedbacks.length})</TabsTrigger>
+                        <TabsTrigger value="activity">{t("admin.activityLogs")}</TabsTrigger>
+                        <TabsTrigger value="payments"><CreditCard className="size-4" />{t("admin.payments")}</TabsTrigger>
+                    </TabsList>
+                </div>
 
                 <TabsContent value="overview" className="space-y-6">
                     <OverviewTab stats={stats} t={t} />

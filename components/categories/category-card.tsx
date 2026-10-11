@@ -4,11 +4,11 @@ import {
     Folder,
     Pencil,
     Trash2,
-    Package,
     FolderOpen,
 } from "lucide-react"
 import NextImage from "next/image"
 
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -29,7 +29,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
 
     return (
         <Card
-            className="group hover:shadow-xl transition-all overflow-hidden cursor-pointer"
+            className="group gap-0 overflow-hidden py-0 cursor-pointer transition-all hover:shadow-xl"
             onClick={() => !isUncategorized && onEdit(category)}
         >
             {/* Kare Fotoğraf Alanı */}
@@ -53,9 +53,13 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
                             unoptimized
                         />
                     ) : (
-                        <div className="grid grid-cols-2 grid-rows-2 h-full gap-0.5">
+                        // 2 görsel yan yana, 3 görselde ilki solda büyük, 4 görsel 2x2 — boş kutu yok
+                        <div className={cn("grid h-full grid-cols-2 gap-0.5", category.images.length > 2 && "grid-rows-2")}>
                             {category.images.slice(0, 4).map((img, idx) => (
-                                <div key={idx} className="relative overflow-hidden">
+                                <div
+                                    key={idx}
+                                    className={cn("relative overflow-hidden", category.images!.length === 3 && idx === 0 && "row-span-2")}
+                                >
                                     <NextImage
                                         src={img}
                                         alt=""
@@ -65,13 +69,6 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
                                     />
                                 </div>
                             ))}
-                            {category.images.length < 4 &&
-                                [...Array(4 - category.images.length)].map((_, idx) => (
-                                    <div key={`empty-${idx}`} className="bg-muted/50 flex items-center justify-center">
-                                        <Package className="w-5 h-5 text-muted-foreground/20" />
-                                    </div>
-                                ))
-                            }
                         </div>
                     )
                 ) : (

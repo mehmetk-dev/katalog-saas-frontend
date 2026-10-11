@@ -193,7 +193,7 @@ export function SpreadsheetTable({
     <div
       ref={tableContainerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-auto border rounded-lg bg-background relative shadow-inner"
+      className="relative flex-1 overflow-auto bg-background"
     >
       <table className="w-full border-collapse min-w-max">
         <thead className="sticky top-0 z-40 bg-muted border-b">

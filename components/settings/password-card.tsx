@@ -114,7 +114,7 @@ export function PasswordCard({ email, t }: { email?: string | null; t: TFunction
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent>
         {hasPassword === null ? (
           <div className="flex h-24 items-center justify-center text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />

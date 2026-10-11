@@ -4,7 +4,7 @@ import { ExternalLink, ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { cn } from "@/lib/utils"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, ensureReadable, isLightColor, approximateSurfaceColor } from "./utils"
 
 export const MagazineTemplate = React.memo(function MagazineTemplate({
     catalogName,
@@ -101,8 +101,11 @@ export const MagazineTemplate = React.memo(function MagazineTemplate({
         </div>
     )
 
+    // Koyu sayfa zemininde ürün metinleri açık tona çevrilir (globals.css → .catalog-on-dark)
+    const onDarkSurface = !isLightColor(approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
-        <div className="h-full flex flex-col relative overflow-hidden font-serif" style={containerStyle}>
+        <div className={`${onDarkSurface ? "catalog-on-dark " : ""}h-full flex flex-col relative overflow-hidden font-serif`} style={containerStyle}>
             {/* Editorial Header - Adjusted Size & Alignment */}
             <header
                 className="shrink-0 relative z-20 flex items-center px-10 border-b-2 transition-colors h-[120px]"

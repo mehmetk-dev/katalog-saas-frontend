@@ -50,7 +50,7 @@ export function MappingStep({
 }: MappingStepProps) {
     const isCategoryMapped = columnMappings.some((m) => m.systemField === 'category')
     return (
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
             <div className="rounded-xl border border-border bg-accent/40 p-4 shrink-0">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">

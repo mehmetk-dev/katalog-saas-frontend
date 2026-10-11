@@ -3,7 +3,8 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, ensureReadable, approximateSurfaceColor } from "./utils"
+import { HeaderSlots } from "./header-slots"
 import { getItemsPerPage } from "@/lib/constants"
 
 /**
@@ -36,17 +37,13 @@ export const IndustrialTemplate = React.memo(function IndustrialTemplate({
     const safeProducts = products || []
     const itemsPerPage = getItemsPerPage('industrial')
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
+
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#000000', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
 
     return (
         <div className="h-full flex flex-col relative overflow-hidden selection:bg-yellow-400 selection:text-black transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#f8f9fa' }}>
@@ -63,90 +60,15 @@ export const IndustrialTemplate = React.memo(function IndustrialTemplate({
             </div>
 
             {/* Header */}
-            <header className="h-24 px-10 flex items-center justify-between shrink-0 border-b-4 border-black z-10 transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', color: headerTextColor }}>
-                <div className="flex-1 flex items-center justify-between relative w-full h-full">
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
-                        {isCollisionLeft ? (
-                            <div className="flex flex-col gap-2 items-start">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <div>
-                                    <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
-                                    <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'left' && (
-                                    <div>
-                                        <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
-                                        <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex items-center justify-center min-w-0 z-10 gap-6">
-                        {isCollisionCenter ? (
-                            <div className="flex flex-col gap-2 items-center text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <div>
-                                    <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
-                                    <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'center' && (
-                                    <div>
-                                        <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
-                                        <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex flex-col gap-2 items-end">
-                                <div className="text-[10px] font-mono font-bold px-2 py-0.5 border-2 border-black bg-black text-white italic">PAGE. {String(pageNumber).padStart(3, '0')}</div>
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <div>
-                                    <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 flex-row-reverse text-right">
-                                <div className="text-[10px] font-mono font-bold px-2 py-0.5 border-2 border-black bg-black text-white italic" style={{ borderColor: headerTextColor === '#000000' || !headerTextColor ? 'black' : headerTextColor, backgroundColor: headerTextColor === '#000000' || !headerTextColor ? 'black' : headerTextColor }}>PAGE. {String(pageNumber).padStart(3, '0')}</div>
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'right' && (
-                                    <div>
-                                        <h1 className="text-2xl font-[900] uppercase tracking-tighter leading-none italic">{catalogName || "TECHNICAL_SPEC_V1"}</h1>
-                                        <p className="text-[10px] font-mono font-bold mt-1 uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+            <header className="h-24 px-10 flex items-center justify-between shrink-0 border-b-4 border-black z-10 transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', color: textColor }}>
+                <HeaderSlots
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<div className="min-w-0"><h1 className="truncate text-2xl font-[900] uppercase italic leading-none tracking-tighter">{catalogName || "TECHNICAL_SPEC_V1"}</h1><p className="mt-1 truncate font-mono text-[10px] font-bold uppercase tracking-widest opacity-40">INDUSTRIAL SERIES // DEPT_REF_{pageNumber}</p></div>}
+                    aside={<div className="whitespace-nowrap border-2 border-black bg-black px-2 py-0.5 font-mono text-[10px] font-bold italic text-white">PAGE. {String(pageNumber).padStart(3, '0')}</div>}
+                />
             </header>
 
             {/* Content List - Heavy Machinery Rows (6 Items - Expanded) */}
@@ -253,9 +175,9 @@ export const IndustrialTemplate = React.memo(function IndustrialTemplate({
             </div>
 
             {/* Footer */}
-            <div className="h-12 border-t-4 border-black px-10 flex items-center justify-between shrink-0 z-10 font-mono transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', color: headerTextColor }}>
+            <div className="h-12 border-t-4 border-black px-10 flex items-center justify-between shrink-0 z-10 font-mono transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', color: textColor }}>
                 <div className="text-[10px] font-bold flex items-center gap-4">
-                    <span className="w-20 h-4" style={{ backgroundColor: headerTextColor || '#000000' }} />
+                    <span className="w-20 h-4" style={{ backgroundColor: textColor }} />
                     <span>SYSTEM_MASTER_REV: 2.04</span>
                 </div>
                 <div className="text-[10px] font-black tracking-widest uppercase">

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { memo } from "react"
-import { Plus, Trash2, GripVertical, Layers } from "lucide-react"
+import { Boxes, Globe, GripVertical, Layers, Palette, Plus, Ruler, ShieldCheck, Trash2, Weight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,12 +14,12 @@ import type { CustomAttribute } from "@/lib/actions/products"
 const UNIT_KEYS = ["none", "kg", "g", "m", "cm", "mm", "L", "mL", "adet", "paket", "kutu"] as const
 
 const QUICK_ATTRIBUTES = [
-    { key: "color", icon: "🎨" },
-    { key: "material", icon: "🧱" },
-    { key: "weight", icon: "⚖️" },
-    { key: "size", icon: "📐" },
-    { key: "origin", icon: "🌍" },
-    { key: "warranty", icon: "🛡️" },
+    { key: "color", icon: Palette },
+    { key: "material", icon: Boxes },
+    { key: "weight", icon: Weight },
+    { key: "size", icon: Ruler },
+    { key: "origin", icon: Globe },
+    { key: "warranty", icon: ShieldCheck },
 ] as const
 
 // ─── Props ───────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export const ProductAttributesTab = memo(function ProductAttributesTab({
                                 onClick={() => add(label)}
                                 disabled={attributes.some((a) => a.name === label)}
                             >
-                                <span>{attr.icon}</span>
+                                <attr.icon className="size-3.5 text-muted-foreground" aria-hidden />
                                 {label}
                             </Button>
                         )
@@ -86,7 +86,7 @@ export const ProductAttributesTab = memo(function ProductAttributesTab({
 
                 {/* Attribute list */}
                 {attributes.length === 0 ? (
-                    <Card className="border-dashed">
+                    <Card className="gap-0 py-0 border-dashed">
                         <CardContent className="py-8 text-center">
                             <Layers className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                             <p className="text-sm text-muted-foreground">{t("products.noAttributes")}</p>
@@ -95,7 +95,7 @@ export const ProductAttributesTab = memo(function ProductAttributesTab({
                 ) : (
                     <div className="space-y-3">
                         {attributes.map((attr, index) => (
-                            <Card key={index} className="overflow-hidden">
+                            <Card key={index} className="gap-0 py-0 overflow-hidden">
                                 <CardContent className="p-3">
                                     <div className="flex gap-2 items-center">
                                         <GripVertical className="w-4 h-4 text-muted-foreground/50 shrink-0" />

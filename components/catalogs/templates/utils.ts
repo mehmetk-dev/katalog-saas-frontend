@@ -213,3 +213,43 @@ export function resolveTemplateBackground(backgroundColor: string | null | undef
     if (!backgroundColor || CATALOG_DEFAULT_BACKGROUNDS.has(backgroundColor.trim().toLowerCase())) return templateDefault
     return backgroundColor
 }
+
+/**
+ * Sayfa zemininin (başlık şeffafsa yazının üstünde durduğu yüzey) yaklaşık rengi.
+ * Gradyanda ilk renk alınır; arka plan görselinde renk bilinemediği için null döner
+ * (ensureReadable bu durumda kullanıcının yazı rengini olduğu gibi bırakır).
+ */
+export function approximateSurfaceColor(opts: {
+    backgroundColor?: string | null
+    backgroundGradient?: string | null
+    backgroundImage?: string | null
+}, fallback = '#ffffff'): string | null {
+    if (opts.backgroundImage) return null
+    if (opts.backgroundGradient && opts.backgroundGradient !== 'none') {
+        const first = opts.backgroundGradient.match(/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/i)?.[0]
+        if (first) return first
+    }
+    return opts.backgroundColor || fallback
+}
+
+/**
+ * Marka/vurgu rengini (fiyat, ikon) zeminde okunur hale getirir: kontrast yetmiyorsa rengi
+ * siyaha ya da beyaza çevirmek yerine aynı tonda koyulaştırır/açar, böylece seçilen renk korunur.
+ * Örn. açık sarı kart rengi beyaz kartta fiyat yazısı olarak kaybolmaz, koyu hardal olur.
+ */
+export function readableAccent(color: string | null | undefined, surface: string | null | undefined, minRatio = 3): string | undefined {
+    if (!color) return undefined
+    const rgb = parseColorToRgb(color)
+    const surfaceRgb = parseColorToRgb(surface)
+    if (!rgb || !surfaceRgb) return color
+    const ratio = contrastRatio(color, surface)
+    if (ratio !== null && ratio >= minRatio) return color
+    const target = relativeLuminance(surfaceRgb) > 0.4 ? 0 : 255
+    for (let step = 1; step <= 10; step++) {
+        const mix = step / 10
+        const mixed = rgb.map((c) => Math.round(c + (target - c) * mix)) as [number, number, number]
+        const candidate = `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`
+        if ((contrastRatio(candidate, surface) ?? 0) >= minRatio) return candidate
+    }
+    return target === 0 ? '#111111' : '#ffffff'
+}

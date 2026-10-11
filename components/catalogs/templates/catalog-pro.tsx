@@ -3,7 +3,8 @@ import NextImage from "next/image"
 import { ShoppingBag } from "lucide-react"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, getHeaderLayout } from "./utils"
+import { sanitizeHref, formatProductPrice, buildBackgroundStyle, getStandardLogoHeight, ensureReadable, approximateSurfaceColor, isLightColor } from "./utils"
+import { HeaderSlots } from "./header-slots"
 import { getItemsPerPage } from "@/lib/constants"
 
 /**
@@ -42,90 +43,33 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
         return "grid-cols-2"
     }
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
     const containerStyle = buildBackgroundStyle({ backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient })
 
+    // Yazı sayfa zemini üzerinde: seçilen renk okunmuyorsa siyah/beyaza çekilir
+    const textColor = ensureReadable(headerTextColor || '#000000', approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
+    // Koyu sayfa zemininde ürün metinleri açık tona çevrilir (globals.css → .catalog-on-dark)
+    const onDarkSurface = !isLightColor(approximateSurfaceColor({ backgroundColor, backgroundGradient, backgroundImage }))
+
     return (
-        <div className="h-full bg-white text-slate-950 flex flex-col relative overflow-hidden selection:bg-black selection:text-white transition-colors" style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
+        <div className={`${onDarkSurface ? "catalog-on-dark " : ""}h-full bg-white text-slate-950 flex flex-col relative overflow-hidden selection:bg-black selection:text-white transition-colors`} style={{ ...containerStyle, backgroundColor: containerStyle.backgroundColor || '#ffffff' }}>
             {/* Bauhaus Side Stripe */}
             <div className="absolute top-0 right-0 w-2 h-full z-50" style={{ backgroundColor: primaryColor }} />
 
             {/* Header - Designer Impact */}
-            <header className="h-32 px-12 flex items-end pb-8 border-b-8 shrink-0 relative z-10 transition-colors" style={{ borderColor: primaryColor, backgroundColor: containerStyle.backgroundColor || 'transparent', color: headerTextColor }}>
-                <div className="flex-1 flex items-end justify-between relative w-full h-full">
-                    {/* Sol Alan */}
-                    <div className={`${titlePosition === 'left' ? 'flex-[2]' : 'flex-1'} flex items-end justify-start min-w-0 z-10 gap-6`}>
-                        {isCollisionLeft ? (
-                            <div className="flex flex-col gap-4 items-start">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-6 max-w-full">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <div className="mb-2"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                )}
-                                {titlePosition === 'left' && (
-                                    <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Designer Divider Line */}
-                    <div className="flex-1 h-[2px] mx-8 mb-1 hidden md:block opacity-30" style={{ backgroundColor: headerTextColor }} />
-
-                    {/* Orta / Sağ Alan */}
-                    <div className="flex-1 flex items-end justify-end gap-6">
-                        {isCollisionCenter && (
-                            <div className="flex flex-col gap-4 items-center">
-                                <NextImage src={logoUrl!} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] text-center line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
-                            </div>
-                        )}
-                        {!isCollisionCenter && titlePosition === 'center' && <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] text-center line-clamp-2 break-words mx-4">{catalogName || "VANGUARD"}</h1>}
-                        {!isCollisionCenter && logoAlignment === 'center' && isHeaderLogo && logoUrl && <div className="mx-4 mb-2"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>}
-
-                        {isCollisionRight ? (
-                            <div className="flex flex-col gap-4 items-end">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words text-right">{catalogName || "VANGUARD"}</h1>
-                                <span className="text-[10px] font-bold tracking-[0.5em] opacity-80 mt-2">PRO_EDITION // {new Date().getFullYear()}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-end gap-6 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <div className="mb-2 ml-4"><NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /></div>
-                                )}
-                                {titlePosition === 'right' && (
-                                    <div className="flex flex-col items-end">
-                                        <h1 className="text-3xl font-black tracking-tighter uppercase leading-[0.95] line-clamp-2 break-words">{catalogName || "VANGUARD"}</h1>
-                                        <span className="text-[10px] font-bold tracking-[0.5em] opacity-80 mt-2">PRO_EDITION // {new Date().getFullYear()}</span>
-                                    </div>
-                                )}
-                                {/* Sağda hiçbir şey yoksa default badge sağa yerleşsin */}
-                                {titlePosition !== 'right' && logoAlignment !== 'right' && (
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-bold tracking-[0.5em] opacity-80 mt-2">PRO_EDITION // {new Date().getFullYear()}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
+            <header className="h-32 px-12 flex items-end pb-8 border-b-8 shrink-0 relative z-10 transition-colors" style={{ borderColor: primaryColor, backgroundColor: containerStyle.backgroundColor || 'transparent', color: textColor }}>
+                <HeaderSlots
+                    align="end"
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<h1 className="line-clamp-2 break-words text-3xl font-black uppercase leading-[0.95] tracking-tighter">{catalogName || "VANGUARD"}</h1>}
+                    aside={<span className="whitespace-nowrap text-[10px] font-bold tracking-[0.5em] opacity-80">PRO_EDITION // {new Date().getFullYear()}</span>}
+                />
             </header>
 
             {/* Brutalist Grid */}
@@ -219,7 +163,7 @@ export const CatalogProTemplate = React.memo(function CatalogProTemplate({
             </div>
 
             {/* Footer - Bauhaus Geometry */}
-            <div className="h-16 px-12 border-t-8 border-black flex items-center justify-between shrink-0 relative z-10 transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', borderColor: primaryColor, color: headerTextColor }}>
+            <div className="h-16 px-12 border-t-8 border-black flex items-center justify-between shrink-0 relative z-10 transition-colors" style={{ backgroundColor: containerStyle.backgroundColor || '#ffffff', borderColor: primaryColor, color: textColor }}>
                 <div className="flex items-center gap-6">
                     <div className="w-10 h-10 border-2 border-black flex items-center justify-center font-black text-xs italic">
                         {pageNumber}

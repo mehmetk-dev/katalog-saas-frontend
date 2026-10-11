@@ -4,7 +4,8 @@ import { ShoppingBag } from "lucide-react"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { TemplateProps } from "./types"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
-import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, getHeaderLayout, resolveTemplateBackground, ensureReadable } from "./utils"
+import { buildBackgroundStyle, sanitizeHref, formatProductPrice, getStandardLogoHeight, resolveTemplateBackground, ensureReadable } from "./utils"
+import { HeaderSlots } from "./header-slots"
 
 /**
  * Luxury Template - "The Royal Essence"
@@ -47,15 +48,9 @@ export const LuxuryTemplate = React.memo(function LuxuryTemplate({
         }
     }
 
-    const getGridRows = () => "grid-rows-3"
+    // Sayfa başına ürün sayısıyla eşleşir (getItemsPerPage): satırlar boş kalmaz
+    const getGridRows = () => (columnsPerRow === 2 ? "grid-rows-3" : "grid-rows-2")
 
-    const {
-        isHeaderLogo,
-        logoAlignment,
-        isCollisionLeft,
-        isCollisionCenter,
-        isCollisionRight
-    } = getHeaderLayout(logoPosition, titlePosition)
 
     const logoHeight = getStandardLogoHeight(logoSize)
 
@@ -82,82 +77,13 @@ export const LuxuryTemplate = React.memo(function LuxuryTemplate({
 
             {/* Header */}
             <header className="h-24 px-12 flex items-center justify-between shrink-0 z-10 transition-colors" style={{ color: primaryTextColor }}>
-                <div className="flex-1 flex items-center justify-between relative w-full h-full">
-                    {/* Sol Alan */}
-                    <div className="flex-1 flex items-center justify-start min-w-0 z-10 gap-6">
-                        {isCollisionLeft ? (
-                            <div className="flex flex-col gap-2 items-start">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6">
-                                {logoAlignment === 'left' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'left' && (
-                                    <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
-                                )}
-                            </div>
-                        )}
-                        {!isHeaderLogo && titlePosition !== 'left' && (
-                            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/30 max-w-[100px]" />
-                        )}
-                    </div>
-
-                    {/* Orta Alan */}
-                    <div className="flex-1 flex flex-col items-center justify-center min-w-0 z-10 gap-2">
-                        {isCollisionCenter ? (
-                            <div className="flex flex-col gap-2 items-center text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <div className="flex flex-col items-center">
-                                    <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
-                                    <div className="text-[9px] uppercase tracking-[0.5em] mt-1" style={{ color: `${accentColor}99` }}>{(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}</div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 text-center">
-                                {logoAlignment === 'center' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'center' && (
-                                    <div className="flex flex-col items-center">
-                                        <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
-                                        <div className="text-[9px] uppercase tracking-[0.5em] mt-1" style={{ color: `${accentColor}99` }}>{(t('catalogs.premiumCollection') as string) || "ESTABLISHED QUALITY"}</div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sağ Alan */}
-                    <div className="flex-1 flex items-center justify-end min-w-0 z-10 gap-6 text-right">
-                        {isCollisionRight ? (
-                            <div className="flex flex-col gap-2 items-end">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
-                                )}
-                                <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-6 flex-row-reverse text-right">
-                                {logoAlignment === 'right' && isHeaderLogo && logoUrl && (
-                                    <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain filter brightness-125" style={{ maxHeight: logoHeight }} />
-                                )}
-                                {titlePosition === 'right' && (
-                                    <h1 className="font-serif text-2xl tracking-[0.2em] uppercase drop-shadow-sm truncate">{catalogName || (t('catalogs.luxury') as string)}</h1>
-                                )}
-                            </div>
-                        )}
-                        {!isHeaderLogo && titlePosition !== 'right' && (
-                            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/30 max-w-[100px]" />
-                        )}
-                    </div>
-                </div>
+                <HeaderSlots
+                    gapClassName="gap-6"
+                    logoPosition={logoPosition}
+                    titlePosition={titlePosition}
+                    logo={logoUrl ? <NextImage src={logoUrl} alt="Logo" width={140} height={logoHeight} className="object-contain brightness-125" style={{ maxHeight: logoHeight }} /> : null}
+                    title={<h1 className="truncate font-serif text-2xl uppercase tracking-[0.2em] drop-shadow-sm">{catalogName || (t('catalogs.luxury') as string)}</h1>}
+                />
             </header>
 
             {/* Grid - Products */}
