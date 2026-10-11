@@ -27,3 +27,5 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 
 .agents
+# symlink da yok sayilsin (worktree)
+node_modules
