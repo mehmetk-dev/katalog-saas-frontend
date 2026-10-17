@@ -10,6 +10,33 @@ import {
     A4_HEIGHT_PX,
     PDF_CHUNK_SIZE,
 } from "../_lib/constants"
+import { getPdfExportProgressDisplay, type PdfExportTrackingStage } from "@/lib/pdf-export-progress"
+import type { PdfExportPhase } from "@/components/ui/pdf-progress-modal"
+import {
+    createPublicPdfExport,
+    getPublicPdfDownloadUrl,
+    getPublicPdfExport,
+    PublicPdfExportError,
+} from "./public-pdf-export-api"
+
+const POLL_INTERVAL_MS = 3000
+const MAX_CONSECUTIVE_POLL_ERRORS = 5
+/** Worker bu sürede bitiremezse tarayıcıda üretmeye geçilir */
+const MAX_SERVER_WAIT_MS = 15 * 60 * 1000
+
+/** Bu hatalarda sunucu PDF'i üretemiyor demektir; tarayıcıda üretmeye geçilir */
+class ServerExportUnavailableError extends Error {}
+
+const STAGE_TO_PHASE: Record<PdfExportTrackingStage, PdfExportPhase> = {
+    queued: "queued",
+    preparing: "preparing",
+    rendering: "rendering",
+    generating: "generating",
+    uploading: "uploading",
+    done: "done",
+    error: "error",
+    cancelled: "cancelled",
+}
 
 function formatTimeLeft(seconds: number): string {
     if (seconds < 60) return `~${Math.ceil(seconds)}s`
@@ -33,16 +60,20 @@ function yieldToMain(ms: number = 0): Promise<void> {
 
 interface UsePublicPdfExportOptions {
     catalogName: string
+    slug: string | null
     expectedPageCount: number
     t: (key: string) => string
 }
 
 /**
- * Handles client-side PDF generation for the public catalog view.
- * Dynamically imports jsPDF & html-to-image only when the user initiates a download.
+ * PDF'i önce backend worker'a ürettirir (büyük kataloglarda tarayıcı yetmiyor); sunucu
+ * kullanılamazsa jsPDF + html-to-image ile tarayıcıda üretir.
+ *
+ * isExporting yalnızca tarayıcıda üretim sırasında true olur: tüm sayfaların DOM'a basılmasını tetikler.
  */
-export function usePublicPdfExport({ catalogName, expectedPageCount, t }: UsePublicPdfExportOptions) {
+export function usePublicPdfExport({ catalogName, slug, expectedPageCount, t }: UsePublicPdfExportOptions) {
     const [isExporting, setIsExporting] = useState(false)
+    const [isBusy, setIsBusy] = useState(false)
     const [pdfProgress, setPdfProgress] = useState<PdfProgressState>(PDF_PROGRESS_INITIAL_STATE)
     const cancelledRef = useRef(false)
 
@@ -55,9 +86,70 @@ export function usePublicPdfExport({ catalogName, expectedPageCount, t }: UsePub
         setPdfProgress(PDF_PROGRESS_INITIAL_STATE)
     }, [])
 
-    const handleDownload = useCallback(async () => {
+    const exportOnServer = useCallback(async (catalogSlug: string) => {
+        setPdfProgress({
+            phase: "queued", currentPage: 0, totalPages: 0, percent: 5, estimatedTimeLeft: "",
+            stageLabel: t("pdf.stageQueued"), stageDescription: t("pdf.stageQueuedDesc"),
+        })
+
+        let created: Awaited<ReturnType<typeof createPublicPdfExport>>
         try {
-            cancelledRef.current = false
+            created = await createPublicPdfExport(catalogSlug)
+        } catch (error) {
+            // 400/404 katalogla ilgili; tarayıcıda da üretilemez. Diğerleri (ağ, 429, 5xx) sunucu sorunu.
+            if (error instanceof PublicPdfExportError && (error.status === 400 || error.status === 404)) throw error
+            throw new ServerExportUnavailableError(error instanceof Error ? error.message : String(error))
+        }
+
+        const { token } = created
+        let job = created.job
+        const startedAt = Date.now()
+        let consecutiveErrors = 0
+
+        while (!cancelledRef.current) {
+            if (job.status === "completed") {
+                const downloadUrl = getPublicPdfDownloadUrl(job.id, token)
+                setPdfProgress({
+                    phase: "done", currentPage: job.page_count || 0, totalPages: job.page_count || 0, percent: 100,
+                    estimatedTimeLeft: "", stageLabel: t("pdf.stageReady"), stageDescription: t("pdf.stageReadyDesc"),
+                    downloadUrl,
+                })
+                window.location.assign(downloadUrl)
+                return
+            }
+            if (job.status !== "queued" && job.status !== "processing") {
+                throw new ServerExportUnavailableError(job.error_message || job.status)
+            }
+            if (Date.now() - startedAt > MAX_SERVER_WAIT_MS) {
+                throw new ServerExportUnavailableError("timeout")
+            }
+
+            const display = getPdfExportProgressDisplay(job, t)
+            setPdfProgress({
+                phase: STAGE_TO_PHASE[display.stage],
+                currentPage: job.page_count || 0,
+                totalPages: job.page_count || 0,
+                percent: Math.min(95, Math.max(5, display.percent)),
+                estimatedTimeLeft: "",
+                stageLabel: display.title,
+                stageDescription: display.description,
+            })
+
+            await yieldToMain(POLL_INTERVAL_MS)
+            if (cancelledRef.current) return
+            try {
+                job = (await getPublicPdfExport(job.id, token)).job
+                consecutiveErrors = 0
+            } catch {
+                if (++consecutiveErrors >= MAX_CONSECUTIVE_POLL_ERRORS) {
+                    throw new ServerExportUnavailableError("poll failed")
+                }
+            }
+        }
+    }, [t])
+
+    const exportInBrowser = useCallback(async () => {
+        try {
             setIsExporting(true)
             setPdfProgress({ phase: "preparing", currentPage: 0, totalPages: 0, percent: 5, estimatedTimeLeft: "" })
 
@@ -148,6 +240,25 @@ export function usePublicPdfExport({ catalogName, expectedPageCount, t }: UsePub
             pdf.save(`${sanitizedName}.pdf`)
 
             setPdfProgress({ phase: "done", currentPage: totalPages, totalPages, percent: 100, estimatedTimeLeft: "" })
+        } finally {
+            setIsExporting(false)
+        }
+    }, [catalogName, expectedPageCount, t])
+
+    const handleDownload = useCallback(async () => {
+        cancelledRef.current = false
+        setIsBusy(true)
+        try {
+            if (slug) {
+                try {
+                    await exportOnServer(slug)
+                    return
+                } catch (error) {
+                    if (!(error instanceof ServerExportUnavailableError) || cancelledRef.current) throw error
+                    console.warn("Server PDF export unavailable, falling back to browser:", error.message)
+                }
+            }
+            await exportInBrowser()
         } catch (error) {
             if (cancelledRef.current) return
             console.error("PDF Generation Error:", error)
@@ -161,9 +272,9 @@ export function usePublicPdfExport({ catalogName, expectedPageCount, t }: UsePub
                 errorMessage: t("pdf.exportFailed"),
             })
         } finally {
-            setIsExporting(false)
+            setIsBusy(false)
         }
-    }, [catalogName, expectedPageCount, t])
+    }, [slug, exportOnServer, exportInBrowser, t])
 
-    return { isExporting, pdfProgress, handleDownload, cancelExport, closePdfModal }
+    return { isExporting, isBusy, pdfProgress, handleDownload, cancelExport, closePdfModal }
 }

@@ -74,6 +74,16 @@ export const publicPdfLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Ziyaretçinin PDF iş açması: aynı katalog zaten önbellekten döner, bu sınır worker'ı korur
+export const publicPdfCreateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isDev ? 1000 : 10,
+    keyGenerator: getClientIpKey,
+    message: { error: 'Too many PDF requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 export const expensiveReadLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: isDev ? 1000 : 120,

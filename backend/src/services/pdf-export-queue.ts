@@ -3,11 +3,15 @@ import IORedis from 'ioredis';
 
 export const PDF_EXPORT_QUEUE_NAME = 'pdf-export';
 
+/** owner: katalog sahibi builder'dan istedi (kotadan düşer). public: yayınlanmış sayfadan ziyaretçi istedi. */
+export type PdfExportSource = 'owner' | 'public';
+
 export interface PdfExportQueuePayload {
     jobId: string;
     userId: string;
     catalogId: string;
     quality: 'standard' | 'high';
+    source?: PdfExportSource;
 }
 
 let queue: Queue<PdfExportQueuePayload> | null = null;

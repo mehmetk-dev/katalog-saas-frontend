@@ -108,6 +108,7 @@ async function getOwnedJob(jobId: string, userId: string): Promise<PdfExportJobR
         .select('*')
         .eq('id', jobId)
         .eq('user_id', userId)
+        .eq('source', 'owner')
         .single()
 
     if (error || !data) return null
@@ -184,6 +185,7 @@ export async function createPdfExport(req: Request, res: Response) {
             .from('pdf_export_jobs')
             .select('*')
             .eq('user_id', userId)
+            .eq('source', 'owner')
             .in('status', ['queued', 'processing'])
             .order('created_at', { ascending: false })
             .limit(5)
@@ -242,6 +244,7 @@ export async function createPdfExport(req: Request, res: Response) {
                 quality: parsed.data.quality,
                 status: 'queued',
                 progress: 0,
+                source: 'owner',
             })
             .select('*')
             .single()
@@ -254,6 +257,7 @@ export async function createPdfExport(req: Request, res: Response) {
                 userId,
                 catalogId: parsed.data.catalogId,
                 quality: parsed.data.quality,
+                source: 'owner',
             })
         } catch (queueError) {
             console.error(`[pdf-exports] enqueue failed for job=${job.id}:`, safeErrorMessage(queueError))
@@ -277,6 +281,7 @@ export async function listPdfExports(req: Request, res: Response) {
             .from('pdf_export_jobs')
             .select('*')
             .eq('user_id', userId)
+            .eq('source', 'owner')
             .order('created_at', { ascending: false })
             .limit(25)
 
@@ -498,6 +503,184 @@ export async function getPdfExportRenderData(req: Request, res: Response) {
         })
     } catch (error) {
         console.error(`[pdf-exports] render-data error for job=${req.params.id}:`, error instanceof Error ? error.message : error)
+        return res.status(500).json({ error: safeErrorMessage(error) })
+    }
+}
+
+// ── Yayınlanmış katalog sayfasından (ziyaretçi) PDF ─────────────────────────
+// İş katalog sahibinin user_id'siyle açılır (render-data sahibin planını/filigranını kullanır)
+// ama source='public' olduğu için kotaya sayılmaz ve sahibin listesinde görünmez.
+
+const publicExportSchema = z.object({
+    slug: z.string().trim().min(1).max(200),
+})
+
+/** Ziyaretçinin iş durumunu sorgulayıp PDF'i indirebildiği token süresi */
+const PUBLIC_EXPORT_TOKEN_TTL_MS = 2 * 60 * 60 * 1000
+/** Tamamlanmış PDF, süresinin dolmasına en az bu kadar varsa yeniden kullanılır */
+const PUBLIC_EXPORT_REUSE_MIN_REMAINING_MS = 60 * 60 * 1000
+/** Tüm public işler için aynı anda kuyrukta bekleyebilecek üst sınır (worker'ı ziyaretçiler kilitlemesin) */
+const MAX_ACTIVE_PUBLIC_EXPORTS = 5
+
+type PublicPdfExportJob = Pick<PdfExportJobRow, 'id' | 'status' | 'progress' | 'page_count' | 'error_message'>
+
+function toPublicJob(job: PdfExportJobRow): PublicPdfExportJob {
+    return {
+        id: job.id,
+        status: job.status,
+        progress: job.progress,
+        page_count: job.page_count,
+        error_message: job.error_message,
+    }
+}
+
+function publicJobResponse(job: PdfExportJobRow) {
+    return {
+        job: toPublicJob(job),
+        token: createPdfExportToken(job.id, PUBLIC_EXPORT_TOKEN_TTL_MS),
+    }
+}
+
+/** Katalog ya da içindeki ürünlerden biri PDF üretildikten sonra değiştiyse eski PDF kullanılamaz */
+async function getCatalogContentChangedAt(catalog: Record<string, unknown>): Promise<number> {
+    const catalogUpdatedAt = new Date(String(catalog.updated_at || 0)).getTime() || 0
+    const { data } = await supabase
+        .from('products')
+        .select('updated_at')
+        .eq('user_id', String(catalog.user_id))
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    const productUpdatedAt = data?.updated_at ? new Date(String(data.updated_at)).getTime() || 0 : 0
+    return Math.max(catalogUpdatedAt, productUpdatedAt)
+}
+
+export async function createPublicPdfExport(req: Request, res: Response) {
+    try {
+        if (!isPdfExportQueueConfigured()) {
+            return res.status(503).json({ error: 'PDF servisi şu anda kullanılamıyor.', code: 'queue_unavailable' })
+        }
+
+        const parsed = publicExportSchema.safeParse(req.body)
+        if (!parsed.success) {
+            return res.status(400).json({ error: 'Geçersiz katalog.' })
+        }
+
+        const { data: catalog, error: catalogError } = await supabase
+            .from('catalogs')
+            .select('id,user_id,product_ids,updated_at')
+            .eq('share_slug', parsed.data.slug)
+            .eq('is_published', true)
+            .maybeSingle()
+
+        if (catalogError) throw catalogError
+        if (!catalog) {
+            return res.status(404).json({ error: 'Katalog bulunamadı.' })
+        }
+        if (!Array.isArray(catalog.product_ids) || catalog.product_ids.length === 0) {
+            return res.status(400).json({ error: 'Boş katalog için PDF üretilemez.' })
+        }
+
+        const { data: recentJobs, error: recentError } = await supabase
+            .from('pdf_export_jobs')
+            .select('*')
+            .eq('catalog_id', catalog.id)
+            .eq('source', 'public')
+            .in('status', ['queued', 'processing', 'completed'])
+            .order('created_at', { ascending: false })
+            .limit(5)
+        if (recentError) throw recentError
+
+        const jobs = (recentJobs || []) as PdfExportJobRow[]
+        const changedAt = await getCatalogContentChangedAt(catalog)
+
+        const reusable = jobs.find((job) =>
+            job.status === 'completed'
+            && job.file_path
+            && new Date(job.created_at).getTime() >= changedAt
+            && (!job.expires_at || new Date(job.expires_at).getTime() - Date.now() > PUBLIC_EXPORT_REUSE_MIN_REMAINING_MS)
+        )
+        if (reusable) {
+            return res.status(200).json({ ...publicJobResponse(reusable), reused: true })
+        }
+
+        const active = jobs.find((job) =>
+            (job.status === 'queued' || job.status === 'processing')
+            && !isStaleActiveJob(job)
+            && new Date(job.created_at).getTime() >= changedAt
+        )
+        if (active) {
+            return res.status(200).json({ ...publicJobResponse(active), reused: true })
+        }
+
+        const { count: activePublicCount, error: countError } = await supabase
+            .from('pdf_export_jobs')
+            .select('id', { count: 'exact', head: true })
+            .eq('source', 'public')
+            .in('status', ['queued', 'processing'])
+        if (countError) throw countError
+        if ((activePublicCount ?? 0) >= MAX_ACTIVE_PUBLIC_EXPORTS) {
+            return res.status(429).json({ error: 'PDF servisi şu anda yoğun. Lütfen biraz sonra tekrar deneyin.', code: 'busy' })
+        }
+
+        const { data: job, error } = await supabase
+            .from('pdf_export_jobs')
+            .insert({
+                user_id: catalog.user_id,
+                catalog_id: catalog.id,
+                quality: 'standard',
+                status: 'queued',
+                progress: 0,
+                source: 'public',
+            })
+            .select('*')
+            .single()
+
+        if (error || !job) throw error || new Error('Public PDF export job could not be created')
+
+        try {
+            await enqueuePdfExportJob({
+                jobId: job.id,
+                userId: String(catalog.user_id),
+                catalogId: String(catalog.id),
+                quality: 'standard',
+                source: 'public',
+            })
+        } catch (queueError) {
+            console.error(`[pdf-exports] public enqueue failed for job=${job.id}:`, safeErrorMessage(queueError))
+            await supabase
+                .from('pdf_export_jobs')
+                .update({ status: 'failed', error_message: 'queue_unavailable' })
+                .eq('id', job.id)
+            return res.status(503).json({ error: 'PDF servisi şu anda kullanılamıyor.', code: 'queue_unavailable' })
+        }
+
+        return res.status(202).json({ ...publicJobResponse(job as PdfExportJobRow), reused: false })
+    } catch (error) {
+        console.error('[pdf-exports] public create error:', error instanceof Error ? error.message : error)
+        return res.status(500).json({ error: safeErrorMessage(error) })
+    }
+}
+
+export async function getPublicPdfExport(req: Request, res: Response) {
+    try {
+        const jobId = req.params.id
+        if (!verifyPdfExportToken(jobId, req.query.token)) {
+            return res.status(403).json({ error: 'Forbidden' })
+        }
+
+        const { data: job, error } = await supabase
+            .from('pdf_export_jobs')
+            .select('*')
+            .eq('id', jobId)
+            .eq('source', 'public')
+            .maybeSingle()
+
+        if (error) throw error
+        if (!job) return res.status(404).json({ error: 'PDF export bulunamadı.' })
+
+        return res.json({ job: toPublicJob(job as PdfExportJobRow) })
+    } catch (error) {
         return res.status(500).json({ error: safeErrorMessage(error) })
     }
 }

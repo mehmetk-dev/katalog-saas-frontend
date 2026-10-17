@@ -128,6 +128,38 @@ async function completeExportAtomically(params: {
     })
 }
 
+/** Ziyaretçi PDF'i: kotaya ve sahibin exports_used sayacına dokunmadan işi tamamlar */
+async function completePublicExport(params: {
+    jobId: string
+    storagePath: string
+    fileSize: number
+    expiresAt: string
+}): Promise<void> {
+    const { data, error } = await supabase
+        .from('pdf_export_jobs')
+        .update({
+            status: 'completed',
+            progress: 100,
+            file_path: params.storagePath,
+            file_size_bytes: params.fileSize,
+            error_message: null,
+            completed_at: new Date().toISOString(),
+            expires_at: params.expiresAt,
+        })
+        .eq('id', params.jobId)
+        .eq('source', 'public')
+        .in('status', [...ACTIVE_PDF_EXPORT_STATUSES])
+        .select('id')
+        .maybeSingle()
+
+    if (error) {
+        throw new Error(`Public PDF export completion failed: ${getErrorMessage(error)}`)
+    }
+    if (!data) {
+        throw new PdfExportJobCancelledError(params.jobId)
+    }
+}
+
 async function getCatalogExportName(
     catalogId: string,
     userId: string
@@ -200,7 +232,7 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             attempts: job.attemptsMade + 1,
             started_at: new Date().toISOString(),
         })
-        console.log(`[pdf-export-worker] started ${jobId} catalog=${catalogId}`)
+        console.log(`[pdf-export-worker] started ${jobId} catalog=${catalogId} source=${job.data.source ?? 'owner'}`)
 
         phase = 'loading-render-page'
         const token = createPdfExportToken(jobId)
@@ -328,13 +360,17 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             )
 
             phase = 'finalizing-job'
-            await completeExportAtomically({
-                jobId,
-                userId,
-                storagePath,
-                fileSize: size,
-                expiresAt,
-            })
+            if (job.data.source === 'public') {
+                await completePublicExport({ jobId, storagePath, fileSize: size, expiresAt })
+            } else {
+                await completeExportAtomically({
+                    jobId,
+                    userId,
+                    storagePath,
+                    fileSize: size,
+                    expiresAt,
+                })
+            }
             browserCrashCount = 0
         } finally {
             await page.close().catch(() => undefined)

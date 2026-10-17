@@ -118,9 +118,9 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     })
 
     const {
-        isExporting, pdfProgress,
+        isExporting, isBusy: isPdfBusy, pdfProgress,
         handleDownload, cancelExport, closePdfModal,
-    } = usePublicPdfExport({ catalogName: catalog.name, expectedPageCount: catalogPages.length, t })
+    } = usePublicPdfExport({ catalogName: catalog.name, slug: catalog.share_slug, expectedPageCount: catalogPages.length, t })
 
     const handleZoomIn = useCallback(() => setZoomScale((prev) => Math.min(+(prev + ZOOM_STEP).toFixed(2), MAX_ZOOM)), [])
     const handleZoomOut = useCallback(() => setZoomScale((prev) => Math.max(+(prev - ZOOM_STEP).toFixed(2), MIN_ZOOM)), [])
@@ -219,7 +219,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                         categories={categories}
                         onShare={openShare}
                         onDownload={handleDownload}
-                        isDownloading={isExporting}
+                        isDownloading={isPdfBusy}
                         onToggleFullscreen={canFullscreen ? toggleFullscreen : undefined}
                         zoomScale={zoomScale}
                         onZoomIn={handleZoomIn}
