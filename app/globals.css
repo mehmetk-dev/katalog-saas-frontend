@@ -332,8 +332,9 @@
   @media (max-width: 640px) {
 
     /* Onay kutusu / anahtar / radyo da <button> olarak render edilir; bunlar etiketleriyle
-       birlikte tıklanır ve 44px'e şişince (16px'lik kutu yerine) boş kareler oluşuyordu */
-    :where(button, [role="button"], a):not([role="checkbox"], [role="switch"], [role="radio"]) {
+       birlikte tıklanır ve 44px'e şişince (16px'lik kutu yerine) boş kareler oluşuyordu.
+       Not: ":where(...):not(...)" yazımında Lightning CSS :not kısmını düşürüyordu; :not, :where'in içinde. */
+    :where(button:not([role="checkbox"], [role="switch"], [role="radio"]), [role="button"], a) {
       min-height: 44px;
       min-width: 44px;
     }
