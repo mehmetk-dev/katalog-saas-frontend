@@ -5,6 +5,7 @@ import { cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { getUserId } from './helpers';
 import { safeErrorMessage } from '../../utils/safe-error';
 import { productsByIdsSchema, productsQuerySchema } from './schemas';
+import { applyProductSort } from './ordering';
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
@@ -63,16 +64,7 @@ export const getProducts = async (req: Request, res: Response) => {
                 query = query.lte('price', maxPrice);
             }
 
-            let orderedQuery = query.order(sortBy, { ascending: sortOrder === 'asc', nullsFirst: false });
-
-            if (sortBy !== 'display_order') {
-                orderedQuery = orderedQuery.order('display_order', { ascending: true, nullsFirst: false });
-            }
-            if (sortBy !== 'created_at') {
-                orderedQuery = orderedQuery.order('created_at', { ascending: false });
-            }
-
-            const { data, error, count } = await orderedQuery
+            const { data, error, count } = await applyProductSort(query, sortBy, sortOrder)
                 .range(from, to);
 
             if (error) throw error;
@@ -112,11 +104,13 @@ export const getProducts = async (req: Request, res: Response) => {
                         .not('category', 'is', null)
                         .not('category', 'eq', '');
 
+                    // Ürünün kategori alanı virgülle ayrılmış birden çok kategori içerebilir; filtre tek kategoriyle çalışır
                     return [...new Set(
                         (categoryData || [])
-                            .map((p: { category: string | null }) => p.category)
+                            .flatMap((p: { category: string | null }) => (p.category || '').split(','))
+                            .map((c: string) => c.trim())
                             .filter(Boolean)
-                    )] as string[];
+                    )].sort((x, y) => x.localeCompare(y, 'tr-TR')) as string[];
                 });
             }
 

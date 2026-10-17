@@ -4,20 +4,16 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 
 import type { Product } from "@/lib/actions/products"
-import type { SortField, StockFilter } from "@/components/products/products-page-utils"
+import type { StockFilter } from "@/components/products/products-page-utils"
 
 interface UseProductsSelectionActionsParams {
   t: (key: string, params?: Record<string, unknown>) => string
   products: Product[]
-  sortField: SortField
   search: string
   selectedCategory: string
   stockFilter: StockFilter
   priceRange: [number, number]
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>
-  setProducts: React.Dispatch<React.SetStateAction<Product[]>>
-  setSortField: React.Dispatch<React.SetStateAction<"name" | "price" | "stock" | "created_at" | "category" | "order">>
-  setSortOrder: React.Dispatch<React.SetStateAction<"asc" | "desc">>
   setSearch: React.Dispatch<React.SetStateAction<string>>
   setSelectedCategory: React.Dispatch<React.SetStateAction<string>>
   setStockFilter: React.Dispatch<React.SetStateAction<"all" | "in_stock" | "low_stock" | "out_of_stock">>
@@ -29,15 +25,11 @@ interface UseProductsSelectionActionsParams {
 export function useProductsSelectionActions({
   t,
   products,
-  sortField,
   search,
   selectedCategory,
   stockFilter,
   priceRange,
   setSelectedIds,
-  setProducts,
-  setSortField,
-  setSortOrder,
   setSearch,
   setSelectedCategory,
   setStockFilter,
@@ -83,19 +75,8 @@ export function useProductsSelectionActions({
     }
   }, [setSelectedIds, t, products, search, selectedCategory, stockFilter, priceRange])
 
-  const handleTableReorder = useCallback((newProducts: Product[]) => {
-    setProducts(newProducts)
-    if (sortField !== "order") {
-      setSortField("order")
-      setSortOrder("asc")
-      updateUrl({ sortBy: "order", sortOrder: "asc" })
-      toast.info((t("products.switchedToManualSort") as string) || "Manuel siralamaya gecildi")
-    }
-  }, [setProducts, sortField, setSortField, setSortOrder, updateUrl, t])
-
   return {
     clearAllFilters,
     handleToolbarSelectAll,
-    handleTableReorder,
   }
 }

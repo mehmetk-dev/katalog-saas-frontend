@@ -6,20 +6,19 @@ import { getProducts, getProductStats } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { ProductsPageClient } from "@/components/products/products-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
-import { mapSortFieldToProductSort, type SortField, type SortOrder, type StockFilter } from "@/components/products/products-page-utils"
+import { DEFAULT_ITEMS_PER_PAGE, PAGE_SIZE_OPTIONS, mapSortFieldToProductSort, type SortField, type SortOrder, type StockFilter } from "@/components/products/products-page-utils"
 
 export const metadata: Metadata = {
   title: "Ürünler",
   description: "Ürün envanterinizi yönetin, düzenleyin ve kataloglara ekleyin.",
 }
 
-const DEFAULT_PRODUCTS_PAGE_SIZE = 12
-const PRODUCTS_PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100] as const
+const DEFAULT_PRODUCTS_PAGE_SIZE = DEFAULT_ITEMS_PER_PAGE
 
 const searchParamsSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().refine(
-    (v) => PRODUCTS_PAGE_SIZE_OPTIONS.includes(v as (typeof PRODUCTS_PAGE_SIZE_OPTIONS)[number]),
+    (v) => PAGE_SIZE_OPTIONS.includes(v),
     { message: "Invalid page size" }
   ).default(DEFAULT_PRODUCTS_PAGE_SIZE),
   category: z.string().default("all"),

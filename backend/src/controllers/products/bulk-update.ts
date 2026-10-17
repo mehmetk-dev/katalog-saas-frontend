@@ -4,8 +4,9 @@ import { supabase } from '../../services/supabase';
 import { deleteCache, cacheKeys, setProductsInvalidated } from '../../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../../services/activity-logger';
 import { getUserId } from './helpers';
-import { reorderSchema, bulkUpdateImagesSchema, bulkPriceUpdateSchema, bulkUpdateFieldsSchema } from './schemas';
+import { reorderSchema, moveProductSchema, bulkUpdateImagesSchema, bulkPriceUpdateSchema, bulkUpdateFieldsSchema } from './schemas';
 import { safeErrorMessage } from '../../utils/safe-error';
+import { MoveError, computeMoveUpdates, loadOrderedRows } from './ordering';
 import { DB_CHUNK_SIZE, UPDATE_BATCH_SIZE, chunkArray, dedupeStrings, hasDuplicateValues, normalizeImageUrls, mergeImageUrls } from './bulk-utils';
 
 export const reorderProducts = async (req: Request, res: Response) => {
@@ -49,6 +50,49 @@ export const reorderProducts = async (req: Request, res: Response) => {
     } catch (error: unknown) {
         const errorMessage = safeErrorMessage(error, 'Sıralama kaydedilemedi');
         console.error('Reorder products error:', errorMessage);
+        res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi' });
+    }
+};
+
+/**
+ * Tek ürünü manuel sırada başka bir ürünün önüne/arkasına veya en başa/sona taşır.
+ * Sıra kullanıcının tüm ürünleri üzerinden hesaplanır; sayfa ve filtrelerden bağımsızdır.
+ */
+export const moveProduct = async (req: Request, res: Response) => {
+    try {
+        const userId = getUserId(req);
+
+        const parsed = moveProductSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid request body' });
+        }
+
+        const rows = await loadOrderedRows(userId);
+        const updates = computeMoveUpdates(rows, parsed.data);
+
+        for (const chunk of chunkArray(updates, 1000)) {
+            const { error: rpcError } = await supabase.rpc('bulk_reorder_products', {
+                p_user_id: userId,
+                p_updates: chunk,
+            });
+            if (rpcError) throw rpcError;
+        }
+
+        if (updates.length > 0) {
+            await Promise.all([
+                deleteCache(cacheKeys.products(userId)),
+                deleteCache(cacheKeys.stats(userId))
+            ]);
+            setProductsInvalidated(userId);
+        }
+
+        res.json({ success: true, updated: updates.length });
+    } catch (error: unknown) {
+        if (error instanceof MoveError) {
+            return res.status(error.status).json({ success: false, error: error.message });
+        }
+        const errorMessage = safeErrorMessage(error, 'Sıralama kaydedilemedi');
+        console.error('Move product error:', errorMessage);
         res.status(500).json({ success: false, message: 'Sıralama kaydedilemedi' });
     }
 };

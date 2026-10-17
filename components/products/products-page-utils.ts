@@ -1,12 +1,13 @@
-import type { Product, ProductSortField, ProductStats } from "@/lib/actions/products"
+import type { Product, ProductMove, ProductSortField, ProductStats } from "@/lib/actions/products"
 
 export type SortField = "name" | "price" | "stock" | "created_at" | "category" | "order"
 export type SortOrder = "asc" | "desc"
 export type ViewMode = "grid" | "list"
 export type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 
-export const DEFAULT_ITEMS_PER_PAGE = 12
-export const PAGE_SIZE_OPTIONS = [12, 24, 36, 48, 60, 100]
+// 24: grid görünümünün 2/3/4/6 sütunlu düzenlerinde son satır boş kalmaz
+export const DEFAULT_ITEMS_PER_PAGE = 24
+export const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
 
 const SORT_FIELDS: SortField[] = ["name", "price", "stock", "created_at", "category", "order"]
 const STOCK_FILTERS: StockFilter[] = ["all", "in_stock", "low_stock", "out_of_stock"]
@@ -32,17 +33,62 @@ export function parsePriceFromQuery(value: string | null): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
 }
 
-export function buildProductOrderPayload(products: Product[], reorderOffset = 0): { id: string; order: number }[] {
-  const existingOrders = products
-    .map((product) => Number(product.order))
-    .filter((order) => Number.isInteger(order) && order >= 0)
-  const hasUsableOrders = existingOrders.length === products.length && new Set(existingOrders).size === existingOrders.length && existingOrders.some((order) => order > 0)
-  const orderSlots = hasUsableOrders ? [...existingOrders].sort((a, b) => a - b) : []
+/** Manuel sıra her zaman artandır; URL'de "order + desc" gelse bile artan kabul edilir. */
+export function normalizeSortOrder(sortField: SortField, sortOrder: SortOrder): SortOrder {
+  return sortField === "order" ? "asc" : sortOrder
+}
 
-  return products.map((product, index) => ({
-    id: product.id,
-    order: orderSlots[index] ?? reorderOffset + index,
-  }))
+/** Sütun başlığına tıklama döngüsü: artan → azalan → manuel sıra. */
+export function nextColumnSort(current: { field: SortField; order: SortOrder }, column: SortField): { field: SortField; order: SortOrder } {
+  if (current.field !== column) return { field: column, order: defaultSortOrder(column) }
+  const firstOrder = defaultSortOrder(column)
+  if (current.order === firstOrder) return { field: column, order: firstOrder === "asc" ? "desc" : "asc" }
+  return { field: "order", order: "asc" }
+}
+
+/** Metin sütunları A→Z, sayısal/tarih sütunları büyükten küçüğe başlar. */
+export function defaultSortOrder(field: SortField): SortOrder {
+  return field === "order" || field === "name" || field === "category" ? "asc" : "desc"
+}
+
+/**
+ * Sunucudaki taşımanın görünen sayfaya iyimser yansıması.
+ * first/last: ürün bu sayfada kalıyorsa başa/sona alınır, başka sayfaya gidiyorsa listeden çıkar
+ * (yenileme sonrası sunucudan doğru sayfa gelir).
+ */
+export function applyLocalMove(
+  products: Product[],
+  move: ProductMove,
+  page: { isFirst: boolean; isLast: boolean }
+): Product[] {
+  const source = products.find((p) => p.id === move.id)
+  if (!source) return products
+  const rest = products.filter((p) => p.id !== move.id)
+
+  if (move.position === "first") return page.isFirst ? [source, ...rest] : rest
+  if (move.position === "last") return page.isLast ? [...rest, source] : rest
+
+  const targetIndex = rest.findIndex((p) => p.id === move.targetId)
+  if (targetIndex === -1) return products
+  const insertAt = move.position === "before" ? targetIndex : targetIndex + 1
+  return [...rest.slice(0, insertAt), source, ...rest.slice(insertAt)]
+}
+
+/**
+ * Sürüklenen ürünü hedefin önüne mi arkasına mı bırakacağımızı belirler.
+ * Yukarıdan aşağı taşırken hedefin arkasına, aşağıdan yukarı taşırken önüne gider
+ * (imleç konumu verilirse o kazanır).
+ */
+export function resolveDropPosition(
+  products: Product[],
+  sourceId: string,
+  targetId: string,
+  pointerAfterMidpoint?: boolean
+): "before" | "after" {
+  if (pointerAfterMidpoint !== undefined) return pointerAfterMidpoint ? "after" : "before"
+  const sourceIndex = products.findIndex((p) => p.id === sourceId)
+  const targetIndex = products.findIndex((p) => p.id === targetId)
+  return sourceIndex !== -1 && sourceIndex < targetIndex ? "after" : "before"
 }
 
 /** CSV formula injection protection for cells starting with risky prefixes. */

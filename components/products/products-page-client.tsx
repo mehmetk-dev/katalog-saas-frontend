@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { FileDown, Image as ImageIcon, MoreHorizontal, Package, Percent, Plus, SearchX, Sparkles } from "lucide-react"
+import { useEffect, useState } from "react"
+import { AlertCircle, Check, FileDown, GripVertical, Image as ImageIcon, Loader2, MoreHorizontal, Package, Percent, Plus, SearchX, Sparkles, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { ProductsTable } from "./table/products-table"
@@ -30,19 +31,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { BulkImageUploadModal } from "@/components/products/bulk/bulk-image-upload-modal"
-import type { Product } from "@/lib/actions/products"
 
 import { ProductStatsCards } from "./toolbar/stats-cards"
-import { ProductsToolbar } from "./toolbar/toolbar"
+import { PRODUCTS_SEARCH_INPUT_ID, ProductsToolbar } from "./toolbar/toolbar"
 import { ProductsFilterSheet } from "./filters/filter-sheet"
 import { ActiveFilters } from "./filters/active-filters"
-import type { SortableColumn } from "./table/types"
 import { ProductsPagination } from "./table/pagination"
 import { ProductsBulkPriceModal } from "./bulk/bulk-price-modal"
 import { ProductsBulkActionsBar } from "./toolbar/bulk-actions-bar"
+import { AddToCatalogDialog, BulkCategoryDialog, BulkStockDialog } from "./bulk/bulk-edit-dialogs"
 import { PAGE_SIZE_OPTIONS } from "./products-page-utils"
 import type { ProductsPageClientProps } from "./products-page-types"
 import { useProductsPageController } from "./hooks/use-products-page-controller"
+import type { ReorderStatus } from "./hooks/use-products-reorder"
 
 export function ProductsPageClient(props: ProductsPageClientProps) {
   const {
@@ -92,11 +93,12 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     handleSearchChange,
     handleCategoryChange,
     handleItemsPerPageChange,
-    handleSortFieldChange,
-    handleSortOrderChange,
+    handleSortChange,
+    handleColumnSort,
+    handleMove,
+    reorderStatus,
     handleStockFilterChange,
     handlePriceRangeChange,
-    handleTableReorder,
     handleImportProducts,
     handleBulkImageUploadSuccess,
     setSelectedIds,
@@ -113,26 +115,58 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
     setPriceChangeAmount,
     userPlan,
     maxProducts,
+    isBulkWorking,
+    handleInlineUpdate,
+    handleBulkCategory,
+    handleBulkStock,
+    handleAddToCatalog,
+    handleExportSelected,
+    visibleColumns,
+    toggleColumn,
   } = useProductsPageController(props)
+
+  const [bulkDialog, setBulkDialog] = useState<"category" | "stock" | "catalog" | null>(null)
+
+  // Klavye kısayolları: "/" arama, "N" yeni ürün. Yazı alanındayken veya bir pencere açıkken çalışmaz.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return
+      if (document.querySelector('[role="dialog"], [role="menu"], [role="alertdialog"]')) return
+      if (e.key === "/") {
+        e.preventDefault()
+        document.getElementById(PRODUCTS_SEARCH_INPUT_ID)?.focus()
+      } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault()
+        handleAddProduct()
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [handleAddProduct])
+  const closeBulkDialog = (open: boolean) => { if (!open) setBulkDialog(null) }
 
   const activeFilterCount =
     (selectedCategory !== "all" ? 1 : 0) +
     (stockFilter !== "all" ? 1 : 0) +
     (priceRange[0] > 0 || priceRange[1] > 0 ? 1 : 0)
 
-  const handleColumnSort = (field: SortableColumn) => {
-    if (field === sortField) handleSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
-    else handleSortFieldChange(field)
-  }
+  const canReorder = sortField === "order" && products.length > 1
 
   const tr = (key: string, params?: Record<string, unknown>) => t(key, params) as string
 
   return (
     <TooltipProvider>
-      <div className="space-y-5">
+      {/* Seçim varken alttaki toplu işlem çubuğu sayfalamanın üstüne binmesin */}
+      <div className={cn("space-y-5", selectedIds.length > 0 && "pb-20")}>
         <PageHeader
           title={tr("sidebar.products")}
-          description={tr("products.pageDescription", { count: metadata.total })}
+          description={
+            Number.isFinite(maxProducts)
+              ? tr("products.pageDescriptionWithLimit", { count: metadata.total.toLocaleString("tr-TR"), max: maxProducts.toLocaleString("tr-TR") })
+              : tr("products.pageDescription", { count: metadata.total })
+          }
           actions={
             <>
               <Button variant="outline" onClick={() => setShowImportModal(true)}>
@@ -154,14 +188,19 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
                     <Percent />
                     {tr("products.bulkPriceUpdate")}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleTestImport}>
-                    <Sparkles />
-                    {tr("products.addTestProducts")}
-                  </DropdownMenuItem>
+                  {/* Örnek ürünler yalnızca boş hesapta anlamlı; dolu hesapta gerçek verinin arasına karışmasın */}
+                  {metadata.total === 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleTestImport}>
+                        <Sparkles />
+                        {tr("products.addTestProducts")}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={handleAddProduct}>
+              <Button onClick={handleAddProduct} title={tr("products.shortcuts.newProduct")}>
                 <Plus className="size-4" />
                 {tr("products.addProduct")}
               </Button>
@@ -169,7 +208,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
           }
         />
 
-        <ProductStatsCards stats={stats} />
+        <ProductStatsCards stats={stats} stockFilter={stockFilter} onStockFilterChange={handleStockFilterChange} />
 
         <div className="space-y-3">
           <ProductsToolbar
@@ -182,7 +221,22 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             activeFilterCount={activeFilterCount}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSortChange={handleSortChange}
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategoryChange}
+            stockFilter={stockFilter}
+            onStockFilterChange={handleStockFilterChange}
+            priceRange={priceRange}
+            onPriceRangeChange={handlePriceRangeChange}
+            onClearFilters={clearAllFilters}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
           />
+          {/* Geniş ekranda seçili filtreler zaten araç çubuğundaki düğmelerde yazıyor */}
+          <div className="xl:hidden">
           <ActiveFilters
             search={search}
             selectedCategory={selectedCategory}
@@ -194,15 +248,12 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             onClearPrice={() => handlePriceRangeChange([0, 0])}
             onClearAll={clearAllFilters}
           />
+          </div>
         </div>
 
         <ProductsFilterSheet
           open={showFilters}
           onOpenChange={setShowFilters}
-          sortField={sortField}
-          sortOrder={sortOrder}
-          onSortFieldChange={(field) => handleSortFieldChange(field as typeof sortField)}
-          onSortOrderChange={handleSortOrderChange}
           selectedCategory={selectedCategory}
           onCategoryChange={handleCategoryChange}
           categories={categories}
@@ -254,25 +305,37 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
                       <FileDown className="size-4" />
                       {tr("products.importExportShort")}
                     </Button>
+                    <Button variant="ghost" onClick={handleTestImport} disabled={isPending}>
+                      <Sparkles className="size-4" />
+                      {tr("products.tryWithSamples")}
+                    </Button>
                   </div>
                 }
               />
             )
           ) : (
+            <>
+            {canReorder && <ReorderHint status={reorderStatus} t={tr} />}
             <ProductsTable
               products={paginatedProducts}
-              allProducts={products}
-              search=""
               selectedIds={selectedIds}
               onSelectedIdsChange={setSelectedIds}
               onEdit={handleEditProduct}
               onDeleted={handleProductDeleted}
               onSaved={handleProductSaved}
               viewMode={viewMode}
-              reorderOffset={(currentPage - 1) * itemsPerPage}
-              onProductsReorder={(newProducts: Product[]) => handleTableReorder(newProducts)}
+              reorder={{
+                enabled: canReorder,
+                onMove: handleMove,
+                isFirstPage: currentPage <= 1,
+                isLastPage: currentPage >= totalPagesCount,
+              }}
               sort={{ field: sortField, order: sortOrder, onSort: handleColumnSort }}
+              selectAll={{ totalCount: filteredCount, onSelectAll: handleToolbarSelectAll }}
+              visibleColumns={visibleColumns}
+              onInlineUpdate={handleInlineUpdate}
             />
+            </>
           )}
 
           <ProductsPagination
@@ -354,10 +417,108 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
           selectedCount={selectedIds.length}
           onClearSelection={() => setSelectedIds([])}
           onBulkPriceUpdate={() => setShowPriceModal(true)}
+          onBulkCategory={() => setBulkDialog("category")}
+          onBulkStock={() => setBulkDialog("stock")}
+          onAddToCatalog={() => setBulkDialog("catalog")}
+          onExportSelected={handleExportSelected}
           onBulkDelete={handleBulkDelete}
-          isPending={isPending}
+          isPending={isPending || isBulkWorking}
+        />
+
+        <BulkCategoryDialog
+          open={bulkDialog === "category"}
+          onOpenChange={closeBulkDialog}
+          count={selectedIds.length}
+          isWorking={isBulkWorking}
+          categories={categories}
+          onSubmit={handleBulkCategory}
+        />
+        <BulkStockDialog
+          open={bulkDialog === "stock"}
+          onOpenChange={closeBulkDialog}
+          count={selectedIds.length}
+          isWorking={isBulkWorking}
+          onSubmit={handleBulkStock}
+        />
+        <AddToCatalogDialog
+          open={bulkDialog === "catalog"}
+          onOpenChange={closeBulkDialog}
+          count={selectedIds.length}
+          isWorking={isBulkWorking}
+          onSubmit={handleAddToCatalog}
         />
       </div>
     </TooltipProvider>
+  )
+}
+
+const REORDER_HINT_DISMISSED_KEY = "products.reorderHintDismissed"
+
+/** Manuel sıradayken tablonun üstündeki ipucu (bir kez kapatılabilir) + kaydetme durumu */
+function ReorderHint({ status, t }: { status: ReorderStatus; t: (key: string) => string }) {
+  // SSR'da gizli başlar; localStorage okunduktan sonra gerekiyorsa gösterilir (hydration uyumsuzluğu olmasın)
+  const [hintVisible, setHintVisible] = useState(false)
+
+  useEffect(() => {
+    try {
+      setHintVisible(localStorage.getItem(REORDER_HINT_DISMISSED_KEY) !== "1")
+    } catch {
+      setHintVisible(true)
+    }
+  }, [])
+
+  const dismissHint = () => {
+    setHintVisible(false)
+    try {
+      localStorage.setItem(REORDER_HINT_DISMISSED_KEY, "1")
+    } catch {
+      // Gizli sekme vb.: yalnızca bu oturumda gizlenir
+    }
+  }
+
+  if (!hintVisible && status === "idle") return null
+
+  return (
+    <div className="mb-2 flex min-h-6 items-center justify-between gap-3 text-xs text-muted-foreground">
+      {hintVisible ? (
+        <span className="flex items-center gap-1.5">
+          <GripVertical className="size-3.5 shrink-0" />
+          <span className="hidden md:inline">{t("products.reorder.hint")}</span>
+          {/* Mobilde tutamaç yok; sıralama ⋯ menüsünden */}
+          <span className="md:hidden">{t("products.reorder.hintMobile")}</span>
+          <button
+            type="button"
+            onClick={dismissHint}
+            aria-label={t("products.reorder.dismissHint")}
+            title={t("products.reorder.dismissHint")}
+            className="ml-0.5 flex size-5 items-center justify-center rounded hover:bg-muted hover:text-foreground"
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ) : (
+        <span />
+      )}
+      <span aria-live="polite" className="flex shrink-0 items-center gap-1">
+        {status === "saving" && (
+          <>
+            <Loader2 className="size-3.5 animate-spin" />
+            {t("products.reorder.saving")}
+          </>
+        )}
+        {status === "saved" && (
+          <>
+            <Check className="size-3.5 text-success" />
+            {t("products.reorder.saved")}
+          </>
+        )}
+        {status === "error" && (
+          <>
+            <AlertCircle className="size-3.5 text-destructive" />
+            {t("products.reorder.failedShort")}
+          </>
+        )}
+      </span>
+    </div>
   )
 }

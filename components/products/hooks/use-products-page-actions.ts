@@ -39,8 +39,6 @@ interface UseProductsPageActionsParams {
   setShowDeleteAlert: React.Dispatch<React.SetStateAction<boolean>>
   setShowPriceModal: React.Dispatch<React.SetStateAction<boolean>>
   setShowBulkImageModal: React.Dispatch<React.SetStateAction<boolean>>
-  setSortField: React.Dispatch<React.SetStateAction<"name" | "price" | "stock" | "created_at" | "category" | "order">>
-  setSortOrder: React.Dispatch<React.SetStateAction<"asc" | "desc">>
   setSearch: React.Dispatch<React.SetStateAction<string>>
   setSelectedCategory: React.Dispatch<React.SetStateAction<string>>
   setStockFilter: React.Dispatch<React.SetStateAction<"all" | "in_stock" | "low_stock" | "out_of_stock">>
@@ -56,15 +54,11 @@ export function useProductsPageActions(params: UseProductsPageActionsParams) {
   const selectionActions = useProductsSelectionActions({
     t: params.t,
     products: params.products,
-    sortField: params.sortField,
     search: params.search,
     selectedCategory: params.selectedCategory,
     stockFilter: params.stockFilter,
     priceRange: params.priceRange,
     setSelectedIds: params.setSelectedIds,
-    setProducts: params.setProducts,
-    setSortField: params.setSortField,
-    setSortOrder: params.setSortOrder,
     setSearch: params.setSearch,
     setSelectedCategory: params.setSelectedCategory,
     setStockFilter: params.setStockFilter,

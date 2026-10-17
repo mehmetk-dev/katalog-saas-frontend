@@ -2,7 +2,7 @@ import { Router } from 'express';
 import express from 'express';
 
 import { requireAuth } from '../middlewares/auth';
-import { expensiveReadLimiter, heavyMutationLimiter } from '../middlewares/rate-limiters';
+import { expensiveReadLimiter, heavyMutationLimiter, reorderLimiter } from '../middlewares/rate-limiters';
 import * as ProductController from '../controllers/products';
 
 const router = Router();
@@ -18,6 +18,7 @@ router.post('/bulk-delete', heavyMutationLimiter, ProductController.bulkDeletePr
 // SECURITY: Bulk import needs higher body limit (50MB) for large CSV/JSON imports
 router.post('/bulk-import', heavyMutationLimiter, express.json({ limit: '50mb' }), ProductController.bulkImportProducts);
 router.post('/reorder', heavyMutationLimiter, ProductController.reorderProducts);
+router.post('/move', reorderLimiter, ProductController.moveProduct);
 router.post('/bulk-price-update', heavyMutationLimiter, ProductController.bulkUpdatePrices);
 router.post('/bulk-image-update', heavyMutationLimiter, ProductController.bulkUpdateImages);
 router.post('/bulk-update-fields', heavyMutationLimiter, ProductController.bulkUpdateFields);

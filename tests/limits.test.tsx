@@ -55,6 +55,7 @@ vi.mock('@/lib/actions/products', () => ({
     bulkImportProducts: vi.fn(),
     bulkUpdatePrices: vi.fn(),
     addDummyProducts: vi.fn(),
+    checkProductsInCatalogs: vi.fn(async () => ({ productsInCatalogs: [], hasAnyInCatalogs: false })),
 }))
 
 vi.mock('@/lib/actions/catalogs', () => ({

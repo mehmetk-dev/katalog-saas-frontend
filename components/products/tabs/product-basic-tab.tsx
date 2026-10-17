@@ -2,7 +2,7 @@
 
 import React, { useState, memo } from "react"
 import { toast } from "sonner"
-import { Plus, Sparkles, Tag, Barcode, Wand2, ChevronDown, ChevronUp, FolderPlus, Loader2, X } from "lucide-react"
+import { Check, Plus, Sparkles, Wand2, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,7 +64,6 @@ export const ProductBasicTab = memo(function ProductBasicTab({
     allCategories, canCreateCategory, language, errors = {}, t,
 }: ProductBasicTabProps) {
     const [categoryInput, setCategoryInput] = useState("")
-    const [showCategories, setShowCategories] = useState(false)
     const [isGenerating, setIsGenerating] = useState(false)
 
     // Gerçek yapay zeka açıklaması (Excel düzenleyicisinin kullandığı uç); önceden ürüne bakmadan
@@ -127,224 +126,175 @@ export const ProductBasicTab = memo(function ProductBasicTab({
         }
     }
 
+    // Mevcut kategoriler + bu üründe yeni eklenip henüz listede olmayanlar
+    const categoryOptions = Array.from(new Set([...allCategories, ...category]))
+
     return (
         <div className="space-y-5">
-            {/* Name */}
-            <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="name" className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-muted-foreground" />
-                        {t("products.name")} *
-                    </Label>
-                    <Input
-                        id="name"
-                        value={name}
-                        onChange={(e) => onNameChange(e.target.value)}
-                        required
-                        maxLength={200}
-                        aria-invalid={Boolean(errors.name)}
-                        aria-describedby={errors.name ? "name-error" : undefined}
-                        placeholder={t("products.productNamePlaceholder")}
-                        className="h-11"
-                    />
-                    <FieldError id="name-error" message={errors.name} />
-                </div>
-
-                {/* SKU */}
-                <div className="space-y-2">
-                    <Label htmlFor="sku" className="flex items-center gap-2">
-                        <Barcode className="w-4 h-4 text-muted-foreground" />
-                        {t("products.sku")}
-                    </Label>
-                    <div className="flex gap-2">
-                        <Input
-                            id="sku"
-                            value={sku}
-                            onChange={(e) => onSkuChange(e.target.value)}
-                            placeholder={t("products.skuPlaceholder")}
-                            className="h-11"
-                        />
-                        <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={generateSKU} aria-label={t("toasts.skuGenerated")}>
-                            <Sparkles className="w-4 h-4" />
-                        </Button>
-                    </div>
-                </div>
-                <div className="hidden sm:block" />
-            </div>
-
-            {/* Categories */}
-            <div className="space-y-2 pt-2">
-                <button
-                    type="button"
-                    onClick={() => setShowCategories(!showCategories)}
-                    className={cn(
-                        "w-full flex items-center justify-between p-3",
-                        "rounded-lg border bg-muted/30",
-                        "hover:bg-muted/50 transition-colors"
-                    )}
-                >
-                    <div className="flex items-center gap-2">
-                        <FolderPlus className="w-4 h-4 text-primary" />
-                        <span className="font-medium text-sm">{t("categories.title")}</span>
-                        {category.length > 0 && (
-                            <Badge variant="secondary" className="bg-accent text-primary text-xs">
-                                {t("products.selected", { count: category.length })}
-                            </Badge>
-                        )}
-                    </div>
-                    {showCategories
-                        ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                        : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    }
-                </button>
-
-                {/* Selected categories (collapsed view) */}
-                {category.length > 0 && !showCategories && (
-                    <div className="flex flex-wrap gap-1.5 px-1">
-                        {category.map((cat, idx) => (
-                            <Badge
-                                key={idx}
-                                variant="secondary"
-                                className={cn(
-                                    "pl-2 pr-1 py-0.5 gap-1 text-xs",
-                                    "bg-accent text-primary border-border"
-                                )}
-                            >
-                                {cat}
-                                <button
-                                    type="button"
-                                    onClick={() => onCategoryChange(category.filter((_, i) => i !== idx))}
-                                    className="ml-0.5 hover:bg-accent rounded-full p-0.5"
-                                >
-                                    <X className="w-2.5 h-2.5" />
-                                </button>
-                            </Badge>
-                        ))}
-                    </div>
-                )}
-
-                {/* Category picker (expanded) */}
-                {showCategories && (
-                    <div className={cn(
-                        "space-y-3 p-3 border rounded-lg bg-background",
-                        "animate-in slide-in-from-top-2 duration-200"
-                    )}>
-                        {allCategories.length > 0 && (
-                            <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">{t("products.existingCategories")}</Label>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {allCategories.map((cat) => (
-                                        <button
-                                            key={cat}
-                                            type="button"
-                                            onClick={() => toggleCategory(cat)}
-                                            className={cn(
-                                                "px-2.5 py-1 text-xs rounded-full",
-                                                "border transition-all",
-                                                category.includes(cat)
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "bg-background hover:bg-accent hover:border-border"
-                                            )}
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        <div className="flex gap-2">
-                            <Input
-                                name="newCategoryInput"
-                                value={categoryInput}
-                                onChange={(e) => setCategoryInput(e.target.value)}
-                                disabled={!canCreateCategory}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault()
-                                        if (categoryInput.trim()) {
-                                            addNewCategory()
-                                        }
-                                    }
-                                }}
-                                onBlur={() => {
-                                    // onBlur'da otomatik ekleme kaldırıldı — yalnızca Enter ve buton ile eklenir
-                                }}
-                                placeholder={t("products.newCategory")}
-                                className="h-8 text-sm"
-                            />
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="h-8 px-3 bg-primary hover:bg-primary/90"
-                                onClick={addNewCategory}
-                                disabled={!canCreateCategory || !categoryInput.trim()}
-                            >
-                                <Plus className="w-3.5 h-3.5" />
-                            </Button>
-                        </div>
-                        {!canCreateCategory && (
-                            <p className="text-xs text-muted-foreground">
-                                {t("products.categoryUpgradeHint")}
-                            </p>
-                        )}
-                        {category.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-2 border-t">
-                                {category.map((cat, idx) => (
-                                    <Badge
-                                        key={idx}
-                                        variant="secondary"
-                                        className={cn(
-                                            "pl-2 pr-1 py-0.5 gap-1 text-xs",
-                                            "bg-accent text-primary"
-                                        )}
-                                    >
-                                        {cat}
-                                        <button
-                                            type="button"
-                                            onClick={() => onCategoryChange(category.filter((_, i) => i !== idx))}
-                                            className="ml-0.5 hover:bg-accent rounded-full p-0.5"
-                                        >
-                                            <X className="w-2.5 h-2.5" />
-                                        </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Product URL */}
-            <div className="space-y-2 pt-2">
-                <Label htmlFor="productUrl" className="flex items-center gap-2 text-sm">
-                    <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                        />
-                    </svg>
-                    {t("products.productUrl")}
-                    <span className="text-xs text-muted-foreground font-normal">{t("productForm.optional")}</span>
+            {/* Ad */}
+            <div className="space-y-2">
+                <Label htmlFor="name">
+                    {t("products.name")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                    id="productUrl"
-                    type="url"
-                    inputMode="url"
-                    value={productUrl}
-                    onChange={(e) => onProductUrlChange(e.target.value)}
-                    onBlur={(e) => onProductUrlChange(normalizeProductUrl(e.target.value))}
-                    aria-invalid={Boolean(errors.productUrl)}
-                    aria-describedby={errors.productUrl ? "productUrl-error" : undefined}
-                    placeholder="https://example.com/urun-sayfasi"
+                    id="name"
+                    value={name}
+                    onChange={(e) => onNameChange(e.target.value)}
+                    required
+                    maxLength={200}
+                    aria-invalid={Boolean(errors.name)}
+                    aria-describedby={errors.name ? "name-error" : undefined}
+                    placeholder={t("products.productNamePlaceholder")}
                     className="h-10"
                 />
-                <FieldError id="productUrl-error" message={errors.productUrl} />
-                <p className="text-xs text-muted-foreground">{t("products.productUrlDesc")}</p>
+                <FieldError id="name-error" message={errors.name} />
             </div>
 
-            {/* Description */}
+            {/* Fiyat & stok: en sık doldurulan alanlar ilk ekranda */}
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <Label htmlFor="price">{t("products.price")}</Label>
+                    <div className="flex h-10 overflow-hidden rounded-md border bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+                        <Select value={currency} onValueChange={onCurrencyChange}>
+                            <SelectTrigger aria-label={t("products.currency")} className="h-full w-[6.5rem] shrink-0 rounded-none border-0 border-r bg-muted/40 shadow-none focus-visible:ring-0">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="z-[100]">
+                                <SelectItem value="TRY">₺ TRY</SelectItem>
+                                <SelectItem value="USD">$ USD</SelectItem>
+                                <SelectItem value="EUR">€ EUR</SelectItem>
+                                <SelectItem value="GBP">£ GBP</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <input
+                            id="price"
+                            type="text"
+                            inputMode="decimal"
+                            value={price}
+                            onChange={(e) => onPriceChange(e.target.value.replace(/[^0-9.,]/g, ""))}
+                            aria-invalid={Boolean(errors.price)}
+                            aria-describedby={errors.price ? "price-error" : undefined}
+                            placeholder={language === "en" ? "0.00" : "0,00"}
+                            className="min-w-0 flex-1 bg-transparent px-3 text-right text-sm font-medium tabular-nums outline-none placeholder:text-muted-foreground"
+                        />
+                    </div>
+                    <FieldError id="price-error" message={errors.price} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="stock">{t("products.stockCount")}</Label>
+                    <div className="relative">
+                        <Input
+                            id="stock"
+                            type="number"
+                            min="0"
+                            step="1"
+                            inputMode="numeric"
+                            value={stock}
+                            onChange={(e) => onStockChange(e.target.value)}
+                            aria-invalid={Boolean(errors.stock)}
+                            aria-describedby={errors.stock ? "stock-error" : "stock-status"}
+                            placeholder="0"
+                            className="h-10 pr-24 tabular-nums"
+                        />
+                        <span id="stock-status" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+                            {Number(stock) === 0 ? (
+                                <Badge className="border-destructive/20 bg-destructive-soft text-destructive-soft-foreground">{t("products.outOfStock")}</Badge>
+                            ) : Number(stock) < 10 ? (
+                                <Badge variant="warning">{t("products.lowStock")}</Badge>
+                            ) : (
+                                <Badge variant="success">{t("products.inStock")}</Badge>
+                            )}
+                        </span>
+                    </div>
+                    <FieldError id="stock-error" message={errors.stock} />
+                </div>
+            </div>
+
+            {/* Stok kodu */}
+            <div className="space-y-2">
+                <Label htmlFor="sku">
+                    {t("products.sku")} <span className="text-xs font-normal text-muted-foreground">{t("productForm.optional")}</span>
+                </Label>
+                <div className="flex gap-2">
+                    <Input
+                        id="sku"
+                        value={sku}
+                        onChange={(e) => onSkuChange(e.target.value)}
+                        placeholder={t("products.skuPlaceholder")}
+                        className="h-10 font-mono"
+                    />
+                    <Button type="button" variant="outline" className="h-10 shrink-0" onClick={generateSKU} title={t("productForm.generateSkuHint")}>
+                        <Sparkles className="size-4" />
+                        {t("productForm.generateSku")}
+                    </Button>
+                </div>
+            </div>
+
+            {/* Kategoriler: seçili olanlar işaretli; tıklayınca eklenir/çıkarılır */}
+            <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                    <Label>{t("categories.title")}</Label>
+                    {category.length > 0 && (
+                        <span className="text-xs text-muted-foreground">{t("products.selected", { count: category.length })}</span>
+                    )}
+                </div>
+                {categoryOptions.length > 0 && (
+                    <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                        {categoryOptions.map((cat) => {
+                            const active = category.includes(cat)
+                            return (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    aria-pressed={active}
+                                    onClick={() => toggleCategory(cat)}
+                                    className={cn(
+                                        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        active ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted"
+                                    )}
+                                >
+                                    {active && <Check className="size-3" />}
+                                    {cat}
+                                </button>
+                            )
+                        })}
+                    </div>
+                )}
+                <div className="flex gap-2">
+                    <Input
+                        name="newCategoryInput"
+                        aria-label={t("products.newCategory")}
+                        value={categoryInput}
+                        onChange={(e) => setCategoryInput(e.target.value)}
+                        disabled={!canCreateCategory}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault()
+                                if (categoryInput.trim()) addNewCategory()
+                            }
+                        }}
+                        placeholder={t("products.newCategory")}
+                        className="h-9 text-sm"
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="size-9 shrink-0"
+                        onClick={addNewCategory}
+                        disabled={!canCreateCategory || !categoryInput.trim()}
+                        aria-label={t("products.addCategory")}
+                        title={t("products.addCategory")}
+                    >
+                        <Plus className="size-4" />
+                    </Button>
+                </div>
+                {!canCreateCategory && (
+                    <p className="text-xs text-muted-foreground">{t("products.categoryUpgradeHint")}</p>
+                )}
+            </div>
+
+            {/* Açıklama */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <Label htmlFor="description">{t("products.description")}</Label>
@@ -352,14 +302,11 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className={cn(
-                            "h-7 text-xs gap-1.5 text-primary",
-                            "hover:text-primary hover:bg-accent"
-                        )}
+                        className="h-7 gap-1.5 text-xs"
                         onClick={generateAiDescription}
                         disabled={isGenerating}
                     >
-                        {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                        {isGenerating ? <Loader2 className="size-3.5 animate-spin" /> : <Wand2 className="size-3.5" />}
                         {isGenerating ? t("productForm.aiGenerating") : t("products.generateAi")}
                     </Button>
                 </div>
@@ -374,75 +321,25 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                 />
             </div>
 
-            {/* Price & Stock */}
-            <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
-                <div className="space-y-2">
-                    <Label htmlFor="price" className="text-sm font-medium">{t("products.price")}</Label>
-                    <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
-                        <Select value={currency} onValueChange={onCurrencyChange}>
-                            <SelectTrigger className={cn(
-                                "w-24 h-11 px-3 bg-card",
-                                "border border-border",
-                                "text-lg font-bold shadow-sm",
-                                "hover:border-primary transition-colors"
-                            )}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="z-[100]">
-                                <SelectItem value="TRY">₺</SelectItem>
-                                <SelectItem value="USD">$</SelectItem>
-                                <SelectItem value="EUR">€</SelectItem>
-                                <SelectItem value="GBP">£</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Input
-                            id="price"
-                            type="text"
-                            inputMode="decimal"
-                            value={price}
-                            onChange={(e) => onPriceChange(e.target.value.replace(/[^0-9.,]/g, ""))}
-                            aria-invalid={Boolean(errors.price)}
-                            aria-describedby={errors.price ? "price-error" : undefined}
-                            placeholder={language === "en" ? "0.00" : "0,00"}
-                            className={cn(
-                                "flex-1 h-12 text-2xl font-bold border-0",
-                                "bg-transparent focus-visible:ring-0 text-right"
-                            )}
-                        />
-                    </div>
-                    <FieldError id="price-error" message={errors.price} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="stock" className="text-sm font-medium">{t("products.stockCount")}</Label>
-                    <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
-                        <Input
-                            id="stock"
-                            type="number"
-                            min="0"
-                            step="1"
-                            inputMode="numeric"
-                            value={stock}
-                            onChange={(e) => onStockChange(e.target.value)}
-                            aria-invalid={Boolean(errors.stock)}
-                            aria-describedby={errors.stock ? "stock-error" : undefined}
-                            placeholder="0"
-                            className={cn(
-                                "flex-1 h-12 text-2xl font-bold border-0",
-                                "bg-transparent focus-visible:ring-0 text-center"
-                            )}
-                        />
-                        <div className="shrink-0">
-                            {Number(stock) === 0 ? (
-                                <Badge className="border-destructive/20 bg-destructive-soft px-3 py-1 text-sm text-destructive-soft-foreground">{t("products.outOfStock")}</Badge>
-                            ) : Number(stock) < 10 ? (
-                                <Badge variant="warning" className="px-3 py-1 text-sm">{t("products.lowStock")}</Badge>
-                            ) : (
-                                <Badge variant="success" className="px-3 py-1 text-sm">{t("products.inStock")}</Badge>
-                            )}
-                        </div>
-                    </div>
-                    <FieldError id="stock-error" message={errors.stock} />
-                </div>
+            {/* Ürün linki */}
+            <div className="space-y-2">
+                <Label htmlFor="productUrl">
+                    {t("products.productUrl")} <span className="text-xs font-normal text-muted-foreground">{t("productForm.optional")}</span>
+                </Label>
+                <Input
+                    id="productUrl"
+                    type="url"
+                    inputMode="url"
+                    value={productUrl}
+                    onChange={(e) => onProductUrlChange(e.target.value)}
+                    onBlur={(e) => onProductUrlChange(normalizeProductUrl(e.target.value))}
+                    aria-invalid={Boolean(errors.productUrl)}
+                    aria-describedby={errors.productUrl ? "productUrl-error" : "productUrl-desc"}
+                    placeholder="https://example.com/urun-sayfasi"
+                    className="h-10"
+                />
+                <FieldError id="productUrl-error" message={errors.productUrl} />
+                <p id="productUrl-desc" className="text-xs text-muted-foreground">{t("products.productUrlDesc")}</p>
             </div>
         </div>
     )

@@ -102,6 +102,16 @@ export const heavyMutationLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Sürükle-bırak sıralama: kullanıcı art arda çok sayıda taşıma yapabilir (heavyMutation 30/15dk yetmiyordu)
+export const reorderLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: isDev ? 1000 : 90,
+    keyGenerator: getUserOrIpKey,
+    message: { error: 'Too many reorder operations, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 export const billingMutationLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: isDev ? 200 : 20,

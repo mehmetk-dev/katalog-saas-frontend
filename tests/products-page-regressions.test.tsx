@@ -1,16 +1,21 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { createProductSchema, productsQuerySchema } from '@/backend/src/controllers/products/schemas'
 import type { Product } from '@/lib/actions/products'
 import { useProductsImportExportActions } from '@/components/products/hooks/use-products-import-export-actions'
 import { useProductsSelectionActions } from '@/components/products/hooks/use-products-selection-actions'
-import { ProductsFilterSheet } from '@/components/products/filters/filter-sheet'
+import { useProductsReorder } from '@/components/products/hooks/use-products-reorder'
+import { SORT_CHOICES } from '@/components/products/toolbar/toolbar'
 import {
-    buildProductOrderPayload,
+    applyLocalMove,
     mapSortFieldToProductSort,
+    nextColumnSort,
+    normalizeSortOrder,
+    resolveDropPosition,
 } from '@/components/products/products-page-utils'
-import { bulkImportProducts, getAllProductIds, getProducts } from '@/lib/actions/products'
+import { computeMoveUpdates, MoveError } from '@/backend/src/controllers/products/ordering'
+import { bulkImportProducts, getAllProductIds, getProducts, moveProduct } from '@/lib/actions/products'
 
 vi.mock('@/lib/actions/products', async () => {
     const actual = await vi.importActual<typeof import('@/lib/actions/products')>('@/lib/actions/products')
@@ -19,8 +24,11 @@ vi.mock('@/lib/actions/products', async () => {
         bulkImportProducts: vi.fn(),
         getAllProductIds: vi.fn(),
         getProducts: vi.fn(),
+        moveProduct: vi.fn(),
     }
 })
+
+vi.mock('@/backend/src/services/supabase', () => ({ supabase: {} }))
 
 vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({ t: (key: string) => key, language: 'tr' }),
@@ -32,6 +40,7 @@ vi.mock('sonner', () => ({
         error: vi.fn(),
         loading: vi.fn(),
         dismiss: vi.fn(),
+        info: vi.fn(),
     },
 }))
 
@@ -76,13 +85,129 @@ describe('products page regressions', () => {
         expect(result.success).toBe(true)
     })
 
-    it('builds page-offset order payloads for paginated drag reorder', () => {
-        const payload = buildProductOrderPayload([makeProduct('p-13'), makeProduct('p-14')], 12)
-
-        expect(payload).toEqual([
-            { id: 'p-13', order: 12 },
-            { id: 'p-14', order: 13 },
+    it('moves a product before/after a target across the whole list (server)', () => {
+        const rows = ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({ id, display_order: i }))
+        // e → b'nin önüne: a e b c d — yalnızca değişen satırlar yazılır
+        expect(computeMoveUpdates(rows, { id: 'e', position: 'before', targetId: 'b' })).toEqual([
+            { id: 'e', order: 1 },
+            { id: 'b', order: 2 },
+            { id: 'c', order: 3 },
+            { id: 'd', order: 4 },
         ])
+        expect(computeMoveUpdates(rows, { id: 'a', position: 'after', targetId: 'c' })).toEqual([
+            { id: 'b', order: 0 },
+            { id: 'c', order: 1 },
+            { id: 'a', order: 2 },
+        ])
+        expect(computeMoveUpdates(rows, { id: 'c', position: 'first' })).toEqual([
+            { id: 'c', order: 0 },
+            { id: 'a', order: 1 },
+            { id: 'b', order: 2 },
+        ])
+        expect(computeMoveUpdates(rows, { id: 'b', position: 'last' })).toEqual([
+            { id: 'c', order: 1 },
+            { id: 'd', order: 2 },
+            { id: 'e', order: 3 },
+            { id: 'b', order: 4 },
+        ])
+        // Yer değişmiyorsa yazma yok
+        expect(computeMoveUpdates(rows, { id: 'b', position: 'after', targetId: 'a' })).toEqual([])
+    })
+
+    it('normalizes duplicate legacy display_order values into a dense order on first move', () => {
+        // Eski kayıtların hepsi 0: kanonik sıra (created_at/id) korunur ve 0..n-1 olur
+        const rows = ['a', 'b', 'c'].map((id) => ({ id, display_order: 0 }))
+        expect(computeMoveUpdates(rows, { id: 'c', position: 'before', targetId: 'b' })).toEqual([
+            { id: 'c', order: 1 },
+            { id: 'b', order: 2 },
+        ])
+    })
+
+    it('rejects moves with a missing source or target', () => {
+        const rows = [{ id: 'a', display_order: 0 }, { id: 'b', display_order: 1 }]
+        expect(() => computeMoveUpdates(rows, { id: 'x', position: 'first' })).toThrow(MoveError)
+        expect(() => computeMoveUpdates(rows, { id: 'a', position: 'before', targetId: 'x' })).toThrow(MoveError)
+        expect(() => computeMoveUpdates(rows, { id: 'a', position: 'before', targetId: 'a' })).toThrow(MoveError)
+    })
+
+    it('applies moves optimistically to the visible page', () => {
+        const page = ['a', 'b', 'c', 'd'].map((id) => makeProduct(id))
+        const ids = (list: Product[]) => list.map((p) => p.id)
+        const middle = { isFirst: false, isLast: false }
+
+        expect(ids(applyLocalMove(page, { id: 'd', position: 'before', targetId: 'b' }, middle))).toEqual(['a', 'd', 'b', 'c'])
+        expect(ids(applyLocalMove(page, { id: 'a', position: 'after', targetId: 'c' }, middle))).toEqual(['b', 'c', 'a', 'd'])
+        // Başka sayfaya giden ürün bu sayfadan çıkar
+        expect(ids(applyLocalMove(page, { id: 'c', position: 'first' }, middle))).toEqual(['a', 'b', 'd'])
+        expect(ids(applyLocalMove(page, { id: 'c', position: 'first' }, { isFirst: true, isLast: false }))).toEqual(['c', 'a', 'b', 'd'])
+        expect(ids(applyLocalMove(page, { id: 'b', position: 'last' }, { isFirst: false, isLast: true }))).toEqual(['a', 'c', 'd', 'b'])
+    })
+
+    it('resolves drop position from drag direction or pointer', () => {
+        const page = ['a', 'b', 'c'].map((id) => makeProduct(id))
+        expect(resolveDropPosition(page, 'a', 'c')).toBe('after')
+        expect(resolveDropPosition(page, 'c', 'a')).toBe('before')
+        expect(resolveDropPosition(page, 'c', 'a', true)).toBe('after')
+    })
+
+    it('keeps manual order ascending and cycles column sort back to manual', () => {
+        expect(normalizeSortOrder('order', 'desc')).toBe('asc')
+        expect(normalizeSortOrder('price', 'desc')).toBe('desc')
+
+        expect(nextColumnSort({ field: 'order', order: 'asc' }, 'name')).toEqual({ field: 'name', order: 'asc' })
+        expect(nextColumnSort({ field: 'name', order: 'asc' }, 'name')).toEqual({ field: 'name', order: 'desc' })
+        expect(nextColumnSort({ field: 'name', order: 'desc' }, 'name')).toEqual({ field: 'order', order: 'asc' })
+        expect(nextColumnSort({ field: 'order', order: 'asc' }, 'price')).toEqual({ field: 'price', order: 'desc' })
+        expect(nextColumnSort({ field: 'price', order: 'desc' }, 'price')).toEqual({ field: 'price', order: 'asc' })
+    })
+
+    it('offers each sort choice exactly once', () => {
+        const keys = SORT_CHOICES.map((c) => `${c.field}:${c.order}`)
+        expect(new Set(keys).size).toBe(keys.length)
+        expect(SORT_CHOICES[0]).toMatchObject({ field: 'order', order: 'asc' })
+    })
+
+    it('sends consecutive moves one at a time and refreshes once when they finish', async () => {
+        const calls: string[] = []
+        let release!: () => void
+        vi.mocked(moveProduct).mockImplementation(async (move) => {
+            calls.push(`start:${move.id}`)
+            if (move.id === 'a') await new Promise<void>((resolve) => { release = resolve })
+            calls.push(`end:${move.id}`)
+            return { success: true }
+        })
+        const routerRefresh = vi.fn()
+        const setProducts = vi.fn()
+
+        const { result } = renderHook(() => useProductsReorder({
+            t: (key) => key,
+            currentPage: 2,
+            totalPages: 3,
+            setProducts,
+            routerRefresh,
+        }))
+
+        act(() => {
+            result.current.handleMove({ id: 'a', position: 'first' })
+            result.current.handleMove({ id: 'b', position: 'after', targetId: 'c' })
+        })
+        expect(result.current.reorderStatus).toBe('saving')
+        expect(setProducts).toHaveBeenCalledTimes(2)
+
+        await act(async () => {
+            await Promise.resolve()
+        })
+        expect(calls).toEqual(['start:a'])
+
+        await act(async () => {
+            release()
+            await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+
+        expect(calls).toEqual(['start:a', 'end:a', 'start:b', 'end:b'])
+        // "first" başka sayfaya taşıdığı için kuyruk bitince tek bir yenileme
+        expect(routerRefresh).toHaveBeenCalledTimes(1)
+        expect(result.current.reorderStatus).toBe('saved')
     })
 
     it('maps UI sort fields to product query sort fields', () => {
@@ -183,37 +308,6 @@ describe('products page regressions', () => {
             sortBy: 'price',
             sortOrder: 'desc',
         })
-    })
-
-    it('does not issue a separate sort order update when selecting a new sort field', () => {
-        const onSortFieldChange = vi.fn()
-        const onSortOrderChange = vi.fn()
-
-        render(
-            <ProductsFilterSheet
-                open
-                onOpenChange={vi.fn()}
-                sortField="created_at"
-                sortOrder="asc"
-                onSortFieldChange={onSortFieldChange}
-                onSortOrderChange={onSortOrderChange}
-                selectedCategory="all"
-                onCategoryChange={vi.fn()}
-                categories={[]}
-                stockFilter="all"
-                onStockFilterChange={vi.fn()}
-                priceRange={[0, 0]}
-                onPriceRangeChange={vi.fn()}
-                hasActiveFilters={false}
-                onClearFilters={vi.fn()}
-                filteredCount={0}
-            />
-        )
-
-        fireEvent.click(screen.getByRole('button', { name: /filters\.sortPrice/i }))
-
-        expect(onSortFieldChange).toHaveBeenCalledWith('price')
-        expect(onSortOrderChange).not.toHaveBeenCalled()
     })
 
     it('passes active filters when selecting all products across pages', async () => {

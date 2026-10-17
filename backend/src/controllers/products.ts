@@ -4,6 +4,7 @@ export {
     bulkDeleteProducts,
     bulkImportProducts,
     reorderProducts,
+    moveProduct,
     bulkUpdatePrices,
     renameCategory,
     deleteCategoryFromProducts,

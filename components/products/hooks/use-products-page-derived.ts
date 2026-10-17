@@ -27,8 +27,9 @@ export function useProductsPageDerived({
   metadataTotalPages,
 }: UseProductsPageDerivedParams): ProductsPageDerived {
   const categories = useMemo(() => {
-    const pageCategories = products.map((p) => p.category).filter(Boolean) as string[]
-    return [...new Set([...initialAllCategories, ...pageCategories])].sort()
+    // Ürünün kategori alanı virgülle ayrılmış birden çok kategori içerebilir
+    const pageCategories = products.flatMap((p) => (p.category || "").split(",").map((c) => c.trim()).filter(Boolean))
+    return [...new Set([...initialAllCategories, ...pageCategories])].sort((a, b) => a.localeCompare(b, "tr-TR"))
   }, [products, initialAllCategories])
 
   const hasActiveFilters =

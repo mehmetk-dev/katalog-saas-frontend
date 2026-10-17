@@ -312,17 +312,29 @@ export async function bulkImportProducts(products: Omit<Product, "id" | "user_id
   }
 }
 
-export async function updateProductOrder(orderData: { id: string; order: number }[]) {
+export type ProductMovePosition = "before" | "after" | "first" | "last"
+
+export interface ProductMove {
+  id: string
+  position: ProductMovePosition
+  /** before/after için zorunlu */
+  targetId?: string
+}
+
+/**
+ * Bir ürünü manuel sırada taşır. Sıra sunucuda kullanıcının tüm ürünleri üzerinden
+ * hesaplanır (sayfa/filtreden bağımsız). revalidatePath bilerek çağrılmaz: istemci
+ * iyimser güncelleme yapar ve art arda taşımalar bitince kendisi yeniler.
+ */
+export async function moveProduct(move: ProductMove): Promise<{ success: boolean }> {
   try {
-    await apiFetch("/products/reorder", {
+    await apiFetch("/products/move", {
       method: "POST",
-      body: JSON.stringify({ order: orderData }),
+      body: JSON.stringify(move),
     })
-    revalidatePath("/dashboard/products")
     return { success: true }
   } catch (error) {
-    // Sıralama kaydetme başarısız olsa bile UI'da çalışmaya devam et
-    console.error("Error updating product order:", error)
+    console.error("Error moving product:", error)
     return { success: false }
   }
 }

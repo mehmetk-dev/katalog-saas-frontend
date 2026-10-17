@@ -13,6 +13,7 @@ import {
   parseSortFieldFromQuery,
   parseSortOrderFromQuery,
   parseStockFilterFromQuery,
+  normalizeSortOrder,
   type SortField,
   type SortOrder,
   type StockFilter,
@@ -57,7 +58,9 @@ export function useProductsPageState({
 
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [sortField, setSortField] = useState<SortField>(parseSortFieldFromQuery(searchParams.get("sortBy")))
-  const [sortOrder, setSortOrder] = useState<SortOrder>(parseSortOrderFromQuery(searchParams.get("sortOrder")))
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() =>
+    normalizeSortOrder(parseSortFieldFromQuery(searchParams.get("sortBy")), parseSortOrderFromQuery(searchParams.get("sortOrder")))
+  )
   const [stockFilter, setStockFilter] = useState<StockFilter>(parseStockFilterFromQuery(searchParams.get("stockFilter")))
   const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get("category") || "all")
   const [priceRange, setPriceRange] = useState<[number, number]>([

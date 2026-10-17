@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,14 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
-
-const SORT_OPTIONS = [
-    { value: "order", labelKey: "filters.sortManual" },
-    { value: "created_at", labelKey: "filters.sortNew" },
-    { value: "name", labelKey: "filters.sortName" },
-    { value: "price", labelKey: "filters.sortPrice" },
-    { value: "stock", labelKey: "filters.sortStock" },
-] as const
 
 const STOCK_OPTIONS = [
     { value: "all", labelKey: "filters.all" },
@@ -29,10 +20,6 @@ const STOCK_OPTIONS = [
 interface ProductsFilterSheetProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    sortField: string
-    sortOrder: "asc" | "desc"
-    onSortFieldChange: (field: string) => void
-    onSortOrderChange: (order: "asc" | "desc") => void
     selectedCategory: string
     onCategoryChange: (category: string) => void
     categories: string[]
@@ -66,10 +53,6 @@ function parsePriceInput(value: string): number {
 export function ProductsFilterSheet({
     open,
     onOpenChange,
-    sortField,
-    sortOrder,
-    onSortFieldChange,
-    onSortOrderChange,
     selectedCategory,
     onCategoryChange,
     categories,
@@ -97,42 +80,15 @@ export function ProductsFilterSheet({
         if (next[0] !== priceRange[0] || next[1] !== priceRange[1]) onPriceRangeChange(next)
     }
 
-    const isManualOrder = sortField === "order"
-
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="right" className="flex w-full flex-col gap-0 sm:max-w-sm">
-                <SheetHeader className="border-b">
+            <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-sm">
+                <SheetHeader className="border-b p-4 pr-12">
                     <SheetTitle>{t("products.filterBy")}</SheetTitle>
                     <SheetDescription>{t("filters.description")}</SheetDescription>
                 </SheetHeader>
 
                 <div className="flex-1 space-y-6 overflow-y-auto p-4">
-                    {/* Sıralama */}
-                    <div className="space-y-2">
-                        <Label>{t("filters.sort")}</Label>
-                        <div className="flex flex-wrap gap-1.5">
-                            {SORT_OPTIONS.map((opt) => (
-                                <ToggleButton key={opt.value} active={sortField === opt.value} onClick={() => onSortFieldChange(opt.value)}>
-                                    {t(opt.labelKey)}
-                                </ToggleButton>
-                            ))}
-                        </div>
-                        <div className={cn("flex items-center gap-2 pt-1", isManualOrder && "opacity-50")}>
-                            <span className="text-xs text-muted-foreground">{t("filters.sortDirection")}</span>
-                            <div className="flex gap-1.5">
-                                <ToggleButton active={!isManualOrder && sortOrder === "asc"} disabled={isManualOrder} onClick={() => onSortOrderChange("asc")}>
-                                    <ArrowUpNarrowWide className="size-3.5" />
-                                    {t("filters.ascending")}
-                                </ToggleButton>
-                                <ToggleButton active={!isManualOrder && sortOrder === "desc"} disabled={isManualOrder} onClick={() => onSortOrderChange("desc")}>
-                                    <ArrowDownWideNarrow className="size-3.5" />
-                                    {t("filters.descending")}
-                                </ToggleButton>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Kategori */}
                     <div className="space-y-2">
                         <Label>{t("filters.category")}</Label>
@@ -187,7 +143,7 @@ export function ProductsFilterSheet({
                     </div>
                 </div>
 
-                <SheetFooter className="flex-row gap-2 border-t">
+                <SheetFooter className="flex-row gap-2 border-t p-4">
                     {hasActiveFilters && (
                         <Button variant="outline" className="flex-1" onClick={onClearFilters}>
                             {t("filters.clear")}

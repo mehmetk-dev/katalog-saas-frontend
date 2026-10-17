@@ -6,6 +6,7 @@ import { logActivity, getRequestInfo, ActivityDescriptions } from '../../service
 import { getUserId } from './helpers';
 import { bulkImportSchema } from './schemas';
 import { safeErrorMessage } from '../../utils/safe-error';
+import { getLeadingDisplayOrders } from './ordering';
 import { DB_CHUNK_SIZE, chunkArray, parseCategoryList } from './bulk-utils';
 
 export const bulkImportProducts = async (req: Request, res: Response) => {
@@ -68,7 +69,9 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
             }
         }
 
-        const productsToInsert = products.map((p) => ({
+        // İçe aktarılan ürünler dosyadaki sırayla listenin başına yerleşir
+        const displayOrders = await getLeadingDisplayOrders(userId, products.length);
+        const productsToInsert = products.map((p, index) => ({
             user_id: userId,
             name: p.name,
             sku: p.sku || null,
@@ -80,6 +83,7 @@ export const bulkImportProducts = async (req: Request, res: Response) => {
             images: p.images || [],
             product_url: p.product_url || null,
             custom_attributes: p.custom_attributes || [],
+            display_order: displayOrders[index],
         }));
 
         const insertedProducts: Record<string, unknown>[] = [];

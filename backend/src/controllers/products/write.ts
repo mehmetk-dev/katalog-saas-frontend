@@ -7,6 +7,7 @@ import { getUserId } from './helpers';
 import { createProductSchema, updateProductSchema } from './schemas';
 import { cleanupProductPhotos, collectProductPhotoUrls, normalizeCoverAndImages } from './media';
 import { safeErrorMessage } from '../../utils/safe-error';
+import { getLeadingDisplayOrders } from './ordering';
 
 type SupabaseErrorLike = {
     code?: string | null;
@@ -116,6 +117,8 @@ export const createProduct = async (req: Request, res: Response) => {
 
         const normalizedMedia = normalizeCoverAndImages(images || [], normalizeNullableText(image_url));
         const normalizedProductUrl = normalizeNullableText(product_url);
+        // Yeni ürün manuel sıralamada en başa gelir (önceden hepsi 0 alıp sırası belirsiz kalıyordu)
+        const [displayOrder] = await getLeadingDisplayOrders(userId, 1);
 
         const { data, error } = await supabase
             .from('products')
@@ -130,7 +133,8 @@ export const createProduct = async (req: Request, res: Response) => {
                 image_url: normalizedMedia.image_url,
                 images: normalizedMedia.images,
                 product_url: normalizedProductUrl,
-                custom_attributes: custom_attributes || []
+                custom_attributes: custom_attributes || [],
+                display_order: displayOrder
             })
             .select()
             .single();

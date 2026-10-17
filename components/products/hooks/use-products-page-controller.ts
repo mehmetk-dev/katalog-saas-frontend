@@ -6,6 +6,11 @@ import type { ProductsPageClientProps } from "@/components/products/products-pag
 import { useProductsPageState } from "./use-products-page-state"
 import { useProductsPageDerived } from "./use-products-page-derived"
 import { useProductsPageActions } from "./use-products-page-actions"
+import { useProductsReorder } from "./use-products-reorder"
+import { useProductsExtraActions } from "./use-products-extra-actions"
+import { useProductColumns } from "./use-product-columns"
+import { defaultSortOrder, nextColumnSort, normalizeSortOrder } from "@/components/products/products-page-utils"
+import type { SortableColumn } from "@/components/products/table/types"
 
 export function useProductsPageController(props: ProductsPageClientProps) {
   const { t, language } = useTranslation()
@@ -59,8 +64,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     setShowDeleteAlert: state.setShowDeleteAlert,
     setShowPriceModal: state.setShowPriceModal,
     setShowBulkImageModal: state.setShowBulkImageModal,
-    setSortField: state.setSortField,
-    setSortOrder: state.setSortOrder,
     setSearch: state.setSearch,
     setSelectedCategory: state.setSelectedCategory,
     setStockFilter: state.setStockFilter,
@@ -72,19 +75,45 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     updateUrl: state.updateUrl,
   })
 
-  const handleSortFieldChange = (field: typeof state.sortField) => {
-    // Metin sütunları A→Z, sayısal/tarih sütunları büyükten küçüğe başlar
-    const nextSortOrder = field === "order" || field === "name" || field === "category" ? "asc" : "desc"
+  const { reorderStatus, handleMove } = useProductsReorder({
+    t: (key, params) => String(t(key, params)),
+    currentPage: state.currentPage,
+    totalPages: state.metadata.totalPages,
+    setProducts: state.setProducts,
+    routerRefresh: () => state.router.refresh(),
+  })
+
+  const extraActions = useProductsExtraActions({
+    t: (key, params) => String(t(key, params)),
+    products: state.products,
+    selectedIds: state.selectedIds,
+    setProducts: state.setProducts,
+    setSelectedIds: state.setSelectedIds,
+    routerRefresh: () => state.router.refresh(),
+  })
+
+  const { visibleColumns, toggleColumn } = useProductColumns()
+
+  const applySort = (field: typeof state.sortField, order: typeof state.sortOrder) => {
+    const nextOrder = normalizeSortOrder(field, order)
+    if (field === state.sortField && nextOrder === state.sortOrder) return
     state.setSortField(field)
-    state.setSortOrder(nextSortOrder)
+    state.setSortOrder(nextOrder)
     state.setCurrentPage(1)
-    state.updateUrl({ sortBy: field, sortOrder: nextSortOrder, page: 1 })
+    // Varsayılan (manuel, artan) URL'de tutulmaz
+    state.updateUrl({
+      sortBy: field === "order" ? null : field,
+      sortOrder: field === "order" ? null : nextOrder,
+      page: 1,
+    })
   }
 
-  const handleSortOrderChange = (order: typeof state.sortOrder) => {
-    state.setSortOrder(order)
-    state.setCurrentPage(1)
-    state.updateUrl({ sortOrder: order, page: 1 })
+  const handleSortFieldChange = (field: typeof state.sortField) => applySort(field, defaultSortOrder(field))
+  const handleSortOrderChange = (order: typeof state.sortOrder) => applySort(state.sortField, order)
+  const handleSortChange = (field: typeof state.sortField, order: typeof state.sortOrder) => applySort(field, order)
+  const handleColumnSort = (column: SortableColumn) => {
+    const next = nextColumnSort({ field: state.sortField, order: state.sortOrder }, column)
+    applySort(next.field, next.order)
   }
 
   const handleStockFilterChange = (filter: typeof state.stockFilter) => {
@@ -147,10 +176,17 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     handleItemsPerPageChange: state.handleItemsPerPageChange,
     handleSortFieldChange,
     handleSortOrderChange,
+    handleSortChange,
+    handleColumnSort,
+    handleMove,
+    reorderStatus,
     handleStockFilterChange,
     handlePriceRangeChange,
 
     ...actions,
+    ...extraActions,
+    visibleColumns,
+    toggleColumn,
 
     setSelectedIds: state.setSelectedIds,
     setShowLimitModal: state.setShowLimitModal,
@@ -161,8 +197,6 @@ export function useProductsPageController(props: ProductsPageClientProps) {
     setShowPriceModal: state.setShowPriceModal,
     setShowDeleteAlert: state.setShowDeleteAlert,
     setViewMode: state.setViewMode,
-    setSortField: state.setSortField,
-    setSortOrder: state.setSortOrder,
     setStockFilter: state.setStockFilter,
     setPriceRange: state.setPriceRange,
     setItemsPerPage: state.setItemsPerPage,

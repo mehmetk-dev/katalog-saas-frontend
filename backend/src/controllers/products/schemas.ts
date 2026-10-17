@@ -110,6 +110,14 @@ export const reorderSchema = z.object({
     })).min(1).max(10000),
 });
 
+export const moveProductSchema = z.object({
+    id: uuidString,
+    position: z.enum(['before', 'after', 'first', 'last']),
+    targetId: uuidString.optional(),
+}).refine((value) => value.position === 'first' || value.position === 'last' || !!value.targetId, {
+    message: 'targetId is required for before/after moves',
+});
+
 export const bulkUpdateImagesSchema = z.object({
     updates: z.array(z.object({
         productId: uuidString,

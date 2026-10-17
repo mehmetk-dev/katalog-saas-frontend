@@ -1,24 +1,19 @@
 "use client"
 
-import { useState, useTransition, useEffect, useCallback, useMemo } from "react"
+import { useState, useTransition, useEffect, useCallback, useRef } from "react"
 import { toast } from "sonner"
 
-import { deleteProduct, createProduct, updateProductOrder, checkProductInCatalogs } from "@/lib/actions/products"
+import { deleteProduct, createProduct, checkProductInCatalogs } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
-import { buildProductOrderPayload } from "@/components/products/products-page-utils"
-import { type Product, type ProductsTableProps } from "../types"
+import { type DropTarget, type Product, type ProductsTableProps } from "../types"
 
 export function useProductsTable({
     products,
-    allProducts = products,
-    search,
     selectedIds,
     onSelectedIdsChange,
     onDeleted,
     onSaved,
-    reorderOffset = 0,
-    onProductsReorder,
-    onReorderSuccess,
+    reorder,
 }: ProductsTableProps) {
     const { t } = useTranslation()
     const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -28,8 +23,12 @@ export function useProductsTable({
     const [isMobile, setIsMobile] = useState(false)
     const [previewProduct, setPreviewProduct] = useState<Product | null>(null)
     const [draggingId, setDraggingId] = useState<string | null>(null)
-    const [dragOverId, setDragOverId] = useState<string | null>(null)
+    const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
+    // Klavyeyle taşındıktan sonra odak aynı ürünün tutamacında kalsın
+    const refocusIdRef = useRef<string | null>(null)
+
+    const canReorder = !!reorder?.enabled && products.length > 0
 
     const handleImageError = useCallback((imageUrl: string) => {
         setFailedImages((prev: Set<string>) => {
@@ -48,23 +47,12 @@ export function useProductsTable({
         return () => mql.removeEventListener('change', handler)
     }, [])
 
-    const filteredProducts = useMemo(() => {
-        if (!search) return products
-        const searchLower = search.toLowerCase()
-        return products.filter((product) =>
-            product.name.toLowerCase().includes(searchLower) ||
-            product.sku?.toLowerCase().includes(searchLower) ||
-            product.category?.toLowerCase().includes(searchLower)
-        )
-    }, [products, search])
-
-    const toggleSelectAll = () => {
-        if (selectedIds.length === filteredProducts.length) {
-            onSelectedIdsChange([])
-        } else {
-            onSelectedIdsChange(filteredProducts.map((p) => p.id))
-        }
-    }
+    useEffect(() => {
+        const id = refocusIdRef.current
+        if (!id) return
+        refocusIdRef.current = null
+        document.querySelector<HTMLElement>(`[data-reorder-handle="${CSS.escape(id)}"]`)?.focus()
+    }, [products])
 
     const toggleSelect = (id: string) => {
         if (selectedIds.includes(id)) {
@@ -127,65 +115,97 @@ export function useProductsTable({
         })
     }
 
+    /** Menü/klavye ile taşıma: yukarı/aşağı bu sayfadaki komşuya göre, en üst/alt tüm listeye göre. */
+    const moveProduct = (productId: string, direction: "up" | "down" | "top" | "bottom") => {
+        if (!canReorder || !reorder) return
+        const index = products.findIndex((p) => p.id === productId)
+        if (index === -1) return
+
+        if (direction === "top") {
+            if (reorder.isFirstPage && index === 0) return
+            reorder.onMove({ id: productId, position: "first" })
+        } else if (direction === "bottom") {
+            if (reorder.isLastPage && index === products.length - 1) return
+            reorder.onMove({ id: productId, position: "last" })
+        } else if (direction === "up") {
+            if (index === 0) return
+            reorder.onMove({ id: productId, position: "before", targetId: products[index - 1].id })
+        } else {
+            if (index === products.length - 1) return
+            reorder.onMove({ id: productId, position: "after", targetId: products[index + 1].id })
+        }
+    }
+
+    const handleHandleKeyDown = (e: React.KeyboardEvent, productId: string) => {
+        const directions: Record<string, "up" | "down" | "top" | "bottom"> = {
+            ArrowUp: "up",
+            ArrowLeft: "up",
+            ArrowDown: "down",
+            ArrowRight: "down",
+            Home: "top",
+            End: "bottom",
+        }
+        const direction = directions[e.key]
+        if (!direction) return
+        e.preventDefault()
+        refocusIdRef.current = productId
+        moveProduct(productId, direction)
+    }
+
+    const resetDrag = () => {
+        setDraggingId(null)
+        setDropTarget(null)
+    }
+
     const handleDragStart = (e: React.DragEvent, productId: string) => {
+        if (!canReorder) return
         e.stopPropagation()
         e.dataTransfer.effectAllowed = "move"
         e.dataTransfer.setData("text/plain", productId)
+        // Sürüklenen görüntü yalnızca tutamaç değil, tüm satır/kart olsun
+        const row = (e.currentTarget as HTMLElement).closest<HTMLElement>("[data-product-row]")
+        if (row) {
+            const rect = row.getBoundingClientRect()
+            e.dataTransfer.setDragImage(row, Math.min(24, rect.width / 2), rect.height / 2)
+        }
         setDraggingId(productId)
     }
 
-    const handleDragOver = (e: React.DragEvent, productId: string) => {
+    const handleDragOver = (e: React.DragEvent, productId: string, axis: "x" | "y") => {
+        if (!draggingId) return
         e.preventDefault()
-        e.stopPropagation()
         e.dataTransfer.dropEffect = "move"
-        if (productId !== draggingId) {
-            setDragOverId(productId)
-        }
-    }
 
-    const handleDragLeave = () => {
-        setDragOverId(null)
-    }
-
-    const handleDrop = (e: React.DragEvent, targetId: string) => {
-        e.preventDefault()
-        e.stopPropagation()
-        const sourceId = e.dataTransfer.getData("text/plain")
-
-        if (sourceId === targetId || !onProductsReorder) {
-            setDraggingId(null)
-            setDragOverId(null)
+        if (productId === draggingId) {
+            if (dropTarget) setDropTarget(null)
             return
         }
 
-        const newProducts = [...allProducts]
-        const sourceIndex = newProducts.findIndex(p => p.id === sourceId)
-        const targetIndex = newProducts.findIndex(p => p.id === targetId)
-
-        if (sourceIndex !== -1 && targetIndex !== -1) {
-            const [movedItem] = newProducts.splice(sourceIndex, 1)
-            newProducts.splice(targetIndex, 0, movedItem)
-            onProductsReorder(newProducts)
-
-            startTransition(async () => {
-                try {
-                    const orderData = buildProductOrderPayload(newProducts, reorderOffset)
-                    await updateProductOrder(orderData)
-                    onReorderSuccess?.()
-                } catch {
-                    if (process.env.NODE_ENV === 'development') console.error("Sıralama kaydedilemedi")
-                    toast.error(t("common.error"))
-                }
-            })
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        const isAfter = axis === "y"
+            ? e.clientY > rect.top + rect.height / 2
+            : e.clientX > rect.left + rect.width / 2
+        const position = isAfter ? "after" : "before"
+        if (dropTarget?.id !== productId || dropTarget.position !== position) {
+            setDropTarget({ id: productId, position })
         }
-
-        setDraggingId(null)
-        setDragOverId(null)
     }
 
-    const handleDragEnd = () => {
-        setDraggingId(null)
-        setDragOverId(null)
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault()
+        const sourceId = draggingId
+        const target = dropTarget
+        resetDrag()
+        if (!sourceId || !target || !reorder || sourceId === target.id) return
+
+        // Ürün zaten oraya bırakılınca duracağı yerdeyse istek atma
+        const sourceIndex = products.findIndex((p) => p.id === sourceId)
+        const targetIndex = products.findIndex((p) => p.id === target.id)
+        if (sourceIndex === -1 || targetIndex === -1) return
+        if (target.position === "before" && targetIndex === sourceIndex + 1) return
+        if (target.position === "after" && targetIndex === sourceIndex - 1) return
+
+        reorder.onMove({ id: sourceId, position: target.position, targetId: target.id })
     }
 
     return {
@@ -193,19 +213,19 @@ export function useProductsTable({
         isPending,
         isCheckingCatalogs,
         isMobile,
-        filteredProducts,
-        allProducts,
+        canReorder,
+        isFirstPage: reorder?.isFirstPage ?? true,
+        isLastPage: reorder?.isLastPage ?? true,
         selectedIds,
         deleteId,
         deleteCatalogs,
         previewProduct,
         draggingId,
-        dragOverId,
+        dropTarget,
         failedImages,
         setDeleteId,
         setDeleteCatalogs,
         setPreviewProduct,
-        toggleSelectAll,
         toggleSelect,
         initiateDelete,
         handleDelete,
@@ -213,8 +233,9 @@ export function useProductsTable({
         handleImageError,
         handleDragStart,
         handleDragOver,
-        handleDragLeave,
         handleDrop,
-        handleDragEnd,
+        handleDragEnd: resetDrag,
+        handleHandleKeyDown,
+        moveProduct,
     }
 }
