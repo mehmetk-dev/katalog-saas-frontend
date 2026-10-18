@@ -164,7 +164,8 @@ export const CatalogHeader = React.memo(function CatalogHeader({
                                 onClick={() => onCategoryChange(cat)}
                                 aria-pressed={selectedCategory === cat}
                                 className={cn(
-                                    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                                    // min-h-0: mobildeki genel 44px dokunma kuralı kategori çiplerini iri gösteriyordu
+                                    "h-8 min-h-0 min-w-0 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-xs font-medium transition-colors",
                                     selectedCategory === cat
                                         ? "border-primary bg-primary text-primary-foreground"
                                         : "bg-card text-muted-foreground hover:text-foreground",
