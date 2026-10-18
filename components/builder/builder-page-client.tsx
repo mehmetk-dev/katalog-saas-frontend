@@ -86,6 +86,7 @@ function BuilderContent() {
           onCatalogNameChange={handlers.handleCatalogNameChange}
           isPublished={state.isPublished}
           hasUnsavedChanges={state.hasUnsavedChanges}
+          canAutosave={!!state.currentCatalogId}
           isUrlOutdated={handlers.isUrlOutdated}
           isPending={handlers.isPending}
           view={state.view}

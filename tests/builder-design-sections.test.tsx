@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { buildInitialCatalogState, toDraft, type DraftSetters } from "@/components/builder/builder-utils"
-import { AppearanceSection, TemplateSection } from "@/components/builder/editor/design-sections"
+import { AppearanceSection, StorytellingSection, TemplateSection } from "@/components/builder/editor/design-sections"
 import { DesignToolsProvider, type DesignSource } from "@/components/builder/editor/design-sections/design-context"
 
 vi.mock("@/lib/contexts/i18n-provider", () => ({
@@ -88,5 +88,43 @@ describe("tasarım bölümleri builder state'inden beslenir", () => {
     expect(header).toHaveAttribute("aria-expanded", "false")
     // Kapalı bölümdeki kontroller erişilebilirlik ağacından çıkar
     expect(screen.queryByRole("switch", { name: "builder.showPrices" })).not.toBeInTheDocument()
+  })
+})
+
+describe("açıklama alanı", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  function renderStory(overrides: Record<string, unknown>) {
+    const state = makeState(overrides)
+    const edit = vi.fn()
+    render(
+      <DesignToolsProvider source={{
+        draft: state.draft,
+        setters: state as unknown as DraftSetters,
+        edit,
+        products: [],
+        userPlan: "pro",
+        onUpgrade: vi.fn(),
+      }} initialOpenSections={{ storytelling: true }}>
+        <StorytellingSection />
+      </DesignToolsProvider>,
+    )
+    return { edit, textarea: screen.getByLabelText("builder.descriptionLabel") as HTMLTextAreaElement }
+  }
+
+  it("tek alan: katalog açıklamasını gösterir, kapak sayfası kapalıyken de düzenlenebilir", () => {
+    const { textarea, edit } = renderStory({ catalogDescription: "Yaz ürünleri", enableCoverPage: false })
+    expect(textarea.value).toBe("Yaz ürünleri")
+
+    fireEvent.change(textarea, { target: { value: "Kış ürünleri" } })
+    expect(edit).toHaveBeenCalledWith({ catalogDescription: "Kış ürünleri", coverDescription: null })
+  })
+
+  it("eski kapak açıklaması varsa onu gösterir ve ilk düzenlemede açıklamaya taşır", () => {
+    const { textarea, edit } = renderStory({ catalogDescription: "", coverDescription: "Eski kapak metni" })
+    expect(textarea.value).toBe("Eski kapak metni")
+
+    fireEvent.change(textarea, { target: { value: "Eski kapak metni!" } })
+    expect(edit).toHaveBeenCalledWith({ catalogDescription: "Eski kapak metni!", coverDescription: null })
   })
 })

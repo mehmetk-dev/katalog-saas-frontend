@@ -2,15 +2,13 @@
 
 import React from "react"
 import Link from "next/link"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Loader2, Package, Search, SearchX } from "lucide-react"
+import { Loader2, Package, Search, SearchX } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import type { Product, ProductSortField, ProductSortOrder } from "@/lib/actions/products"
+import type { Product } from "@/lib/actions/products"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { ProductCard, SortableProductItem, SelectAllButton, EmptySortingState } from "./editor-product-cards"
@@ -19,12 +17,8 @@ interface EditorContentTabProps {
     // Translation function
     t: (key: string, params?: Record<string, unknown>) => string
 
-    // Catalog details
-    description: string
-    onDescriptionChange: (desc: string) => void
-    availableProductCount: number
-    totalProductCount?: number
-    isProductListTruncated?: boolean
+    /** Aktif filtredeki toplam ürün sayısı */
+    totalProductCount: number
 
     // Search & Filter
     searchQuery: string
@@ -32,13 +26,8 @@ interface EditorContentTabProps {
     selectedCategory: string
     onCategoryChange: (category: string) => void
     categories: string[]
-    sortBy: ProductSortField
-    onSortByChange: (value: ProductSortField) => void
-    sortOrder: ProductSortOrder
-    onSortOrderChange: (value: ProductSortOrder) => void
 
     // Products
-    filteredProducts: Product[]
     allProductIds: string[]
     visibleProducts: Product[]
     selectedProductIds: string[]
@@ -69,21 +58,12 @@ interface EditorContentTabProps {
 
 export const EditorContentTab = React.memo(function EditorContentTab({
     t,
-    description,
-    onDescriptionChange,
-    availableProductCount,
     totalProductCount,
-    isProductListTruncated = false,
     searchQuery,
     onSearchChange,
     selectedCategory,
     onCategoryChange,
     categories,
-    sortBy,
-    onSortByChange,
-    sortOrder,
-    onSortOrderChange,
-    filteredProducts,
     allProductIds,
     visibleProducts,
     selectedProductIds,
@@ -140,10 +120,6 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     const virtualRows = sortableRows.slice(virtualStartRow, virtualEndRow)
     const virtualOffsetY = virtualStartRow * SORT_ROW_HEIGHT
     const virtualTotalHeight = sortableRows.length * SORT_ROW_HEIGHT
-    const approxRenderedItems = Math.min(
-        validProductIds.length,
-        (visibleRowCount + SORT_OVERSCAN_ROWS * 2) * sortColumns
-    )
 
     const updateSortViewportMetrics = React.useCallback(() => {
         if (sortListRef.current) {
@@ -196,62 +172,50 @@ export const EditorContentTab = React.memo(function EditorContentTab({
         )
     }
 
-    const total = totalProductCount ?? filteredProducts.length
+    const total = totalProductCount
+    // Seçili ürünlerin bir kısmı henüz yükleniyor olabilir; sayaç gerçek seçimi gösterir
+    const selectedCount = selectedProductIds.length
 
     return (
         <div className="space-y-8">
-            {/* Açıklama */}
-            <section className="space-y-2">
-                <Label htmlFor="catalog-description">{t('builder.descriptionLabel')}</Label>
-                <Textarea
-                    id="catalog-description"
-                    rows={3}
-                    className="resize-none"
-                    placeholder={t('builder.descriptionPlaceholder')}
-                    value={description}
-                    onChange={(e) => onDescriptionChange(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">{t('builder.descriptionHint')}</p>
-            </section>
-
             {/* Katalogdaki ürünler — sıralama */}
             <section className="space-y-3">
                 <div className="flex items-end justify-between gap-3">
                     <div className="min-w-0">
                         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                             {t('builder.catalogProductsTitle')}
-                            <Badge variant="secondary" className="tabular-nums">{validProductIds.length}</Badge>
+                            <Badge variant="secondary" className="tabular-nums">{selectedCount}</Badge>
                         </h3>
                         {validProductIds.length > 1 && (
                             <p className="mt-0.5 text-xs text-muted-foreground">{t('builder.dragToReorder')}</p>
                         )}
                     </div>
-                    {validProductIds.length > 0 && (
+                    {selectedCount > 0 && (
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => onSelectedProductIdsChange([])}
                             className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                         >
-                            {t('builder.clearSelection')}
+                            {t('builder.removeAllProducts')}
                         </Button>
                     )}
                 </div>
 
                 <div className="overflow-hidden rounded-lg border">
-                    {hasVirtualizedSorting && (
-                        <p className="border-b bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
-                            {t('builder.virtualListMode')}: {t('builder.virtualListRendering', { total: validProductIds.length, rendered: approxRenderedItems })}
-                        </p>
-                    )}
                     <div
                         ref={sortListRef}
                         onScroll={handleSortListScroll}
                         role="list"
                         className="custom-scrollbar max-h-80 overflow-y-auto"
                     >
-                        {validProductIds.length === 0 ? (
+                        {selectedCount === 0 ? (
                             <EmptySortingState />
+                        ) : validProductIds.length === 0 ? (
+                            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                                <Loader2 className="size-4 animate-spin" />
+                                {t('common.loading')}
+                            </div>
                         ) : hasVirtualizedSorting ? (
                             <div style={{ height: `${virtualTotalHeight}px`, position: 'relative' }}>
                                 <div
@@ -272,17 +236,7 @@ export const EditorContentTab = React.memo(function EditorContentTab({
 
             {/* Ürün ekle */}
             <section className="@container space-y-3">
-                <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-foreground">{t('builder.addProductsTitle')}</h3>
-                    <span className="text-xs text-muted-foreground tabular-nums">{t('builder.productCount', { count: total })}</span>
-                </div>
-
-                {isProductListTruncated && (
-                    <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning-soft-foreground">
-                        {t('builder.bigCatalogMode')}: {t('builder.bigCatalogLoaded', { count: availableProductCount })}
-                        {totalProductCount ? ` / ${t('builder.bigCatalogTotal', { total: totalProductCount })}` : ""}. {t('builder.bigCatalogPerf')}
-                    </div>
-                )}
+                <h3 className="text-sm font-semibold text-foreground">{t('builder.addProductsTitle')}</h3>
 
                 <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -295,50 +249,34 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                     />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <Select value={selectedCategory} onValueChange={onCategoryChange}>
-                        <SelectTrigger size="sm" className="min-w-0 flex-1 basis-32" aria-label={t('common.category')}>
-                            <SelectValue placeholder={t('common.category')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{t('common.all')}</SelectItem>
-                            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <Select value={sortBy} onValueChange={(value) => onSortByChange(value as ProductSortField)}>
-                        <SelectTrigger size="sm" className="min-w-0 flex-1 basis-32" aria-label={t('common.sort')}>
-                            <SelectValue placeholder={t('common.sort')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="display_order">{t('builder.sortDisplayOrder')}</SelectItem>
-                            <SelectItem value="created_at">{t('builder.sortCreatedAt')}</SelectItem>
-                            <SelectItem value="name">{t('builder.sortName')}</SelectItem>
-                            <SelectItem value="price">{t('builder.sortPrice')}</SelectItem>
-                            <SelectItem value="stock">{t('builder.sortStock')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        variant="outline"
-                        size="icon-sm"
-                        className="size-8 shrink-0"
-                        onClick={() => onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")}
-                        title={`${t('builder.sortDirection')}: ${sortOrder === "asc" ? t('builder.sortAscending') : t('builder.sortDescending')}`}
-                        aria-label={`${t('builder.sortDirection')}: ${sortOrder === "asc" ? t('builder.sortAscending') : t('builder.sortDescending')}`}
-                    >
-                        {sortOrder === "asc" ? <ArrowUpNarrowWide className="size-4" /> : <ArrowDownWideNarrow className="size-4" />}
-                    </Button>
-                    <SelectAllButton
-                        allProductIds={allProductIds}
-                        selectedProductIdSet={selectedProductIdSet}
-                        selectedProductIds={selectedProductIds}
-                        onSelectedProductIdsChange={onSelectedProductIdsChange}
-                        isLoadingAllProductIds={isLoadingAllProductIds}
-                        onPrefetchAllProductIds={onPrefetchAllProductIds}
-                        t={t}
-                    />
+                <div className="flex items-center gap-2">
+                    {categories.length > 0 && (
+                        <Select value={selectedCategory} onValueChange={onCategoryChange}>
+                            <SelectTrigger size="sm" className="min-w-0 flex-1" aria-label={t('common.category')}>
+                                <SelectValue placeholder={t('common.category')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{t('builder.allCategories')}</SelectItem>
+                                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    <div className="ml-auto">
+                        <SelectAllButton
+                            totalCount={total}
+                            allProductIds={allProductIds}
+                            selectedProductIdSet={selectedProductIdSet}
+                            selectedProductIds={selectedProductIds}
+                            onSelectedProductIdsChange={onSelectedProductIdsChange}
+                            isLoadingAllProductIds={isLoadingAllProductIds}
+                            onPrefetchAllProductIds={onPrefetchAllProductIds}
+                            t={t}
+                        />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 @sm:grid-cols-3 @xl:grid-cols-4 @3xl:grid-cols-5">
+                {/* Filtre değişirken eski sonuçlar soluk kalır (boş ekrana atlamaz) */}
+                <div className={`grid grid-cols-2 gap-3 transition-opacity @sm:grid-cols-3 @xl:grid-cols-4 @3xl:grid-cols-5 ${isLoadingProducts && visibleProducts.length > 0 ? "opacity-60" : ""}`}>
                     {isLoadingProducts && visibleProducts.length === 0 && (
                         <div className="col-span-full rounded-lg border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
                             {t('common.loading')}

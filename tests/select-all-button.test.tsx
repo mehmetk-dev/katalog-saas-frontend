@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { SelectAllButton } from "@/components/builder/editor/editor-product-cards"
 
-const t = (key: string) => key
+const t = (key: string, params?: Record<string, unknown>) => (params ? `${key}:${params.count}` : key)
 
 describe("SelectAllButton", () => {
   it("selects the filtered IDs with a single click even when they are fetched lazily", async () => {
@@ -12,6 +12,7 @@ describe("SelectAllButton", () => {
 
     render(
       <SelectAllButton
+        totalCount={2}
         allProductIds={[]}
         selectedProductIdSet={new Set(["already-selected"])}
         selectedProductIds={["already-selected"]}
@@ -21,7 +22,7 @@ describe("SelectAllButton", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "builder.selectAll" }))
+    fireEvent.click(screen.getByRole("button", { name: "builder.addFilteredProducts:2" }))
 
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith([
@@ -37,6 +38,7 @@ describe("SelectAllButton", () => {
 
     render(
       <SelectAllButton
+        totalCount={2}
         allProductIds={["filtered-1", "filtered-2"]}
         selectedProductIdSet={new Set(["outside-filter", "filtered-1", "filtered-2"])}
         selectedProductIds={["outside-filter", "filtered-1", "filtered-2"]}
@@ -45,7 +47,7 @@ describe("SelectAllButton", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "builder.clearSelection" }))
+    fireEvent.click(screen.getByRole("button", { name: "builder.removeFilteredProducts:2" }))
 
     expect(onChange).toHaveBeenCalledWith(["outside-filter"])
   })

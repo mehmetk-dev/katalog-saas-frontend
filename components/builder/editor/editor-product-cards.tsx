@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useCallback } from "react"
-import { Check, GripVertical, PackagePlus, X } from "lucide-react"
+import { Check, GripVertical, Loader2, PackagePlus, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ProductImageGallery } from "@/components/ui/product-image-gallery"
@@ -156,8 +156,10 @@ export const SortableProductItem = React.memo(function SortableProductItem({
     )
 })
 
-// PERFORMANCE: Memoized SelectAll button to avoid O(n) .every() on each render
+/** Aktif filtredeki (arama/kategori) tüm ürünleri kataloğa ekler; hepsi zaten ekliyse onları çıkarır.
+ *  Etiket kaç ürünün etkileneceğini söyler — "Tümünü seç" binlerce ürünü sessizce ekleyebiliyordu. */
 export const SelectAllButton = React.memo(function SelectAllButton({
+    totalCount,
     allProductIds,
     selectedProductIdSet,
     selectedProductIds,
@@ -166,6 +168,8 @@ export const SelectAllButton = React.memo(function SelectAllButton({
     onPrefetchAllProductIds,
     t,
 }: {
+    /** Aktif filtredeki ürün sayısı */
+    totalCount: number
     allProductIds: string[]
     selectedProductIdSet: Set<string>
     selectedProductIds: string[]
@@ -173,7 +177,7 @@ export const SelectAllButton = React.memo(function SelectAllButton({
     isLoadingAllProductIds?: boolean
     /** PERF(O2): Fetches IDs lazily and returns the exact active-filter result. */
     onPrefetchAllProductIds?: () => Promise<string[]>
-    t: (key: string) => string
+    t: (key: string, params?: Record<string, unknown>) => string
 }) {
     // Exact IDs are required: selected products outside the active filter make
     // count-based inference incorrect.
@@ -209,16 +213,20 @@ export const SelectAllButton = React.memo(function SelectAllButton({
         onSelectedProductIdsChange(mergedIds)
     }, [allProductIds, isAllSelected, selectedProductIds, onSelectedProductIdsChange, onPrefetchAllProductIds, t])
 
+    const label = isAllSelected
+        ? t('builder.removeFilteredProducts', { count: totalCount })
+        : t('builder.addFilteredProducts', { count: totalCount })
+
     return (
         <Button
             variant="outline"
             size="sm"
-            className="h-8 shrink-0"
+            className="h-8 shrink-0 tabular-nums"
             onClick={handleClick}
-            disabled={isLoadingAllProductIds}
-            aria-label={isAllSelected ? t('builder.clearSelection') : t('builder.selectAll')}
+            disabled={isLoadingAllProductIds || totalCount === 0}
         >
-            {isAllSelected ? t('builder.clearSelection') : t('builder.selectAll')}
+            {isLoadingAllProductIds && <Loader2 className="size-3.5 animate-spin" />}
+            {label}
         </Button>
     )
 })

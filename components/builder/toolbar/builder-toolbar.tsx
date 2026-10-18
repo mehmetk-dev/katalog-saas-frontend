@@ -1,10 +1,9 @@
 "use client"
 
 import { useCallback } from "react"
-import { toast } from "sonner"
 import {
-    AlertTriangle, ArrowLeft, ArrowUpRight, Check, Copy, Download, Eye, Globe, GlobeLock,
-    Loader2, MoreHorizontal, PanelsTopLeft, Pencil, RefreshCw, Redo2, Save, Share2, Undo2,
+    AlertTriangle, ArrowLeft, ArrowUpRight, Check, Download, Eye, Globe, GlobeLock,
+    Loader2, MoreHorizontal, Pencil, RefreshCw, Redo2, Save, Share2, Undo2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -15,7 +14,6 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
@@ -32,6 +30,8 @@ interface BuilderToolbarProps {
     onCatalogNameChange: (name: string) => void
     isPublished: boolean
     hasUnsavedChanges: boolean
+    /** Katalog sunucuda var: değişiklikler kendiliğinden kaydedilir */
+    canAutosave: boolean
     isUrlOutdated: boolean
     isPending: boolean
     view: BuilderView
@@ -62,6 +62,7 @@ export function BuilderToolbar({
     onCatalogNameChange,
     isPublished,
     hasUnsavedChanges,
+    canAutosave,
     isUrlOutdated,
     isPending,
     view,
@@ -86,12 +87,6 @@ export function BuilderToolbar({
     const mainAction = isPublished
         ? { label: t("builder.shareBtn"), icon: Share2, onClick: onShare }
         : { label: t("builder.publishBtn"), icon: Globe, onClick: onPublish }
-
-    const copyLink = () => {
-        if (!shareSlug) return
-        navigator.clipboard.writeText(publicCatalogUrl(shareSlug))
-        toast.success(t("builder.linkCopied"))
-    }
 
     return (
         <>
@@ -118,6 +113,7 @@ export function BuilderToolbar({
                     <SaveStatusButton
                         status={saveStatus}
                         hasUnsavedChanges={hasUnsavedChanges}
+                        canAutosave={canAutosave}
                         isPending={isPending}
                         onSave={onSave}
                         t={t}
@@ -136,14 +132,6 @@ export function BuilderToolbar({
                         </a>
                     )}
                 </div>
-
-                {/* Orta: düzenle / önizle (masaüstü) */}
-                <ViewSwitch
-                    className="hidden md:inline-flex"
-                    isPreview={isPreview}
-                    onChange={(preview) => onViewChange(preview ? "preview" : "split")}
-                    t={t}
-                />
 
                 {/* Sağ: aksiyonlar */}
                 <div className="flex shrink-0 items-center justify-end gap-1 md:flex-1">
@@ -171,6 +159,17 @@ export function BuilderToolbar({
                             <Redo2 className="size-4" />
                         </Button>
                         <Separator orientation="vertical" className="mx-1 h-5" />
+                        <Button
+                            variant={isPreview ? "secondary" : "ghost"}
+                            size="sm"
+                            className={cn("gap-1.5", !isPreview && "text-muted-foreground")}
+                            onClick={() => onViewChange(isPreview ? "split" : "preview")}
+                            aria-pressed={isPreview}
+                            title={isPreview ? t("builder.backToEditor") : t("builder.fullPreview")}
+                        >
+                            {isPreview ? <Pencil className="size-4" /> : <Eye className="size-4" />}
+                            <span className="hidden lg:inline">{isPreview ? t("builder.backToEditor") : t("builder.fullPreview")}</span>
+                        </Button>
                     </div>
 
                     <Button
@@ -193,26 +192,29 @@ export function BuilderToolbar({
                         {mainAction.label}
                     </Button>
 
+                    {/* Diğer: bar'da yeri olmayanlar. Yayında değilken geniş ekranda boş kalacağı için gizlenir. */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("common.more")}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn("text-muted-foreground", !isPublished && "sm:hidden")}
+                                aria-label={t("common.more")}
+                            >
                                 <MoreHorizontal className="size-5" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-60">
                             {isPublished && shareSlug && (
                                 <>
-                                    <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-medium text-success">
+                                    {/* Geniş ekranda "Yayında" rozeti aynı işi görür */}
+                                    <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-medium text-success lg:hidden">
                                         <span className="size-1.5 rounded-full bg-success" />
                                         {t("builder.catalogLive")}
                                     </DropdownMenuLabel>
-                                    <DropdownMenuItem onClick={() => window.open(publicCatalogUrl(shareSlug), "_blank")}>
+                                    <DropdownMenuItem className="lg:hidden" onClick={() => window.open(publicCatalogUrl(shareSlug), "_blank")}>
                                         <ArrowUpRight />
                                         {t("builder.viewCatalogAction")}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={copyLink}>
-                                        <Copy />
-                                        {t("builder.copyLink")}
                                     </DropdownMenuItem>
                                     {isUrlOutdated && (
                                         <DropdownMenuItem onClick={onUpdateSlug} className="text-warning-soft-foreground">
@@ -220,17 +222,19 @@ export function BuilderToolbar({
                                             {t("builder.refreshEntryLink")}
                                         </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuSeparator />
                                 </>
                             )}
-                            <DropdownMenuItem onClick={onDownloadPDF}>
+                            {/* Geniş ekranda bar'daki PDF tuşu var */}
+                            <DropdownMenuItem className="sm:hidden" onClick={onDownloadPDF}>
                                 <Download />
                                 {t("builder.downloadAsPdf")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={onPublish} variant={isPublished ? "destructive" : "default"}>
-                                {isPublished ? <GlobeLock /> : <Globe />}
-                                {isPublished ? t("builder.unpublish") : t("builder.publishCatalog")}
-                            </DropdownMenuItem>
+                            {isPublished && (
+                                <DropdownMenuItem onClick={onPublish} variant="destructive">
+                                    <GlobeLock />
+                                    {t("builder.unpublish")}
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -257,62 +261,25 @@ export function BuilderToolbar({
     )
 }
 
-// ─── View switch ──────────────────────────────────────────────────────────────
-
-function ViewSwitch({
-    isPreview,
-    onChange,
-    className,
-    t,
-}: {
-    isPreview: boolean
-    onChange: (preview: boolean) => void
-    className?: string
-    t: (key: string) => string
-}) {
-    const item = "inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors"
-    return (
-        <div role="radiogroup" aria-label={t("builder.previewLabel")} className={cn("items-center rounded-lg bg-muted p-1", className)}>
-            <button
-                type="button"
-                role="radio"
-                aria-checked={!isPreview}
-                onClick={() => onChange(false)}
-                className={cn(item, !isPreview ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            >
-                <PanelsTopLeft className="size-4" />
-                {t("builder.editBtn")}
-            </button>
-            <button
-                type="button"
-                role="radio"
-                aria-checked={isPreview}
-                onClick={() => onChange(true)}
-                className={cn(item, isPreview ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-            >
-                <Eye className="size-4" />
-                {t("builder.previewLabel")}
-            </button>
-        </div>
-    )
-}
-
 // ─── Save status ──────────────────────────────────────────────────────────────
 
 interface SaveStatusButtonProps {
     status: SaveStatus
     hasUnsavedChanges: boolean
+    canAutosave: boolean
     isPending: boolean
     onSave: () => void
     t: (key: string) => string
 }
 
-/** Otomatik kaydın durumu; kaydedilmemiş veya hatalı durumda tıklayınca hemen kaydeder (Ctrl+S). */
-function SaveStatusButton({ status, hasUnsavedChanges, isPending, onSave, t }: SaveStatusButtonProps) {
+/** Otomatik kaydın durumu. Değişiklik yapılınca doğrudan "Kaydediliyor…" görünür (birkaç saniye
+ *  içinde kendiliğinden kaydedilir); önceden araya giren "Kaydet" tuşu her düzenlemede yanıp sönüyordu.
+ *  Elle kayıt yalnızca henüz sunucuda olmayan katalogda ve hata sonrası tekrar denemede gerekir. */
+function SaveStatusButton({ status, hasUnsavedChanges, canAutosave, isPending, onSave, t }: SaveStatusButtonProps) {
     const base = "h-8 shrink-0 gap-1.5 px-2 text-xs font-medium"
     const label = "hidden sm:inline"
 
-    if (status === "saving") {
+    if (status === "saving" || (hasUnsavedChanges && canAutosave && status !== "error")) {
         return (
             <Button variant="ghost" size="sm" disabled className={cn(base, "text-muted-foreground disabled:opacity-100")} title={t("builder.saveStatusSaving")}>
                 <Loader2 className="size-3.5 animate-spin" />

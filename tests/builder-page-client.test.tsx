@@ -146,19 +146,23 @@ describe('BuilderPageClient Final Audit Tests', () => {
     vi.useRealTimers()
   })
 
-  it('ENDPOINT: handleSave -> updateCatalog cagrilmali', async () => {
+  it('KAYIT DURUMU: mevcut katalogda degisiklik hemen "Kaydediliyor" gosterir, ayrica Kaydet tusu cikmaz', async () => {
     render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
 
-    const input = screen.getByPlaceholderText('builder.catalogNamePlaceholder')
-    fireEvent.change(input, { target: { value: 'Updated Name' } })
+    fireEvent.change(screen.getByPlaceholderText('builder.catalogNamePlaceholder'), { target: { value: 'Updated Name' } })
 
-    const saveBtn = screen.getByTitle('builder.saveChanges')
-    fireEvent.click(saveBtn)
+    expect(screen.getByTitle('builder.saveStatusSaving')).toBeInTheDocument()
+    expect(screen.queryByTitle('builder.saveChanges')).not.toBeInTheDocument()
+  })
+
+  it('ENDPOINT: henuz kaydedilmemis katalogda Kaydet tusu createCatalog cagirir', async () => {
+    render(<BuilderPageClient catalog={null} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
+
+    fireEvent.change(screen.getByPlaceholderText('builder.catalogNamePlaceholder'), { target: { value: 'Yeni Katalog' } })
+    fireEvent.click(screen.getByTitle('builder.saveChanges'))
 
     await waitFor(() => {
-      expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
-        name: 'Updated Name',
-      }), { revalidate: false })
+      expect(catalogActions.createCatalog).toHaveBeenCalledWith(expect.objectContaining({ name: 'Yeni Katalog' }))
     })
   })
 

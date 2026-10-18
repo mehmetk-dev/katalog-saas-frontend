@@ -193,13 +193,17 @@ export function useDesignProps() {
         backgroundGradient: draft.backgroundGradient,
         onBackgroundGradientChange: setters.setBackgroundGradient,
 
+        // Açıklama: önceden "katalog açıklaması" (ürünler sekmesi) ve "kapak açıklaması" (kapak
+        // bölümü) iki ayrı alandı, kapak hangisi doluysa onu gösteriyordu. Artık tek alan:
+        // `description`'a yazılır; eski kapak açıklaması varsa ilk düzenlemede ona taşınır.
+        description: draft.catalogDescription || draft.coverDescription || "",
+        onDescriptionChange: (value: string) => source.edit({ catalogDescription: value, coverDescription: null }),
+
         // Kapak ve kategori ayraçları
         enableCoverPage: draft.enableCoverPage,
         onEnableCoverPageChange: setters.setEnableCoverPage,
         coverImageUrl: draft.coverImageUrl,
         onCoverImageUrlChange: setters.setCoverImageUrl,
-        coverDescription: draft.coverDescription,
-        onCoverDescriptionChange: setters.setCoverDescription,
         enableCategoryDividers: draft.enableCategoryDividers,
         onEnableCategoryDividersChange: setters.setEnableCategoryDividers,
         categoryOrder: draft.categoryOrder,

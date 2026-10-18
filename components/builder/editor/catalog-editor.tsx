@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react"
 import dynamic from "next/dynamic"
-import type { ProductSortField, ProductSortOrder } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
@@ -30,6 +29,9 @@ import type { DraftSetters } from "@/components/builder/builder-utils"
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Ürün seçici, kullanıcının Ürünler sayfasında belirlediği manuel sırayı izler */
+const PICKER_SORT = { sortBy: "display_order", sortOrder: "asc" } as const
+
 /** FIX(F2): CatalogEditor now reads all data from BuilderContext via useBuilder().
  *  No props needed — eliminates 60+ prop drilling. */
 export function CatalogEditor() {
@@ -38,8 +40,6 @@ export function CatalogEditor() {
   // İçerik sekmesinin kullandıkları; tasarım ayarlarını bölümler kendileri okur (DesignToolsProvider)
   const {
     selectedProductIds, handleSelectedProductIdsChange: onSelectedProductIdsChange,
-    catalogDescription: description, setCatalogDescription: onDescriptionChange,
-    loadedProductsCount,
     upsertLoadedProducts,
     selectedProductIdSet,
     productMap,
@@ -67,8 +67,6 @@ export function CatalogEditor() {
   // ─── Search & Filter ──────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const itemsPerPage = 24
-  const [sortBy, setSortBy] = useState<ProductSortField>("display_order")
-  const [sortOrder, setSortOrder] = useState<ProductSortOrder>("asc")
 
   const [activeTab, setActiveTab] = useState("content")
   const [searchQuery, setSearchQuery] = useState("")
@@ -99,17 +97,13 @@ export function CatalogEditor() {
     limit: itemsPerPage,
     category: selectedCategory === "all" ? undefined : selectedCategory,
     search: debouncedSearchQuery.trim() || undefined,
-    sortBy,
-    sortOrder,
-  }), [itemsPerPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder])
+    ...PICKER_SORT,
+  }), [itemsPerPage, selectedCategory, debouncedSearchQuery])
 
   const initialQueryData = useMemo(() => {
-    const isInitialQuery = selectedCategory === "all"
-      && !debouncedSearchQuery.trim()
-      && sortBy === "display_order"
-      && sortOrder === "asc"
+    const isInitialQuery = selectedCategory === "all" && !debouncedSearchQuery.trim()
     return isInitialQuery ? initialProductsResponse : undefined
-  }, [selectedCategory, debouncedSearchQuery, sortBy, sortOrder, initialProductsResponse])
+  }, [selectedCategory, debouncedSearchQuery, initialProductsResponse])
 
   // Builder SSR'dan gelen ilk sayfayla açılır; sonraki sayfalar liste sonuna kaydırınca yüklenir
   const productsQuery = useInfiniteProducts(productsParams, initialQueryData)
@@ -118,9 +112,8 @@ export function CatalogEditor() {
   const allProductIdFilters = useMemo(() => ({
     category: selectedCategory === "all" ? undefined : selectedCategory,
     search: debouncedSearchQuery.trim() || undefined,
-    sortBy,
-    sortOrder,
-  }), [selectedCategory, debouncedSearchQuery, sortBy, sortOrder])
+    ...PICKER_SORT,
+  }), [selectedCategory, debouncedSearchQuery])
   const allProductIdsQuery = useAllProductIds(allProductIdFilters, undefined, { enabled: false })
   const refetchAllProductIds = allProductIdsQuery.refetch
   const prefetchAllProductIds = useCallback(async () => {
@@ -154,7 +147,6 @@ export function CatalogEditor() {
   const validProductIds = useMemo(() => {
     return selectedProductIds.filter(id => productMap.has(id))
   }, [selectedProductIds, productMap])
-  const filteredProducts = pagedProducts
 
   // ─── Product Selection & Sorting ──────────────────────────────────────────
   // PERFORMANCE: Set-based toggle — O(1) add/delete instead of O(n) filter/spread
@@ -256,23 +248,14 @@ export function CatalogEditor() {
           <TabsContent value="content" className="m-0">
             <EditorContentTab
               t={t}
-              description={description}
-              onDescriptionChange={onDescriptionChange}
-              availableProductCount={loadedProductsCount}
               totalProductCount={totalFilteredProducts}
-              isProductListTruncated={false}
               searchQuery={searchQuery}
               onSearchChange={handleSearchChange}
               selectedCategory={selectedCategory}
               onCategoryChange={handleCategoryChange}
               categories={categories}
-              sortBy={sortBy}
-              onSortByChange={setSortBy}
-              sortOrder={sortOrder}
-              onSortOrderChange={setSortOrder}
-              filteredProducts={filteredProducts}
               allProductIds={allProductIds}
-              visibleProducts={filteredProducts}
+              visibleProducts={pagedProducts}
               selectedProductIds={selectedProductIds}
               selectedProductIdSet={selectedProductIdSet}
               validProductIds={validProductIds}

@@ -30,7 +30,8 @@ export function TemplateSection() {
             isOpen={isOpen}
             onToggle={() => toggleSection('template')}
         >
-            <div className="@container custom-scrollbar -mr-2 max-h-[30rem] overflow-y-auto pr-2">
+            {/* Kendi içinde kaydırma yok: panel zaten kayıyor, iç içe kaydırma takılıyordu */}
+            <div className="@container">
                 <div className="grid grid-cols-2 gap-3 @md:grid-cols-3">
                     {TEMPLATES.map((tmpl) => (
                         <TemplatePreviewCard

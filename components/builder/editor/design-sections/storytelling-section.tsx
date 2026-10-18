@@ -15,8 +15,8 @@ export function StorytellingSection() {
         onEnableCoverPageChange,
         coverImageUrl,
         onCoverImageUrlChange,
-        coverDescription,
-        onCoverDescriptionChange,
+        description,
+        onDescriptionChange,
         enableCategoryDividers,
         onEnableCategoryDividersChange,
         coverTheme,
@@ -102,8 +102,30 @@ export function StorytellingSection() {
             isOpen={!!openSections.storytelling}
             onToggle={() => toggleSection('storytelling')}
         >
+            {/* Açıklama — kapakta ve paylaşım önizlemesinde (WhatsApp, arama motoru) görünür */}
+            <Field
+                label={t('builder.descriptionLabel') as string}
+                htmlFor="catalog-description"
+                hint={
+                    <span className="flex justify-between gap-3">
+                        <span>{t('builder.descriptionHint') as string}</span>
+                        <span className="tabular-nums">{description.length}/500</span>
+                    </span>
+                }
+            >
+                <Textarea
+                    id="catalog-description"
+                    value={description}
+                    onChange={(e) => onDescriptionChange(e.target.value)}
+                    placeholder={t('builder.descriptionPlaceholder') as string}
+                    maxLength={500}
+                    rows={3}
+                    className="resize-none"
+                />
+            </Field>
+
             {/* Kapak sayfası */}
-            <div className="space-y-4">
+            <div className="space-y-4 border-t pt-4">
                 <ToggleRow
                     label={t('builder.coverPage') as string}
                     description={t('builder.coverPageDesc') as string}
@@ -136,42 +158,24 @@ export function StorytellingSection() {
                             </div>
                         </Field>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <ImageField
-                                label={t('builder.coverImage') as string}
-                                imageUrl={coverImageUrl}
-                                onPick={() => coverInputRef.current?.click()}
-                                onRemove={onCoverImageUrlChange ? () => onCoverImageUrlChange(null) : undefined}
-                                hint="PNG, JPG, WEBP"
-                                pickLabel={t('builder.selectImage') as string}
-                                changeLabel={t('builder.changeBtn') as string}
-                                removeLabel={t('builder.removeBtn') as string}
-                                previewClassName="h-32"
-                            />
-                            <input
-                                type="file"
-                                ref={coverInputRef}
-                                className="hidden"
-                                accept="image/*"
-                                onChange={(e) => handleFileUpload(e, 'cover')}
-                            />
-
-                            <Field
-                                label={t('builder.coverDesc') as string}
-                                htmlFor="cover-description"
-                                hint={<span className="tabular-nums">{(coverDescription || '').length}/500</span>}
-                            >
-                                <Textarea
-                                    id="cover-description"
-                                    value={coverDescription || ''}
-                                    onChange={(e) => onCoverDescriptionChange?.(e.target.value || null)}
-                                    placeholder={t('builder.coverDescPlaceholder') as string}
-                                    maxLength={500}
-                                    rows={5}
-                                    className="resize-none bg-background"
-                                />
-                            </Field>
-                        </div>
+                        <ImageField
+                            label={t('builder.coverImage') as string}
+                            imageUrl={coverImageUrl}
+                            onPick={() => coverInputRef.current?.click()}
+                            onRemove={onCoverImageUrlChange ? () => onCoverImageUrlChange(null) : undefined}
+                            hint="PNG, JPG, WEBP"
+                            pickLabel={t('builder.selectImage') as string}
+                            changeLabel={t('builder.changeBtn') as string}
+                            removeLabel={t('builder.removeBtn') as string}
+                            previewClassName="h-32"
+                        />
+                        <input
+                            type="file"
+                            ref={coverInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleFileUpload(e, 'cover')}
+                        />
                     </div>
                 )}
             </div>
