@@ -5,7 +5,6 @@ import Script from "next/script"
 
 import "./globals.css"
 import { I18nProvider } from "@/lib/contexts/i18n-provider"
-import { SessionWatcher } from "@/components/auth/session-watcher"
 import { SITE_URL } from "@/lib/constants"
 
 const inter = Inter({
@@ -194,7 +193,7 @@ export default function RootLayout({
         className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <SessionWatcher />
+        {/* SessionWatcher panel/admin kabuklarında: herkese açık sayfalar supabase-js indirmesin */}
         <I18nProvider>
           {children}
         </I18nProvider>

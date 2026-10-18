@@ -1253,7 +1253,7 @@ npm run type-check
 
 7. **Cloudinary Unsigned:** Upload'lar unsigned preset ile yapılır. Delete işlemleri backend'de (signed).
 
-8. **i18n:** Çeviriler `lib/translations/` altında modülerdir. Yeni string eklerken Türkçe ve İngilizce karşılığını birlikte ekle.
+8. **i18n:** Çeviriler `lib/translations/tr/<modül>.ts` ve `lib/translations/en/<modül>.ts` dosyalarındadır (tarayıcı yalnızca seçili dili indirir; EN sonradan yüklenir). Yeni string eklerken iki dosyaya da aynı anahtarla ekle.
 
 9. **Template System:** Şablonlar DB'de (`templates` tablosu) + React components (`components/catalogs/templates/`).
 

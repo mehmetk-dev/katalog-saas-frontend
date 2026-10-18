@@ -2,7 +2,23 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react"
 
-import { translations, Language } from "@/lib/translations"
+import type { Language } from "@/lib/translations"
+import { tr } from "@/lib/translations/tr"
+
+type Dictionary = typeof tr
+
+/**
+ * İngilizce çeviriler (~30 KB gzip) yalnızca dil EN seçilince indirilir; Türkçe her sayfayla
+ * gelir. EN yüklenene kadar eksik anahtarlar Türkçeye düşer (aşağıdaki geri dönüş).
+ */
+let englishCache: Dictionary | null = null
+function loadEnglish(): Promise<Dictionary> {
+    if (englishCache) return Promise.resolve(englishCache)
+    return import("@/lib/translations/en").then((m) => {
+        englishCache = m.en as unknown as Dictionary
+        return englishCache
+    })
+}
 
 export type TranslationValue = string | number | boolean | null | undefined | { [key: string]: TranslationValue } | TranslationValue[]
 
@@ -17,6 +33,16 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined)
 export function I18nProvider({ children }: { children: ReactNode }) {
     const [language, setLanguageState] = useState<Language>("tr")
     const [isInitialized, setIsInitialized] = useState(false)
+    const [english, setEnglish] = useState<Dictionary | null>(englishCache)
+
+    useEffect(() => {
+        if (language !== "en" || english) return
+        let cancelled = false
+        loadEnglish()
+            .then((dict) => { if (!cancelled) setEnglish(dict) })
+            .catch(() => { /* yüklenemezse Türkçe kalır */ })
+        return () => { cancelled = true }
+    }, [language, english])
 
     useEffect(() => {
         // Try to get language from localStorage first
@@ -38,9 +64,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("language", lang)
     }, [])
 
+    const activeDictionary = language === "en" && english ? english : tr
+
     const t = useCallback(<T = string>(path: string, params?: Record<string, unknown>): T => {
         const keys = path.split(".")
-        let current: unknown = translations[language]
+        let current: unknown = activeDictionary
 
         // Navigate through the translation object
         for (const key of keys) {
@@ -48,7 +76,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
                 current = (current as Record<string, unknown>)[key]
             } else {
                 // Fallback to Turkish if key not found in current language
-                let fallback: unknown = translations.tr
+                let fallback: unknown = tr
                 for (const k of keys) {
                     if (fallback && typeof fallback === 'object' && !Array.isArray(fallback) && k in fallback) {
                         fallback = (fallback as Record<string, unknown>)[k]
@@ -79,13 +107,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         }
 
         return result as unknown as T
-    }, [language])
+    }, [activeDictionary])
 
+    // İngilizce sözlük gelene kadar arayüz Türkçe kalır; geçiş tek seferde olur
+    const activeLanguage: Language = isInitialized && (language !== "en" || english) ? language : "tr"
     const contextValue = useMemo(() => ({
-        language: isInitialized ? language : "tr",
+        language: activeLanguage,
         setLanguage,
         t
-    }), [isInitialized, language, setLanguage, t])
+    }), [activeLanguage, setLanguage, t])
 
     return (
         <I18nContext.Provider value={contextValue}>

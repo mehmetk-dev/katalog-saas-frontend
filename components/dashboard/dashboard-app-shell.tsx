@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { Toaster } from 'sonner'
 
+import { SessionWatcher } from '@/components/auth/session-watcher'
 import { DashboardChrome } from '@/components/dashboard/dashboard-chrome'
 import { ThemeProvider } from '@/components/theme-provider'
 import { QueryProvider } from '@/lib/contexts/query-provider'
@@ -66,6 +67,7 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
             disableTransitionOnChange
         >
             <QueryProvider>
+                <SessionWatcher />
                 <UserProvider initialUser={initialUser} initialSupabaseUser={sessionUserToSupabaseUser(user)}>
                     <SidebarProvider defaultCollapsed={defaultCollapsed}>
                         <DashboardChrome>{children}</DashboardChrome>
