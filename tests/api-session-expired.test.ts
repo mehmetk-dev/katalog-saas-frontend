@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 
-const { redirectMock, getUserMock, getSessionMock } = vi.hoisted(() => ({
+const { redirectMock, getClaimsMock, getSessionMock } = vi.hoisted(() => ({
   redirectMock: vi.fn((url: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { digest: `NEXT_REDIRECT;replace;${url};307;` })
   }),
-  getUserMock: vi.fn(),
+  getClaimsMock: vi.fn(),
   getSessionMock: vi.fn(),
 }))
 
 vi.mock("next/navigation", () => ({ redirect: redirectMock }))
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }))
 vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: async () => ({ auth: { getUser: getUserMock, getSession: getSessionMock } }),
+  createServerSupabaseClient: async () => ({ auth: { getClaims: getClaimsMock, getSession: getSessionMock } }),
 }))
 
 import { apiFetch } from "@/lib/api"
@@ -28,7 +28,7 @@ describe("apiFetch — backend token'ı reddettiğinde", () => {
   })
 
   it("oturumlu istekte hata sayfası yerine girişe yönlendirir", async () => {
-    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } })
+    getClaimsMock.mockResolvedValue({ data: { claims: { sub: "user-1" } }, error: null })
     getSessionMock.mockResolvedValue({ data: { session: { access_token: "stale-token" } } })
     ;(global.fetch as Mock).mockResolvedValueOnce(unauthorizedResponse())
 
@@ -37,7 +37,7 @@ describe("apiFetch — backend token'ı reddettiğinde", () => {
   })
 
   it("oturumsuz istekte yönlendirmez, hatayı fırlatır", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null } })
+    getClaimsMock.mockResolvedValue({ data: null, error: null })
     getSessionMock.mockResolvedValue({ data: { session: null } })
     ;(global.fetch as Mock).mockResolvedValueOnce(unauthorizedResponse())
 

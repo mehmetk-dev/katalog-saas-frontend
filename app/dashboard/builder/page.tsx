@@ -63,7 +63,8 @@ async function BuilderDataLoader({ catalogId }: { catalogId?: string }) {
   if (!catalogId) {
     const { createServerSupabaseClient } = await import("@/lib/supabase/server")
     const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { getSessionUser } = await import("@/lib/supabase/session-user")
+    const { user } = await getSessionUser(supabase)
 
     if (user) {
       const { data: profile } = await supabase.from("users").select("plan").eq("id", user.id).single()

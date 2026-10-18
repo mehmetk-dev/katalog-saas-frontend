@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { getSessionUser } from "@/lib/supabase/session-user"
 import { CatalogsPageClient } from "@/components/catalogs/catalogs-page-client"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
@@ -51,7 +52,7 @@ async function fetchPreviewProducts(
 export default async function CatalogsPage() {
   const supabase = await createServerSupabaseClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getSessionUser(supabase)
 
   if (!user) {
     return <CatalogsPageClient initialCatalogs={[]} userProducts={[]} userPlan="free" />

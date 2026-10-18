@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/session-user";
 import { isNetworkError } from "@/lib/utils/retry";
 
 const BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
@@ -73,14 +74,13 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     const realIp = clientHeaders.get("x-real-ip");
     const userAgent = clientHeaders.get("user-agent");
 
-    // SECURITY: getUser() validates JWT via Supabase Auth server (secure)
-    // getSession() returns cached session with access_token (fast, not validated)
-    // We call both in parallel to avoid TOCTOU race condition — user validation
-    // and token retrieval happen on the same snapshot of auth state.
-    const [{ data: { user } }, { data: { session } }] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.auth.getSession(),
-    ]);
+    // getSession() token'ı çerezden okur (gerekirse yeniler); gönderilecek token'ın imzası
+    // getSessionUser ile yerelde doğrulanır. Eskiden her istekte getUser() ile Supabase Auth'a
+    // ayrıca gidiliyordu; backend de token'ı zaten doğruluyor.
+    const { data: { session } } = await supabase.auth.getSession();
+    const { user } = session?.access_token
+        ? await getSessionUser(supabase, session.access_token)
+        : { user: null };
 
     const headersList: Record<string, string> = {
         "Content-Type": "application/json",

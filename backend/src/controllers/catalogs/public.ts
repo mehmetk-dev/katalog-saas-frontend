@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { supabase } from '../../services/supabase';
+import { verifyAccessToken } from '../../middlewares/auth';
 import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
 import { getUserPlan, getPlanLimits } from './helpers';
 import { safeErrorMessage } from '../../utils/safe-error';
@@ -110,8 +111,8 @@ export const getPublicCatalog = async (req: Request, res: Response) => {
         if (req.headers.authorization) {
             try {
                 const token = req.headers.authorization.replace('Bearer ', '');
-                const { data: { user: authUser } } = await supabase.auth.getUser(token);
-                if (authUser && authUser.id === ownerId) {
+                const { claims } = await verifyAccessToken(token);
+                if (claims && claims.sub === ownerId) {
                     isOwner = true;
                 }
             } catch (e) {

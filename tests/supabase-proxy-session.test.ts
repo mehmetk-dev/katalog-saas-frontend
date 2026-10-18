@@ -1,14 +1,21 @@
 import { NextRequest } from "next/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { getUserMock } = vi.hoisted(() => ({ getUserMock: vi.fn() }))
+const { getClaimsMock } = vi.hoisted(() => ({ getClaimsMock: vi.fn() }))
+
+/** Middleware token'ı getClaims ile yerelde doğrular; testler kullanıcıyı token claim'i olarak verir */
+function signedIn(id: string, lastSignInAt?: string) {
+  const amr = lastSignInAt ? [{ method: "password", timestamp: Math.floor(Date.parse(lastSignInAt) / 1000) }] : undefined
+  return { data: { claims: { sub: id, amr } }, error: null }
+}
+const signedOut = (error: { code: string } | null = null) => ({ data: null, error })
 
 // vitest.setup.ts next/server'ı global olarak mock'luyor; middleware gerçek NextResponse ile test edilmeli
 vi.mock("next/server", async () => await vi.importActual<typeof import("next/server")>("next/server"))
 
 vi.mock("@supabase/ssr", () => ({
   createServerClient: vi.fn(() => ({
-    auth: { getUser: getUserMock },
+    auth: { getClaims: getClaimsMock },
     from: vi.fn(() => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { is_admin: false } }) }) }) })),
   })),
 }))
@@ -27,11 +34,11 @@ describe("updateSession", () => {
   beforeEach(() => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co"
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon"
-    getUserMock.mockReset()
+    getClaimsMock.mockReset()
   })
 
   it("redirects anonymous dashboard visits to /auth with the original target", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null }, error: null })
+    getClaimsMock.mockResolvedValue(signedOut())
 
     const response = await updateSession(request("/dashboard/products?page=2&_rsc=abc"))
 
@@ -43,7 +50,7 @@ describe("updateSession", () => {
   })
 
   it("does not bounce public pages when the inactivity timer has expired", async () => {
-    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null })
+    getClaimsMock.mockResolvedValue(signedIn("user-1"))
     const staleTimer = String(Date.now() - THIRTEEN_HOURS_MS)
 
     const response = await updateSession(request("/catalog/spring-2026", { auth_session_timer: staleTimer }))
@@ -53,7 +60,7 @@ describe("updateSession", () => {
   })
 
   it("still logs out dashboard visits when the inactivity timer has expired", async () => {
-    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null })
+    getClaimsMock.mockResolvedValue(signedIn("user-1"))
     const staleTimer = String(Date.now() - THIRTEEN_HOURS_MS)
 
     const response = await updateSession(request("/dashboard", { auth_session_timer: staleTimer }))
@@ -63,7 +70,7 @@ describe("updateSession", () => {
   })
 
   it("does not bounce public pages on a stale refresh token", async () => {
-    getUserMock.mockResolvedValue({ data: { user: null }, error: { code: "refresh_token_not_found" } })
+    getClaimsMock.mockResolvedValue(signedOut({ code: "refresh_token_not_found" }))
 
     const response = await updateSession(request("/catalog/spring-2026"))
 
@@ -73,7 +80,7 @@ describe("updateSession", () => {
   it.each(["refresh_token_already_used", "session_not_found", "session_expired"])(
     "logs out dashboard visits and clears cookies when the session is dead (%s)",
     async (code) => {
-      getUserMock.mockResolvedValue({ data: { user: null }, error: { code } })
+      getClaimsMock.mockResolvedValue(signedOut({ code }))
 
       const response = await updateSession(
         request("/dashboard/builder?id=c1", { "sb-project-auth-token.0": "a", "sb-project-auth-token.1": "b" }),
@@ -91,7 +98,7 @@ describe("updateSession", () => {
 
   it("logs out a returning user whose timer cookie expired long ago (falls back to last sign-in)", async () => {
     const lastSignIn = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", last_sign_in_at: lastSignIn } }, error: null })
+    getClaimsMock.mockResolvedValue(signedIn("user-1", lastSignIn))
 
     const response = await updateSession(request("/dashboard"))
 
@@ -101,7 +108,7 @@ describe("updateSession", () => {
 
   it("lets a fresh login in and starts the inactivity timer", async () => {
     const lastSignIn = new Date(Date.now() - 60 * 1000).toISOString()
-    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", last_sign_in_at: lastSignIn } }, error: null })
+    getClaimsMock.mockResolvedValue(signedIn("user-1", lastSignIn))
 
     const response = await updateSession(request("/dashboard"))
 
@@ -111,7 +118,7 @@ describe("updateSession", () => {
 
   it("keeps an active user signed in even if they signed in days ago", async () => {
     const lastSignIn = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-    getUserMock.mockResolvedValue({ data: { user: { id: "user-1", last_sign_in_at: lastSignIn } }, error: null })
+    getClaimsMock.mockResolvedValue(signedIn("user-1", lastSignIn))
 
     const response = await updateSession(request("/dashboard", { auth_session_timer: String(Date.now() - 60 * 1000) }))
 

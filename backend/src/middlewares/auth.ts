@@ -10,6 +10,17 @@ export interface AuthUser {
     is_admin?: boolean;
 }
 
+/**
+ * Access token'ı doğrular. getUser() her istekte Supabase Auth'a (us-east-1) gidiyordu
+ * (~150–300 ms); getClaims() asimetrik imzayı projenin JWKS'iyle (10 dk önbellek) yerelde doğrular.
+ * Not: iptal edilen oturum token süresi (en fazla 1 saat) dolana kadar geçerli sayılır.
+ */
+export async function verifyAccessToken(token: string) {
+    const { data, error } = await supabase.auth.getClaims(token);
+    const claims = data?.claims;
+    return { claims: claims?.sub ? claims : null, error };
+}
+
 export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const authHeader = req.headers.authorization;
@@ -19,7 +30,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { claims: user, error } = await verifyAccessToken(token);
 
         // Supabase Auth'a ulaşılamadıysa token geçersiz değildir; 401 frontend'de oturumu
         // kapattırır, bu yüzden geçici hata olarak bildirilir.
@@ -39,7 +50,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
         // Attach user to request object with proper typing
         (req as unknown as { user: AuthUser }).user = {
-            id: user.id,
+            id: user.sub,
             email: user.email ?? '',
             user_metadata: (user.user_metadata ?? {}) as Record<string, string>,
             is_admin: isAdminClaim,

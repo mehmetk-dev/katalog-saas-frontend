@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { getSessionUser } from "@/lib/supabase/session-user"
 import { CategoriesPageClient } from "@/components/categories/categories-page-client"
 import { buildCategoryList } from "@/components/categories/build-categories"
 
@@ -6,7 +7,7 @@ const PAGE_SIZE = 1000
 
 export default async function CategoriesPage() {
     const supabase = await createServerSupabaseClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { user } = await getSessionUser(supabase)
     const userId = user?.id ?? ""
 
     // Supabase tek sorguda en fazla 1000 satır döndürür; 1000+ ürünlü hesaplarda sayılar eksik çıkıyordu

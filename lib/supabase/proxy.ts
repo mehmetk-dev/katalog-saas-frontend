@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+import { getSessionUser } from "./session-user"
+
 export const SESSION_TIMER_COOKIE = "auth_session_timer"
 /** Panelde bu kadar süre hareketsiz kalan oturum kapatılır */
 export const MAX_SESSION_IDLE_MS = 12 * 60 * 60 * 1000
@@ -18,6 +20,7 @@ const DEAD_SESSION_ERROR_CODES = new Set([
   "user_not_found",
   "user_banned",
   "bad_jwt",
+  "invalid_jwt",
 ])
 
 function isDeadSessionError(error: unknown): boolean {
@@ -79,10 +82,8 @@ export async function updateSession(request: NextRequest) {
       },
     )
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Her istekte çalışır: token yerelde doğrulanır (bkz. getSessionUser), Supabase Auth'a yalnızca yenilemede gidilir
+    const { user, error: authError } = await getSessionUser(supabase)
 
     const sessionTimerCookie = request.cookies.get(SESSION_TIMER_COOKIE)?.value
     const now = Date.now()

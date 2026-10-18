@@ -10,13 +10,12 @@ import { SidebarProvider } from '@/lib/contexts/sidebar-context'
 import { UserProvider } from '@/lib/contexts/user-context'
 import { getPlanLimits } from '@/lib/constants'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getSessionUser, sessionUserToSupabaseUser } from '@/lib/supabase/session-user'
 import { countMonthlyExports } from '@/lib/billing/export-quota'
 
 export async function DashboardAppShell({ children }: { children: ReactNode }) {
     const supabase = await createServerSupabaseClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    const { user } = await getSessionUser(supabase)
 
     if (!user) redirect('/auth')
 
@@ -42,10 +41,10 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
     const planLimits = getPlanLimits(plan)
     const initialUser = {
         id: user.id,
-        email: user.email!,
-        name: profile?.full_name || user.user_metadata?.full_name || 'Kullanıcı',
+        email: user.email ?? '',
+        name: profile?.full_name || (user.user_metadata.full_name as string | undefined) || 'Kullanıcı',
         company: profile?.company || '',
-        avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url,
+        avatar_url: profile?.avatar_url || (user.user_metadata.avatar_url as string | undefined),
         plan: plan as 'free' | 'plus' | 'pro',
         productsCount: productsResult.count || 0,
         catalogsCount: catalogsResult.count || 0,
@@ -67,7 +66,7 @@ export async function DashboardAppShell({ children }: { children: ReactNode }) {
             disableTransitionOnChange
         >
             <QueryProvider>
-                <UserProvider initialUser={initialUser} initialSupabaseUser={user}>
+                <UserProvider initialUser={initialUser} initialSupabaseUser={sessionUserToSupabaseUser(user)}>
                     <SidebarProvider defaultCollapsed={defaultCollapsed}>
                         <DashboardChrome>{children}</DashboardChrome>
                         <Toaster
