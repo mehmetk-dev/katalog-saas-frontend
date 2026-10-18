@@ -16,11 +16,12 @@ export function HeroPanel({ t }: HeroPanelProps) {
                     alt="Background"
                     fill
                     sizes="(max-width: 1024px) 0vw, 50vw"
-                    className="object-cover"
+                    // Görsel mor/yeşil; marka renkleriyle çakışmasın diye griye çekilir
+                    className="object-cover grayscale"
                     priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
-                <div className="absolute inset-0 bg-violet-900/20 mix-blend-overlay" />
+                <div className="absolute inset-0 bg-red-900/20 mix-blend-overlay" />
             </div>
 
             <div className="relative z-20">

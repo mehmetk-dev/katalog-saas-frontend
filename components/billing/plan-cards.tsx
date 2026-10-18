@@ -82,13 +82,14 @@ export function PlanCards({ isYearly, currentPlan }: PlanCardsProps) {
 
                         <div className="mt-6 flex items-baseline gap-1">
                             <span className="text-4xl font-semibold tracking-tight text-card-foreground">
-                                {paid ? `₺${formatPrice(monthly)}` : t("pricingPage.free")}
+                                {/* Plan adı zaten "Ücretsiz"; fiyatı ₺0 göstermek ikinci kez yazmaktan iyi */}
+                                ₺{formatPrice(monthly)}
                             </span>
-                            {paid ? <span className="text-sm text-muted-foreground">{t("pricingPage.month")}</span> : null}
+                            <span className="text-sm text-muted-foreground">{t("pricingPage.month")}</span>
                         </div>
                         <p className="mt-1 min-h-5 text-xs text-muted-foreground">
                             {paid && isYearly ? `₺${formatPrice(paid.yearlyPrice)}${t("pricingPage.perYear")} · ` : ""}
-                            {paid ? t("checkout.vatIncluded") : ""}
+                            {paid ? t("checkout.vatIncluded") : t("upgradeModal.alwaysFree")}
                         </p>
 
                         {actionDisabled ? (

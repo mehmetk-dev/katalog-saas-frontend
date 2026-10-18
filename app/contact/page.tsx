@@ -26,7 +26,7 @@ export default function ContactPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-slate-900 selection:bg-violet-100 font-sans">
+    <div className="min-h-screen bg-[#FDFCFB] text-slate-900 selection:bg-red-100 font-sans">
       <PublicHeader />
 
       <main className="relative pt-24 pb-16 md:pt-32 md:pb-20 px-4 overflow-hidden">
@@ -34,11 +34,11 @@ export default function ContactPage() {
         <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FDFCFB]">
           <div className={cn(
             "absolute top-[-10%] right-[-10%] w-[60%] h-[60%]",
-            "bg-violet-100/30 rounded-full blur-[120px]"
+            "bg-red-100/30 rounded-full blur-[120px]"
           )} />
           <div className={cn(
             "absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%]",
-            "bg-fuchsia-100/20 rounded-full blur-[120px]"
+            "bg-red-100/20 rounded-full blur-[120px]"
           )} />
         </div>
 
@@ -79,7 +79,7 @@ export default function ContactPage() {
                   <span className={cn(
                     "text-[9px] sm:text-[10px] uppercase",
                     "tracking-[0.3em] sm:tracking-[0.4em]",
-                    "font-bold text-violet-400"
+                    "font-bold text-red-400"
                   )}>İletişim / Foglio №01</span>
                   <div className="h-px bg-slate-700 flex-1" />
                 </div>
@@ -96,7 +96,7 @@ export default function ContactPage() {
                     <br />
                     <span className={cn(
                       "text-transparent bg-clip-text bg-gradient-to-br",
-                      "from-violet-400 via-fuchsia-200 to-white"
+                      "from-red-400 via-red-200 to-white"
                     )}>KURUN.</span>
                   </h1>
                   <p className={cn(
@@ -121,12 +121,12 @@ export default function ContactPage() {
                       )}>{item.label}</p>
                       <div className="flex items-center gap-2.5 md:gap-3">
                         <item.icon className={cn(
-                          "w-3.5 h-3.5 md:w-4 md:h-4 text-violet-500",
+                          "w-3.5 h-3.5 md:w-4 md:h-4 text-red-500",
                           "group-hover:scale-125 transition-transform"
                         )} />
                         <p className={cn(
                           "text-base sm:text-lg md:text-xl font-medium",
-                          "tracking-tight group-hover:text-violet-400",
+                          "tracking-tight group-hover:text-red-400",
                           "transition-colors break-all sm:break-normal"
                         )}>{item.value}</p>
                       </div>
@@ -183,7 +183,7 @@ export default function ContactPage() {
                     "tracking-[0.3em] sm:tracking-[0.4em]",
                     "font-black text-slate-300 mb-2 md:mb-3 font-montserrat"
                   )}>Mesaj Gönderin</h2>
-                  <div className="h-0.5 bg-violet-600 w-12 ml-auto" />
+                  <div className="h-0.5 bg-red-600 w-12 ml-auto" />
                 </div>
 
                 {isSuccess ? (
@@ -263,7 +263,7 @@ export default function ContactPage() {
                             "peer bg-transparent border-0 border-b-2",
                             "border-slate-100 rounded-none h-10 sm:h-12 px-0",
                             "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-violet-600",
+                            "focus:ring-0 focus:border-red-600",
                             "transition-all placeholder:opacity-0"
                           )}
                         />
@@ -273,7 +273,7 @@ export default function ContactPage() {
                             "absolute left-0 top-2 sm:top-3 text-slate-400",
                             "text-sm sm:text-base transition-all",
                             "peer-focus:-top-5 peer-focus:text-[10px]",
-                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-focus:text-red-600 peer-focus:font-bold",
                             "peer-[:not(:placeholder-shown)]:-top-5",
                             "peer-[:not(:placeholder-shown)]:text-[10px]",
                             "cursor-text uppercase tracking-widest"
@@ -297,7 +297,7 @@ export default function ContactPage() {
                             "peer bg-transparent border-0 border-b-2",
                             "border-slate-100 rounded-none h-10 sm:h-12 px-0",
                             "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-violet-600",
+                            "focus:ring-0 focus:border-red-600",
                             "transition-all placeholder:opacity-0"
                           )}
                         />
@@ -307,7 +307,7 @@ export default function ContactPage() {
                             "absolute left-0 top-2 sm:top-3 text-slate-400",
                             "text-sm sm:text-base transition-all",
                             "peer-focus:-top-5 peer-focus:text-[10px]",
-                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-focus:text-red-600 peer-focus:font-bold",
                             "peer-[:not(:placeholder-shown)]:-top-5",
                             "peer-[:not(:placeholder-shown)]:text-[10px]",
                             "cursor-text uppercase tracking-widest"
@@ -339,8 +339,8 @@ export default function ContactPage() {
                                   "py-2 sm:py-2.5 px-2 sm:px-3",
                                   "border rounded-full transition-all min-h-[44px]",
                                   selectedSubject === subj.id
-                                    ? "border-violet-600 bg-violet-50 text-violet-600"
-                                    : "border-slate-100 text-slate-500 hover:border-violet-300 hover:text-violet-600"
+                                    ? "border-red-600 bg-red-50 text-red-600"
+                                    : "border-slate-100 text-slate-500 hover:border-red-300 hover:text-red-600"
                                 )}
                               >
                                 <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
@@ -366,7 +366,7 @@ export default function ContactPage() {
                             "border-slate-100 rounded-none",
                             "min-h-[80px] sm:min-h-[100px] px-0",
                             "text-base sm:text-lg font-medium",
-                            "focus:ring-0 focus:border-violet-600",
+                            "focus:ring-0 focus:border-red-600",
                             "transition-all resize-none placeholder:opacity-0"
                           )}
                         />
@@ -376,7 +376,7 @@ export default function ContactPage() {
                             "absolute left-0 top-3 sm:top-4 text-slate-400",
                             "text-sm sm:text-base transition-all",
                             "peer-focus:-top-4 peer-focus:text-[10px]",
-                            "peer-focus:text-violet-600 peer-focus:font-bold",
+                            "peer-focus:text-red-600 peer-focus:font-bold",
                             "peer-[:not(:placeholder-shown)]:-top-4",
                             "peer-[:not(:placeholder-shown)]:text-[10px]",
                             "cursor-text uppercase tracking-widest"
@@ -408,7 +408,7 @@ export default function ContactPage() {
                           "w-full h-12 sm:h-14 rounded-full",
                           "bg-slate-900 text-white font-bold",
                           "tracking-widest uppercase text-[10px] sm:text-xs",
-                          "hover:bg-violet-600 hover:scale-[1.02]",
+                          "hover:bg-red-600 hover:scale-[1.02]",
                           "shadow-2xl shadow-slate-900/10 transition-all group",
                           "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         )}
@@ -436,7 +436,7 @@ export default function ContactPage() {
                 <div className="mt-8 md:mt-10 flex items-center justify-between">
                   <span className="text-[9px] uppercase tracking-widest text-slate-300 font-bold">v2.1</span>
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600" />
                     <span className="text-[9px] uppercase tracking-widest text-slate-400">FogCatalog</span>
                   </div>
                 </div>

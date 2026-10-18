@@ -11,8 +11,8 @@ export function RedirectOverlay({ t, variant = "default" }: RedirectOverlayProps
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm">
                 <div className="flex flex-col items-center gap-6 animate-in fade-in duration-500">
-                    <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
+                    <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
                     </div>
                     <p className="text-slate-500 font-medium">{t("auth.redirecting")}</p>
                 </div>

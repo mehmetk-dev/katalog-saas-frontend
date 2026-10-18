@@ -17,7 +17,7 @@ export const MobileSection = React.memo(function MobileSection({ t }: MobileSect
             <div className={cn(
                 "absolute top-0 left-0 w-full h-full",
                 "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))]",
-                "from-violet-900/20 via-slate-900 to-slate-900"
+                "from-red-900/20 via-slate-900 to-slate-900"
             )} />
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -26,7 +26,7 @@ export const MobileSection = React.memo(function MobileSection({ t }: MobileSect
                     <div className="w-full lg:w-1/2 relative">
                         <div className={cn(
                             "absolute inset-0 bg-gradient-to-r",
-                            "from-violet-600/30 to-fuchsia-600/30",
+                            "from-red-600/30 to-red-600/30",
                             "rounded-full blur-[100px] scale-75"
                         )} />
                         <div className="relative mx-auto w-[280px]">
@@ -52,7 +52,7 @@ export const MobileSection = React.memo(function MobileSection({ t }: MobileSect
                     <div className="w-full lg:w-1/2 space-y-8">
                         <div className={cn(
                             "inline-flex items-center gap-2 px-4 py-1.5 rounded-full",
-                            "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                            "bg-red-500/10 text-red-400 border border-red-500/20"
                         )}>
                             <Smartphone className="w-4 h-4" />
                             <span className="text-sm font-medium">{t('landing.mobileBadge')}</span>
@@ -62,7 +62,7 @@ export const MobileSection = React.memo(function MobileSection({ t }: MobileSect
                             {t('landing.mobileTitle')}{' '}
                             <span className={cn(
                                 "text-transparent bg-clip-text bg-gradient-to-r",
-                                "from-cyan-400 to-violet-400"
+                                "from-red-400 to-red-400"
                             )}>
                                 {t('landing.mobileScore')}
                             </span>
@@ -79,8 +79,8 @@ export const MobileSection = React.memo(function MobileSection({ t }: MobileSect
                                 t('landing.mobileFeature3')
                             ].map((item, i) => (
                                 <li key={i} className="flex items-center gap-4">
-                                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
-                                        <Zap className="w-4 h-4 text-cyan-400" />
+                                    <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                                        <Zap className="w-4 h-4 text-red-400" />
                                     </div>
                                     <span className="text-slate-300">{item}</span>
                                 </li>

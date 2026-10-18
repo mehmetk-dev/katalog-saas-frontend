@@ -14,13 +14,13 @@ export function QrPdfSection() {
                 {/* Card 1: QR Code */}
                 <div className="bg-slate-950 rounded-[3rem] p-10 md:p-14 text-white relative overflow-hidden group">
                     <div className={cn(
-                        "absolute top-0 right-0 w-64 h-64 bg-emerald-500/20",
+                        "absolute top-0 right-0 w-64 h-64 bg-red-500/20",
                         "rounded-full blur-[80px]",
-                        "group-hover:bg-emerald-500/30 transition-colors duration-500"
+                        "group-hover:bg-red-500/30 transition-colors duration-500"
                     )} />
 
                     <div className="relative z-10">
-                        <QrCode className="w-12 h-12 text-emerald-400 mb-6" />
+                        <QrCode className="w-12 h-12 text-red-400 mb-6" />
                         <h3 className="text-3xl font-bold mb-4">{t('featuresPage.qrTitle')}</h3>
                         <p className="text-slate-400 text-lg mb-8 leading-relaxed">
                             {t('featuresPage.qrDesc')}

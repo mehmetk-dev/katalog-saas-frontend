@@ -257,8 +257,22 @@ const INDUSTRIAL_PRODUCTS: Product[] = [
     }),
 ]
 
+// Örnek setler 6 ürün; 9-12 ürünlük şablonlarda sayfanın altı boş kalmasın diye tekrarlanır
+const PREVIEW_PAGE_FILL = 12
+
+function fillPreviewPage(products: Product[]): Product[] {
+    return Array.from({ length: PREVIEW_PAGE_FILL }, (_, i) => {
+        const product = products[i % products.length]
+        return i < products.length ? product : { ...product, id: `${product.id}-${i}` }
+    })
+}
+
 // Layout'a göre uygun ürün setini döndür
 export function getPreviewProductsByLayout(layout: string): Product[] {
+    return fillPreviewPage(getPreviewProductSet(layout))
+}
+
+function getPreviewProductSet(layout: string): Product[] {
     switch (layout) {
         case 'fashion-lookbook':
             return FASHION_PRODUCTS

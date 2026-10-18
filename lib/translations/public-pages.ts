@@ -144,7 +144,7 @@ const publicPages = {
             desc: "Aradığınız sayfa bulunamadı",
             text: "Bu sayfa taşınmış, silinmiş veya hiç var olmamış olabilir. Ana sayfaya dönerek yolculuğunuza devam edebilirsiniz.",
             home: "Ana Sayfaya Git",
-            dashboard: "Dashboard'a Dön",
+            back: "Geri Dön",
         },
         marketing: {
             heroTitle: "Dakikalar içinde harika ürün katalogları oluşturun",
@@ -153,7 +153,7 @@ const publicPages = {
             feature2: "PDF'e aktar veya link ile paylaş",
             feature3: "Kurumsal düzeyde güvenlik",
             feature4: "Excel ile Toplu Ürün Yükleme",
-            feature5: "WhatsApp Sipariş Entegrasyonu",
+            feature5: "Görüntülenme ve ziyaretçi analitiği",
         },
         featuresPage: {
             heroBadge: "FogCatalog v2.0 Özellikleri",
@@ -448,7 +448,7 @@ const publicPages = {
             desc: "The page you are looking for was not found",
             text: "This page might have been moved, deleted or never existed. You can go back to home page to continue your journey.",
             home: "Go to Home",
-            dashboard: "Back to Dashboard",
+            back: "Go Back",
         },
         marketing: {
             heroTitle: "Create stunning product catalogs in minutes",
@@ -457,7 +457,7 @@ const publicPages = {
             feature2: "Export to PDF or share via link",
             feature3: "Enterprise-grade security",
             feature4: "Bulk Product Upload via Excel",
-            feature5: "WhatsApp Order Integration",
+            feature5: "View and visitor analytics",
         },
         featuresPage: {
             heroBadge: "FogCatalog v2.0 Features",

@@ -28,7 +28,7 @@ export function BentoGridSection() {
                     "group overflow-hidden relative"
                 )}>
                     <div className="relative z-10">
-                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6">
+                        <div className="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center mb-6">
                             <BarChart3 className="w-6 h-6" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 mb-2">{t('featuresPage.analyticsTitle')}</h3>
@@ -41,10 +41,10 @@ export function BentoGridSection() {
                         "flex items-end gap-2 px-6 pb-6",
                         "opacity-30 group-hover:opacity-100 transition-opacity duration-500"
                     )}>
-                        <div className="w-full bg-blue-100 h-[40%] rounded-t-sm group-hover:h-[60%] transition-all duration-700 delay-100"></div>
-                        <div className="w-full bg-blue-200 h-[70%] rounded-t-sm group-hover:h-[85%] transition-all duration-700 delay-200"></div>
-                        <div className="w-full bg-blue-600 h-[50%] rounded-t-sm group-hover:h-[100%] transition-all duration-700 delay-300"></div>
-                        <div className="w-full bg-blue-400 h-[30%] rounded-t-sm group-hover:h-[50%] transition-all duration-700 delay-100"></div>
+                        <div className="w-full bg-red-100 h-[40%] rounded-t-sm group-hover:h-[60%] transition-all duration-700 delay-100"></div>
+                        <div className="w-full bg-red-200 h-[70%] rounded-t-sm group-hover:h-[85%] transition-all duration-700 delay-200"></div>
+                        <div className="w-full bg-red-600 h-[50%] rounded-t-sm group-hover:h-[100%] transition-all duration-700 delay-300"></div>
+                        <div className="w-full bg-red-400 h-[30%] rounded-t-sm group-hover:h-[50%] transition-all duration-700 delay-100"></div>
                     </div>
                 </div>
 
@@ -56,16 +56,16 @@ export function BentoGridSection() {
                 )}>
                     <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-100 transition-opacity duration-500">
                         <ShieldCheck className={cn(
-                            "w-24 h-24 text-emerald-100 rotate-12 transform",
-                            "group-hover:text-emerald-500 transition-colors"
+                            "w-24 h-24 text-red-100 rotate-12 transform",
+                            "group-hover:text-red-500 transition-colors"
                         )} />
                     </div>
 
                     <div className="relative z-10 h-full flex flex-col justify-between">
                         <div>
                             <div className={cn(
-                                "w-10 h-10 bg-emerald-100/80 backdrop-blur-sm",
-                                "text-emerald-600 rounded-lg",
+                                "w-10 h-10 bg-red-100/80 backdrop-blur-sm",
+                                "text-red-600 rounded-lg",
                                 "flex items-center justify-center mb-4"
                             )}>
                                 <ShieldCheck className="w-5 h-5" />
@@ -73,14 +73,14 @@ export function BentoGridSection() {
                             <h3 className="font-bold text-slate-900 leading-tight whitespace-pre-line">{t('featuresPage.securityTitle')}</h3>
                         </div>
 
-                        <div className="bg-white/80 backdrop-blur-md border border-emerald-100 rounded-xl p-3 mt-4 shadow-sm">
+                        <div className="bg-white/80 backdrop-blur-md border border-red-100 rounded-xl p-3 mt-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">{t('featuresPage.securityStatus')}</span>
+                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                <span className="text-[10px] uppercase font-bold text-red-600 tracking-wider">{t('featuresPage.securityStatus')}</span>
                             </div>
                             <div className="space-y-1.5">
                                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full w-[98%] bg-emerald-400 rounded-full"></div>
+                                    <div className="h-full w-[98%] bg-red-400 rounded-full"></div>
                                 </div>
                                 <div className="flex justify-between text-[9px] text-slate-400 font-mono">
                                     <span>SSL: Active</span>
@@ -94,7 +94,7 @@ export function BentoGridSection() {
                 {/* Card 3: Global Access */}
                 <div className={cn(
                     "bg-white rounded-3xl p-6 border border-slate-200",
-                    "hover:border-sky-300 hover:shadow-lg hover:shadow-sky-100/50",
+                    "hover:border-red-300 hover:shadow-lg hover:shadow-red-100/50",
                     "transition-all duration-500 relative overflow-hidden group"
                 )}>
                     {/* Map Background */}
@@ -105,17 +105,17 @@ export function BentoGridSection() {
                         )} />
                         <svg viewBox="0 0 200 100" className="w-full h-full text-slate-900 fill-current">
                             <path d="M20,50 Q50,20 80,50 T140,50 T200,50" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                            <circle cx="20" cy="50" r="2" className="animate-ping text-sky-500" />
-                            <circle cx="80" cy="50" r="2" className="animate-ping delay-300 text-sky-500" />
-                            <circle cx="140" cy="50" r="2" className="animate-ping delay-700 text-sky-500" />
+                            <circle cx="20" cy="50" r="2" className="animate-ping text-red-500" />
+                            <circle cx="80" cy="50" r="2" className="animate-ping delay-300 text-red-500" />
+                            <circle cx="140" cy="50" r="2" className="animate-ping delay-700 text-red-500" />
                         </svg>
                     </div>
 
                     <div className="relative z-10 h-full flex flex-col justify-between">
                         <div className={cn(
-                            "w-10 h-10 bg-sky-50 text-sky-600 rounded-lg",
+                            "w-10 h-10 bg-red-50 text-red-600 rounded-lg",
                             "flex items-center justify-center",
-                            "border border-sky-100 mb-4"
+                            "border border-red-100 mb-4"
                         )}>
                             <Globe className="w-5 h-5" />
                         </div>
@@ -126,12 +126,12 @@ export function BentoGridSection() {
                             </p>
                             <div className="flex items-center gap-2">
                                 <div className={cn(
-                                    "px-2 py-0.5 rounded-full bg-emerald-50",
-                                    "border border-emerald-100 text-emerald-600",
+                                    "px-2 py-0.5 rounded-full bg-red-50",
+                                    "border border-red-100 text-red-600",
                                     "text-[9px] font-bold tracking-wide",
                                     "flex items-center gap-1.5"
                                 )}>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                                     7/24 KESİNTİSİZ
                                 </div>
                             </div>
@@ -143,17 +143,17 @@ export function BentoGridSection() {
                 <div className={cn(
                     "bg-white rounded-3xl p-6 border border-slate-200",
                     "flex flex-col justify-between",
-                    "hover:border-amber-200 hover:shadow-lg hover:shadow-amber-100/50",
+                    "hover:border-red-200 hover:shadow-lg hover:shadow-red-100/50",
                     "transition-all duration-500 group relative overflow-hidden"
                 )}>
                     <div className={cn(
-                        "absolute -right-8 -top-8 w-32 h-32 bg-amber-50",
-                        "rounded-full blur-2xl group-hover:bg-amber-100 transition-colors"
+                        "absolute -right-8 -top-8 w-32 h-32 bg-red-50",
+                        "rounded-full blur-2xl group-hover:bg-red-100 transition-colors"
                     )} />
 
                     <div>
                         <div className={cn(
-                            "w-10 h-10 bg-amber-50 text-amber-600 rounded-lg",
+                            "w-10 h-10 bg-red-50 text-red-600 rounded-lg",
                             "flex items-center justify-center mb-4"
                         )}>
                             <Layers className="w-5 h-5" />
@@ -182,8 +182,8 @@ export function BentoGridSection() {
                             #Giyim
                         </div>
                         <div className={cn(
-                            "absolute left-4 bottom-2 bg-amber-500",
-                            "border border-amber-500 text-[10px] font-bold text-white",
+                            "absolute left-4 bottom-2 bg-red-500",
+                            "border border-red-500 text-[10px] font-bold text-white",
                             "px-3 py-1.5 rounded-lg shadow-md w-3/4",
                             "flex items-center justify-between transform",
                             "group-hover:translate-y-0 group-hover:scale-105",
@@ -243,15 +243,15 @@ export function BentoGridSection() {
                 <div className={cn(
                     "bg-white rounded-3xl p-6 border border-slate-200",
                     "flex flex-col justify-between",
-                    "hover:border-amber-200 hover:shadow-lg hover:shadow-amber-100/50",
+                    "hover:border-red-200 hover:shadow-lg hover:shadow-red-100/50",
                     "transition-all duration-500 group relative"
                 )}>
                     <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <Zap className="w-20 h-20 text-amber-500 -rotate-12" />
+                        <Zap className="w-20 h-20 text-red-500 -rotate-12" />
                     </div>
 
                     <div>
-                        <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center mb-4">
+                        <div className="w-10 h-10 bg-red-50 text-red-600 rounded-lg flex items-center justify-center mb-4">
                             <Zap className="w-5 h-5" />
                         </div>
                         <h3 className="font-bold text-slate-900 leading-tight mb-1 whitespace-pre-line">{t('featuresPage.fastSetupTitle')}</h3>
@@ -260,20 +260,20 @@ export function BentoGridSection() {
                     <div className="mt-4">
                         <div className="flex justify-between text-[10px] text-slate-500 font-bold mb-1.5 uppercase tracking-wider">
                             <span>{t('featuresPage.fastSetupLoading')}</span>
-                            <span className="text-amber-600">100%</span>
+                            <span className="text-red-600">100%</span>
                         </div>
                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div className={cn(
-                                "h-full bg-amber-500 w-0 rounded-full",
+                                "h-full bg-red-500 w-0 rounded-full",
                                 "group-hover:w-full transition-all duration-1000 ease-out"
                             )} />
                         </div>
                         <div className={cn(
-                            "mt-2 text-[10px] text-emerald-600 font-medium",
+                            "mt-2 text-[10px] text-red-600 font-medium",
                             "opacity-0 group-hover:opacity-100",
                             "transition-opacity delay-700 flex items-center gap-1"
                         )}>
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
                             {t('featuresPage.fastSetupLive')}
                         </div>
                     </div>

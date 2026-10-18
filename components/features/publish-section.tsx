@@ -14,7 +14,7 @@ export function PublishSection() {
             <div className="grid lg:grid-cols-2 gap-16 items-center">
                 <div className="relative group">
                     <div className={cn(
-                        "absolute inset-0 bg-gradient-to-tr from-emerald-500 to-teal-500",
+                        "absolute inset-0 bg-gradient-to-tr from-red-500 to-red-500",
                         "rounded-[2rem] blur-2xl opacity-10",
                         "group-hover:opacity-20 transition-opacity"
                     )} />
@@ -26,7 +26,7 @@ export function PublishSection() {
                         <div className={cn(
                             "absolute inset-0",
                             "bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))]",
-                            "from-emerald-50/50 via-white to-white"
+                            "from-red-50/50 via-white to-white"
                         )} />
 
                         <div className="relative z-10 w-full max-w-sm">
@@ -44,11 +44,11 @@ export function PublishSection() {
                                         </div>
                                     </div>
                                     <div className={cn(
-                                        "px-3 py-1 bg-emerald-100 text-emerald-700",
+                                        "px-3 py-1 bg-red-100 text-red-700",
                                         "text-[10px] font-bold rounded-full",
-                                        "border border-emerald-200 flex items-center gap-1.5"
+                                        "border border-red-200 flex items-center gap-1.5"
                                     )}>
-                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
                                         YAYINDA
                                     </div>
                                 </div>
@@ -59,7 +59,7 @@ export function PublishSection() {
                                         <span className="font-mono text-slate-900">Şimdi</span>
                                     </div>
                                     <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full w-full bg-emerald-500 rounded-full"></div>
+                                        <div className="h-full w-full bg-red-500 rounded-full"></div>
                                     </div>
                                 </div>
                             </div>
@@ -72,19 +72,19 @@ export function PublishSection() {
                             )}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                                        <Zap className="w-4 h-4 text-emerald-400" />
+                                        <Zap className="w-4 h-4 text-red-400" />
                                     </div>
                                     <span className="font-bold text-sm">{t('featuresPage.publishQuick')}</span>
                                 </div>
                                 <p className="text-[10px] text-slate-400 mb-3">{t('featuresPage.publishQuickDesc')}</p>
-                                <div className="h-1 w-12 bg-emerald-500 rounded-full"></div>
+                                <div className="h-1 w-12 bg-red-500 rounded-full"></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div>
-                    <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center mb-8">
-                        <Rocket className="w-6 h-6 text-emerald-600" />
+                    <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mb-8">
+                        <Rocket className="w-6 h-6 text-red-600" />
                     </div>
                     <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 whitespace-pre-line">{t('featuresPage.publishTitle')}</h2>
                     <p className="text-xl text-slate-500 leading-relaxed mb-8">

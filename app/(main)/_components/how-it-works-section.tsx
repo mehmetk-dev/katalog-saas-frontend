@@ -34,7 +34,7 @@ export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: Ho
 
                     {/* Right - Timeline */}
                     <div className="w-full lg:w-1/2">
-                        <Badge className="mb-6 bg-violet-100 text-violet-700 hover:bg-violet-200 border-0">
+                        <Badge className="mb-6 bg-red-100 text-red-700 hover:bg-red-200 border-0">
                             {t('landing.howItWorksBadge')}
                         </Badge>
                         <h2 className="text-4xl md:text-5xl font-bold mb-16 tracking-tight">
@@ -46,7 +46,7 @@ export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: Ho
                             {/* Vertical Line */}
                             <div className={cn(
                                 "absolute left-6 top-0 bottom-0 w-0.5",
-                                "bg-gradient-to-b from-violet-500 via-fuchsia-500 to-pink-500"
+                                "bg-gradient-to-b from-red-500 via-red-500 to-red-500"
                             )} />
 
                             <div className="space-y-16">
@@ -55,16 +55,16 @@ export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: Ho
                                         {/* Step Circle */}
                                         <div className={cn(
                                             "relative z-10 w-12 h-12 rounded-full",
-                                            "bg-gradient-to-br from-violet-600 to-fuchsia-500",
+                                            "bg-gradient-to-br from-red-600 to-red-500",
                                             "flex items-center justify-center text-white font-bold",
-                                            "shadow-lg shadow-violet-500/30 shrink-0",
+                                            "shadow-lg shadow-red-500/30 shrink-0",
                                             "group-hover:scale-110 transition-transform"
                                         )}>
                                             <item.icon className="w-5 h-5" />
                                         </div>
                                         {/* Content */}
                                         <div className="pt-2">
-                                            <span className="text-xs font-bold text-violet-600 uppercase tracking-wider">
+                                            <span className="text-xs font-bold text-red-600 uppercase tracking-wider">
                                                 {t('landing.step')} {item.step}
                                             </span>
                                             <h3 className="text-xl font-bold mt-1 mb-2">{t(item.titleKey)}</h3>
@@ -88,7 +88,7 @@ export const HowItWorksSection = React.memo(function HowItWorksSection({ t }: Ho
 function DashboardMockup() {
     return (
         <div className={cn(
-            "relative rounded-2xl shadow-2xl shadow-violet-500/10",
+            "relative rounded-2xl shadow-2xl shadow-red-500/10",
             "border border-slate-200 overflow-hidden bg-white"
         )}>
             {/* Browser Chrome */}
@@ -107,7 +107,7 @@ function DashboardMockup() {
                         "col-span-3 bg-white rounded-xl shadow-sm",
                         "border border-slate-100 p-3 space-y-2"
                     )}>
-                        <div className="h-8 bg-violet-100 rounded-lg" />
+                        <div className="h-8 bg-red-100 rounded-lg" />
                         <div className="h-6 bg-slate-100 rounded w-3/4" />
                         <div className="h-6 bg-slate-100 rounded w-1/2" />
                     </div>

@@ -8,7 +8,7 @@ const inputCls = (hasError: boolean, isShaking: boolean, extra?: string) =>
         "outline-none transition-all placeholder:text-slate-300 hover:border-slate-300",
         hasError
             ? "border-[#cf1414] ring-1 ring-[#cf1414] focus:ring-[#cf1414] focus:border-[#cf1414]"
-            : "border-slate-200 focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+            : "border-slate-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900",
         isShaking && "animate-shake",
         extra
     )
@@ -86,7 +86,7 @@ export function AuthFormFields({
                             className={cn(
                                 "w-full h-12 px-4 bg-white border border-slate-200",
                                 "rounded-xl text-[15px] outline-none",
-                                "focus:border-violet-600 focus:ring-1 focus:ring-violet-600",
+                                "focus:border-slate-900 focus:ring-1 focus:ring-slate-900",
                                 "transition-all placeholder:text-slate-300 hover:border-slate-300"
                             )}
                             placeholder={t("auth.placeholderCompany")}
@@ -118,9 +118,22 @@ export function AuthFormFields({
 
             {/* Password */}
             {mode !== 'forgot-password' && (
-                <div className="space-y-1.5 relative">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between px-1">
                         <label className="text-[13px] font-medium text-slate-900">{t("auth.password")}</label>
+                        {mode === 'signin' && (
+                            <button
+                                type="button"
+                                onClick={onForgotPassword}
+                                className={cn(
+                                    "min-h-0 min-w-0 text-[13px] font-medium",
+                                    "text-slate-500 hover:text-slate-900 transition-colors"
+                                )}
+                                tabIndex={6}
+                            >
+                                {t("auth.forgotPassword")}
+                            </button>
+                        )}
                     </div>
                     <div className="relative">
                         <input
@@ -147,19 +160,6 @@ export function AuthFormFields({
                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                     </div>
-                    {mode === 'signin' && (
-                        <button
-                            type="button"
-                            onClick={onForgotPassword}
-                            className={cn(
-                                "absolute top-0 right-1 text-[13px] font-medium",
-                                "text-slate-500 hover:text-violet-600 transition-colors"
-                            )}
-                            tabIndex={6}
-                        >
-                            {t("auth.forgotPassword")}
-                        </button>
-                    )}
                     <FieldError error={fieldErrors.password} />
                 </div>
             )}

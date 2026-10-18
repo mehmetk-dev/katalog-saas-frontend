@@ -14,25 +14,25 @@ function DragDropCard({ t }: { t: TranslationFn }) {
             "md:col-span-2 group relative p-8 md:p-10 rounded-[2.5rem]",
             "bg-white border border-slate-200/80",
             "shadow-xl shadow-slate-200/40",
-            "hover:shadow-2xl hover:shadow-violet-200/30",
-            "hover:border-violet-200 transition-all duration-500",
+            "hover:shadow-2xl hover:shadow-red-200/30",
+            "hover:border-red-200 transition-all duration-500",
             "overflow-hidden flex flex-col md:flex-row gap-8",
             "items-center cursor-default"
         )}>
             <div className={cn(
                 "absolute top-0 right-0 w-[500px] h-[500px]",
-                "bg-gradient-to-br from-violet-50 via-transparent to-transparent",
+                "bg-gradient-to-br from-red-50 via-transparent to-transparent",
                 "opacity-0 group-hover:opacity-100",
                 "transition-opacity duration-700 pointer-events-none"
             )} />
 
             <div className="flex-1 relative z-10 text-left">
                 <div className={cn(
-                    "w-14 h-14 rounded-2xl bg-violet-50 border border-violet-100",
+                    "w-14 h-14 rounded-2xl bg-red-50 border border-red-100",
                     "flex items-center justify-center mb-6",
                     "group-hover:scale-110 transition-transform duration-500 shadow-sm"
                 )}>
-                    <MousePointerClick className="w-7 h-7 text-violet-600" />
+                    <MousePointerClick className="w-7 h-7 text-red-600" />
                 </div>
                 <h3 className="text-3xl font-bold mb-4 text-slate-900">{t('landing.dragDropTitle')}</h3>
                 <p className="text-slate-500 text-lg leading-relaxed">
@@ -82,10 +82,10 @@ function DragDropCard({ t }: { t: TranslationFn }) {
                             "ease-in-out z-20"
                         )}>
                             <div className={cn(
-                                "aspect-square bg-violet-100 rounded-md",
+                                "aspect-square bg-red-100 rounded-md",
                                 "mb-2 flex items-center justify-center"
                             )}>
-                                <Layers className="w-8 h-8 text-violet-300" />
+                                <Layers className="w-8 h-8 text-red-300" />
                             </div>
                             <div className="h-2 bg-slate-100 rounded w-3/4 mb-1" />
                             <div className="h-2 bg-slate-50 rounded w-1/2" />
@@ -113,22 +113,22 @@ function QrCodeCard({ t }: { t: TranslationFn }) {
     return (
         <div className={cn(
             "group relative p-8 rounded-[2.5rem] bg-white",
-            "border border-slate-200/80 hover:border-blue-300",
+            "border border-slate-200/80 hover:border-red-300",
             "shadow-xl shadow-slate-200/40",
-            "hover:shadow-2xl hover:shadow-blue-200/20",
+            "hover:shadow-2xl hover:shadow-red-200/20",
             "transition-all duration-500 overflow-hidden flex flex-col"
         )}>
             <div className={cn(
-                "absolute inset-0 bg-blue-50/30",
+                "absolute inset-0 bg-red-50/30",
                 "opacity-0 group-hover:opacity-100 transition-opacity duration-500"
             )} />
 
             <div className="mb-auto relative z-10">
                 <div className={cn(
-                    "w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100",
+                    "w-14 h-14 rounded-2xl bg-red-50 border border-red-100",
                     "flex items-center justify-center mb-6 shadow-sm"
                 )}>
-                    <QrCode className="w-7 h-7 text-blue-600" />
+                    <QrCode className="w-7 h-7 text-red-600" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2 text-slate-900">{t('landing.qrTitle')}</h3>
                 <p className="text-slate-500 leading-relaxed text-sm">
@@ -149,7 +149,7 @@ function QrCodeCard({ t }: { t: TranslationFn }) {
                     <QrCode className="w-20 h-20 text-white opacity-80" />
                     {/* Scanning Beam */}
                     <div className={cn(
-                        "absolute top-0 left-0 w-full h-1 bg-blue-400",
+                        "absolute top-0 left-0 w-full h-1 bg-red-400",
                         "shadow-[0_0_15px_rgba(96,165,250,0.8)]",
                         "animate-[scan_2s_ease-in-out_infinite]",
                         "opacity-0 group-hover:opacity-100"
@@ -166,22 +166,22 @@ function AnalyticsCard({ t }: { t: TranslationFn }) {
     return (
         <div className={cn(
             "group relative p-8 rounded-[2.5rem] bg-white",
-            "border border-slate-200/80 hover:border-emerald-300",
+            "border border-slate-200/80 hover:border-red-300",
             "shadow-xl shadow-slate-200/40",
-            "hover:shadow-2xl hover:shadow-emerald-200/20",
+            "hover:shadow-2xl hover:shadow-red-200/20",
             "transition-all duration-500 overflow-hidden flex flex-col"
         )}>
             <div className={cn(
-                "absolute inset-0 bg-emerald-50/30",
+                "absolute inset-0 bg-red-50/30",
                 "opacity-0 group-hover:opacity-100 transition-opacity duration-500"
             )} />
 
             <div className="relative z-10">
                 <div className={cn(
-                    "w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100",
+                    "w-14 h-14 rounded-2xl bg-red-50 border border-red-100",
                     "flex items-center justify-center mb-6 shadow-sm"
                 )}>
-                    <BarChart3 className="w-7 h-7 text-emerald-600" />
+                    <BarChart3 className="w-7 h-7 text-red-600" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2 text-slate-900">{t('landing.analyticsTitle')}</h3>
                 <p className="text-slate-500 leading-relaxed text-sm mb-6">
@@ -195,9 +195,9 @@ function AnalyticsCard({ t }: { t: TranslationFn }) {
                     <div key={i} className="relative w-full group/bar">
                         <div
                             className={cn(
-                                "bg-emerald-200 rounded-t-md w-full",
+                                "bg-red-200 rounded-t-md w-full",
                                 "absolute bottom-0 transition-all duration-500",
-                                "group-hover:bg-emerald-500"
+                                "group-hover:bg-red-500"
                             )}
                             style={{ height: `${h}%` }}
                         />
@@ -221,9 +221,9 @@ function TemplatesCard({ t }: { t: TranslationFn }) {
     return (
         <div className={cn(
             "md:col-span-2 group relative p-8 md:p-10 rounded-[2.5rem]",
-            "bg-indigo-600 text-white",
-            "shadow-xl shadow-indigo-900/20",
-            "hover:shadow-2xl hover:shadow-indigo-600/30",
+            "bg-slate-900 text-white",
+            "shadow-xl shadow-slate-900/20",
+            "hover:shadow-2xl hover:shadow-slate-900/30",
             "transition-all duration-500 overflow-hidden",
             "flex flex-col md:flex-row gap-8 items-center cursor-pointer"
         )}>
@@ -243,7 +243,7 @@ function TemplatesCard({ t }: { t: TranslationFn }) {
                     <Layers className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="text-3xl font-bold mb-4">{t('landing.templatesTitle')}</h3>
-                <p className="text-indigo-100 text-lg leading-relaxed max-w-md">
+                <p className="text-slate-300 text-lg leading-relaxed max-w-md">
                     {t('landing.templatesDesc')}
                 </p>
             </div>
@@ -274,7 +274,7 @@ function TemplatesCard({ t }: { t: TranslationFn }) {
                     "group-hover:translate-x-12 group-hover:rotate-[15deg]",
                     "transition-all duration-700 z-10 border border-slate-200/50"
                 )}>
-                    <div className="h-24 bg-emerald-100 rounded-t-xl mb-2" />
+                    <div className="h-24 bg-red-100 rounded-t-xl mb-2" />
                     <div className="px-3 space-y-2">
                         <div className="w-full h-2 bg-slate-100 rounded" />
                         <div className="w-2/3 h-2 bg-slate-100 rounded" />
@@ -289,7 +289,7 @@ function TemplatesCard({ t }: { t: TranslationFn }) {
                     "transition-all duration-500 border border-slate-100"
                 )}>
                     <div className={cn(
-                        "h-28 bg-gradient-to-br from-violet-200 to-fuchsia-200",
+                        "h-28 bg-gradient-to-br from-red-200 to-red-200",
                         "rounded-t-xl mb-3 p-3 flex flex-col justify-end"
                     )}>
                         <div className="w-8 h-8 rounded bg-white/50 backdrop-blur-sm mb-2" />
@@ -314,7 +314,7 @@ interface FeaturesSectionProps {
 
 export const FeaturesSection = React.memo(function FeaturesSection({ t }: FeaturesSectionProps) {
     return (
-        <section id="özellikler" className="py-24 md:py-32 bg-slate-50/50 relative overflow-hidden">
+        <section id="özellikler" className="py-16 md:py-32 bg-slate-50/50 relative overflow-hidden">
             {/* Decorative Background */}
             <div className={cn(
                 "absolute top-0 left-0 w-full h-full",
@@ -323,7 +323,7 @@ export const FeaturesSection = React.memo(function FeaturesSection({ t }: Featur
             )} />
             <div className={cn(
                 "absolute top-1/4 right-0 w-[600px] h-[600px]",
-                "bg-violet-100/30 rounded-full blur-3xl",
+                "bg-red-100/30 rounded-full blur-3xl",
                 "opacity-50 pointer-events-none translate-x-1/2"
             )} />
 
@@ -331,7 +331,7 @@ export const FeaturesSection = React.memo(function FeaturesSection({ t }: Featur
                 <div className="text-center max-w-3xl mx-auto mb-20">
                     <div className={cn(
                         "inline-flex items-center gap-2 px-3 py-1 rounded-full",
-                        "bg-violet-100 text-violet-700 border border-violet-200",
+                        "bg-red-100 text-red-700 border border-red-200",
                         "mb-6 font-semibold text-xs uppercase tracking-wider"
                     )}>
                         <Sparkles className="w-3 h-3" />

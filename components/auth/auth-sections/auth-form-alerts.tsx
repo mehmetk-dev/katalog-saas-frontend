@@ -73,7 +73,7 @@ export function AuthFormAlerts({
                     type="button"
                     onClick={() => { setMode('signin'); setSuccess(false); }}
                     className={cn(
-                        "w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825]",
+                        "w-full h-12 bg-[#cf1414] hover:bg-[#b01010]",
                         "text-white font-medium rounded-xl",
                         "shadow-lg transition-all active:scale-[0.98]"
                     )}

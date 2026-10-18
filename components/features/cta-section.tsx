@@ -16,12 +16,12 @@ export function CtaSection() {
                 {/* Background Patterns */}
                 <div className={cn(
                     "absolute top-0 right-0 w-[600px] h-[600px]",
-                    "bg-sky-500/10 rounded-full blur-[120px]",
+                    "bg-red-500/10 rounded-full blur-[120px]",
                     "-translate-y-1/2 translate-x-1/2 pointer-events-none"
                 )} />
                 <div className={cn(
                     "absolute bottom-0 left-0 w-[400px] h-[400px]",
-                    "bg-blue-500/10 rounded-full blur-[100px]",
+                    "bg-red-500/10 rounded-full blur-[100px]",
                     "translate-y-1/2 -translate-x-1/2 pointer-events-none"
                 )} />
 
@@ -30,7 +30,7 @@ export function CtaSection() {
                     <div className="text-left relative z-20">
                         <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
                             {t('featuresPage.ctaMainTitle')} <br />
-                            <span className="text-sky-400">{t('featuresPage.ctaHighlight')}</span>
+                            <span className="text-red-400">{t('featuresPage.ctaHighlight')}</span>
                         </h2>
                         <p className="text-slate-400 text-base md:text-lg mb-8 max-w-md leading-relaxed">
                             {t('featuresPage.ctaMainDesc')}
@@ -104,10 +104,10 @@ export function CtaSection() {
                                 "flex flex-col p-8 items-center justify-center",
                                 "text-white border border-white/10 group"
                             )}>
-                                <Sparkles className="w-12 h-12 lg:w-10 lg:h-10 mb-6 text-sky-200" />
+                                <Sparkles className="w-12 h-12 lg:w-10 lg:h-10 mb-6 text-red-200" />
                                 <h3 className="font-serif text-4xl lg:text-3xl mb-3 lg:mb-2 tracking-tight">{t('featuresPage.ctaCollection')}</h3>
                                 <div className="w-16 lg:w-12 h-1 bg-white/30 rounded-full mb-3 lg:mb-2"></div>
-                                <p className="text-xs lg:text-[10px] text-sky-200 tracking-[0.3em] uppercase">2026 / 2027</p>
+                                <p className="text-xs lg:text-[10px] text-red-200 tracking-[0.3em] uppercase">2026 / 2027</p>
 
                                 {/* Shine Effect */}
                                 <div className={cn(

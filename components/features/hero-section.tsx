@@ -15,7 +15,7 @@ export function HeroSection() {
                 "border border-slate-200 bg-white shadow-sm mb-8",
                 "animate-in fade-in zoom-in duration-700"
             )}>
-                <Rocket className="w-4 h-4 text-sky-600" />
+                <Rocket className="w-4 h-4 text-red-600" />
                 <span className={cn(
                     "text-xs font-bold uppercase tracking-widest text-slate-700"
                 )}>
@@ -30,7 +30,7 @@ export function HeroSection() {
                 {t('featuresPage.heroTitle')} <br />
                 <span className={cn(
                     "text-transparent bg-clip-text bg-gradient-to-r",
-                    "from-sky-600 via-blue-600 to-sky-600 animate-gradient-x"
+                    "from-red-600 via-red-600 to-red-600 animate-gradient-x"
                 )}>
                     {t('featuresPage.heroTitleHighlight')}
                 </span>

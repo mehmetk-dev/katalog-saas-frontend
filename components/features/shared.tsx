@@ -8,7 +8,7 @@ export function CheckItem({ children, color = "green" }: {
 }) {
     const colorMap = {
         green: "bg-green-100 text-green-600",
-        emerald: "bg-emerald-100 text-emerald-600",
+        emerald: "bg-red-100 text-red-600",
     }
     return (
         <li className="flex items-center gap-3 font-semibold text-slate-700">
