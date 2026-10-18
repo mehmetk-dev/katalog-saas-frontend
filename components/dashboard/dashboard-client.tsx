@@ -18,14 +18,15 @@ import { getPlanLimits } from "@/lib/constants"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useUser } from "@/lib/contexts/user-context"
 import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
+import { pickRecentCatalogs } from "@/components/dashboard/recent-catalogs"
 
 interface DashboardClientProps {
     initialCatalogs: Catalog[]
     totalProductCount: number
     initialStats: DashboardStats | null
+    /** Katalog id → ilk ürünün görseli (kapak görseli olmayan kataloglarda önizleme) */
+    catalogPreviewImages?: Record<string, string>
 }
-
-const RECENT_CATALOG_COUNT = 5
 
 function formatUpdatedAt(value: string | undefined, language: string, justNow: string): string | null {
     if (!value) return null
@@ -54,7 +55,7 @@ function QuickAction({ href, icon: Icon, title, description }: { href: string; i
     )
 }
 
-export function DashboardClient({ initialCatalogs, totalProductCount, initialStats }: DashboardClientProps) {
+export function DashboardClient({ initialCatalogs, totalProductCount, initialStats, catalogPreviewImages }: DashboardClientProps) {
     const { t: baseT, language } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const { user } = useUser()
@@ -62,13 +63,7 @@ export function DashboardClient({ initialCatalogs, totalProductCount, initialSta
 
     const catalogs = useMemo(() => (Array.isArray(initialCatalogs) ? initialCatalogs : []), [initialCatalogs])
     // Son düzenlenen önce; backend sırasına güvenmeden
-    const recentCatalogs = useMemo(
-        () =>
-            [...catalogs]
-                .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
-                .slice(0, RECENT_CATALOG_COUNT),
-        [catalogs],
-    )
+    const recentCatalogs = useMemo(() => pickRecentCatalogs(catalogs), [catalogs])
 
     const publishedCount = initialStats?.publishedCatalogs ?? catalogs.filter((c) => c.is_published).length
     const totalCatalogs = initialStats?.totalCatalogs ?? catalogs.length
@@ -142,7 +137,7 @@ export function DashboardClient({ initialCatalogs, totalProductCount, initialSta
                 ) : (
                     <ul className="divide-y overflow-hidden rounded-xl border bg-card">
                         {recentCatalogs.map((catalog) => {
-                            const preview = catalog.cover_image_url || catalog.logo_url
+                            const preview = catalog.cover_image_url || catalogPreviewImages?.[catalog.id] || catalog.logo_url
                             const updated = formatUpdatedAt(catalog.updated_at, language, t("common.justNow"))
                             const productCount = new Set(catalog.product_ids ?? []).size
                             return (
