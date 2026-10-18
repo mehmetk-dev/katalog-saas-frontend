@@ -132,7 +132,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     vi.mocked(useUser).mockReturnValue({
       user: { plan: 'pro', exports_remaining: 10, id: 'test', name: 'Test', email: 'test@test.com', company: 'Test', exportsUsed: 0, maxExports: 10, productsCount: 0, maxProducts: 100, catalogsCount: 0 } as User,
       canExport: () => true,
-      refreshUser: vi.fn(),
+      refreshUser: vi.fn().mockResolvedValue(undefined),
       isLoading: false,
       supabaseUser: null,
       isAuthenticated: true,
@@ -230,6 +230,18 @@ describe('BuilderPageClient Final Audit Tests', () => {
     vi.mocked(catalogActions.updateCatalog).mockResolvedValue({ success: true })
   })
 
+  it('AYRILIRKEN: menüyle sayfadan çıkılırsa bekleyen değişiklik beklemeden kaydedilir', async () => {
+    const { unmount } = render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
+
+    fireEvent.change(screen.getByPlaceholderText('builder.catalogNamePlaceholder'), { target: { value: 'Ayrılmadan önce' } })
+    expect(catalogActions.updateCatalog).not.toHaveBeenCalled()
+    unmount()
+
+    await waitFor(() => {
+      expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', { name: 'Ayrılmadan önce' }, { revalidate: false })
+    })
+  })
+
   it('KISAYOL: Ctrl+S hemen kaydetmeli', async () => {
     render(<BuilderPageClient catalog={mockCatalog as unknown as Catalog} products={[]} initialProductsResponse={mockInitialProductsResponse} />)
 
@@ -293,7 +305,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     vi.mocked(useUser).mockReturnValue({
       user: { plan: 'free', exports_remaining: 0, id: 'test', name: 'Test', email: 'test@test.com', company: 'Test', exportsUsed: 0, maxExports: 1, productsCount: 0, maxProducts: 50, catalogsCount: 0 } as User,
       canExport: () => false,
-      refreshUser: vi.fn(),
+      refreshUser: vi.fn().mockResolvedValue(undefined),
       isLoading: false,
       supabaseUser: null,
       isAuthenticated: true,

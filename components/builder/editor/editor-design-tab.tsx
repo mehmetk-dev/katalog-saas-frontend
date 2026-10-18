@@ -17,10 +17,10 @@ import {
 export const EditorDesignTab = React.memo(function EditorDesignTab() {
     return (
         <div className="space-y-3">
-            {/* Şablon kataloğun görünümünü en çok değiştiren karar — en üstte */}
+            {/* Büyük karardan küçüğe: şablon → marka/renk → ürün kartı ayrıntıları → arka plan → kapak */}
             <TemplateSection />
-            <AppearanceSection />
             <BrandingSection />
+            <AppearanceSection />
             <BackgroundSection />
             <StorytellingSection />
         </div>

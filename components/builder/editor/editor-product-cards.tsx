@@ -32,7 +32,8 @@ export const ProductCard = React.memo(function ProductCard({
         >
             <div className={cn(
                 "relative aspect-square w-full overflow-hidden rounded-lg border bg-muted transition-shadow",
-                isSelected ? "border-transparent ring-2 ring-primary ring-offset-2 ring-offset-background" : "group-hover:border-ring"
+                // Seçim ince çerçeve + köşe işaretiyle belirtilir; kalın, boşluklu halka ızgarada göz yoruyordu
+                isSelected ? "border-primary ring-1 ring-primary" : "group-hover:border-ring"
             )}>
                 <ProductImageGallery
                     product={product}

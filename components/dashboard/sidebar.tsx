@@ -18,12 +18,21 @@ import { FeedbackModal } from "./feedback-modal"
 import { PlanUsageCard } from "./plan-usage-card"
 import { Logo } from "@/components/ui/logo"
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  /** Verilirse genel daraltma tercihi yerine bu kullanılır (builder kendi tercihini tutar) */
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
+}
+
+export function DashboardSidebar({ collapsed, onToggleCollapsed }: DashboardSidebarProps = {}) {
   const pathname = usePathname()
   const { user, isLoading } = useUser()
   const { t: baseT } = useTranslation()
   const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
-  const { isOpen, isCollapsed, isMobile, close, toggle } = useSidebar()
+  const sidebar = useSidebar()
+  const { isOpen, isMobile, close } = sidebar
+  const isCollapsed = collapsed ?? sidebar.isCollapsed
+  const toggle = !isMobile && onToggleCollapsed ? onToggleCollapsed : sidebar.toggle
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const navItems = useMemo(() => [
@@ -131,7 +140,10 @@ export function DashboardSidebar() {
         )}>
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+            // Builder bir kataloğun düzenleme ekranı: menüde "Kataloglar" seçili görünür
+            const isActive = pathname === item.href
+              || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+              || (item.href === "/dashboard/catalogs" && pathname.startsWith("/dashboard/builder"))
             const isPremiumItem = 'premium' in item && (item as { premium?: boolean }).premium
             const showPremiumBadge = isPremiumItem && user?.plan === "free"
 

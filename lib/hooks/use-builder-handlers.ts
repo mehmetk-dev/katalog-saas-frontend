@@ -45,6 +45,7 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         handleSave,
         handleUpdateSlug,
         handlePublish,
+        discardPendingChanges,
     } = useCatalogActions({
         currentCatalogId: state.currentCatalogId,
         catalog,
@@ -96,9 +97,10 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
     }, [hasUnsavedChanges, setShowExitDialog, router])
 
     const handleExitWithoutSaving = useCallback(() => {
+        discardPendingChanges()
         setShowExitDialog(false)
         router.push('/dashboard/catalogs')
-    }, [setShowExitDialog, router])
+    }, [discardPendingChanges, setShowExitDialog, router])
 
     const handleSaveAndExit = useCallback(async () => {
         try {

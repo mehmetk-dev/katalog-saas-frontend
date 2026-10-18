@@ -3,7 +3,7 @@
 import { useCallback } from "react"
 import {
     AlertTriangle, ArrowLeft, ArrowUpRight, Check, Download, Eye, Globe, GlobeLock,
-    Loader2, MoreHorizontal, Pencil, RefreshCw, Redo2, Save, Share2, Undo2,
+    Loader2, Menu, MoreHorizontal, Pencil, RefreshCw, Redo2, Save, Share2, Undo2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
+import { useOptionalSidebar } from "@/lib/contexts/sidebar-context"
 import { cn } from "@/lib/utils"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { SaveStatus } from "@/lib/hooks/use-catalog-actions"
@@ -82,6 +83,8 @@ export function BuilderToolbar({
     const { t: baseT } = useTranslation()
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
     const isPreview = view === "preview"
+    // Geniş ekranda menü solda hep görünür; dar ekranda bu tuşla açılır
+    const sidebar = useOptionalSidebar()
     const shareSlug = catalog?.share_slug
 
     const mainAction = isPublished
@@ -90,9 +93,21 @@ export function BuilderToolbar({
 
     return (
         <>
-            <header className="relative z-40 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-2 sm:px-3">
+            <header className="relative z-40 flex h-14 shrink-0 sm:h-16 items-center gap-2 border-b bg-background px-2 sm:px-3">
                 {/* Sol: geri + isim + kayıt durumu */}
                 <div className="flex min-w-0 flex-1 items-center gap-1">
+                    {sidebar && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-muted-foreground lg:hidden"
+                            onClick={sidebar.open}
+                            aria-label={t("common.menu")}
+                            title={t("common.menu")}
+                        >
+                            <Menu className="size-5" />
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="icon"

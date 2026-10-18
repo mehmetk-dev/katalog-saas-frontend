@@ -43,7 +43,7 @@ function renderSections(state: ReturnType<typeof makeState>, userPlan = "pro") {
     onUpgrade: () => state.setShowUpgradeModal(true),
   }
   return render(
-    <DesignToolsProvider source={source}>
+    <DesignToolsProvider source={source} initialOpenSections={{ template: true, appearance: true }}>
       <TemplateSection />
       <AppearanceSection />
     </DesignToolsProvider>,
@@ -126,5 +126,32 @@ describe("açıklama alanı", () => {
 
     fireEvent.change(textarea, { target: { value: "Eski kapak metni!" } })
     expect(edit).toHaveBeenCalledWith({ catalogDescription: "Eski kapak metni!", coverDescription: null })
+  })
+})
+
+describe("tasarım bölümleri akordeon gibi çalışır", () => {
+  it("varsayılan olarak yalnızca şablon açık; başka bölüm açılınca öncekisi kapanır", () => {
+    const state = makeState()
+    render(
+      <DesignToolsProvider source={{
+        draft: state.draft,
+        setters: state as unknown as DraftSetters,
+        edit: vi.fn(),
+        products: [],
+        userPlan: "pro",
+        onUpgrade: vi.fn(),
+      }}>
+        <TemplateSection />
+        <AppearanceSection />
+      </DesignToolsProvider>,
+    )
+    const template = screen.getByRole("button", { name: /builder.templateStyle/ })
+    const appearance = screen.getByRole("button", { name: /builder.designSettings/ })
+    expect(template).toHaveAttribute("aria-expanded", "true")
+    expect(appearance).toHaveAttribute("aria-expanded", "false")
+
+    fireEvent.click(appearance)
+    expect(appearance).toHaveAttribute("aria-expanded", "true")
+    expect(template).toHaveAttribute("aria-expanded", "false")
   })
 })

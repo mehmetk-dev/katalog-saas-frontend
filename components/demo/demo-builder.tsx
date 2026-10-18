@@ -93,6 +93,9 @@ function useDemoDraft(initialName: string) {
     return { draft, setters, edit }
 }
 
+/** Demo her adımda tek bölüm gösterir; bölümler kapalı başlamasın */
+const DEMO_OPEN_SECTIONS = { template: true, appearance: true, branding: true, background: true, storytelling: true }
+
 export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
     const { t } = useTranslation()
     const router = useRouter()
@@ -256,7 +259,7 @@ export function DemoBuilder({ isEmbedded = false }: DemoBuilderProps) {
     }
 
     return (
-        <DesignToolsProvider source={source} uploadMode="local">
+        <DesignToolsProvider source={source} uploadMode="local" initialOpenSections={DEMO_OPEN_SECTIONS}>
             <div className={cn("flex flex-col lg:flex-row", !isEmbedded && "relative min-h-0 flex-1 lg:h-full lg:overflow-hidden")}>
                 {/* Sol: adımlar */}
                 <div

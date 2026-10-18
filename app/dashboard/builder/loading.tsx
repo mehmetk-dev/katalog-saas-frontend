@@ -4,7 +4,7 @@ export function BuilderSkeleton() {
   return (
     <div className="flex h-dvh flex-col bg-background">
       {/* Toolbar */}
-      <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b px-3 sm:px-4">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b px-3 sm:h-16 sm:px-4">
         <div className="flex items-center gap-2">
           <Skeleton className="size-9 rounded-md" />
           <Skeleton className="h-6 w-40 sm:w-56" />

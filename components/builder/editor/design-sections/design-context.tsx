@@ -73,10 +73,12 @@ export function DesignToolsProvider({ source, uploadMode = "cloud", initialOpenS
     const t = useCallback((key: string, params?: Record<string, unknown>) => baseT(key, params) as string, [baseT])
 
     const [openSections, setOpenSections] = useState<Record<string, boolean>>(
-        initialOpenSections ?? { template: true, appearance: true, branding: true },
+        initialOpenSections ?? { template: true },
     )
+    // Akordeon: aynı anda tek bölüm açık. Hepsi açıkken sekme uzun bir ayar duvarına
+    // dönüşüyordu; başlıklar kısa bir içindekiler listesi gibi kalır.
     const toggleSection = useCallback((key: string) => {
-        setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
+        setOpenSections((prev) => (prev[key] ? {} : { [key]: true }))
     }, [])
 
     // Renk seçici sürüklenirken her piksel bir geçmiş adımı/otomatik kayıt tetiklemesin

@@ -6,7 +6,7 @@ import { SectionWrapper } from "./section-wrapper"
 
 export function TemplateSection() {
     const { t, layout, onLayoutChange, userPlan, onUpgrade, openSections, toggleSection } = useDesignProps()
-    const isOpen = openSections.template ?? true
+    const isOpen = !!openSections.template
     const current = TEMPLATES.find((tmpl) => tmpl.id === layout)
 
     const handleTemplateSelect = (templateId: string, isPro: boolean) => {

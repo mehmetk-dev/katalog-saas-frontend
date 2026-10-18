@@ -60,6 +60,13 @@ export function CatalogEditor() {
     onUpgrade: () => setShowUpgradeModal(true),
   }), [draft, state, designProducts, userPlan, setShowUpgradeModal])
 
+  // Yeni (boş) katalogda ilk karar şablon: o bölüm açık başlar. Dolu katalogda tüm bölümler
+  // kapalı başlar; Tasarım sekmesi kısa bir başlık listesi olarak açılır, 16 şablon önizlemesi
+  // diğer ayarları aşağı itmez.
+  const [initialOpenSections] = useState((): Record<string, boolean> =>
+    selectedProductIds.length === 0 ? { template: true } : {}
+  )
+
   // ─── Local State ──────────────────────────────────────────────────────────
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
@@ -228,7 +235,7 @@ export function CatalogEditor() {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     // Sekme değişince açık bölümler ve süren yüklemeler korunsun diye sağlayıcı editör seviyesinde
-    <DesignToolsProvider source={designSource}>
+    <DesignToolsProvider source={designSource} initialOpenSections={initialOpenSections}>
     <div className="flex h-full flex-col overflow-hidden bg-background">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
         <div className="shrink-0 border-b px-3 py-2 sm:px-6">

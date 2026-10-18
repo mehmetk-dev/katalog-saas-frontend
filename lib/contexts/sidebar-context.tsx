@@ -94,3 +94,8 @@ export function useSidebar() {
     }
     return context
 }
+
+/** Sağlayıcı yoksa null döner (ör. sidebar'sız sayfalarda/testlerde kullanılan bileşenler için) */
+export function useOptionalSidebar() {
+    return useContext(SidebarContext) ?? null
+}

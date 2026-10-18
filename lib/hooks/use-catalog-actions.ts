@@ -127,6 +127,26 @@ export function useCatalogActions({
         return () => clearTimeout(timer)
     }, [currentCatalogId, hasUnsavedChanges, draft, enqueueWrite, persist, t])
 
+    // Builder'dan menüyle başka sayfaya geçilince çıkış penceresi açılmaz ve 2 sn'lik zamanlayıcı
+    // iptal olur; bekleyen değişiklikler sayfa kapanırken hemen yazılır.
+    const currentCatalogIdRef = useRef(currentCatalogId)
+    currentCatalogIdRef.current = currentCatalogId
+    /** "Kaydetmeden çık" seçildi: ayrılırken kaydetme */
+    const discardOnLeaveRef = useRef(false)
+    const discardPendingChanges = useCallback(() => {
+        discardOnLeaveRef.current = true
+    }, [])
+    useEffect(() => {
+        return () => {
+            const catalogId = currentCatalogIdRef.current
+            if (!catalogId || !hasUnsavedChangesRef.current || discardOnLeaveRef.current) return
+            const patch = buildCatalogPatch(getStateRef.current(), getSavedDraftRef.current())
+            if (Object.keys(patch).length === 0) return
+            enqueueWrite(() => updateCatalog(catalogId, patch, { revalidate: false }))
+                .catch((error) => console.error("Save on leave failed:", error))
+        }
+    }, [enqueueWrite])
+
     // ─── Slug ───────────────────────────────────────────────────────────
     const expectedSlug = useMemo(() => {
         if (!currentCatalogId) return ""
@@ -264,5 +284,6 @@ export function useCatalogActions({
         handleSave,
         handleUpdateSlug,
         handlePublish,
+        discardPendingChanges,
     }
 }
