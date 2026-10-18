@@ -28,6 +28,7 @@ import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import type { Catalog } from "@/lib/actions/catalogs"
 import type { Product } from "@/lib/actions/products"
 import { cn } from "@/lib/utils"
+import { getCatalogProductCount } from "@/lib/catalog-product-count"
 
 const CatalogPreview = dynamic(
   () => import("@/components/builder/preview/catalog-preview").then((m) => m.CatalogPreview),
@@ -49,7 +50,7 @@ interface CatalogCardProps {
 
 function CatalogCardComponent({ catalog, previewProducts, updatedLabel, onAction, t }: CatalogCardProps) {
   const builderHref = `/dashboard/builder?id=${catalog.id}`
-  const productCount = Array.isArray(catalog.product_ids) ? catalog.product_ids.length : 0
+  const productCount = getCatalogProductCount(catalog)
   const isLive = catalog.is_published && !!catalog.share_slug
   const locked = !!catalog.is_disabled
 

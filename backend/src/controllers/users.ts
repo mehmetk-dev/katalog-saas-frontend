@@ -27,11 +27,12 @@ export const getMe = async (req: Request, res: Response) => {
         const userEmail = getUserEmail(req);
         const userMeta = getUserMeta(req);
 
-        // PERF: Fetch profile and counts in parallel (was 3 sequential queries)
-        let [profileResult, productsCountResult, catalogsCountResult] = await Promise.all([
+        // PERF: Profil, sayılar ve aylık PDF sayısı tek seferde (PDF sayısı eskiden ardından ayrıca bekleniyordu)
+        let [profileResult, productsCountResult, catalogsCountResult, monthlyExports] = await Promise.all([
             supabase.from('users').select('*').eq('id', userId).single(),
-            supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-            supabase.from('catalogs').select('*', { count: 'exact', head: true }).eq('user_id', userId)
+            supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+            supabase.from('catalogs').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+            countMonthlyExports(userId),
         ]);
 
         let profile = profileResult.data;
@@ -78,7 +79,6 @@ export const getMe = async (req: Request, res: Response) => {
         const productsCount = productsCountResult.count;
         const catalogsCount = catalogsCountResult.count;
         const exportLimit = getMonthlyExportLimit(profile?.plan);
-        const monthlyExports = await countMonthlyExports(userId);
 
         const result = {
             id: userId,

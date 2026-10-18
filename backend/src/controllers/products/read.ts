@@ -8,6 +8,47 @@ import { productsByIdsSchema, productsQuerySchema } from './schemas';
 import { applyProductSort } from './ordering';
 import { categoryMatchPattern } from './category-filter';
 
+/** PostgREST tek yanıtta en fazla 1000 satır döndürür */
+const CATEGORY_PAGE_SIZE = 1000;
+const CATEGORY_PAGE_CONCURRENCY = 4;
+
+/**
+ * Kullanıcının tüm kategori adları (ürünün kategori alanı virgülle ayrılmış birden çok kategori
+ * içerebilir). Eskiden tek sorguydu ve 1000+ ürünlü hesaplarda ilk 1000 ürünün kategorileri geliyordu.
+ */
+async function fetchAllCategoryNames(userId: string): Promise<string[]> {
+    const page = (from: number) => supabase
+        .from('products')
+        .select('category', from === 0 ? { count: 'exact' } : undefined)
+        .eq('user_id', userId)
+        .not('category', 'is', null)
+        .not('category', 'eq', '')
+        .order('id')
+        .range(from, from + CATEGORY_PAGE_SIZE - 1);
+
+    const first = await page(0);
+    if (first.error) throw first.error;
+    const rows = [...(first.data || [])] as { category: string | null }[];
+    const total = first.count ?? rows.length;
+
+    const offsets: number[] = [];
+    for (let from = CATEGORY_PAGE_SIZE; from < total; from += CATEGORY_PAGE_SIZE) offsets.push(from);
+    for (let i = 0; i < offsets.length; i += CATEGORY_PAGE_CONCURRENCY) {
+        const results = await Promise.all(offsets.slice(i, i + CATEGORY_PAGE_CONCURRENCY).map(page));
+        for (const result of results) {
+            if (result.error) throw result.error;
+            rows.push(...((result.data || []) as { category: string | null }[]));
+        }
+    }
+
+    return [...new Set(
+        rows
+            .flatMap((p) => (p.category || '').split(','))
+            .map((c) => c.trim())
+            .filter(Boolean)
+    )].sort((x, y) => x.localeCompare(y, 'tr-TR'));
+}
+
 export const getProducts = async (req: Request, res: Response) => {
     try {
         const userId = getUserId(req);
@@ -64,8 +105,15 @@ export const getProducts = async (req: Request, res: Response) => {
                 query = query.lte('price', maxPrice);
             }
 
-            const { data, error, count } = await applyProductSort(query, sortBy, sortOrder)
-                .range(from, to);
+            // Kategoriler ayrı ve daha uzun önbelleklenir (seyrek değişir); ürün sorgusuyla paralel çekilir
+            const categoriesPromise = select === 'id'
+                ? Promise.resolve(undefined)
+                : getOrSetCache(cacheKeys.products(userId) + ':categories', cacheTTL.products * 4, () => fetchAllCategoryNames(userId));
+
+            const [{ data, error, count }, allCategories] = await Promise.all([
+                applyProductSort(query, sortBy, sortOrder).range(from, to),
+                categoriesPromise,
+            ]);
 
             if (error) throw error;
 
@@ -91,28 +139,6 @@ export const getProducts = async (req: Request, res: Response) => {
                         order: (p as Record<string, unknown>).display_order ?? (p as Record<string, unknown>).order ?? 0
                     };
                 });
-
-            let allCategories: string[] | undefined = undefined;
-            if (select !== 'id') {
-                // Cache categories separately with longer TTL — they change infrequently
-                const categoriesCacheKey = cacheKeys.products(userId) + ':categories';
-                allCategories = await getOrSetCache(categoriesCacheKey, cacheTTL.products * 4, async () => {
-                    const { data: categoryData } = await supabase
-                        .from('products')
-                        .select('category')
-                        .eq('user_id', userId)
-                        .not('category', 'is', null)
-                        .not('category', 'eq', '');
-
-                    // Ürünün kategori alanı virgülle ayrılmış birden çok kategori içerebilir; filtre tek kategoriyle çalışır
-                    return [...new Set(
-                        (categoryData || [])
-                            .flatMap((p: { category: string | null }) => (p.category || '').split(','))
-                            .map((c: string) => c.trim())
-                            .filter(Boolean)
-                    )].sort((x, y) => x.localeCompare(y, 'tr-TR')) as string[];
-                });
-            }
 
             return {
                 products,

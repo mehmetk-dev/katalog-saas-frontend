@@ -19,6 +19,7 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { useUser } from "@/lib/contexts/user-context"
 import { useCreateCatalog } from "@/lib/hooks/use-create-catalog"
 import { pickRecentCatalogs } from "@/components/dashboard/recent-catalogs"
+import { getCatalogProductCount } from "@/lib/catalog-product-count"
 
 interface DashboardClientProps {
     initialCatalogs: Catalog[]
@@ -135,7 +136,7 @@ export function DashboardClient({ initialCatalogs, totalProductCount, initialSta
                         {recentCatalogs.map((catalog) => {
                             const preview = catalog.cover_image_url || catalogPreviewImages?.[catalog.id] || catalog.logo_url
                             const updated = formatUpdatedAt(catalog.updated_at, language, t("common.justNow"))
-                            const productCount = new Set(catalog.product_ids ?? []).size
+                            const productCount = getCatalogProductCount(catalog)
                             return (
                                 <li key={catalog.id}>
                                     <Link

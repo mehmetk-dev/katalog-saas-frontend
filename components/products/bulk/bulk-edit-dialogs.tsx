@@ -11,6 +11,7 @@ import { getCatalogs, type Catalog } from "@/lib/actions/catalogs"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import type { BulkCategoryMode, BulkStockMode } from "@/components/products/hooks/use-products-extra-actions"
+import { getCatalogProductCount } from "@/lib/catalog-product-count"
 
 type Translate = (key: string, params?: Record<string, unknown>) => string
 
@@ -259,7 +260,7 @@ export function AddToCatalogDialog({ open, onOpenChange, count, isWorking, onSub
                                 <span className="min-w-0 flex-1">
                                     <span className="block truncate text-sm font-medium">{catalog.name}</span>
                                     <span className="block text-xs text-muted-foreground">
-                                        {t("products.bulkEdit.catalogProductCount", { count: catalog.product_ids?.length || 0 })}
+                                        {t("products.bulkEdit.catalogProductCount", { count: getCatalogProductCount(catalog) })}
                                         {catalog.is_published && ` · ${t("products.bulkEdit.published")}`}
                                     </span>
                                 </span>

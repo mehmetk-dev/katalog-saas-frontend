@@ -7,15 +7,30 @@ const VIEW_PAGE_SIZE = 1000;
 /** Çok büyük hesaplarda isteği sınırlamak için üst sınır (ör. 90 günde 200 bin görüntülenme) */
 const MAX_VIEW_ROWS = 200_000;
 
+const VIEW_PAGE_CONCURRENCY = 4;
+
+/**
+ * Tüm görüntülenme satırlarını sayfa sayfa çeker. İlk sayfa toplam sayıyı da getirir, kalan
+ * sayfalar 4'erli paralel istenir (eskiden her 1000 satır için sırayla bir gidiş-dönüş bekleniyordu).
+ */
 async function fetchAllViewRows<T>(
-    page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+    page: (from: number, to: number, withCount: boolean) => PromiseLike<{ data: T[] | null; error: unknown; count?: number | null }>
 ): Promise<{ data: T[] }> {
-    const rows: T[] = [];
-    for (let from = 0; from < MAX_VIEW_ROWS; from += VIEW_PAGE_SIZE) {
-        const { data, error } = await page(from, from + VIEW_PAGE_SIZE - 1);
-        if (error) throw error;
-        rows.push(...(data || []));
-        if (!data || data.length < VIEW_PAGE_SIZE) break;
+    const first = await page(0, VIEW_PAGE_SIZE - 1, true);
+    if (first.error) throw first.error;
+    const rows: T[] = [...(first.data || [])];
+    const total = Math.min(first.count ?? rows.length, MAX_VIEW_ROWS);
+
+    const offsets: number[] = [];
+    for (let from = VIEW_PAGE_SIZE; from < total; from += VIEW_PAGE_SIZE) offsets.push(from);
+    for (let i = 0; i < offsets.length; i += VIEW_PAGE_CONCURRENCY) {
+        const results = await Promise.all(
+            offsets.slice(i, i + VIEW_PAGE_CONCURRENCY).map((from) => page(from, from + VIEW_PAGE_SIZE - 1, false))
+        );
+        for (const result of results) {
+            if (result.error) throw result.error;
+            rows.push(...(result.data || []));
+        }
     }
     return { data: rows };
 }
@@ -55,7 +70,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             };
 
             const [catalogsResult, productsResult] = await Promise.all([
-                supabase.from('catalogs').select('id, is_published, view_count, name, product_ids, updated_at, created_at').eq('user_id', userId),
+                // product_ids burada kullanılmıyor; 10 bin ürünlü katalogda tek başına ~400 KB'tı
+                supabase.from('catalogs').select('id, is_published, view_count, name, updated_at, created_at').eq('user_id', userId),
                 supabase.from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
             ]);
 
@@ -82,21 +98,22 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                 // Current period + previous period views in parallel
                 // Supabase tek sorguda en fazla 1000 satır döndürür; önceden 1000+ görüntülenmede dönem
                 // sayısı, günlük grafik ve cihaz dağılımı yalnızca ilk 1000 kayda göre hesaplanıyordu.
-                const [currentPeriodResult, prevPeriodResult] = await Promise.all([
-                    fetchAllViewRows<{ catalog_id: string; device_type: string | null; view_date: string; visitor_hash: string | null }>((from, to) =>
+                // Benzersiz ziyaretçi sayısı da aynı anda istenir (eskiden görüntülenmelerden sonra bekleniyordu)
+                const [currentPeriodResult, prevPeriodResult, uniqueVisitorsResult] = await Promise.all([
+                    fetchAllViewRows<{ catalog_id: string; device_type: string | null; view_date: string; visitor_hash: string | null }>((from, to, withCount) =>
                         supabase
                             .from('catalog_views')
-                            .select('catalog_id, device_type, view_date, visitor_hash')
+                            .select('catalog_id, device_type, view_date, visitor_hash', withCount ? { count: 'exact' } : undefined)
                             .in('catalog_id', catalogIds)
                             .eq('is_owner', false)
                             .gte('view_date', dateThresholdStr)
                             .order('id')
                             .range(from, to)
                     ),
-                    fetchAllViewRows<{ catalog_id: string; visitor_hash: string | null }>((from, to) =>
+                    fetchAllViewRows<{ catalog_id: string; visitor_hash: string | null }>((from, to, withCount) =>
                         supabase
                             .from('catalog_views')
-                            .select('catalog_id, visitor_hash')
+                            .select('catalog_id, visitor_hash', withCount ? { count: 'exact' } : undefined)
                             .in('catalog_id', catalogIds)
                             .eq('is_owner', false)
                             .gte('view_date', prevDateThresholdStr)
@@ -104,6 +121,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                             .order('id')
                             .range(from, to)
                     ),
+                    supabase.rpc('get_unique_visitors_multi', {
+                        p_catalog_ids: catalogIds,
+                        p_days: days
+                    }),
                 ]);
                 const periodViewRows = currentPeriodResult.data;
                 const prevPeriodRows = prevPeriodResult.data;
@@ -156,11 +177,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                 }
 
                 // Unique Visitors — current period
-                const { data: vCount, error: vError } = await supabase
-                    .rpc('get_unique_visitors_multi', {
-                        p_catalog_ids: catalogIds,
-                        p_days: days
-                    });
+                const { data: vCount, error: vError } = uniqueVisitorsResult;
 
                 if (!vError && vCount !== null) {
                     detailedStats.uniqueVisitors = Number(vCount);

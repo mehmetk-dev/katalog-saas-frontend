@@ -22,7 +22,10 @@ export interface Catalog {
   show_urls: boolean
   is_published: boolean
   share_slug: string | null
+  /** Liste yanıtlarında (getCatalogs) yalnızca ilk birkaç kimlik; tam dizi için getCatalog */
   product_ids: string[]
+  /** Liste yanıtlarında katalogdaki toplam ürün sayısı */
+  product_count?: number
   // Yeni kişiselleştirme alanları
   columns_per_row: number  // 2, 3, 4
   background_color: string

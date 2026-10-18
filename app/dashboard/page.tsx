@@ -8,12 +8,15 @@ import { SEO_CONFIG } from "@/lib/services/seo"
 export const metadata = SEO_CONFIG.dashboard
 
 export default async function DashboardPage() {
-  const [catalogs, productsResponse, stats] = await Promise.all([
-    getCatalogs(),
+  const catalogsPromise = getCatalogs()
+  const [catalogs, productsResponse, stats, catalogPreviewImages] = await Promise.all([
+    catalogsPromise,
     // Yalnızca toplam ürün sayısı gerekiyor
     getProducts({ limit: 1 }),
     // Analitik alınamazsa ana sayfa yine açılsın
     getDashboardStats().catch(() => null),
+    // Katalog listesi gelir gelmez istenir; istatistiklerin bitmesini beklemez
+    catalogsPromise.then(getCatalogPreviewImages, () => ({})),
   ])
 
   return (
@@ -21,7 +24,7 @@ export default async function DashboardPage() {
       initialCatalogs={catalogs}
       totalProductCount={productsResponse.metadata.total}
       initialStats={stats}
-      catalogPreviewImages={await getCatalogPreviewImages(catalogs)}
+      catalogPreviewImages={catalogPreviewImages}
     />
   )
 }

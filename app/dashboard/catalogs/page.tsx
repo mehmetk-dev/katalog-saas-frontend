@@ -81,6 +81,12 @@ export default async function CatalogsPage() {
     is_disabled: index >= maxCatalogs,
   }))
   const previewProducts = await fetchPreviewProducts(supabase, user.id, catalogs)
+  // Kart yalnızca ürün sayısını ve ilk sayfanın ürünlerini kullanır; tam diziyi (10 bin ürünlü
+  // katalogda ~400 KB) tarayıcıya göndermeye gerek yok
+  const listCatalogs = catalogs.map((catalog) => {
+    const productIds = Array.isArray(catalog.product_ids) ? catalog.product_ids : []
+    return { ...catalog, product_ids: productIds.slice(0, PREVIEW_PRODUCTS_PER_CATALOG), product_count: new Set(productIds).size }
+  })
 
-  return <CatalogsPageClient initialCatalogs={catalogs} userProducts={previewProducts} userPlan={userPlan} />
+  return <CatalogsPageClient initialCatalogs={listCatalogs} userProducts={previewProducts} userPlan={userPlan} />
 }
