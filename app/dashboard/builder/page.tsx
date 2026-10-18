@@ -3,11 +3,14 @@ import { redirect } from "next/navigation"
 import { Metadata } from "next"
 
 import { getCatalog } from "@/lib/actions/catalogs"
-import { getProducts } from "@/lib/actions/products"
+import { getProducts, getProductsByIds, type Product } from "@/lib/actions/products"
 import { BuilderPageClient } from "@/components/builder/builder-page-client"
 import { BuilderSkeleton } from "./loading"
 
 const BUILDER_INITIAL_PAGE_SIZE = 24
+/** Kataloğun ilk bu kadar ürünü sayfayla birlikte gelir (önizlemenin ilk anda dolu açılması için);
+ *  kalanı istemcide arka planda yüklenir. */
+const BUILDER_SERVER_SELECTED_LIMIT = 1000
 
 export const metadata: Metadata = {
   title: "Katalog Oluşturucu",
@@ -34,8 +37,20 @@ export default async function CatalogBuilderPage({ searchParams }: BuilderPagePr
 /** Async server component — handles data fetching inside Suspense boundary.
  *  This lets Next.js stream the skeleton immediately while data loads. */
 async function BuilderDataLoader({ catalogId }: { catalogId?: string }) {
-  const [catalog, initialProductsResponse] = await Promise.all([
-    catalogId ? getCatalog(catalogId) : null,
+  // Katalog → seçili ürünler zinciri ile ürün seçicinin ilk sayfası paralel çekilir.
+  // Önceden seçili ürünler ancak sayfa açıldıktan sonra istemciden isteniyordu; o arada
+  // önizleme boş, "Katalogdaki ürünler" sayısı eksik görünüyordu.
+  const catalogPromise = (async () => {
+    if (!catalogId) return { catalog: null, selectedProducts: [] as Product[] }
+    const catalog = await getCatalog(catalogId)
+    const ids = catalog?.product_ids?.slice(0, BUILDER_SERVER_SELECTED_LIMIT) ?? []
+    // Başarısız olursa istemci aynı ürünleri kendisi yükler
+    const selectedProducts = ids.length > 0 ? await getProductsByIds(ids).catch(() => [] as Product[]) : []
+    return { catalog, selectedProducts }
+  })()
+
+  const [{ catalog, selectedProducts }, initialProductsResponse] = await Promise.all([
+    catalogPromise,
     getProducts({ page: 1, limit: BUILDER_INITIAL_PAGE_SIZE }),
   ])
 
@@ -68,8 +83,13 @@ async function BuilderDataLoader({ catalogId }: { catalogId?: string }) {
   return (
     <BuilderPageClient
       catalog={catalog}
-      products={initialProductsResponse.products || []}
+      products={mergeProducts(selectedProducts, initialProductsResponse.products || [])}
       initialProductsResponse={initialProductsResponse}
     />
   )
+}
+
+function mergeProducts(first: Product[], second: Product[]): Product[] {
+  const seen = new Set(first.map((product) => product.id))
+  return [...first, ...second.filter((product) => !seen.has(product.id))]
 }

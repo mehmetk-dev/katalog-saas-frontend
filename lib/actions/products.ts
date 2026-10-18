@@ -579,26 +579,28 @@ export async function addDummyProducts(language: 'tr' | 'en' = 'tr', userPlan: '
 }
 
 export async function getAllProductIds(filters?: Omit<GetProductsParams, "page" | "limit" | "select">): Promise<string[]> {
+  // Sayfa boyutu Supabase'in istek başına satır sınırını (varsayılan 1000) aşmamalı;
+  // aşarsa fazlası sessizce kesilir.
+  const limit = 1000
+  const maxPages = 100
+  const concurrency = 4
+
+  type IdPage = { products: { id: string }[]; metadata?: { totalPages: number } }
+  const fetchPage = (page: number) =>
+    getProducts({ ...filters, page, limit, select: "id" }) as unknown as Promise<IdPage>
+
   try {
-    const ids: string[] = []
-    let page = 1
-    const limit = 1000
-    const maxPages = 100
+    // İlk sayfa toplam sayfa sayısını verir; kalanlar sırayla değil, gruplar halinde paralel çekilir
+    const first = await fetchPage(1)
+    const totalPages = Math.min(maxPages, first.metadata?.totalPages || 1)
+    const pages: IdPage[] = [first]
 
-    while (page <= maxPages) {
-      const response = await getProducts({ ...filters, page, limit, select: "id" }) as {
-        products: { id: string }[]
-        metadata: { totalPages: number }
-      }
-      ids.push(...(response.products || []).map((p) => p.id).filter(Boolean))
-
-      if (!response.metadata || page >= (response.metadata.totalPages || 1)) {
-        break
-      }
-
-      page += 1
+    for (let page = 2; page <= totalPages; page += concurrency) {
+      const batch = Array.from({ length: Math.min(concurrency, totalPages - page + 1) }, (_, i) => fetchPage(page + i))
+      pages.push(...await Promise.all(batch))
     }
 
+    const ids = pages.flatMap((response) => (response.products || []).map((p) => p.id).filter(Boolean))
     return Array.from(new Set(ids))
   } catch (error) {
     console.error("Error fetching all product IDs:", error)

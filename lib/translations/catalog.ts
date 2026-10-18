@@ -357,7 +357,7 @@ const catalog = {
             bigCatalogPerf: "Performans için ilk 5000 ürün üzerinde çalışılıyor.",
             virtualListMode: "Sanal liste modu",
             virtualListRendering: "{total} üründen yaklaşık {rendered} tanesi render ediliyor",
-            productsFromTo: "{total} üründen {from}-{to}",
+            loadMoreProducts: "Daha fazla ürün yükle",
             splitPreviewMode: "Performans modu: bölünmüş görünümde ilk {limit} ürün gösteriliyor. Tam önizleme için \"Önizleme\" moduna geç.",
             // Structure preview
             pageStructure: "SAYFA YAPISI",
@@ -856,7 +856,7 @@ const catalog = {
             bigCatalogPerf: "Working on first 5000 products for performance.",
             virtualListMode: "Virtual list mode",
             virtualListRendering: "Rendering approximately {rendered} of {total} products",
-            productsFromTo: "{from}-{to} of {total} products",
+            loadMoreProducts: "Load more products",
             splitPreviewMode: "Performance mode: showing first {limit} products in split view. Switch to \"Preview\" mode for full preview.",
             // Structure preview
             pageStructure: "PAGE STRUCTURE",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery, useQueryClient, useMutation, keepPreviousData } from "@tanstack/react-query"
+import { useQuery, useInfiniteQuery, useQueryClient, useMutation, keepPreviousData } from "@tanstack/react-query"
 import { queryKeys } from "@/lib/contexts/query-provider"
 import {
     getProducts,
@@ -41,6 +41,27 @@ export function useProducts(
         placeholderData: keepPreviousData,
         staleTime: options?.staleTime ?? 5 * 60 * 1000,
         refetchOnMount: options?.refetchOnMount ?? true,
+    })
+}
+
+/**
+ * Kaydırdıkça sonraki sayfayı yükleyen ürün listesi (builder ürün seçici).
+ * `initialData` yalnızca filtresiz ilk görünüm için verilir (SSR'dan gelen ilk sayfa).
+ */
+export function useInfiniteProducts(
+    params: Omit<GetProductsParams, "page" | "select"> & { limit: number },
+    initialData?: ProductsResponse,
+) {
+    return useInfiniteQuery({
+        queryKey: queryKeys.infiniteProducts(params as Record<string, unknown>),
+        queryFn: ({ pageParam }) => getProducts({ ...params, page: pageParam }),
+        initialPageParam: 1,
+        getNextPageParam: (last) =>
+            last.metadata.page < last.metadata.totalPages ? last.metadata.page + 1 : undefined,
+        initialData: initialData ? { pages: [initialData], pageParams: [1] } : undefined,
+        placeholderData: keepPreviousData,
+        staleTime: 5 * 60 * 1000,
+        refetchOnMount: initialData ? false : true,
     })
 }
 

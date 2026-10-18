@@ -2,7 +2,7 @@
 
 import React from "react"
 import Link from "next/link"
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight, Package, Search, SearchX } from "lucide-react"
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Loader2, Package, Search, SearchX } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -49,12 +49,10 @@ interface EditorContentTabProps {
     /** PERF(O2): Click-only lazy fetch for the active filter. */
     onPrefetchAllProductIds?: () => Promise<string[]>
 
-    // Pagination
-    currentPage: number
-    totalPages: number
-    startIndex: number
-    itemsPerPage: number
-    onPageChange: (page: number) => void
+    // Kaydırdıkça yükleme
+    hasMoreProducts: boolean
+    isLoadingMoreProducts: boolean
+    onLoadMoreProducts: () => void
     isLoadingProducts?: boolean
     isLoadingAllProductIds?: boolean
 
@@ -94,11 +92,9 @@ export const EditorContentTab = React.memo(function EditorContentTab({
     onSelectedProductIdsChange,
     toggleProduct,
     onPrefetchAllProductIds,
-    currentPage,
-    totalPages,
-    startIndex,
-    itemsPerPage,
-    onPageChange,
+    hasMoreProducts,
+    isLoadingMoreProducts,
+    onLoadMoreProducts,
     isLoadingProducts = false,
     isLoadingAllProductIds = false,
     productMap,
@@ -380,41 +376,47 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                     ))}
                 </div>
 
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                        <span className="text-xs text-muted-foreground">
-                            {t('builder.productsFromTo', {
-                                total,
-                                from: filteredProducts.length ? startIndex + 1 : 0,
-                                to: Math.min(startIndex + itemsPerPage, total),
-                            })}
-                        </span>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="outline"
-                                size="icon-sm"
-                                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                                disabled={currentPage === 1}
-                                aria-label={t('common.back')}
-                            >
-                                <ChevronLeft className="size-4" />
-                            </Button>
-                            <span className="min-w-12 text-center text-xs tabular-nums text-muted-foreground">
-                                {currentPage} / {totalPages}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="icon-sm"
-                                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                                disabled={currentPage === totalPages}
-                                aria-label={t('common.next')}
-                            >
-                                <ChevronRight className="size-4" />
-                            </Button>
-                        </div>
-                    </div>
+                {hasMoreProducts && (
+                    <LoadMoreSentinel
+                        onLoadMore={onLoadMoreProducts}
+                        isLoading={isLoadingMoreProducts}
+                        label={t('builder.loadMoreProducts')}
+                    />
                 )}
             </section>
         </div>
     )
 })
+
+/** Liste sonuna yaklaşınca sonraki sayfayı ister; gözlemci çalışmazsa tıklanabilir tuş olarak kalır. */
+function LoadMoreSentinel({ onLoadMore, isLoading, label }: { onLoadMore: () => void; isLoading: boolean; label: string }) {
+    const ref = React.useRef<HTMLDivElement>(null)
+    const onLoadMoreRef = React.useRef(onLoadMore)
+    React.useEffect(() => {
+        onLoadMoreRef.current = onLoadMore
+    }, [onLoadMore])
+
+    // Her yükleme bitince yeniden kurulur: yeni gözlemci ilk bildiriminde mevcut durumu verir,
+    // böylece eklenen ürünler listeyi doldurmadıysa (işaretçi hâlâ görünür) bir sonraki sayfa da istenir.
+    React.useEffect(() => {
+        const node = ref.current
+        if (isLoading || !node || typeof IntersectionObserver === "undefined") return
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) onLoadMoreRef.current()
+            },
+            { rootMargin: "400px 0px" }
+        )
+        observer.observe(node)
+        return () => observer.disconnect()
+    }, [isLoading])
+
+    return (
+        <div ref={ref} className="flex justify-center pt-1">
+            <Button variant="ghost" size="sm" onClick={onLoadMore} disabled={isLoading} className="text-muted-foreground">
+                {isLoading && <Loader2 className="size-4 animate-spin" />}
+                {label}
+            </Button>
+        </div>
+    )
+}

@@ -6,7 +6,7 @@ import type { ProductSortField, ProductSortOrder } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce"
-import { useAllProductIds, useProducts } from "@/lib/hooks/use-products"
+import { useAllProductIds, useInfiniteProducts } from "@/lib/hooks/use-products"
 import { MAX_CATALOG_PRODUCTS } from "@/lib/constants"
 import { toast } from "sonner"
 import { Package, Palette } from "lucide-react"
@@ -64,9 +64,8 @@ export function CatalogEditor() {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
 
-  // ─── Search & Pagination ──────────────────────────────────────────────────
+  // ─── Search & Filter ──────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 24
   const [sortBy, setSortBy] = useState<ProductSortField>("display_order")
   const [sortOrder, setSortOrder] = useState<ProductSortOrder>("asc")
@@ -97,25 +96,23 @@ export function CatalogEditor() {
   }, [])
 
   const productsParams = useMemo(() => ({
-    page: currentPage,
     limit: itemsPerPage,
     category: selectedCategory === "all" ? undefined : selectedCategory,
     search: debouncedSearchQuery.trim() || undefined,
     sortBy,
     sortOrder,
-  }), [currentPage, itemsPerPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder])
+  }), [itemsPerPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder])
 
   const initialQueryData = useMemo(() => {
-    const isInitialQuery = currentPage === 1
-      && selectedCategory === "all"
+    const isInitialQuery = selectedCategory === "all"
       && !debouncedSearchQuery.trim()
       && sortBy === "display_order"
       && sortOrder === "asc"
     return isInitialQuery ? initialProductsResponse : undefined
-  }, [currentPage, selectedCategory, debouncedSearchQuery, sortBy, sortOrder, initialProductsResponse])
+  }, [selectedCategory, debouncedSearchQuery, sortBy, sortOrder, initialProductsResponse])
 
-  // FIX: Builder opens with SSR initialData — no need to refetch on mount.
-  const productsQuery = useProducts(productsParams, initialQueryData, { refetchOnMount: false })
+  // Builder SSR'dan gelen ilk sayfayla açılır; sonraki sayfalar liste sonuna kaydırınca yüklenir
+  const productsQuery = useInfiniteProducts(productsParams, initialQueryData)
   // PERF(O2): Tüm ürün ID'lerini sadece "Tümünü Seç" butonu etkileşime girince çek.
   // İlk builder açılışında 10k ürün için 10 seri sunucu çağrısını engelliyor.
   const allProductIdFilters = useMemo(() => ({
@@ -131,12 +128,17 @@ export function CatalogEditor() {
     if (result.error) throw result.error
     return result.data || []
   }, [refetchAllProductIds])
-  const productsResponse = productsQuery.data
+  const firstPage = productsQuery.data?.pages[0]
   const allProductIds = useMemo(() => allProductIdsQuery.data || [], [allProductIdsQuery.data])
-  const pagedProducts = useMemo(() => productsResponse?.products || [], [productsResponse])
-  const totalFilteredProducts = productsResponse?.metadata.total || 0
-  const totalPages = Math.max(1, productsResponse?.metadata.totalPages || 1)
-  const startIndex = (currentPage - 1) * itemsPerPage
+  const pagedProducts = useMemo(
+    () => productsQuery.data?.pages.flatMap((page) => page.products) || [],
+    [productsQuery.data]
+  )
+  const totalFilteredProducts = firstPage?.metadata.total || 0
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = productsQuery
+  const loadMoreProducts = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   useEffect(() => {
     if (pagedProducts.length > 0) {
@@ -144,24 +146,15 @@ export function CatalogEditor() {
     }
   }, [pagedProducts, upsertLoadedProducts])
 
-  useEffect(() => {
-    if (currentPage > totalPages && !productsQuery.isPlaceholderData && !productsQuery.isLoading) {
-      setCurrentPage(1)
-    }
-  }, [currentPage, totalPages, productsQuery.isPlaceholderData, productsQuery.isLoading])
-
   // ─── Derived Data ─────────────────────────────────────────────────────────
   // PERF(Y1): selectedProductIdSet artık context state'inden geliyor (tek kaynak).
-  const categories = productsResponse?.allCategories || []
+  const categories = firstPage?.allCategories || []
 
   // PERF(Y6): productMap.has(id) zaten O(1) — ayrı Set allocate etmeye gerek yok.
   const validProductIds = useMemo(() => {
     return selectedProductIds.filter(id => productMap.has(id))
   }, [selectedProductIds, productMap])
   const filteredProducts = pagedProducts
-
-  useEffect(() => { setCurrentPage(1) }, [selectedCategory, debouncedSearchQuery])
-  useEffect(() => { setCurrentPage(1) }, [sortBy, sortOrder])
 
   // ─── Product Selection & Sorting ──────────────────────────────────────────
   // PERFORMANCE: Set-based toggle — O(1) add/delete instead of O(n) filter/spread
@@ -286,13 +279,11 @@ export function CatalogEditor() {
               onSelectedProductIdsChange={onSelectedProductIdsChange}
               toggleProduct={toggleProduct}
               onPrefetchAllProductIds={prefetchAllProductIds}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              startIndex={startIndex}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
+              hasMoreProducts={!!hasNextPage}
+              isLoadingMoreProducts={isFetchingNextPage}
+              onLoadMoreProducts={loadMoreProducts}
               productMap={productMap}
-              isLoadingProducts={productsQuery.isLoading || productsQuery.isFetching || isFilterPending}
+              isLoadingProducts={productsQuery.isLoading || (productsQuery.isFetching && !isFetchingNextPage) || isFilterPending}
               isLoadingAllProductIds={allProductIdsQuery.isLoading || allProductIdsQuery.isFetching}
               draggingIndex={draggingIndex}
               dropIndex={dropIndex}

@@ -9,6 +9,8 @@ export const queryKeys = {
     products: (params?: Record<string, unknown>) => ["products", params] as const,
     /** Tüm ürünler (toplu işlemler için; "products" önekiyle mevcut invalidation'lara dahil) */
     allProducts: () => ["products", "all"] as const,
+    /** Kaydırdıkça yüklenen ürün listesi (builder ürün seçici) */
+    infiniteProducts: (params?: Record<string, unknown>) => ["products", "infinite", params] as const,
     productIds: (params?: Record<string, unknown>) =>
         params ? ["product-ids", params] as const : ["product-ids"] as const,
 
