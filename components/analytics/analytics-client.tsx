@@ -29,7 +29,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { StatCard } from "@/components/ui/stat-card"
+import { StatItem, StatStrip } from "@/components/ui/stat-card"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { DashboardStats, Catalog } from "@/lib/actions/catalogs"
 import { cn } from "@/lib/utils"
@@ -238,13 +238,12 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
             </div>
 
             {/* KPI Grid - 2 columns on mobile to see charts sooner */}
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <StatStrip>
                 {kpiStats.map((stat) => (
-                    <StatCard
+                    <StatItem
                         key={stat.label}
                         label={stat.label}
                         value={stat.value.toLocaleString(language === "en" ? "en-US" : "tr-TR")}
-                        icon={stat.icon}
                         hint={
                             <span className="flex flex-wrap items-center gap-1.5">
                                 {stat.trend.show && stat.value > 0 ? (
@@ -266,7 +265,7 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                         }
                     />
                 ))}
-            </div>
+            </StatStrip>
 
             {/* Main Chart Section */}
             <div className="grid gap-6 lg:grid-cols-7">

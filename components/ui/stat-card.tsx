@@ -1,51 +1,93 @@
 import * as React from 'react'
-import type { LucideIcon } from 'lucide-react'
-import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 
-const statIconVariants = cva('flex size-9 shrink-0 items-center justify-center rounded-lg [&_svg]:size-4', {
-  variants: {
-    tone: {
-      default: 'bg-muted text-foreground',
-      brand: 'bg-brand-soft text-brand',
-      success: 'bg-success-soft text-success',
-      warning: 'bg-warning-soft text-warning-soft-foreground',
-      info: 'bg-info-soft text-info',
-      destructive: 'bg-destructive-soft text-destructive',
-    },
-  },
-  defaultVariants: { tone: 'default' },
-})
+type StatTone = 'default' | 'success' | 'warning' | 'destructive'
 
-interface StatCardProps extends VariantProps<typeof statIconVariants> {
-  label: React.ReactNode
-  value: React.ReactNode
-  icon?: LucideIcon
-  /** Değerin altındaki küçük açıklama: "+12% geçen haftaya göre" gibi */
-  hint?: React.ReactNode
-  className?: string
+const DOT_TONE: Record<StatTone, string> = {
+  default: 'bg-muted-foreground/40',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  destructive: 'bg-destructive',
 }
 
-/** Dashboard / analytics / admin istatistik kartı. */
-function StatCard({ label, value, icon: Icon, hint, tone, className }: StatCardProps) {
+/**
+ * İstatistik şeridi: hücreler tek bir kutuda yan yana, aralarında ince çizgi (panel, analitik,
+ * ürünler, admin hepsi bunu kullanır). Mobilde 2 sütun; tek kalan son hücre tam genişlik olur.
+ */
+function StatStrip({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      data-slot="stat-card"
-      className={cn('flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5', className)}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        {Icon && (
-          <span className={statIconVariants({ tone })}>
-            <Icon />
-          </span>
-        )}
-      </div>
-      <div className="truncate text-xl font-semibold tracking-tight tabular-nums sm:text-2xl xl:text-3xl" title={typeof value === "string" ? value : undefined}>{value}</div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-    </div>
+      data-slot="stat-strip"
+      className={cn(
+        'grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-sm sm:flex',
+        '[&>*:last-child:nth-child(odd)]:col-span-2',
+        className,
+      )}
+      {...props}
+    />
   )
 }
 
-export { StatCard }
+interface StatItemProps {
+  label: React.ReactNode
+  value: React.ReactNode
+  /** Değerin altındaki küçük açıklama: "+12% geçen aya göre" gibi */
+  hint?: React.ReactNode
+  /** Etiketin önündeki durum noktası (stok durumları gibi) */
+  dot?: StatTone
+  className?: string
+  /** Verilirse hücre düğme olur (ürünlerde stok filtresi) */
+  onClick?: () => void
+  active?: boolean
+  title?: string
+}
+
+function StatItem({ label, value, hint, dot, className, onClick, active, title }: StatItemProps) {
+  const content = (
+    <>
+      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {dot && <span aria-hidden className={cn('size-1.5 rounded-full', DOT_TONE[dot])} />}
+        {label}
+      </span>
+      <span
+        className="max-w-full truncate text-xl font-semibold tracking-tight tabular-nums text-foreground sm:text-2xl"
+        title={typeof value === 'string' ? value : undefined}
+      >
+        {value}
+      </span>
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+    </>
+  )
+
+  const cellClass = cn('relative flex min-w-0 flex-1 flex-col items-start gap-1 bg-card px-4 py-3 text-left sm:min-w-[8.5rem]', className)
+
+  if (!onClick) {
+    return (
+      <div data-slot="stat-item" className={cellClass}>
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      data-slot="stat-item"
+      aria-pressed={active}
+      title={title}
+      onClick={onClick}
+      className={cn(
+        cellClass,
+        'min-h-0 transition-colors hover:bg-muted focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        active && 'bg-muted hover:bg-muted',
+      )}
+    >
+      {content}
+      {active && <span aria-hidden className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-foreground" />}
+    </button>
+  )
+}
+
+export { StatStrip, StatItem }
+export type { StatTone }

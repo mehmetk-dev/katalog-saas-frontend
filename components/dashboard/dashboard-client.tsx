@@ -3,7 +3,7 @@
 import Link from "next/link"
 import NextImage from "next/image"
 import { useCallback, useMemo } from "react"
-import { ArrowRight, Eye, FileSpreadsheet, FolderOpen, LayoutGrid, LayoutTemplate, Loader2, Package, Plus, type LucideIcon } from "lucide-react"
+import { ArrowRight, FileSpreadsheet, LayoutGrid, LayoutTemplate, Loader2, Package, Plus, type LucideIcon } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { enUS, tr } from "date-fns/locale"
 
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { PageHeader } from "@/components/ui/page-header"
-import { StatCard } from "@/components/ui/stat-card"
+import { StatItem, StatStrip } from "@/components/ui/stat-card"
 import type { Catalog, DashboardStats } from "@/lib/actions/catalogs"
 import { getPlanLimits } from "@/lib/constants"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
@@ -79,35 +79,31 @@ export function DashboardClient({ initialCatalogs, totalProductCount, initialSta
 
             <OnboardingChecklist hasProducts={totalProductCount > 0} hasCatalogs={totalCatalogs > 0} hasPublishedCatalog={publishedCount > 0} />
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-                <StatCard
+            <StatStrip>
+                <StatItem
                     label={t("dashboard.totalProducts")}
                     value={totalProductCount.toLocaleString(language === "en" ? "en-US" : "tr-TR")}
-                    icon={Package}
                     hint={
                         Number.isFinite(productLimit)
                             ? t("dashboard.home.productsHint", { count: totalProductCount, max: productLimit })
                             : t("dashboard.home.productsHintUnlimited")
                     }
                 />
-                <StatCard
+                <StatItem
                     label={t("dashboard.catalogs")}
                     value={totalCatalogs}
-                    icon={FolderOpen}
                     hint={t("dashboard.home.catalogsHint", { published: publishedCount, drafts: Math.max(0, totalCatalogs - publishedCount) })}
                 />
-                <StatCard
-                    className="col-span-2 sm:col-span-1"
+                <StatItem
                     label={t("dashboard.home.viewsLast30")}
                     value={(initialStats?.periodViews ?? 0).toLocaleString(language === "en" ? "en-US" : "tr-TR")}
-                    icon={Eye}
                     hint={
                         <Link href="/dashboard/analytics" prefetch={false} className="hover:text-foreground hover:underline">
                             {initialStats ? t("dashboard.home.viewsHint", { total: initialStats.totalViews ?? 0 }) : t("dashboard.home.seeAnalytics")}
                         </Link>
                     }
                 />
-            </div>
+            </StatStrip>
 
             <section className="space-y-3">
                 <div className="flex items-center justify-between">
