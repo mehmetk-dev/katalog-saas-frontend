@@ -323,15 +323,36 @@ async function renderPdf(job: PdfExportBullJob): Promise<void> {
             await updateActiveJob(jobId, { progress: 50, page_count: pageCount })
 
             phase = 'waiting-images'
-            await page.waitForFunction(
-                () => {
-                    const images = Array.from(document.querySelectorAll<HTMLImageElement>('img'))
-                    if (images.length === 0) return true
-                    return images.every((img) => img.complete)
-                },
-                null,
-                { timeout: READY_TIMEOUT_MS }
-            )
+            // Lazy görseller (next/image varsayılanı) ekran dışında hiç yüklenmez ve
+            // aşağıdaki bekleme zaman aşımına kadar takılırdı; hepsi hemen yüklenir.
+            await page.evaluate(() => {
+                document.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((img) => {
+                    img.setAttribute('loading', 'eager')
+                })
+            })
+            try {
+                await page.waitForFunction(
+                    () => {
+                        const images = Array.from(document.querySelectorAll<HTMLImageElement>('img'))
+                        if (images.length === 0) return true
+                        return images.every((img) => img.complete)
+                    },
+                    null,
+                    { timeout: READY_TIMEOUT_MS }
+                )
+            } catch (error) {
+                const pendingImages = await page
+                    .evaluate(() =>
+                        Array.from(document.querySelectorAll<HTMLImageElement>('img'))
+                            .filter((img) => !img.complete)
+                            .map((img) => `${img.loading}:${img.currentSrc || img.src}`.slice(0, 160))
+                    )
+                    .catch(() => [] as string[])
+                console.error(
+                    `[pdf-export-worker] image wait timeout ${jobId}: ${pendingImages.length} pending ${JSON.stringify(pendingImages.slice(0, 5))}`
+                )
+                throw error
+            }
             console.log(`[pdf-export-worker] assets ready ${jobId} pages=${pageCount ?? 'unknown'}`)
             await updateActiveJob(jobId, { progress: 70 })
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { waitForImageSettlement } from '@/lib/pdf-export-assets'
+import { forceEagerImages, waitForImageSettlement } from '@/lib/pdf-export-assets'
 
 function setImageComplete(image: HTMLImageElement, complete: boolean): void {
     Object.defineProperty(image, 'complete', {
@@ -44,5 +44,17 @@ describe('waitForImageSettlement', () => {
         await vi.advanceTimersByTimeAsync(1_000)
 
         await expect(promise).resolves.toBeUndefined()
+    })
+})
+
+describe('forceEagerImages', () => {
+    it('switches lazy images to eager so off-screen pages load', () => {
+        document.body.innerHTML = '<img loading="lazy" src="a.png"><img src="b.png">'
+
+        forceEagerImages(document)
+
+        const [lazy, plain] = Array.from(document.querySelectorAll('img'))
+        expect(lazy.getAttribute('loading')).toBe('eager')
+        expect(plain.hasAttribute('loading')).toBe(false)
     })
 })

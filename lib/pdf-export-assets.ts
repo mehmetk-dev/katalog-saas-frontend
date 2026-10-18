@@ -42,10 +42,20 @@ export function waitForImageSettlement(
     })
 }
 
+/** next/image varsayılanı loading="lazy": ekran dışındaki sayfaların görselleri hiç
+ *  indirilmez ve `complete` false kalır. PDF'te tüm sayfalar basılacağı için hepsi hemen yüklenir. */
+export function forceEagerImages(targetDocument: Document): void {
+    targetDocument.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((image) => {
+        image.setAttribute('loading', 'eager')
+    })
+}
+
 export async function waitForPdfExportAssets(
     targetDocument: Document,
     timeoutMs = DEFAULT_ASSET_TIMEOUT_MS
 ): Promise<void> {
+    forceEagerImages(targetDocument)
+
     if (targetDocument.fonts?.ready) {
         await settleWithin(targetDocument.fonts.ready, timeoutMs)
     }
