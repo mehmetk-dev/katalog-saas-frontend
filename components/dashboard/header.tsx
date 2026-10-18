@@ -43,9 +43,9 @@ export function DashboardHeader() {
     await logout()
   }
 
-  // Ürünler ve kategoriler sayfasının başlığında kendi "ekle" düğmesi var; üst barda ikincisi gösterilmez.
-  // Diğer sayfalarda "Katalog Oluştur" (mobilde kısaca "Katalog"; eski "Yeni" neyi oluşturduğunu söylemiyordu)
-  const showCreateCatalog = !pathname.startsWith("/dashboard/products") && !pathname.startsWith("/dashboard/categories")
+  // Yalnızca panel ana sayfasında: diğer sayfaların başlığında kendi ana düğmesi var (Ürün Ekle, Yeni Katalog…),
+  // üst barda ikinci bir siyah düğme onunla yarışıyordu. Mobilde kısaca "Katalog".
+  const showCreateCatalog = pathname === "/dashboard"
 
   // Prevents hydration mismatch for Radix UI components by rendering them only on client
   const UserMenu = mounted ? (
