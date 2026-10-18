@@ -7,7 +7,7 @@ import {
     ArrowUpRight,
     ArrowDownRight,
     FileText,
-    Sparkles,
+    Info,
     LayoutGrid,
     Package,
     PieChart as LucidePieChart
@@ -442,24 +442,24 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                                             <tr key={i} className="hover:bg-muted/30 transition-colors group cursor-default">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-primary font-bold text-sm shrink-0 shadow-sm">
-                                                            {cName.charAt(0).toUpperCase()}
+                                                        <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted text-xs font-medium text-muted-foreground">
+                                                            {cName.charAt(0).toLocaleUpperCase(language === 'tr' ? 'tr-TR' : 'en-US')}
                                                         </div>
-                                                        <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{cName}</span>
+                                                        <span className="truncate font-medium text-foreground">{cName}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <span className="font-mono font-bold text-base">{catalog.views.toLocaleString()}</span>
+                                                    <span className="font-medium tabular-nums">{catalog.views.toLocaleString(language === 'tr' ? 'tr-TR' : 'en-US')}</span>
                                                 </td>
                                                 <td className="px-6 py-4 hidden md:table-cell w-64">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden shadow-inner">
+                                                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                                                             <div
                                                                 className="h-full bg-primary rounded-full transition-all duration-1000"
                                                                 style={{ width: `${percentage}%` }}
                                                             />
                                                         </div>
-                                                        <span className="text-[10px] font-bold text-muted-foreground w-8">{language === 'tr' ? `%${Math.round(percentage)}` : `${Math.round(percentage)}%`}</span>
+                                                        <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{language === 'tr' ? `%${Math.round(percentage)}` : `${Math.round(percentage)}%`}</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -479,20 +479,11 @@ export function AnalyticsClient({ stats: initialStats, catalogs }: AnalyticsClie
                 </CardContent>
             </Card>
 
-            {/* Info Section - Stripe-like Alert */}
-            <div className="p-4 bg-accent border border-border rounded-2xl flex items-start gap-4 text-left">
-                <div className="p-2 bg-card rounded-lg shadow-sm border border-border">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-                <div className="space-y-1">
-                    <p className="text-sm font-semibold text-primary">
-                        {t("dashboard.analytics.realTimeTracking")}
-                    </p>
-                    <p className="text-xs text-primary/70 leading-relaxed">
-                        {t("dashboard.analytics.dataDisclaimer")}
-                    </p>
-                </div>
-            </div>
+            {/* Veri notu: büyük bilgi kutusu yerine sayfa sonunda kısa dipnot */}
+            <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+                {t("dashboard.analytics.dataDisclaimer")}
+            </p>
         </div>
     )
 }
