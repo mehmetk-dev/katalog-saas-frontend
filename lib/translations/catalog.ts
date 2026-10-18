@@ -115,7 +115,10 @@ const catalog = {
                 nextPage: "Sonraki sayfa",
                 pageIndicator: "Sayfa {page} / {total}",
                 spreadIndicator: "Sayfa {from}–{to} / {total}",
-                bookHint: "Sayfa çevirmek için ok tuşlarını kullanabilirsiniz",
+                bookHint: "Sayfayı köşesinden tutup çevirebilir ya da ok tuşlarını kullanabilirsiniz",
+                bookHintTouch: "Çevirmek için sayfayı yana kaydırın",
+                viewMode: "Görünüm",
+                productCount: "{count} ürün",
             },
         },
         builder: {
@@ -593,7 +596,10 @@ const catalog = {
                 nextPage: "Next page",
                 pageIndicator: "Page {page} of {total}",
                 spreadIndicator: "Pages {from}–{to} of {total}",
-                bookHint: "Use the arrow keys to turn pages",
+                bookHint: "Grab a page by its corner to turn it, or use the arrow keys",
+                bookHintTouch: "Swipe the page sideways to turn it",
+                viewMode: "View",
+                productCount: "{count} products",
             },
         },
         builder: {

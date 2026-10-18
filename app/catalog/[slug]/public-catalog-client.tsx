@@ -49,7 +49,7 @@ function useIsMobile() {
     return isMobile
 }
 
-/** Masaüstü görünüm tercihi (kitap / liste); ziyaretçinin tarayıcısında hatırlanır */
+/** Görünüm tercihi (kitap / liste); ziyaretçinin tarayıcısında hatırlanır */
 function useViewMode() {
     const [viewMode, setViewModeState] = useState<CatalogViewMode>("book")
     useEffect(() => {
@@ -104,7 +104,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const [isShareModalOpen, setIsShareModalOpen] = useState(false)
     const [zoomScale, setZoomScale] = useState(DEFAULT_ZOOM)
     const [viewMode, setViewMode] = useViewMode()
-    const isBook = !isMobile && viewMode === "book"
+    // Telefonda da kitap: tek sayfa, kaydırarak çevrilir. Liste görünümü yakınlaştırma için kalır.
+    const isBook = viewMode === "book"
 
     const {
         design,
@@ -215,6 +216,8 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                 ) : (
                     <CatalogHeader
                         catalogName={catalog.name}
+                        logoUrl={catalog.logo_url}
+                        meta={t("catalogs.public.productCount", { count: products.length })}
                         searchQuery={searchQuery}
                         onSearchChange={setSearchQuery}
                         selectedCategory={selectedCategory}
@@ -242,6 +245,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
                         <>
                             <BookViewer
                                 pages={catalogPages}
+                                layout={isMobile ? "single" : "double"}
                                 renderPageContent={renderPageContent}
                                 onDarkBackground={isFullscreen}
                                 t={t}
