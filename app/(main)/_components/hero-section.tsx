@@ -67,6 +67,19 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
         return () => clearInterval(timer)
     }, [])
 
+    // Her slayt en üstte açılır, bir sonraki karede aşağı kaymaya başlar
+    const [scrolledSlide, setScrolledSlide] = useState<number | null>(null)
+    useEffect(() => {
+        let raf2 = 0
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => setScrolledSlide(currentSlide))
+        })
+        return () => {
+            cancelAnimationFrame(raf1)
+            cancelAnimationFrame(raf2)
+        }
+    }, [currentSlide])
+
     useEffect(() => {
         if (!screenRef.current) return
 
@@ -100,7 +113,7 @@ export const HeroSection = React.memo(function HeroSection({ t }: HeroSectionPro
 
     const unscaledScreenHeight = scale > 0 ? screenDims.h / scale : 0
     const maxScrollY = screenDims.h > 0 ? Math.max(0, 1131 - unscaledScreenHeight) : 0
-    const translateY = (isMounted && screenDims.h > 0) ? -maxScrollY : 0
+    const translateY = (scrolledSlide === currentSlide && screenDims.h > 0) ? -maxScrollY : 0
 
     return (
         <section className="relative pt-24 pb-16 md:pt-32 lg:pt-36 md:pb-24 overflow-hidden bg-slate-50 min-h-[calc(100vh-80px)] flex flex-col justify-center">
