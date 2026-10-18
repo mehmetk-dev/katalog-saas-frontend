@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
-import type { StockFilter } from "@/components/products/products-page-utils"
+import { normalizePriceRange, parsePriceFilterInput, type StockFilter } from "@/components/products/products-page-utils"
+import { formatNumberForInput } from "@/lib/utils/number-input"
 
 const STOCK_OPTIONS: Array<{ value: StockFilter; labelKey: string }> = [
     { value: "all", labelKey: "filters.all" },
@@ -27,10 +28,6 @@ const STOCK_OPTIONS: Array<{ value: StockFilter; labelKey: string }> = [
 
 const formatPrice = (value: number) => new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(value)
 
-function parsePriceInput(value: string): number {
-    const parsed = Number(value.replace(",", "."))
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
-}
 
 interface InlineFiltersProps {
     categories: string[]
@@ -68,7 +65,7 @@ export function InlineFilters({
     onPriceRangeChange,
     className,
 }: InlineFiltersProps) {
-    const { t: baseT } = useTranslation()
+    const { t: baseT, language } = useTranslation()
     const t = (key: string, params?: Record<string, unknown>) => baseT(key, params) as string
 
     const [priceOpen, setPriceOpen] = useState(false)
@@ -76,12 +73,12 @@ export function InlineFilters({
     const [maxDraft, setMaxDraft] = useState("")
     useEffect(() => {
         if (!priceOpen) return
-        setMinDraft(priceRange[0] ? String(priceRange[0]) : "")
-        setMaxDraft(priceRange[1] ? String(priceRange[1]) : "")
-    }, [priceOpen, priceRange])
+        setMinDraft(priceRange[0] ? formatNumberForInput(priceRange[0], language) : "")
+        setMaxDraft(priceRange[1] ? formatNumberForInput(priceRange[1], language) : "")
+    }, [priceOpen, priceRange, language])
 
     const applyPrice = () => {
-        onPriceRangeChange([parsePriceInput(minDraft), parsePriceInput(maxDraft)])
+        onPriceRangeChange(normalizePriceRange([parsePriceFilterInput(minDraft, language), parsePriceFilterInput(maxDraft, language)]))
         setPriceOpen(false)
     }
 

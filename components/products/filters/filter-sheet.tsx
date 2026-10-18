@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
+import { formatNumberForInput } from "@/lib/utils/number-input"
+import { normalizePriceRange, parsePriceFilterInput } from "@/components/products/products-page-utils"
 
 const STOCK_OPTIONS = [
     { value: "all", labelKey: "filters.all" },
@@ -45,10 +47,6 @@ function ToggleButton({ active, className, ...props }: React.ComponentProps<type
     )
 }
 
-function parsePriceInput(value: string): number {
-    const parsed = Number(value.replace(",", "."))
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
-}
 
 export function ProductsFilterSheet({
     open,
@@ -64,19 +62,20 @@ export function ProductsFilterSheet({
     onClearFilters,
     filteredCount,
 }: ProductsFilterSheetProps) {
-    const { t: baseT } = useTranslation()
+    const { t: baseT, language } = useTranslation()
     const t = (key: string) => baseT(key) as string
 
     // Fiyat alanları her tuşta sunucuya gitmesin: taslak tutulur, alandan çıkınca/Enter'da uygulanır
-    const [minDraft, setMinDraft] = useState(priceRange[0] ? String(priceRange[0]) : "")
-    const [maxDraft, setMaxDraft] = useState(priceRange[1] ? String(priceRange[1]) : "")
+    const toDraft = (value: number) => (value ? formatNumberForInput(value, language) : "")
+    const [minDraft, setMinDraft] = useState(toDraft(priceRange[0]))
+    const [maxDraft, setMaxDraft] = useState(toDraft(priceRange[1]))
     useEffect(() => {
-        setMinDraft(priceRange[0] ? String(priceRange[0]) : "")
-        setMaxDraft(priceRange[1] ? String(priceRange[1]) : "")
-    }, [priceRange])
+        setMinDraft(priceRange[0] ? formatNumberForInput(priceRange[0], language) : "")
+        setMaxDraft(priceRange[1] ? formatNumberForInput(priceRange[1], language) : "")
+    }, [priceRange, language])
 
     const commitPrice = () => {
-        const next: [number, number] = [parsePriceInput(minDraft), parsePriceInput(maxDraft)]
+        const next = normalizePriceRange([parsePriceFilterInput(minDraft, language), parsePriceFilterInput(maxDraft, language)])
         if (next[0] !== priceRange[0] || next[1] !== priceRange[1]) onPriceRangeChange(next)
     }
 

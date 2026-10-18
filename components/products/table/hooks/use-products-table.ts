@@ -162,11 +162,14 @@ export function useProductsTable({
         e.stopPropagation()
         e.dataTransfer.effectAllowed = "move"
         e.dataTransfer.setData("text/plain", productId)
-        // Sürüklenen görüntü yalnızca tutamaç değil, tüm satır/kart olsun
+        // Sürüklenen görüntü yalnızca tutamaç değil, tüm satır/kart olsun. Görüntü tutulan noktadan
+        // yakalanır; sabit bir nokta verilince kart imlecin altında kayıyordu (ızgarada tutamaç sağ üstte)
         const row = (e.currentTarget as HTMLElement).closest<HTMLElement>("[data-product-row]")
         if (row) {
             const rect = row.getBoundingClientRect()
-            e.dataTransfer.setDragImage(row, Math.min(24, rect.width / 2), rect.height / 2)
+            const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width)
+            const y = Math.min(Math.max(e.clientY - rect.top, 0), rect.height)
+            e.dataTransfer.setDragImage(row, x, y)
         }
         setDraggingId(productId)
     }

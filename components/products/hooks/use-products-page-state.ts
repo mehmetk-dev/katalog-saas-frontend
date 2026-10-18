@@ -99,8 +99,19 @@ export function useProductsPageState({
     }
   }, [])
 
+  // searchParams yeni URL'yi ancak sunucu yanıtı gelince gösterir. Art arda yapılan değişiklikler
+  // (kategori + stok, gecikmeli arama + filtre) onun üzerine kurulunca bir önceki filtre URL'den düşüyordu;
+  // bu yüzden en son yazdığımız sorgu burada tutulur. URL bizim dışımızda değişirse (bağlantı) ona uyulur.
+  const latestQueryRef = useRef(searchParams.toString())
+  const ownQueriesRef = useRef(new Set<string>())
+  const currentQuery = searchParams.toString()
+  useEffect(() => {
+    if (ownQueriesRef.current.delete(currentQuery)) return
+    latestQueryRef.current = currentQuery
+  }, [currentQuery])
+
   const updateUrl = useCallback((newParams: Record<string, string | number | null>) => {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(latestQueryRef.current)
     Object.entries(newParams).forEach(([key, value]) => {
       if (value === null || value === "all" || value === "") {
         params.delete(key)
@@ -109,11 +120,15 @@ export function useProductsPageState({
       }
     })
 
+    const query = params.toString()
+    latestQueryRef.current = query
+    ownQueriesRef.current.add(query)
+
     // Filtre/arama değişiklikleri geçmişe yeni kayıt eklemez (Geri tuşu harf harf geri gitmesin)
     startTransition(() => {
-      router.replace(`?${params.toString()}`, { scroll: false })
+      router.replace(`?${query}`, { scroll: false })
     })
-  }, [router, searchParams])
+  }, [router])
 
   const adjustMetadataTotal = useCallback((delta: number) => {
     setMetadata((prev) => {

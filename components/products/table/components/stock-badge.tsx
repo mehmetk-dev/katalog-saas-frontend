@@ -7,7 +7,8 @@ import { getStockStatus } from "../utils/product-helpers"
 
 /**
  * Stok rozeti. Durum yalnızca renkle anlatılmaz: tükenen ürün "Tükendi" yazar,
- * az stokta uyarı simgesi ve ekran okuyucu metni bulunur.
+ * az stokta uyarı simgesi ve ekran okuyucu metni bulunur. Normal stok sade (nötr) kalır;
+ * renk yalnızca dikkat isteyen ürünlerde kullanılır, böylece onlar listede öne çıkar.
  */
 export function StockBadge({ stock, className, t }: { stock: number; className?: string; t: ProductViewProps["t"] }) {
     const { variant } = getStockStatus(stock)
@@ -22,7 +23,7 @@ export function StockBadge({ stock, className, t }: { stock: number; className?:
 
     const low = variant === "secondary"
     return (
-        <Badge variant={low ? "warning" : "success"} className={cn("tabular-nums", className)} title={low ? t("products.lowStock") : undefined}>
+        <Badge variant={low ? "warning" : "outline"} className={cn("tabular-nums", !low && "font-normal text-muted-foreground", className)} title={low ? t("products.lowStock") : undefined}>
             {low && <AlertTriangle aria-hidden className="size-3" />}
             {t("products.unitCount", { count: stock })}
             {low && <span className="sr-only"> ({t("products.lowStock")})</span>}

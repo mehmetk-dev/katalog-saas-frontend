@@ -1,6 +1,6 @@
 "use client"
 
-import { Eye, Package, Pencil } from "lucide-react"
+import { Package, Pencil } from "lucide-react"
 import NextImage from "next/image"
 
 import { Checkbox } from "@/components/ui/checkbox"
@@ -12,7 +12,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { type ProductViewProps } from "../types"
 import { formatProductPrice } from "../utils/product-helpers"
 import { DeleteAlertDialog } from "../components/delete-alert-dialog"
-import { ProductPreviewDialog } from "../components/product-preview-dialog"
+import { PRODUCT_PREVIEW_DIALOG_CLASS, ProductPreviewDialog } from "../components/product-preview-dialog"
 import { ProductActionsMenu } from "../components/product-actions-menu"
 import { ReorderHandle } from "../components/reorder-handle"
 import { StockBadge } from "../components/stock-badge"
@@ -45,7 +45,8 @@ export function ProductGridView(props: ProductViewProps) {
     return (
         <TooltipProvider>
             <div
-                className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-6"
+                // Sabit sütun sayısı yerine en az 12rem genişlik: fiyat + stok her kartta tek satıra sığar
+                className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] md:gap-4"
                 onDragOver={(e) => { if (draggingId) e.preventDefault() }}
                 onDrop={handleDrop}
             >
@@ -55,23 +56,16 @@ export function ProductGridView(props: ProductViewProps) {
                     const dropPosition = dropTarget?.id === product.id ? dropTarget.position : null
                     const imageUrl = (product.image_url || product.images?.[0]) as string | undefined
                     const hasValidImage = !!imageUrl && !failedImages.has(imageUrl)
+                    const categories = (product.category || "").split(",").map((c) => c.trim()).filter(Boolean)
 
                     return (
                         <Card
                             key={product.id}
                             data-product-row
                             onDragOver={canReorder ? (e: React.DragEvent<HTMLDivElement>) => handleDragOver(e, product.id, "x") : undefined}
-                            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                                const target = e.target as HTMLElement
-                                if (isMobile && !e.defaultPrevented
-                                    && target.tagName !== 'BUTTON'
-                                    && target.tagName !== 'INPUT') {
-                                    setPreviewProduct(product)
-                                }
-                            }}
                             className={cn(
                                 // Card'ın varsayılan py-6/gap-6 boşluğu görselin üstünde boşluk bırakıyordu
-                                "group relative gap-0 overflow-visible py-0 transition-shadow hover:shadow-md",
+                                "group relative gap-0 overflow-visible py-0 transition-[box-shadow,border-color] hover:border-foreground/20 hover:shadow-md",
                                 isSelected && "ring-2 ring-primary",
                                 isDragging && "opacity-40"
                             )}
@@ -87,7 +81,7 @@ export function ProductGridView(props: ProductViewProps) {
                             )}
 
                             {/* Resim alanı */}
-                            <div className="relative aspect-square overflow-hidden rounded-t-xl bg-muted/50">
+                            <div className="relative aspect-square overflow-hidden rounded-t-xl border-b bg-muted/50">
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <Package className="size-8 text-muted-foreground/40" />
                                 </div>
@@ -95,9 +89,13 @@ export function ProductGridView(props: ProductViewProps) {
                                 {hasValidImage && (
                                     <NextImage
                                         src={imageUrl}
-                                        alt={product.name}
+                                        alt=""
                                         fill
-                                        className="z-[1] object-cover"
+                                        className={cn(
+                                            "z-[1] object-cover transition-transform duration-300 group-hover:scale-[1.03]",
+                                            // Tükenen ürün görselden de ayırt edilsin
+                                            product.stock === 0 && "opacity-50 grayscale"
+                                        )}
                                         loading="lazy"
                                         unoptimized
                                         draggable={false}
@@ -106,7 +104,7 @@ export function ProductGridView(props: ProductViewProps) {
                                 )}
 
                                 <div className={cn(
-                                    "absolute left-1.5 top-1.5 z-[5] transition-opacity",
+                                    "absolute left-2 top-2 z-[5] transition-opacity",
                                     isSelected
                                         ? "opacity-100"
                                         : isMobile
@@ -123,62 +121,63 @@ export function ProductGridView(props: ProductViewProps) {
                                     />
                                 </div>
 
-                                {canReorder && !isMobile && (
-                                    <ReorderHandle
-                                        product={product}
-                                        view={props}
-                                        className="absolute right-1.5 top-1.5 z-[5] size-7 bg-background/95 opacity-0 shadow-sm focus-visible:opacity-100 group-hover:opacity-100"
-                                    />
-                                )}
-
-                                <div className={cn(
-                                    "absolute bottom-2 right-2 z-[5] flex gap-1 transition-opacity",
-                                    isMobile ? "hidden" : "opacity-0 focus-within:opacity-100 group-hover:opacity-100"
-                                )}>
-                                    <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        className="size-7 bg-background/95 shadow-sm hover:bg-card"
-                                        onClick={(e) => { e.stopPropagation(); setPreviewProduct(product); }}
-                                        aria-label={t("products.preview")}
-                                        title={t("products.preview")}
-                                    >
-                                        <Eye className="size-3.5" />
-                                    </Button>
-                                    <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        className="size-7 bg-background/95 shadow-sm hover:bg-card"
-                                        onClick={(e) => { e.stopPropagation(); onEdit(product); }}
-                                        aria-label={t("common.edit")}
-                                        title={t("common.edit")}
-                                    >
-                                        <Pencil className="size-3.5" />
-                                    </Button>
-                                </div>
-                            </div>
-
-                            {/* İçerik alanı */}
-                            <div className="space-y-1 p-3">
-                                {/* İki satıra kadar ad; sabit yükseklik kart hizasını korur */}
-                                <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5 text-foreground" title={product.name}>
-                                    {product.name}
-                                </h3>
-                                <p className="truncate text-xs text-muted-foreground" title={product.category || undefined}>
-                                    {product.category ? product.category.split(",").map((c) => c.trim()).filter(Boolean).join(" · ") : "—"}
-                                </p>
-                                <p className="text-sm font-semibold tabular-nums text-foreground">
-                                    {formatProductPrice(product)}
-                                </p>
-                                <div className="flex items-center justify-between pt-1">
-                                    <StockBadge stock={product.stock} t={t} />
+                                {/* Sağ üst: sıralama tutamacı + menü (dokunmatikte menü hep görünür) */}
+                                <div className="absolute right-2 top-2 z-[5] flex gap-1">
+                                    {canReorder && !isMobile && (
+                                        <ReorderHandle
+                                            product={product}
+                                            view={props}
+                                            className="size-7 bg-background/95 opacity-0 shadow-sm focus-visible:opacity-100 group-hover:opacity-100"
+                                        />
+                                    )}
                                     <ProductActionsMenu
                                         product={product}
                                         index={index}
                                         total={products.length}
                                         view={props}
-                                        triggerClassName="-mr-1.5 size-7"
+                                        triggerClassName={cn(
+                                            // Mobildeki genel 44px dokunma kuralı görselin üstünde kocaman kare yapıyordu
+                                            "size-8 min-h-0 min-w-0 bg-background/90 text-foreground shadow-sm hover:bg-background data-[state=open]:opacity-100 md:size-7",
+                                            !isMobile && "opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                                        )}
                                     />
+                                </div>
+
+                                {!isMobile && (
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        className="absolute bottom-2 right-2 z-[5] h-7 gap-1.5 bg-background/95 px-2.5 text-xs opacity-0 shadow-sm transition-opacity hover:bg-background focus-visible:opacity-100 group-hover:opacity-100"
+                                        onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                                    >
+                                        <Pencil className="size-3.5" />
+                                        {t("common.edit")}
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* İçerik alanı: kategori → ad → fiyat/stok. Alt satır her kartta aynı hizada kalır */}
+                            <div className="flex flex-1 flex-col p-3">
+                                <p className="truncate text-xs text-muted-foreground" title={categories.join(", ") || undefined}>
+                                    {categories[0] ?? t("products.uncategorized")}
+                                    {categories.length > 1 && <span className="tabular-nums"> · +{categories.length - 1}</span>}
+                                </p>
+                                <h3 className="mt-0.5 line-clamp-2 min-h-10 text-sm font-medium leading-5 text-foreground">
+                                    {/* Kartın tamamı önizlemeyi açar (after: ile tıklama alanı kartı kaplar) */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewProduct(product)}
+                                        title={product.name}
+                                        className="text-left outline-none after:absolute after:inset-0 after:z-[2] after:rounded-xl after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                                    >
+                                        {product.name}
+                                    </button>
+                                </h3>
+                                <div className="mt-auto flex flex-col items-start gap-1 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-2">
+                                    <span className="text-sm font-semibold tabular-nums text-foreground">
+                                        {formatProductPrice(product)}
+                                    </span>
+                                    <StockBadge stock={product.stock} t={t} />
                                 </div>
                             </div>
                         </Card>
@@ -188,7 +187,7 @@ export function ProductGridView(props: ProductViewProps) {
 
             {/* Liste görünümüyle aynı önizleme */}
             <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
-                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogContent className={PRODUCT_PREVIEW_DIALOG_CLASS}>
                     {previewProduct && (
                         <ProductPreviewDialog
                             product={previewProduct}

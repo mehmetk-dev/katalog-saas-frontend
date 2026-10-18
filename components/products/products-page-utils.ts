@@ -1,4 +1,5 @@
 import type { Product, ProductMove, ProductSortField, ProductStats } from "@/lib/actions/products"
+import { parseLocalizedNumber } from "@/lib/utils/number-input"
 
 export type SortField = "name" | "price" | "stock" | "created_at" | "category" | "order"
 export type SortOrder = "asc" | "desc"
@@ -31,6 +32,20 @@ export function parseStockFilterFromQuery(value: string | null): StockFilter {
 export function parsePriceFromQuery(value: string | null): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+}
+
+/**
+ * Fiyat filtresi kutusundaki metni sayıya çevirir (0 = sınır yok). Türkçe yazım desteklenir:
+ * "1.500" → 1500, "1.500,50" → 1500.5 (Number("1.500") 1,5 TL'ye filtreliyordu).
+ */
+export function parsePriceFilterInput(value: string, language: string = "tr"): number {
+  const parsed = parseLocalizedNumber(value, language)
+  return parsed !== null && parsed > 0 ? parsed : 0
+}
+
+/** [min, max] aralığını düzeltir: ikisi de girilmiş ve ters ise yer değiştirir (0 = sınır yok) */
+export function normalizePriceRange([min, max]: [number, number]): [number, number] {
+  return min > 0 && max > 0 && min > max ? [max, min] : [min, max]
 }
 
 /** Manuel sıra her zaman artandır; URL'de "order + desc" gelse bile artan kabul edilir. */

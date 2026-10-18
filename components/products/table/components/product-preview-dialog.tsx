@@ -4,13 +4,19 @@ import { useState, useCallback } from "react"
 import { ChevronLeft, ChevronRight, ExternalLink, ImageOff, Pencil } from "lucide-react"
 import NextImage from "next/image"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import { type Product } from "../types"
-import { getStockStatus, formatProductPrice, isSafeUrl } from "../utils/product-helpers"
+import { formatProductPrice, isSafeUrl } from "../utils/product-helpers"
+import { StockBadge } from "./stock-badge"
+
+/** Önizlemeyi saran DialogContent sınıfları; kapatma düğmesi görselin üstünde de okunur kalsın diye zeminli */
+export const PRODUCT_PREVIEW_DIALOG_CLASS = cn(
+    "flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl",
+    "[&>[data-slot=dialog-close]]:right-3 [&>[data-slot=dialog-close]]:top-3 [&>[data-slot=dialog-close]]:z-10 [&>[data-slot=dialog-close]]:rounded-full [&>[data-slot=dialog-close]]:bg-background/90 [&>[data-slot=dialog-close]]:p-1.5 [&>[data-slot=dialog-close]]:opacity-100 [&>[data-slot=dialog-close]]:shadow-sm"
+)
 
 interface ProductPreviewDialogProps {
     product: Product
@@ -40,187 +46,153 @@ export function ProductPreviewDialog({ product, onEdit, onClose }: ProductPrevie
         a => a.name !== "currency" && a.name !== "additional_images"
     ) || []
 
-    const stockStatus = getStockStatus(product.stock)
+    const categories = (product.category || "").split(",").map((c) => c.trim()).filter(Boolean)
+    const activeImage = allImages[activeImageIndex] || allImages[0]
+    const showImage = (delta: number) =>
+        setActiveImageIndex((prev) => (prev + delta + allImages.length) % allImages.length)
 
     return (
         <>
-            <div className="px-6 py-4 border-b shrink-0">
-                <DialogHeader>
-                    <DialogTitle className="text-lg font-semibold pr-8">{product.name}</DialogTitle>
-                    {product.sku && <p className="text-muted-foreground text-sm font-mono mt-1">SKU: {product.sku}</p>}
-                </DialogHeader>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-5 min-h-0">
-                {allImages.length > 0 ? (
-                    <div className="space-y-2 shrink-0">
-                        <div className={cn(
-                            "relative h-64 sm:h-[320px] rounded-xl",
-                            "overflow-hidden bg-muted border"
-                        )}>
+            {/* Masaüstünde solda görsel, sağda bilgiler; mobilde alt alta */}
+            <div className="grid min-h-0 flex-1 overflow-y-auto sm:grid-cols-2">
+                <div className="space-y-2 border-b bg-muted/40 p-4 sm:border-b-0 sm:border-r sm:p-5">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-lg border bg-background sm:aspect-square">
+                        {activeImage ? (
                             <NextImage
-                                src={(allImages[activeImageIndex] || allImages[0]) as string}
+                                src={activeImage}
                                 alt={product.name}
                                 fill
-                                className="object-contain bg-black/5"
+                                className="object-contain"
                                 loading="lazy"
                                 unoptimized
-                                onError={() => handleImageError((allImages[activeImageIndex] || allImages[0]) as string)}
+                                onError={() => handleImageError(activeImage)}
                             />
-                            {allImages.length > 1 && (
-                                <>
-                                    <button
-                                        onClick={() => setActiveImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)}
-                                        className={cn(
-                                            "absolute left-2 top-1/2 -translate-y-1/2 p-1.5",
-                                            "rounded-full bg-black/50 text-white",
-                                            "hover:bg-black/70 z-10"
-                                        )}
-                                    >
-                                        <ChevronLeft className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)}
-                                        className={cn(
-                                            "absolute right-2 top-1/2 -translate-y-1/2 p-1.5",
-                                            "rounded-full bg-black/50 text-white",
-                                            "hover:bg-black/70 z-10"
-                                        )}
-                                    >
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                    <div className={cn(
-                                        "absolute bottom-2 left-1/2 -translate-x-1/2",
-                                        "bg-black/60 text-white text-xs px-2 py-0.5 rounded z-10"
-                                    )}>
-                                        {activeImageIndex + 1}/{allImages.length}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        {allImages.length > 1 && (
-                            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                                {allImages.map((img, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setActiveImageIndex(idx)}
-                                        className={cn(
-                                            "relative w-12 h-12 rounded-lg overflow-hidden",
-                                            "shrink-0 border-2 transition-all",
-                                            activeImageIndex === idx
-                                                ? "border-primary ring-2 ring-border"
-                                                : "border-transparent opacity-60 hover:opacity-100"
-                                        )}
-                                    >
-                                        <NextImage
-                                            src={img}
-                                            alt=""
-                                            fill
-                                            className="object-cover"
-                                            loading="lazy"
-                                            unoptimized
-                                            onError={() => handleImageError(img)}
-                                        />
-                                    </button>
-                                ))}
+                        ) : (
+                            <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                                <ImageOff className="size-8" />
+                                <span className="text-xs">{t("products.columns.noImage")}</span>
                             </div>
                         )}
+                        {allImages.length > 1 && (
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={() => showImage(-1)}
+                                    aria-label={t("common.previousImage")}
+                                    className="absolute left-2 top-1/2 size-8 -translate-y-1/2 rounded-full bg-background/90 shadow-sm hover:bg-background"
+                                >
+                                    <ChevronLeft className="size-4" />
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={() => showImage(1)}
+                                    aria-label={t("common.nextImage")}
+                                    className="absolute right-2 top-1/2 size-8 -translate-y-1/2 rounded-full bg-background/90 shadow-sm hover:bg-background"
+                                >
+                                    <ChevronRight className="size-4" />
+                                </Button>
+                                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-background/90 px-2 py-0.5 text-xs tabular-nums text-foreground shadow-sm">
+                                    {activeImageIndex + 1}/{allImages.length}
+                                </span>
+                            </>
+                        )}
                     </div>
-                ) : (
-                    <div className="aspect-video rounded-lg bg-muted flex items-center justify-center">
-                        <ImageOff className="w-10 h-10 text-muted-foreground" />
-                    </div>
-                )}
+                    {allImages.length > 1 && (
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                            {allImages.map((img, idx) => (
+                                <button
+                                    key={img}
+                                    type="button"
+                                    onClick={() => setActiveImageIndex(idx)}
+                                    aria-label={t("common.imageOf", { index: idx + 1 })}
+                                    aria-current={activeImageIndex === idx}
+                                    className={cn(
+                                        "relative size-12 shrink-0 overflow-hidden rounded-md border-2 bg-background transition-all",
+                                        activeImageIndex === idx
+                                            ? "border-primary"
+                                            : "border-transparent opacity-60 hover:opacity-100"
+                                    )}
+                                >
+                                    <NextImage
+                                        src={img}
+                                        alt=""
+                                        fill
+                                        className="object-cover"
+                                        loading="lazy"
+                                        unoptimized
+                                        onError={() => handleImageError(img)}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div className={cn(
-                        "p-3 rounded-lg bg-accent",
-                        "border border-border"
-                    )}>
-                        <p className="text-xs text-primary font-medium">{t("productPreview.price")}</p>
-                        <p className="text-xl font-bold text-primary">{formatProductPrice(product)}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50 border">
-                        <p className="text-xs text-muted-foreground font-medium">{t("productPreview.stock")}</p>
-                        <p className={cn(
-                            "text-xl font-bold",
-                            stockStatus.variant === "destructive" && "text-destructive",
-                            stockStatus.variant === "secondary" && "text-warning-soft-foreground",
-                            stockStatus.variant === "default" && "text-success"
-                        )}>
-                            {t("productPreview.units", { count: product.stock })}
+                <div className="space-y-5 p-5 sm:p-6">
+                    <DialogHeader className="gap-1 text-left">
+                        <p className="text-xs text-muted-foreground">
+                            {categories.length > 0 ? categories.join(" · ") : t("products.uncategorized")}
                         </p>
-                    </div>
-                </div>
+                        <DialogTitle className="pr-8 text-xl font-semibold leading-tight">{product.name}</DialogTitle>
+                        {product.sku && <p className="font-mono text-xs text-muted-foreground">{product.sku}</p>}
+                    </DialogHeader>
 
-                <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.category")}</p>
-                    {product.category ? (
-                        <div className="flex flex-wrap gap-1">
-                            {product.category.split(',').map((cat, idx) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
-                                    {cat.trim()}
-                                </Badge>
-                            ))}
+                    <div className="flex flex-wrap items-start justify-between gap-2 border-y py-4">
+                        <div>
+                            <p className="text-xs text-muted-foreground">{t("productPreview.price")}</p>
+                            <p className="text-2xl font-semibold tabular-nums text-foreground">{formatProductPrice(product)}</p>
                         </div>
-                    ) : <p className="text-sm text-muted-foreground">—</p>}
-                </div>
-
-                <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.description")}</p>
-                    <div className="text-sm text-foreground/90 leading-relaxed">
-                        {product.description || "—"}
-                    </div>
-                </div>
-
-                {product.product_url && isSafeUrl(product.product_url) && (
-                    <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.link")}</p>
-                        <a
-                            href={product.product_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={cn(
-                                "text-sm text-primary hover:underline",
-                                "flex items-center gap-1"
-                            )}
-                        >
-                            {product.product_url.slice(0, 50)}
-                            {product.product_url.length > 50 && "..."}
-                            <ExternalLink className="w-3 h-3" />
-                        </a>
-                    </div>
-                )}
-
-                {customAttrs.length > 0 && (
-                    <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1.5">{t("productPreview.attributes")}</p>
-                        <div className="grid grid-cols-2 gap-1.5">
-                            {customAttrs.map((attr, idx) => (
-                                <div key={idx} className={cn(
-                                    "flex justify-between p-2 rounded",
-                                    "bg-muted/50 text-xs text-foreground/90"
-                                )}>
-                                    <span className="text-muted-foreground">{attr.name}</span>
-                                    <span className="font-medium">{attr.value}{attr.unit && ` ${attr.unit}`}</span>
-                                </div>
-                            ))}
+                        <div className="flex flex-col items-end">
+                            <p className="mb-1.5 text-xs text-muted-foreground">{t("productPreview.stock")}</p>
+                            <StockBadge stock={product.stock} t={t} />
                         </div>
                     </div>
-                )}
+
+                    <section>
+                        <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">{t("productPreview.description")}</h4>
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/90">
+                            {product.description || "—"}
+                        </p>
+                    </section>
+
+                    {customAttrs.length > 0 && (
+                        <section>
+                            <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">{t("productPreview.attributes")}</h4>
+                            <dl className="divide-y rounded-lg border text-sm">
+                                {customAttrs.map((attr, idx) => (
+                                    <div key={idx} className="flex justify-between gap-4 px-3 py-2">
+                                        <dt className="text-muted-foreground">{attr.name}</dt>
+                                        <dd className="text-right font-medium text-foreground">{attr.value}{attr.unit && ` ${attr.unit}`}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </section>
+                    )}
+
+                    {product.product_url && isSafeUrl(product.product_url) && (
+                        <section>
+                            <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">{t("productPreview.link")}</h4>
+                            <a
+                                href={product.product_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex min-w-0 items-center gap-1 text-sm text-foreground underline-offset-4 hover:underline"
+                            >
+                                <span className="truncate">{product.product_url}</span>
+                                <ExternalLink className="size-3 shrink-0" />
+                            </a>
+                        </section>
+                    )}
+                </div>
             </div>
 
-            <div className="px-6 py-3 border-t bg-muted/50 flex gap-2 shrink-0">
-                <Button
-                    size="sm"
-                    className={cn(
-                        "flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    )}
-                    onClick={() => { onClose(); onEdit(product) }}
-                >
-                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> {t("common.edit")}
-                </Button>
+            <div className="flex shrink-0 justify-end gap-2 border-t px-5 py-3">
                 <Button size="sm" variant="outline" onClick={onClose}>{t("common.close")}</Button>
+                <Button size="sm" onClick={() => { onClose(); onEdit(product) }}>
+                    <Pencil className="size-3.5" /> {t("common.edit")}
+                </Button>
             </div>
         </>
     )

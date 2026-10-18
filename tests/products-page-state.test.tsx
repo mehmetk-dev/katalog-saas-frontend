@@ -60,6 +60,25 @@ describe('useProductsPageState', () => {
     expect(replace).toHaveBeenCalledWith(expect.stringContaining('category=Elbiseler'), { scroll: false })
   })
 
+  it('art arda yapılan filtre değişiklikleri birbirini ezmez (searchParams henüz güncellenmemişken)', () => {
+    const { result } = renderHook(() => useProductsPageState(baseProps))
+    act(() => result.current.handleCategoryChange('Oturma'))
+    act(() => result.current.updateUrl({ stockFilter: 'low_stock', page: 1 }))
+    const lastUrl = replace.mock.calls.at(-1)?.[0] as string
+    expect(lastUrl).toContain('category=Oturma')
+    expect(lastUrl).toContain('stockFilter=low_stock')
+  })
+
+  it('gecikmeli arama, arada seçilen filtreyi URL\'den düşürmez', () => {
+    const { result } = renderHook(() => useProductsPageState(baseProps))
+    act(() => result.current.handleSearchChange('masa'))
+    act(() => result.current.handleCategoryChange('Ofis'))
+    act(() => { vi.advanceTimersByTime(350) })
+    const lastUrl = replace.mock.calls.at(-1)?.[0] as string
+    expect(lastUrl).toContain('search=masa')
+    expect(lastUrl).toContain('category=Ofis')
+  })
+
   it('fiyat aralığı sayfadaki ürünlerden türetilmez (0 = sınır yok)', () => {
     const { result } = renderHook(() => useProductsPageState({
       ...baseProps,
@@ -75,5 +94,19 @@ describe('useProductsPageState', () => {
 
     const second = renderHook(() => useProductsPageState(baseProps))
     expect(second.result.current.viewMode).toBe('grid')
+  })
+})
+
+describe('fiyat filtresi girişi', () => {
+  it('Türkçe yazımı doğru okur', async () => {
+    const { parsePriceFilterInput, normalizePriceRange } = await import('@/components/products/products-page-utils')
+    expect(parsePriceFilterInput('1.500')).toBe(1500)
+    expect(parsePriceFilterInput('1.500,50')).toBe(1500.5)
+    expect(parsePriceFilterInput('199,90')).toBe(199.9)
+    expect(parsePriceFilterInput('₺ 2.000')).toBe(2000)
+    expect(parsePriceFilterInput('')).toBe(0)
+    expect(parsePriceFilterInput('abc')).toBe(0)
+    expect(normalizePriceRange([5000, 1000])).toEqual([1000, 5000])
+    expect(normalizePriceRange([5000, 0])).toEqual([5000, 0])
   })
 })

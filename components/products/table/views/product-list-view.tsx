@@ -11,7 +11,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { type Product, type ProductColumn, type ProductViewProps, type ProductsTableSort, type SortableColumn } from "../types"
 import { formatProductPrice, isSafeUrl } from "../utils/product-helpers"
 import { DeleteAlertDialog } from "../components/delete-alert-dialog"
-import { ProductPreviewDialog } from "../components/product-preview-dialog"
+import { PRODUCT_PREVIEW_DIALOG_CLASS, ProductPreviewDialog } from "../components/product-preview-dialog"
 import { ProductActionsMenu } from "../components/product-actions-menu"
 import { ReorderHandle } from "../components/reorder-handle"
 import { StockBadge } from "../components/stock-badge"
@@ -127,7 +127,6 @@ export function ProductListView(props: ProductViewProps) {
     const {
         products,
         selectedIds,
-        isMobile,
         canReorder,
         draggingId,
         dropTarget,
@@ -159,9 +158,14 @@ export function ProductListView(props: ProductViewProps) {
 
     return (
         <TooltipProvider>
-            <div className="overflow-hidden rounded-xl border bg-card">
+            {/* overflow-clip (hidden değil): köşeleri keser ama yapışkan başlığı bozmaz */}
+            <div className="overflow-clip rounded-xl border bg-card">
                 {/* Tablo başlığı */}
-                <div style={rowStyle} className={cn("hidden gap-4 border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground md:grid md:items-center", rowGrid)}>
+                <div style={rowStyle} className={cn(
+                    // Uzun listede kaydırırken başlık üstte kalır; zemin opak olmalı (altından satır görünmesin)
+                    "sticky top-0 z-10 hidden gap-4 md:-top-6 border-b bg-[color-mix(in_oklab,var(--muted)_50%,var(--card))] px-4 py-2 text-xs font-medium text-muted-foreground md:grid md:items-center",
+                    rowGrid
+                )}>
                     {canReorder && <span aria-hidden />}
                     <Checkbox
                         checked={pageSelection.checked}
@@ -198,16 +202,19 @@ export function ProductListView(props: ProductViewProps) {
                                 style={rowStyle}
                                 onDragOver={canReorder ? (e) => handleDragOver(e, product.id, "y") : undefined}
                                 className={cn(
-                                    "group relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card px-3 py-2.5 transition-colors sm:px-4 md:gap-4",
+                                    "group relative grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 bg-card px-3 py-2 transition-colors sm:px-4 md:gap-4",
                                     rowGrid,
                                     "hover:bg-muted/40",
                                     isSelected && "bg-primary/5 hover:bg-primary/5",
                                     isDragging && "opacity-40"
                                 )}
                                 onClick={(e) => {
-                                    if (isMobile && !e.defaultPrevented && (e.target as HTMLElement).tagName !== 'BUTTON' && (e.target as HTMLElement).tagName !== 'INPUT') {
-                                        setPreviewProduct(product)
-                                    }
+                                    // Satırın boş yerine tıklamak önizlemeyi açar (ürün adı düzenlemeyi açar);
+                                    // düğme, bağlantı, onay kutusu, satır içi düzenleme ve metin seçimi hariç
+                                    if (e.defaultPrevented) return
+                                    if ((e.target as HTMLElement).closest("button, a, input, label, [role=checkbox], [role=menuitem]")) return
+                                    if (window.getSelection()?.toString()) return
+                                    setPreviewProduct(product)
                                 }}
                             >
                                 {isSelected && <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-primary" />}
@@ -242,7 +249,7 @@ export function ProductListView(props: ProductViewProps) {
                                 {/* Ürün: görsel + ad + SKU */}
                                 <div className="flex min-w-0 items-center gap-3">
                                     <div
-                                        className={cn("relative size-10 shrink-0 overflow-hidden rounded-md border bg-muted md:size-11", !imageUrl && "border-dashed")}
+                                        className={cn("relative size-10 shrink-0 overflow-hidden rounded-lg border bg-muted", !imageUrl && "border-dashed")}
                                         title={!imageUrl ? t("products.columns.noImage") : undefined}
                                     >
                                         <div className="absolute inset-0 flex items-center justify-center">
@@ -253,7 +260,7 @@ export function ProductListView(props: ProductViewProps) {
                                                 src={imageUrl}
                                                 alt={product.name}
                                                 fill
-                                                className="object-cover"
+                                                className={cn("object-cover", product.stock === 0 && "opacity-50 grayscale")}
                                                 loading="lazy"
                                                 unoptimized
                                                 draggable={false}
@@ -266,7 +273,7 @@ export function ProductListView(props: ProductViewProps) {
                                             <button
                                                 type="button"
                                                 onClick={(e) => { e.stopPropagation(); onEdit(product) }}
-                                                className="truncate text-left text-sm font-medium text-foreground hover:underline focus-visible:underline focus-visible:outline-none"
+                                                className="truncate text-left text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
                                                 title={product.name}
                                             >
                                                 {product.name}
@@ -376,7 +383,7 @@ export function ProductListView(props: ProductViewProps) {
 
             {/* Preview Dialog */}
             <Dialog open={!!previewProduct} onOpenChange={() => setPreviewProduct(null)}>
-                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogContent className={PRODUCT_PREVIEW_DIALOG_CLASS}>
                     {previewProduct && (
                         <ProductPreviewDialog
                             product={previewProduct}
