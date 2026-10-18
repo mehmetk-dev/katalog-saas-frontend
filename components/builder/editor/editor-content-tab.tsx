@@ -276,7 +276,8 @@ export const EditorContentTab = React.memo(function EditorContentTab({
                 </div>
 
                 {/* Filtre değişirken eski sonuçlar soluk kalır (boş ekrana atlamaz) */}
-                <div className={`grid grid-cols-2 gap-3 transition-opacity @sm:grid-cols-3 @xl:grid-cols-4 @3xl:grid-cols-5 ${isLoadingProducts && visibleProducts.length > 0 ? "opacity-60" : ""}`}>
+                {/* Daha küçük kutular: 3'lü ızgarada büyük ürün listesi çok kaydırma gerektiriyordu */}
+                <div className={`grid grid-cols-3 gap-2.5 transition-opacity @sm:grid-cols-4 @xl:grid-cols-5 @3xl:grid-cols-6 ${isLoadingProducts && visibleProducts.length > 0 ? "opacity-60" : ""}`}>
                     {isLoadingProducts && visibleProducts.length === 0 && (
                         <div className="col-span-full rounded-lg border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
                             {t('common.loading')}
