@@ -48,9 +48,10 @@ export function ProductStatsCards({ stats, stockFilter, onStockFilterChange }: P
         <div
             role="group"
             aria-label={t("products.stockSummary")}
-            className="flex snap-x overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="snap-x rounded-xl sm:flex sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
         >
-            <div className="flex min-w-full divide-x rounded-xl border bg-card shadow-sm">
+            {/* Mobilde 2x2 (eskiden yatay kayıyordu ve son iki kutu görünmüyordu); ayraçlar gap-px + bg-border ile */}
+            <div className="grid min-w-full grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-sm sm:flex">
                 {cells.map((cell) => {
                     const active = stockFilter === cell.filter
                     return (
@@ -61,8 +62,8 @@ export function ProductStatsCards({ stats, stockFilter, onStockFilterChange }: P
                             title={cell.hint}
                             onClick={() => onStockFilterChange(active && cell.filter !== "all" ? "all" : cell.filter)}
                             className={cn(
-                                "group relative flex min-w-[8.5rem] flex-1 snap-start flex-col items-start gap-1 px-4 py-3 text-left transition-colors first:rounded-l-xl hover:bg-muted/50 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                active && "bg-muted/60 hover:bg-muted/60"
+                                "group relative flex min-w-0 flex-1 snap-start flex-col items-start gap-1 bg-card px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:min-w-[8.5rem]",
+                                active && "bg-muted hover:bg-muted"
                             )}
                         >
                             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -76,9 +77,9 @@ export function ProductStatsCards({ stats, stockFilter, onStockFilterChange }: P
                         </button>
                     )
                 })}
-                <div className="flex min-w-[9.5rem] flex-1 snap-start flex-col items-start gap-1 px-4 py-3">
+                <div className="col-span-2 flex min-w-0 flex-1 snap-start items-center justify-between gap-1 bg-card px-4 py-2.5 sm:min-w-[9.5rem] sm:flex-col sm:items-start sm:justify-start sm:py-3">
                     <span className="text-xs font-medium text-muted-foreground">{t("products.stockValue")}</span>
-                    <span className="text-xl font-semibold tracking-tight tabular-nums text-foreground">
+                    <span className="text-base font-semibold tracking-tight tabular-nums text-foreground sm:text-xl">
                         {formatMoney(stats.totalValue ?? 0)}
                     </span>
                 </div>

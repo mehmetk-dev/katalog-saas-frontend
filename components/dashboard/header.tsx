@@ -43,31 +43,9 @@ export function DashboardHeader() {
     await logout()
   }
 
-  // Dinamik Header Aksiyonu
-  const getHeaderAction = () => {
-    if (pathname.startsWith("/dashboard/products")) {
-      return {
-        label: t("products.addNew"),
-        href: "/dashboard/products?action=new",
-        icon: <Plus className="w-4 h-4" />
-      }
-    }
-    if (pathname.startsWith("/dashboard/categories")) {
-      return {
-        label: t("categories.newCategory"),
-        href: "/dashboard/categories?action=new",
-        icon: <Plus className="w-4 h-4" />
-      }
-    }
-    // Varsayılan: Katalog Oluştur
-    return {
-      label: t("dashboard.createCatalog"),
-      href: "/dashboard/builder",
-      icon: <Plus className="w-4 h-4" />
-    }
-  }
-
-  const action = getHeaderAction()
+  // Ürünler ve kategoriler sayfasının başlığında kendi "ekle" düğmesi var; üst barda ikincisi gösterilmez.
+  // Diğer sayfalarda "Katalog Oluştur" (mobilde kısaca "Katalog"; eski "Yeni" neyi oluşturduğunu söylemiyordu)
+  const showCreateCatalog = !pathname.startsWith("/dashboard/products") && !pathname.startsWith("/dashboard/categories")
 
   // Prevents hydration mismatch for Radix UI components by rendering them only on client
   const UserMenu = mounted ? (
@@ -156,20 +134,11 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Dinamik Aksiyon Butonu */}
-          {action.href === "/dashboard/builder" ? (
+          {showCreateCatalog && (
             <Button onClick={createNewCatalog} className="gap-2" size="sm" disabled={isCreating}>
-              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : action.icon}
-              <span className="hidden sm:inline">{action.label}</span>
-              <span className="sm:hidden">{t("common.new")}</span>
-            </Button>
-          ) : (
-            <Button asChild className="gap-2" size="sm">
-              <Link href={action.href}>
-                {action.icon}
-                <span className="hidden sm:inline">{action.label}</span>
-                <span className="sm:hidden">{t("common.new")}</span>
-              </Link>
+              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              <span className="hidden sm:inline">{t("dashboard.createCatalog")}</span>
+              <span className="sm:hidden">{t("dashboard.createCatalogShort")}</span>
             </Button>
           )}
 

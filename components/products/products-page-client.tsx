@@ -235,8 +235,8 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             visibleColumns={visibleColumns}
             onToggleColumn={toggleColumn}
           />
-          {/* Geniş ekranda seçili filtreler zaten araç çubuğundaki düğmelerde yazıyor */}
-          <div className="xl:hidden">
+          {/* Geniş ekranda seçili filtreler zaten araç çubuğundaki düğmelerde yazıyor; filtre yokken boş kutu yer kaplamasın */}
+          <div className="empty:hidden xl:hidden">
           <ActiveFilters
             search={search}
             selectedCategory={selectedCategory}
