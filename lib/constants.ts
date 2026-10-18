@@ -116,7 +116,7 @@ export const TEMPLATES = [
         id: "showcase",
         name: "Vitrin",
         isPro: true,
-        description: "Spotlight layout, koyu tema",
+        description: "Tek ürünü öne çıkaran koyu tema",
         image: "/templates/bold.png"
     },
     {
@@ -130,7 +130,7 @@ export const TEMPLATES = [
         id: "fashion-lookbook",
         name: "Moda Lookbook",
         isPro: true,
-        description: "Hero layout, moda kataloğu",
+        description: "Büyük kapak görselli moda kataloğu",
         image: "/templates/magazine.png"
     },
     {

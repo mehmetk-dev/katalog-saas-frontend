@@ -2,14 +2,15 @@
 
 import { Lock, Palette } from "lucide-react"
 import { toast } from "sonner"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useUser } from "@/lib/contexts/user-context"
 import { type CatalogTemplate, createCatalog } from "@/lib/actions/catalogs"
-import { getPlanLimits } from "@/lib/constants"
+import { TEMPLATES, getPlanLimits } from "@/lib/constants"
+import { cn } from "@/lib/utils"
 import { ResponsiveContainer } from "@/components/ui/responsive-container"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
@@ -23,10 +24,23 @@ interface TemplatesPageClientProps {
   templates: CatalogTemplate[]
 }
 
+type TemplateFilter = "all" | "free" | "premium"
+
+/** DB'de açıklaması boş şablonlar için yedek açıklama (sabit liste yalnızca Türkçe) */
+const FALLBACK_DESCRIPTIONS = new Map(TEMPLATES.map((template) => [template.id, template.description]))
+
 export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
   const { user, refreshUser, adjustCatalogsCount } = useUser()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<TemplateFilter>("all")
+
+  const counts = useMemo(() => {
+    const premium = templates.filter((template) => template.is_premium).length
+    return { all: templates.length, free: templates.length - premium, premium }
+  }, [templates])
+  const visibleTemplates = templates.filter((template) =>
+    filter === "all" || (filter === "premium" ? template.is_premium : !template.is_premium))
 
   const isFreeUser = user?.plan === "free"
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -74,15 +88,40 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
     <div className="space-y-4 sm:space-y-6">
       <PageHeader title={t("sidebar.templates")} description={t("dashboard.templatesSubtitle")} />
 
+      {templates.length > 0 && counts.premium > 0 && counts.free > 0 && (
+        // Kataloglar sayfasındaki durum seçiciyle aynı görünüm
+        <div role="radiogroup" aria-label={t("templatesPage.filterLabel")} className="flex w-fit rounded-md border bg-card p-0.5">
+          {(["all", "free", "premium"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={filter === value}
+              onClick={() => setFilter(value)}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded px-3 text-sm transition-colors",
+                filter === value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t(value === "all" ? "templatesPage.filterAll" : value === "free" ? "templatesPage.filterFree" : "templatesPage.filterPremium")}
+              <span className="text-xs tabular-nums text-muted-foreground">{counts[value]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {templates.length === 0 ? (
         <div className="text-center py-8 sm:py-12">
           <Palette className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground/50 mb-3 sm:mb-4" />
           <p className="text-sm sm:text-base text-muted-foreground">{t('common.noTemplates')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
-          {templates.map((template) => (
-            <Card key={template.id} className="gap-0 py-0 overflow-hidden group hover:shadow-md transition-shadow ring-1 ring-border border-0 bg-card">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] sm:gap-4">
+          {visibleTemplates.map((template) => {
+            const locked = template.is_premium && isFreeUser
+            const description = template.description || (language === "tr" ? FALLBACK_DESCRIPTIONS.get(template.id) : undefined)
+            return (
+            <Card key={template.id} className="group gap-0 overflow-hidden py-0 transition-[box-shadow,border-color] hover:border-foreground/20 hover:shadow-md">
               {/* Template Preview - Her şablon kendi temasına uygun ürünlerle */}
               <div className="relative border-b group-hover:opacity-95 transition-opacity bg-muted/30 dark:bg-muted/50">
                 <ResponsiveContainer>
@@ -93,14 +132,12 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                   />
                 </ResponsiveContainer>
 
-                {/* Pro Lock Overlay */}
-                {template.is_premium && isFreeUser && (
-                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
-                    <div className="text-center">
-                      <Lock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-xs sm:text-sm font-medium text-foreground">{t("templatesPage.premiumTemplate")}</p>
-                    </div>
-                  </div>
+                {/* Kilitli şablon: tasarım görünür kalır (eskiden önizlemenin tamamı örtülüyordu), köşede kilit */}
+                {locked && (
+                  <span className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full border bg-background/95 px-2 py-0.5 text-xs font-medium text-foreground shadow-sm">
+                    <Lock className="size-3" />
+                    {t("templatesPage.premiumTemplate")}
+                  </span>
                 )}
 
                 {/* Hover overlay button - Fixed Layout */}
@@ -119,12 +156,12 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                     >
                       {loadingId === template.id
                         ? t("templatesPage.preparing")
-                        : (template.is_premium && isFreeUser)
+                        : locked
                           ? t("templatesPage.premiumRequired")
                           : isLimitReached ? t("templatesPage.limitReached") : t("templatesPage.use")}
                     </Button>
 
-                    {(isLimitReached || (template.is_premium && isFreeUser)) && (
+                    {(isLimitReached || locked) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -139,19 +176,20 @@ export function TemplatesPageClient({ templates }: TemplatesPageClientProps) {
                 </div>
               </div>
 
-              <CardContent className="p-3 sm:p-4 bg-card relative z-20">
-                <div className="flex items-center justify-between gap-2">
+              <CardContent className="relative z-20 p-3">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="font-medium text-sm sm:text-base truncate text-foreground">{template.name}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{template.description || t("templatesPage.defaultDescription")}</p>
+                    <h3 className="truncate text-sm font-medium text-foreground">{template.name}</h3>
+                    {description && <p className="line-clamp-1 text-xs text-muted-foreground" title={description}>{description}</p>}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {template.is_premium && <Badge variant="secondary" className="text-xs">{t("templatesPage.premiumBadge")}</Badge>}
-                  </div>
+                  {template.is_premium
+                    ? <Badge variant="secondary" className="shrink-0">{t("templatesPage.premiumBadge")}</Badge>
+                    : <Badge variant="outline" className="shrink-0 font-normal text-muted-foreground">{t("templatesPage.freeBadge")}</Badge>}
                 </div>
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
       )}
 

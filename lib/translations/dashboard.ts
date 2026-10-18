@@ -7,8 +7,12 @@ const dashboard = {
             use: "Bu şablonla oluştur",
             preparing: "Hazırlanıyor...",
             viewPlans: "Planları incele",
-            defaultDescription: "Katalog şablonu",
             premiumBadge: "Premium",
+            filterLabel: "Şablon türü",
+            filterAll: "Tümü",
+            filterFree: "Ücretsiz",
+            filterPremium: "Premium",
+            freeBadge: "Ücretsiz",
         },
         dashboard: {
             home: {
@@ -188,8 +192,12 @@ const dashboard = {
             use: "Create with this template",
             preparing: "Preparing...",
             viewPlans: "View plans",
-            defaultDescription: "Catalog template",
             premiumBadge: "Premium",
+            filterLabel: "Template type",
+            filterAll: "All",
+            filterFree: "Free",
+            filterPremium: "Premium",
+            freeBadge: "Free",
         },
         dashboard: {
             home: {
