@@ -89,14 +89,7 @@ describe('ProductModal Image Upload', () => {
     })
 
     it('renders upload button when images are less than 5', async () => {
-        const user = userEvent.setup()
         render(<ProductModal {...defaultProps} />)
-
-        // Switch to images tab using userEvent
-        const tab = screen.getByTestId('tab-images')
-        await user.click(tab)
-
-        // Wait for tab transition
         await waitFor(() => {
             expect(screen.getByText('products.addPhoto')).not.toBeNull()
         })
@@ -105,10 +98,6 @@ describe('ProductModal Image Upload', () => {
     it('handles file upload correctly', async () => {
         const user = userEvent.setup()
         render(<ProductModal {...defaultProps} />)
-
-        // Switch to images tab
-        const tab = screen.getByTestId('tab-images')
-        await user.click(tab)
 
         const file = new File(['hello'], 'hello.png', { type: 'image/png' })
 
@@ -125,10 +114,6 @@ describe('ProductModal Image Upload', () => {
     it('prevents uploading more than MAX_PRODUCT_IMAGES images', async () => {
         const user = userEvent.setup()
         render(<ProductModal {...defaultProps} />)
-
-        // Switch to images tab
-        const tab = screen.getByTestId('tab-images')
-        await user.click(tab)
 
         // First upload 5 files
         const firstBatch = Array.from({ length: MAX_PRODUCT_IMAGES }, (_, i) => new File(['content'], `test-${i}.png`, { type: 'image/png' }))
@@ -160,10 +145,6 @@ describe('ProductModal Image Upload', () => {
     it('allows removing images', async () => {
         const user = userEvent.setup()
         render(<ProductModal {...defaultProps} />)
-
-        // Switch to images tab
-        const tab = screen.getByTestId('tab-images')
-        await user.click(tab)
 
         // Upload one image
         const file = new File(['test'], 'test.png', { type: 'image/png' })

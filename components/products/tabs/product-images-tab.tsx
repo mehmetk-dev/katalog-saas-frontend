@@ -2,9 +2,8 @@
 
 import React, { memo } from "react"
 import NextImage from "next/image"
-import { Trash2, Upload, Loader2, Sparkles } from "lucide-react"
+import { ImagePlus, Loader2, Plus, X } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { MAX_PRODUCT_IMAGES } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
@@ -21,83 +20,107 @@ interface ProductImagesTabProps {
     t: (key: string, params?: Record<string, unknown>) => string
 }
 
+/** Dosya seçici; hem boş durumdaki büyük alan hem küçük "+" kutusu bunu sarar */
+function UploadInput({ isUploading, onUploadClick, onFilesSelected }: Pick<ProductImagesTabProps, "isUploading" | "onUploadClick" | "onFilesSelected">) {
+    return (
+        <input
+            type="file"
+            data-testid="file-upload"
+            className="hidden"
+            accept="image/png, image/jpeg, image/webp"
+            multiple
+            onChange={(e) => {
+                if (e.target.files?.length) {
+                    onUploadClick()
+                    onFilesSelected(e.target.files)
+                }
+                e.target.value = ""
+            }}
+            disabled={isUploading}
+        />
+    )
+}
+
 // ─── Component ───────────────────────────────────────────────────────
+/**
+ * Ürün görselleri: üstte büyük kapak, altında küçük resimler. Küçük resme tıklamak onu kapak yapar,
+ * köşedeki × kaldırır. Form ile aynı ekranda durur (eskiden ayrı sekmedeydi, düzenlerken görsel görünmüyordu).
+ */
 export const ProductImagesTab = memo(function ProductImagesTab({
     images, activeImageUrl, isUploading,
     onSetCover, onRemove, onFilesSelected, onUploadClick,
     maxImages = MAX_PRODUCT_IMAGES, t,
 }: ProductImagesTabProps) {
+    const cover = images.includes(activeImageUrl) ? activeImageUrl : images[0]
+    const canAdd = images.length < maxImages
+
     return (
-        <div className="relative p-1">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {images.map((url, idx) => (
-                    <div
-                        key={idx}
-                        className={cn(
-                            "relative aspect-square rounded-xl border overflow-hidden group shadow-sm bg-card",
-                            activeImageUrl === url && "ring-2 ring-primary ring-offset-2"
-                        )}
-                    >
-                        <NextImage src={url} fill className="object-cover" alt={t("productForm.imageAlt", { index: idx + 1 })} unoptimized />
+        <div className="relative space-y-2">
+            {cover ? (
+                <div className="relative aspect-[4/3] overflow-hidden rounded-lg border bg-muted/40 md:aspect-square">
+                    <NextImage src={cover} fill className="object-contain" alt={t("productForm.imageAlt", { index: images.indexOf(cover) + 1 })} unoptimized />
+                    <span className="absolute left-2 top-2 rounded-full bg-background/95 px-2 py-0.5 text-xs font-medium text-foreground shadow-sm">
+                        {t("products.cover")}
+                    </span>
+                </div>
+            ) : (
+                <label
+                    onClick={onUploadClick}
+                    className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed bg-muted/40 p-4 text-center transition-colors hover:border-foreground/30 hover:bg-muted md:aspect-square"
+                >
+                    <ImagePlus className="size-7 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">{t("products.addPhoto")}</span>
+                    <span className="text-xs text-muted-foreground">{t("products.maxPhotosDesc", { max: maxImages })}</span>
+                    <UploadInput isUploading={isUploading} onUploadClick={onUploadClick} onFilesSelected={onFilesSelected} />
+                </label>
+            )}
 
-                        {/* İşlemler: dokunmatik ekranda her zaman, farede üzerine gelince görünür */}
-                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-foreground/60 to-transparent p-2 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
-                            {activeImageUrl !== url && (
-                                <Button type="button" size="sm" variant="secondary" className="h-8 text-xs" onClick={() => onSetCover(url)}>
-                                    <Sparkles className="w-3.5 h-3.5 mr-1" /> {t("products.makeCover")}
-                                </Button>
-                            )}
-                            <Button type="button" size="icon" variant="destructive" className="ml-auto h-8 w-8" onClick={() => onRemove(idx)} aria-label={t("productForm.removeImage")}>
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
+            {images.length > 0 && (
+                <div className="grid grid-cols-5 gap-1.5">
+                    {images.map((url, idx) => (
+                        <div key={url} className="group relative aspect-square">
+                            <button
+                                type="button"
+                                onClick={() => onSetCover(url)}
+                                aria-label={url === cover ? t("products.cover") : t("products.makeCover")}
+                                aria-pressed={url === cover}
+                                title={url === cover ? t("products.cover") : t("products.makeCover")}
+                                className={cn(
+                                    "relative block size-full min-h-0 min-w-0 overflow-hidden rounded-md border-2 bg-muted transition-colors",
+                                    url === cover ? "border-primary" : "border-transparent hover:border-foreground/30"
+                                )}
+                            >
+                                <NextImage src={url} fill className="object-cover" alt="" unoptimized />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => onRemove(idx)}
+                                aria-label={t("productForm.removeImage")}
+                                className="absolute -right-1.5 -top-1.5 flex size-5 min-h-0 min-w-0 items-center justify-center rounded-full border bg-background text-muted-foreground shadow-sm transition-opacity hover:text-destructive [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+                            >
+                                <X className="size-3" />
+                            </button>
                         </div>
+                    ))}
+                    {canAdd && (
+                        <label
+                            onClick={onUploadClick}
+                            title={t("products.remainingUploads", { count: maxImages - images.length })}
+                            className="flex aspect-square cursor-pointer items-center justify-center rounded-md border-2 border-dashed text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                        >
+                            <Plus className="size-4" />
+                            <span className="sr-only">{t("products.addPhoto")}</span>
+                            <UploadInput isUploading={isUploading} onUploadClick={onUploadClick} onFilesSelected={onFilesSelected} />
+                        </label>
+                    )}
+                </div>
+            )}
 
-                        {/* Cover badge */}
-                        {activeImageUrl === url && (
-                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
-                                <Sparkles className="w-3 h-3 mr-1" /> {t("products.cover")}
-                            </div>
-                        )}
-                    </div>
-                ))}
-
-                {/* Upload slot */}
-                {images.length < maxImages && (
-                    <label
-                        onClick={onUploadClick}
-                        className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent hover:border-border transition-all group bg-muted/50"
-                    >
-                        <div className="p-3 rounded-full bg-card shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                            <Upload className="w-6 h-6 text-primary" />
-                        </div>
-                        <span className="text-xs text-muted-foreground font-medium">{t("products.addPhoto")}</span>
-                        <span className="text-[10px] text-muted-foreground mt-0.5">{t("products.remainingUploads", { count: maxImages - images.length })}</span>
-                        <input
-                            type="file"
-                            data-testid="file-upload"
-                            className="hidden"
-                            accept="image/png, image/jpeg, image/webp"
-                            multiple
-                            onChange={(e) => {
-                                if (e.target.files?.length) {
-                                    onUploadClick()
-                                    onFilesSelected(e.target.files)
-                                }
-                                e.target.value = ""
-                            }}
-                            disabled={isUploading}
-                        />
-                    </label>
-                )}
-
-                {/* Uploading overlay */}
-                {isUploading && (
-                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-xl backdrop-blur-[1px] z-10">
-                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                    </div>
-                )}
-            </div>
-            <p className="mt-4 text-center text-xs text-muted-foreground">{t("products.maxPhotosDesc", { max: maxImages })}</p>
+            {isUploading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/70">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+            )}
         </div>
     )
 })

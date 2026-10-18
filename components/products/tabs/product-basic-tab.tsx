@@ -151,7 +151,7 @@ export const ProductBasicTab = memo(function ProductBasicTab({
             </div>
 
             {/* Fiyat & stok: en sık doldurulan alanlar ilk ekranda */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="price">{t("products.price")}</Label>
                     <div className="flex h-10 overflow-hidden rounded-md border bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
@@ -197,12 +197,13 @@ export const ProductBasicTab = memo(function ProductBasicTab({
                             className="h-10 pr-24 tabular-nums"
                         />
                         <span id="stock-status" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
-                            {Number(stock) === 0 ? (
+                            {/* Alan boşken durum gösterilmez (yeni üründe hemen "Tükendi" yazmasın) */}
+                            {stock.trim() === "" ? null : Number(stock) === 0 ? (
                                 <Badge className="border-destructive/20 bg-destructive-soft text-destructive-soft-foreground">{t("products.outOfStock")}</Badge>
                             ) : Number(stock) < 10 ? (
                                 <Badge variant="warning">{t("products.lowStock")}</Badge>
                             ) : (
-                                <Badge variant="success">{t("products.inStock")}</Badge>
+                                <Badge variant="outline" className="font-normal text-muted-foreground">{t("products.inStock")}</Badge>
                             )}
                         </span>
                     </div>

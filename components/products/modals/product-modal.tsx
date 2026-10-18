@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { toast } from "sonner"
-import { Package2, Tag, ImagePlus, Layers, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import {
   AlertDialog,
@@ -17,8 +17,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { type Product, type CustomAttribute, createProduct, updateProduct } from "@/lib/actions/products"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { getProductImages, useProductImages } from "@/lib/hooks/use-product-images"
@@ -80,7 +78,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   const canCreateCategory = userPlan !== "free"
 
   // ─── Form State ─────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState("basic")
   const [isSaving, setIsSaving] = useState(false)
   const [name, setName] = useState("")
   const [sku, setSku] = useState("")
@@ -114,7 +111,6 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
       setCustomAttributes(initial.customAttributes)
       const initialImages = getProductImages(product)
       initialSnapshotRef.current = makeSnapshot({ ...initial, images: initialImages.images, cover: initialImages.cover })
-      setActiveTab("basic")
       setErrors({})
       setConfirmCloseOpen(false)
       images.initFromProduct(product)
@@ -167,7 +163,9 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
     setErrors(validation.errors)
     if (Object.keys(validation.errors).length > 0) {
       toast.error(t("productForm.fixErrors"))
-      setActiveTab("basic")
+      // Tek sayfalık formda ilk hatalı alana gidilir
+      const firstInvalid = (["name", "price", "stock", "productUrl"] as const).find((key) => validation.errors[key])
+      if (firstInvalid) document.getElementById(firstInvalid)?.focus()
       return
     }
     if (images.isUploading) {
@@ -282,46 +280,38 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
   }
 
   // ─── Render ─────────────────────────────────────────────────────────
-  const tabTriggerClass = "data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary rounded-md h-full text-xs sm:text-sm font-medium transition-all gap-1.5"
-
   return (
     <>
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}>
-      <DialogContent className="max-w-3xl h-[85vh] p-0 gap-0 overflow-hidden flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b bg-muted/30">
-          <DialogTitle className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary">
-              <Package2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            {isEditing ? t("products.editProduct") : t("products.addNew")}
-          </DialogTitle>
+      {/* sm:max-w-4xl: varsayılan sm:max-w-lg'yi ezer (eski max-w-3xl ezilmiyor, pencere 512px kalıyordu) */}
+      <DialogContent className="flex h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+        <DialogHeader className="border-b px-5 py-4 text-left sm:px-6">
+          <DialogTitle className="pr-8">{isEditing ? t("products.editProduct") : t("products.addNew")}</DialogTitle>
           <DialogDescription>
             {isEditing ? t("products.editProductDesc") : t("products.addProductDesc")}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col h-full overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="border-b px-4 sm:px-6 shrink-0 py-2 bg-muted/50">
-              <TabsList className="h-11 w-full grid grid-cols-3 bg-muted/80 p-1 rounded-lg gap-1">
-                <TabsTrigger value="basic" className={tabTriggerClass}>
-                  <Tag className="w-4 h-4" />
-                  <span>{t("products.basicInfo")}</span>
-                </TabsTrigger>
-                <TabsTrigger value="images" data-testid="tab-images" className={tabTriggerClass}>
-                  <ImagePlus className="w-4 h-4" />
-                  <span>{t("products.images")}</span>
-                </TabsTrigger>
-                <TabsTrigger value="attributes" className={tabTriggerClass}>
-                  <Layers className="w-4 h-4" />
-                  <span>{t("products.attributes")}</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          {/* Sekme yok: solda görseller (masaüstünde sabit), sağda bilgiler ve özellikler tek akışta */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-6 p-5 sm:p-6 md:grid-cols-[16rem_minmax(0,1fr)] md:gap-8">
+              <section aria-labelledby="product-images-heading" className="space-y-2 md:sticky md:top-0 md:self-start">
+                <h3 id="product-images-heading" className="text-sm font-medium text-foreground">{t("products.images")}</h3>
+                <ProductImagesTab
+                  images={images.additionalImages}
+                  activeImageUrl={images.activeImageUrl}
+                  isUploading={images.isUploading}
+                  onSetCover={images.setCover}
+                  onRemove={images.removeImage}
+                  onFilesSelected={images.addFiles}
+                  onUploadClick={images.refreshSession}
+                  t={t}
+                />
+              </section>
 
-            <ScrollArea className="flex-1 h-[calc(85vh-180px)]">
-              <div className="p-6 pb-24">
-                <TabsContent value="basic" className="space-y-5 m-0 focus-visible:ring-0">
+              <div className="min-w-0 space-y-8">
+                <section className="space-y-5">
                   <ProductBasicTab
                     name={name} onNameChange={setName}
                     sku={sku} onSkuChange={setSku}
@@ -337,49 +327,27 @@ export function ProductModal({ open, onOpenChange, product, onSaved, allCategori
                     errors={errors}
                     t={t}
                   />
-                </TabsContent>
+                </section>
 
-                <TabsContent value="images" className="m-0 focus-visible:ring-0">
-                  <ProductImagesTab
-                    images={images.additionalImages}
-                    activeImageUrl={images.activeImageUrl}
-                    isUploading={images.isUploading}
-                    onSetCover={images.setCover}
-                    onRemove={images.removeImage}
-                    onFilesSelected={images.addFiles}
-                    onUploadClick={images.refreshSession}
-                    t={t}
-                  />
-                </TabsContent>
-
-                <TabsContent value="attributes" className="space-y-6 m-0 focus-visible:ring-0">
+                <section className="border-t pt-6">
                   <ProductAttributesTab
                     attributes={customAttributes}
                     onAttributesChange={setCustomAttributes}
                     t={t}
                   />
-                </TabsContent>
+                </section>
               </div>
-            </ScrollArea>
-          </Tabs>
-
-          {/* Footer */}
-          <div className="flex justify-between items-center gap-3 px-6 py-4 border-t bg-muted/30 shrink-0">
-            <span className="text-sm text-muted-foreground min-w-[30px] text-center">
-              {activeTab === "basic" ? "1/3" : activeTab === "images" ? "2/3" : "3/3"}
-            </span>
-            <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={requestClose} disabled={isSaving}>
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={isSaving || images.isUploading} className="min-w-[120px]">
-                {images.isUploading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t("common.loading")}</>
-                ) : isSaving ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t("builder.saving")}</>
-                ) : isEditing ? t("common.save") : t("products.addProduct")}
-              </Button>
             </div>
+          </div>
+
+          <div className="flex shrink-0 justify-end gap-2 border-t px-5 py-3 sm:px-6">
+            <Button type="button" variant="outline" onClick={requestClose} disabled={isSaving}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={isSaving || images.isUploading} className="min-w-[120px]">
+              {(images.isUploading || isSaving) && <Loader2 className="size-4 animate-spin" />}
+              {images.isUploading ? t("common.loading") : isSaving ? t("builder.saving") : isEditing ? t("common.save") : t("products.addProduct")}
+            </Button>
           </div>
         </form>
       </DialogContent>

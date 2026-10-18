@@ -196,11 +196,7 @@ describe('Fotoğraf Yükleme Testleri', () => {
         }
 
         it('fotoğraf yükleme butonunu gösterir', async () => {
-            const user = userEvent.setup()
             render(<ProductModal {...defaultProps} />)
-
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
 
             await waitFor(() => {
                 expect(screen.getByText('products.addPhoto')).toBeTruthy()
@@ -210,9 +206,6 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('tek bir fotoğraf yükler', async () => {
             const user = userEvent.setup()
             render(<ProductModal {...defaultProps} />)
-
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
 
             const file = createMockImageFile('test-product.png')
             const input = await screen.findByTestId('file-upload')
@@ -231,9 +224,6 @@ describe('Fotoğraf Yükleme Testleri', () => {
         it('birden fazla fotoğraf yükler (paralel)', async () => {
             const user = userEvent.setup()
             render(<ProductModal {...defaultProps} />)
-
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
 
             const files = [
                 createMockImageFile('product-1.png'),
@@ -256,9 +246,6 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
             render(<ProductModal {...defaultProps} />)
 
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
-
             // Önce 5 dosya yükle
             const firstBatch = Array.from({ length: 5 }, (_, i) =>
                 createMockImageFile(`test-${i}.png`)
@@ -276,28 +263,22 @@ describe('Fotoğraf Yükleme Testleri', () => {
         })
 
         it('mevcut fotoğrafları gösterir', async () => {
-            const user = userEvent.setup()
             const product = createMockProduct('prod-1', 'Test Product')
             product.images = ['https://example.com/img1.jpg', 'https://example.com/img2.jpg']
             product.image_url = product.images[0]
 
             render(<ProductModal {...defaultProps} product={product} />)
 
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
-
+            // Kapak büyük gösterilir, her görsel ayrıca küçük resim olarak listelenir
             await waitFor(() => {
-                const images = screen.getAllByAltText(/productForm\.imageAlt/)
-                expect(images.length).toBeGreaterThanOrEqual(2)
+                expect(screen.getAllByAltText(/productForm\.imageAlt/).length).toBe(1)
+                expect(screen.getAllByRole('button', { name: /products\.(cover|makeCover)/ })).toHaveLength(2)
             })
         })
 
         it('fotoğraf silme işlemini yapar', async () => {
             const user = userEvent.setup()
             render(<ProductModal {...defaultProps} />)
-
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
 
             // Önce bir fotoğraf yükle
             const file = createMockImageFile('test.png')
@@ -325,21 +306,19 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
             render(<ProductModal {...defaultProps} product={product} />)
 
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
-
+            // Küçük resme tıklamak onu kapak yapar
+            const makeCover = await screen.findAllByRole('button', { name: 'products.makeCover' })
+            expect(makeCover).toHaveLength(2)
+            await user.click(makeCover[1])
             await waitFor(() => {
-                const coverButtons = screen.getAllByText(/products.makeCover/i)
-                expect(coverButtons.length).toBeGreaterThan(0)
+                expect(screen.getByRole('button', { name: 'products.cover' })).toHaveAttribute('aria-pressed', 'true')
+                expect(screen.getAllByRole('button', { name: 'products.makeCover' })).toHaveLength(2)
             })
         })
 
         it('yükleme sırasında loading gösterir', async () => {
             const user = userEvent.setup()
             render(<ProductModal {...defaultProps} />)
-
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
 
             // Yükleme işlemini başlat
             const file = createMockImageFile('test.png')
@@ -876,7 +855,6 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
     describe('Genel Fotoğraf Yükleme Senaryoları', () => {
         it('geçersiz dosya tipini reddeder', async () => {
-            const user = userEvent.setup()
             const defaultProps = {
                 open: true,
                 onOpenChange: vi.fn(),
@@ -889,9 +867,6 @@ describe('Fotoğraf Yükleme Testleri', () => {
             }
 
             render(<ProductModal {...defaultProps} />)
-
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
 
             const input = await screen.findByTestId('file-upload')
             // Input'un accept attribute'unu kontrol et
@@ -922,16 +897,11 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
             render(<ProductModal {...defaultProps} />)
 
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
-
             const file = createMockImageFile('test.png')
             const input = await screen.findByTestId('file-upload')
             await user.upload(input, file)
 
             // Toast error çağrılmalı
-            const basicTab = screen.getByRole('tab', { name: /products.basicInfo/i })
-            await user.click(basicTab)
             const nameInput = screen.getByPlaceholderText(/products.productNamePlaceholder/i)
             await user.type(nameInput, 'Network Test Product')
             const submitButton = screen.getByRole('button', { name: /^products.addProduct$/i })
@@ -965,15 +935,9 @@ describe('Fotoğraf Yükleme Testleri', () => {
 
             render(<ProductModal {...defaultProps} />)
 
-            const tab = screen.getByTestId('tab-images')
-            await user.click(tab)
-
             const file = createMockImageFile('test.png')
             const input = await screen.findByTestId('file-upload')
             await user.upload(input, file)
-
-            const basicTab = screen.getByRole('tab', { name: /products.basicInfo/i })
-            await user.click(basicTab)
             const nameInput = screen.getByPlaceholderText(/products.productNamePlaceholder/i)
             await user.type(nameInput, 'Timeout Test Product')
             const submitButton = screen.getByRole('button', { name: /^products.addProduct$/i })
