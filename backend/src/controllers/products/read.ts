@@ -6,6 +6,7 @@ import { getUserId } from './helpers';
 import { safeErrorMessage } from '../../utils/safe-error';
 import { productsByIdsSchema, productsQuerySchema } from './schemas';
 import { applyProductSort } from './ordering';
+import { categoryMatchPattern } from './category-filter';
 
 export const getProducts = async (req: Request, res: Response) => {
     try {
@@ -34,10 +35,9 @@ export const getProducts = async (req: Request, res: Response) => {
                 .select(select === 'id' ? 'id' : '*', { count: 'exact' })
                 .eq('user_id', userId);
 
-            if (category && category !== 'all') {
-                // SECURITY: Escape PostgREST special characters to prevent filter injection
-                const sanitizedCategory = category.replace(/[%_*(),."\\]/g, '');
-                query = query.ilike('category', `%${sanitizedCategory}%`);
+            if (category && category !== 'all' && category.trim()) {
+                // Tek sütun filtresi (or() değil) — değer PostgREST ifadesi olarak ayrıştırılmaz
+                query = query.filter('category', 'imatch', categoryMatchPattern(category));
             }
 
             if (search) {
@@ -192,18 +192,26 @@ export const getProductsByIds = async (req: Request, res: Response) => {
         // Supabase JS encodes .in() as URL query params — 500 UUIDs ≈ 18KB URL
         // which overflows undici's default 16KB header parser limit.
         const SUPABASE_IN_CHUNK = 50;
-        let data: Record<string, unknown>[] = [];
-
+        // Parçalar sırayla değil, sınırlı eşzamanlılıkla çekilir (500 ürün: 10 ardışık sorgu → 2 tur)
+        const SUPABASE_IN_CONCURRENCY = 6;
+        const chunks: string[][] = [];
         for (let i = 0; i < requestedIds.length; i += SUPABASE_IN_CHUNK) {
-            const chunk = requestedIds.slice(i, i + SUPABASE_IN_CHUNK);
-            const { data: chunkData, error } = await supabase
-                .from('products')
-                .select('*')
-                .eq('user_id', userId)
-                .in('id', chunk);
+            chunks.push(requestedIds.slice(i, i + SUPABASE_IN_CHUNK));
+        }
 
-            if (error) throw error;
-            if (chunkData) data = data.concat(chunkData);
+        let data: Record<string, unknown>[] = [];
+        for (let i = 0; i < chunks.length; i += SUPABASE_IN_CONCURRENCY) {
+            const results = await Promise.all(chunks.slice(i, i + SUPABASE_IN_CONCURRENCY).map(async (chunk) => {
+                const { data: chunkData, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .in('id', chunk);
+
+                if (error) throw error;
+                return (chunkData || []) as Record<string, unknown>[];
+            }));
+            data = data.concat(...results);
         }
 
         const normalizedProducts = (data || []).map((p: Record<string, unknown>) => {

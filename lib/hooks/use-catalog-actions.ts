@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { type Catalog, createCatalog, updateCatalog } from "@/lib/actions/catalogs"
 import { getCatalogShareUrl } from "@/lib/catalog-url"
-import { slugify, type BuilderCatalogData, buildCatalogPayload } from "@/components/builder/builder-utils"
+import { slugify, type BuilderCatalogData, type CatalogDraft, buildCatalogPayload, buildCatalogPatch } from "@/components/builder/builder-utils"
 
 /** Son düzenlemeden bu kadar sonra otomatik kaydedilir */
 export const AUTOSAVE_DELAY_MS = 2000
@@ -20,6 +20,8 @@ interface UseCatalogActionsOptions {
     user: { company?: string; name?: string; plan?: string } | null
     /** A callback returning current builder state - called at action-time to avoid stale closures */
     getState: () => BuilderCatalogData
+    /** Sunucuya en son yazılan taslak — yalnızca değişen alanları göndermek için */
+    getSavedDraft: () => CatalogDraft
     /** Taslak nesnesi; her düzenlemede kimliği değişir — otomatik kayıt zamanlayıcısını yeniden kurar */
     draft: unknown
     catalogName: string
@@ -39,6 +41,7 @@ export function useCatalogActions({
     isPublished,
     user,
     getState,
+    getSavedDraft,
     draft,
     catalogName,
     hasUnsavedChanges,
@@ -64,11 +67,10 @@ export function useCatalogActions({
     // Refs so async work always reads fresh values
     const getStateRef = useRef(getState)
     getStateRef.current = getState
+    const getSavedDraftRef = useRef(getSavedDraft)
+    getSavedDraftRef.current = getSavedDraft
     const hasUnsavedChangesRef = useRef(hasUnsavedChanges)
     hasUnsavedChangesRef.current = hasUnsavedChanges
-    // Yayındaki kataloğun public sayfası kayıttan sonra yenilensin; yayında değilse hiçbir public sayfaya dokunulmaz
-    const publicSlugRef = useRef<string | null>(null)
-    publicSlugRef.current = isPublished ? catalog?.share_slug ?? null : null
 
     // ─── Serialized writes ──────────────────────────────────────────────
     // Otomatik kayıt, elle kayıt ve yayınlama aynı kataloğa yazar; sırayla çalışmaları
@@ -84,9 +86,13 @@ export function useCatalogActions({
 
     /** Mevcut taslağı sunucuya yazar ve kaydedilen anlık görüntüyü işaretler */
     const persist = useCallback(async (catalogId: string, data: BuilderCatalogData) => {
+        const patch = buildCatalogPatch(data, getSavedDraftRef.current())
         setSaveStatus("saving")
         try {
-            await updateCatalog(catalogId, buildCatalogPayload(data), { publicSlug: publicSlugRef.current })
+            // Değişen alan yoksa (ör. değişiklik geri alındı) sunucuya gitmeye gerek yok
+            if (Object.keys(patch).length > 0) {
+                await updateCatalog(catalogId, patch, { revalidate: false })
+            }
             if (!isMountedRef.current) return
             // Kayıt sürerken yapılan değişiklikler bu snapshot'ta olmadığından kaydedilmemiş kalır
             markSaved(data)
@@ -216,9 +222,9 @@ export function useCatalogActions({
                 const data = await enqueueWrite(async () => {
                     const snapshot = getStateRef.current()
                     await updateCatalog(currentCatalogId, {
-                        ...buildCatalogPayload(snapshot),
+                        ...buildCatalogPatch(snapshot, getSavedDraftRef.current()),
                         share_slug: shareSlug,
-                    })
+                    }, { revalidate: false })
                     const { publishCatalog } = await import("@/lib/actions/catalogs")
                     await publishCatalog(currentCatalogId, newPublishState, shareSlug)
                     return snapshot

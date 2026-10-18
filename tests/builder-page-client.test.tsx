@@ -158,7 +158,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     await waitFor(() => {
       expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
         name: 'Updated Name',
-      }), { publicSlug: null })
+      }), { revalidate: false })
     })
   })
 
@@ -175,10 +175,8 @@ describe('BuilderPageClient Final Audit Tests', () => {
       await vi.advanceTimersByTimeAsync(3000)
     })
 
-    // Yayında olmayan katalog hiçbir public sayfayı yenilememeli
-    expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
-      name: 'Autosave Name',
-    }), { publicSlug: null })
+    // Sadece değişen alan gönderilir ve açık builder sunucuda yeniden render edilmez
+    expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', { name: 'Autosave Name' }, { revalidate: false })
   })
 
   it('PUBLISHED AUTOSAVE: kaydedilen degisikligi sahte bir yayin guncellemesi olarak gostermemeli', async () => {
@@ -201,10 +199,10 @@ describe('BuilderPageClient Final Audit Tests', () => {
 
     expect(screen.queryByText('builder.updatePublish')).not.toBeInTheDocument()
     expect(screen.getAllByText('builder.shareBtn')[0]).toBeInTheDocument()
-    // Yalnızca bu kataloğun public sayfası yenilenmeli (tüm /catalog/[slug] değil)
+    // Builder'ın kaydı hiçbir yolu yenilemez (public sayfa dinamik, backend önbelleği kendisi siler)
     expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({
       name: 'Live Autosave Name',
-    }), { publicSlug: 'audit-katalog' })
+    }), { revalidate: false })
   })
 
   it('AUTOSAVE HATASI: kullaniciya bir kez bildirilmeli ve tekrar dene gosterilmeli', async () => {
@@ -235,7 +233,7 @@ describe('BuilderPageClient Final Audit Tests', () => {
     fireEvent.keyDown(window, { key: 's', ctrlKey: true })
 
     await waitFor(() => {
-      expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({ name: 'Kısayol' }), { publicSlug: null })
+      expect(catalogActions.updateCatalog).toHaveBeenCalledWith('cat_123', expect.objectContaining({ name: 'Kısayol' }), { revalidate: false })
     })
   })
 

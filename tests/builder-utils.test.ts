@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import {
   arrayFingerprint,
+  buildCatalogPatch,
   buildCatalogPayload,
   buildInitialCatalogState,
+  toDraft,
   type BuilderCatalogData,
 } from "@/components/builder/builder-utils"
 import { TEMPLATES, getItemsPerPage } from "@/lib/constants"
@@ -76,5 +78,26 @@ describe("builder-utils", () => {
 
   it("uses a real registered template for a new catalog", () => {
     expect(buildInitialCatalogState(null).layout).toBe("modern-grid")
+  })
+
+  it("builds a patch with only the fields that differ from the saved draft", () => {
+    const saved = buildInitialCatalogState(null)
+    const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"]
+    const savedWithProducts = toDraft({ ...saved, selectedProductIds: ids })
+
+    expect(buildCatalogPatch({ ...savedWithProducts, isPublished: false }, savedWithProducts)).toEqual({})
+
+    const patch = buildCatalogPatch(
+      { ...savedWithProducts, primaryColor: "#ff0000", selectedProductIds: [...ids], isPublished: false },
+      savedWithProducts,
+    )
+    // Aynı ürün listesinin yeni bir kopyası değişiklik sayılmaz
+    expect(patch).toEqual({ primary_color: "#ff0000" })
+
+    const reordered = buildCatalogPatch(
+      { ...savedWithProducts, selectedProductIds: [ids[1], ids[0]], isPublished: false },
+      savedWithProducts,
+    )
+    expect(reordered).toEqual({ product_ids: [ids[1], ids[0]] })
   })
 })

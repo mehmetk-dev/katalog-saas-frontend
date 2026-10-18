@@ -180,6 +180,9 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         }
     })
     const { draft } = state
+    /** Sunucudaki son hâl; kayıt sırasında senkron okunur (render beklenmez) */
+    const savedRef = useRef<CatalogDraft>(state.saved)
+    const getSavedDraft = useCallback(() => savedRef.current, [])
 
     const [isSelectionUpdatePending, startSelectionTransition] = useTransition()
     const {
@@ -208,7 +211,11 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         setIsPublished: (v: boolean) => dispatch({ type: 'SET_UI', payload: { isPublished: v } }),
         /** Sunucuya yazılan anlık görüntüyü "kaydedildi" olarak işaretle. Kayıt sürerken
          *  yapılan değişiklikler snapshot'ta olmadığı için kaydedilmemiş görünmeye devam eder. */
-        markSaved: (snapshot: BuilderCatalogData) => dispatch({ type: 'MARK_SAVED', snapshot: toDraft(snapshot) }),
+        markSaved: (snapshot: BuilderCatalogData) => {
+            const saved = toDraft(snapshot)
+            savedRef.current = saved
+            dispatch({ type: 'MARK_SAVED', snapshot: saved })
+        },
         undo: () => dispatch({ type: 'UNDO' }),
         redo: () => dispatch({ type: 'REDO' }),
     }), [])
@@ -250,9 +257,11 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
     // ─── Reset state when a different catalog is loaded ────────────────
     useEffect(() => {
         if (!catalog) return
+        const draft = initialDraft(catalog, user?.logo_url)
+        savedRef.current = draft
         dispatch({
             type: 'RESET',
-            draft: initialDraft(catalog, user?.logo_url),
+            draft,
             currentCatalogId: catalog.id || null,
             isPublished: catalog.is_published || false,
         })
@@ -317,6 +326,7 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
 
         // Derived
         getState,
+        getSavedDraft,
         productMap,
         selectedProducts,
         selectedProductIdSet,
@@ -344,6 +354,7 @@ export function useBuilderState({ catalog, products }: UseBuilderStateOptions) {
         uiSetters,
         hasUnsavedChanges,
         getState,
+        getSavedDraft,
         productMap,
         selectedProducts,
         selectedProductIdSet,

@@ -25,6 +25,12 @@ describe('updateCatalog revalidation', () => {
     expect(revalidatePath).not.toHaveBeenCalledWith('/catalog/[slug]', 'page')
   })
 
+  it('revalidate: false ile hiçbir yolu yenilemez (builder otomatik kaydı)', async () => {
+    await updateCatalog('cat-1', { name: 'Otomatik' }, { revalidate: false, publicSlug: 'acme' })
+
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
   it('slug değişikliğinde yeni slug sayfasını yeniler', async () => {
     await updateCatalog('cat-1', { share_slug: 'yeni-slug' })
 

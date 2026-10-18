@@ -336,6 +336,8 @@ export const cacheKeys = {
         return createKey('catalogs', userId, queryPart);
     },
     catalog: (userId: string, catalogId: string) => createKey('catalog', userId, catalogId),
+    /** Katalog güncelleme aktivitesinin son yazıldığını işaretler (log seyreltme) */
+    catalogUpdateLog: (userId: string, catalogId: string) => createKey('activity', 'catalog_updated', userId, catalogId),
     publicCatalog: (slug: string) => createKey('public', slug),
 
     // Şablonlar (global)

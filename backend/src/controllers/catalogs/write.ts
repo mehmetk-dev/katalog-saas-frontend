@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { supabase } from '../../services/supabase';
-import { deleteCache, cacheKeys, cacheTTL, getOrSetCache } from '../../services/redis';
+import { deleteCache, cacheKeys, cacheTTL, getCache, getOrSetCache, setCache } from '../../services/redis';
 import { logActivity, getRequestInfo, ActivityDescriptions } from '../../services/activity-logger';
 import { createNotification, NotificationTemplates } from '../notifications';
 import { getUserId, getPlanLimits, generateShareSlug, pickDefinedFields } from './helpers';
@@ -11,6 +11,9 @@ import type { CatalogUpdatePayload } from './types';
 import { findMissingProductIds } from './product-ownership';
 
 const PRODUCT_OWNERSHIP_CHUNK_SIZE = 100;
+/** Builder birkaç saniyede bir otomatik kaydeder; aynı katalog için bu süre içinde tek
+ *  "katalog güncellendi" aktivitesi yazılır (her kayıtta bir satır log tablosunu şişiriyordu). */
+const CATALOG_UPDATE_LOG_WINDOW_SECONDS = 30 * 60;
 
 /** Public katalog + meta (başlık, açıklama, show_in_search) önbellek anahtarlarını siler */
 function deletePublicCatalogCache(slug: string): Promise<void>[] {
@@ -284,7 +287,7 @@ export const updateCatalog = async (req: Request, res: Response) => {
         // Eski slug'ı bul (cache temizlemek için)
         const { data: oldCatalog } = await supabase
             .from('catalogs')
-            .select('share_slug, layout')
+            .select('name, share_slug, layout')
             .eq('id', id)
             .eq('user_id', userId)
             .single();
@@ -339,16 +342,19 @@ export const updateCatalog = async (req: Request, res: Response) => {
             ...(share_slug ? deletePublicCatalogCache(share_slug) : [])
         ]);
 
-        // Log activity
-        const { ipAddress, userAgent } = getRequestInfo(req);
-        await logActivity({
-            userId,
-            activityType: 'catalog_updated',
-            description: ActivityDescriptions.catalogUpdated(name || 'Katalog'),
-            metadata: { catalogId: id, updates: Object.keys(req.body) },
-            ipAddress,
-            userAgent
-        });
+        const logThrottleKey = cacheKeys.catalogUpdateLog(userId, id);
+        if (!(await getCache<boolean>(logThrottleKey))) {
+            await setCache(logThrottleKey, true, CATALOG_UPDATE_LOG_WINDOW_SECONDS);
+            const { ipAddress, userAgent } = getRequestInfo(req);
+            await logActivity({
+                userId,
+                activityType: 'catalog_updated',
+                description: ActivityDescriptions.catalogUpdated(name || oldCatalog?.name || 'Katalog'),
+                metadata: { catalogId: id, updates: Object.keys(req.body) },
+                ipAddress,
+                userAgent
+            });
+        }
 
         res.json({ success: true });
     } catch (error: unknown) {

@@ -51,6 +51,7 @@ export function useBuilderHandlers({ catalog, state }: UseBuilderHandlersOptions
         isPublished: state.isPublished,
         user,
         getState: state.getState,
+        getSavedDraft: state.getSavedDraft,
         draft: state.draft,
         catalogName: state.catalogName,
         hasUnsavedChanges: state.hasUnsavedChanges,

@@ -70,6 +70,22 @@ export function buildCatalogPayload(data: BuilderCatalogData) {
     }
 }
 
+export type CatalogPayload = ReturnType<typeof buildCatalogPayload>
+
+/** Yalnızca `saved` anlık görüntüsünden farklı olan alanları içeren güncelleme gövdesi.
+ *  Otomatik kayıt her seferinde tüm formu (ve tüm ürün listesini) göndermesin diye. */
+export function buildCatalogPatch(data: BuilderCatalogData, saved: CatalogDraft): Partial<CatalogPayload> {
+    const next = buildCatalogPayload(data)
+    const prev = buildCatalogPayload({ ...saved, isPublished: data.isPublished })
+    const patch: Partial<CatalogPayload> = {}
+    for (const key of Object.keys(next) as Array<keyof CatalogPayload>) {
+        if (!sameFieldValue(next[key], prev[key])) {
+            (patch as Record<string, unknown>)[key] = next[key]
+        }
+    }
+    return patch
+}
+
 /** Katalog taslağı: kaydedilen, geri alınabilen her alan (yayın durumu hariç) */
 export type CatalogDraft = Omit<BuilderCatalogData, 'isPublished'>
 

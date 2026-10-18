@@ -126,6 +126,11 @@ export async function createCatalog(data: Partial<Catalog>) {
 interface UpdateCatalogOptions {
   /** Yayındaki kataloğun slug'ı: verilirse yalnızca o public sayfa yenilenir */
   publicSlug?: string | null
+  /** false: hiçbir yol yenilenmez. Server action içindeki revalidatePath, Next'in o an açık
+   *  sayfayı (builder) sunucuda baştan render etmesine yol açar — otomatik kayıtta her 2 sn'de
+   *  getCatalog + getProducts tekrar çalışıyordu. Dashboard ve public katalog sayfaları zaten
+   *  dinamik (no-store) olduğundan builder'ın kaydı için yenileme gerekmez. */
+  revalidate?: boolean
 }
 
 export async function updateCatalog(id: string, updates: Partial<Catalog>, options: UpdateCatalogOptions = {}) {
@@ -136,6 +141,8 @@ export async function updateCatalog(id: string, updates: Partial<Catalog>, optio
     method: "PUT",
     body: JSON.stringify(validatedUpdates),
   })
+
+  if (options.revalidate === false) return { success: true }
 
   // Builder bu action'ı birkaç saniyede bir (otomatik kayıt) çağırır. Tüm /dashboard
   // layout'unu veya bütün /catalog/[slug] sayfalarını yenilemek hem açık olan builder'ı
