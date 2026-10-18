@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle2, KeyRound, Loader2 } from "lucide-react"
+import { CheckCircle2, Loader2 } from "lucide-react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -100,19 +100,12 @@ export function PasswordCard({ email, t }: { email?: string | null; t: TFunction
   return (
     <Card>
       <CardHeader className="border-b">
-        <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-muted p-2 text-muted-foreground">
-            <KeyRound className="w-5 h-5" />
-          </div>
-          <div>
-            <CardTitle className="text-xl text-foreground">
-              {hasPassword === false ? t("settings.setPassword") : t("settings.changePassword")}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {hasPassword === false ? t("settings.setPasswordDesc") : t("settings.changePasswordDesc")}
-            </CardDescription>
-          </div>
-        </div>
+        <CardTitle className="text-base">
+          {hasPassword === false ? t("settings.setPassword") : t("settings.changePassword")}
+        </CardTitle>
+        <CardDescription>
+          {hasPassword === false ? t("settings.setPasswordDesc") : t("settings.changePasswordDesc")}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {hasPassword === null ? (

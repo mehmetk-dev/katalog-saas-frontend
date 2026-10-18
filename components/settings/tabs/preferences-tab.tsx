@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle2, Globe } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,15 +33,8 @@ export function PreferencesTab({ language, setLanguage, t }: PreferencesTabProps
   return (
     <Card>
       <CardHeader className="border-b">
-        <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-muted p-2 text-muted-foreground">
-            <Globe className="w-5 h-5" />
-          </div>
-          <div>
-            <CardTitle className="text-xl text-foreground">{t("settings.language")}</CardTitle>
-            <CardDescription className="text-muted-foreground">{t("settings.selectLanguage")}</CardDescription>
-          </div>
-        </div>
+        <CardTitle className="text-base">{t("settings.language")}</CardTitle>
+        <CardDescription>{t("settings.selectLanguage")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col sm:flex-row gap-4">

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import NextImage from "next/image"
-import { Building2, Camera, Globe, Instagram, Link2, Loader2, Mail, Trash2, User, Youtube } from "lucide-react"
+import { Building2, Globe, Instagram, Loader2, Trash2, Youtube } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -29,6 +29,39 @@ import { SocialUrlField } from "@/components/settings/social-url-field"
 import { validateInstagramUrl, validateWebsiteUrl, validateYoutubeUrl } from "@/components/settings/social-url-validators"
 
 type TFunction = (key: string, params?: Record<string, unknown>) => string
+
+interface ImageUploadRowProps {
+  inputId: string
+  title: string
+  description: string
+  buttonLabel: string
+  isUploading: boolean
+  preview: React.ReactNode
+  onBeforeOpen: () => Promise<void>
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+}
+
+/** Görsel önizleme + açıklama + "Yükle" düğmesi (eskiden yükleme yalnızca fareyle üzerine gelince görünüyordu) */
+function ImageUploadRow({ inputId, title, description, buttonLabel, isUploading, preview, onBeforeOpen, onChange }: ImageUploadRowProps) {
+  return (
+    <div className="flex items-center gap-4">
+      {preview}
+      <div className="min-w-0 space-y-1.5">
+        <div>
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Button asChild variant="outline" size="sm" className={cn("h-8", isUploading && "pointer-events-none opacity-60")}>
+          <label htmlFor={inputId} onClick={() => void onBeforeOpen()} className="cursor-pointer">
+            {isUploading && <Loader2 className="size-3.5 animate-spin" />}
+            {buttonLabel}
+          </label>
+        </Button>
+        <input id={inputId} type="file" accept="image/*" onChange={onChange} className="hidden" disabled={isUploading} />
+      </div>
+    </div>
+  )
+}
 
 interface ProfileTabProps {
   displayAvatarUrl?: string | null
@@ -67,172 +100,102 @@ export function ProfileTab({
     <>
       <Card>
         <CardHeader className="border-b">
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-muted p-2 text-muted-foreground">
-              <User className="w-5 h-5" />
-            </div>
-            <div>
-              <CardTitle className="text-xl text-foreground">{t("settings.personalInfo")}</CardTitle>
-              <CardDescription className="text-muted-foreground">{t("settings.personalInfoDesc")}</CardDescription>
-            </div>
-          </div>
+          <CardTitle className="text-base">{t("settings.personalInfo")}</CardTitle>
+          <CardDescription>{t("settings.personalInfoDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={(event) => void handleSaveProfile(event)} className="space-y-6">
-            <div className="flex items-center gap-6 pb-6 border-b">
-              <div className="relative group">
-                <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
-                  <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} className="dark:brightness-100" />
-                  <AvatarFallback className="bg-primary/10 text-xl font-medium text-primary">
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <label
-                  htmlFor="avatar-upload"
-                  onClick={() => {
-                    void ensureSession()
-                  }}
-                  className={cn(
-                    "absolute inset-0 flex items-center justify-center",
-                    "bg-black/50 rounded-full opacity-0",
-                    "group-hover:opacity-100 transition-opacity cursor-pointer",
-                  )}
-                >
-                  {isUploadingAvatar ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-6 h-6 text-white" />}
-                </label>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                  disabled={isUploadingAvatar}
-                />
-              </div>
-              <div>
-                <h3 className="font-medium text-foreground">{t("settings.profilePhoto")}</h3>
-                <p className="text-sm text-muted-foreground">{t("settings.photoDesc")}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="flex items-center gap-2 text-foreground">
-                  <User className="w-3.5 h-3.5" />
-                  {t("auth.name")}
-                </Label>
-                <Input id="fullName" name="fullName" defaultValue={user?.name} className={cn("bg-background border-input", "focus:bg-background transition-colors")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company" className="flex items-center gap-2 text-foreground">
-                  <Building2 className="w-3.5 h-3.5" />
-                  {t("auth.company")}
-                </Label>
-                <Input id="company" name="company" defaultValue={user?.company} className={cn("bg-background border-input", "focus:bg-background transition-colors")} />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6 pb-6 border-b">
-              <div className="relative group">
-                <div
-                  className={cn(
-                    "w-20 h-20 rounded-lg border-2 border-dashed",
-                    "border-border flex items-center justify-center",
-                    "bg-muted/20 overflow-hidden",
-                    "group-hover:border-primary/50 transition-colors relative",
-                  )}
-                >
-                  {displayLogoUrl ? (
-                    <NextImage src={displayLogoUrl} alt="Company Logo" fill className="object-contain" unoptimized />
-                  ) : (
-                    <Building2 className="w-8 h-8 text-muted-foreground/30" />
-                  )}
-                </div>
-                <label
-                  htmlFor="logo-upload"
-                  onClick={() => {
-                    void ensureSession()
-                  }}
-                  className={cn(
-                    "absolute inset-0 flex items-center justify-center",
-                    "bg-black/50 rounded-lg opacity-0",
-                    "group-hover:opacity-100 transition-opacity cursor-pointer",
-                  )}
-                >
-                  {isUploadingLogo ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-6 h-6 text-white" />}
-                </label>
-                <input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                  disabled={isUploadingLogo}
-                />
-              </div>
-              <div>
-                <h3 className="font-medium text-foreground">{t("settings.companyLogo")}</h3>
-                <p className="text-sm text-muted-foreground">{t("settings.logoDesc")}</p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
-                <Mail className="w-3.5 h-3.5" />
-                {t("auth.email")}
-              </Label>
-              <Input id="email" type="email" defaultValue={user?.email} disabled className="bg-muted text-muted-foreground" />
-            </div>
-
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2 pb-1 border-b">
-                <Link2 className="w-4 h-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">{t("settings.socialAndWeb")}</h3>
-                <span className="text-xs text-muted-foreground">{t("productForm.optional")}</span>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-1">
-                <SocialUrlField
-                  id="instagramUrl"
-                  name="instagramUrl"
-                  label="Instagram"
-                  icon={<Instagram className="w-3.5 h-3.5 text-primary" />}
-                  placeholder={t("settings.instagramPlaceholder")}
-                  defaultValue={user?.instagram_url}
-                  validate={(value) => validateInstagramUrl(value, language)}
-                />
-
-                <SocialUrlField
-                  id="youtubeUrl"
-                  name="youtubeUrl"
-                  label="YouTube"
-                  icon={<Youtube className="w-3.5 h-3.5 text-destructive" />}
-                  placeholder={t("settings.youtubePlaceholder")}
-                  defaultValue={user?.youtube_url}
-                  validate={(value) => validateYoutubeUrl(value, language)}
-                />
-
-                <SocialUrlField
-                  id="websiteUrl"
-                  name="websiteUrl"
-                  label={t("settings.website")}
-                  icon={<Globe className="w-3.5 h-3.5 text-info" />}
-                  placeholder={t("settings.websitePlaceholder")}
-                  defaultValue={user?.website_url}
-                  validate={(value) => validateWebsiteUrl(value, language)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 pb-2 md:pb-0">
-              <Button type="submit" disabled={isSaving} className="min-w-[120px]">
-                {isSaving ? (
-                  <div className="flex items-center gap-2">
-                    <span className={cn("w-4 h-4 border-2 border-white/30 border-t-white", "rounded-full animate-spin")} />
-                    {t("settings.saving")}
+            {/* Profil fotoğrafı ve şirket logosu yan yana; yükleme dokunmatikte de görünür düğmeyle */}
+            <div className="grid gap-4 border-b pb-6 sm:grid-cols-2">
+              <ImageUploadRow
+                inputId="avatar-upload"
+                title={t("settings.profilePhoto")}
+                description={t("settings.photoDesc")}
+                buttonLabel={displayAvatarUrl ? t("common.change") : t("common.upload")}
+                isUploading={isUploadingAvatar}
+                onBeforeOpen={ensureSession}
+                onChange={handleAvatarUpload}
+                preview={
+                  <Avatar className="size-16 border">
+                    <AvatarImage src={displayAvatarUrl || undefined} alt={user?.name} />
+                    <AvatarFallback className="bg-muted text-lg font-medium text-muted-foreground">
+                      {user?.name?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                }
+              />
+              <ImageUploadRow
+                inputId="logo-upload"
+                title={t("settings.companyLogo")}
+                description={t("settings.logoDesc")}
+                buttonLabel={displayLogoUrl ? t("common.change") : t("common.upload")}
+                isUploading={isUploadingLogo}
+                onBeforeOpen={ensureSession}
+                onChange={handleLogoUpload}
+                preview={
+                  <div className={cn("relative flex size-16 items-center justify-center overflow-hidden rounded-lg border bg-muted/40", !displayLogoUrl && "border-dashed")}>
+                    {displayLogoUrl ? (
+                      <NextImage src={displayLogoUrl} alt={t("settings.companyLogo")} fill className="object-contain p-1" unoptimized />
+                    ) : (
+                      <Building2 className="size-6 text-muted-foreground/50" />
+                    )}
                   </div>
-                ) : (
-                  t("common.save")
-                )}
+                }
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">{t("auth.name")}</Label>
+                <Input id="fullName" name="fullName" defaultValue={user?.name} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">{t("auth.company")}</Label>
+                <Input id="company" name="company" defaultValue={user?.company} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="email">{t("auth.email")}</Label>
+                <Input id="email" type="email" defaultValue={user?.email} disabled className="bg-muted text-muted-foreground" />
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t pt-6">
+              <h3 className="text-sm font-medium text-foreground">
+                {t("settings.socialAndWeb")} <span className="font-normal text-muted-foreground">{t("productForm.optional")}</span>
+              </h3>
+              <SocialUrlField
+                id="instagramUrl"
+                name="instagramUrl"
+                label="Instagram"
+                icon={<Instagram className="size-4" />}
+                placeholder={t("settings.instagramPlaceholder")}
+                defaultValue={user?.instagram_url}
+                validate={(value) => validateInstagramUrl(value, language)}
+              />
+              <SocialUrlField
+                id="youtubeUrl"
+                name="youtubeUrl"
+                label="YouTube"
+                icon={<Youtube className="size-4" />}
+                placeholder={t("settings.youtubePlaceholder")}
+                defaultValue={user?.youtube_url}
+                validate={(value) => validateYoutubeUrl(value, language)}
+              />
+              <SocialUrlField
+                id="websiteUrl"
+                name="websiteUrl"
+                label={t("settings.website")}
+                icon={<Globe className="size-4" />}
+                placeholder={t("settings.websitePlaceholder")}
+                defaultValue={user?.website_url}
+                validate={(value) => validateWebsiteUrl(value, language)}
+              />
+            </div>
+
+            <div className="flex justify-end border-t pt-6">
+              <Button type="submit" disabled={isSaving} className="min-w-[120px]">
+                {isSaving && <Loader2 className="size-4 animate-spin" />}
+                {isSaving ? t("settings.saving") : t("common.save")}
               </Button>
             </div>
           </form>
@@ -241,18 +204,17 @@ export function ProfileTab({
 
       <PasswordCard email={user?.email} t={t} />
 
-      <Card className="border-destructive/30">
-        <CardHeader>
-          <div className="flex items-center gap-2 text-destructive">
-            <Trash2 className="w-5 h-5" />
-            <CardTitle className="text-lg text-foreground">{t("settings.dangerZone")}</CardTitle>
+      {/* Tehlikeli bölge: tek satır, sağda düğme */}
+      <Card className="gap-0 border-destructive/30 py-0">
+        <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">{t("settings.dangerZone")}</h3>
+            <p className="text-sm text-muted-foreground">{t("settings.deleteWarning")}</p>
           </div>
-          <CardDescription className="text-muted-foreground">{t("settings.deleteWarning")}</CardDescription>
-        </CardHeader>
-        <CardContent className="pb-4 md:pb-6">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="bg-destructive/90 hover:bg-destructive">
+              <Button variant="outline" className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 className="size-4" />
                 {t("settings.deleteAccount")}
               </Button>
             </AlertDialogTrigger>

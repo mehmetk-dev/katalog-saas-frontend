@@ -43,7 +43,7 @@ export default function SettingsPageClient() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl space-y-6 animate-pulse">
+      <div className="max-w-3xl space-y-6 animate-pulse">
         <div className="h-8 w-48 bg-accent rounded" />
         <div className="grid gap-6">
           <div className="h-64 bg-muted rounded-xl" />
@@ -53,7 +53,7 @@ export default function SettingsPageClient() {
   }
 
   return (
-    <div className="max-w-5xl space-y-6 pb-20 md:pb-10">
+    <div className="max-w-3xl space-y-6 pb-20 md:pb-10">
       <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
       <PageHeader title={t("settings.title")} description={t("settings.managePreferences")} />

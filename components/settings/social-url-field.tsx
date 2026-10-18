@@ -37,23 +37,24 @@ export function SocialUrlField({
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="flex items-center gap-2 text-foreground">
-        {icon}
-        {label}
-      </Label>
-      <Input
-        id={id}
-        name={name}
-        type="url"
-        placeholder={placeholder}
-        defaultValue={defaultValue ?? ""}
-        onChange={handleChange}
-        className={cn(
-          "bg-background border-input focus:bg-background transition-colors",
-          isDirty && error && "border-destructive focus-visible:ring-destructive/30",
-          isDirty && !error && "border-success focus-visible:ring-success/30",
-        )}
-      />
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        {/* Simge alanın içinde, solda; etiket sade kalır */}
+        <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
+        <Input
+          id={id}
+          name={name}
+          type="url"
+          placeholder={placeholder}
+          defaultValue={defaultValue ?? ""}
+          onChange={handleChange}
+          className={cn(
+            "pl-9",
+            isDirty && error && "border-destructive focus-visible:ring-destructive/30",
+            isDirty && !error && "border-success focus-visible:ring-success/30",
+          )}
+        />
+      </div>
       {isDirty && error && (
         <p className="text-xs text-destructive flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-full bg-destructive/20 text-destructive text-center leading-3">!</span>
