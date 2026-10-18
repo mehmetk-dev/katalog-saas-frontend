@@ -5,6 +5,7 @@ import { SearchX, X } from "lucide-react"
 import { Toaster } from "sonner"
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch"
 
+import { firstProductImage } from "@/components/catalogs/cover-image"
 import { LazyPage } from "@/components/catalogs/lazy-page"
 import { ShareModal } from "@/components/catalogs/share-modal"
 import { Button } from "@/components/ui/button"
@@ -128,6 +129,7 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
     const openShare = useCallback(() => setIsShareModalOpen(true), [])
 
     const totalPages = catalogPages.length
+    const coverFallbackImage = useMemo(() => firstProductImage(products), [products])
 
     const renderPageContent = useCallback((page: typeof catalogPages[number], index: number) => (
         <PageRenderer
@@ -137,8 +139,9 @@ export function PublicCatalogClient({ catalog, products }: PublicCatalogClientPr
             totalPages={totalPages}
             productCount={products.length}
             isExporting={isExporting}
+            coverFallbackImage={coverFallbackImage}
         />
-    ), [design, isExporting, products.length, totalPages])
+    ), [design, isExporting, products.length, totalPages, coverFallbackImage])
 
     const renderPage = useCallback((page: typeof catalogPages[number], index: number) => (
         <LazyPage key={index} index={index} isExporting={isExporting}>

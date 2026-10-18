@@ -54,6 +54,8 @@ interface PageRendererProps {
     totalPages: number
     productCount: number
     isExporting: boolean
+    /** Kapak görseli yoksa kapakta gösterilecek görsel (ilk ürünün görseli) */
+    coverFallbackImage?: string
 }
 
 /** Tek bir katalog sayfası: kapak, kategori ayracı veya ürün şablonu (builder ile aynı props). */
@@ -64,6 +66,7 @@ export const PageRenderer = React.memo(function PageRenderer({
     totalPages,
     productCount,
     isExporting,
+    coverFallbackImage,
 }: PageRendererProps) {
     if (page.type === "cover") {
         return (
@@ -76,6 +79,7 @@ export const PageRenderer = React.memo(function PageRenderer({
                 productCount={productCount}
                 isExporting={isExporting}
                 theme={design.coverTheme}
+                fallbackImageUrl={coverFallbackImage}
             />
         )
     }

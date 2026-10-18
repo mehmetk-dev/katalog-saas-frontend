@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useCallback } from "react"
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useOptionalUser } from "@/lib/contexts/user-context"
 import type { Product } from "@/lib/actions/products"
 import type { TemplateProps } from "@/components/catalogs/templates/types"
@@ -12,6 +12,7 @@ import { PreviewControlBar } from "./preview-control-bar"
 
 // Sayfa Bileşenleri
 import { CoverPage } from "@/components/catalogs/cover-page"
+import { firstProductImage } from "@/components/catalogs/cover-image"
 import { CategoryDivider } from "@/components/catalogs/category-divider"
 
 export type CatalogPage =
@@ -210,6 +211,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     titlePosition,
   } = props
   const productsLength = props.products?.length ?? 0
+  const coverFallbackImage = useMemo(() => firstProductImage(props.products), [props.products])
 
   // A2: Shared page content renderer — eliminates duplicate cover/divider/template rendering
   const renderPageContent = useCallback((
@@ -228,6 +230,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
           primaryColor={primaryColor}
           productCount={productsLength}
           theme={theme}
+          fallbackImageUrl={coverFallbackImage}
         />
       )
     }
@@ -269,7 +272,7 @@ export const CatalogPreview = React.memo(function CatalogPreview(props: CatalogP
     )
   }, [
     catalogName, coverImageUrl, coverDescription, logoUrl, primaryColor, theme,
-    productsLength, isFreeUser, headerTextColor, showPrices, showDescriptions,
+    productsLength, coverFallbackImage, isFreeUser, headerTextColor, showPrices, showDescriptions,
     showAttributes, showSku, showUrls, productImageFit, columnsPerRow,
     backgroundColor, backgroundImage, backgroundImageFit, backgroundGradient,
     logoPosition, logoSize, titlePosition,

@@ -1,4 +1,5 @@
 import React from 'react'
+import { fitTitleFontSize } from './fit-title'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
@@ -29,22 +30,18 @@ export const MinimalCover = React.memo(function MinimalCover({
                     <div className="relative w-40 h-12 grayscale opacity-80">
                         <Image src={logoUrl} alt="Logo" fill className="object-contain object-right" />
                     </div>
-                ) : (
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-red-600 rounded-full" />
-                        <span className="font-bold tracking-widest text-sm">MİNİMALİST.</span>
-                    </div>
-                )}
+                ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
             </div>
 
             {/* Main Content - Asymmetric Balance */}
-            <div className="flex-1 grid grid-cols-2 gap-20 relative z-10 px-8">
+            {/* Başlık sütunu daha geniş: eşit sütunlarda "Koleksiyonu" gibi kelimeler bölünüyordu */}
+            <div className="flex-1 grid grid-cols-[3fr_2fr] gap-12 relative z-10 px-8">
                 {/* Left: Typography */}
-                <div className="flex flex-col justify-center text-right border-r border-black/10 pr-12">
+                <div className="flex min-w-0 flex-col justify-center text-right border-r border-black/10 pr-10">
                     <div className="mb-8 flex justify-end">
                         <div className="w-12 h-1 bg-black" />
                     </div>
-                    <h1 className="text-7xl font-medium tracking-tight leading-none mb-12">
+                    <h1 className="text-7xl font-medium tracking-tight leading-none mb-12 break-words" style={{ fontSize: fitTitleFontSize(catalogName, 72, 8) }}>
                         {catalogName}
                         <span className="text-red-600">.</span>
                     </h1>
@@ -85,7 +82,7 @@ export const MinimalCover = React.memo(function MinimalCover({
                 <div className="flex items-center gap-2">
                     <span>Tasarım Sistemi</span>
                     <div className="w-4 h-[1px] bg-gray-400" />
-                    <span>2024</span>
+                    <span>{new Date().getFullYear()}</span>
                 </div>
             </div>
         </div>

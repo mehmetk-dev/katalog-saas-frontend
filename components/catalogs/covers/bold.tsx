@@ -1,4 +1,5 @@
 import React from 'react'
+import { fitTitleFontSize } from './fit-title'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
@@ -24,9 +25,7 @@ export const BoldCover = React.memo(function BoldCover({
                         <div className="relative w-48 h-16">
                             <Image src={logoUrl} alt="Logo" fill className="object-contain object-left grayscale contrast-125" />
                         </div>
-                    ) : (
-                        <h1 className="text-6xl font-black tracking-tighter uppercase">HELVETIC</h1>
-                    )}
+                    ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
                     <div className="flex flex-col items-end">
                         <span className="bg-black text-white px-4 py-1 text-xl font-bold uppercase">Vol. {new Date().getFullYear()}</span>
                         <span className="text-xs font-bold mt-1 tracking-widest uppercase">International Edition</span>
@@ -37,7 +36,7 @@ export const BoldCover = React.memo(function BoldCover({
                 <div className="col-span-8 row-span-8 relative flex flex-col justify-center pr-12 z-20">
                     <div className="w-24 h-24 bg-[#FF4400] rounded-full absolute -top-12 -left-12 mix-blend-multiply opacity-80 animate-pulse-slow" />
 
-                    <h2 className="text-[100px] leading-[0.85] font-black uppercase tracking-[-0.05em] break-words z-10">
+                    <h2 className="text-[100px] leading-[0.85] font-black uppercase tracking-[-0.05em] break-words z-10" style={{ fontSize: fitTitleFontSize(catalogName, 100, 6) }}>
                         {catalogName}
                     </h2>
 

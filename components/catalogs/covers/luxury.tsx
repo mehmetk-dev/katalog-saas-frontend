@@ -22,16 +22,12 @@ export const LuxuryCover = React.memo(function LuxuryCover({
                         <div className="relative w-48 h-12">
                             <Image src={logoUrl} alt="Logo" fill className="object-contain filter sepia brightness-50 contrast-150" style={{ color: '#C5A059' }} />
                         </div>
-                    ) : (
-                        <div className="text-xl tracking-[0.5em] text-[#C5A059] border-b border-[#C5A059] pb-2 uppercase font-light">
-                            Maison De Luxe
-                        </div>
-                    )}
+                    ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
                 </div>
 
                 {/* Centerpiece */}
                 <div className="flex-1 flex flex-col items-center justify-center space-y-12">
-                    <span className="text-xs uppercase tracking-[0.4em] text-white/40">Established 2026</span>
+                    <span className="text-xs uppercase tracking-[0.4em] text-white/40">Established {new Date().getFullYear()}</span>
 
                     <h1 className="text-7xl lg:text-8xl font-medium text-transparent bg-clip-text bg-gradient-to-br from-[#FDFCF5] via-[#C5A059] to-[#8C6D36] text-center italic leading-tight drop-shadow-lg">
                         {catalogName}

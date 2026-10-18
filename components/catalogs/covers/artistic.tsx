@@ -27,10 +27,7 @@ export const ArtisticCover = React.memo(function ArtisticCover({
                         <div className="relative w-24 h-24">
                             <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                         </div>
-                    ) : (
-                        <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold italic text-xl">A.</div>
-                    )}
-                    <span className="font-serif italic text-slate-400 text-lg rotate-3 decoration-wavy underline">Yaşama Sanatı</span>
+                    ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
                 </div>
 
                 {/* Central Composition */}
@@ -77,7 +74,7 @@ export const ArtisticCover = React.memo(function ArtisticCover({
 
                 {/* Footer Signature */}
                 <div className="text-right mt-8">
-                    <span className="font-serif italic text-4xl text-slate-300">Seçki 2024</span>
+                    <span className="font-serif italic text-4xl text-slate-300">Seçki {new Date().getFullYear()}</span>
                 </div>
             </div>
         </div>

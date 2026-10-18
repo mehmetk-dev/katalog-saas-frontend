@@ -1,4 +1,5 @@
 import React from 'react'
+import { fitTitleFontSize } from './fit-title'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
@@ -24,15 +25,11 @@ export const IndustrialCover = React.memo(function IndustrialCover({
                         <div className="relative w-40 h-16">
                             <Image src={logoUrl} alt="Logo" fill className="object-contain object-left grayscale brightness-200" />
                         </div>
-                    ) : (
-                        <div className="border-2 border-white/40 p-2 w-fit">
-                            <h1 className="text-2xl font-bold tracking-tighter">IND.SPEC</h1>
-                        </div>
-                    )}
+                    ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
 
                     <div className="pt-12">
                         <span className="text-xs text-[#FACC15] block mb-2 tracking-[0.2em] uppercase">Project Name</span>
-                        <h2 className="text-6xl font-bold uppercase leading-none break-words text-white">
+                        <h2 className="text-6xl font-bold uppercase leading-none break-words text-white" style={{ fontSize: fitTitleFontSize(catalogName, 60, 6) }}>
                             {catalogName}
                         </h2>
                     </div>
@@ -57,7 +54,7 @@ export const IndustrialCover = React.memo(function IndustrialCover({
                     </div>
                     <div className="flex justify-between items-end border-b border-white/20 pb-2">
                         <span className="text-[10px] uppercase text-slate-500">Ref No</span>
-                        <span className="text-sm font-bold">XJ-2026-A1</span>
+                        <span className="text-sm font-bold">XJ-{new Date().getFullYear()}-A1</span>
                     </div>
                 </div>
             </div>

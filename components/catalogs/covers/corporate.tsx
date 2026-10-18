@@ -25,9 +25,7 @@ export const CorporateCover = React.memo(function CorporateCover({
                             <div className="relative w-48 h-12 mb-12">
                                 <Image src={logoUrl} alt="Logo" fill className="object-contain object-left" />
                             </div>
-                        ) : (
-                            <h1 className="text-3xl font-bold tracking-tight mb-12">COMPANY<span className="font-light">INC.</span></h1>
-                        )}
+                        ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
 
                         <div className="bg-blue-600 text-white w-24 h-2 mb-8" />
 

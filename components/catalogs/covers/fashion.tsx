@@ -1,4 +1,5 @@
 import React from 'react'
+import { fitTitleFontSize } from './fit-title'
 import Image from 'next/image'
 import type { CoverPageProps } from './index'
 
@@ -26,11 +27,11 @@ export const FashionCover = React.memo(function FashionCover({
             <div className="relative z-10 h-full flex flex-col justify-end p-12 lg:p-20 max-w-4xl">
                 {/* Vertical Text */}
                 <div className="absolute top-12 right-12 text-xs font-bold tracking-[0.5em] uppercase text-black rotate-90 origin-top-right mix-blend-difference text-white">
-                    Spring / Summer 2026 Collection
+                    Spring / Summer {new Date().getFullYear()} Collection
                 </div>
 
                 {/* Main Headline */}
-                <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter mix-blend-difference text-white mb-8 uppercase break-words">
+                <h1 className="text-[120px] font-black leading-[0.8] tracking-tighter mix-blend-difference text-white mb-8 uppercase break-words" style={{ fontSize: fitTitleFontSize(catalogName, 120, 7) }}>
                     {catalogName}
                 </h1>
 
@@ -57,9 +58,7 @@ export const FashionCover = React.memo(function FashionCover({
                     <div className="relative w-40 h-12">
                         <Image src={logoUrl} alt="Brand" fill className="object-contain object-left brightness-0 invert" />
                     </div>
-                ) : (
-                    <span className="text-3xl font-serif italic font-bold">MODE.</span>
-                )}
+                ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
             </div>
         </div>
     )

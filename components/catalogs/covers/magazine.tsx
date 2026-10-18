@@ -18,11 +18,7 @@ export const MagazineCover = React.memo(function MagazineCover({
                     <div className="relative w-64 h-24 mx-auto mb-2 mix-blend-multiply">
                         <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                     </div>
-                ) : (
-                    <h1 className="text-9xl font-medium tracking-tighter text-black mix-blend-multiply opacity-90">
-                        KINFOLK
-                    </h1>
-                )}
+                ) : null /* Logo yoksa uydurma marka adı gösterilmez (müşterinin kataloğunda başka firma adı çıkıyordu) */}
 
                 <div className="flex justify-center gap-8 text-xs font-sans font-medium tracking-widest uppercase border-t border-black/10 mt-4 pt-4 w-fit mx-auto px-12">
                     <span>Vol. {new Date().getFullYear()}</span>

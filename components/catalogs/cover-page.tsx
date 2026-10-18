@@ -11,6 +11,8 @@ interface CoverPageProps {
     isExporting?: boolean
     /** Selected cover theme key (e.g., 'modern', 'fashion') */
     theme?: string
+    /** Kapak görseli yüklenmemişse kullanılacak görsel (ilk ürünün görseli) */
+    fallbackImageUrl?: string | null
 }
 
 /**
@@ -19,6 +21,7 @@ interface CoverPageProps {
  * Takes the 'theme' prop and renders the appropriate cover design
  * from the 'covers' directory. Default theme is 'modern'.
  */
-export function CoverPage(props: CoverPageProps) {
-    return <CoverPageRenderer {...props} />
+export function CoverPage({ fallbackImageUrl, coverImageUrl, ...props }: CoverPageProps) {
+    // Görsel yoksa temalar gri kutu ya da yer tutucu yazı gösteriyordu; ilk ürünün görseli kullanılır
+    return <CoverPageRenderer {...props} coverImageUrl={coverImageUrl || fallbackImageUrl || null} />
 }
