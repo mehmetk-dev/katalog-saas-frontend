@@ -6,7 +6,7 @@ import { CategoriesPageClient } from '@/components/categories/categories-page-cl
 // Mock dependencies
 vi.mock('@/lib/contexts/i18n-provider', () => ({
     useTranslation: () => ({
-        t: (key: string) => {
+        t: (key: string, params?: Record<string, unknown>) => {
             const translations: Record<string, string> = {
                 'categories.title': 'Kategoriler',
                 'categories.subtitle': 'Ürünlerinizi kategorilere ayırın',
@@ -41,10 +41,15 @@ vi.mock('@/lib/contexts/i18n-provider', () => ({
                 'common.upload': 'Yükle',
                 'common.change': 'Değiştir',
                 'common.delete': 'Sil',
+                'categories.productCount': '{count} ürün',
+                'categories.viewProducts': 'Ürünleri gör',
+                'categories.searchPlaceholder': 'Kategori ara...',
+                'categories.noResults': 'Eşleşen kategori yok',
                 'toasts.retryingConnection': 'Bağlantı yoğun, tekrar deneniyor ({attempt}/{max})...',
                 'auth.sessionExpired': 'Oturum süresi doldu. Lütfen tekrar giriş yapın.',
             }
-            return translations[key] || key
+            const text = translations[key] || key
+            return Object.entries(params ?? {}).reduce((acc, [k, v]) => acc.replace(`{${k}}`, String(v)), text)
         },
         language: 'tr',
     }),
@@ -174,8 +179,8 @@ describe('Categories Page Client Testleri', () => {
         it('Kategori ürün sayıları gösterilir', () => {
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            expect(screen.getByText('5')).toBeInTheDocument()
-            expect(screen.getByText('3')).toBeInTheDocument()
+            expect(screen.getByText('5 ürün')).toBeInTheDocument()
+            expect(screen.getByText('3 ürün')).toBeInTheDocument()
         })
     })
 
@@ -224,10 +229,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="free" />)
 
-            const categoryCard = screen.getByText('Elektronik').closest('.group')
-            if (categoryCard) {
-                await user.click(categoryCard)
-            }
+            await user.click(screen.getAllByRole('button', { name: 'Düzenle' })[0])
 
             await waitFor(() => {
                 expect(screen.getByTestId('upgrade-modal')).toBeInTheDocument()
@@ -290,10 +292,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const categoryCard = screen.getByText('Elektronik').closest('.group')
-            if (categoryCard) {
-                await user.click(categoryCard)
-            }
+            await user.click(screen.getAllByRole('button', { name: 'Düzenle' })[0])
 
             await waitFor(() => {
                 expect(screen.getByText('Kategori Düzenle')).toBeInTheDocument()
@@ -304,10 +303,7 @@ describe('Categories Page Client Testleri', () => {
             const user = userEvent.setup()
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const categoryCard = screen.getByText('Elektronik').closest('.group')
-            if (categoryCard) {
-                await user.click(categoryCard)
-            }
+            await user.click(screen.getAllByRole('button', { name: 'Düzenle' })[0])
 
             await waitFor(() => {
                 const nameInput = screen.getByDisplayValue('Elektronik')
@@ -483,8 +479,9 @@ describe('Categories Page Client Testleri', () => {
             const { deleteCategory } = await import('@/lib/actions/products')
             render(<CategoriesPageClient initialCategories={mockCategories} userPlan="pro" />)
 
-            const deleteButtons = screen.getAllByRole('button', { name: /common.delete|Sil/ })
-            await user.click(deleteButtons[0])
+            // Silme kartın ⋯ menüsünde
+            await user.click(screen.getAllByRole('button', { name: 'products.actions' })[0])
+            await user.click(await screen.findByRole('menuitem', { name: /Sil/ }))
             expect(await screen.findByText(/categories.deleteTitle/)).toBeInTheDocument()
             expect(deleteCategory).not.toHaveBeenCalled()
 
@@ -526,5 +523,28 @@ describe('Categories Page Client Testleri', () => {
 
             expect(products.renameCategory).not.toHaveBeenCalled()
         })
+    })
+})
+
+describe('Kategori arama ve bağlantılar', () => {
+    const categories = [
+        { id: 'cat-a', name: 'Oturma', color: '#3b82f6', productCount: 2 },
+        { id: 'cat-b', name: 'Çalışma', color: '#8b5cf6', productCount: 7 },
+    ]
+
+    it('kart, kategorinin ürünlerini filtreli açan bağlantıdır', () => {
+        render(<CategoriesPageClient initialCategories={categories} userPlan="pro" />)
+        expect(screen.getByRole('link', { name: 'Çalışma' })).toHaveAttribute('href', '/dashboard/products?category=%C3%87al%C4%B1%C5%9Fma')
+    })
+
+    it('arama Türkçe harflerde büyük/küçük harf duyarsızdır', async () => {
+        const user = userEvent.setup()
+        render(<CategoriesPageClient initialCategories={categories} userPlan="pro" />)
+        await user.type(screen.getByPlaceholderText('Kategori ara...'), 'ÇALIŞ')
+        expect(screen.getByText('Çalışma')).toBeInTheDocument()
+        expect(screen.queryByText('Oturma')).not.toBeInTheDocument()
+        await user.clear(screen.getByPlaceholderText('Kategori ara...'))
+        await user.type(screen.getByPlaceholderText('Kategori ara...'), 'xyz')
+        expect(screen.getByText('Eşleşen kategori yok')).toBeInTheDocument()
     })
 })

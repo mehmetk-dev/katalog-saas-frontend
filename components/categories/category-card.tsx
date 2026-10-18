@@ -1,17 +1,19 @@
 "use client"
 
-import {
-    Folder,
-    Pencil,
-    Trash2,
-    FolderOpen,
-} from "lucide-react"
+import Link from "next/link"
 import NextImage from "next/image"
+import { ArrowUpRight, Folder, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { UNCATEGORIZED_ID } from "./build-categories"
 import type { Category } from "./types"
@@ -22,6 +24,49 @@ interface CategoryCardProps {
     onDelete: (category: Category) => void
 }
 
+/** Kategoriye ait ürünleri filtreli gösteren ürünler sayfası adresi */
+export function categoryProductsHref(name: string) {
+    return `/dashboard/products?category=${encodeURIComponent(name)}`
+}
+
+function CategoryImages({ category, alt }: { category: Category; alt: string }) {
+    const images = category.cover_image ? [category.cover_image] : (category.images ?? []).slice(0, 4)
+    const isUncategorized = category.id === UNCATEGORIZED_ID
+
+    if (images.length === 0) {
+        const Icon = isUncategorized ? FolderOpen : Folder
+        return (
+            <div className="flex size-full items-center justify-center">
+                <div className="flex size-14 items-center justify-center rounded-xl" style={{ backgroundColor: `${category.color}1f` }}>
+                    <Icon className="size-7" style={{ color: category.color }} />
+                </div>
+            </div>
+        )
+    }
+
+    // 1 görsel tam, 2 yan yana, 3'te ilki solda büyük, 4 görsel 2x2 — boş kutu kalmaz
+    return (
+        <div className={cn("grid size-full gap-0.5", images.length > 1 && "grid-cols-2", images.length > 2 && "grid-rows-2")}>
+            {images.map((src, index) => (
+                <div key={src} className={cn("relative overflow-hidden", images.length === 3 && index === 0 && "row-span-2")}>
+                    <NextImage
+                        src={src}
+                        alt={index === 0 ? alt : ""}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
+                        unoptimized
+                    />
+                </div>
+            ))}
+        </div>
+    )
+}
+
+/**
+ * Ürün kartıyla aynı yapı: görsel → ad → alt bilgi. Kartın tamamı kategorinin ürünlerini açar;
+ * düzenle/sil sağ üstteki menüde ve fareyle üzerine gelince çıkan düğmede.
+ */
 export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {
     const { t } = useTranslation()
     const isUncategorized = category.id === UNCATEGORIZED_ID
@@ -29,109 +74,79 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
 
     return (
         <Card
-            className="group gap-0 overflow-hidden py-0 cursor-pointer transition-all hover:shadow-xl"
-            onClick={() => !isUncategorized && onEdit(category)}
+            data-category-card
+            className={cn(
+                "group relative gap-0 overflow-visible py-0 transition-[box-shadow,border-color]",
+                !isUncategorized && "hover:border-foreground/20 hover:shadow-md"
+            )}
         >
-            {/* Kare Fotoğraf Alanı */}
-            <div className="relative aspect-square bg-gradient-to-br from-muted/30 to-muted overflow-hidden">
-                {/* Öncelik: 1. cover_image, 2. product images, 3. varsayılan icon */}
-                {category.cover_image ? (
-                    <NextImage
-                        src={category.cover_image}
-                        alt={displayName}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                    />
-                ) : category.images && category.images.length > 0 ? (
-                    category.images.length === 1 ? (
-                        <NextImage
-                            src={category.images[0]}
-                            alt={displayName}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                        />
-                    ) : (
-                        // 2 görsel yan yana, 3 görselde ilki solda büyük, 4 görsel 2x2 — boş kutu yok
-                        <div className={cn("grid h-full grid-cols-2 gap-0.5", category.images.length > 2 && "grid-rows-2")}>
-                            {category.images.slice(0, 4).map((img, idx) => (
-                                <div
-                                    key={idx}
-                                    className={cn("relative overflow-hidden", category.images!.length === 3 && idx === 0 && "row-span-2")}
-                                >
-                                    <NextImage
-                                        src={img}
-                                        alt=""
-                                        fill
-                                        className="object-cover"
-                                        unoptimized
-                                    />
-                                </div>
-                            ))}
+            <div className="relative aspect-square overflow-hidden rounded-t-xl border-b bg-muted/50">
+                <CategoryImages category={category} alt={displayName} />
+
+                {!isUncategorized && (
+                    <>
+                        <div className="absolute right-2 top-2 z-[5]">
+                            <DropdownMenu modal={false}>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={t("products.actions")}
+                                        // Mobildeki genel 44px dokunma kuralı görselin üstünde kocaman kare yapıyordu
+                                        className="size-8 min-h-0 min-w-0 bg-background/90 text-foreground shadow-sm hover:bg-background data-[state=open]:opacity-100 md:size-7 md:opacity-0 md:focus-visible:opacity-100 md:group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                                    >
+                                        <MoreHorizontal className="size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                    <DropdownMenuItem asChild>
+                                        <Link href={categoryProductsHref(category.name)}>
+                                            <ArrowUpRight className="size-4" /> {t("categories.viewProducts")}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => onEdit(category)}>
+                                        <Pencil className="size-4" /> {t("common.edit")}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem variant="destructive" onSelect={() => onDelete(category)}>
+                                        <Trash2 className="size-4" /> {t("common.delete")}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
-                    )
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/50 to-muted">
-                        <div
-                            className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                            style={{ backgroundColor: category.color + "20" }}
+
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="absolute bottom-2 right-2 z-[5] hidden h-7 gap-1.5 bg-background/95 px-2.5 text-xs opacity-0 shadow-sm transition-opacity hover:bg-background focus-visible:opacity-100 group-hover:opacity-100 md:inline-flex"
+                            onClick={() => onEdit(category)}
                         >
-                            {isUncategorized ? (
-                                <FolderOpen className="w-8 h-8" style={{ color: category.color }} />
-                            ) : (
-                                <Folder className="w-8 h-8" style={{ color: category.color }} />
-                            )}
-                        </div>
-                    </div>
+                            <Pencil className="size-3.5" />
+                            {t("common.edit")}
+                        </Button>
+                    </>
                 )}
-
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-foreground/60 via-transparent to-transparent p-3 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
-                    {!isUncategorized && (
-                        <div className="flex gap-1">
-                            <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onEdit(category) }}>
-                                <Pencil className="w-3 h-3 mr-1" /> {t("common.edit")}
-                            </Button>
-                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onDelete(category) }}>
-                                <Trash2 className="w-3 h-3 mr-1" /> {t("common.delete")}
-                            </Button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Ürün Sayısı Badge */}
-                <div className="absolute top-2 right-2">
-                    <Badge
-                        className="shadow-lg text-white border-0"
-                        style={{ backgroundColor: category.color }}
-                    >
-                        {category.productCount}
-                    </Badge>
-                </div>
-
-                {/* Renk Göstergesi */}
-                <div
-                    className="absolute bottom-0 left-0 right-0 h-1"
-                    style={{ backgroundColor: category.color }}
-                />
             </div>
 
-            {/* Kategori İsmi */}
-            <div className="p-3 bg-card">
-                <div className="flex items-center gap-2">
-                    <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: category.color }}
-                    />
-                    <h3 className="font-medium text-sm truncate">{displayName}</h3>
-                </div>
-                {category.productNames && category.productNames.length > 0 && (
-                    <p className="text-[10px] text-muted-foreground mt-1 truncate">
-                        {category.productNames.slice(0, 2).join(", ")}
-                        {category.productCount > 2 && ` +${category.productCount - 2}`}
-                    </p>
-                )}
+            <div className="flex flex-col gap-0.5 p-3">
+                <h3 className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                    <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: category.color }} />
+                    {isUncategorized ? (
+                        <span className="truncate" title={displayName}>{displayName}</span>
+                    ) : (
+                        // Kartın tamamı bağlantı (after: ile tıklama alanı kartı kaplar)
+                        <Link
+                            href={categoryProductsHref(category.name)}
+                            title={displayName}
+                            className="min-h-0 min-w-0 truncate outline-none after:absolute after:inset-0 after:z-[2] after:rounded-xl after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                        >
+                            {displayName}
+                        </Link>
+                    )}
+                </h3>
+                <p className="pl-[18px] text-xs tabular-nums text-muted-foreground">
+                    {t("categories.productCount", { count: category.productCount })}
+                </p>
             </div>
         </Card>
     )

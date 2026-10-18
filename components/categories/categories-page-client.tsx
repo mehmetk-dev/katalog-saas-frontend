@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useMemo, useState, useTransition, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { FolderPlus, Lock, FolderOpen } from "lucide-react"
+import { FolderPlus, Lock, FolderOpen, Search, SearchX } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UpgradeModal } from "@/components/builder/modals/upgrade-modal"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { UNCATEGORIZED_ID } from "./build-categories"
@@ -45,6 +47,8 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
     const [coverImage, setCoverImage] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
     const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
+    const [query, setQuery] = useState("")
+    const [sortBy, setSortBy] = useState<"name" | "count">("name")
     const router = useRouter()
 
     // router.refresh() sonrası sunucudaki gerçek liste (sayılar, birleşen kategoriler) yerel durumun yerine geçer
@@ -54,6 +58,20 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
 
     const isFreeUser = userPlan === "free"
     const { t } = useTranslation()
+
+    // "Kategorisiz" her zaman sonda; arama Türkçe büyük/küçük harf duyarsız
+    const visibleCategories = useMemo(() => {
+        const needle = query.trim().toLocaleLowerCase("tr")
+        const named = categories.filter((c) => c.id !== UNCATEGORIZED_ID)
+        const uncategorized = categories.find((c) => c.id === UNCATEGORIZED_ID)
+        const matches = needle ? named.filter((c) => c.name.toLocaleLowerCase("tr").includes(needle)) : named
+        const sorted = [...matches].sort((a, b) =>
+            sortBy === "count"
+                ? b.productCount - a.productCount || a.name.localeCompare(b.name, "tr")
+                : a.name.localeCompare(b.name, "tr"))
+        return uncategorized && !needle ? [...sorted, uncategorized] : sorted
+    }, [categories, query, sortBy])
+    const namedCount = categories.filter((c) => c.id !== UNCATEGORIZED_ID).length
 
     const { isUploadingImage, fileInputRef, handleImageUpload } = useCategoryImageUpload({
         onSuccess: (url) => setCoverImage(url),
@@ -203,7 +221,7 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
             {/* Header */}
             <PageHeader
                 title={t("categories.title")}
-                description={t("categories.subtitle")}
+                description={namedCount > 0 ? `${t("categories.subtitle")} · ${t("categories.summary", { count: namedCount })}` : t("categories.subtitle")}
                 actions={
                     <Button onClick={handleAddCategory} className="gap-2">
                         {isFreeUser && <Lock className="w-4 h-4" />}
@@ -247,15 +265,46 @@ export function CategoriesPageClient({ initialCategories, userPlan }: Categories
                     }
                 />
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {categories.map(category => (
-                        <CategoryCard
-                            key={category.id}
-                            category={category}
-                            onEdit={handleEditCategory}
-                            onDelete={handleDeleteCategory}
-                        />
-                    ))}
+                <div className="space-y-4">
+                    {/* Araç çubuğu: ürünler sayfasıyla aynı düzen */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+                            <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder={t("categories.searchPlaceholder")}
+                                aria-label={t("categories.searchPlaceholder")}
+                                className="bg-card pl-9"
+                            />
+                        </div>
+                        <Select value={sortBy} onValueChange={(value) => setSortBy(value as "name" | "count")}>
+                            <SelectTrigger className="w-auto shrink-0 bg-card" aria-label={t("filters.sort")}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="name">{t("categories.sortByName")}</SelectItem>
+                                <SelectItem value="count">{t("categories.sortByCount")}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {visibleCategories.length === 0 ? (
+                        <EmptyState icon={SearchX} title={t("categories.noResults")} />
+                    ) : (
+                        // Ürün kartlarıyla aynı ızgara: sabit sütun sayısı yerine en az 12rem genişlik
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] md:gap-4">
+                            {visibleCategories.map((category) => (
+                                <CategoryCard
+                                    key={category.id}
+                                    category={category}
+                                    onEdit={handleEditCategory}
+                                    onDelete={handleDeleteCategory}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
