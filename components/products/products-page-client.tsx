@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { AlertCircle, Check, FileDown, GripVertical, Image as ImageIcon, Loader2, MoreHorizontal, Package, Percent, Plus, SearchX, Sparkles, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -40,7 +41,7 @@ import { ProductsPagination } from "./table/pagination"
 import { ProductsBulkPriceModal } from "./bulk/bulk-price-modal"
 import { ProductsBulkActionsBar } from "./toolbar/bulk-actions-bar"
 import { AddToCatalogDialog, BulkCategoryDialog, BulkStockDialog } from "./bulk/bulk-edit-dialogs"
-import { PAGE_SIZE_OPTIONS } from "./products-page-utils"
+import { PAGE_SIZE_OPTIONS, PRODUCTS_TABLE_HREF, type ProductsView } from "./products-page-utils"
 import type { ProductsPageClientProps } from "./products-page-types"
 import { useProductsPageController } from "./hooks/use-products-page-controller"
 import type { ReorderStatus } from "./hooks/use-products-reorder"
@@ -126,6 +127,11 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
   } = useProductsPageController(props)
 
   const [bulkDialog, setBulkDialog] = useState<"category" | "stock" | "catalog" | null>(null)
+  const router = useRouter()
+  const handleViewChange = (view: ProductsView) => {
+    if (view === "table") router.push(PRODUCTS_TABLE_HREF)
+    else setViewMode(view)
+  }
 
   // Klavye kısayolları: "/" arama, "N" yeni ürün. Yazı alanındayken veya bir pencere açıkken çalışmaz.
   useEffect(() => {
@@ -220,7 +226,7 @@ export function ProductsPageClient(props: ProductsPageClientProps) {
             onOpenFilters={() => setShowFilters(true)}
             activeFilterCount={activeFilterCount}
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
+            onViewModeChange={handleViewChange}
             sortField={sortField}
             sortOrder={sortOrder}
             onSortChange={handleSortChange}

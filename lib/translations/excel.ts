@@ -2,7 +2,7 @@ const excel = {
   tr: {
     excel: {
       title: "Excel Düzenleyici",
-      description: "Ürünlerinizi tablo görünümünde hızlıca düzenleyin",
+      description: "Hücreleri düzenleyin, sonra Kaydet ile toplu yazın. AI ile çok sayıda ürünü tek seferde değiştirebilirsiniz.",
       productCount: "{count} ürün",
       save: "Kaydet",
       saving: "Kaydediliyor...",
@@ -58,7 +58,7 @@ const excel = {
   en: {
     excel: {
       title: "Excel Editor",
-      description: "Quickly edit your products in a table view",
+      description: "Edit cells, then Save to write them in one go. Use AI to change many products at once.",
       productCount: "{count} products",
       save: "Save",
       saving: "Saving...",

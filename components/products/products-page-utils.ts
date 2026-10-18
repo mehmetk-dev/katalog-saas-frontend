@@ -4,6 +4,11 @@ import { parseLocalizedNumber } from "@/lib/utils/number-input"
 export type SortField = "name" | "price" | "stock" | "created_at" | "category" | "order"
 export type SortOrder = "asc" | "desc"
 export type ViewMode = "grid" | "list"
+/** "table" ayrı bir ekran (?view=table): hücre hücre düzenleme + AI toplu işlem */
+export type ProductsView = ViewMode | "table"
+export const PRODUCTS_TABLE_HREF = "/dashboard/products?view=table"
+/** Liste/ızgara tercihi; tablodan dönüşte de buradan okunur */
+export const PRODUCTS_VIEW_MODE_STORAGE_KEY = "products-view-mode"
 export type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock"
 
 // 24: grid görünümünün 2/3/4/6 sütunlu düzenlerinde son satır boş kalmaz

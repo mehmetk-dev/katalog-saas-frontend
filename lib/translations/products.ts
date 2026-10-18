@@ -158,6 +158,7 @@ const products = {
             openProductLink: "Ürün bağlantısını aç",
             viewList: "Liste görünümü",
             viewGrid: "Izgara görünümü",
+            viewTable: "Tablo görünümü (toplu düzenleme)",
             sort: {
                 label: "Sırala",
                 manual: "Manuel sıra",
@@ -555,6 +556,7 @@ const products = {
             openProductLink: "Open product link",
             viewList: "List view",
             viewGrid: "Grid view",
+            viewTable: "Table view (bulk edit)",
             sort: {
                 label: "Sort",
                 manual: "Manual order",

@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment } from "react"
-import { ArrowUpDown, Columns3, LayoutGrid, List, Search, SlidersHorizontal, X } from "lucide-react"
+import { ArrowUpDown, Columns3, Search, SlidersHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,8 @@ import { useTranslation } from "@/lib/contexts/i18n-provider"
 import { cn } from "@/lib/utils"
 import { InlineFilters } from "@/components/products/filters/inline-filters"
 import { PRODUCT_COLUMNS, type ProductColumn } from "@/components/products/hooks/use-product-columns"
-import type { SortField, SortOrder, StockFilter } from "@/components/products/products-page-utils"
+import type { ProductsView, SortField, SortOrder, StockFilter } from "@/components/products/products-page-utils"
+import { ProductsViewSwitch } from "./view-switch"
 
 /** Sıralama seçenekleri: alan + yön birlikte tek seçim (ayrı "yön" düğmesi kafa karıştırıyordu) */
 export const SORT_CHOICES: Array<{ field: SortField; order: SortOrder; labelKey: string }> = [
@@ -53,7 +54,7 @@ interface ProductsToolbarProps {
     /** Aktif filtre sayısı (arama hariç) */
     activeFilterCount: number
     viewMode: "grid" | "list"
-    onViewModeChange: (mode: "grid" | "list") => void
+    onViewModeChange: (view: ProductsView) => void
     sortField: SortField
     sortOrder: SortOrder
     onSortChange: (field: SortField, order: SortOrder) => void
@@ -228,25 +229,7 @@ export function ProductsToolbar({
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
-            <div role="radiogroup" aria-label={t("products.viewMode")} className="flex shrink-0 rounded-md border bg-card p-0.5">
-                {([["list", List], ["grid", LayoutGrid]] as const).map(([mode, Icon]) => (
-                    <button
-                        key={mode}
-                        type="button"
-                        role="radio"
-                        aria-checked={viewMode === mode}
-                        aria-label={t(mode === "list" ? "products.viewList" : "products.viewGrid")}
-                        title={t(mode === "list" ? "products.viewList" : "products.viewGrid")}
-                        onClick={() => onViewModeChange(mode)}
-                        className={cn(
-                            "flex size-8 items-center justify-center rounded transition-colors",
-                            viewMode === mode ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Icon className="size-4" />
-                    </button>
-                ))}
-            </div>
+            <ProductsViewSwitch value={viewMode} onChange={onViewModeChange} t={t} />
             </div>
         </div>
     )

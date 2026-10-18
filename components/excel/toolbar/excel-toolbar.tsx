@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { Search, Plus, Trash2, Sparkles, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,8 @@ interface ExcelToolbarProps {
   onOpenAI?: () => void
   isAIDisabled?: boolean
   isAIActive?: boolean
+  /** Ürünler sayfasının Liste/Izgara/Tablo seçicisi */
+  viewSwitch?: ReactNode
 }
 
 export function ExcelToolbar({
@@ -30,12 +33,13 @@ export function ExcelToolbar({
   onOpenAI,
   isAIDisabled = false,
   isAIActive = false,
+  viewSwitch,
 }: ExcelToolbarProps) {
   const { t } = useTranslation()
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b bg-background/80 px-4 py-3 backdrop-blur-sm sm:flex-nowrap sm:gap-3">
-      <div className="relative max-w-xs flex-1">
+      <div className="relative min-w-40 max-w-xs flex-1">
         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
@@ -83,12 +87,15 @@ export function ExcelToolbar({
           size="sm"
           onClick={onOpenAI}
           disabled={isAIDisabled}
-          className="gap-1.5"
+          // AI paneli yalnızca geniş ekranda açılıyor; mobilde düğme hiçbir şey yapmıyordu
+          className="hidden gap-1.5 lg:inline-flex"
         >
           <Sparkles className="h-3.5 w-3.5" />
           AI
         </Button>
       )}
+
+      {viewSwitch}
     </div>
   )
 }

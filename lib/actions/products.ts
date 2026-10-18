@@ -627,7 +627,6 @@ export async function bulkUpdateFields(updates: BulkFieldUpdate[]) {
       body: JSON.stringify({ updates }),
     }
   )
-  revalidatePath("/dashboard/excel")
   revalidatePath("/dashboard/products")
   return result
 }

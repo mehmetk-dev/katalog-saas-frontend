@@ -7,6 +7,7 @@ import type { Product, ProductStats } from "@/lib/actions/products"
 import {
   DEFAULT_ITEMS_PER_PAGE,
   PAGE_SIZE_OPTIONS,
+  PRODUCTS_VIEW_MODE_STORAGE_KEY,
   parseLimitFromQuery,
   parsePageFromQuery,
   parsePriceFromQuery,
@@ -23,7 +24,6 @@ import type { ProductsPageClientProps } from "@/components/products/products-pag
 import type { ProductsMetadata } from "./products-page-controller.types"
 
 const SEARCH_DEBOUNCE_MS = 300
-const VIEW_MODE_STORAGE_KEY = "products-view-mode"
 
 interface UseProductsPageStateParams extends ProductsPageClientProps {
   t: (key: string, params?: Record<string, unknown>) => string
@@ -83,7 +83,7 @@ export function useProductsPageState({
   // Görünüm tercihi tarayıcıda hatırlanır (ilk render sunucuyla aynı kalsın diye mount sonrası okunur)
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY)
+      const stored = window.localStorage.getItem(PRODUCTS_VIEW_MODE_STORAGE_KEY)
       if (stored === "grid" || stored === "list") setViewMode(stored)
     } catch {
       // localStorage erişilemiyorsa varsayılan liste görünümü
@@ -93,7 +93,7 @@ export function useProductsPageState({
   const changeViewMode = useCallback((mode: ViewMode) => {
     setViewMode(mode)
     try {
-      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode)
+      window.localStorage.setItem(PRODUCTS_VIEW_MODE_STORAGE_KEY, mode)
     } catch {
       // yok say
     }

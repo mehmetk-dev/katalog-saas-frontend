@@ -9,6 +9,8 @@ import { getProducts, type Product, type ProductsResponse } from "@/lib/actions/
 import { getPlanLimits } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/page-header"
+import { ProductsViewSwitch } from "@/components/products/toolbar/view-switch"
+import { PRODUCTS_TABLE_HREF, PRODUCTS_VIEW_MODE_STORAGE_KEY, type ViewMode } from "@/components/products/products-page-utils"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 import type { ExcelAiIntent, GeneratedProduct } from "@/lib/excel-ai/types"
 import type { CellField } from "./types"
@@ -73,7 +75,8 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
-  const [pendingPage, setPendingPage] = useState<number | null>(null)
+  // Kaydedilmemiş değişiklik varken bekletilen gezinme: sayfa değişimi veya liste/ızgara görünümüne dönüş
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null)
   const [sortConfig, setSortConfig] = useState<{ key: CellField; direction: "asc" | "desc" } | null>(null)
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(true)
 
@@ -160,7 +163,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
     (page: number) => {
       setCurrentPage(page)
       setSelectedIds([])
-      router.push(`/dashboard/excel?page=${page}`, { scroll: false })
+      router.push(`${PRODUCTS_TABLE_HREF}&page=${page}`, { scroll: false })
     },
     [router, setCurrentPage],
   )
@@ -168,7 +171,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
   const handlePageChange = useCallback(
     (page: number) => {
       if (spreadsheet.isDirty) {
-        setPendingPage(page)
+        setPendingNavigation(() => () => goToPage(page))
         setShowUnsavedDialog(true)
         return
       }
@@ -178,15 +181,36 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
     [spreadsheet.isDirty, goToPage],
   )
 
+  const handleViewChange = useCallback(
+    (view: ViewMode | "table") => {
+      if (view === "table") return
+      const leave = () => {
+        try {
+          window.localStorage.setItem(PRODUCTS_VIEW_MODE_STORAGE_KEY, view)
+        } catch {
+          // tercih kaydedilemezse liste görünümü açılır
+        }
+        router.push("/dashboard/products")
+      }
+      if (spreadsheet.isDirty) {
+        setPendingNavigation(() => leave)
+        setShowUnsavedDialog(true)
+        return
+      }
+      leave()
+    },
+    [spreadsheet.isDirty, router],
+  )
+
   const handleConfirmLeave = useCallback(() => {
     spreadsheet.discardAll()
     setShowUnsavedDialog(false)
 
-    if (pendingPage !== null) {
-      goToPage(pendingPage)
-      setPendingPage(null)
+    if (pendingNavigation) {
+      pendingNavigation()
+      setPendingNavigation(null)
     }
-  }, [spreadsheet, pendingPage, goToPage])
+  }, [spreadsheet, pendingNavigation])
 
   const handleDeleteSelected = useCallback(() => {
     const newRowIds = spreadsheet.newRows.map((row) => row.tempId)
@@ -356,7 +380,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
-      <PageHeader title={t("excel.title")} description={t("excel.description")} />
+      <PageHeader title={t("sidebar.products")} description={t("excel.description")} />
 
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-background shadow-sm">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -370,6 +394,7 @@ function ExcelPageContent({ initialProducts, initialMetadata, userPlan, tFn }: E
             onClearSelection={() => setSelectedIds([])}
             onOpenAI={() => setIsAiPanelOpen((prev) => !prev)}
             isAIActive={isAiPanelOpen}
+            viewSwitch={<ProductsViewSwitch value="table" onChange={handleViewChange} t={tFn} />}
           />
 
           {spreadsheet.isDirty && (

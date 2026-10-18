@@ -5,6 +5,7 @@ import { z } from "zod"
 import { getProducts, getProductStats } from "@/lib/actions/products"
 import { getCurrentUser } from "@/lib/actions/auth"
 import { ProductsPageClient } from "@/components/products/products-page-client"
+import { ExcelPageClient } from "@/components/excel/excel-page-client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DEFAULT_ITEMS_PER_PAGE, PAGE_SIZE_OPTIONS, mapSortFieldToProductSort, type SortField, type SortOrder, type StockFilter } from "@/components/products/products-page-utils"
 
@@ -33,9 +34,11 @@ const searchParamsSchema = z.object({
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; limit?: string; category?: string; search?: string; stockFilter?: StockFilter; minPrice?: string; maxPrice?: string; sortBy?: SortField; sortOrder?: SortOrder }>
+  searchParams: Promise<{ view?: string; page?: string; limit?: string; category?: string; search?: string; stockFilter?: StockFilter; minPrice?: string; maxPrice?: string; sortBy?: SortField; sortOrder?: SortOrder }>
 }) {
   const rawParams = await searchParams
+  if (rawParams.view === "table") return <ProductsTableView page={rawParams.page} />
+
   const parsed = searchParamsSchema.safeParse(rawParams)
   const { page, limit, category, search, stockFilter, minPrice, maxPrice, sortBy, sortOrder } = parsed.success
     ? parsed.data
@@ -67,6 +70,35 @@ export default async function ProductsPage({
         initialAllCategories={productsResponse.allCategories || []}
         userPlan={(user?.plan as "free" | "plus" | "pro") || "free"}
         maxProducts={user?.maxProducts || 50}
+      />
+    </Suspense>
+  )
+}
+
+// Tablo görünümü (eski Excel Düzenleyici): hücre hücre düzenleme, kaydedince toplu yazılır
+const TABLE_PAGE_SIZE = 100
+
+async function ProductsTableView({ page: rawPage }: { page?: string }) {
+  const requestedPage = Number.parseInt(rawPage || "1", 10)
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
+
+  let productsResponse: import('@/lib/actions/products').ProductsResponse = { products: [], metadata: { total: 0, page: 1, limit: TABLE_PAGE_SIZE, totalPages: 1 } }
+  let user: { plan?: string } | null = null
+
+  try {
+    const [pRes, uRes] = await Promise.all([getProducts({ page, limit: TABLE_PAGE_SIZE }), getCurrentUser()])
+    if (pRes) productsResponse = pRes
+    if (uRes) user = uRes
+  } catch (error) {
+    console.error("[ProductsPage] Error fetching table data:", error)
+  }
+
+  return (
+    <Suspense fallback={<ProductsPageSkeleton />}>
+      <ExcelPageClient
+        initialProducts={productsResponse.products}
+        initialMetadata={productsResponse.metadata}
+        userPlan={(user?.plan as "free" | "plus" | "pro") || "free"}
       />
     </Suspense>
   )
