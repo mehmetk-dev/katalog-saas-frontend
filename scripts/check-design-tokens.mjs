@@ -21,6 +21,13 @@ const IGNORED_PATHS = [
   /^app\/export\//,
   /^components\/templates\/preview-data\.ts$/,
   /^components\/billing\/payment-receipt-document\.tsx$/,
+  // Eski (Ağustos 2026) tasarımına bilerek geri alınan public sayfalar: ana sayfa, özellikler,
+  // iletişim, giriş ekranı ve public header/footer
+  /^app\/\(main\)\//,
+  /^app\/(features|contact)\//,
+  /^components\/features\//,
+  /^components\/layout\/public-(header|footer|mobile-menu)\.tsx$/,
+  /^components\/auth\/(auth-sections\/|auth-form\/|auth-page-client\.tsx$)/,
 ]
 
 // Üçüncü parti marka renkleri (paylaşım butonları)

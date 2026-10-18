@@ -1,0 +1,7 @@
+export { HeroSection } from "./hero-section"
+export { BulkUploadSection } from "./bulk-upload-section"
+export { ShareSection } from "./share-section"
+export { PublishSection } from "./publish-section"
+export { QrPdfSection } from "./qr-pdf-section"
+export { BentoGridSection } from "./bento-grid-section"
+export { CtaSection } from "./cta-section"

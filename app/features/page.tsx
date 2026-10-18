@@ -1,96 +1,39 @@
 "use client"
 
-import {
-    BarChart3,
-    FileDown,
-    FileSpreadsheet,
-    Palette,
-    QrCode,
-    Rocket,
-    Share2,
-    SlidersHorizontal,
-    Tags,
-} from "lucide-react"
-
-import { PublicFooter } from "@/components/layout/public-footer"
 import { PublicHeader } from "@/components/layout/public-header"
+import { PublicFooter } from "@/components/layout/public-footer"
 import {
-    CtaBanner,
-    FeatureCard,
-    FeatureRow,
-    MarketingPage,
-    PageHero,
-    SecondaryButton,
-    Section,
-    SectionHeader,
-    SignupButton,
-} from "@/components/marketing"
-import { useTranslation } from "@/lib/contexts/i18n-provider"
-
-const ROWS = [
-    { icon: FileSpreadsheet, key: "import" },
-    { icon: Share2, key: "share" },
-    { icon: Rocket, key: "publish" },
-] as const
-
-const MORE = [
-    { icon: QrCode, key: "qr" },
-    { icon: FileDown, key: "pdf" },
-    { icon: BarChart3, key: "analytics" },
-    { icon: Tags, key: "categories" },
-    { icon: SlidersHorizontal, key: "attributes" },
-    { icon: Palette, key: "branding" },
-] as const
+    HeroSection,
+    BulkUploadSection,
+    ShareSection,
+    PublishSection,
+    QrPdfSection,
+    BentoGridSection,
+    CtaSection,
+} from "@/components/features"
 
 export default function FeaturesPage() {
-    const { t } = useTranslation()
-
     return (
-        <MarketingPage header={<PublicHeader />} footer={<PublicFooter />}>
-            <PageHero
-                eyebrow={t("featuresPage.heroBadge")}
-                title={t("featuresPage.heroTitle")}
-                description={t("featuresPage.heroDesc")}
-                actions={
-                    <>
-                        <SignupButton>{t("featuresPage.ctaButton")}</SignupButton>
-                        <SecondaryButton href="/create-demo">{t("header.demo")}</SecondaryButton>
-                    </>
-                }
-            />
+        <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-indigo-100">
+            <PublicHeader />
 
-            <Section className="pt-0 sm:pt-0">
-                {ROWS.map((row) => (
-                    <FeatureRow
-                        key={row.key}
-                        icon={row.icon}
-                        title={t(`featuresPage.${row.key}Title`)}
-                        description={t(`featuresPage.${row.key}Desc`)}
-                        bullets={[1, 2, 3].map((n) => t(`featuresPage.${row.key}List${n}`))}
-                    />
-                ))}
-            </Section>
-
-            <Section tone="muted">
-                <SectionHeader title={t("featuresPage.moreTitle")} description={t("featuresPage.moreDesc")} />
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {MORE.map((item) => (
-                        <FeatureCard
-                            key={item.key}
-                            icon={item.icon}
-                            title={t(`featuresPage.${item.key}Title`)}
-                            description={t(`featuresPage.${item.key}Desc`)}
-                        />
-                    ))}
+            <main className="pt-32 pb-24 md:pt-40 md:pb-32 px-4 overflow-hidden">
+                {/* Ambient Background */}
+                <div className="fixed inset-0 pointer-events-none -z-10">
+                    <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vh] bg-indigo-50/80 rounded-full blur-[150px]"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vh] bg-blue-50/80 rounded-full blur-[150px]"></div>
                 </div>
-            </Section>
 
-            <CtaBanner
-                title={t("featuresPage.ctaTitle")}
-                description={t("featuresPage.ctaDesc")}
-                action={<SignupButton>{t("featuresPage.ctaButton")}</SignupButton>}
-                note={t("featuresPage.ctaNote")}
-            />
-        </MarketingPage>
+                <HeroSection />
+                <BulkUploadSection />
+                <ShareSection />
+                <PublishSection />
+                <QrPdfSection />
+                <BentoGridSection />
+                <CtaSection />
+            </main>
+
+            <PublicFooter />
+        </div>
     )
 }

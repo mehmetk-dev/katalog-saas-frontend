@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation"
 
 import { PublicHeader } from "@/components/layout/public-header"
 import { PublicFooter } from "@/components/layout/public-footer"
-import { MarketingPage } from "@/components/marketing"
 import { useTranslation } from "@/lib/contexts/i18n-provider"
 
 import { HeroSection } from "./_components/hero-section"
 import { FeaturesSection } from "./_components/features-section"
+import { MobileSection } from "./_components/mobile-section"
 import { HowItWorksSection } from "./_components/how-it-works-section"
 import { CtaSection } from "./_components/cta-section"
 
@@ -49,11 +49,14 @@ export default function HomePage() {
   }, [router])
 
   return (
-    <MarketingPage header={<PublicHeader />} footer={<PublicFooter />}>
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
+      <PublicHeader />
       <HeroSection t={t} />
       <FeaturesSection t={t} />
+      <MobileSection t={t} />
       <HowItWorksSection t={t} />
       <CtaSection t={t} />
-    </MarketingPage>
+      <PublicFooter />
+    </div>
   )
 }

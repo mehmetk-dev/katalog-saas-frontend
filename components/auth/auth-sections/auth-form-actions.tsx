@@ -1,6 +1,5 @@
 import { Loader2 } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { GoogleIcon } from "@/components/auth/google-icon"
 import type { AuthMode, TranslateFn } from "./types"
 
@@ -8,73 +7,112 @@ interface AuthFormActionsProps {
     mode: AuthMode
     isLoading: boolean
     isGoogleLoading: boolean
+    onSubmitLabel?: string
     onGoogleAuth: () => void
     onModeSwitch: (mode: AuthMode) => void
     onResetForm: () => void
     t: TranslateFn
 }
 
-const SUBMIT_LABEL_KEY: Record<AuthMode, string> = {
-    signin: "auth.signin",
-    signup: "auth.signup",
-    "forgot-password": "auth.sendResetLink",
-}
-
 export function AuthFormActions({
     mode, isLoading, isGoogleLoading, onGoogleAuth, onModeSwitch, onResetForm, t,
 }: AuthFormActionsProps) {
-    const busy = isLoading || isGoogleLoading
-    const switchTo = (next: AuthMode) => {
-        onModeSwitch(next)
-        onResetForm()
-    }
-
     return (
         <>
-            <Button type="submit" size="lg" disabled={busy} className="mt-2 h-11 w-full text-[15px]">
-                {isLoading && <Loader2 className="size-4 animate-spin" />}
-                {t(SUBMIT_LABEL_KEY[mode])}
-            </Button>
+            {/* Submit Button */}
+            <button
+                type="submit"
+                disabled={isLoading || isGoogleLoading}
+                className={cn(
+                    "w-full h-12 bg-[#B01E2E] hover:bg-[#8E1825]",
+                    "text-white font-medium rounded-xl",
+                    "shadow-lg shadow-[#B01E2E]/20 hover:shadow-[#B01E2E]/30",
+                    "hover:scale-[1.01] active:scale-[0.99]",
+                    "transition-all duration-200 disabled:opacity-70",
+                    "flex items-center justify-center gap-2 mt-4"
+                )}
+                tabIndex={5}
+            >
+                {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                    mode === 'signup'
+                        ? (t("auth.signup"))
+                        : mode === 'forgot-password'
+                            ? (t("auth.sendResetLink"))
+                            : (t("auth.signin"))
+                )}
+            </button>
 
-            {mode !== "forgot-password" && (
+            {/* Google Auth + Divider */}
+            {mode !== 'forgot-password' && (
                 <>
                     <div className="relative my-6">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-border" />
+                            <div className="w-full border-t border-slate-200" />
                         </div>
                         <div className="relative flex justify-center">
-                            <span className="bg-background px-3 text-xs text-muted-foreground">{t("auth.or")}</span>
+                            <span className={cn(
+                                "bg-[#FDFDFD] px-4 text-xs font-medium",
+                                "text-slate-400 uppercase tracking-widest"
+                            )}>
+                                {t("auth.or")}
+                            </span>
                         </div>
                     </div>
 
-                    <Button
+                    <button
                         type="button"
-                        variant="outline"
-                        size="lg"
                         onClick={onGoogleAuth}
-                        disabled={busy}
-                        className="h-11 w-full bg-card text-[15px]"
+                        disabled={isLoading || isGoogleLoading}
+                        className={cn(
+                            "w-full h-12 bg-white border border-slate-200",
+                            "hover:bg-slate-50 text-slate-900 font-medium",
+                            "rounded-xl transition-all duration-200",
+                            "flex items-center justify-center gap-3",
+                            "hover:border-slate-300 active:scale-[0.98]"
+                        )}
                     >
-                        {isGoogleLoading ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon />}
-                        {t("auth.continueWithGoogle")}
-                    </Button>
+                        {isGoogleLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                        ) : (
+                            <>
+                                <GoogleIcon />
+                                {t("auth.continueWithGoogle")}
+                            </>
+                        )}
+                    </button>
                 </>
             )}
 
-            <p className="mt-8 text-center text-sm text-muted-foreground">
-                {mode === "forgot-password" ? (
-                    <button type="button" onClick={() => switchTo("signin")} className="font-semibold text-foreground hover:underline">
-                        {t("auth.backToLogin")}
+            {/* Mode Switcher */}
+            <p className="text-center text-[14px] text-slate-500 mt-8">
+                {mode === 'forgot-password' ? (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            onModeSwitch('signin')
+                            onResetForm()
+                        }}
+                        className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
+                    >
+                        {(t("auth.backToLogin")) || "Giriş Yap'a Dön"}
                     </button>
                 ) : (
                     <>
-                        {mode === "signup" ? t("auth.alreadyHaveAccount") : t("auth.dontHaveAccount")}{" "}
+                        {mode === 'signup'
+                            ? (t("auth.alreadyHaveAccount"))
+                            : (t("auth.dontHaveAccount"))
+                        }{" "}
                         <button
                             type="button"
-                            onClick={() => switchTo(mode === "signup" ? "signin" : "signup")}
-                            className="font-semibold text-foreground hover:underline"
+                            onClick={() => {
+                                onModeSwitch(mode === 'signup' ? 'signin' : 'signup')
+                                onResetForm()
+                            }}
+                            className="text-violet-700 font-semibold hover:text-violet-900 transition-colors hover:underline"
                         >
-                            {mode === "signup" ? t("auth.signin") : t("auth.signup")}
+                            {mode === 'signup' ? (t("auth.signin")) : (t("auth.signup"))}
                         </button>
                     </>
                 )}

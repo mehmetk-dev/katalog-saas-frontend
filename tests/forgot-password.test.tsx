@@ -72,7 +72,7 @@ describe('Şifremi unuttum', () => {
                 redirectTo: expect.stringMatching(/\/auth\/confirm-recovery$/),
             })
         })
-        expect(await screen.findByText('auth.emailSentText:test@example.com')).toBeInTheDocument()
+        expect(await screen.findByText('auth.emailSentTitle')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'auth.backToLogin' })).toBeInTheDocument()
     })
 
