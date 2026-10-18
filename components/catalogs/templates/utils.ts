@@ -100,15 +100,18 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
     GBP: "£",
 }
 
+const PRICE_NUMBER_FORMAT = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
 /**
  * Format product price with the appropriate currency symbol.
  * Reads currency from `custom_attributes[name=currency]`, defaults to TRY.
+ * Türkçe biçim: ₺4.500,00 (eskiden toFixed ile "₺4500.00" çıkıyordu)
  */
 export function formatProductPrice(product: ProductLike): string {
     const currency =
-        product.custom_attributes?.find((a) => a.name === "currency")?.value || "TRY"
+        product.custom_attributes?.find((a) => a.name === "currency")?.value?.toUpperCase() || "TRY"
     const symbol = CURRENCY_SYMBOLS[currency] || "₺"
-    return `${symbol}${Number(product.price).toFixed(2)}`
+    return `${symbol}${PRICE_NUMBER_FORMAT.format(Number(product.price) || 0)}`
 }
 
 // ─── Header Layout & Positioning ──────────────────────────────────────────────

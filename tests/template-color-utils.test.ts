@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { contrastRatio, ensureReadable, isLightColor, resolveTemplateBackground } from '@/components/catalogs/templates/utils'
+import { contrastRatio, ensureReadable, formatProductPrice, isLightColor, resolveTemplateBackground } from '@/components/catalogs/templates/utils'
 
 describe('template color utils', () => {
   it('contrastRatio: siyah/beyaz 21, aynı renk 1', () => {
@@ -38,5 +38,13 @@ describe('template color utils', () => {
     expect(resolveTemplateBackground('#FFF', '#0a0a0a')).toBe('#0a0a0a')
     expect(resolveTemplateBackground(null, '#0a0a0a')).toBe('#0a0a0a')
     expect(resolveTemplateBackground('#fef7ed', '#0a0a0a')).toBe('#fef7ed')
+  })
+})
+
+describe('formatProductPrice', () => {
+  it('Türkçe binlik ve ondalık ayırıcıyla, para birimi simgesiyle yazar', () => {
+    expect(formatProductPrice({ price: 4500 } as never)).toBe('₺4.500,00')
+    expect(formatProductPrice({ price: 1250.5, custom_attributes: [{ name: 'currency', value: 'usd' }] } as never)).toBe('$1.250,50')
+    expect(formatProductPrice({ price: null } as never)).toBe('₺0,00')
   })
 })
